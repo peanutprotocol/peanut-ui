@@ -6,14 +6,12 @@ import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { invitesApi } from '@/services/invites'
-import { PERSON } from '@/constants/query.consts'
 import { usePerson } from '@/lib/person/usePerson'
 import { useRouter } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
@@ -50,9 +48,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const profileUserId = profile?.userId ?? null
     const isKycVerified = profile?.isVerified ?? false
     const profileBadges = profile?.badges ?? []
-    const queryClient = useQueryClient()
     const router = useRouter()
-    const locale = useLocale()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
@@ -131,15 +127,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             {t('joinCta')}
         </Button>
     )
-
-    // The api localizes badge copy, so refetch when the language changes. The
-    // first render already fetches in the current language.
-    const fetchedLocale = useRef(locale)
-    useEffect(() => {
-        if (fetchedLocale.current === locale) return
-        fetchedLocale.current = locale
-        void queryClient.invalidateQueries({ queryKey: [PERSON, username.toLowerCase()] })
-    }, [locale, username, queryClient])
 
     // interaction-status is the complete "sent money before" source (covers send-link
     // claims etc., unlike the profile payload's narrow received-from-you sum); stays

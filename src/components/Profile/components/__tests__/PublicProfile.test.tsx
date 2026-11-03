@@ -24,6 +24,12 @@ let mockAuth: { user: null | { user: { username: string; hasAppAccess: boolean }
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, back: mockBack }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/services/users', () => ({ usersApi: { getByUsername: (u: string) => mockGetByUsername(u) } }))
+// The language api-fetch sends as Accept-Language, which keys the profile cache.
+let mockAppLocale: string | null = null
+jest.mock('@/i18n/app/locale-store', () => ({
+    ...jest.requireActual('@/i18n/app/locale-store'),
+    currentAppLocale: () => mockAppLocale,
+}))
 jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: (ids: string[]) => mockUseUserInteractions(ids),
 }))
@@ -386,15 +392,33 @@ describe('PublicProfile language change', () => {
     )
 
     beforeEach(() => {
+        mockAppLocale = 'en'
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
         mockGetByUsername.mockResolvedValue({ userId: 'user-1', username: 'satoshi' })
+    })
+
+    afterEach(() => {
+        mockAppLocale = null
     })
 
     it('refetches the profile when the language changes', async () => {
         const { rerender } = renderProfile(inLocale('en'))
         await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(1))
 
+        mockAppLocale = 'es-419'
         rerender(inLocale('es-419'))
+
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(2))
+    })
+
+    it('refetches a profile cached before a language change made on another screen', async () => {
+        const first = renderProfile(inLocale('en'))
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(1))
+        first.unmount()
+
+        // the settings page changes the language while no profile is mounted
+        mockAppLocale = 'es-419'
+        renderProfile(inLocale('es-419'))
 
         await waitFor(() => expect(mockGetByUsername).toHaveBeenCalledTimes(2))
     })

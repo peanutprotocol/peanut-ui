@@ -1,11 +1,15 @@
 import { queryClient } from '@/config/queryClient'
 import { PERSON } from '@/constants/query.consts'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 import { apiErrorStatus } from '@/services/api-error'
 import { type ApiUser, usersApi } from '@/services/users'
 
-/** One cache entry per handle, shared by `usePerson` and the URL parser. */
+/** One cache entry per handle and language, shared by `usePerson` and the URL
+ *  parser. The api localizes the profile's badge copy, so the key carries the
+ *  language that api-fetch sends as Accept-Language: a profile fetched before a
+ *  language change is never served after it. */
 export const personQuery = (username: string) => ({
-    queryKey: [PERSON, username.toLowerCase()],
+    queryKey: [PERSON, username.toLowerCase(), currentAppLocale()],
     queryFn: () => usersApi.getByUsername(username.toLowerCase()),
     staleTime: 5 * 60 * 1000,
     // A 4xx (an unknown or deactivated handle) is the answer, so only a 5xx or
