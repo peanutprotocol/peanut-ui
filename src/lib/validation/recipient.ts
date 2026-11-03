@@ -4,7 +4,7 @@ import { resolveEns } from '@/app/actions/ens'
 
 import { AccountType } from '@/interfaces/interfaces'
 import { personFrom } from '@/lib/person/person'
-import { fetchProfile } from '@/lib/person/usePerson'
+import { fetchProfile } from '@/lib/person/personQuery'
 import { serverFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import { RecipientValidationError } from '../url-parser/errors'

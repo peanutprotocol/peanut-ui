@@ -1,7 +1,9 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import { queryClient } from '@/config/queryClient'
 import { serverFetch } from '@/utils/api-fetch'
+import { fetchProfile } from '../personQuery'
 import { usePerson } from '../usePerson'
 
 // The real usersApi.getByUsername runs, so a 404 goes through the same path as in the app.
@@ -64,6 +66,20 @@ describe('usePerson', () => {
 
         expect(second.result.current.person?.avatarKey).toBe('basic.cloud')
         expect(mockServerFetch).toHaveBeenCalledTimes(1)
+    })
+
+    // the URL parser fetches the recipient outside React; the views must not ask again
+    it('reads the profile the URL parser fetched', async () => {
+        mockServerFetch.mockResolvedValue(response(200, alice))
+        client = queryClient
+        client.clear()
+
+        await fetchProfile('Alice')
+        const { result } = renderHook(() => usePerson('alice'), { wrapper })
+
+        expect(result.current.person?.avatarKey).toBe('basic.cloud')
+        expect(mockServerFetch).toHaveBeenCalledTimes(1)
+        client.clear()
     })
 
     it('stays idle while there is no username', () => {
