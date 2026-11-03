@@ -221,14 +221,15 @@ const INERT_JSON_BLOCK = /<script type="application\/json"(?: id="[A-Za-z0-9_-]+
 
 // After an inert block, anything a browser runs (a script, an event handler, a javascript: URL) may be what
 // the space run inside the block pushed off-screen, so the line then stays code.
-const RUNS_IN_PAGE = /<script(?![^>]*type="application\/json")|\son[a-z]+\s*=|javascript:/i
+// Elements that load or run other content (an iframe srcdoc holds a whole page) count as runnable too.
+const RUNS_IN_PAGE = /<script(?![^>]*type="application\/json")|\son[a-z]+\s*=|javascript:|srcdoc\s*=|<(i?frame|object|embed|link|style|svg|math|meta|base|portal|template)\b/i
 
 /** A saved web page line whose only off-screen gap is inside inert JSON, with nothing runnable after it. */
 export function hidesOnlyInertJson(text) {
 	if (HIDDEN_RUN.test(withoutInertJson(text))) return false
-	let end = -1
-	for (const m of text.matchAll(INERT_JSON_BLOCK)) if (HIDDEN_RUN.test(m[0])) end = m.index + m[0].length
-	return end >= 0 && !RUNS_IN_PAGE.test(text.slice(end))
+	// Everything after the first gap is off-screen, including markup between two inert blocks.
+	const first = [...text.matchAll(INERT_JSON_BLOCK)].find((m) => HIDDEN_RUN.test(m[0]))
+	return Boolean(first) && !RUNS_IN_PAGE.test(text.slice(first.index + first[0].length))
 }
 
 export function withoutInertJson(text) {
