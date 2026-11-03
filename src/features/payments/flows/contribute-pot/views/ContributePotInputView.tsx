@@ -116,7 +116,10 @@ export function ContributePotInputView() {
                     <UserCard
                         type="request_pay"
                         username={recipient.username}
-                        recipientType="USERNAME"
+                        // a requester with no Peanut user behind the request shows as the address it is
+                        {...(recipient.person
+                            ? { recipientType: 'USERNAME' as const, person: recipient.person }
+                            : { recipientType: 'ADDRESS' as const })}
                         isVerified={!!recipient.userId}
                         message={request?.reference || ''}
                         fileUrl={request?.attachmentUrl || ''}
@@ -124,7 +127,6 @@ export function ContributePotInputView() {
                         amountCollected={totalCollected}
                         isRequestPot={true}
                         contributors={contributors}
-                        avatarKey={recipient.avatarKey}
                     />
                 )}
 
@@ -172,8 +174,7 @@ export function ContributePotInputView() {
                     isAmountEntered={isAmountEntered}
                     usdAmount={amount}
                     recipientUserId={recipient?.userId}
-                    recipientUsername={recipient?.username}
-                    recipientAvatarKey={recipient?.avatarKey}
+                    person={recipient?.person}
                     requestMessage={request?.reference || ''}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}
