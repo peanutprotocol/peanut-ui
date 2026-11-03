@@ -47,17 +47,13 @@ export function captureSessionFence(
     if (!synthetic && !getAuthToken()) {
         fence.ready = authReady().then(
             () => {
-                if (!current()) return
-                userId = tokenUserId(getAuthToken())
-                if (!userId) unavailable?.()
+                if (current()) userId = tokenUserId(getAuthToken())
             },
             () => {
                 if (current()) unavailable?.()
                 failed = true
             }
         )
-    } else if (!userId) {
-        unavailable?.()
     }
     return fence
 }
