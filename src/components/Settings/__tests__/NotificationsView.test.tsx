@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 import { NotificationsView } from '../NotificationsView'
@@ -77,6 +77,27 @@ it('shows the saved choices and saves Email updates without asking the OS', asyn
     expect(email()).toHaveAttribute('aria-checked', 'true')
     await waitFor(() => expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }, 'user-a'))
     expect(mockPermission).not.toHaveBeenCalled()
+})
+
+it('groups the push switches and the email switch under their own headings', async () => {
+    mockDenied = true
+    renderWithIntl(<NotificationsView />)
+    await waitFor(() => expect(important()).toBeEnabled())
+    const push = screen.getByRole('heading', { name: 'Push notifications' }).closest('section')!
+    const mail = screen.getByRole('heading', { name: 'Email' }).closest('section')!
+    expect(
+        within(push)
+            .getAllByRole('switch')
+            .map((s) => s.getAttribute('aria-label'))
+    ).toEqual(['Important alerts', 'Offers and perks'])
+    expect(
+        within(mail)
+            .getAllByRole('switch')
+            .map((s) => s.getAttribute('aria-label'))
+    ).toEqual(['Email updates'])
+    const blocked = screen.getByText('Notifications are off in your device settings.')
+    expect(push.compareDocumentPosition(blocked) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(blocked.compareDocumentPosition(mail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
 it('turns Offers and perks on with Important off, asking the OS in the same tap', async () => {

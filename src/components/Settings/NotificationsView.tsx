@@ -7,6 +7,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
 import NavHeader from '@/components/Global/NavHeader'
@@ -25,11 +26,14 @@ import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 
 type Switch = 'push' | 'marketingPush' | 'emailUpdates'
 
-const SWITCHES: { key: Switch; icon: IconName; label: 'important' | 'offers' | 'email' }[] = [
+type SwitchRow = { key: Switch; icon: IconName; label: 'important' | 'offers' | 'email' }
+
+const PUSH_SWITCHES: SwitchRow[] = [
     { key: 'push', icon: 'bell', label: 'important' },
     { key: 'marketingPush', icon: 'gift', label: 'offers' },
-    { key: 'emailUpdates', icon: 'mail', label: 'email' },
 ]
+
+const EMAIL_SWITCHES: SwitchRow[] = [{ key: 'emailUpdates', icon: 'mail', label: 'email' }]
 
 export const NotificationsView = () => {
     const t = useTranslations('settings.notifications')
@@ -105,6 +109,29 @@ export const NotificationsView = () => {
         void save(key, on, session, permission)
     }
 
+    const switchGroup = (rows: SwitchRow[]) => (
+        // A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling).
+        <ListGroup>
+            {rows.map(({ key, icon, label }) => (
+                <ListItem
+                    key={key}
+                    title={t(label)}
+                    body={t(`${label}Body`)}
+                    bodyWrap
+                    leading={<IconBubble icon={icon} size="s" color="blue" />}
+                    trailing={
+                        <Toggle
+                            aria-label={t(label)}
+                            checked={choices?.[key] ?? false}
+                            onChange={(on) => onToggle(key, on)}
+                            disabled={!choices || saving}
+                        />
+                    }
+                />
+            ))}
+        </ListGroup>
+    )
+
     return (
         <PageStack gap="6" className="h-full bg-background-page">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -114,26 +141,8 @@ export const NotificationsView = () => {
                 </Callout>
             ) : (
                 <>
-                    {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
-                    <ListGroup>
-                        {SWITCHES.map(({ key, icon, label }) => (
-                            <ListItem
-                                key={key}
-                                title={t(label)}
-                                body={t(`${label}Body`)}
-                                bodyWrap
-                                leading={<IconBubble icon={icon} size="s" color="blue" />}
-                                trailing={
-                                    <Toggle
-                                        aria-label={t(label)}
-                                        checked={choices?.[key] ?? false}
-                                        onChange={(on) => onToggle(key, on)}
-                                        disabled={!choices || saving}
-                                    />
-                                }
-                            />
-                        ))}
-                    </ListGroup>
+                    <Section title={t('pushSection')}>{switchGroup(PUSH_SWITCHES)}</Section>
+                    {/* The OS setting only blocks push, so its warning sits under the push switches. */}
                     {isPermissionDenied && (
                         <Callout
                             priority="attention"
@@ -146,6 +155,7 @@ export const NotificationsView = () => {
                             {t('blocked')}
                         </Callout>
                     )}
+                    <Section title={t('emailSection')}>{switchGroup(EMAIL_SWITCHES)}</Section>
                 </>
             )}
         </PageStack>

@@ -705,6 +705,8 @@
         "notifications": {
             "title": "Notifications",
             "loadFailed": "We couldn’t load your settings. Please try again.",
+            "pushSection": "Push notifications",
+            "emailSection": "Email",
             "important": "Important alerts",
             "importantBody": "Payments, account and security",
             "offers": "Offers and perks",
