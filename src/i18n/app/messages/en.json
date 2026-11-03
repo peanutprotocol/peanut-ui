@@ -414,11 +414,6 @@
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
             "bankOnlyNotAvailableNote": "Bank transfers aren't available for residents of your country.",
             "cardNotAvailableNote": "The Peanut card isn't available for residents of your country.",
-            "unlockModal": {
-                "title": "Unlock {method}",
-                "titleGeneric": "Unlock this payment method",
-                "notNow": "Not now"
-            },
             "changeModal": {
                 "title": "Change residence",
                 "description": "Pick the country where you legally live: the one your documents show.",
@@ -3110,21 +3105,14 @@
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
             "titleIdentityDocumentMissing": "Complete your verification",
-            "titleCrossRegion": "Unlock {region}",
-            "titleCrossRegionGeneric": "Unlock this region",
             "titleRegionUnavailable": "Not available for UK residents",
-            "titleDefault": "Unlock account",
             "descriptionError": "{error} Please contact support for assistance.",
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
             "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
-            "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
-            "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
-            "descriptionCountryPayments": "Confirm your ID to turn on bank transfers and payments in {region}.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "titleBankUnavailable": "Not available in this country",
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
-            "descriptionDefault": "Confirm your ID to unlock payments.",
             "ctaUploadDocument": "Upload document",
             "ctaUnlockNow": "Verify identity",
             "ctaWithdrawFunds": "Withdraw funds",
@@ -3488,10 +3476,6 @@
             "notifyMe": "Notify me when it's back"
         },
         "prep": {
-            "intro": {
-                "standard": "Get these ready now, so you are not hunting for them halfway through.",
-                "extended": "This check has more steps than most. Set aside a few extra minutes."
-            },
             "items": {
                 "id": {
                     "label": "ID",
@@ -3503,31 +3487,15 @@
                     "title": "In-app photo",
                     "body": "Take a selfie in the app. Good light helps."
                 },
-                "taxId": {
-                    "label": "Tax ID",
-                    "title": "Tax ID",
-                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers.",
-                    "bodyAR": "CUIT or CUIL, from your DNI. Needed for local bank transfers.",
-                    "bodyBR": "CPF. Needed for local bank transfers."
-                },
-                "questions": {
-                    "label": "Questions",
-                    "title": "A few short questions",
-                    "body": "Regulatory declarations we are required to ask for."
-                },
                 "proofOfAddress": {
                     "label": "Address",
                     "title": "Recent proof",
                     "body": "A utility bill, bank statement, or official letter from the last 3 months showing your name and address. Not everyone is asked for it, and there is no way to add it later."
                 }
             },
-            "howLongLabel": "How long",
             "howLong": {
-                "standard": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
-                "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
                 "hosted": "Verification process usually takes a few minutes if you have all the documents in hand. If a reviewer has to look at it, 1 to 3 business days."
             },
-            "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
             "startCta": "I have these, start",
             "singleSession": {
                 "title": "Finish it in one go",

@@ -41,7 +41,8 @@ import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepS
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import { restoreNativeStatusBar } from './useInsetColor'
-import { ProofOfAddressScreen, ReviewScreen, SavedScreen, StepsScreen } from './components/StatusScreens'
+import { ProofOfAddressScreen, ReviewScreen, SavedScreen } from './components/StatusScreens'
+import { StepsScreen } from './components/StepsScreen'
 import {
     stepsLabel,
     trackPaperworkVerification,

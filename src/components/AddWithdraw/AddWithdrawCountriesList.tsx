@@ -576,7 +576,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 reasonCode={getGateReasonCode(gate)}
                 nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
                 pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
-                regionName={currentCountry && localizedCountryTitle(locale, currentCountry)}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(currentCountry)) === 'bridge'
                         ? bridgeProviderId

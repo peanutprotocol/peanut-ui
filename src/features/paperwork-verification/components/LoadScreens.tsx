@@ -4,7 +4,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { StepsScreen } from './StatusScreens'
+import { StepsScreen } from './StepsScreen'
 import { VerifyFooter, VerifyHeroLayout } from './VerifyLayout'
 
 /** Every load in this flow opens on the steps overview, so its skeleton stands in: never a loading mascot. */

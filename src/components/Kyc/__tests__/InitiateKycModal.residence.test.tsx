@@ -47,14 +47,14 @@ describe('InitiateKycModal — residence check', () => {
         mockPush.mockClear()
     })
 
-    it('offers the unlock when banking is available', () => {
+    it('offers the ID check intro when banking is available', () => {
         renderModal()
-        expect(screen.getByText('Verify identity')).toBeInTheDocument()
-        expect(screen.getByTestId('kyc-initiate-cta')).toHaveTextContent('Verify identity')
+        expect(screen.getByText('Your ID check')).toBeInTheDocument()
+        expect(screen.getByTestId('kyc-initiate-cta')).toHaveTextContent('Continue')
     })
 
     it("marks the cross-region continue with the caller's test id", () => {
-        renderModal({ variant: 'cross_region', regionName: 'Argentina', ctaTestId: 'kyc-identity-gate-cta' })
+        renderModal({ variant: 'cross_region', ctaTestId: 'kyc-identity-gate-cta' })
         expect(screen.getByTestId('kyc-identity-gate-cta')).toHaveTextContent('Continue')
         expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     })
@@ -63,7 +63,7 @@ describe('InitiateKycModal — residence check', () => {
         mockRestrictions = { banking: true, card: false }
         renderModal()
         expect(screen.getByText('Not available in this country')).toBeInTheDocument()
-        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     })
 
     it('leaves no path into the SDK for a restricted residence', () => {
@@ -101,7 +101,7 @@ describe('InitiateKycModal — residence check', () => {
         renderModal({ variant: 'bank-unavailable' })
         expect(screen.getByText('Not available in this country')).toBeInTheDocument()
         expect(screen.queryByText('Not available for UK residents')).not.toBeInTheDocument()
-        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     })
 
     it('yields to the document-jurisdiction screen', () => {

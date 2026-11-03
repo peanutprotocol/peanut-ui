@@ -25,7 +25,7 @@ import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
 import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { formatUsdcBalance } from '@/utils/balance.utils'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useParams } from 'next/navigation'
 import { useQueryState, useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import posthog from 'posthog-js'
@@ -45,7 +45,6 @@ export function useBridgeBankFlow() {
     // country comes from the path on web, from ?country= on native (nuqs per
     // the URL-as-State rule; read-only here)
     const [countryFromQuery] = useQueryState('country', parseAsString)
-    const locale = useLocale()
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
 
@@ -378,7 +377,6 @@ export function useBridgeBankFlow() {
         selectedCountry,
         onBack,
         // i18n
-        locale,
         t,
         tCommon,
         // gate + kyc

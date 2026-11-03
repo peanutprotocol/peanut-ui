@@ -99,13 +99,11 @@ import {
 } from '@/features/withdraw/manteca-withdraw-amount'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
-import { useLocale, useTranslations } from 'next-intl'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
 export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams: Pick<URLSearchParams, 'get'> }) {
-    const locale = useLocale()
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -1137,7 +1135,6 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 }
                 providerMessage={mantecaRejection.userMessage ?? undefined}
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
-                regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 verifyEntry={{ intent: 'LATAM', targetCountry: selectedCountry?.id }}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />

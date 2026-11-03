@@ -26,7 +26,7 @@ import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { DOCUMENT_KEYS } from './paperworkVerification.utils'
 import { VERIFY_RESTART_PARAM } from './paperworkVerificationEntry'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
-import { StepsScreen } from './components/StatusScreens'
+import { StepsScreen } from './components/StepsScreen'
 import {
     trackPaperworkVerification,
     PaperworkVerificationTrackingProvider,

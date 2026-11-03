@@ -31,8 +31,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useLocale, useTranslations } from 'next-intl'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { useTranslations } from 'next-intl'
 import { useBankEntryFor } from '@/hooks/useBankRows'
 import { isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
@@ -55,7 +54,6 @@ type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
 const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = ({ searchParams }) => {
     const params = useParams()
     const queryClient = useQueryClient()
-    const locale = useLocale()
     const t = useTranslations('addMoney')
     const tErrors = useTranslations('errors')
     const tKyc = useTranslations('kyc')
@@ -473,7 +471,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
                     reasonCode={mantecaRejection.reasonCode ?? undefined}
-                    regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                     verifyEntry={{ intent: 'LATAM', targetCountry: selectedCountry?.id }}
                 />
                 <SumsubKycModals flow={sumsubFlow} onCooldownClose={closeKycModal} />

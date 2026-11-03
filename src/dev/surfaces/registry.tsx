@@ -43,7 +43,6 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
-import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
@@ -347,7 +346,6 @@ import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
-import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
@@ -604,10 +602,6 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['29-b-kycstatusdrawer'],
         render: () => <KycStatusDrawer isOpen onClose={noop} />,
     },
-    '30-b-unlockmethodmodal': {
-        ...SURFACE_META['30-b-unlockmethodmodal'],
-        render: () => <UnlockMethodModal visible onClose={noop} onUnlock={noop} methodLabel="SEPA transfers" />,
-    },
     '32-c-cancelcardmodal': {
         ...SURFACE_META['32-c-cancelcardmodal'],
         render: () => <CancelCardModal cardId="demo-card" isOpen onClose={noop} />,
@@ -850,27 +844,11 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
-    '69-e-kycprepchecklist-standard': {
-        ...SURFACE_META['69-e-kycprepchecklist-standard'],
-        render: () => (
-            <div className="p-4">
-                <KycPrepChecklist path="standard" />
-            </div>
-        ),
-    },
-    '70-e-kycprepchecklist-extended': {
-        ...SURFACE_META['70-e-kycprepchecklist-extended'],
-        render: () => (
-            <div className="p-4">
-                <KycPrepChecklist path="extended" />
-            </div>
-        ),
-    },
     '71-e-kycprepchecklist-hosted': {
         ...SURFACE_META['71-e-kycprepchecklist-hosted'],
         render: () => (
             <div className="p-4">
-                <KycPrepChecklist path="hosted" />
+                <KycPrepChecklist />
             </div>
         ),
     },
@@ -1172,8 +1150,6 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
-    'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
-    'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

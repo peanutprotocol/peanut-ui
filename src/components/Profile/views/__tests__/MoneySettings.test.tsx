@@ -181,13 +181,14 @@ const mockCapabilityBlock = () => {
 }
 let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null
 let mockApiBank: import('@/types/capabilities').FeatureAccountsEntry | null = null
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({
+jest.mock('@/context/authContext', () => {
+    const useAuth = () => ({
         user: mockUser
             ? { ...mockUser, capabilities: mockCapabilityBlock(), identityVerification: mockIdentity }
             : null,
-    }),
-}))
+    })
+    return { useAuth, useOptionalAuth: useAuth }
+})
 
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),
@@ -253,21 +254,22 @@ jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
     KycFailedModal: ({ visible, isTerminal }: { visible: boolean; isTerminal?: boolean }) =>
         visible ? <div>failed-modal-open:{isTerminal ? 'terminal' : 'retry'}</div> : null,
 }))
-jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
-    __esModule: true,
-    default: ({
+jest.mock('@/features/paperwork-verification/components/IdentityCheckIntroScreen', () => ({
+    IdentityCheckIntroScreen: ({
         visible,
-        methodLabel,
-        onUnlock,
+        providerId,
+        hasQuestions,
+        onContinue,
     }: {
         visible: boolean
-        methodLabel: string | null
-        onUnlock: () => void
+        providerId?: string | null
+        hasQuestions: boolean
+        onContinue: () => void
     }) =>
         visible ? (
             <div>
-                unlock-modal-open:{methodLabel}
-                <button onClick={onUnlock}>unlock now</button>
+                unlock-modal-open:{providerId ?? 'no-provider'}:{hasQuestions ? 'questions' : 'id-only'}
+                <button onClick={onContinue}>unlock now</button>
             </div>
         ) : null,
 }))
@@ -487,10 +489,10 @@ describe('MoneySettings', () => {
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {
+    it('a bank-method tap opens the ID check intro and NEVER routes to /card', () => {
         render()
         fireEvent.click(screen.getByText('EUR'))
-        expect(screen.getByText('unlock-modal-open:EUR · Bank transfer')).toBeInTheDocument()
+        expect(screen.getByText('unlock-modal-open:bridge:id-only')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 
@@ -1188,7 +1190,7 @@ describe('MoneySettings', () => {
                 '/withdraw/manteca?method=pix&country=brazil'
             )
             fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
-            expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
             unmount()
 
             render('payments')
@@ -1349,7 +1351,7 @@ describe('MoneySettings', () => {
         it('sibling rows still route into the one verification that opens both', () => {
             render()
             fireEvent.click(screen.getByText('MXN'))
-            expect(screen.getByText('unlock-modal-open:MXN · SPEI')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:bridge:id-only')).toBeInTheDocument()
         })
 
         it("a usable row opens that currency's own details drawer", () => {
@@ -1382,7 +1384,7 @@ describe('MoneySettings', () => {
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
             fireEvent.click(screen.getByText('QR payments'))
-            expect(screen.getByText('unlock-modal-open:QR payments')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:no-provider:questions')).toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
@@ -1580,7 +1582,7 @@ describe("a row's modal reads the rails of its own country", () => {
         dualResident()
         render()
         fireEvent.click(screen.getByText('BRL'))
-        expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+        expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
     })
 
