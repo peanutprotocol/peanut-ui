@@ -9,6 +9,7 @@ import { type TransactionDetails, REWARD_TOKENS } from '@/components/Transaction
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { RecipientType } from '@/interfaces/interfaces'
@@ -38,6 +39,7 @@ import { type ClaimXChainPreview } from './Claim.consts'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useQueryStates, parseAsString } from 'nuqs'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { withPublicReceipt } from '@/utils/history.utils'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
 // state machine for the claim page — extracted verbatim from Claim.tsx
@@ -277,6 +279,19 @@ export const useClaimFlow = () => {
         return true
     }, [selectedTransaction, linkState, user, claimLinkData])
 
+    // The receipt is built from the link, so only its history entry can say
+    // whether it has a public link to share. Only the sender gets this
+    // receipt, so guests and receivers never read the entry.
+    const { data: historyEntry } = useHistoryEntry(claimLinkData?.pubKey, 'SEND_LINK', {
+        enabled: showTransactionReceipt,
+    })
+    // Activity keys the link's receipt by the intent id, the link page by its
+    // pubKey: take the entry's id so both share the same receipt link.
+    const receiptTransaction = useMemo(() => {
+        if (!selectedTransaction || !historyEntry) return selectedTransaction
+        return withPublicReceipt({ ...selectedTransaction, id: historyEntry.uuid }, historyEntry)
+    }, [selectedTransaction, historyEntry])
+
     // Process sendLink data when it arrives (TanStack Query handles retry automatically)
     // This effect processes link validation WITHOUT user-dependent logic
     useEffect(() => {
@@ -475,7 +490,7 @@ export const useClaimFlow = () => {
         setUserId,
         initialKYCStep,
         setInitialKYCStep,
-        selectedTransaction,
+        selectedTransaction: receiptTransaction,
         showTransactionReceipt,
         isLinkCancelling,
         setisLinkCancelling,
