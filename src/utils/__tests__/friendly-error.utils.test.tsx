@@ -283,6 +283,22 @@ describe('one-level .cause walk on the fallback', () => {
 })
 
 describe('backend wire codes', () => {
+    test('Manteca account rejection code wins over misleading KYC prose and HTTP 403', () => {
+        const err = new ApiError('KYC_REQUIRED: complete account setup', {
+            status: 403,
+            code: 'MANTECA_ACCOUNT_REJECTED',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'mantecaAccountRejected' })
+    })
+
+    test('MANTECA_KYC_REQUIRED keeps its existing account-setup message handling', () => {
+        const err = new ApiError('Complete account setup to continue', {
+            status: 400,
+            code: 'MANTECA_KYC_REQUIRED',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'text', text: 'Complete account setup to continue' })
+    })
+
     test('a saved bank account the provider refused maps to the add-it-again copy, not the 409 prose', () => {
         const err = new ApiError('This bank account can no longer be used. Add it again.', {
             status: 409,

@@ -26,7 +26,7 @@ const wire = (status: string): HistoryEntry =>
 
 const rowsFor = (status: string) => {
     const { transactionDetails } = mapTransactionDataForDrawer(wire(status))
-    const { result } = renderHook(() => useReceiptViewModel(transactionDetails, { isPublic: false }))
+    const { result } = renderHook(() => useReceiptViewModel(transactionDetails, { isPublic: false, surface: 'drawer' }))
     return { transaction: transactionDetails, rows: result.current.rowVisibilityConfig }
 }
 

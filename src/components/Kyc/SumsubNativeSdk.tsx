@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import posthog from 'posthog-js'
 import Modal from '@/components/Global/Modal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -45,6 +46,9 @@ export const ORPHANED_SDK_GRACE_MS = 2000
 export const SumsubNativeSdk = ({
     visible,
     accessToken,
+    documentConfig,
+    preselection,
+    identityStepTitle,
     email,
     onClose,
     onComplete,
@@ -63,6 +67,12 @@ export const SumsubNativeSdk = ({
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
     // A profile refresh must not relaunch the SDK over the user's KYC edits.
+    const documentConfigRef = useRef(documentConfig)
+    documentConfigRef.current = documentConfig
+    const preselectionRef = useRef(preselection)
+    preselectionRef.current = preselection
+    const identityStepTitleRef = useRef(identityStepTitle)
+    identityStepTitleRef.current = identityStepTitle
     const emailRef = useRef(email)
     emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
@@ -98,7 +108,12 @@ export const SumsubNativeSdk = ({
                 message: detail instanceof Error ? detail.message : String(detail),
             })
             Sentry.captureException(detail instanceof Error ? detail : new Error(`[sumsub] native ${reason}`), {
-                tags: { sumsub_sdk: 'native', sumsub_failure: reason },
+                tags: {
+                    ...criticalFlowTags('kyc'),
+                    kyc_step: 'sdk_launch',
+                    sumsub_sdk: 'native',
+                    sumsub_failure: reason,
+                },
                 extra: { detail },
             })
             setFailure(kind)
@@ -149,7 +164,7 @@ export const SumsubNativeSdk = ({
         }
 
         try {
-            instance = sumsub
+            let builder = sumsub
                 .init(accessTokenRef.current!, () => onRefreshTokenRef.current())
                 .withHandlers({
                     onStatusChanged: (event) => {
@@ -163,7 +178,18 @@ export const SumsubNativeSdk = ({
                 .withLocale(sumsubLocaleRef.current)
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
-                .build()
+            // Sumsub's intro calls every ID "Identity document"; name the one the user picked.
+            if (identityStepTitleRef.current && typeof builder.withStrings === 'function')
+                builder = builder.withStrings({ sns_step_IDENTITY_title: identityStepTitleRef.current })
+            const documentDefinitions = documentConfigRef.current?.documentDefinitions
+            if (documentDefinitions) {
+                if (typeof builder.withPreferredDocumentDefinitions === 'function') {
+                    builder = builder.withPreferredDocumentDefinitions(documentDefinitions)
+                } else if (preselectionRef.current !== 'preferred') {
+                    throw new Error('Document preselection requires an app update')
+                }
+            }
+            instance = builder.build()
 
             // The Cordova wrapper keeps a module-level instance lock until its
             // launch promise settles. A backgrounded native screen can disappear

@@ -24,6 +24,8 @@ type KycFailedProps = {
     reviewedAt?: string
     onRetry: () => void
     isLoading?: boolean
+    /** a terminal cause the app can name (e.g. a rejected imported identity) */
+    terminalMessage?: string
 } & (
     | {
           // A terminal render drops the retry button, so "Contact support" is the
@@ -45,6 +47,7 @@ export const KycFailed = ({
     isLoading,
     isTerminal = false,
     onContactSupport,
+    terminalMessage,
 }: KycFailedProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -73,7 +76,7 @@ export const KycFailed = ({
                 {hasReason && <PaymentInfoRow label={t('reason')} value={t('actionMessageFailed')} hideBottomBorder />}
             </Card>
 
-            <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
+            <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} terminalMessage={terminalMessage} />
 
             {isTerminal ? (
                 <Button variant="primary" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>

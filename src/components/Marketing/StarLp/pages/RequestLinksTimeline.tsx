@@ -72,7 +72,7 @@ export function RequestLinksTimeline() {
                         type="button"
                         tabIndex={-1}
                         onClick={emphasizeAfter(0)}
-                        className={`${button} bg-yellow-500`}
+                        className={`${button} bg-background-accent-yellow`}
                     >
                         Share {REQUEST_LINKS_STORY.amount} request
                     </button>

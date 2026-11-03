@@ -6,6 +6,11 @@
 export type SumsubSubmissionSource = 'sdk_submitted' | 'sdk_teardown'
 
 export interface SumsubSdkProps {
+    documentConfig?: import('@/app/actions/types/kyc-workflow.types').KycDocumentConfig
+    /** 'required' (default) fails without native preselection support; 'preferred' opens the SDK without it. */
+    preselection?: 'required' | 'preferred'
+    /** The picked document's name, for the native SDK's ID step in place of its "Identity document". */
+    identityStepTitle?: string
     sessionKey?: string
     visible: boolean
     accessToken: string | null

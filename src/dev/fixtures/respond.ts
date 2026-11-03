@@ -10,6 +10,8 @@ import { isStressActive, stressResponse } from './stress'
 import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
+import type { IUserProfile } from '@/interfaces/interfaces'
+import { withFixtureFeatureReport } from './featureReport'
 
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
@@ -62,10 +64,21 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
     const stress = isStressActive() && !!base.headers.get('content-type')?.includes('json')
-    if (override === undefined && !stress) return base
+    if (override === undefined && !stress && key !== 'GET /users/me') return base
 
     const data = await base.json().catch(() => ({}))
-    const merged = override === undefined ? data : merge(data, override)
+    let merged = override === undefined ? data : merge(data, override)
+    if (key === 'GET /users/me') {
+        const paperworkBase = await demoRespond('/users/kyc/paperwork', undefined, { offline: true })
+        const paperworkData = await paperworkBase.json().catch(() => ({}))
+        const paperworkOverride = fixture.responses?.['GET /users/kyc/paperwork']
+        const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
+        merged = withFixtureFeatureReport(
+            merged as IUserProfile | null,
+            override as Partial<IUserProfile> | null | undefined,
+            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        )
+    }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
         status: base.status,
         headers: JSON_HEADERS,

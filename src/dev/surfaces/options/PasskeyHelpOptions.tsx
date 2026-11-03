@@ -29,7 +29,7 @@ function useHelpCopy() {
         title: t('titles.notAllowed'),
         description: t('descriptions.notAllowedAndroid'),
         steps: STEP_KEYS.map((k) => t(`steps.${k}` as Parameters<typeof t>[0])),
-        warning: t('warnings.lowEndAndroid'),
+        warning: t('warnings.androidSecurityUpdates'),
     }
 }
 

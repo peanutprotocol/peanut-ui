@@ -75,6 +75,22 @@ describe('useCrispUserData', () => {
         expect(result.current.segments).toContain('balance-unavailable')
     })
 
+    it('passes the accounts in an email collision to the sidebar, relation only, without account identifiers', () => {
+        mockUseAuth.mockReturnValue({
+            username: 'hmontenegro',
+            userId: 'user-b',
+            user: {
+                user: { userId: 'user-b' },
+                accounts: [],
+                supportLinkedAccounts: [{ relation: 'holds_email' }],
+            },
+        } as unknown as ReturnType<typeof useAuth>)
+
+        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
+
+        expect(result.current.sameEmailAccounts).toBe('holds_email')
+    })
+
     it('picks up a warm cache without touching the network', () => {
         client.setQueryData(['balance', WALLET], 100_000_000n)
         client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
@@ -224,33 +240,6 @@ describe('useCrispUserData', () => {
 
         expect(result.current.balance).toBe('$100 spendable (wallet $100 · card $0)')
         expect(result.current.segments).not.toContain('balance-unavailable')
-    })
-
-    /*
-     * The handoff between the smart account and Rain collateral: the funds are
-     * in neither bucket, and only `inTransitToCollateralCents` accounts for
-     * them. Reading the two halves directly would flag `zero-balance` beside a
-     * balance row that reads as funded.
-     */
-    it('does not flag zero while funds are in transit to collateral', () => {
-        client.setQueryData(['balance', WALLET], 0n)
-        client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
-            status: { hasApplication: true },
-            balance: {
-                creditLimit: 0,
-                spendingPower: 0,
-                pendingCharges: 0,
-                postedCharges: 0,
-                balanceDue: 0,
-                inTransitToCollateralCents: 2_500,
-            },
-            cards: [],
-        })
-
-        const { result } = renderHook(() => useCrispUserData(), { wrapper: wrapper(client) })
-
-        expect(result.current.balance).toContain('$25 spendable')
-        expect(result.current.segments).not.toContain('zero-balance')
     })
 
     /*

@@ -6,7 +6,6 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { QR_IDENTITY_CHECK_INTENT, qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
 
@@ -24,8 +23,7 @@ import { QR_IDENTITY_CHECK_INTENT, qrVerificationNeedsRestart, selectQrKycGate }
 export function useQrIdentityCheck(): { start: () => void; modals: ReactNode } {
     const flow = useMultiPhaseKycFlow({})
     const { user } = useAuth()
-    const { canDo, railsForProvider, nextActions, isLoading } = useCapabilities()
-    const { isRegionRestricted, isTerminalFailure } = useIdentityVerification()
+    const { capabilities, railsForProvider, nextActions, isLoading } = useCapabilities()
     const toast = useToast()
     const startedRef = useRef(false)
 
@@ -33,10 +31,7 @@ export function useQrIdentityCheck(): { start: () => void; modals: ReactNode } {
     const canPayNow =
         selectQrKycGate({
             isLoading: isLoading || !user,
-            isRegionRestricted,
-            isTerminalFailure,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails,
+            features: capabilities.features,
             nextActions,
         }).kycGateState === QrKycState.PROCEED_TO_PAY
     // An approved user whose identity evidence is missing: the start route

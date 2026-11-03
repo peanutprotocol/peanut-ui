@@ -486,9 +486,7 @@ canonical product UI is already captured. Retired promotional quest pages are
 website content, outside this mobile-app catalogue. Historical notification and
 settings routes remain in the registry so removal is proved from source.
 
-The unused standalone `/add-money/us/bank` entry is excluded: no app navigation
-links to it, and it depends on in-memory instructions from the former flow.
-Current bank journeys use `/add-money/[country]/bank`. QR captures distinguish
+`/add-money/us/bank` is a routing alias for `/add-money/usa/bank`. QR captures distinguish
 permission denial from an unobstructed scanner using a stationary synthetic
 camera frame; the capture runner never opens a real camera.
 

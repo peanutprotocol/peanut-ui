@@ -1,5 +1,29 @@
 # UI incident preflight
 
+## 2026-11-02: browser contract build exhausted Node's default heap
+
+- Trigger: PR #3900 Tests run 41464516586, press-contract job 125341899149,
+  aborted during the production build at roughly 2 GiB with `Reached heap limit`.
+  Neither browser spec ran; the required aggregate check correctly failed.
+- Root cause: browser contract builds inherited Node 20's implicit heap budget.
+  Set an explicit bounded 4096 MiB old-space budget on those build steps only.
+  This does not cap total process RSS or justify increasing timeouts/retries.
+- Search: `rg -n 'pnpm build|NODE_OPTIONS|continue-on-error|timeout-minutes' .github/workflows/tests.yml`.
+  Inspect effective build environments and preserve blocking browser assertions.
+- Counterexample: the native build and Screen Library use separate build paths;
+  a missing heap override is not proof that every Node task needs more memory.
+- Regression: `browser-build-memory.test.mjs` checks parsed workflow scope,
+  existing deadlines and browser gates, and the effective heap in a child Node
+  process. Actual production builds remain the evidence of memory sufficiency.
+
+## 2026-11-02: before app received the head synthetic API
+
+- Trigger: UI PR #3620 at 3cd397138 changed the synthetic contract; its head harness fed incompatible data to the base app (owner-reported 258/295 before states failed).
+- Invariant: compare shared transitive fixture roots and adapter answer code across immutable revisions. Synthetic changes use each app's own harness with an explicit before receipt. Renderer mismatches remain errors; source manifests alone cannot prove a reused capture's producing harness.
+- Search: `rg -n 'sameEnvironment|compare\(|canReuseBaseline|verifiedExternalBaselineSource|beforeHarness' scripts/screens`. Inspect report creation, publication, offline bundling and every baseline path.
+- Counterexample: a capture-code-only or catalogue-only change retains the head harness on both sides to avoid artificial differences.
+- Regression: `before-harness-acceptance.test.mjs` freezes trigger, receipt, renderer and reuse contracts; `capture-cost-integration.test.mjs` checks provider provenance, capability fallback and receipt preservation through offline reports.
+
 ## 2026-10-14: screenshot vote intent crossed a login switch
 
 Independent review reproduced a browser `/me` response verified as Alice followed
@@ -100,3 +124,55 @@ A queued online task reproduced the same sequence without an SDK event: React ha
 - Regression: `android-passkey-control.test.ts`, `android-passkey-scope.test.ts`, independent controller acceptance tests, signup/login hook regressions, and the native coordinator sequence tests. The disposable native cancellation-marking mutation fails the acceptance assertions.
 - Counterexample: a terminal native response can safely release its own request slot; a stale callback cannot release a newer one. An enabled Play Services package is not proof of an available credential provider.
 - Evidence boundary: TASK-23424 reports Chrome success on China-market devices; code checks and native library compilation do not establish a regional root cause or device recovery.
+
+## Android registration client-data layout (2026-10-30)
+
+- Incident: TASK-23931 (https://app.notion.com/p/400838117579816ba174e18230323fbf), related TASK-22823. A correctly signed sorted Android assertion can fail AA24 because the deployed validator fixes the challenge-property location at byte 23. The earlier substitution hypothesis is unproven for these signups; pinning and error recovery already landed in #3550 and #3782.
+- Check: `rg -n 'createCredential|clientDataJSON|TextDecoder|toWebAuthnKey' src/utils src/hooks/useZeroDev.ts`. Inspect the shim and SDK continuation: reject before register/verify; never reorder signed JSON. Decoder normalization can conceal byte offsets, so include UTF-8 BOM and whitespace cases.
+- Counterexample: a standard compact registration with an opaque device-bound attestation is allowed. Backup eligibility alone is not incompatibility, and iOS/web/get calls must not inherit an Android create-only guard.
+- Regression: android-passkey-registration-compatibility.test.ts covers deterministic JSON-order permutations, malformed/shifted bytes, unchanged credentials, sanitized errors and forbidden server continuation. useSignupPasskey.test.tsx covers translated inline guidance and no completion after rejection. Finder and independent verifier reproduced the BOM counterexample; preserving BOM during decoding closes it. Disposable guard-removal mutation fails the sorted-layout assertion; original passes.
+
+
+## KYC feature reports and recovery (2026-11-02)
+
+- Evidence: release review-out/r3 F12/F13/F14/F15/F54/F57/F59/F60/F62/F65/F66/F67 and explicit app-fix request.
+- Triggers: a refusal is presented as residence regardless of reason, a failed second request reports success, or a pending/replacement session never observes its eventual decision. Shared provider actions can also misroute QR verification.
+- Search: `rg -n 'refusalOf|entryChip|completed|backendOrFallback|pendingApplication|approvedAtOpen|restart-identity' src/components/AddMoney/components/MantecaAddMoneyFlow.tsx src/components/Profile/views/MoneySettings.view.tsx src/hooks/useSumsubKycFlow.ts src/app/actions/sumsub.ts src/features/card src/features/paperwork-verification src/features/payments/flows/qr-pay/qrKycGate.utils.ts`. Inspect each caller and reason/action pair; a match is only a lead.
+- Invariants: render a refusal's own localized explanation and remedy; unknown reads remain unknown; only route absence selects legacy funding; pending reconciliation repeats reads without repeating writes; submitted replacement review waits for APPROVED. Preserve backend recovery codes even without userMessage.
+- Counterexamples: geo-blocked legitimately gets residence copy; quiet wait is intentional; cold REVERIFYING preserves held access; a global identity-missing cause applies to QR while Rain-only ID requests do not.
+- Privacy searches: `rg -n 'us_citizen_not_supported|KYC_PV_LOCAL_REFUSED|KYC_PV_CONTINUE_WITHOUT_LOCAL|supportLinkedAccounts' src/features/paperwork-verification src/utils/support-context.ts src/interfaces/interfaces.ts`. Field validation may name a refusal to the user, but identified analytics must normalize answer-revealing codes and omit answer-specific events. Public support links contain relation only.
+- Regression: extended existing MantecaAddMoney, MoneySettings, useSumsubKycFlow, paperwork flow/analytics, identity restart, QR gate and support-context tests; new useCardFundingAccess and pendingApplication tests exercise 404 versus failures and timer-only reconciliation. Catalog tests preserve es-AR inheritance, regional verb forms and localized product articles.
+
+
+## KYC account continuity and typed-answer echoes (release review, 2026-11-02)
+
+Verified incidents: passive 401 left private queries cached; profile/paperwork keys had no account identity; a permission wait and a queued answer batch could continue under the shared cookie's next user. A typed city also escaped the input as pill and portal text.
+
+Preflight: inspect `clearAccountQueries`, `useSessionFence`, scoped profile/paperwork keys, each `saveSteps` step and retry, terminal queue-generation invalidation, and `expectedUserId` at the transport boundary. An epoch alone cannot detect another tab replacing the cookie. Same-user token refresh remains valid. Check late initial reads after unmount too: an obsolete hand-back must not navigate the next account Home.
+
+Evidence: deferred permission/answer/read tests, real A→B cookie changes, same-user refresh, missing/malformed token and unmount negatives. The disposable saveSteps variant with account checks removed sent its second step as B and failed the account regression; production source was never mutated. The real replay and autocapture redactors must remove typed city text, attributes and portal suggestions. Fixed-option labels retain the existing policy.
+
+Server ownership checks remain the final race boundary; mocked client tests do not establish deployed API enforcement. No hooks were installed, trusted, or activated by this change; hosted CI and branch protections remain the merge boundary.
+
+## TASK-24355 — grouped request suggestions (2026-11-02)
+
+- Trigger: a request suggestion of 4000 is formatted as `4,000`, then `Number('4,000')` becomes NaN. The real slider renders NaN%; raw callback amounts can still be correct because callbacks separately strip commas. This alone does not prove a bad transaction.
+- Root cause: AmountInput suggestion used display-mode `formatTokenAmount` before numeric arithmetic. The previous TokenAmountInput slider explicitly stripped commas. Original change: peanut-ui commit 3a2ad8d1dd, Juan José Ramírez, 2025-12-26 07:23:42 UTC; later blame movement did not introduce this expression.
+- Search: `rg -n 'Number\(formatted|parseFloat\(.*Amount|formatTokenAmount' src/components/Global/AmountInput src/features/payments/flows/contribute-pot`. Inspect units and formatting mode; search hits alone are not bugs.
+- Safe counterexample: parsing raw `4000` is valid; the slider-change branch already uses input formatting mode.
+- Regression: finite-amount.test.tsx uses the real slider at 999, 1000, 4000, 10000, invalid initial/suggested/typed values and overflow. Payment flow tests separately reject invalid data before charge creation, even when called outside the UI button.
+
+### PR3902 follow-up — repeating-rate roundtrips
+
+- Trigger: at ARS1200/USD1, toggling untouched ARS0.05 or ARS4000 to USD and back loses a cent. Storing even36 decimal conversion digits cannot exactly represent a repeating rate; a delayed rate update can also change the original payer amount.
+- Invariant: anchor canonical input in the denomination last edited. Currency toggles change presentation; only a genuine edit changes monetary intent. Convert from that original amount once, at the destination precision.
+- Search: `rg -n 'setExactAmount|convertDecimalAmount|setDisplaySymbol' src/components/Global/AmountInput/index.tsx`; inspect every edit, suggestion, balance-fill and toggle writer. A newly typed USD amount is a safe counterexample: it intentionally replaces prior ARS intent.
+- Regression: independent `exact-roundtrip.test.tsx` covers2/4/10 toggles, sub-cent and4000 inputs, genuine edits and delayed rate changes. Restoring the published pre-repair component in a disposable copy fails8 of10 tests; the fixed component passes all10.
+- Fixture compatibility: formatter mocks must preserve newly used real exports. The crypto-deposit mock omitted `formatFiniteDisplay`; retain the actual currency module before explicit test overrides. The loaded deposit/QR, warning and help-button tests exercise this path.
+
+## Screen Library delayed reviews and hidden migration failures (2026-11-03)
+
+- Incidents: PR runs 41679094911 and 41670257738 reached baseline resolution after merge. Dev runs 41495459992, 41640020827, 41663517701, 41669769475, 41670158647 and 41672182616 failed comments migration with only a Wrangler banner.
+- Search: `rg -n 'reviewProvenance|reviewPullRequest|mode|needs:' scripts/screens/resolve-baseline.mjs scripts/screens/review-provenance.mjs .github/workflows/screen-library-publish.yml`; inspect exact head/repository/branch/event-number binding and every downstream output consumer. Closed state alone on an unrelated PR is not skip evidence. Open unresolved provenance remains a failure.
+- Diagnostic check: inspect `executeSql`, `initMigrationsTable`, `listAppliedMigrations`, `main` and `appendToDebugLogFile` in locked Wrangler 4.40.2. A thrown JSON ledger query leaves console level at error while some API error handlers use log. Preserve non-debug private-log messages through sanitization; never dump debug HTTP records or raw credentials. The original remote error remains unknown.
+- Regression: publish-failures.test.mjs, deploy-operation.test.mjs and workflow-policy.test.mjs cover exact closed/current captures, invalid/open failures, bounded redacted stdout/stderr/private logs, status, budgets and skip propagation. A harmless counterexample is a dev push with current captures: publisher provenance still verifies it. Additive migration replay is separately checked in local SQLite; it cannot establish remote D1 state.

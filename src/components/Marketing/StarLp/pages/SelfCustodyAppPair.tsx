@@ -31,7 +31,7 @@ export function SelfCustodyAppPair() {
                         <span className="text-label-m">Balance</span>
                         <span className="text-heading-xs">{BALANCE}</span>
                         <DropIn delay={0.5} fromTilt={-14} tilt={-3}>
-                            <span className="block rounded-sm border border-dashed border-border-subtle bg-gray-200 p-1 text-center text-label-m">
+                            <span className="block rounded-sm border border-dashed border-border-subtle bg-background-badge-helper p-1 text-center text-label-m">
                                 Funds on hold
                             </span>
                         </DropIn>

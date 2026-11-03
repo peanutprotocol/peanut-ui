@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { refreshKycState, startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
@@ -168,6 +170,7 @@ export function useHostedVerification(
             try {
                 ;({ url } = await startHostedVerification(actionKey))
             } catch (error) {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_launch' } })
                 // The action body catches its own errors, but a server action
                 // can still REJECT at the transport layer — a dropped network,
                 // or a deploy invalidating the action id mid-flight. Without
@@ -209,6 +212,7 @@ export function useHostedVerification(
                     return
                 }
             } catch (error) {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_launch' } })
                 reservedTab?.close()
                 console.error(`[hosted:${actionKey}] failed to open hosted verification`, error)
                 setError("We couldn't open the verification. Please try again in a moment.")

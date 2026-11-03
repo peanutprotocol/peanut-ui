@@ -1,32 +1,21 @@
 'use client'
 
 import { useFooterVisibility } from '@/context/footerVisibility'
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
 // into this chunk, including dropLink's nine repeat: Infinity animations,
 // which the landing page never renders.
 import { Hero } from '@/components/LandingPage/hero'
 import { Marquee } from '@/components/LandingPage/marquee'
-import { NoFees } from '@/components/LandingPage/noFees'
-import { ShhhhhFold } from '@/components/LandingPage/ShhhhhFold'
-import dynamic from 'next/dynamic'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'
-import { LANDING_CARD_FOLD_DISABLED_FLAG } from '@/constants/card-flags.consts'
-import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import type { LandingStrings } from './landingStrings'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
-import { useLocale, useTranslations } from 'next-intl'
+import { useLocale } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import type { MarqueeChip } from '@/lib/landingContent'
-
-// Split out: the carousel drags the whole testimonials manifest (~64 KB of
-// JSON) into whatever chunk imports it, and it renders far below the fold.
-// SSR stays on so crawlers still see the tweets; only the client bundle moves
-// off the critical path.
-const TweetCarousel = dynamic(() => import('@/components/LandingPage/TweetCarousel'))
 
 type LandingPageClientProps = {
     heroConfig: {
@@ -35,16 +24,9 @@ type LandingPageClientProps = {
     marqueeMessages: MarqueeChip[]
     strings: LandingStrings
     contentHrefs: LandingContentHrefs
-    // Server-rendered slots
-    problemSlot: ReactNode
-    mantecaSlot: ReactNode
-    regulatedRailsSlot: ReactNode
-    yourMoneySlot: ReactNode
-    securitySlot: ReactNode
-    sendInSecondsSlot: ReactNode
+    /** Every fold between the hero marquee and the footer, rendered on the server. */
+    foldsSlot: ReactNode
     footerSlot: ReactNode
-    /** The FAQ block — static copy, so it is built on the server. */
-    faqSlot: ReactNode
 }
 
 export function LandingPageClient({
@@ -52,26 +34,12 @@ export function LandingPageClient({
     marqueeMessages,
     strings,
     contentHrefs,
-    problemSlot,
-    mantecaSlot,
-    regulatedRailsSlot,
-    yourMoneySlot,
-    securitySlot,
-    sendInSecondsSlot,
+    foldsSlot,
     footerSlot,
-    faqSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
     const migrationOn = useMigrationFlag()
     const locale = useLocale()
-    // Card features under the homepage card offer.
-    const tDoorMarquee = useTranslations('shhhhh.marquee')
-    // The card offer and its feature strip share one PostHog flag. Read after
-    // mount: cached flags can resolve before hydration, and the server renders the fold.
-    const flagEnabled = useFeatureFlags()
-    const [mounted, setMounted] = useState(false)
-    useEffect(() => setMounted(true), [])
-    const doorFoldOn = !(mounted && flagEnabled(LANDING_CARD_FOLD_DISABLED_FLAG))
 
     const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
 
@@ -97,21 +65,7 @@ export function LandingPageClient({
         }
     }, [contentHrefs, marqueeMessages])
 
-    const doorMarqueeProps = useMemo(
-        () => ({
-            visible: true,
-            // the whole strip is the door: every word goes to /shhhhh
-            message: [
-                tDoorMarquee('peanutCard'),
-                tDoorMarquee('contactless'),
-                tDoorMarquee('available'),
-                tDoorMarquee('online'),
-                tDoorMarquee('noMonthlyFee'),
-            ].map((label) => ({ label, href: '/shhhhh' })),
-        }),
-        [tDoorMarquee]
-    )
-
+    // The home folds share one download modal: their app CTAs register home QR slots.
     return (
         <AppModalProvider marketingPage="home" marketingLocale={locale}>
             <Hero
@@ -121,35 +75,7 @@ export function LandingPageClient({
                 customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
             />
             <Marquee {...marqueeProps} />
-            {doorFoldOn && (
-                <>
-                    <ShhhhhFold />
-                    <Marquee {...doorMarqueeProps} />
-                </>
-            )}
-            {problemSlot}
-            <Marquee {...marqueeProps} />
-            {/* Suspense needed: NoFees renders ExchangeRateWidget which uses useSearchParams().
-               Without this boundary, the entire LandingPageClient suspends during SSR,
-               sending an empty HTML shell to crawlers and killing SEO. */}
-            <Suspense>
-                <NoFees strings={strings} contentHrefs={contentHrefs} />
-            </Suspense>
-            <Marquee {...marqueeProps} />
-            {yourMoneySlot}
-            <Marquee {...marqueeProps} />
-            <TweetCarousel strings={strings} />
-            <Marquee {...marqueeProps} />
-            {regulatedRailsSlot}
-            <Marquee {...marqueeProps} />
-            {mantecaSlot}
-            <Marquee {...marqueeProps} />
-            {securitySlot}
-            <Marquee {...marqueeProps} />
-            {sendInSecondsSlot}
-            <Marquee {...marqueeProps} />
-            {faqSlot}
-            <Marquee {...marqueeProps} />
+            {foldsSlot}
             {footerSlot}
             <StickyMobileCTA strings={strings} />
         </AppModalProvider>

@@ -107,7 +107,7 @@ export default function MarketingAssetsPage() {
 
             <DocSection
                 title="Mascot"
-                description={`10 poses. Body ${tokenValue('action-secondary')}, sneakers and accents ${tokenValue('action-primary')}.`}
+                description={`10 poses. Body ${tokenValue('background-accent-yellow')}, sneakers and accents ${tokenValue('action-primary')}.`}
             >
                 <DocSection.Content>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

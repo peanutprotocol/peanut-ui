@@ -5,6 +5,7 @@ import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import { captureProfile } from './capture-profiles.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
+import { validateBeforeHarness } from './before-harness-receipt.mjs'
 
 export const hash = (data) => createHash('sha256').update(data).digest('hex')
 const sha = /^[a-f0-9]{40}$/
@@ -212,11 +213,18 @@ export function validateJourneys(input) {
             screens.every((screen) => screen.status === 'passed'),
     }
 }
-export function sameEnvironment(a, b) {
+export function sameEnvironment(a, b, beforeHarness) {
+    const base = validateBeforeHarness(beforeHarness, a.commit)
     return (
-        ['harness', 'fixtures', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every(
-            (k) => a[k] === b[k]
-        ) && JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
+        [
+            ...(base ? [] : ['harness', 'fixtures', 'adapter']),
+            'environment',
+            'profile',
+            'locale',
+            'publicBase',
+            'width',
+            'height',
+        ].every((k) => a[k] === b[k]) && JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
     )
 }
 export function verifyAsset(dir, name, { variableDimensions = false, width = 393, height = 852 } = {}) {
@@ -249,9 +257,10 @@ export function storeAsset(dir, data, extension = 'png') {
     if (!existsSync(join(dir, name))) writeFileSync(join(dir, name), data)
     return name
 }
-export function compare(beforeInput, afterInput, assetsDir) {
+export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
     let before = validateCapture(beforeInput),
         after = validateCapture(afterInput)
+    const receipt = validateBeforeHarness(beforeHarness, before.commit)
     const scope = after.scope ?? before.scope
     if (scope) {
         if (before.scope && after.scope)
@@ -260,7 +269,7 @@ export function compare(beforeInput, afterInput, assetsDir) {
         after = validateCapture(scopeCapture(after, scope))
     }
     assert(
-        sameEnvironment(before, after),
+        sameEnvironment(before, after, receipt),
         'Capture environments differ; recapture both with the same harness, fixtures and renderer'
     )
     const left = new Map(before.screens.map((s) => [s.id, s])),
@@ -325,6 +334,7 @@ export function compare(beforeInput, afterInput, assetsDir) {
     return {
         schema: 1,
         type: 'comparison',
+        ...(receipt ? { beforeHarness: receipt } : {}),
         locale: before.locale,
         before,
         after,

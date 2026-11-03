@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { normalizeResidence } from '@/utils/residence-profile'
+
 // Wiring-only route test (the exchange-rate route precedent): data layer,
 // transformer, and PDF renderer are mocked — the real render pipeline is
 // covered by receipt-pdf-render.test.ts, the model by receipt-pdf-model.test.ts.
@@ -57,7 +59,10 @@ const get = async (
 describe('GET /receipt/[entryId]/pdf', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP' } } })
+        // the anonymous render paths below read the API's public-receipt flag
+        mockMap.mockReturnValue({
+            transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP', publicReceipt: true } },
+        })
         mockBuildModel.mockReturnValue({ fileName: 'peanut-receipt-entry-1.pdf' })
         mockRender.mockResolvedValue(Buffer.from('%PDF-1.7 fake-pdf-bytes'))
     })
@@ -132,34 +137,39 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect(mockRender).toHaveBeenCalledTimes(2)
     })
 
-    test('404s for a private receipt kind without authentication', async () => {
-        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'DIRECT_TRANSFER' })
-        mockMap.mockReturnValueOnce({
-            transactionDetails: { id: 'entry-excluded', extraDataForDrawer: { kind: 'DIRECT_TRANSFER' } },
-        } as never)
-        mockRender.mockClear()
+    // TASK-24141: the API's public-receipt flag is the anonymous gate, not the kind
+    test.each(['DIRECT_TRANSFER', 'OFFRAMP'])(
+        '404s for a %s entry with no public receipt and no session',
+        async (kind) => {
+            mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind })
+            mockMap.mockReturnValueOnce({
+                transactionDetails: { id: 'entry-excluded', extraDataForDrawer: { kind } },
+            } as never)
+            mockRender.mockClear()
 
-        const response = await get('entry-excluded', 'kind=DIRECT_TRANSFER')
+            const response = await get('entry-excluded', `kind=${kind}`)
 
-        expect(response.status).toBe(404)
-        expect(mockRender).not.toHaveBeenCalled()
-    })
+            expect(response.status).toBe(404)
+            expect(mockRender).not.toHaveBeenCalled()
+        }
+    )
 
-    // The page already serves a crypto deposit to a reader with no session, so
-    // its document must answer too. It used to 404, leaving a receipt page with
-    // no way to save or send what it showed.
-    test('renders a crypto deposit for a reader with no session', async () => {
-        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'CRYPTO_DEPOSIT' } as never)
-        mockMap.mockReturnValueOnce({
-            transactionDetails: { id: 'entry-deposit', extraDataForDrawer: { kind: 'CRYPTO_DEPOSIT' } },
-        } as never)
-        mockRender.mockClear()
+    test.each(['DIRECT_TRANSFER', 'CRYPTO_DEPOSIT'])(
+        'renders a public %s receipt for a reader with no session',
+        async (kind) => {
+            mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind } as never)
+            mockMap.mockReturnValueOnce({
+                transactionDetails: { id: 'entry-public', extraDataForDrawer: { kind, publicReceipt: true } },
+            } as never)
+            mockRender.mockClear()
 
-        const response = await get('entry-deposit', 'kind=CRYPTO_DEPOSIT')
+            const response = await get('entry-public', `kind=${kind}`)
 
-        expect(response.status).toBe(200)
-        expect(mockRender).toHaveBeenCalled()
-    })
+            expect(response.status).toBe(200)
+            expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-public', kind, undefined)
+            expect(mockRender).toHaveBeenCalled()
+        }
+    )
 
     test('renders a private receipt with bearer auth and never caches it publicly', async () => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'DIRECT_TRANSFER' })
@@ -262,7 +272,7 @@ describe('GET /receipt/[entryId]/pdf — receipt freshness', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockMap.mockImplementation((entry: Entry) => ({
-            transactionDetails: { id: 'entry', extraDataForDrawer: { kind: 'OFFRAMP' }, ...entry },
+            transactionDetails: { id: 'entry', extraDataForDrawer: { kind: 'OFFRAMP', publicReceipt: true }, ...entry },
         }))
         mockBuildModel.mockImplementation((details: Entry) => ({
             fileName: 'peanut-receipt.pdf',
@@ -337,13 +347,16 @@ describe('GET /receipt/[entryId]/pdf — bridge entity from the owner residence'
     })
     const me = (userId: string) => ({
         ok: true,
-        json: async () => ({ user: { userId }, residence: { verified: 'DE' } }),
+        json: async () => ({ user: { userId }, residence: normalizeResidence({ verified: 'DE' }) }),
     })
     const residencePassed = () => mockBuildModel.mock.calls[0][3]
 
     beforeEach(() => {
         jest.clearAllMocks()
-        mockMap.mockReturnValue({ transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP' } } })
+        // the anonymous render paths below read the API's public-receipt flag
+        mockMap.mockReturnValue({
+            transactionDetails: { id: 'entry-1', extraDataForDrawer: { kind: 'OFFRAMP', publicReceipt: true } },
+        })
         mockBuildModel.mockReturnValue({ fileName: 'peanut-receipt-entry-1.pdf' })
         mockRender.mockResolvedValue(Buffer.from('%PDF-1.7'))
     })
@@ -352,7 +365,9 @@ describe('GET /receipt/[entryId]/pdf — bridge entity from the owner residence'
         mockGetHistoryEntry.mockResolvedValue(bridgeOfframp())
         mockServerFetch.mockResolvedValue(me('owner-1'))
         const response = await get('entry-own', 'kind=OFFRAMP&locale=en', { cookieToken: 'tok' })
-        expect(mockServerFetch).toHaveBeenCalledWith('/users/me', { headers: { Authorization: 'Bearer tok' } })
+        expect(mockServerFetch).toHaveBeenCalledWith('/users/me', {
+            headers: { Authorization: 'Bearer tok', 'x-residence-format': 'compact' },
+        })
         expect(residencePassed()).toBe('DE')
         expect(response.headers.get('Cache-Control')).toBe('no-store')
     })

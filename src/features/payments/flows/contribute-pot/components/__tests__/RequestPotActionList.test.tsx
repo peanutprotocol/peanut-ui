@@ -23,7 +23,7 @@ let mockAuth: { user: unknown; isFetchingUser: boolean }
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ hasSufficientSpendableBalance: () => false, isFetchingSpendableBalance: false }),
+    useWallet: () => ({ hasSufficientSpendableBalance: () => false, isSpendableBalanceReady: true }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ canDo: () => true }) }))
 jest.mock('@/hooks/useDetermineBankRequestType', () => ({

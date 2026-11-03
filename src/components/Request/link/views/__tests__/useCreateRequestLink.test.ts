@@ -60,15 +60,22 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { username: 'kush' }, accounts: [] } }),
 }))
 
+// another screen left ETH on Base in the shared selector: a request must not pick it up
 jest.mock('@/context/tokenSelector.context', () => {
     const { createContext } = jest.requireActual('react')
     return {
         tokenSelectorContext: createContext({
-            selectedChainID: '42161',
+            selectedChainID: '8453',
             setSelectedChainID: jest.fn(),
-            selectedTokenAddress: '0xusdc',
+            selectedTokenAddress: '0x0000000000000000000000000000000000000000',
             setSelectedTokenAddress: jest.fn(),
-            selectedTokenData: { chainId: '42161', address: '0xusdc', decimals: 6, symbol: 'USDC', price: 1 },
+            selectedTokenData: {
+                chainId: '8453',
+                address: '0x0000000000000000000000000000000000000000',
+                decimals: 18,
+                symbol: 'ETH',
+                price: 2500,
+            },
         }),
     }
 })
@@ -99,7 +106,6 @@ jest.mock('@/utils/clipboard.utils', () => ({
     beginClipboardCopy: () => ({ resolve: resolveCopy, cancel: cancelCopy }),
 }))
 
-jest.mock('@/app/actions/tokens', () => ({ fetchTokenDetails: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 // identity debounce keeps the autosave path synchronous in tests
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: unknown) => value }))
@@ -107,12 +113,15 @@ jest.mock('@/constants/harness.consts', () => ({
     ...jest.requireActual('@/constants/harness.consts'),
     HARNESS_ENABLED: false,
 }))
-jest.mock('@/constants/zerodev.consts', () => ({ PEANUT_WALLET_CHAIN: { id: 42161 }, PEANUT_WALLET_TOKEN: '0xusdc' }))
+jest.mock('@/constants/zerodev.consts', () => ({
+    PEANUT_WALLET_CHAIN: { id: 42161 },
+    PEANUT_WALLET_TOKEN: '0xusdc',
+    PEANUT_WALLET_TOKEN_DECIMALS: 6,
+    PEANUT_WALLET_TOKEN_SYMBOL: 'USDC',
+}))
 jest.mock('@/utils/general.utils', () => ({
-    fetchTokenSymbol: jest.fn(),
     formatTokenAmount: (amount: string) => amount,
     getRequestLink: ({ uuid }: { uuid: string }) => `https://peanut.me/request/pay?id=${uuid}`,
-    isNativeCurrency: () => false,
 }))
 jest.mock('@/utils/url.utils', () => ({
     appBaseUrl: () => 'https://peanut.me',
@@ -240,6 +249,28 @@ describe('useCreateRequestLink', () => {
         expect(invalidateQueries).toHaveBeenCalled()
         expect(toastSuccess).toHaveBeenCalledTimes(1)
         expect(result.current.isCreatingLink).toBe(false)
+    })
+
+    // TASK-23850: a request is always Peanut wallet USDC on Arbitrum, whatever
+    // token another screen left in the shared selector (here ETH on Base)
+    it('always asks for USDC on Arbitrum, never the token left in the shared selector', async () => {
+        const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+        act(() => {
+            result.current.handleRequestAmountChange('5')
+        })
+        await act(async () => {
+            await result.current.generateLink()
+        })
+
+        expect(apiCreate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                chainId: '42161',
+                tokenAddress: '0xusdc',
+                tokenSymbol: 'USDC',
+                tokenDecimals: '6',
+                tokenType: '1',
+            })
+        )
     })
 
     it('a failed create surfaces the error state, cancels the copy, and returns empty', async () => {

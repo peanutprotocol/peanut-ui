@@ -3,11 +3,10 @@
 /**
  * Hidden support page: /fix-card-signature
  *
- * Guided repair for accounts whose card auto-funding approval can never
+ * Guided repair for accounts whose card session-key approval can never
  * validate (nonce-bricked or undeployed kernel — see useCardSignatureRepair).
  * Not linked from anywhere; support DMs the URL to affected users. Two passkey
- * taps: repair the wallet state, then re-grant auto-funding (the backend
- * kicks off a funding run the moment the new approval is stored).
+ * taps: repair the wallet state, then re-grant the withdrawal permission.
  */
 
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -121,7 +120,7 @@ export function FixCardSignaturePage() {
                                         ? t('fixSignature.waitingForConfirmation')
                                         : isOverviewLoading
                                           ? t('fixSignature.loadingCard')
-                                          : t('fixSignature.reEnableFunding')}
+                                          : t('fixSignature.reEnablePermissions')}
                                 </Button>
                                 {!isOverviewLoading && !card && (
                                     <p className="text-body-s text-foreground-secondary">

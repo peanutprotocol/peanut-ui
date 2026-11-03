@@ -44,7 +44,7 @@ interface ActivationStatus {
 export function useActivationStatus(): ActivationStatus {
     const { user } = useAuth()
     const { balance, isFetchingBalance } = useWallet()
-    const { canDo, rails, railsForProvider, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
+    const { capabilities, rails, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
     const { overview } = useRainCardOverview()
     const { canSpendPathViaCard, holdsCardOrApplication } = useCardSurfaceAccess()
     const { cardInfo, error: cardInfoError } = useCardInfo()
@@ -67,10 +67,7 @@ export function useActivationStatus(): ActivationStatus {
         // QR asks the same gate the QR pay page uses, so the two never disagree.
         const qrGate = selectQrKycGate({
             isLoading: isLoadingCapabilities || !user,
-            isRegionRestricted,
-            isTerminalFailure,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails: railsForProvider('manteca'),
+            features: capabilities.features,
             nextActions,
         })
         const firstPaymentRoute = selectFirstPaymentRoute({
@@ -110,8 +107,7 @@ export function useActivationStatus(): ActivationStatus {
         cardInfoError,
         rails,
         isLoadingCapabilities,
-        canDo,
-        railsForProvider,
+        capabilities.features,
         nextActions,
     ])
 

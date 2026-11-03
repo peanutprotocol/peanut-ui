@@ -56,20 +56,10 @@ export function SemanticRequestConfirmView() {
         isFetchingCharge,
         selectedChainID,
         selectedTokenData,
-        urlToken,
-        isTokenDenominated,
         goBackToInitial,
         executePayment,
         prepareRoute,
     } = useSemanticRequestFlow()
-
-    // get the display symbol for the requested amount
-    const displayTokenSymbol = useMemo(() => {
-        if (isTokenDenominated && urlToken) {
-            return urlToken.symbol.toUpperCase()
-        }
-        return '$'
-    }, [isTokenDenominated, urlToken])
 
     // icons for sending token (peanut wallet usdc)
     const {
@@ -98,14 +88,8 @@ export function SemanticRequestConfirmView() {
     // is cross-chain or different token
     const isCrossChainPayment = isXChain || isDiffToken
 
-    // format display values
-    // when token-denominated (e.g., eth), show the token amount, not usd amount
-    const displayAmount = useMemo(() => {
-        if (isTokenDenominated) {
-            return `${formatAmount(amount)}`
-        }
-        return formatAmountNumber(usdAmount || amount)
-    }, [amount, usdAmount, isTokenDenominated])
+    // the requested amount is USD: a request is paid in USDC or USDT only (TASK-23850)
+    const displayAmount = formatAmountNumber(usdAmount || amount)
 
     // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
     // fee (no slippage) — the preview value is deterministic, not a "minimum".
@@ -164,7 +148,7 @@ export function SemanticRequestConfirmView() {
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
                         amount={displayAmount}
-                        tokenSymbol={displayTokenSymbol}
+                        tokenSymbol="$"
                         message={attachment?.message ?? ''}
                         fileUrl={attachment?.fileUrl ?? ''}
                     />

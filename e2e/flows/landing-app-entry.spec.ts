@@ -63,7 +63,7 @@ for (const device of ['desktop', 'iphone', 'android'] as const) {
                         ),
                         animations: 'disabled',
                     })
-                    await page.locator('#send-in-seconds').scrollIntoViewIfNeeded()
+                    await page.locator('#home-close').scrollIntoViewIfNeeded()
                     await page.mouse.wheel(0, 500)
                     expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden')
                     expect(errors.filter((error) => /hydration|#418|#423|#425/i.test(error))).toEqual([])
@@ -81,19 +81,40 @@ test.describe('desktop entry points', () => {
         deviceScaleFactor: 1,
         viewport: { width: 1440, height: 900 },
     })
-    test('hero, countries, rates and lower send reuse a dismissible modal', async ({ page }) => {
+    test('server-renders the feature directory on the English landing alias', async ({ request }) => {
+        const response = await request.get('/lp')
+
+        expect(response.ok()).toBe(true)
+        expect(await response.text()).toMatch(/<nav[^>]*\bid="footer-features"/)
+    })
+
+    test('card feature exploration lands on the complete directory', async ({ page }) => {
+        await page.goto('/peanut-card', { waitUntil: 'domcontentloaded' })
+        await page.getByRole('link', { name: 'Explore all features' }).click()
+
+        await expect(page).toHaveURL(/\/lp#footer-features$/)
+        const directory = page.locator('nav#footer-features')
+        await expect(directory.getByRole('link')).toHaveCount(6)
+        await expect(directory).toBeInViewport({ ratio: 1 })
+    })
+
+    test('hero, account pair and close CTA reuse a dismissible modal', async ({ page }) => {
         await landing(page, '/', true)
         const entries = [
             page.getByTestId('landing-download-cta').getByRole('link'),
-            page.locator('#global-cash a[href="/app"]'),
-            page.locator('#no-fees').getByRole('button', { name: /send money/i }),
-            page.locator('#send-in-seconds a[href="/app"]'),
+            page.locator('#home-get-paid a[href="/app"]'),
+            page.locator('#home-close a[href="/app"]'),
         ]
+        const placements = ['hero', 'artwork', 'app-fold']
         for (const [index, entry] of entries.entries()) {
             await entry.click()
             const dialog = page.getByRole('dialog')
             await expect(dialog).toBeVisible()
-            await expect(dialog.getByAltText('qr center logo')).toBeVisible()
+            await expect(dialog.getByRole('img', { name: 'Scan with your phone camera to download.' })).toBeVisible()
+            await expect(dialog.locator('[data-qr-url]')).toHaveAttribute(
+                'data-qr-url',
+                new RegExp(`/home\\?mqr=home-${placements[index]}-en(?:&|$)`)
+            )
             await expect(dialog.locator('a[href*="apps.apple.com"]')).toBeVisible()
             await expect(dialog.locator('a[href*="play.google.com"]')).toBeVisible()
             if (index === 0)

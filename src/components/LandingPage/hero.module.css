@@ -94,8 +94,16 @@
     margin-top: 24px;
 }
 
+.ctaRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
 .login {
-    margin-top: 16px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .star {
@@ -193,10 +201,6 @@
 
     .cta {
         margin-top: 16px;
-    }
-
-    .login {
-        margin-top: 12px;
     }
 }
 

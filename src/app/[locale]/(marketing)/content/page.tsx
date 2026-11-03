@@ -64,7 +64,7 @@ function LandingFallback({
                 jump width on hydration. h-10 is SearchInput's height — the skeleton
                 renders the loaded layout. */}
             <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
-                <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-foreground-primary/10" />
+                <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-background-skeleton" />
             </div>
             <ContentLinkList items={items} locale={locale} strings={strings} grouped />
         </>

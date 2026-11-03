@@ -1,10 +1,13 @@
 import type { StaticImageData } from 'next/image'
 import type { ReactNode } from 'react'
-import type { StarLpFxRate } from '@/components/Marketing/StarLp/starLp.types'
+import type { DropInProps, StarLpFxRate } from '@/components/Marketing/StarLp/starLp.types'
+import type { MigrationSurface } from '@/constants/migration.consts'
 
 /** One real bank-details capture in the hero pair. */
 export interface UsEuAccountCaptureProps {
     src: StaticImageData
+    /** Shared entrance for the homepage pair; its coin paints above both card faces. */
+    entrance?: DropInProps['entrance']
     /** Resting tilt in degrees. */
     tilt: number
     /** Delay of the drop-in, in seconds. */
@@ -29,6 +32,41 @@ export interface UsEuAppLinkProps {
     signedInHref?: string
     children: ReactNode
     className?: string
+    /** Analytics surface of the click; STAR_LP by default. */
+    surface?: MigrationSurface
+}
+
+/** The hero pair of bank-details captures, as art that links to the accounts screen. */
+export interface UsEuAccountPairProps {
+    /** Both home-fold cards share one viewport trigger and a short stagger. */
+    pairedEntrance?: boolean
+    /** Merged onto the link wrapper, e.g. to cap the pair to a half column. */
+    className?: string
+    /** Analytics surface of the click; STAR_LP by default. */
+    surface?: MigrationSurface
+}
+
+/** The words on the request strips, in the page language. `{username}` in `requesting`,
+    and `{main}`, `{payer}`, `{amount}` in `chatLabel`, are filled in by the strips. */
+export interface UsEuRequestStripsLabels {
+    /** Small line over the link, e.g. "{username} is requesting". */
+    requesting: string
+    /** The last strip's word, e.g. "Paid". */
+    paid: string
+    /** The payer's question. Omit and the strips start at the link: two beats, not three. */
+    ask?: string
+    /** Accessible name of the whole picture. */
+    chatLabel: string
+}
+
+export interface UsEuRequestStripsProps {
+    /** Leave out on /us-europe-accounts: its English copy is the default. */
+    labels?: UsEuRequestStripsLabels
+    /** false renders the request strip without its link, for a fold with no CTA
+        (the strips are aria-hidden, so a link there would be unreachable). Default true. */
+    linked?: boolean
+    /** The requested amount as the page writes it; "$250" by default. */
+    amount?: string
 }
 
 /** A strip's ground: white for the payer's ask, pink for the request, green once paid. */

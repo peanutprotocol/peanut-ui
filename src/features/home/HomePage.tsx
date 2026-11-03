@@ -4,6 +4,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
+import FundingSetupPrompt from '@/components/Home/FundingSetupPrompt'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
@@ -48,9 +49,10 @@ export function HomePage() {
         toggleBalanceVisibility,
     } = useHomeFlow()
     useHomeViewAnalytics(isPageLoading)
-    const { nextActions, rails } = useCapabilities()
-    const { documentSlide } = selectHomeTasks(nextActions, rails ?? [])
+    const { nextActions, capabilities } = useCapabilities()
     const { blockedCard } = useProviderRejection(onboarding)
+    const prioritizeIdentityRestart = blockedCard?.kind === 'restart-identity' && !hiddenHomeCtas.has(blockedCard.ctaId)
+    const { documentSlide } = selectHomeTasks(nextActions, capabilities.features, undefined, prioritizeIdentityRestart)
     // a blocked card (region refused, provider rejection) owns the slot until
     // the user hides it, even when every checklist row is done; hiding hands over
     // to the carousel, and Profile → Accounts keeps the fix or support route.
@@ -73,9 +75,12 @@ export function HomePage() {
                     onToggleVisibility={toggleBalanceVisibility}
                 />
                 <div className="flex flex-col gap-2">
+                    {/* each shows only for its own funding setup path, so at most one appears */}
                     <EnableAutoBalanceBanner />
+                    <FundingSetupPrompt />
                     <PendingVerificationTasks
                         placement="home"
+                        prioritizeIdentityRestart={prioritizeIdentityRestart}
                         whenEmptyShowsDocumentRequest={showCarousel}
                         whenEmpty={
                             showCarousel ? (

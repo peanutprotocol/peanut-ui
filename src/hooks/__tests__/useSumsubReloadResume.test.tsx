@@ -96,6 +96,20 @@ describe('useSumsubReloadResume', () => {
         })
     })
 
+    it('leaves another flow’s persisted state alone when disabled', async () => {
+        const onUrlUpdate = jest.fn()
+        const onResume = jest.fn().mockResolvedValue(false)
+        const { rerender } = renderHook(
+            ({ open }: { open: KycResumeState | null }) => useSumsubReloadResume(open, onResume, false),
+            { wrapper: wrapperFor(encode({}), onUrlUpdate), initialProps: { open: null as KycResumeState | null } }
+        )
+
+        rerender({ open: { intent: 'LATAM' } })
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        expect(onResume).not.toHaveBeenCalled()
+        expect(onUrlUpdate).not.toHaveBeenCalled()
+    })
+
     it('does not rewrite the URL while the open state is unchanged by value', () => {
         const onUrlUpdate = jest.fn()
         const onResume = jest.fn().mockResolvedValue(true)

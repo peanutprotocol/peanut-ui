@@ -38,8 +38,7 @@ export interface MascotEntry {
 
 /**
  * All 10 canonical poses. Source: mono/assets/mascot/lottie — recolour there,
- * never the export, or the next re-export reverts it. The old juggling Lottie
- * is out of brand and stays off this page.
+ * never the export, or the next re-export reverts it.
  */
 export const MASCOT_ENTRIES: MascotEntry[] = [
     { pose: 'waving-chill', usedFor: 'Landing hero; relaxed moments' },
@@ -101,15 +100,20 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'star',
         asset: star,
         path: 'assets/illustrations/star.svg',
-        usedIn: 'Stars/ProseStars mdx, ExchangeWidget, sendInSeconds, RegulatedRails, noFees, Manteca',
+        usedIn: 'Stars/ProseStars mdx, ExchangeWidget, ProductSplitHero',
     },
     {
         label: 'sparkle',
         asset: sparkle,
         path: 'assets/illustrations/sparkle.svg',
-        usedIn: '/shhhhh, merchant end fold',
+        usedIn: 'ProductSplitHero, StarLp CloseFold, self-custody, home card fold',
     },
-    { label: 'stack-coin', asset: stackCoin, path: 'assets/illustrations/stack-coin.svg', usedIn: 'ProblemFold' },
+    {
+        label: 'stack-coin',
+        asset: stackCoin,
+        path: 'assets/illustrations/stack-coin.svg',
+        usedIn: 'no current call site',
+    },
     {
         label: 'peanut-card-hand',
         asset: peanutCardHand,
@@ -120,32 +124,32 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'exclamations',
         asset: exclamations,
         path: 'assets/illustrations/exclamations.svg',
-        usedIn: 'sendInSeconds',
+        usedIn: 'RequestLinksExclamations',
     },
-    { label: 'eyes', asset: eyes, path: 'assets/illustrations/eyes.svg', usedIn: 'Landing FAQ fold' },
+    { label: 'eyes', asset: eyes, path: 'assets/illustrations/eyes.svg', usedIn: 'no current call site' },
     {
         label: 'scribble-circle',
         asset: scribbleCircle,
         path: 'assets/illustrations/scribble-circle.svg',
-        usedIn: 'noFees',
+        usedIn: 'KnerdWordCircle (star-LP close)',
     },
     {
         label: 'border-cloud',
         asset: borderCloud,
         path: 'assets/illustrations/border-cloud.svg',
-        usedIn: 'CloudsCss drifting clouds: landing hero, sendInSeconds, RegulatedRails, noFees, MarketingHero, mdx Steps, ExchangeWidget, Manteca (desktop)',
+        usedIn: 'CloudsCss drifting clouds: landing hero, home get-paid and request folds, MarketingHero, mdx Hero/Steps, ExchangeWidget, us-europe-accounts, request-links',
     },
 ]
 
 /** Landing illustrations. Multicolour, so not doodles by the fill rule; approved as they are. */
 export const LANDING_ILLUSTRATION_ENTRIES: ArtEntry[] = [
-    { label: 'flag-ar', asset: flagAr, path: 'assets/illustrations/flag-ar.svg', usedIn: 'Manteca fold (Argentina)' },
-    { label: 'flag-br', asset: flagBr, path: 'assets/illustrations/flag-br.svg', usedIn: 'Manteca fold (Brazil)' },
+    { label: 'flag-ar', asset: flagAr, path: 'assets/illustrations/flag-ar.svg', usedIn: 'no current call site' },
+    { label: 'flag-br', asset: flagBr, path: 'assets/illustrations/flag-br.svg', usedIn: 'no current call site' },
     {
         label: 'landing-countries',
         asset: landingCountries,
         path: 'assets/illustrations/landing-countries.svg',
-        usedIn: 'yourMoney fold (countries map)',
+        usedIn: 'no current call site',
     },
 ]
 
@@ -155,7 +159,7 @@ export const GLOVE_ENTRIES: ArtEntry[] = [
         label: 'hand-peace',
         asset: handPeace,
         path: 'assets/illustrations/hand-peace.svg',
-        usedIn: 'FooterChrome hand row (every marketing page)',
+        usedIn: 'FooterChrome hand row (every marketing page), StarLp CloseGloveCta (home and us-europe-accounts close)',
     },
     {
         label: 'hand-waving',

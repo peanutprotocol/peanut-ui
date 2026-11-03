@@ -1,6 +1,9 @@
 'use client'
 
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
+import { API_CONTRACT_STATES } from './api-contract-states'
+import AmountInput from '@/components/Global/AmountInput'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -14,7 +17,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
  */
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
@@ -24,6 +27,7 @@ import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -39,7 +43,6 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
-import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
@@ -80,6 +83,10 @@ import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/c
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -93,12 +100,14 @@ function SetupScreen({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    nationalityCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -107,6 +116,7 @@ function SetupScreen({
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
+                nationalityCountry={nationalityCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -119,18 +129,21 @@ function SetupScreenBody({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    nationalityCountry?: string
 }) {
-    const { setSteps, setResidenceCountry } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry, setNationalityCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
-    }, [residenceCountry, setResidenceCountry])
+        if (nationalityCountry) setNationalityCountry(nationalityCountry)
+    }, [residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
     if (!step) return null
@@ -163,6 +176,23 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
     step: 'first_payment',
 }
 const noop = () => {}
+
+/** The residence step's comparison, as its Next opens it when the nationality differs. */
+function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
+    const locale = useLocale()
+    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
+    const { sets } = useResidenceRestrictionSetsWithStatus()
+    return (
+        <ResidenceCompare
+            residence={residence}
+            nationality={nationality}
+            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
+            restrictionSets={sets}
+            busy={false}
+            onChoose={noop}
+        />
+    )
+}
 const asyncNoop = async () => {}
 
 /**
@@ -207,6 +237,20 @@ function RequestPotPartialSurface() {
     )
 }
 
+function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'withdraw' }) {
+    const tAddMoney = useTranslations('addMoney')
+    const tNav = useTranslations('navigation')
+    return (
+        <AppPageSurface>
+            <MantecaAccountUnavailable
+                title={action === 'deposit' ? tAddMoney('title') : tNav('withdraw')}
+                onBack={noop}
+                onSupport={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
 function WithdrawReviewSurface({
     isProcessing = false,
     alreadySpent = false,
@@ -223,7 +267,6 @@ function WithdrawReviewSurface({
                         address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
                         symbol: 'USDC',
                         decimals: 6,
-                        price: 1,
                     } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
                 }
                 chain={
@@ -302,7 +345,6 @@ import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
-import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
@@ -312,6 +354,44 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                ...SURFACE_META[id],
+                render: () => <TestBuildRibbonView branch="test/kyc-contract" api={state.api} />,
+            },
+        ])
+    ),
+    'numeric-request-amount-4000': {
+        ...SURFACE_META['numeric-request-amount-4000'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput setPrimaryAmount={noop} showSlider maxAmount={4000} defaultSliderSuggestedAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-rate-unavailable': {
+        ...SURFACE_META['numeric-request-rate-unavailable'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput
+                    initialAmount="4000"
+                    setPrimaryAmount={noop}
+                    primaryDenomination={{ symbol: 'USDC', price: 1, decimals: 6 }}
+                    secondaryDenomination={{ symbol: 'EUR', price: 0, decimals: 2 }}
+                />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-amount-invalid': {
+        ...SURFACE_META['numeric-request-amount-invalid'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput initialAmount="Infinity" setPrimaryAmount={noop} showSlider maxAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -332,6 +412,14 @@ export const SURFACES: Record<string, Surface> = {
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
+    },
+    '03-b-residence-compare': {
+        ...SURFACE_META['03-b-residence-compare'],
+        render: () => (
+            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
+                <ResidenceCompareSurface residence="PT" nationality="BR" />
+            </SetupScreen>
+        ),
     },
 
     '05-a-signtesttransaction': {
@@ -391,6 +479,23 @@ export const SURFACES: Record<string, Surface> = {
                 platform="android"
             />
         ),
+    },
+    '08-b-loginrecoverydrawer': {
+        ...SURFACE_META['08-b-loginrecoverydrawer'],
+        render: () => (
+            <LoginRecoveryDrawer
+                visible
+                onClose={noop}
+                onRetry={noop}
+                onSignUp={noop}
+                onSupport={noop}
+                platform="ios"
+            />
+        ),
+    },
+    '08-c-loginrecoverydrawer-web': {
+        ...SURFACE_META['08-c-loginrecoverydrawer-web'],
+        render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',
@@ -495,10 +600,6 @@ export const SURFACES: Record<string, Surface> = {
     '29-b-kycstatusdrawer': {
         ...SURFACE_META['29-b-kycstatusdrawer'],
         render: () => <KycStatusDrawer isOpen onClose={noop} />,
-    },
-    '30-b-unlockmethodmodal': {
-        ...SURFACE_META['30-b-unlockmethodmodal'],
-        render: () => <UnlockMethodModal visible onClose={noop} onUnlock={noop} methodLabel="SEPA transfers" />,
     },
     '32-c-cancelcardmodal': {
         ...SURFACE_META['32-c-cancelcardmodal'],
@@ -742,27 +843,11 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
-    '69-e-kycprepchecklist-standard': {
-        ...SURFACE_META['69-e-kycprepchecklist-standard'],
-        render: () => (
-            <div className="p-4">
-                <KycPrepChecklist path="standard" />
-            </div>
-        ),
-    },
-    '70-e-kycprepchecklist-extended': {
-        ...SURFACE_META['70-e-kycprepchecklist-extended'],
-        render: () => (
-            <div className="p-4">
-                <KycPrepChecklist path="extended" />
-            </div>
-        ),
-    },
     '71-e-kycprepchecklist-hosted': {
         ...SURFACE_META['71-e-kycprepchecklist-hosted'],
         render: () => (
             <div className="p-4">
-                <KycPrepChecklist path="hosted" />
+                <KycPrepChecklist />
             </div>
         ),
     },
@@ -1026,6 +1111,14 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['91-f-withdraw-review-spent'],
         render: () => <WithdrawReviewSurface alreadySpent />,
     },
+    '92-f-deposit-account-closed': {
+        ...SURFACE_META['92-f-deposit-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="deposit" />,
+    },
+    '93-f-withdraw-account-closed': {
+        ...SURFACE_META['93-f-withdraw-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
+    },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
         // human) clicks the row; needs a fixture granting card access
@@ -1056,8 +1149,6 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
-    'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
-    'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

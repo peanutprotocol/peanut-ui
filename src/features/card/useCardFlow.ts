@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER } from '@/constants/query.consts'
@@ -12,18 +13,27 @@ import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRa
 import { computeCardState, type CardTopLevelState } from '@/components/Card/cardState.utils'
 import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 import { initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
-import { rainApi, type ApplyForCardResponse } from '@/services/rain'
+import { rainApi, type ApplyForCardResponse, type RainFundingAccess } from '@/services/rain'
 import { cardConsentDocuments } from '@/services/consent'
+import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { fundingAccessQueryKey, useCardFundingAccess } from '@/hooks/useCardFundingAccess'
+import { fundingSetupPath, sameIdentity, type RainFundingConsent } from '@/utils/rain-funding.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { refusalOf } from '@/features/kyc-features/report'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { writeStoredValue } from '@/utils/safe-storage'
 import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { useKycFeatureActivation } from '@/features/paperwork-verification/useKycFeatureActivation'
+import { ApiError } from '@/services/api-error'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -33,6 +43,7 @@ export function useCardFlow() {
     const queryClient = useQueryClient()
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
+    const activation = useKycFeatureActivation('card', { automatic: false })
     const { balance, hasSufficientSpendableBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(10)
     const [fundingRequired, setFundingRequired] = useState(false)
@@ -52,14 +63,31 @@ export function useCardFlow() {
         staleTime: 30_000,
     })
 
-    const { overview, isLoading: overviewLoading, error: overviewError } = useRainCardOverview()
+    const [pendingApplication, setPendingApplication] = useState<'pending-identity' | 'pending' | null>(null)
+    const {
+        overview,
+        isLoading: overviewLoading,
+        error: overviewError,
+    } = useRainCardOverview({
+        pendingApplication: pendingApplication === 'pending',
+    })
     // `isCardFunded` sums the smart account and Rain collateral. Both must be read
     // values: a failed first read or an unavailable Rain balance counts as 0 there.
     const isBalanceKnown = balance !== undefined && isRainBalanceKnown(overview)
     const needsFundingBeforeApply =
         !overview?.status.hasApplication && overview?.status.railStatus !== 'ENABLED' && !isCardFunded
+    // Grant-only here: the Home prompt owns the funding state read.
+    const { grant: grantFunding } = useRainFunding({ enabled: false })
+    // The existing card permission, for a re-issue on the existing card path.
     const { serializeGrant } = useGrantSessionKey()
-    const { railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
+    // Which terms the card screen shows: the server's funding decision.
+    const fundingAccess = useCardFundingAccess()
+    // Latest user and connected wallet, read at the start of a callback and
+    // after every await: a switch sends and signs nothing further.
+    const { address: connectedAddress } = useZeroDev()
+    const identityRef = useRef({ userId, connectedAddress })
+    identityRef.current = { userId, connectedAddress }
+    const { capabilities, railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
     const cardRail = railsForProvider('rain')[0]
     const reasonCode = cardRail?.reason?.code ?? null
     const applicationStatus = overview?.status.applicationStatus ?? null
@@ -93,6 +121,7 @@ export function useCardFlow() {
     }, [userId, hasOverviewStatus, railStatus, applicationStatus, showsCapabilityReason, queryClient])
     const { setIsSupportModalOpen } = useModalsContext()
     const onBack = useSafeBack('/home')
+    const router = useRouter()
 
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
@@ -119,6 +148,23 @@ export function useCardFlow() {
     // KYC residence is eligible and only an open residence-change request is
     // restricting issuance. The recovery screen links to that exact request.
     const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
+    // The plan's refusal of the card: the API's report (`capabilities.features.card`),
+    // so it reads the same on every visit. The apply answer bridges the moment
+    // before the re-read report carries it; Back dismisses it for this visit.
+    const [appliedRefusal, setAppliedRefusal] = useState<string | null>(null)
+    const [refusalDismissed, setRefusalDismissed] = useState(false)
+    const cardRefusal = refusalOf(capabilities.features?.card)
+    const reportedRefusal = cardRefusal && reasonCodeKey(cardRefusal) ? cardRefusal : null
+    const planRefusal = refusalDismissed ? null : (reportedRefusal ?? appliedRefusal)
+    const setPlanRefusal = useCallback((reason: string | null) => {
+        setAppliedRefusal(reason)
+        setRefusalDismissed(reason === null)
+    }, [])
+    // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
+    const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
+    useEffect(() => {
+        setPendingApplication(null)
+    }, [userId])
 
     const state = computeCardState({
         overview,
@@ -162,6 +208,18 @@ export function useCardFlow() {
         void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
     }, [queryClient])
 
+    // The identity steps a plan refusal asks for: a supplement, or a restart with another document.
+    const kycFlow = useMultiPhaseKycFlow({
+        onKycSuccess: () => {
+            setPlanRefusal(null)
+            invalidateOverview()
+        },
+        // The card's own Sumsub resumes from `kyc`; replaying it here started a legacy identity check.
+        resumeOnReload: false,
+    })
+    const startFlowAction = kycFlow.handleStartAction
+    const restartIdentity = kycFlow.handleRestartIdentity
+
     // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
     // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
     // shaped: its post-approval phase machine polls a mutating endpoint, can
@@ -189,13 +247,18 @@ export function useCardFlow() {
     // create-action idempotency into minting two Sumsub actions (the id
     // collision path deliberately mints a suffixed fresh action).
     const poaStartingRef = useRef(false)
-    const startPoaUpload = useCallback(async () => {
+    const startProofOfAddressUpload = useCallback(async () => {
         if (poaStartingRef.current) return
         poaStartingRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { source: 'poa-self-heal' })
         setPoaError(null)
         try {
             const response = await initiateSelfHealResubmission('RAIN')
+            // Rain's selfie and ID come first, and only through the identity restart.
+            if (response.fallback === 'restart-identity') {
+                void restartIdentity()
+                return
+            }
             if (response.error || !response.data?.token) {
                 // Surfaced inline on the status screen — a silent primary CTA on
                 // a stuck-application screen is worse than no CTA.
@@ -206,8 +269,8 @@ export function useCardFlow() {
         } finally {
             poaStartingRef.current = false
         }
-    }, [])
-    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startPoaUpload() : undefined
+    }, [restartIdentity])
+    const onUploadProofOfAddress = poaAction && !poaSubmitted ? () => void startProofOfAddressUpload() : undefined
 
     // The rain rail's identity-document re-upload action, emitted when Rain
     // rejected the card application on a proof-of-identity document. Rather than
@@ -218,7 +281,15 @@ export function useCardFlow() {
         ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'rain-hosted')
         : undefined
     const { start: startIdentityUpload, error: identityUploadError } = useHostedVerification('rain-hosted')
-    const onUploadIdentity = identityAction ? () => void startIdentityUpload() : undefined
+    // needsVerification: Rain's selfie and ID come from a new identity check, which the API then sends to Rain.
+    const identityRestartAction = cardRail
+        ? nextActionsForRail(cardRail.id).find((action) => action.kind === 'restart-identity')
+        : undefined
+    const onUploadIdentity = identityAction
+        ? () => void startIdentityUpload()
+        : identityRestartAction
+          ? () => void restartIdentity()
+          : undefined
 
     const informationActions = cardRail
         ? nextActionsForRail(cardRail.id).filter(
@@ -249,6 +320,10 @@ export function useCardFlow() {
             try {
                 const response = await startKycAction(key)
                 if (informationStartingRef.current !== attempt || informationUserRef.current !== userId) return
+                if (response.fallback === 'restart-identity') {
+                    void restartIdentity()
+                    return
+                }
                 if (response.error || !response.data?.token) {
                     setInformationError(
                         response.code ? t('informationStartFailed') : (response.error ?? t('informationStartFailed'))
@@ -264,7 +339,7 @@ export function useCardFlow() {
                 if (informationStartingRef.current === attempt) informationStartingRef.current = null
             }
         },
-        [userId, informationSession, t]
+        [userId, informationSession, t, restartIdentity]
     )
     const refreshInformationToken = useCallback(async () => {
         if (!informationSession) throw new Error('No card information action to refresh')
@@ -288,6 +363,18 @@ export function useCardFlow() {
     // and stays inline.
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse) => {
+            if (
+                res.status === 'pending-identity' ||
+                (res.status === 'pending' && !('rainUserId' in res && res.rainUserId))
+            ) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingApplication(res.status)
+                awaitingIssuanceRef.current = false
+                invalidateOverview()
+                return
+            }
+            setPendingApplication(null)
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
             // after liveness was added to the level). Open WebSDK at the
             // MAIN level — Sumsub asks only for the missing step. Same
@@ -332,6 +419,23 @@ export function useCardFlow() {
                 setPendingResidenceBlocked(true)
                 return
             }
+            if (res.status === 'questions-required' && 'step' in res) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingQuestions(res.step)
+                return
+            }
+            if (res.status === 'provider-not-in-plan' && 'message' in res) {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                const reason = 'reason' in res ? res.reason : undefined
+                if (reason === 'requirements_missing') void startFlowAction('supplement:rain')
+                else if (reason && reasonCodeKey(reason)) {
+                    setPlanRefusal(reason)
+                    void fetchUser()
+                } else setApplyError(res.message)
+                return
+            }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
@@ -344,7 +448,7 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo]
+        [invalidateOverview, refetchCardInfo, startFlowAction, setPlanRefusal, fetchUser]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).
@@ -371,10 +475,16 @@ export function useCardFlow() {
     // `terms-required` next.
     const handleConfirmCountry = useCallback(
         async (countryCode: string) => {
+            // Bound to the account this callback was made for, like submitApplication.
+            const startedFor = { userId, connectedAddress }
+            const changed = () => !sameIdentity(identityRef.current, startedFor)
+            if (changed()) return
             setApplyError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_COUNTRY_CONFIRMED, { country: countryCode })
             try {
+                if (!(await activation.activate()) || changed()) return
                 const res = await rainApi.applyForCard({ confirmedResidenceCountry: countryCode })
+                if (changed()) return
                 // Caller-specific `incomplete` branch (advanceFromApplyResponse
                 // deliberately doesn't handle it): the applicant regressed
                 // between the mismatch response and the confirm call — open the
@@ -388,97 +498,198 @@ export function useCardFlow() {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
+                if (changed()) return
                 const message = e instanceof Error ? e.message : t('page.confirmCountryFailed')
                 console.error('[card apply] country confirm error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, t]
+        [advanceFromApplyResponse, userId, connectedAddress, t, activation.activate]
+    )
+
+    // Returns the response only when the application went through to a state
+    // that can carry the funding permission; undefined on every other outcome.
+    const submittingApplication = useRef<object | null>(null)
+    const submitApplication = useCallback(
+        async (termsAccepted = false, serializedApproval?: string) => {
+            const attempt = {}
+            const oneShot = user?.identityVerification?.oneShot === true
+            if (oneShot && submittingApplication.current) return undefined
+            if (oneShot) submittingApplication.current = attempt
+            try {
+                // Bound to the account this callback was made for: one captured
+                // before a switch sends nothing, and a response that lands after
+                // one changes nothing.
+                const startedFor = { userId, connectedAddress }
+                const changed = () => !sameIdentity(identityRef.current, startedFor)
+                if (changed()) return undefined
+                // A cached display balance cannot unlock a new application. Existing
+                // applications and approved reissues retain their recovery paths.
+                if (needsFundingBeforeApply) {
+                    setFundingRequired(true)
+                    setPendingTerms(null)
+                    return undefined
+                }
+                setApplyError(null)
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
+                    terms_accepted: termsAccepted,
+                    with_session_key: !!serializedApproval,
+                })
+                try {
+                    // Consent-ledger echo: on acceptance, send the exact documents
+                    // CardTermsScreen displayed for this region (version + hash).
+                    const acceptedDocuments = termsAccepted
+                        ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
+                        : undefined
+                    if (!(await activation.activate()) || changed()) return undefined
+                    const res = await rainApi.applyForCard({
+                        termsAccepted,
+                        acceptedDocuments,
+                        ...(serializedApproval ? { serializedApproval } : {}),
+                    })
+                    if (changed()) return undefined
+                    if (termsAccepted && res.status === 'pending' && userId) {
+                        writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
+                    }
+                    posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
+                    if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                        setSumsubToken(res.sumsubAccessToken)
+                        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                        return undefined
+                    }
+                    advanceFromApplyResponse(res)
+                    return res
+                } catch (e) {
+                    if (changed()) return undefined
+                    // A Smart Paperwork Verification user's identity check starts on /verify, never as a legacy applicant here.
+                    if (e instanceof ApiError && e.code === 'paperwork_verification_required') {
+                        router.push('/verify')
+                        return undefined
+                    }
+                    const message = e instanceof Error ? e.message : t('page.applyFailed')
+                    console.error('[card apply] error:', e)
+                    setApplyError(message)
+                    posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+                    return undefined
+                }
+            } finally {
+                if (submittingApplication.current === attempt) submittingApplication.current = null
+            }
+        },
+        [
+            advanceFromApplyResponse,
+            pendingTerms,
+            needsFundingBeforeApply,
+            userId,
+            connectedAddress,
+            t,
+            router,
+            activation.activate,
+            user?.identityVerification?.oneShot,
+        ]
     )
 
     const handleApply = useCallback(
-        async (termsAccepted = false, serializedApproval?: string) => {
-            // A cached display balance cannot unlock a new application. Existing
-            // applications and approved reissues retain their recovery paths.
-            if (needsFundingBeforeApply) {
-                setFundingRequired(true)
-                setPendingTerms(null)
-                return
-            }
-            setApplyError(null)
-            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_ATTEMPTED, {
-                terms_accepted: termsAccepted,
-                with_session_key: !!serializedApproval,
-            })
-            try {
-                // Consent-ledger echo: on acceptance, send the exact documents
-                // CardTermsScreen displayed for this region (version + hash).
-                const acceptedDocuments = termsAccepted
-                    ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
-                    : undefined
-                const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
-                if (termsAccepted && res.status === 'pending' && userId) {
-                    writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
-                }
-                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
-                if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
-                    setSumsubToken(res.sumsubAccessToken)
-                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
-                    return
-                }
-                advanceFromApplyResponse(res)
-            } catch (e) {
-                const message = e instanceof Error ? e.message : t('page.applyFailed')
-                console.error('[card apply] error:', e)
-                setApplyError(message)
-                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
-            }
+        async (termsAccepted = false) => {
+            await submitApplication(termsAccepted)
         },
-        [advanceFromApplyResponse, pendingTerms, needsFundingBeforeApply, userId, t]
+        [submitApplication]
     )
 
-    const handleAcceptTerms = useCallback(async () => {
-        // If we already have the collateral contract (rail is ENABLED, re-issue
-        // path), collect the session-key permission in the same passkey tap
-        // before the backend creates the card. Fail closed: a cancelled /
-        // failed tap means no card gets issued.
-        const canGrant = !!overview?.status?.contractAddress && !!overview?.status?.coordinatorAddress
-        posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
-            is_reissue: canGrant,
-            is_us_resident: pendingTerms?.isUsResident ?? false,
-        })
+    // `consent` is the funding authorization when the terms screen showed the
+    // managed path, and null when it showed the existing card path.
+    const handleAcceptTerms = useCallback(
+        async (consent: RainFundingConsent | null) => {
+            const canGrant = !!overview?.status?.contractAddress && !!overview?.status?.coordinatorAddress
+            posthog.capture(ANALYTICS_EVENTS.CARD_TERMS_ACCEPTED, {
+                is_reissue: canGrant,
+                is_us_resident: pendingTerms?.isUsResident ?? false,
+            })
+            // The account this callback was made for. One captured before a
+            // switch reads, sends and signs nothing for the next account.
+            const startedFor = { userId, connectedAddress }
+            const changed = () => !sameIdentity(identityRef.current, startedFor)
+            if (changed()) return
+            const shownPath = consent ? 'managed' : 'legacy'
 
-        if (!canGrant) {
-            // First-time apply — no collateral proxy yet. Session-key grant
-            // happens the next time the user lands here (re-issue path).
             setIsIssuing(true)
+            setApplyError(null)
             try {
-                await handleApply(true)
+                // The decision the screen was built on may be stale: read it
+                // again before anything is signed or sent. Unknown stops here.
+                let access: RainFundingAccess
+                try {
+                    access = await rainApi.getFundingAccess()
+                } catch {
+                    if (!changed()) setApplyError(t('page.setupFailed'))
+                    return
+                }
+                if (changed()) return
+                queryClient.setQueryData(fundingAccessQueryKey(startedFor), access)
+                // The person accepted the text of one path. If the decision moved
+                // to the other, nothing is applied or signed: the screen shows
+                // the current path to accept again. A managed account never
+                // goes back to the existing permission.
+                const freshPath = fundingSetupPath(access)
+                if (freshPath !== shownPath) {
+                    setApplyError(t('funding.termsChanged'))
+                    return
+                }
+
+                if (consent) {
+                    const res = await submitApplication(true)
+                    // This consent belongs to the account and wallet it was
+                    // given for: after a switch it never starts the next
+                    // account's enrollment.
+                    if (changed()) return
+                    // The permission needs a card account with a wallet on file,
+                    // so it follows the application. Best effort: a first-time
+                    // applicant has no wallet on file yet, and a cancelled or
+                    // failed tap leaves the card as it is. The Home prompt asks
+                    // again in either case until the backend reports it ready.
+                    if (res && (res.status === 'pending' || res.status === 'ENABLED')) {
+                        await grantFunding(consent, startedFor)
+                    }
+                    return
+                }
+
+                // The existing card path. First-time apply has no collateral
+                // contracts yet: the card permission follows on Home after issuance.
+                // The balance gate stops a new application before any signature.
+                if (!canGrant || needsFundingBeforeApply) {
+                    await submitApplication(true)
+                    return
+                }
+                // Re-issue with contracts in place: the permission is signed in
+                // the same flow, before the card is created. A cancelled or
+                // failed signature creates no card.
+                const tap = await serializeGrant(startedFor)
+                if (changed()) return
+                if (!tap.ok) {
+                    setApplyError(
+                        tap.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed')
+                    )
+                    return
+                }
+                await submitApplication(true, tap.serialized)
             } finally {
                 setIsIssuing(false)
             }
-            return
-        }
-
-        const isUsResidentSnapshot = pendingTerms?.isUsResident ?? false
-        setIsIssuing(true)
-        setApplyError(null)
-        try {
-            const tap = await serializeGrant()
-            if (!tap.ok) {
-                // Back to the terms screen with a friendly error. Don't hit
-                // the backend — no card should be created without consent.
-                setIsIssuing(false)
-                setPendingTerms({ isUsResident: isUsResidentSnapshot })
-                setApplyError(tap.error.kind === 'user-cancelled' ? t('page.setupCancelled') : t('page.setupFailed'))
-                return
-            }
-            await handleApply(true, tap.serialized)
-        } finally {
-            setIsIssuing(false)
-        }
-    }, [handleApply, overview, pendingTerms, serializeGrant, t])
+        },
+        [
+            submitApplication,
+            overview,
+            pendingTerms,
+            grantFunding,
+            serializeGrant,
+            needsFundingBeforeApply,
+            userId,
+            connectedAddress,
+            queryClient,
+            t,
+        ]
+    )
 
     // Distinguishes "user finished the applicant action" from "user closed the
     // modal without finishing" — without this both paths would fire
@@ -501,6 +712,9 @@ export function useCardFlow() {
     }, [])
 
     const handleSumsubComplete = useCallback(async () => {
+        const startedFor = { userId, connectedAddress }
+        const changed = () => !sameIdentity(identityRef.current, startedFor)
+        if (changed()) return
         sumsubCompletedRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
@@ -512,6 +726,7 @@ export function useCardFlow() {
         pollAbortRef.current = controller
 
         try {
+            if (!(await activation.activate()) || changed() || controller.signal.aborted) return
             // Two-stage poll. First wait for the webhook-stamped readiness flag
             // (cheap, DB-only, safe at 1s cadence). Once Sumsub has reviewed
             // rain-requirements GREEN, fall through to the existing apply poll.
@@ -539,12 +754,15 @@ export function useCardFlow() {
             // for the rare case where the webhook flag landed but the
             // applicant state hasn't fully propagated (e.g. read-replica lag).
             const res = await pollUntilApplyAdvances({
-                fetchApply: () => rainApi.applyForCard({ termsAccepted: false }),
+                fetchApply: async () => {
+                    if (changed()) throw new Error('Card account changed')
+                    return rainApi.applyForCard({ termsAccepted: false })
+                },
                 intervalMs: 1000,
                 timeoutMs: 5000,
                 signal: controller.signal,
             })
-            if (controller.signal.aborted) return
+            if (controller.signal.aborted || changed()) return
             if (!res) {
                 setApplyError(t('page.verificationSlow'))
                 return
@@ -552,7 +770,7 @@ export function useCardFlow() {
             posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
             advanceFromApplyResponse(res)
         } catch (e) {
-            if (controller.signal.aborted) return
+            if (controller.signal.aborted || changed()) return
             const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
@@ -567,7 +785,7 @@ export function useCardFlow() {
             // successor now owns.
             if (isMountedRef.current && pollAbortRef.current === controller) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse, t])
+    }, [advanceFromApplyResponse, t, activation.activate, userId, connectedAddress])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -578,34 +796,27 @@ export function useCardFlow() {
     }, [])
 
     const handleSumsubRefreshToken = useCallback(async () => {
+        const startedFor = { userId, connectedAddress }
+        if (!(await activation.activate()) || !sameIdentity(identityRef.current, startedFor)) return ''
         const res = await rainApi.applyForCard({ termsAccepted: false })
+        if (!sameIdentity(identityRef.current, startedFor)) return ''
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             return res.sumsubAccessToken
         }
         // Edge case: the user became "ready" between initial apply and the
         // refresh attempt. Close the modal and continue the non-Sumsub path.
         setSumsubToken(null)
-        if (res.status === 'terms-required' && 'isUsResident' in res) {
-            setPendingTerms({ isUsResident: res.isUsResident })
-        } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
-            setPendingCountryConfirmation({ candidates: res.candidates })
-        } else if (res.status === 'geo-blocked') {
-            setPendingResidenceBlocked(false)
-            setGeoBlocked(true)
-            void refetchCardInfo()
-        } else if (res.status === 'pending-residence-blocked') {
-            setGeoBlocked(false)
-            setPendingResidenceBlocked(true)
-        } else {
-            invalidateOverview()
-        }
+        advanceFromApplyResponse(res)
         return ''
-    }, [invalidateOverview, refetchCardInfo])
+    }, [advanceFromApplyResponse, activation.activate, userId, connectedAddress])
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
     useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+        const startedFor = { userId, connectedAddress }
+        if (!(await activation.activate()) || !sameIdentity(identityRef.current, startedFor)) return false
         const res = await rainApi.applyForCard({ termsAccepted: false })
+        if (!sameIdentity(identityRef.current, startedFor)) return false
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             setSumsubToken(res.sumsubAccessToken)
             posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
@@ -615,12 +826,23 @@ export function useCardFlow() {
         return false
     })
 
+    // The card answers are saved and the card joined the saved features: apply again.
+    const handleQuestionsDone = useCallback(() => {
+        setPendingQuestions(null)
+        void handleApply(false)
+    }, [handleApply])
+
     return {
+        activation,
         // data
         user,
         isCardFunded,
         isBalanceKnown,
         needsFundingBeforeApply,
+        /** Which card terms to show: `managed` | `legacy`, undefined while unknown. */
+        termsFundingPath: fundingAccess.setupPath,
+        fundingAccessLoading: fundingAccess.isLoading,
+        refetchFundingAccess: fundingAccess.refetch,
         fundingRequired,
         fetchUser,
         cardInfo,
@@ -642,6 +864,13 @@ export function useCardFlow() {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        planRefusal,
+        setPlanRefusal,
+        pendingQuestions,
+        pendingApplication,
+        setPendingQuestions,
+        handleQuestionsDone,
+        kycFlow,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -653,9 +882,9 @@ export function useCardFlow() {
         poaSubmitted,
         setPoaSubmitted,
         onUploadProofOfAddress,
-        // identity re-upload
+        // identity: Rain's portal, or the identity restart for Rain's selfie and ID
         onUploadIdentity,
-        identityUploadError,
+        identityUploadError: identityUploadError ?? (identityRestartAction ? kycFlow.error : null),
         informationActions,
         informationSession,
         setInformationSession,
