@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useQueryState } from 'nuqs'
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
+import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { selectVerifyTasks } from '@/utils/bridge-tasks.utils'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
@@ -279,6 +282,9 @@ function PaperworkVerificationSteps({
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    // What a feature still asks for once the identity is verified, as the verified screen lists it.
+    const { nextActions, capabilities } = useCapabilities()
+    const hasFollowUps = selectVerifyTasks(nextActions, capabilities.features).length > 0
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
@@ -764,6 +770,10 @@ function PaperworkVerificationSteps({
             <StepsScreen
                 phase="verified"
                 hasQuestions={questionIds.length > 0}
+                // The identity's own status page also names what a feature still asks for (Rain's
+                // proof of address, a bank's document): the steps Home lists, from the same report.
+                aside={<PendingVerificationTasks placement="verify" />}
+                secondaryCta={hasFollowUps}
                 onBack={goHome}
                 onContinue={() => router.push(PAYMENT_METHODS_HREF)}
             />

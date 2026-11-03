@@ -549,6 +549,19 @@ describe('PendingVerificationTasks — a card application waiting on a document'
         expect(screen.getByText(en.home.pendingTasks.cardDocumentTitle)).toBeInTheDocument()
     })
 
+    // Staging, 2026-11-03: the verified /verify screen said nothing about the card's proof of address.
+    it("/verify's verified screen lists the card ask beside the bank's, and dismisses neither", () => {
+        mockNextActions = [sepaTosAction, rainPoa]
+        mockRails = [cardRail([rainPoa.key])]
+        render(<PendingVerificationTasks placement="verify" />)
+
+        expect(screen.getByText('Accept updated bank transfer provider terms')).toBeInTheDocument()
+        expect(screen.getByText(en.home.pendingTasks.cardAddressDescription)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.home.pendingTasks.cardDocumentCta }))
+        expect(mockRouterPush).toHaveBeenCalledWith('/card')
+    })
+
     it('Profile → Accounts lists bank tasks only', () => {
         mockNextActions = [rainPoa]
         mockRails = [cardRail([rainPoa.key])]

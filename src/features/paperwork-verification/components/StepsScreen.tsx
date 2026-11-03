@@ -69,6 +69,7 @@ export function StepsScreen({
     busy = false,
     continueTestId,
     aside,
+    secondaryCta = false,
     onBack,
     onContinue,
 }: {
@@ -79,8 +80,10 @@ export function StepsScreen({
     /** while the start Continue makes is on its way */
     busy?: boolean
     continueTestId?: string
-    /** above the button: the provider today's flow opens an account with */
+    /** above the button: the provider today's flow opens an account with, or the steps a feature still asks for */
     aside?: React.ReactNode
+    /** the aside holds the screen's next step, so this button steps back to secondary */
+    secondaryCta?: boolean
     onBack: () => void
     onContinue?: () => void
 }) {
@@ -171,6 +174,7 @@ export function StepsScreen({
             <div className="mt-auto flex flex-col gap-4 pt-8">
                 {aside}
                 <Button
+                    variant={secondaryCta ? 'secondary' : 'primary'}
                     shadowSize="4"
                     className="w-full"
                     onClick={onContinue}

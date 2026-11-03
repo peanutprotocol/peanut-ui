@@ -535,6 +535,42 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
             'GET /users/kyc/profile': profile('APPROVED'),
         },
     },
+    'paperwork-verification-verified-card-follow-up': {
+        route: '/verify',
+        about: 'Approved, and the card application then asks for a proof of address: the verified screen names it.',
+        responses: {
+            'GET /users/kyc/questions': questions('US', answered(US_STEPS), null),
+            'GET /users/kyc/plan': approvedPlan(),
+            'GET /users/kyc/profile': profile('APPROVED'),
+            'GET /users/me': {
+                identityVerification: { oneShot: true, status: 'verified' },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'rain.card_rain',
+                            provider: 'rain',
+                            method: 'CARD_RAIN',
+                            channel: 'card',
+                            country: 'GLOBAL',
+                            currency: 'USD',
+                            status: 'requires-info',
+                            blockingActions: ['sumsub:proof_of_address'],
+                        },
+                    ],
+                    nextActions: [
+                        {
+                            key: 'sumsub:proof_of_address',
+                            kind: 'sumsub',
+                            purpose: 'rain-card',
+                            levelKey: 'proof_of_address',
+                        },
+                    ],
+                    restrictions: [],
+                    features: { card: { state: 'action_required', action: 'sumsub:proof_of_address' } },
+                },
+            },
+        },
+    },
     'paperwork-verification-proof-of-address': {
         route: '/verify',
         about: 'Rule 1: approved with an ID from another country than the residence and a bank account picked.',
