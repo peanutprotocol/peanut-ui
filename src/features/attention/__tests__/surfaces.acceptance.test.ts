@@ -10,6 +10,7 @@ function journey(): JourneyState {
         capNudge: null,
         maintenance: 'none',
         isNative: false,
+        deviceType: 'ios',
         route: 'home',
         consent: { status: 'clear', versions: [], documents: [] },
         identity: {

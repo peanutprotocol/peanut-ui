@@ -21,6 +21,7 @@ const baseState: Loose = {
     userId: 'user-a',
     userLoaded: true,
     isNative: true,
+    deviceType: 'ios',
     route: 'home',
     consent: { status: 'clear', versions: [], documents: [] },
     identity: {
@@ -140,6 +141,16 @@ describe('applyServerRanking', () => {
 
         expect(byId(out, 'legal-reconsent')?.eligible(failedCheck)).toBe('pending')
         expect(byId(out, 'legal-reconsent')?.eligible(loaded)).toBe('show')
+    })
+
+    // the server cannot see the device; the backup guide only fits iPhone and Android
+    test('a server show for the backup card stays ineligible on desktop web', () => {
+        const out = applyServerRanking(ASKS, serverOf({ verdicts: { 'backup-passkey': 'show' } }))
+        const ask = byId(out, 'backup-passkey')
+
+        expect(ask?.eligible(stateOf({ passkeyCount: 1, deviceType: 'web', isNative: false }))).toBe('ineligible')
+        expect(ask?.eligible(stateOf({ passkeyCount: 1, deviceType: null, isNative: false }))).toBe('unknown')
+        expect(ask?.eligible(stateOf({ passkeyCount: 1, deviceType: 'android', isNative: false }))).toBe('show')
     })
 
     // "otherwise the local eligible(state)"; failure #5 "local verdict used when the server has none"

@@ -30,6 +30,7 @@ const baseState: Loose = {
     userId: 'user-a',
     userLoaded: true,
     isNative: true,
+    deviceType: 'ios',
     route: 'home',
     consent: { status: 'clear', versions: [], documents: [] },
     identity: {
@@ -417,5 +418,24 @@ describe('the backup passkey ask', () => {
 
     test('two passkeys is still done on its own', () => {
         expect(verdictOf('backup-passkey', { passkeyCount: 2 })).toBe('done')
+    })
+
+    // the backup guide gives iPhone and Android steps only
+    test.each([
+        ['ios', true, 'show'],
+        ['android', true, 'show'],
+        ['ios', false, 'show'],
+        ['android', false, 'show'],
+        ['web', false, 'ineligible'],
+        [null, false, 'unknown'],
+    ])('on %s (native: %s) the verdict is %s', (deviceType, isNative, verdict) => {
+        expect(verdictOf('backup-passkey', { ...onePasskey, deviceType, isNative })).toBe(verdict)
+    })
+
+    test('desktop web never gets the card, whatever the passkey count', () => {
+        for (const passkeyCount of [1, 2]) {
+            expect(verdictOf('backup-passkey', { passkeyCount, deviceType: 'web', isNative: false })).toBe('ineligible')
+        }
+        expect(run({ ...onePasskey, deviceType: 'web', isNative: false }).zone?.id).not.toBe('backup-passkey')
     })
 })

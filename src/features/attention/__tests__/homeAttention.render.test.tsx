@@ -42,6 +42,7 @@ jest.mock('../zoneSurfaces', () => ({
         'blocked-card': (props: ZoneSurfaceProps) => mockZoneSurface(props),
         'verification-due': (props: ZoneSurfaceProps) => mockZoneSurface(props),
         invite: (props: ZoneSurfaceProps) => mockZoneSurface(props),
+        'backup-passkey': (props: ZoneSurfaceProps) => mockZoneSurface(props),
     },
 }))
 
@@ -65,6 +66,7 @@ const state = (patch: Partial<JourneyState> = {}): JourneyState => ({
     userId: 'user-a',
     userLoaded: true,
     isNative: true,
+    deviceType: 'ios',
     route: 'home',
     consent: { status: 'clear', versions: [], documents: [] },
     identity: {
@@ -236,5 +238,29 @@ describe('Phase 8: checklistProgress pure counter', () => {
             total: 4,
         })
         expect(checklistProgress(onboarding({ firstPaymentDone: true, step: 'verify' }))).toEqual({ done: 4, total: 4 })
+    })
+})
+
+describe('the backup passkey card and the device', () => {
+    const onePasskey = (patch: Partial<JourneyState>) => {
+        mockOnboarding = onboarding({ firstPaymentDone: true, step: 'completed' })
+        mockState = state({ activated: true, passkeyCount: 1, ...patch })
+    }
+
+    test.each<[JourneyState['deviceType'], boolean]>([
+        ['ios', true],
+        ['android', true],
+        ['ios', false],
+        ['android', false],
+    ])('on %s (native: %s) it renders', async (deviceType, isNative) => {
+        onePasskey({ deviceType, isNative })
+        await mount()
+        expect(screen.getByTestId('zone-backup-passkey')).toBeInTheDocument()
+    })
+
+    test('on desktop web it never renders', async () => {
+        onePasskey({ deviceType: 'web', isNative: false })
+        await mount()
+        expect(screen.queryByTestId('zone-backup-passkey')).not.toBeInTheDocument()
     })
 })

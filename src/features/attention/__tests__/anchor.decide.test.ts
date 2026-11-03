@@ -19,6 +19,7 @@ const state = (patch: Partial<JourneyState> = {}): JourneyState => ({
     userId: 'user-a',
     userLoaded: true,
     isNative: true,
+    deviceType: 'ios',
     route: 'home',
     consent: { status: 'clear', versions: [], documents: [] },
     identity: {
