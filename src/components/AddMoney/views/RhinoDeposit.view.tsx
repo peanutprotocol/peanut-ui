@@ -45,6 +45,8 @@ interface RhinoDepositViewProps {
     shortDeposit?: { received: string; asked: string }
     /** Exit for a payer who stops after a short deposit; shown as a Done button. */
     onDone?: () => void
+    /** The charge a request-payment address was opened for; the API needs it to clear the status. */
+    chargeId?: string
 }
 
 const RhinoDepositView = ({
@@ -62,6 +64,7 @@ const RhinoDepositView = ({
     isConfirming = false,
     shortDeposit,
     onDone,
+    chargeId,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
@@ -71,7 +74,7 @@ const RhinoDepositView = ({
         status: depositAddressStatus,
         resetStatus,
         isResetting,
-    } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
+    } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess, chargeId)
 
     const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
 

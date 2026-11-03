@@ -39,6 +39,7 @@ const SemanticRequestExternalWalletView = () => {
 
     return (
         <RhinoDepositView
+            chargeId={charge?.uuid}
             headerTitle={t('headers.pay')}
             chainType={chainType}
             setChainType={setChainType}
