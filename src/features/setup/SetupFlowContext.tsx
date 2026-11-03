@@ -20,6 +20,9 @@ const DEFAULT_NOTIFICATION_CHOICES: NotificationChoices = {
     cascaded: false,
 }
 
+/** Nothing set since the flow started; every write makes a new object, so identity tells. */
+export const isUntouchedNotificationChoices = (choices: NotificationChoices) => choices === DEFAULT_NOTIFICATION_CHOICES
+
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
  * runtime decision), the typed username and

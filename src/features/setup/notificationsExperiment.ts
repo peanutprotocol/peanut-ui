@@ -4,13 +4,14 @@ import { areFeatureFlagsLoaded } from '@/utils/featureFlag.utils'
 import type { PushPermission } from '@/services/notifications'
 
 /**
- * PostHog experiment on the sign-up notifications step: today's single push
- * switch (control) against the three switches. The goal is the share of users
- * who allow notifications in the OS prompt that the step opens.
+ * PostHog experiment on the sign-up notifications step. Both variants show the
+ * three switches: control starts them all off, `all_on` starts them all on.
+ * The goal is the share of users who allow notifications in the OS prompt that
+ * the step opens.
  */
 export const NOTIFICATIONS_EXPERIMENT_FLAG = 'signup-notification-switches'
 
-export type NotificationsVariant = 'control' | 'switches'
+export type NotificationsVariant = 'control' | 'all_on'
 
 /**
  * Read once when the step mounts, so the screen never changes under the user.
@@ -19,7 +20,7 @@ export type NotificationsVariant = 'control' | 'switches'
  */
 export function readNotificationsVariant(): NotificationsVariant {
     if (!areFeatureFlagsLoaded()) return 'control'
-    return posthog.getFeatureFlag(NOTIFICATIONS_EXPERIMENT_FLAG) === 'switches' ? 'switches' : 'control'
+    return posthog.getFeatureFlag(NOTIFICATIONS_EXPERIMENT_FLAG) === 'all_on' ? 'all_on' : 'control'
 }
 
 export function trackPromptAnswer(variant: NotificationsVariant, answer: PushPermission) {

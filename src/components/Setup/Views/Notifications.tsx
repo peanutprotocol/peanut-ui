@@ -15,9 +15,16 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { type NotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { readNotificationsVariant, trackPromptAnswer } from '@/features/setup/notificationsExperiment'
-import NotificationsControl from './NotificationsControl'
+import {
+    isUntouchedNotificationChoices,
+    type NotificationChoices,
+    useSetupFlowContext,
+} from '@/features/setup/SetupFlowContext'
+import {
+    type NotificationsVariant,
+    readNotificationsVariant,
+    trackPromptAnswer,
+} from '@/features/setup/notificationsExperiment'
 import NotificationsStepLayout from '../components/NotificationsStepLayout'
 import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 import {
@@ -36,17 +43,25 @@ const SWITCHES: { key: Switch; icon: IconName; label: 'important' | 'offers' | '
 ]
 
 const ALL_OFF = { push: false, marketingPush: false, emailUpdates: false }
+// Already cascaded, so switching Important back on never brings back an Email updates the user turned off.
+const ALL_ON: NotificationChoices = { push: true, marketingPush: true, emailUpdates: true, cascaded: true }
 
 /**
- * Three switches, all off at the start. The first time Important alerts turns on,
- * Email updates turns on with it. Offers and perks never follows another switch:
- * marketing pushes need the user's own tap (App Store 4.5.4, GDPR, LGPD).
+ * Three switches. In control they start off, and the first time Important alerts
+ * turns on, Email updates turns on with it; Offers and perks never follows another
+ * switch. In `all_on` all three start on until the user changes one.
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
-function NotificationSwitches() {
+function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
     const t = useTranslations('setup.notifications')
     const tSetup = useTranslations('setup')
-    const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
+    const {
+        notificationChoices: storedChoices,
+        setNotificationChoices,
+        setIsLoading: setSetupLoading,
+    } = useSetupFlowContext()
+    const notificationChoices =
+        variant === 'all_on' && isUntouchedNotificationChoices(storedChoices) ? ALL_ON : storedChoices
     const { handleNext } = useSetupFlow()
     const { requestPermission, afterPermissionAttempt, permissionState } = useNotifications()
     const [saving, setSaving] = useState(false)
@@ -76,10 +91,10 @@ function NotificationSwitches() {
             await afterPermissionAttempt()
             if (!session.current()) return 'dismissed'
             permissionRef.current = permission
-            trackPromptAnswer('switches', permission)
+            trackPromptAnswer(variant, permission)
             return permission
         } catch {
-            if (session.current()) trackPromptAnswer('switches', 'dismissed')
+            if (session.current()) trackPromptAnswer(variant, 'dismissed')
             return 'dismissed'
         }
     }
@@ -124,6 +139,7 @@ function NotificationSwitches() {
             setNotificationChoices(saved)
             if (ok)
                 posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
+                    variant,
                     outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
                     important: saved.push,
                     offers: saved.marketingPush,
@@ -190,5 +206,5 @@ function NotificationSwitches() {
 
 export default function NotificationsStep() {
     const [variant] = useState(readNotificationsVariant)
-    return variant === 'switches' ? <NotificationSwitches /> : <NotificationsControl />
+    return <NotificationSwitches variant={variant} />
 }

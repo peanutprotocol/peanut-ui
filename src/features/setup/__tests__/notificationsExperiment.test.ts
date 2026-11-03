@@ -11,16 +11,19 @@ beforeEach(() => {
     getFeatureFlag.mockReset()
 })
 
-it('shows the switches only to users PostHog put in that variant', () => {
-    getFeatureFlag.mockReturnValue('switches')
-    expect(readNotificationsVariant()).toBe('switches')
+it('starts the switches on only for users PostHog put in that variant', () => {
+    getFeatureFlag.mockReturnValue('all_on')
+    expect(readNotificationsVariant()).toBe('all_on')
     expect(getFeatureFlag).toHaveBeenCalledWith(NOTIFICATIONS_EXPERIMENT_FLAG)
 })
 
-it.each(['control', undefined, false, 'something-else'])('falls back to control for a flag value of %p', (value) => {
-    getFeatureFlag.mockReturnValue(value)
-    expect(readNotificationsVariant()).toBe('control')
-})
+it.each(['control', 'switches', undefined, false, 'something-else'])(
+    'falls back to control for a flag value of %p',
+    (value) => {
+        getFeatureFlag.mockReturnValue(value)
+        expect(readNotificationsVariant()).toBe('control')
+    }
+)
 
 it('shows control without reading the flag before PostHog has answered, so no exposure is recorded', () => {
     mockLoaded = false

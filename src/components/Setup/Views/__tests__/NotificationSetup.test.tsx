@@ -31,7 +31,7 @@ jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { capture: (...args: unknown[]) => mockCapture(...args) },
 }))
-let mockVariant: 'control' | 'switches' = 'switches'
+let mockVariant: 'control' | 'all_on' = 'control'
 jest.mock('@/features/setup/notificationsExperiment', () => ({
     ...jest.requireActual('@/features/setup/notificationsExperiment'),
     readNotificationsVariant: () => mockVariant,
@@ -68,7 +68,7 @@ const renderStep = (view: React.ReactNode) =>
         </QueryClientProvider>
     )
 beforeEach(() => {
-    mockVariant = 'switches'
+    mockVariant = 'control'
     jest.clearAllMocks()
     setAuthToken(`x.${btoa(JSON.stringify({ userId: 'new-user' }))}.y`)
     mockNext.mockReset()
@@ -330,10 +330,11 @@ it('asks the OS inside the Continue tap and saves every choice with the grant', 
         'new-user'
     )
     expect(mockCapture).toHaveBeenCalledWith('signup_push_permission_answered', {
-        variant: 'switches',
+        variant: 'control',
         answer: 'granted',
     })
     expect(mockCapture).toHaveBeenCalledWith('notification_choices_saved', {
+        variant: 'control',
         outcome: 'granted',
         important: true,
         offers: true,
@@ -492,7 +493,7 @@ it('records the OS refusal as the experiment answer, once per prompt', async () 
     fireEvent.click(continueButton())
     await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
     const answers = mockCapture.mock.calls.filter(([event]) => event === 'signup_push_permission_answered')
-    expect(answers).toEqual([['signup_push_permission_answered', { variant: 'switches', answer: 'denied' }]])
+    expect(answers).toEqual([['signup_push_permission_answered', { variant: 'control', answer: 'denied' }]])
 })
 it('sends no experiment answer when no prompt opened', async () => {
     renderStep(<NotificationsStep />)
@@ -501,89 +502,86 @@ it('sends no experiment answer when no prompt opened', async () => {
     expect(mockCapture).not.toHaveBeenCalledWith('signup_push_permission_answered', expect.anything())
 })
 
-describe('control: the single push switch', () => {
-    const pushToggle = () => screen.getByRole('switch', { name: 'Push notifications' })
+describe('all_on: every switch starts on', () => {
     beforeEach(() => {
-        mockVariant = 'control'
+        mockVariant = 'all_on'
     })
 
-    it('shows the old heading and one switch, off', () => {
+    it('shows the same three switches, all on, with Continue enabled and Not now under it', () => {
         renderStep(<NotificationsStep />)
-        expect(screen.getByRole('heading', { name: 'Turn on notifications' })).toBeInTheDocument()
-        expect(
-            screen.getByText(
-                'Know instantly when money arrives, a payment goes through, or your account requires attention.'
-            )
-        ).toBeInTheDocument()
-        expect(screen.getAllByRole('switch')).toHaveLength(1)
-        expect(pushToggle()).toHaveAttribute('aria-checked', 'false')
-        expect(screen.queryByRole('button', { name: 'Not now' })).not.toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Enable notifications to stay in the loop' })).toBeInTheDocument()
+        expect(states()).toEqual(['true', 'true', 'true'])
+        expect(continueButton()).toBeEnabled()
+        expect(notNow()).toBeEnabled()
     })
-    it('asks the OS inside the switch tap, records the answer, and saves the grant on Continue', async () => {
+    it('asks the OS inside the Continue tap and saves all three with the grant', async () => {
         mockPermission.mockResolvedValueOnce('granted')
         renderStep(<NotificationsStep />)
-        fireEvent.click(pushToggle())
+        fireEvent.click(continueButton())
         expect(mockPermission).toHaveBeenCalledTimes(1)
-        await waitFor(() =>
-            expect(mockCapture).toHaveBeenCalledWith('signup_push_permission_answered', {
-                variant: 'control',
-                answer: 'granted',
-            })
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledWith(
+            { push: true, marketingPush: true, emailUpdates: true, pushPermission: 'granted' },
+            'new-user'
         )
-        expect(pushToggle()).toHaveAttribute('aria-checked', 'true')
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockSave).toHaveBeenCalledWith({ push: true, pushPermission: 'granted' }, 'new-user')
-    })
-    it.each([
-        ['denied', 'denied'],
-        ['default', 'dismissed'],
-    ])('turns the switch back off when the OS answers %s and saves nothing', async (answer, recorded) => {
-        mockPermission.mockResolvedValueOnce(answer)
-        renderStep(<NotificationsStep />)
-        fireEvent.click(pushToggle())
-        await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'false'))
         expect(mockCapture).toHaveBeenCalledWith('signup_push_permission_answered', {
-            variant: 'control',
-            answer: recorded,
+            variant: 'all_on',
+            answer: 'granted',
         })
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockSave).not.toHaveBeenCalled()
+        expect(mockCapture).toHaveBeenCalledWith('notification_choices_saved', {
+            variant: 'all_on',
+            outcome: 'granted',
+            important: true,
+            offers: true,
+            email: true,
+        })
     })
-    it('continues without asking or saving when the switch is never touched', async () => {
+    it('keeps Email updates but saves both push switches off when the OS says no', async () => {
+        mockPermission.mockResolvedValueOnce('denied')
         renderStep(<NotificationsStep />)
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledWith(
+            { push: false, marketingPush: false, emailUpdates: true, pushPermission: 'denied' },
+            'new-user'
+        )
+        expect(states()).toEqual(['false', 'false', 'true'])
+    })
+    it('never turns back on a switch the user turned off', () => {
+        renderStep(<NotificationsStep />)
+        fireEvent.click(emailUpdates())
+        fireEvent.click(important())
+        fireEvent.click(important())
+        expect(states()).toEqual(['true', 'true', 'false'])
+    })
+    it('disables Continue once every switch is off', () => {
+        renderStep(<NotificationsStep />)
+        fireEvent.click(important())
+        fireEvent.click(offers())
+        fireEvent.click(emailUpdates())
+        expect(states()).toEqual(['false', 'false', 'false'])
+        expect(continueButton()).toBeDisabled()
+    })
+    it('Not now saves everything off without asking the OS', async () => {
+        renderStep(<NotificationsStep />)
+        fireEvent.click(notNow())
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockPermission).not.toHaveBeenCalled()
-        expect(mockSave).not.toHaveBeenCalled()
+        expect(mockSave).toHaveBeenCalledWith({ push: false, marketingPush: false, emailUpdates: false }, 'new-user')
+        expect(states()).toEqual(['false', 'false', 'false'])
     })
-    it('saves an opt-out after on and off, blocks on a failed save, and retries', async () => {
+    it('shows the saved choices, not the defaults, after Next and Back remount the step', async () => {
+        const RoundTrip = () => {
+            const [next, setNext] = useState(false)
+            mockNext.mockImplementation(() => setNext(true))
+            return next ? <button onClick={() => setNext(false)}>Back</button> : <NotificationsStep />
+        }
         mockPermission.mockResolvedValueOnce('granted')
-        mockSave.mockRejectedValueOnce(new Error('network'))
-        let acknowledge!: () => void
-        mockSave.mockReturnValueOnce(new Promise<void>((resolve) => (acknowledge = resolve)))
-        renderStep(<NotificationsStep />)
-        fireEvent.click(pushToggle())
-        await waitFor(() => expect(pushToggle()).toHaveAttribute('aria-checked', 'true'))
-        fireEvent.click(pushToggle())
-        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-        await screen.findByText('We couldn’t save your settings. Please try again.')
-        expect(mockNext).not.toHaveBeenCalled()
-        expect(pushToggle()).toHaveAttribute('aria-checked', 'false')
-        expect(mockSave).toHaveBeenCalledTimes(1)
-        const retry = screen.getByRole('button', { name: 'Continue' })
-        fireEvent.click(retry)
-        fireEvent.click(retry)
-        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
-        expect(mockNext).not.toHaveBeenCalled()
-        expect(mockSave.mock.calls).toEqual([
-            [{ push: false }, 'new-user'],
-            [{ push: false }, 'new-user'],
-        ])
-        await act(async () => acknowledge())
-        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockPermission).toHaveBeenCalledTimes(1)
+        renderStep(<RoundTrip />)
+        fireEvent.click(offers())
+        fireEvent.click(continueButton())
+        fireEvent.click(await screen.findByRole('button', { name: 'Back' }))
+        expect(states()).toEqual(['true', 'false', 'true'])
     })
 })
 
@@ -640,7 +638,10 @@ it('Not now with granted OS permission preserves local choices until an opt-out 
     expect(states()).toEqual(['false', 'false', 'false'])
     expect(mockPermission).not.toHaveBeenCalled()
     expect(mockCapture.mock.calls.filter(([event]) => event === 'notification_choices_saved')).toEqual([
-        ['notification_choices_saved', { outcome: 'skipped', important: false, offers: false, email: false }],
+        [
+            'notification_choices_saved',
+            { variant: 'control', outcome: 'skipped', important: false, offers: false, email: false },
+        ],
     ])
 })
 
@@ -744,6 +745,7 @@ it('does not stall after an acknowledged save of granted Important and Offers ch
     )
     expect(screen.queryByText('We couldn’t save your settings. Please try again.')).not.toBeInTheDocument()
     expect(mockCapture).toHaveBeenCalledWith('notification_choices_saved', {
+        variant: 'control',
         outcome: 'granted',
         important: true,
         offers: true,
