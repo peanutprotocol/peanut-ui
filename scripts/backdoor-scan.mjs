@@ -56,6 +56,8 @@ const EXEC_CONFIG = [
 	/(^|\/)(instrumentation|instrumentation-client|middleware|proxy)\.(t|j)s$/, // Next.js loads these on its own
 	// decides what git shows as a diff: `-diff` turned a file into "Binary files differ"
 	/(^|\/)\.gitattributes$/,
+	// deploy configs whose command fields the host runs as shell: buildCommand, installCommand, predeploy
+	/(^|\/)(vercel|now|firebase)\.json$/,
 ]
 // Also run by hooks or CI, but they legitimately start processes and fetch
 // things, so a suspicious pattern here is a warning, not a block.
@@ -203,9 +205,12 @@ export function offScreenIsComment(path, text) {
 	const gap = text.match(/[ \t]{60,}/)
 	const offScreen = text.slice(gap.index + gap[0].length)
 	// A Python comment line can end an open string only with a triple quote; shell strings span lines.
-	const stringEnd = /\.py$/i.test(path) ? /"""|'''|\\/ : /["'`\\]/
+	// Inside an open shell (or Make, or Actions) string a `#` is text and `$(...)`, `${...}` still expand,
+	// so any `$` keeps the line code (Chip on ui#3823, 2026-11-03).
+	const python = /\.py$/i.test(path)
+	const stringEnd = python ? /"""|'''|\\/ : /["'`\\$]/
 	const wholeLine = text.trimStart().startsWith('#') && !stringEnd.test(text)
-	const trailing = offScreen.startsWith('#') && !/["'`\\]/.test(offScreen)
+	const trailing = offScreen.startsWith('#') && !(python ? /["'`\\]/ : /["'`\\$]/).test(offScreen)
 	return wholeLine || trailing
 }
 
