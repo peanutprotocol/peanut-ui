@@ -705,6 +705,8 @@
         "notifications": {
             "title": "Notificações",
             "loadFailed": "Não foi possível carregar suas configurações. Tente novamente.",
+            "pushSection": "Notificações push",
+            "emailSection": "E-mail",
             "important": "Alertas importantes",
             "importantBody": "Pagamentos, conta e segurança",
             "offers": "Ofertas e vantagens",
