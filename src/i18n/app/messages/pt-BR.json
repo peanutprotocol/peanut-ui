@@ -3926,7 +3926,7 @@
                 "setUpPayments": "Configurar pagamentos",
                 "verifiedNote": "Agora escolha como você quer pagar e receber.",
                 "followUp": {
-                    "cardAddress": "Envie um comprovante de endereço",
+                    "cardAddress": "Adicione um comprovante de endereço",
                     "cardIdentity": "Envie seu documento de novo",
                     "bankDocument": "Envie mais um documento",
                     "bankTerms": "Aceite os termos das transferências bancárias",
