@@ -80,7 +80,8 @@ Home renders one attention component, `HomeAttention` (`AttentionZone.tsx`). It 
 
 While the to-do list is live it anchors Home (`policy.anchorsHome` on `checklist` and `blocked-card`):
 
-- Only a strictly higher tier (tier 1) may take the card or open an interrupt on Home. Same-tier and lower-tier asks are held, with trace reason `held by the to-do list`. The Home push ask and announcements wait until the list is done.
+- Only a strictly higher tier (tier 1) may take the card or open an interrupt on Home. Same-tier and lower-tier asks are held, with trace reason `held by the to-do list`. Announcements wait until the list is done.
+- The Home push pre-prompt is the exception (`policy.overAnchor`, Slava 2026-11-03): as before the manager, it may open over the list, within its own budget (from the third session, one per session, none after a tier 1 interrupt). Its native card still waits.
 - Installing the app is the most critical ask (tier 1, rank 0, Slava 2026-10-12): on the web it opens over the to-do list, ahead of updated terms.
 - A tier 1 card replaces the list for as long as it is live (Slava, 2026-10-12); the list returns once the card is dealt with. `ZonePick.underlay` names the list it replaced, reported as `zone_replaced` on `attention_decided`.
 - Off Home the anchor does not apply.

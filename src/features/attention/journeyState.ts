@@ -281,12 +281,16 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
 /**
  * Composes the hooks the app already has into one plain object the manager
  * reads. Almost everything is `/users/me` and its two embedded read-models;
- * consent status is the one extra request, once per session per user.
+ * consent status is the one extra request, once per session per user. Off
+ * Home only the terms prompt, banners and inline notices can show, so the data
+ * only Home's asks read (card funding, history, deposit accounts, rewards, the
+ * IP country) is fetched on Home only.
  */
 export function useJourneyState(): JourneyState {
     const { user, isFetchingUser } = useAuth()
     const userId = user?.user.userId ?? null
     const pathname = usePathname()
+    const onHome = isSameRoute(pathname, '/home')
     const { status, isVerified, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
     const { onboarding, isActivated, isLoading: onboardingLoading } = useActivationStatus()
     const { blockedCard } = useProviderRejection(onboarding)
@@ -294,14 +298,17 @@ export function useJourneyState(): JourneyState {
     const { overview, isLoading: overviewLoading } = useRainCardOverview()
     const activeCard = fact('activeCard', () => findActiveCard(overview), null)
     const hasActiveCard = activeCard?.status === 'ACTIVE'
-    const fundingAccess = useCardFundingAccess({ enabled: hasActiveCard })
+    const fundingAccess = useCardFundingAccess({ enabled: hasActiveCard && onHome })
     const fundingInputs = { hasActiveCard, accessLoading: fundingAccess.isLoading, access: fundingAccess.access }
     // same key and request as useRainFunding, so FundingSetupPrompt and the verdict read one answer
     const fundingUserId = user?.user?.userId
     const cardFunding = useQuery<RainCardFunding>({
         queryKey: [RAIN_CARD_FUNDING_QUERY_KEY, fundingUserId],
         queryFn: () => rainApi.getCardFunding(),
-        enabled: fact('cardSetupPath', () => cardSetupPath(fundingInputs), 'none') === 'managed' && !!fundingUserId,
+        enabled:
+            onHome &&
+            fact('cardSetupPath', () => cardSetupPath(fundingInputs), 'none') === 'managed' &&
+            !!fundingUserId,
         staleTime: 30_000,
         retry: false,
     })
@@ -328,20 +335,20 @@ export function useJourneyState(): JourneyState {
         isPushOptedIn,
         contextualPromptShownThisSession: promptShownThisSession,
     } = useNotifications()
-    const { countryCode: geoCountry } = useGeoLocation()
+    const { countryCode: geoCountry } = useGeoLocation({ enabled: onHome })
     const killSwitches = useKillSwitches()
     const flagEnabled = useFeatureFlags()
     const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
     // shares the React Query cache key with HomeHistory, so this read is free while Home is mounted
-    const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId })
+    const { data: latestHistory } = useTransactionHistory({ mode: 'latest', limit: 50, enabled: !!userId && onHome })
     const epoch = useJourneyEpoch()
     const depositAccountsEnabled = useDepositAccountsEnabled()
-    const deposit = useAttentionDepositAccounts(userId, depositAccountsEnabled)
+    const deposit = useAttentionDepositAccounts(userId, depositAccountsEnabled && onHome)
     // same key as useRewardsFlow, so Rewards and the card read one answer
     const cashStatus = useQuery({
         queryKey: ['cashStatus', userId],
         queryFn: () => pointsApi.getCashStatus(),
-        enabled: !!userId && isActivated,
+        enabled: !!userId && isActivated && onHome,
         staleTime: 60_000,
         retry: 1,
     })

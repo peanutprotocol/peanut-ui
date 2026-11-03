@@ -186,18 +186,27 @@ describe('Phase 8: Home interrupt anchor boundary', () => {
         expect(run(WEB_INSTALL, { busy: true }).zone).toEqual({ id: 'install-app', mode: 'ask', underlay: 'checklist' })
     })
 
-    test.each<[AskId, Partial<JourneyState>]>([
-        [
-            'push-home-fallback',
-            { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true } },
-        ],
-        ['early-user', { showEarlyUserModal: true }],
-    ])('%s is refused on Home with the to-do-list trace reason', (id, patch) => {
-        const d = run(patch)
-        expect(d.trace.verdicts[id]).toBe('show')
+    test('an announcement is refused on Home with the to-do-list trace reason', () => {
+        const d = run({ showEarlyUserModal: true })
+        expect(d.trace.verdicts['early-user']).toBe('show')
         expect(d.interrupt).toBeNull()
-        expect(d.trace.reasons[id]).toBe('held by the to-do list')
+        expect(d.trace.reasons['early-user']).toBe('held by the to-do list')
         expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
+    })
+
+    test('the push pre-prompt opens over the to-do list, which keeps the card', () => {
+        const d = run({ push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true } })
+        expect(d.interrupt).toBe('push-home-fallback')
+        expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
+    })
+
+    test('the push pre-prompt still keeps to its budget: none after a tier 1 interrupt this session', () => {
+        const d = run(
+            { push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true } },
+            { interruptsThisSession: ['legal-reconsent'] }
+        )
+        expect(d.interrupt).toBeNull()
+        expect(d.trace.reasons['push-home-fallback']).toBe('budget: a T1 interrupt already fired this session')
     })
 
     test.each<[AskId, Partial<JourneyState>]>([

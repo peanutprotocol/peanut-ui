@@ -19,7 +19,7 @@ import {
  */
 export function useArrivalPrompt() {
     const userId = useAuth().user?.user.userId
-    const { countryCode: ipCountry, isLoading: ipLoading } = useGeoLocation()
+    const { countryCode: ipCountry, isLoading: ipLoading } = useGeoLocation({ enabled })
     const arrival = useSyncExternalStore(subscribeArrival, currentArrival, () => null)
     const generation = useSyncExternalStore(subscribeArrival, currentArrivalGeneration, () => 0)
     const settledFor = useSyncExternalStore(subscribeArrival, currentSettledFor, () => null)
