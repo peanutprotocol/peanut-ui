@@ -14,7 +14,7 @@
  * PEANUT_TEST_OTA_KEY names the private key (default ~/.config/peanut/test-ota-key_v2).
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -45,8 +45,12 @@ if (!existsSync('out/index.html')) fail("build ./out first, with the test APK's 
 const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 12)
 const version = `${line[1]}.${line[2]}.${stamp}`
 const channel = testOtaChannel(branch)
+// Secrets stay out of argv, which any local account can read: the CLI takes the token from CAPGO_TOKEN.
 const capgo = (...args) =>
-    execFileSync('npx', ['--yes', CAPGO_CLI, ...args, '--apikey', apiKey], { stdio: ['ignore', 'inherit', 'inherit'] })
+    execFileSync('npx', ['--yes', CAPGO_CLI, ...args], {
+        stdio: ['ignore', 'inherit', 'inherit'],
+        env: { ...process.env, CAPGO_TOKEN: apiKey },
+    })
 
 try {
     capgo('channel', 'add', channel, APP_ID)
@@ -65,8 +69,8 @@ capgo(
     channel,
     '--bundle',
     version,
-    '--key-data-v2',
-    readFileSync(keyPath, 'utf8'),
+    '--key-v2',
+    keyPath,
     '--min-update-version',
     nativeVersion,
     '--comment',

@@ -20,6 +20,22 @@ describe('buildBranch', () => {
             'main'
         )
     })
+
+    // Chip, ui#3904: a new branch tracks origin/main or origin/dev until its first push.
+    it('locally, names the checked-out branch, not the branch it tracks', () => {
+        const checkout = (head, upstream) => (command) =>
+            command.includes('@{u}') ? upstream : command === 'rev-parse --abbrev-ref HEAD' ? head : ''
+        expect(buildBranch({}, checkout('feat/new-card', 'origin/main'))).toBe('feat/new-card')
+        expect(buildBranch({}, checkout('feat/new-card', 'origin/dev'))).toBe('feat/new-card')
+        expect(buildBranch({}, checkout('main', 'origin/main'))).toBe('main')
+    })
+
+    it('refuses a detached or git-less local build unless PEANUT_BUILD_BRANCH names it', () => {
+        expect(() => buildBranch({}, () => 'HEAD')).toThrow(/PEANUT_BUILD_BRANCH/)
+        expect(() => buildBranch({}, () => '')).toThrow(/PEANUT_BUILD_BRANCH/)
+        expect(buildBranch({ PEANUT_BUILD_BRANCH: 'innolope/kyc' }, () => 'HEAD')).toBe('innolope/kyc')
+        expect(buildBranch({ PEANUT_BUILD_BRANCH: 'main' }, () => 'HEAD')).toBe('main')
+    })
 })
 
 describe('a build for testing', () => {
