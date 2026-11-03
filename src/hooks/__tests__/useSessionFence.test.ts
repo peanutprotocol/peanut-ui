@@ -1,9 +1,11 @@
-jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+const toastError = jest.fn()
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: toastError }) }))
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 
 import { act } from '@testing-library/react'
+import * as authToken from '@/utils/auth-token'
 import { clearAuthToken, getAuthToken, setAuthToken } from '@/utils/auth-token'
 import { disableDemoMode, enableDemoMode } from '@/utils/demo'
 import { useSessionFence } from '../useSessionFence'
@@ -11,6 +13,7 @@ import { useSessionFence } from '../useSessionFence'
 const jwt = (userId: string, extra: object = {}) => `x.${btoa(JSON.stringify({ userId, ...extra }))}.y`
 
 beforeEach(async () => {
+    toastError.mockClear()
     disableDemoMode()
     await clearAuthToken()
 })
@@ -48,6 +51,20 @@ it('an unreadable identity can use the legacy cookie path after hydration', asyn
     expect(pending.userId).toBeNull()
     await pending.ready
     expect(pending.current()).toBe(true)
+    expect(toastError).not.toHaveBeenCalled()
+})
+
+it('a failed session hydration aborts the continuation and shows the unavailable toast', async () => {
+    const ready = jest.spyOn(authToken, 'authReady').mockRejectedValue(new Error('locked'))
+    try {
+        const { result } = renderHook(() => useSessionFence())
+        const pending = result.current()
+        await pending.ready
+        expect(pending.current()).toBe(false)
+        expect(toastError).toHaveBeenCalledTimes(1)
+    } finally {
+        ready.mockRestore()
+    }
 })
 
 it.each(['not-a-jwt', 'x.not-base64.y', `x.${btoa(JSON.stringify({ unrelated: 'value' }))}.y`])(
@@ -58,6 +75,7 @@ it.each(['not-a-jwt', 'x.not-base64.y', `x.${btoa(JSON.stringify({ unrelated: 'v
         const pending = result.current()
         expect(pending.userId).toBeNull()
         expect(pending.current()).toBe(true)
+        expect(toastError).not.toHaveBeenCalled()
     }
 )
 

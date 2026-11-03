@@ -223,14 +223,14 @@ describe('permission continuation ownership', () => {
         expect(mockSave).not.toHaveBeenCalled()
     })
 
-    it('uses the old-client save with unavailable feedback when hydration cannot read an identity', async () => {
+    it('uses the old-client save without unavailable feedback when hydration cannot read an identity', async () => {
         await clearAuthToken()
         renderWithIntl(<NotificationsView />)
         await waitFor(() => expect(email()).toBeEnabled())
         fireEvent.click(email())
         await act(async () => {})
         expect(mockSave).toHaveBeenCalledWith({ emailUpdates: true }, undefined)
-        expect(mockToastError).toHaveBeenCalledWith('This check isn’t available right now.')
+        expect(mockToastError).not.toHaveBeenCalledWith('This check isn’t available right now.')
     })
 })
 

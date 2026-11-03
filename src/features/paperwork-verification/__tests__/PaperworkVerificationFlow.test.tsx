@@ -991,7 +991,6 @@ it.each(['fixture', 'legacy-cookie'] as const)(
             )
         )
         expect(mockReplace).not.toHaveBeenCalledWith('/home')
-        if (mode === 'legacy-cookie')
-            expect(mockToastError).toHaveBeenCalledWith('This check isn’t available right now.')
+        expect(mockToastError).not.toHaveBeenCalledWith('This check isn’t available right now.')
     }
 )
