@@ -3971,7 +3971,9 @@
             "policyHold": {
                 "description": "This document cannot be used for verification. Please choose another document.",
                 "cta": "Choose another document"
-            }
+            },
+            "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
+            "taxConfirm": "I confirm"
         }
     },
     "identity": {

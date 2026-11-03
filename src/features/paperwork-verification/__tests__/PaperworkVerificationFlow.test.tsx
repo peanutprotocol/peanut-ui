@@ -431,27 +431,36 @@ describe('PaperworkVerificationFlow', () => {
         expect(continueButton()).toBeDisabled()
     })
 
-    // Slava, 2026-10-27: any random number passed the tax step.
-    it('checks the tax number with the residence validators the API names, as it is typed', async () => {
+    // Slava, 2026-10-27: any random number passed the tax step. 2026-11-03: a real
+    // Ukrainian number failed the check, so the country check warns and only zeros block.
+    it('warns on a tax number the residence validators refuse, and refuses only zeros', async () => {
         const questions = build({ money: true }, 'tax')
         questions.steps[2].fields = [
             { key: 'taxId', kind: 'taxId', required: true, format: null, checks: ['de.idnr'], value: null },
         ]
         mockQuestions.mockResolvedValue({ ...questions, residence: 'DE' })
+        const warning = 'We couldn’t verify this tax number. Are you sure it’s correct?'
         const wrong = 'Check the number. It doesn’t look right.'
         await startFlow()
         const input = await screen.findByTestId('verify-input-taxId')
         fireEvent.change(input, { target: { value: '3657426' } })
-        await waitFor(() => expect(continueButton()).toBeDisabled())
-        expect(screen.queryByText(wrong)).not.toBeInTheDocument()
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        expect(screen.queryByText(warning)).not.toBeInTheDocument()
         fireEvent.blur(input)
-        expect(await screen.findByText(wrong)).toBeInTheDocument()
+        expect(await screen.findByText(warning)).toBeInTheDocument()
+        expect(continueButton()).toHaveTextContent('I confirm')
         fireEvent.change(input, { target: { value: '36574261808' } })
-        expect(screen.getByText(wrong)).toBeInTheDocument()
-        expect(continueButton()).toBeDisabled()
-        fireEvent.change(input, { target: { value: '36 574 261 809' } })
+        expect(screen.getByText(warning)).toBeInTheDocument()
         expect(screen.queryByText(wrong)).not.toBeInTheDocument()
         expect(continueButton()).toBeEnabled()
+        fireEvent.change(input, { target: { value: '36 574 261 809' } })
+        expect(screen.queryByText(warning)).not.toBeInTheDocument()
+        expect(continueButton()).toBeEnabled()
+        expect(continueButton()).not.toHaveTextContent('I confirm')
+        fireEvent.change(input, { target: { value: '000 000 000 00' } })
+        expect(screen.getByText(wrong)).toBeInTheDocument()
+        expect(screen.queryByText(warning)).not.toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
     })
 
     it('offline or a 5xx past its retries: back on the step with a retry message and its values, nothing stored', async () => {

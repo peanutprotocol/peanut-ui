@@ -3971,7 +3971,9 @@
             "policyHold": {
                 "description": "Este documento não pode ser usado para verificar sua identidade. Escolha outro documento.",
                 "cta": "Escolher outro documento"
-            }
+            },
+            "taxWarning": "Não conseguimos verificar este número fiscal. Tem certeza de que está correto?",
+            "taxConfirm": "Confirmo"
         }
     },
     "identity": {
