@@ -251,8 +251,8 @@
                 "description": "Pay anyone in seconds, straight from your balance."
             },
             "backupPasskey": {
-                "title": "Add a backup passkey",
-                "description": "A second passkey keeps your money reachable if you lose this device."
+                "title": "Back up your passkey",
+                "description": "Turn on passkey sync so your account follows you to a new phone if you lose this one."
             },
             "addEmail": {
                 "title": "Add your email",

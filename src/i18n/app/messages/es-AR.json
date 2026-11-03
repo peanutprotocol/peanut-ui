@@ -128,8 +128,8 @@
                 "description": "Pagale a quien quieras en segundos, directo desde tu saldo."
             },
             "backupPasskey": {
-                "title": "Agregá una passkey de respaldo",
-                "description": "Una segunda passkey mantiene tu dinero accesible si perdés este dispositivo."
+                "title": "Respaldá tu passkey",
+                "description": "Activá la sincronización de tu passkey para que tu cuenta te acompañe en un teléfono nuevo si perdés este."
             },
             "addEmail": {
                 "title": "Agregá tu correo",
