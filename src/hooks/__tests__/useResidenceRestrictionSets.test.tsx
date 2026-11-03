@@ -53,8 +53,7 @@ afterEach(() => {
 })
 
 describe('residence restriction hooks', () => {
-    it('does not read storage while rendering on the server and starts unknown', () => {
-        localStorage.setItem(key, JSON.stringify(cached))
+    it('starts unknown on the server render without touching storage', () => {
         const read = jest.spyOn(Storage.prototype, 'getItem')
         const states: unknown[] = []
         function Probe() {
@@ -87,34 +86,7 @@ describe('residence restriction hooks', () => {
         await waitFor(() => expect(result.current.status).toEqual({ sets: asSets(fresh), settled: true }))
         expect(result.current.sets).toEqual(asSets(fresh))
         expect(getResidenceRestrictionSets()).toEqual(asSets(fresh))
-        const stored = JSON.parse(localStorage.getItem(key)!)
-        expect(Object.keys(stored).sort()).toEqual(Object.keys(fresh).sort())
-        expect(asSets(stored)).toEqual(asSets(fresh))
-    })
-
-    it('restores cached data after first render, refreshes it, and reuses fresh memory on later mounts', async () => {
-        localStorage.setItem(key, JSON.stringify(cached))
-        const pending = deferred()
-        fetchMock.mockReturnValue(pending.promise)
-        const seen: unknown[] = []
-        const first = renderHook(() => {
-            const status = useResidenceRestrictionSetsWithStatus()
-            seen.push(status)
-            return status
-        })
-        expect(seen[0]).toEqual({ sets: null, settled: false })
-        expect(first.result.current).toEqual({ sets: asSets(cached), settled: true })
-        expect(fetchMock).toHaveBeenCalledTimes(1)
-        await act(async () => {
-            pending.resolve(response(fresh))
-            await pending.promise
-        })
-        await waitFor(() => expect(first.result.current).toEqual({ sets: asSets(fresh), settled: true }))
-        expect(asSets(JSON.parse(localStorage.getItem(key)!))).toEqual(asSets(fresh))
-        first.unmount()
-        const second = renderHook(() => useResidenceRestrictionSetsWithStatus())
-        expect(second.result.current).toEqual({ sets: asSets(fresh), settled: true })
-        expect(fetchMock).toHaveBeenCalledTimes(1)
+        expect(localStorage.getItem(key)).toBeNull()
     })
 
     it('shares a single in-flight request across simultaneous mounts', async () => {
@@ -133,98 +105,46 @@ describe('residence restriction hooks', () => {
         })
     })
 
-    it.each(['non-ok', 'rejected', 'malformed'] as const)(
-        'keeps cached data settled on %s response',
-        async (failure) => {
-            localStorage.setItem(key, JSON.stringify(cached))
-            const pending = deferred()
-            fetchMock.mockReturnValue(pending.promise)
-            const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
-            await act(async () => {
-                if (failure === 'rejected') pending.reject(new Error('offline'))
-                else pending.resolve(response(failure === 'malformed' ? { full: [] } : fresh, failure !== 'non-ok'))
-                await pending.promise.catch(() => undefined)
-            })
-            expect(result.current).toEqual({ sets: asSets(cached), settled: true })
-            expect(asSets(JSON.parse(localStorage.getItem(key)!))).toEqual(asSets(cached))
-        }
-    )
-
-    it.each(['non-ok', 'rejected', 'malformed'] as const)(
-        'stays unknown without cache on %s response',
-        async (failure) => {
-            const pending = deferred()
-            fetchMock.mockReturnValue(pending.promise)
-            const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
-            await act(async () => {
-                if (failure === 'rejected') pending.reject(new Error('offline'))
-                else pending.resolve(response(failure === 'malformed' ? { full: [] } : fresh, failure !== 'non-ok'))
-                await pending.promise.catch(() => undefined)
-            })
-            expect(result.current).toEqual({ sets: null, settled: false })
-            expect(getResidenceRestrictionSets()).toBeNull()
-        }
-    )
+    it.each(['non-ok', 'rejected', 'malformed'] as const)('stays unknown on %s response', async (failure) => {
+        const pending = deferred()
+        fetchMock.mockReturnValue(pending.promise)
+        const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
+        await act(async () => {
+            if (failure === 'rejected') pending.reject(new Error('offline'))
+            else pending.resolve(response(failure === 'malformed' ? { full: [] } : fresh, failure !== 'non-ok'))
+            await pending.promise.catch(() => undefined)
+        })
+        expect(result.current).toEqual({ sets: null, settled: false })
+        expect(getResidenceRestrictionSets()).toBeNull()
+    })
 
     it.each([
-        '{',
-        JSON.stringify({ full: ['US'] }),
-        JSON.stringify({ full: [], cardOnly: [], bankingOnly: [], bankingNewCustomersOnly: [] }),
-        JSON.stringify({ ...cached, bankingOnly: [1] }),
-    ])('removes invalid stored data and still fetches: %s', async (bad) => {
-        localStorage.setItem(key, bad)
+        ['a valid list', JSON.stringify(cached)],
+        ['invalid data', '{'],
+    ])('ignores %s stored under the key by an earlier build', async (_label, stored) => {
+        localStorage.setItem(key, stored)
+        const read = jest.spyOn(Storage.prototype, 'getItem')
         const pending = deferred()
         fetchMock.mockReturnValue(pending.promise)
         const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
-        expect(localStorage.getItem(key)).toBeNull()
         expect(result.current).toEqual({ sets: null, settled: false })
         await act(async () => {
-            pending.resolve(response(fresh))
-            await pending.promise
+            pending.reject(new Error('offline'))
+            await pending.promise.catch(() => undefined)
         })
-        await waitFor(() => expect(result.current).toEqual({ sets: asSets(fresh), settled: true }))
+        expect(result.current).toEqual({ sets: null, settled: false })
+        expect(getResidenceRestrictionSets()).toBeNull()
+        expect(read).not.toHaveBeenCalledWith(key)
     })
 
-    it.each(['getItem', 'setItem', 'removeItem'] as const)(
-        'fetches successfully when storage %s throws',
-        async (method) => {
-            if (method === 'removeItem') localStorage.setItem(key, '{')
-            jest.spyOn(Storage.prototype, method).mockImplementation(() => {
-                throw new Error('storage unavailable')
-            })
-            const pending = deferred()
-            fetchMock.mockReturnValue(pending.promise)
-            const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
-            await act(async () => {
-                pending.resolve(response(fresh))
-                await pending.promise
-            })
-            await waitFor(() => expect(result.current).toEqual({ sets: asSets(fresh), settled: true }))
-        }
-    )
-
-    it('restores storage only once per session across mounts', () => {
-        localStorage.setItem(key, JSON.stringify(cached))
-        fetchMock.mockReturnValue(deferred().promise)
-        const read = jest.spyOn(Storage.prototype, 'getItem')
-        renderHook(() => useResidenceRestrictionSetsWithStatus())
-        renderHook(() => useResidenceRestrictionSetsWithStatus())
-        expect(read).toHaveBeenCalledTimes(1)
-        expect(read).toHaveBeenCalledWith(key)
-    })
-
-    it('fetches successfully when the localStorage getter throws', async () => {
-        jest.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
-            throw new Error('storage unavailable')
-        })
-        const pending = deferred()
-        fetchMock.mockReturnValue(pending.promise)
-        const { result } = renderHook(() => useResidenceRestrictionSetsWithStatus())
-        await act(async () => {
-            pending.resolve(response(fresh))
-            await pending.promise
-        })
-        await waitFor(() => expect(result.current).toEqual({ sets: asSets(fresh), settled: true }))
+    it('reuses a live answer on later mounts without fetching again', async () => {
+        fetchMock.mockResolvedValue(response(fresh))
+        const first = renderHook(() => useResidenceRestrictionSetsWithStatus())
+        await waitFor(() => expect(first.result.current).toEqual({ sets: asSets(fresh), settled: true }))
+        first.unmount()
+        const second = renderHook(() => useResidenceRestrictionSetsWithStatus())
+        expect(second.result.current).toEqual({ sets: asSets(fresh), settled: true })
+        expect(fetchMock).toHaveBeenCalledTimes(1)
     })
 
     it('does not update an unmounted subscriber when the request completes', async () => {
@@ -245,7 +165,7 @@ describe('residence restriction hooks', () => {
         expect(seen).toHaveLength(count)
     })
 
-    it('keeps a demo backend answer out of the session memory and the device cache', async () => {
+    it('keeps a demo backend answer out of the session memory', async () => {
         demoMock.mockReturnValue(true)
         fetchMock.mockResolvedValue(response(fresh))
         const demo = renderHook(() => useResidenceRestrictionSetsWithStatus())

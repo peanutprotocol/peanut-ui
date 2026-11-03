@@ -5,31 +5,13 @@ import {
     setServerResidenceRestrictionSets,
     type ResidenceRestrictionSets,
 } from '@/utils/residence-restriction-sets'
-import { readStoredValue, writeStoredValue, removeStoredValue } from '@/utils/safe-storage'
 import { isDemoMode } from '@/utils/demo'
 import { useEffect, useState } from 'react'
 
 export { getResidenceRestrictionSets, type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 
-const STORAGE_KEY = 'peanut:residenceRestrictions'
 let inflight: Promise<ResidenceRestrictionSets | null> | null = null
-let cacheRestored = false
 let freshAnswer = false
-
-function restoreDeviceCache() {
-    if (cacheRestored) return
-    cacheRestored = true
-    const stored = readStoredValue(STORAGE_KEY)
-    if (stored === null) return
-    try {
-        const parsed = parseResidenceRestrictionSets(JSON.parse(stored))
-        if (parsed) {
-            setServerResidenceRestrictionSets(parsed)
-            return
-        }
-    } catch {}
-    removeStoredValue(STORAGE_KEY)
-}
 
 async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
     if (freshAnswer) return getResidenceRestrictionSets()
@@ -42,12 +24,6 @@ async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
             if (parsed && !isDemoMode()) {
                 setServerResidenceRestrictionSets(parsed)
                 freshAnswer = true
-                writeStoredValue(
-                    STORAGE_KEY,
-                    JSON.stringify(
-                        Object.fromEntries(Object.entries(parsed).map(([key, values]) => [key, [...values]]))
-                    )
-                )
             }
             return parsed
         })
@@ -58,28 +34,27 @@ async function loadServerSets(): Promise<ResidenceRestrictionSets | null> {
     return inflight
 }
 
-/** Test-only: clears session state; tests own device storage cleanup. */
+/** Test-only: clears session state. */
 export const __resetResidenceRestrictionSetsForTests = () => {
     setServerResidenceRestrictionSets(null)
     inflight = null
-    cacheRestored = false
     freshAnswer = false
 }
 
 type ResidenceRestrictionStatus = { sets: ResidenceRestrictionSets; settled: true } | { sets: null; settled: false }
 
 /**
- * The served restriction lists, or `null` while they are unknown. The last
- * answer this device parsed is restored after mount (never at render, so the
- * static export hydrates) and counts as settled; a fresh fetch replaces it once
- * per session. With neither, the lists stay unknown and callers offer nothing
- * that depends on them.
+ * The served restriction lists, or `null` while they are unknown. They are known
+ * only from a live answer to `GET /config/residence-restrictions` in this
+ * session (fetched once, shared by every mount). Nothing is kept on the device:
+ * a cached policy can be stale the moment the API changes, so until an answer
+ * arrives (or if every request fails) the lists stay unknown and callers offer
+ * nothing that depends on them.
  */
 export const useResidenceRestrictionSetsWithStatus = (): ResidenceRestrictionStatus => {
     const [sets, setSets] = useState<ResidenceRestrictionSets | null>(getResidenceRestrictionSets)
 
     useEffect(() => {
-        if (!freshAnswer) restoreDeviceCache()
         setSets(getResidenceRestrictionSets())
         let cancelled = false
         void loadServerSets().then((loaded) => {
