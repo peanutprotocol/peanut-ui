@@ -1654,7 +1654,14 @@
                 "photo": "Sacá una foto de tu documento",
                 "selfie": "Sacate una selfie rápida",
                 "review": "Recibí una revisión segura",
-                "unlock": "Desbloqueá los pagos disponibles"
+                "unlock": "Desbloqueá los pagos disponibles",
+                "followUp": {
+                    "cardAddress": "Agregá un comprobante de domicilio",
+                    "cardIdentity": "Enviá tu documento otra vez",
+                    "bankDocument": "Agregá un documento más",
+                    "bankTerms": "Aceptá los términos de transferencias bancarias",
+                    "bankCheck": "Completá la verificación de transferencias bancarias"
+                }
             },
             "review": {
                 "description": "La revisión suele tardar unos minutos. Si una persona necesita revisarlo, tarda de 1 a 3 días hábiles. Podés salir de esta pantalla y te vamos a avisar cuando esté listo."

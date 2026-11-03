@@ -3924,7 +3924,14 @@
                 "done": "Done",
                 "backHome": "Back to Home",
                 "setUpPayments": "Set up payments",
-                "verifiedNote": "Now choose how you want to pay and get paid."
+                "verifiedNote": "Now choose how you want to pay and get paid.",
+                "followUp": {
+                    "cardAddress": "Add a proof of address",
+                    "cardIdentity": "Send your ID again",
+                    "bankDocument": "Add one more document",
+                    "bankTerms": "Accept the bank transfer terms",
+                    "bankCheck": "Finish the bank transfer check"
+                }
             },
             "saved": {
                 "title": "Answers saved!",

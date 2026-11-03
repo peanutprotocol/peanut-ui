@@ -20,7 +20,6 @@ import {
     bridgeDocumentTaskEntry,
     selectBridgeTasks,
     selectHomeTasks,
-    selectVerifyTasks,
 } from '@/utils/bridge-tasks.utils'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -80,10 +79,6 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * and ignore stored fingerprints — their fingerprint is constant over time,
  * and their rails are gated NOW; the Profile → Unlocked regions mount is
  * non-dismissible for everything.
- *
- * `placement="verify"`: /verify's verified screen, the identity's own status
- * page, lists every step Home would (the card's document request and a dated
- * one included) and dismisses none.
  */
 export default function PendingVerificationTasks({
     placement = 'profile',
@@ -91,7 +86,7 @@ export default function PendingVerificationTasks({
     whenEmptyShowsDocumentRequest = false,
     prioritizeIdentityRestart = false,
 }: {
-    placement?: 'home' | 'profile' | 'verify'
+    placement?: 'home' | 'profile'
     /** rendered in place of the card when no task is visible (Home: the carousel or the activation card) */
     whenEmpty?: ReactNode
     /**
@@ -123,11 +118,7 @@ export default function PendingVerificationTasks({
     const report = capabilities.features
     const homeTasks =
         placement === 'home' ? selectHomeTasks(nextActions, report, undefined, prioritizeIdentityRestart) : null
-    const tasks = homeTasks
-        ? homeTasks.largeTasks
-        : placement === 'verify'
-          ? selectVerifyTasks(nextActions, report)
-          : selectBridgeTasks(nextActions, report)
+    const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, report)
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a

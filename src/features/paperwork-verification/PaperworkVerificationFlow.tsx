@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useQueryState } from 'nuqs'
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
-import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectVerifyTasks } from '@/utils/bridge-tasks.utils'
+import { followUpStep } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
@@ -283,8 +283,12 @@ function PaperworkVerificationSteps({
     const router = useRouter()
     const { user, fetchUser } = useAuth()
     // What a feature still asks for once the identity is verified, as the verified screen lists it.
+    const tRoot = useTranslations()
     const { nextActions, capabilities } = useCapabilities()
-    const hasFollowUps = selectVerifyTasks(nextActions, capabilities.features).length > 0
+    const followUps = useMemo(
+        () => selectVerifyTasks(nextActions, capabilities.features).map(followUpStep),
+        [nextActions, capabilities.features]
+    )
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
@@ -771,11 +775,12 @@ function PaperworkVerificationSteps({
                 phase="verified"
                 hasQuestions={questionIds.length > 0}
                 // The identity's own status page also names what a feature still asks for (Rain's
-                // proof of address, a bank's document): the steps Home lists, from the same report.
-                aside={<PendingVerificationTasks placement="verify" />}
-                secondaryCta={hasFollowUps}
+                // proof of address, a bank's document) as steps of its own, before Unlock.
+                followUps={followUps.map((followUp) => followUp.label)}
+                note={followUps[0] && tRoot(followUps[0].note)}
+                cta={followUps[0] && t('continue')}
                 onBack={goHome}
-                onContinue={() => router.push(PAYMENT_METHODS_HREF)}
+                onContinue={() => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)}
             />
         )
     } else if (step === 'address-proof') {
