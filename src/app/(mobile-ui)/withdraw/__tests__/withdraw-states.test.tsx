@@ -577,6 +577,23 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         expect(Math.max(...writes)).toBeLessThan(mockRouterPush.mock.invocationCallOrder[0])
     })
 
+    test('Back tapped while that Continue still waits keeps the user off the review', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.875'
+        const params = { step: 'amount' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+        fireEvent.click(screen.getByText('Continue'))
+        fireEvent.click(screen.getByTestId('nav-back'))
+        await act(() => new Promise((resolve) => setTimeout(resolve, 300)))
+
+        expect(mockOnUrlUpdate).toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
     // Hugo, 2026-09-25: an amount typed in USD leads with USD on the review. It
     // is handed on as the USD typed, exact, not re-quoted from its EUR equivalent.
     test('a USD amount typed after the currency toggle is handed on as ?amount=', async () => {
