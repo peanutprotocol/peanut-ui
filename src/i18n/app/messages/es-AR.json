@@ -119,7 +119,7 @@
                 "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar acá."
             },
             "requestMoney": {
-                "title": "Solicitá dinero",
+                "title": "Pedí dinero",
                 "description": "¿Esperás un pago o dividís un gasto? Mandá una solicitud."
             },
             "sendMoney": {
