@@ -654,22 +654,38 @@ it('Not now with granted OS permission preserves local choices until an opt-out 
     ])
 })
 
+// Unsaved, the API keeps Email updates on, so a lost opt-out would still send emails.
 it.each(['default', 'denied'] as const)(
-    'Not now continues after an unavailable preferences API with %s permission and no cached grant',
+    'keeps Not now on the step after a failed save with %s permission and no grant, then retries',
     async (permissionState) => {
         mockPermissionState = permissionState
         mockSave.mockRejectedValueOnce(new Error('offline'))
         renderStep(<NotificationsStep />)
         fireEvent.click(important())
         fireEvent.click(notNow())
+        await screen.findByText('We couldn’t save your settings. Please try again.')
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith('notification_choices_saved', expect.anything())
+        await waitFor(() => expect(notNow()).toBeEnabled())
         fireEvent.click(notNow())
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockSave.mock.calls).toEqual([[{ push: false, marketingPush: false, emailUpdates: false }, 'new-user']])
+        const optOut = { push: false, marketingPush: false, emailUpdates: false }
+        expect(mockSave.mock.calls).toEqual([
+            [optOut, 'new-user'],
+            [optOut, 'new-user'],
+        ])
         expect(mockPermission).not.toHaveBeenCalled()
-        expect(mockCapture).not.toHaveBeenCalledWith('notification_choices_saved', expect.anything())
-        expect(screen.queryByText('We couldn’t save your settings. Please try again.')).not.toBeInTheDocument()
     }
 )
+it('keeps a defaults_on user on the step until declining the pre-on Email updates saves', async () => {
+    mockVariant = 'defaults_on'
+    mockSave.mockRejectedValueOnce(new Error('offline'))
+    renderStep(<NotificationsStep />)
+    fireEvent.click(notNow())
+    await screen.findByText('We couldn’t save your settings. Please try again.')
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(states()).toEqual(['true', 'false', 'true'])
+})
 
 it('Continue still blocks an email-only save failure without granted permission', async () => {
     mockSave.mockRejectedValueOnce(new Error('offline'))

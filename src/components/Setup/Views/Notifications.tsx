@@ -70,7 +70,7 @@ function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
     const notificationChoices =
         variant === 'defaults_on' && isUntouchedNotificationChoices(storedChoices) ? DEFAULTS_ON : storedChoices
     const { handleNext } = useSetupFlow()
-    const { requestPermission, afterPermissionAttempt, permissionState } = useNotifications()
+    const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string>()
     const savingRef = useRef(false)
@@ -137,21 +137,19 @@ function NotificationSwitches({ variant }: { variant: NotificationsVariant }) {
                 () => false
             )
             if (!session.current()) return
-            // Continue always needs acknowledgement. A skip only does when push could arrive.
-            const pushCouldArrive = permissionState === 'granted' || permissionRef.current === 'granted'
-            if (!ok && (!skip || pushCouldArrive)) {
+            // A skip needs acknowledgement too: the API stores only opt-outs, so unsaved Email updates stays on.
+            if (!ok) {
                 setError(t('saveFailed'))
                 return
             }
             setNotificationChoices(saved)
-            if (ok)
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
-                    variant,
-                    outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
-                    important: saved.push,
-                    offers: saved.marketingPush,
-                    email: saved.emailUpdates,
-                })
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
+                variant,
+                outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
+                important: saved.push,
+                offers: saved.marketingPush,
+                email: saved.emailUpdates,
+            })
             await handleNext()
         } finally {
             savingRef.current = false
