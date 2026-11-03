@@ -6,18 +6,21 @@ import { renderHookWithIntl } from '@/test-utils/intl'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { isCapacitor } from '@/utils/capacitor'
 
 const mockOpenStore = jest.fn()
 const mockCapture = jest.fn()
 let mockDeviceType: DeviceType = DeviceType.WEB
-let mockIsCapacitor = false
 const mockBuildDeferredPayload = jest.fn((dest?: string, _invite?: string) => `pnutdl=1&dest=${dest ?? ''}`)
 
 jest.mock('@/hooks/useGetDeviceType', () => {
     const actual = jest.requireActual('@/hooks/useGetDeviceType')
     return { ...actual, useDeviceType: () => ({ deviceType: mockDeviceType }) }
 })
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: jest.fn(() => false),
+}))
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
@@ -37,7 +40,7 @@ jest.mock('@/components/Migration/ScanToDownloadModal', () => ({
 beforeEach(() => {
     jest.clearAllMocks()
     mockDeviceType = DeviceType.WEB
-    mockIsCapacitor = false
+    jest.mocked(isCapacitor).mockReturnValue(false)
 })
 
 describe('useGuestStoreHandoff surface', () => {
@@ -109,7 +112,7 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     it('never intercepts inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         mockDeviceType = DeviceType.IOS
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff({ surface: MIGRATION_SURFACES.LANDING_DOOR }))
 
@@ -124,7 +127,7 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     it('does not track the guest impression inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         renderHookWithIntl(() =>
             useGuestStoreHandoff({ trackImpressionWhenGuest: true, surface: MIGRATION_SURFACES.LANDING_DOOR })
         )
@@ -133,7 +136,7 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     it('does not intercept inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff({ surface: MIGRATION_SURFACES.LANDING_DOOR }))
 
         let handled = true
@@ -155,7 +158,7 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     it('reports no hand-off inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
         expect(result.current.handoffActive).toBe(false)
     })
