@@ -27,13 +27,14 @@ function installSdk() {
     ;(window as unknown as { snsWebSdk: unknown }).snsWebSdk = { init: () => builder }
 }
 
-const launchSdk = () => {
+const launchSdk = (onIdentityStepCompleted?: () => void) => {
     const { result } = renderHookWithIntl(() =>
         useSumsubWebSdk({
             visible: true,
             accessToken: 'tok_abc',
             onComplete: jest.fn(),
             onRefreshToken: jest.fn().mockResolvedValue('tok_abc'),
+            onIdentityStepCompleted,
         })
     )
     act(() => result.current.setSdkContainer(document.createElement('div')))
@@ -64,6 +65,18 @@ describe('useSumsubWebSdk analytics', () => {
             { sdk: 'web', event_type: 'StepInitiated', step: 'IDENTITY' },
             { sdk: 'web', event_type: 'StepCompleted', step: 'IDENTITY' },
         ])
+    })
+
+    it('tells the caller the ID step is done, and only for the ID step', () => {
+        const identityDone = jest.fn()
+        launchSdk(identityDone)
+
+        act(() => {
+            sdkHandlers['idCheck.onStepCompleted']({ idDocSetType: 'SELFIE' })
+            sdkHandlers['idCheck.onStepCompleted']({ idDocSetType: 'IDENTITY' })
+        })
+
+        expect(identityDone).toHaveBeenCalledTimes(1)
     })
 
     it('marks the status the SDK reports on launch as a snapshot, then reports real changes', () => {

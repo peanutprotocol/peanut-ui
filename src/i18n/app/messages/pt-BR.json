@@ -993,7 +993,7 @@
                 "title": "Vincule seu perfil a um único país",
                 "description": "Veja o que cada um libera."
             },
-            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
+            "sentence": "Meu país de residência <nw>é <residence></residence></nw><br></br>e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
             "residenceTitle": "Onde você tem residência?",
             "nationalityTitle": "Qual é a sua nacionalidade?",
             "sameCountry": "o mesmo",
@@ -3971,6 +3971,11 @@
             "policyHold": {
                 "description": "Este documento não pode ser usado para verificar sua identidade. Escolha outro documento.",
                 "cta": "Escolher outro documento"
+            },
+            "taxWarning": "Não conseguimos verificar este número fiscal. Tem certeza de que está correto?",
+            "taxConfirm": "Confirmo",
+            "documentMismatch": {
+                "description": "Parece que você enviou um documento de um país diferente do que declarou. Veja o que cada um libera."
             }
         }
     },

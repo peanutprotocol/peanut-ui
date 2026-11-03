@@ -25,7 +25,7 @@ import {
 import { isE164 } from '../callingCodes'
 import { useAnswerForm, type AnswerFormError, type SaveOutcome } from '../useAnswerForm'
 import { looksLikeItin, stepComplete, whyKeyOf } from '../paperworkVerification.utils'
-import { taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
+import { isZeroTaxId, taxIdOutcome, taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
 
@@ -225,12 +225,11 @@ export function QuestionStepScreen({
     const taxCheck = useTaxIdChecker(tax?.checks)
     const taxVerdict = tax ? taxIdVerdict(tax, form.values, taxCheck) : 'valid'
     const [blurred, setBlurred] = useState<ReadonlySet<string>>(() => new Set())
-    const complete = stepComplete(fields, form.values, new Set(tax && taxVerdict !== 'valid' ? [tax.key] : []))
+    const taxOutcome = tax ? taxIdOutcome(tax, form.values, taxVerdict, blurred.has(tax.key)) : null
+    const complete = stepComplete(fields, form.values, new Set(tax && taxOutcome?.blocks ? [tax.key] : []))
     // Shown once the number is whole, or the field is left part-typed; the server's own error wins.
-    const shownTaxError =
-        tax && (taxVerdict === 'invalid' || (taxVerdict === 'incomplete' && blurred.has(tax.key)))
-            ? { [tax.key]: 'invalid_tax_id' }
-            : {}
+    const shownTaxError = tax && taxOutcome?.error ? { [tax.key]: taxOutcome.error } : {}
+    const taxWarning = !!tax && !!taxOutcome?.warning && !form.errors[tax.key]
     const state = fields.find((field) => field.key === 'state' && (field.kind === 'select' || field.kind === 'choice'))
     const stateValue = state ? (form.values[state.key]?.trim() ?? '') : ''
     const shownStateError =
@@ -264,9 +263,13 @@ export function QuestionStepScreen({
                 ? 'invalid_phone'
                 : field.kind === 'taxId' && looksLikeItin(field.format, value)
                   ? 'itin_not_accepted'
-                  : field.kind === 'taxId' && (taxVerdict === 'invalid' || taxVerdict === 'incomplete')
+                  : field.kind === 'taxId' && isZeroTaxId(value)
                     ? 'invalid_tax_id'
-                    : null
+                    : field.kind === 'taxId' && (taxVerdict === 'invalid' || taxVerdict === 'incomplete')
+                      ? field.format
+                          ? 'invalid_tax_id'
+                          : 'tax_id_warning'
+                      : null
         if (!code || flagged.current.has(`${key}:${code}`)) return
         flagged.current.add(`${key}:${code}`)
         track(ANALYTICS_EVENTS.KYC_PV_FIELD_ERROR, { field: key, code, source: 'typing' })
@@ -328,7 +331,7 @@ export function QuestionStepScreen({
                                 loading={form.saving}
                                 data-testid="verify-continue"
                             >
-                                {continueLabel ?? t('continue')}
+                                {taxWarning ? t('taxConfirm') : (continueLabel ?? t('continue'))}
                             </Button>
                         }
                         secondary={<WhyWeAsk steps={steps.map(whyKeyOf)} />}
@@ -380,6 +383,11 @@ export function QuestionStepScreen({
                     {/* Return on the last typed field submits, as the CTA does. */}
                     <button type="submit" className="sr-only" aria-hidden tabIndex={-1} />
                 </form>
+                {taxWarning && (
+                    <Callout priority="attention" className="w-full text-left" data-testid="verify-tax-warning">
+                        {t('taxWarning')}
+                    </Callout>
+                )}
                 {hint && (
                     <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">
                         <Icon name="info" size={16} className="mt-0.5 shrink-0" />

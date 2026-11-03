@@ -24,6 +24,8 @@ export function ResidenceCompare({
     restrictionSets,
     busy,
     onChoose,
+    title,
+    description,
 }: {
     residence: string
     nationality: string
@@ -31,6 +33,9 @@ export function ResidenceCompare({
     restrictionSets: ResidenceRestrictionSets | null
     busy: boolean
     onChoose: (country: string) => void
+    /** In place of the sign-up wording, e.g. when the uploaded ID is from the other country. */
+    title?: string
+    description?: string
 }) {
     const t = useTranslations('setup.residenceStep.compare')
     // Each country's offers come from the rules the verification applies.
@@ -38,8 +43,8 @@ export function ResidenceCompare({
     return (
         <div className="flex w-full flex-1 flex-col gap-6">
             <div className="flex flex-col gap-1">
-                <h1 className="text-heading-s">{t('title')}</h1>
-                <p className="text-body-m text-foreground-secondary">{t('description')}</p>
+                <h1 className="text-heading-s">{title ?? t('title')}</h1>
+                <p className="text-body-m text-foreground-secondary">{description ?? t('description')}</p>
             </div>
             {/* The server's answer per country (GET /config/kyc-intents); the tiers only if it failed. */}
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4">

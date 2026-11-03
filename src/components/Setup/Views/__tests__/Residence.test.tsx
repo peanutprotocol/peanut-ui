@@ -228,6 +228,14 @@ describe('ResidenceStep', () => {
         expect(screen.getByText(en.setup.residenceStep.hint)).toBeInTheDocument()
     })
 
+    it('starts the nationality half of the sentence on its own line', () => {
+        mockSetupState.residenceCountry = 'PT'
+        render(<ResidenceStep />)
+        const lineBreak = screen.getByRole('heading').querySelector('br')
+        expect(lineBreak).not.toBeNull()
+        expect(lineBreak?.nextSibling?.textContent).toMatch(/^and hold the nationality/)
+    })
+
     it('compares the two countries before going on when the nationality differs', () => {
         mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
         render(<ResidenceStep />)

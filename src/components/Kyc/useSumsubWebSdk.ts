@@ -54,6 +54,7 @@ export function useSumsubWebSdk({
     onSubmitted,
     onError,
     onRefreshToken,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: UseSumsubWebSdkArgs) {
     const accessTokenRef = useRef(accessToken)
@@ -83,6 +84,7 @@ export function useSumsubWebSdk({
     const onSubmittedRef = useRef(onSubmitted)
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
+    const onIdentityStepCompletedRef = useRef(onIdentityStepCompleted)
     const isMultiLevelRef = useRef(isMultiLevel)
     // flips to true as soon as any "the user finished something" event fires.
     // Drives the close-confirmation short-circuit: if the user has already
@@ -97,8 +99,9 @@ export function useSumsubWebSdk({
         onSubmittedRef.current = onSubmitted
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
+        onIdentityStepCompletedRef.current = onIdentityStepCompleted
         isMultiLevelRef.current = isMultiLevel
-    }, [onComplete, onSubmitted, onError, onRefreshToken, isMultiLevel])
+    }, [onComplete, onSubmitted, onError, onRefreshToken, onIdentityStepCompleted, isMultiLevel])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -252,7 +255,11 @@ export function useSumsubWebSdk({
             const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) =>
                 tracker.step(eventType, payload?.idDocSetType)
             const handleStepInitiated = handleStep('StepInitiated')
-            const handleStepCompleted = handleStep('StepCompleted')
+            const trackStepCompleted = handleStep('StepCompleted')
+            const handleStepCompleted = (payload?: { idDocSetType?: unknown }) => {
+                trackStepCompleted(payload)
+                if (payload?.idDocSetType === 'IDENTITY') onIdentityStepCompletedRef.current?.()
+            }
             const handleStatusChanged = handleStatusEvent('onApplicantStatusChanged')
             const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
 

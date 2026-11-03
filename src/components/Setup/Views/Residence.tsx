@@ -155,6 +155,7 @@ const ResidenceStep = () => {
             <h1 className="text-heading-m leading-[2.75rem] compact:text-heading-s compact:leading-[2.5rem] tight:leading-[2.25rem]">
                 {t.rich('sentence', {
                     nw: (chunks) => <span className="inline-block max-w-full whitespace-nowrap">{chunks}</span>,
+                    br: () => <br />,
                     residence: () => (
                         <SetupCountryPicker
                             title={t('residenceTitle')}
