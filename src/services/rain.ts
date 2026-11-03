@@ -649,20 +649,7 @@ export const rainApi = {
      * could not be read: callers treat it as unknown and sign nothing.
      */
     getFundingAccess: async (): Promise<RainFundingAccess> => {
-        try {
-            return await rainRequest<RainFundingAccess>({
-                method: 'GET',
-                path: '/rain/cards/funding/access',
-                noStore: true,
-            })
-        } catch (error) {
-            // Older APIs have no managed funding route. All other failures
-            // remain unknown so callers cannot sign against an unreadable decision.
-            if (error instanceof ApiError && error.status === 404) {
-                return { fundingMode: 'legacy', enrollmentAllowed: false }
-            }
-            throw error
-        }
+        return rainRequest<RainFundingAccess>({ method: 'GET', path: '/rain/cards/funding/access', noStore: true })
     },
 
     /**
