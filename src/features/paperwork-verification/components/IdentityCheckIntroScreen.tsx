@@ -6,12 +6,12 @@ import { useTranslations } from 'next-intl'
 import Card from '@/components/Global/Card'
 import { ProviderRow } from '@/components/Provider/ProviderRow'
 import { useBackHandler } from '@/hooks/useBackHandler'
-import type { ProviderId } from '@/types/provider.types'
+import type { ProviderId, ProviderLabel } from '@/types/provider.types'
 import { StepsScreen } from './StepsScreen'
 
 /**
  * /verify's intro in front of today's ID check (InitiateKycModal's unlock
- * offer, the Payment methods rows): the same steps, full screen, and Continue
+ * offer, the Payment methods rows, the card's first check): the same steps, full screen, and Continue
  * starts the check the caller always started. It reads nothing from the API,
  * so it works for every user the server keeps on today's flow.
  *
@@ -23,15 +23,18 @@ export function IdentityCheckIntroScreen({
     visible,
     hasQuestions,
     providerId,
+    providerLabel = 'accountProvider',
     busy = false,
     continueTestId,
     onBack,
     onContinue,
 }: {
     visible: boolean
-    /** the check asks questions of its own: the tax ID and the regulatory ones in Argentina and Brazil */
+    /** the check asks questions of its own: the tax ID and the regulatory ones in Argentina and Brazil, the card's */
     hasQuestions: boolean
     providerId?: ProviderId | null
+    /** what the row calls the provider: the account's, or the card's issuer */
+    providerLabel?: ProviderLabel
     busy?: boolean
     continueTestId?: string
     onBack: () => void
@@ -66,7 +69,7 @@ export function IdentityCheckIntroScreen({
                     aside={
                         providerId ? (
                             <Card position="solo" className="px-4 py-0">
-                                <ProviderRow providerId={providerId} label="accountProvider" prospective />
+                                <ProviderRow providerId={providerId} label={providerLabel} prospective />
                             </Card>
                         ) : undefined
                     }

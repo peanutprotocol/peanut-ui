@@ -20,6 +20,7 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
+import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 
 const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
 
@@ -95,6 +96,13 @@ export const CardPage: FC = () => {
     useEffect(() => {
         setShowIssuedCelebration(state === 'active' && readStoredValue(celebrationKey) === '1')
     }, [state, celebrationKey])
+
+    // A legacy applicant's first ID check runs in the card level's Sumsub: it
+    // opens behind /verify's intro, like every other start. A verified user's
+    // token (the card questions, a missing selfie) opens Sumsub at once.
+    const [introDoneFor, setIntroDoneFor] = useState<string | null>(null)
+    const showCardIntro =
+        sumsubToken !== null && user?.identityVerification?.status === 'not_started' && introDoneFor !== sumsubToken
 
     if (state === 'loading') {
         return (
@@ -429,8 +437,16 @@ export const CardPage: FC = () => {
                 }}
                 onRefreshToken={refreshInformationToken}
             />
+            <IdentityCheckIntroScreen
+                visible={showCardIntro}
+                hasQuestions
+                providerId="third-national"
+                providerLabel="cardProvider"
+                onBack={handleSumsubClose}
+                onContinue={() => setIntroDoneFor(sumsubToken)}
+            />
             <SumsubKycWrapper
-                visible={sumsubToken !== null}
+                visible={sumsubToken !== null && !showCardIntro}
                 accessToken={sumsubToken}
                 onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}
