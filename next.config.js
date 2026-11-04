@@ -583,8 +583,15 @@ if (process.env.NODE_ENV !== 'development') {
             // auto-registration and an online event reloading a page mid-payment.
             register: false,
             reloadOnOnline: false,
-            // explicitly include offline screen assets in precache
-            additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
+            // Precache no build output. With the default (every client asset),
+            // each first-time visitor downloaded ~7 MB of JS, CSS and media
+            // right after load, competing with their next tap. Chunks, styles,
+            // fonts and images are cached on first use by `defaultCache` in
+            // sw.ts instead. `exclude` replaces serwist's defaults, which only
+            // dropped source maps and manifest.js; `/./` drops every asset.
+            exclude: [/./],
+            // The whole precache: offline screen icon and the push notification icon.
+            additionalPrecacheEntries: ['/icons/peanut-icon.svg', '/icons/icon-192x192-maskable.png'],
         })
         return withBundleAnalyzer(withSerwist(nextConfig))
     }
