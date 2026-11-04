@@ -1,12 +1,14 @@
 import { rpcUrls } from '@/constants/general.consts'
 import { BUNDLER_URL, PAYMASTER_URL, PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import type { PublicClient, Chain, Transport } from 'viem'
-import { createPublicClient, http, extractChain, fallback } from 'viem'
-import * as chains from 'viem/chains'
+import { createPublicClient, http, fallback } from 'viem'
+// Type-only: a value import of the namespace ships viem's whole chain registry
+// in every bundle that reaches this module, the landing pages included.
+import type * as viemChains from 'viem/chains'
 import { mainnet, base, linea } from 'viem/chains'
+import { getSupportedViemChain } from '@/constants/supported-chains.consts'
 
-const allChains = Object.values(chains)
-export type ChainId = (typeof allChains)[number]['id']
+export type ChainId = (typeof viemChains)[keyof typeof viemChains]['id']
 
 /**
  * Returns viem transport with fallback
@@ -116,7 +118,7 @@ export const peanutPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id
 export function getPublicClient(chainId: ChainId): PublicClient {
     let client: PublicClient | undefined = PUBLIC_CLIENTS_BY_CHAIN[chainId]?.client
     if (client) return client
-    const chain: Chain = extractChain({ chains: allChains, id: chainId })
+    const chain: Chain | undefined = getSupportedViemChain(chainId)
     if (!chain) throw new Error(`No chain found for chainId ${chainId}`)
     return createPublicClient({
         transport: getTransportWithFallback(chainId),
