@@ -4216,10 +4216,10 @@
             "descriptionNoRewards": "Share your link so friends can join you on Peanut."
         },
         "confirmInviteModal": {
-            "title": "Create your Peanut wallet?",
-            "description": "Create a wallet to keep this referral attached to your account. Using {method} will continue without signing up.",
-            "joinCta": "Create wallet",
-            "continueWithMethod": "Continue with {method}"
+            "title": "{username} invited you to Peanut",
+            "description": "Sign up to get this money in your own Peanut account. {username} gets rewards when you use Peanut. You can also claim to {method} without an account.",
+            "joinCta": "Sign up and claim",
+            "claimWithoutSignup": "Claim without signing up"
         },
         "earlyUserModal": {
             "title": "Earn from invites",

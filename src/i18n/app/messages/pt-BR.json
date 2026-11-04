@@ -4216,10 +4216,10 @@
             "descriptionNoRewards": "Compartilhe seu link para que seus amigos entrem no Peanut com você."
         },
         "confirmInviteModal": {
-            "title": "Criar sua carteira Peanut?",
-            "description": "Crie uma carteira para manter esta indicação vinculada à sua conta. Se usar {method}, você continuará sem se cadastrar.",
-            "joinCta": "Criar carteira",
-            "continueWithMethod": "Continuar com {method}"
+            "title": "{username} convidou você para o Peanut",
+            "description": "Cadastre-se para receber este dinheiro na sua própria conta Peanut. {username} ganha recompensas quando você usa o Peanut. Você também pode resgatar em {method} sem uma conta.",
+            "joinCta": "Cadastre-se e resgate",
+            "claimWithoutSignup": "Resgatar sem cadastro"
         },
         "earlyUserModal": {
             "title": "Ganhe com convites",

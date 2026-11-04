@@ -1804,8 +1804,8 @@
             "shareSheetTitle": "Compartir enlace de invitación"
         },
         "confirmInviteModal": {
-            "description": "Creá una billetera para que esta referencia quede vinculada a tu cuenta. Si usás {method}, vas a continuar sin registrarte.",
-            "joinCta": "Creá tu billetera"
+            "description": "Registrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usás Peanut. También podés reclamarlo en {method} sin una cuenta.",
+            "joinCta": "Registrate y reclamá"
         },
         "earlyUserModal": {
             "title": "Ganá con tus invitaciones",

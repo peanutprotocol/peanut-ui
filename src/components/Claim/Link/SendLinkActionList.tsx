@@ -290,6 +290,7 @@ export default function SendLinkActionList({
                                             if (
                                                 isInviteLink &&
                                                 !isLoggedIn &&
+                                                !!username &&
                                                 !SKIPS_INVITE_PROMPT.includes(method.id)
                                             ) {
                                                 setSelectedMethod(method)
@@ -331,6 +332,7 @@ export default function SendLinkActionList({
             />
 
             <ConfirmInviteModal
+                username={username ?? ''}
                 method={selectedMethod?.title ?? ''}
                 handleContinueWithPeanut={handleContinueWithPeanut}
                 handleLoseInvite={() => {
