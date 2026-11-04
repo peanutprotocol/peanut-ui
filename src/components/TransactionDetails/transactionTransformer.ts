@@ -60,6 +60,7 @@ export type Provider =
     | 'MANTECA'
     | 'RHINO'
     | 'RAIN'
+    | 'AVENIA'
     | 'ONCHAIN'
     | 'DEPRECATED_SIMPLEFI'
     | 'DEPRECATED_SQUID'

@@ -366,7 +366,7 @@ export interface StarLpFxRate {
     /** Units of `to` per one unit of `from`. */
     rate: number
     /** The provider leg behind the rate (Manteca for ARS/BRL, Bridge for EUR). */
-    source: 'bridge' | 'manteca' | 'reference'
+    source: 'bridge' | 'manteca' | 'avenia' | 'reference'
     /** Backend `generatedAt`, ISO. */
     fetchedAt: string
     /** Backend `effectiveAt`: when the provider observed the rate, ISO. */

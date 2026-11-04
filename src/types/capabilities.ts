@@ -15,7 +15,7 @@
  * See engineering/projects/kyc-2.0/capabilities-rehaul-plan.md.
  */
 
-export type ProviderCode = 'bridge' | 'manteca' | 'rain'
+export type ProviderCode = 'bridge' | 'manteca' | 'rain' | 'avenia'
 
 /** Capability status of a single rail, provider-neutral. */
 export type RailCapabilityStatus =
@@ -163,6 +163,8 @@ export type NextActionKind =
     | 'bridge-hosted'
     | 'rain-hosted'
     | 'questions'
+    // Avenia's hosted KYC page for the Brazilian Pix rail (AVENIA × PIX_BR).
+    | 'avenia-hosted'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions

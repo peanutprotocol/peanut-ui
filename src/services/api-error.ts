@@ -67,6 +67,28 @@ export const API_ERROR_CODES = {
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
     /** POST /charges on a request that is no longer OPEN. Sent with 409. */
     REQUEST_CLOSED: 'REQUEST_CLOSED',
+    /** The provider is down or paused (Avenia's kill switch, an outage). Retry later. */
+    PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+    /** A Pix deposit below the provider's minimum. Sent with 400. */
+    PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
+    /** Avenia Pix is not open to this user: the rollout gate, or a residence outside Brazil. */
+    AVENIA_NOT_AVAILABLE: 'AVENIA_NOT_AVAILABLE',
+    /** The user's Avenia KYC is not done (or their Peanut identity is not verified yet). */
+    AVENIA_KYC_REQUIRED: 'AVENIA_KYC_REQUIRED',
+    /** No CPF on the user's verification: Avenia matches the user's own bank by it. */
+    AVENIA_CPF_REQUIRED: 'AVENIA_CPF_REQUIRED',
+    /** The Avenia sub-account's monthly limit has no room for this amount. */
+    AVENIA_LIMIT_EXCEEDED: 'AVENIA_LIMIT_EXCEEDED',
+    /** Avenia's withdrawal ticket had too little time left for the signature. Nothing moved; try again. */
+    AVENIA_TICKET_WINDOW_SHORT: 'AVENIA_TICKET_WINDOW_SHORT',
+    /** The Pix key belongs to someone else: Avenia pays out only to the user's own CPF. */
+    PIX_KEY_NOT_OWN: 'PIX_KEY_NOT_OWN',
+    /** The key's bank is on Avenia's payout deny-list. */
+    PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
+    /** One Pix key lookup per second per user. */
+    PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
+    /** Another Pix withdrawal is still waiting for its signature. */
+    WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]

@@ -5,11 +5,12 @@ export type ProviderId =
     | 'bridge'
     | 'manteca-ar'
     | 'manteca-br'
+    | 'avenia-br'
     | 'rhino'
     | 'third-national'
 
 // key under `provider.role` and `provider.execution` in the app catalogs
-export type ProviderRole = 'bridge' | 'bridgeEea' | 'mantecaAr' | 'mantecaBr' | 'rhino' | 'thirdNational'
+export type ProviderRole = 'bridge' | 'bridgeEea' | 'mantecaAr' | 'mantecaBr' | 'aveniaBr' | 'rhino' | 'thirdNational'
 
 /** key under `provider.label`: what the row calls the provider on a given screen */
 export type ProviderLabel = 'provider' | 'accountProvider' | 'cardProvider'
