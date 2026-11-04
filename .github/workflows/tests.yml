@@ -239,6 +239,9 @@ jobs:
               run: pnpm next typegen
 
             - name: Typecheck
+              # tsc outgrew Node's default heap: about one run in four died out of memory (Nov 2026).
+              env:
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: pnpm typecheck
 
     # The only pre-merge coverage for the Capacitor static export. Nothing else
