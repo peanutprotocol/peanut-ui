@@ -46,6 +46,7 @@ import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
+import AppleWalletRow from '@/components/Card/AppleWalletRow'
 import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
@@ -645,6 +646,28 @@ export const SURFACES: Record<string, Surface> = {
                 <div className="flex flex-col gap-6">
                     <TitleBlock title="Add to Google Wallet" />
                     <GoogleWalletButton isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow': {
+        ...SURFACE_META['35-c-applewalletrow'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow-adding': {
+        ...SURFACE_META['35-c-applewalletrow-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding onClick={noop} />
                 </div>
             </AppPageSurface>
         ),

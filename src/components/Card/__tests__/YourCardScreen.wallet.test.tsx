@@ -56,7 +56,6 @@ it('starts Android provisioning only from the official Google button', () => {
     const button = screen.getByRole('button', { name: 'Add to Google Wallet' })
     expect(Array.from(button.querySelectorAll('img'), (image) => image.getAttribute('src'))).toEqual([
         '/wallet/google/one-line/en.svg',
-        '/wallet/google/two-line/en.svg',
     ])
     expect(screen.getAllByRole('button', { name: 'Add to Google Wallet' })).toHaveLength(1)
     fireEvent.click(button)
@@ -104,10 +103,56 @@ it('keeps the manual Apple row while the card is not confirmed in Apple Wallet',
     expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
 })
 
-it('keeps Apple on its existing platform control', () => {
+it('starts Apple provisioning only from the Apple Pay row', () => {
     mockPlatform = 'ios'
     renderScreen()
     expect(screen.queryByRole('button', { name: 'Add to Google Wallet' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
+    const button = screen.getByRole('button', { name: 'Add to Apple Wallet' })
+    expect(button.querySelector('img')?.getAttribute('src')).toBe('/wallet/apple/apple-pay-mark.svg')
+    expect(screen.getAllByRole('button', { name: 'Add to Apple Wallet' })).toHaveLength(1)
+    fireEvent.click(button)
     expect(mockAdd).toHaveBeenCalledTimes(1)
+    expect(mockPush).not.toHaveBeenCalled()
+})
+
+it('disables the Apple control during provisioning', () => {
+    mockPlatform = 'ios'
+    mockProvisioning.isAdding = true
+    renderScreen()
+    const row = screen.getByRole('button', { name: 'Add to Apple Wallet' })
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(row)
+    expect(mockAdd).not.toHaveBeenCalled()
+})
+
+it.each(['android', 'ios'])(
+    '%s: the button sits below Card management, above Pay as credit and Red zone',
+    (platform) => {
+        mockPlatform = platform
+        renderScreen()
+        const name = platform === 'ios' ? 'Add to Apple Wallet' : 'Add to Google Wallet'
+        const order = [
+            screen.getByText('Card management'),
+            screen.getByRole('button', { name }),
+            screen.getByText('Pay as credit'),
+            screen.getByText('Red zone'),
+        ]
+        for (let i = 1; i < order.length; i++) {
+            expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        }
+    }
+)
+
+it('lists Lock card under Card management, right after Spending limit', () => {
+    renderScreen()
+    const order = [
+        screen.getByText('Spending limit'),
+        screen.getByText('Lock card'),
+        screen.getByText('Physical card'),
+        screen.getByText('Red zone'),
+        screen.getByText('Cancel card'),
+    ]
+    for (let i = 1; i < order.length; i++) {
+        expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
 })

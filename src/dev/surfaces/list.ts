@@ -168,6 +168,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['isAdding=true'],
         expectSelector: 'button[aria-busy="true"]',
     },
+    '35-c-applewalletrow': {
+        name: 'Add to Apple Wallet row (native iOS only)',
+        path: 'Card/AppleWalletRow.tsx',
+        expectSelector: '[role="button"]:not([aria-disabled])',
+    },
+    '35-c-applewalletrow-adding': {
+        name: 'Add to Apple Wallet row — adding (disabled)',
+        path: 'Card/AppleWalletRow.tsx',
+        captureState: ['isAdding=true'],
+        expectSelector: '[role="button"][aria-disabled="true"]',
+    },
     '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
     '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },

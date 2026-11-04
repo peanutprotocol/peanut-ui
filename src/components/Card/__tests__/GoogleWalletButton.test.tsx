@@ -26,10 +26,9 @@ it.each(APP_LOCALES)('uses official artwork and a matching accessible label in %
     const button = screen.getByRole('button', { name: messages.card.yourCard.addToGoogleWallet })
     const file = locale === 'es-AR' ? 'es-419' : locale
     const images = Array.from(button.querySelectorAll('img'))
-    expect(images.map((image) => image.getAttribute('src'))).toEqual([
-        `/wallet/google/one-line/${file}.svg`,
-        `/wallet/google/two-line/${file}.svg`,
-    ])
+    expect(images.map((image) => image.getAttribute('src'))).toEqual([`/wallet/google/one-line/${file}.svg`])
+    // Google's 48dp minimum in every language; the one-line artwork scales into it
+    expect(button.className.split(' ')).toContain('h-12')
     images.forEach((image) => expect(image).toHaveAttribute('alt', ''))
     fireEvent.click(button)
     expect(onClick).toHaveBeenCalledTimes(1)
