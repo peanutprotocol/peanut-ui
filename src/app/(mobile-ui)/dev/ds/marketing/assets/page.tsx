@@ -64,7 +64,7 @@ function PublicArtGrid({ entries, tile = 'h-10' }: { entries: PublicArtEntry[]; 
                             className={`${tile} w-auto`}
                         />
                     </div>
-                    <p className="font-mono text-label-m">{entry.label}</p>
+                    <p className="font-mono text-label-m break-all">{entry.label}</p>
                     <p className="font-mono text-body-xs break-all text-foreground-secondary">{entry.src}</p>
                     <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
                 </Card>
