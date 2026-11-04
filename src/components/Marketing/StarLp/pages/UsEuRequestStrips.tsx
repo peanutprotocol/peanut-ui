@@ -2,7 +2,6 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { StorySequence } from '@/components/Marketing/StarLp/StorySequence'
 import { STAR_LP_PERSONA, STAR_LP_REQUEST_LINK_TEXT } from '@/components/Marketing/StarLp/starLpPersonas.consts'
-import { US_EU_REQUEST_HREF } from './usEuAccounts.consts'
 import { fillUsEuLabel } from './usEuAccounts.utils'
 import { UsEuAppLink } from './UsEuAppLink'
 import { UsEuStrip } from './UsEuStrip'
@@ -67,12 +66,7 @@ export function UsEuRequestStrips({
             </UsEuStrip>
         ) : null,
         linked ? (
-            <UsEuAppLink
-                key="link"
-                href={US_EU_REQUEST_HREF.guest}
-                signedInHref={US_EU_REQUEST_HREF.signedIn}
-                className={`block ${requestIndent}`}
-            >
+            <UsEuAppLink key="link" className={`block ${requestIndent}`}>
                 {requestStrip}
             </UsEuAppLink>
         ) : (

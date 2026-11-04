@@ -349,7 +349,6 @@ test.describe('rendered marketing QR', () => {
         let scanner: BrowserContext | undefined
         try {
             await desktop.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const desktopJourney = '1508fc8b-ae6b-4a28-a9f0-d8bb85bd98fa'
@@ -423,7 +422,6 @@ test.describe('rendered marketing QR', () => {
         let scanner: BrowserContext | undefined
         try {
             await desktop.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const page = await desktop.newPage()
@@ -460,7 +458,6 @@ test.describe('rendered marketing QR', () => {
         const context = await guardedContext(browser, baseURL!)
         try {
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const campaign = `${'autumn-'.repeat(8)}campaign`
@@ -492,7 +489,6 @@ test.describe('rendered marketing QR', () => {
             const context = await guardedContext(browser, baseURL!)
             try {
                 await context.addInitScript((key) => {
-                    localStorage.setItem('pwa-sunset', 'true')
                     localStorage.setItem(key, '1')
                 }, preferenceKey)
                 const page = await context.newPage()
@@ -556,7 +552,6 @@ test.describe('marketing store continuation', () => {
         const context = await guardedContext(browser, baseURL!, { userAgent: androidUA })
         try {
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const page = await context.newPage()
@@ -582,7 +577,6 @@ test.describe('marketing store continuation', () => {
         try {
             await context.exposeBinding('__marketingQrClipboard', (_, text: string) => writes.push(text))
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
                 Object.defineProperty(navigator, 'clipboard', {
                     value: {
@@ -615,7 +609,6 @@ test.describe('marketing store continuation', () => {
         const context = await guardedContext(browser, baseURL!, { userAgent: androidUA })
         try {
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '0')
             }, preferenceKey)
             const page = await context.newPage()
