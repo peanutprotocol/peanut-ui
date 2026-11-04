@@ -92,7 +92,6 @@ export interface Translations {
 
     // Landing page — shared chrome
     landingSignUp: string
-    landingLogIn: string
     landingLearnMore: string
 
     // Landing page — pay-like-a-local (QR/PIX) heading, reused by the home fold
@@ -173,7 +172,6 @@ export interface Translations {
     landingDropLinkBody: string
 
     // Landing page — CTAs
-    landingSignUpNow: string
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)
     legalHeroSubtitlePrivacy: string

@@ -1,5 +1,4 @@
 import Logo from '@/assets/brand/logo.svg'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import { UsEuAppLink } from './UsEuAppLink'
 import { US_EU_EUR_IN } from './usEuAccounts.consts'
 import type { UsEuFxProps } from './usEuAccounts.types'
@@ -16,11 +15,7 @@ import { usEuMoneyInBody } from './usEuAccounts.utils'
 export function UsEuMoneyInPush({ eurUsd }: UsEuFxProps) {
     const body = usEuMoneyInBody(US_EU_EUR_IN, eurUsd)
     return (
-        <UsEuAppLink
-            href={STAR_LP_HREF.accountsGuest}
-            signedInHref={STAR_LP_HREF.accountsSignedIn}
-            className="star-lp-own-entrance star-lp-push-drop block"
-        >
+        <UsEuAppLink className="star-lp-own-entrance star-lp-push-drop block">
             <div
                 role="img"
                 aria-label={body ? `Peanut notification: Money in! ${body}` : 'Peanut notification: Money in!'}

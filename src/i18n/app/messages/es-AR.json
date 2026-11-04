@@ -1298,9 +1298,6 @@
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "shareJoin": "Unite a Peanut conmigo: {link}"
     },
-    "notifications": {
-        "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
-    },
     "kyc": {
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
         "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escribinos y te ayudamos desde ahí. Tus fondos siguen en tu cuenta.",

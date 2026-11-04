@@ -11,10 +11,9 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * anything visibly breaking.
  */
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
-import posthog from 'posthog-js'
 import { parseDeferredPayload } from '@/utils/deferred-link'
 import { captureSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
 import { saveToCookie } from '@/utils/cookie-url.utils'
@@ -38,15 +37,7 @@ jest.mock('next/navigation', () => ({
     notFound: () => mockNotFound(),
 }))
 
-// flags land immediately: the page waits for this callback (or a 4s timeout)
-// before it is willing to 404
-jest.mock('posthog-js', () => ({
-    capture: jest.fn(),
-    onFeatureFlags: jest.fn((cb: () => void) => {
-        cb()
-        return jest.fn()
-    }),
-}))
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 let mockNative = false
 jest.mock('@/utils/capacitor', () => ({
@@ -57,13 +48,9 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-let mockFlagOn = true
-let mockFlagsLoaded = true
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
-    isPwaSunsetOn: () => mockFlagOn,
-    isPwaSunsetOff: () => mockFlagsLoaded && !mockFlagOn,
     trackStoreClick: jest.fn(),
 }))
 
@@ -118,14 +105,8 @@ beforeEach(() => {
     for (const cookie of document.cookie.split(';')) {
         document.cookie = `${cookie.split('=')[0].trim()}=; Max-Age=0; path=/`
     }
-    jest.mocked(posthog.onFeatureFlags).mockImplementation((callback) => {
-        callback([], {})
-        return jest.fn()
-    })
     mockDeviceType = 'web'
     mockNative = false
-    mockFlagOn = true
-    mockFlagsLoaded = true
     visit('')
 })
 
@@ -204,10 +185,10 @@ describe('/app smart store link', () => {
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
-    it('404s while the flag is off', () => {
-        mockFlagOn = false
+    it('serves the store page to every web visitor', () => {
         renderPage()
-        expect(mockNotFound).toHaveBeenCalled()
+        expect(mockNotFound).not.toHaveBeenCalled()
+        expect(storeButton(/app store/i)).toBeInTheDocument()
     })
 })
 
@@ -245,17 +226,6 @@ describe('registered marketing QR handoff', () => {
         expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
     })
 
-    it.each(['off', 'unknown'] as const)('keeps old marketing QR URLs usable when migration is %s', (flag) => {
-        mockFlagOn = false
-        if (flag === 'unknown') jest.mocked(posthog.onFeatureFlags).mockImplementation(() => jest.fn())
-        visit(MARKETING_QUERY)
-        renderPage()
-        expect(mockNotFound).not.toHaveBeenCalled()
-        expect(storeButton(/app store/i)).toBeInTheDocument()
-        expect(storeButton(/google play/i)).toBeInTheDocument()
-        expect(locationReplace).not.toHaveBeenCalled()
-    })
-
     it.each(['deny-marker', 'current-opt-out'] as const)(
         'does not create marketing attribution when denied by %s',
         (reason) => {
@@ -268,14 +238,6 @@ describe('registered marketing QR handoff', () => {
             expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
         }
     )
-
-    it('does not make an unknown registration bypass generic app behavior', () => {
-        mockFlagOn = false
-        visit(MARKETING_QUERY.replace('home-hero-en', 'payment-link'))
-        renderPage()
-        expect(mockNotFound).toHaveBeenCalled()
-        expect(locationReplace).not.toHaveBeenCalled()
-    })
 
     it.each(['user@example.com', 'a'.repeat(65)])(
         'does not capture malformed content on a direct app marker: %s',
@@ -402,55 +364,6 @@ describe('ad landing link (/app with campaign parameters)', () => {
             `${STORE_URL.android}&referrer=${encodeURIComponent(`${PAYLOAD}&utm_source=twitter`)}`
         )
         expect(readSignupAttribution()).toBeNull()
-    })
-
-    it('still 404s while the flag is off', () => {
-        mockFlagOn = false
-        mockDeviceType = 'android'
-        visit(AD_QUERY)
-        renderPage()
-        expect(mockNotFound).toHaveBeenCalled()
-        expect(locationReplace).not.toHaveBeenCalled()
-    })
-
-    describe('when flags never load (blocked analytics)', () => {
-        beforeEach(() => {
-            jest.useFakeTimers()
-            mockFlagOn = false
-            mockFlagsLoaded = false
-            jest.mocked(posthog.onFeatureFlags).mockImplementation(() => jest.fn())
-        })
-        afterEach(() => jest.useRealTimers())
-
-        it('still bounces Android to Play with the campaign after the wait', () => {
-            mockDeviceType = 'android'
-            visit(AD_QUERY)
-            renderPage()
-            act(() => jest.advanceTimersByTime(4000))
-            expect(mockNotFound).not.toHaveBeenCalled()
-            const referrer = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
-            expect(parseDeferredPayload(referrer)?.attribution?.firstTouch.utmCampaign).toBe('launch-films-ar')
-        })
-
-        it('still offers the iOS store tap that writes the hand-off', () => {
-            mockDeviceType = 'ios'
-            visit(AD_QUERY)
-            renderPage()
-            act(() => jest.advanceTimersByTime(4000))
-            expect(mockNotFound).not.toHaveBeenCalled()
-            fireEvent.click(storeButton(/app store/i))
-            expect(mockCopyIOSHandoff).toHaveBeenCalledTimes(1)
-            expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
-        })
-
-        it('keeps the 404 for a visit with no campaign', () => {
-            mockDeviceType = 'android'
-            visit('')
-            renderPage()
-            act(() => jest.advanceTimersByTime(4000))
-            expect(mockNotFound).toHaveBeenCalled()
-            expect(locationReplace).not.toHaveBeenCalled()
-        })
     })
 
     it('inside the app, goes home without building a hand-off', () => {

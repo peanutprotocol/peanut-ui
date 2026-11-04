@@ -882,7 +882,9 @@
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
-            "recoverWallet": "Need to recover a Peanut account?"
+            "recoverWallet": "Need to recover a Peanut account?",
+            "testBuild": "Test build",
+            "testSignUp": "Sign up on web"
         },
         "loginRecovery": {
             "title": "Your passkey may be on the phone you signed up on",
@@ -3037,8 +3039,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "Turn on notifications?",
-        "setupDescription": "Enable notifications and get alerts for all wallet activity.",
         "migrationSetupTitle": "Get money alerts",
         "migrationSetupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
         "enable": "Enable notifications",

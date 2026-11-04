@@ -2,7 +2,6 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useLandingStoreCta } from '@/hooks/useLandingStoreCta'
 import { isCapacitor } from '@/utils/capacitor'
 import { openStore, storeForDevice } from '@/utils/migration.utils'
 import { type MigrationSurface } from '@/constants/migration.consts'
@@ -29,7 +28,6 @@ export function AppModalProvider({
     marketingPage?: MarketingQrContext['page']
     marketingLocale?: string
 }) {
-    const storeCta = useLandingStoreCta()
     const { deviceType } = useDeviceType()
     const [pending, setPending] = useState<{
         surface: MigrationSurface
@@ -38,7 +36,7 @@ export function AppModalProvider({
 
     const interceptAppCta = useCallback<AppModalValue>(
         (nextSurface, placement) => {
-            if (!storeCta || isCapacitor()) return false
+            if (isCapacitor()) return false
             const store = storeForDevice(deviceType)
             if (!store) {
                 setPending({
@@ -52,7 +50,7 @@ export function AppModalProvider({
             openStore(store, nextSurface)
             return true
         },
-        [storeCta, deviceType, marketingPage, marketingLocale]
+        [deviceType, marketingPage, marketingLocale]
     )
 
     return (

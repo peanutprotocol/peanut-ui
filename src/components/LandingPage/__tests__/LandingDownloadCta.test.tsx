@@ -2,9 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { LandingDownloadCta } from '../LandingDownloadCta'
 import { FooterStoreLinks } from '../FooterStoreLinks'
 import { StickyMobileCTA } from '../StickyMobileCTA'
-import type { LandingStrings } from '../landingStrings'
 let mockDevice = 'web'
-let mockMigration = true
 const mockStoreAnchorHref = jest.fn((_store: string) => '/store')
 const mockOnStoreAnchorClick = jest.fn()
 jest.mock('@/utils/migration.utils', () => ({
@@ -19,7 +17,6 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { WEB: 'web', IOS: 'ios', ANDROID: 'android' },
     useDeviceType: () => ({ deviceType: mockDevice }),
 }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigration }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => mockIntercept }))
 // link mode renders the anchor itself; keep only what these tests read
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -45,7 +42,6 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 beforeEach(() => {
     mockDevice = 'web'
-    mockMigration = true
     mockIntercept.mockClear()
     mockOnStoreAnchorClick.mockClear()
     mockStoreAnchorHref.mockImplementation(() => '/store')
@@ -76,7 +72,7 @@ it.each([
     render(
         <>
             <LandingDownloadCta />
-            <StickyMobileCTA strings={{ logIn: 'Log in' } as LandingStrings} />
+            <StickyMobileCTA />
         </>
     )
     const icons = screen.getAllByText('downloadNow').map((el) => el.getAttribute('data-icon'))
@@ -91,17 +87,10 @@ it.each(['ios', 'android'])('the %s footer store link writes the deferred hand-o
     expect(mockOnStoreAnchorClick).toHaveBeenCalledWith(store, 'landing_footer')
 })
 
-it('hides footer stores while migration is off', () => {
-    mockMigration = false
-    render(<FooterStoreLinks />)
-    expect(screen.queryAllByRole('link')).toHaveLength(0)
-    expect(mockOnStoreAnchorClick).not.toHaveBeenCalled()
-})
-
-it('offers only the store download in the sticky bar while migration is on', () => {
+it('offers only the store download in the sticky bar', () => {
     mockDevice = 'ios'
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 400 })
-    render(<StickyMobileCTA strings={{ logIn: 'Log in' } as LandingStrings} />)
+    render(<StickyMobileCTA />)
     expect(screen.getAllByRole('link')).toHaveLength(1)
     expect(screen.getByRole('link', { name: 'downloadNow' })).toHaveAttribute('href', '/store')
 })

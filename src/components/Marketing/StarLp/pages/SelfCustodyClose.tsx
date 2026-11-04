@@ -4,7 +4,6 @@ import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 
 /**
  * The closing fold, built from CloseFold's parts so the two sparkles sit on
@@ -37,7 +36,7 @@ export function SelfCustodyClose() {
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-body-l">No password. Just your passkey.</p>
             <PopIn delay={0.35} className="mx-auto mt-8 w-fit">
-                <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
+                <StarLpCta qrPlacement="close" ground="pink">
                     Create an account
                 </StarLpCta>
             </PopIn>

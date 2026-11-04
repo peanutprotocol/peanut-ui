@@ -14,7 +14,7 @@ const mockNext = jest.fn()
 const mockToastError = jest.fn()
 let mockNative = true
 let mockAndroidNative = false
-let mockMigrationOn = false
+let mockTestBuild = false
 let mockDeviceType = 'ios'
 
 jest.mock('@/utils/capacitor', () => ({
@@ -33,7 +33,12 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     useDeviceType: () => ({ deviceType: mockDeviceType }),
 }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigrationOn }))
+jest.mock('@/constants/migration.consts', () => ({
+    ...jest.requireActual('@/constants/migration.consts'),
+    get TEST_WEB_SIGNUP() {
+        return mockTestBuild
+    },
+}))
 jest.mock('@/components/Migration/StoreButtons', () => ({
     __esModule: true,
     default: ({ onStoreClick }: { onStoreClick?: (store: string) => void }) => (
@@ -62,7 +67,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockNative = true
     mockAndroidNative = false
-    mockMigrationOn = false
+    mockTestBuild = false
     mockDeviceType = 'ios'
 })
 
@@ -142,7 +147,6 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
 
     it('offers no sign-up from the drawer on the web app-only layout', async () => {
         mockNative = false
-        mockMigrationOn = true
         mockDeviceType = 'web'
         mockLogin.mockRejectedValue(passkeyError('PASSKEY_NOT_FOUND'))
         renderWithIntl(<LandingStep />)
@@ -152,6 +156,37 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
 
         expect(await screen.findByRole('dialog')).toHaveTextContent('Log in on that phone.')
         expect(screen.queryByRole('button', { name: /create an account/i })).not.toBeInTheDocument()
+    })
+})
+
+describe('Landing — test-build web sign-up', () => {
+    it('offers no web sign-up on a peanut.me build', () => {
+        mockNative = false
+        renderWithIntl(<LandingStep />)
+
+        expect(screen.getByTestId('store-buttons')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Sign up on web' })).not.toBeInTheDocument()
+        expect(screen.queryByText('Test build')).not.toBeInTheDocument()
+    })
+
+    it('marks the web sign-up on other builds and starts signup from it', () => {
+        mockNative = false
+        mockTestBuild = true
+        renderWithIntl(<LandingStep />)
+
+        expect(screen.getByText('Test build')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up on web' }))
+
+        expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+    })
+
+    it('keeps the normal sign-up in the native app, with no test row', () => {
+        mockTestBuild = true
+        renderWithIntl(<LandingStep />)
+
+        expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
+        expect(screen.queryByText('Test build')).not.toBeInTheDocument()
     })
 })
 
@@ -182,7 +217,6 @@ describe('Landing — control analytics', () => {
 
     it('reports the store button on the web app-only layout', () => {
         mockNative = false
-        mockMigrationOn = true
         mockDeviceType = 'ios'
         renderWithIntl(onSignupScreen('landing', <LandingStep />))
         fireEvent.click(screen.getByTestId('store-buttons'))

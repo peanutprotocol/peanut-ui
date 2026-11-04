@@ -9,7 +9,6 @@ import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { EN_LANDING_CONTENT_HREFS } from '@/components/LandingPage/landingContentHrefs'
 import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
@@ -119,7 +118,7 @@ export function SelfCustodyLanding() {
                 subtitle="Your balance sits in your own account. Sending from it needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={
-                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" ground="pink">
                         Create an account
                     </StarLpCta>
                 }

@@ -12,7 +12,6 @@ import type { LandingStrings } from './landingStrings'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
-import { useLandingStoreCta } from '@/hooks/useLandingStoreCta'
 import { useLocale } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import type { MarqueeChip } from '@/lib/landingContent'
@@ -38,10 +37,7 @@ export function LandingPageClient({
     footerSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
-    const storeCta = useLandingStoreCta()
     const locale = useLocale()
-
-    const primaryCta = storeCta ? undefined : heroConfig.primaryCta
 
     // Only the words with a real article behind them become links; the rest
     // stay plain text. Words come from the content system's marquee list and are
@@ -69,15 +65,14 @@ export function LandingPageClient({
     return (
         <AppModalProvider marketingPage="home" marketingLocale={locale}>
             <Hero
-                primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}
                 strings={strings}
-                customCta={storeCta ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
+                customCta={<LandingDownloadCta subtext={heroConfig.primaryCta.subtext} />}
             />
             <Marquee {...marqueeProps} />
             {foldsSlot}
             {footerSlot}
-            <StickyMobileCTA strings={strings} />
+            <StickyMobileCTA />
         </AppModalProvider>
     )
 }
