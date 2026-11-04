@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { appendFileSync } from 'node:fs'
 import { knownNonvisual, galleryMaintenanceChange, galleryIndexChange } from './capture-plan.mjs'
 import { CAPTURE_LOCALES, planCaptureLocales } from './capture-locales.mjs'
@@ -70,7 +71,7 @@ function currentPrLabels() {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? '') || !/^[1-9]\d*$/.test(prNumber ?? '')) return null
     try {
         return JSON.parse(
-            execFileSync('gh', ['api', `repos/${repository}/pulls/${prNumber}`, '--jq', '[.labels[].name]'], {
+            ghApiSync([`repos/${repository}/pulls/${prNumber}`, '--jq', '[.labels[].name]'], {
                 encoding: 'utf8',
                 timeout: 60000,
             })
