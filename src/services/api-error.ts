@@ -77,6 +77,8 @@ export const API_ERROR_CODES = {
     AVENIA_KYC_REQUIRED: 'AVENIA_KYC_REQUIRED',
     /** No CPF on the user's verification: Avenia matches the user's own bank by it. */
     AVENIA_CPF_REQUIRED: 'AVENIA_CPF_REQUIRED',
+    /** No recorded acceptance of Avenia's terms: POST /avenia/kyc/start needs `termsAccepted: true`. */
+    AVENIA_TERMS_REQUIRED: 'AVENIA_TERMS_REQUIRED',
     /** The Avenia sub-account's monthly limit has no room for this amount. */
     AVENIA_LIMIT_EXCEEDED: 'AVENIA_LIMIT_EXCEEDED',
     /** Avenia's withdrawal ticket had too little time left for the signature. Nothing moved; try again. */

@@ -15,7 +15,7 @@ jest.mock('@/utils/capacitor', () => ({
     IN_APP_BROWSER_CLOSED_EVENT: 'peanut:in-app-browser-closed',
 }))
 const mockStartKyc = jest.fn()
-jest.mock('@/services/avenia', () => ({ aveniaApi: { startKyc: () => mockStartKyc() } }))
+jest.mock('@/services/avenia', () => ({ aveniaApi: { startKyc: (body: unknown) => mockStartKyc(body) } }))
 const mockMarkUnavailable = jest.fn()
 jest.mock('@/features/avenia/aveniaAvailability', () => ({
     markAveniaUnavailable: (userId: string) => mockMarkUnavailable(userId),
@@ -44,6 +44,8 @@ describe('useAveniaKycStart', () => {
             await hook.result.current.start()
         })
 
+        // the tap under Avenia's terms is the acceptance the API records
+        expect(mockStartKyc).toHaveBeenCalledWith({ termsAccepted: true })
         expect(tab.location.href).toBe('https://kyc.avenia.io/level-1?session=1')
         expect(hook.result.current.isWaiting).toBe(true)
         expect(hook.result.current.error).toBeNull()
@@ -115,6 +117,24 @@ describe('useAveniaKycStart', () => {
             await hook.result.current.start()
         })
         expect(hook.result.current.error).toBe('unavailable')
+        expect(mockMarkUnavailable).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['no acceptance on record (422)', new ApiError('terms', { status: 422, code: 'AVENIA_TERMS_REQUIRED' })],
+        ['a body the API refused (400)', new ApiError('body/termsAccepted must be equal to constant', { status: 400 })],
+    ])('says the acceptance was not saved on %s, and starts nothing', async (_case, error) => {
+        const tab = reservedTab()
+        mockStartKyc.mockRejectedValue(error)
+        const hook = renderHook(() => useAveniaKycStart({ railEnabled: false }))
+
+        await act(async () => {
+            await hook.result.current.start()
+        })
+
+        expect(tab.close).toHaveBeenCalled()
+        expect(hook.result.current.error).toBe('setup.termsNotSaved')
+        expect(hook.result.current.isWaiting).toBe(false)
         expect(mockMarkUnavailable).not.toHaveBeenCalled()
     })
 

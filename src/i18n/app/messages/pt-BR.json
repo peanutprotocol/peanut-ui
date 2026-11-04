@@ -2428,9 +2428,9 @@
             "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
             "rejected": "A Avenia não conseguiu verificar sua identidade, então o Pix não está disponível. Fale com o suporte se achar que é um engano.",
             "checkingBody": "Conclua as etapas na página da Avenia. Esta tela avança quando a Avenia confirmar, normalmente em poucos minutos.",
-            "openAgain": "Abrir a verificação de novo",
             "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
-            "settingUp": "A conta Pix está sendo configurada. Tente de novo em um minuto."
+            "settingUp": "A conta Pix está sendo configurada. Tente de novo em um minuto.",
+            "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo."
         },
         "deposit": {
             "minimum": "O mínimo é {amount}.",

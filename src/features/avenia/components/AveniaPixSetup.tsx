@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
@@ -53,17 +52,14 @@ export function AveniaPixSetup({
         )
     }
 
+    // Only the terms step starts Avenia: every start carries the acceptance, so the wait has no
+    // "open again". Leaving and coming back shows the terms step, and its Continue opens a new link.
     if (kyc.isWaiting) {
         return (
             <PageStack>
                 <NavHeader title={title} onPrev={onBack} />
                 <PageStack.Center>
                     <ProcessingScreen title={tLoading('gettingKycStatus')} description={t('checkingBody')} />
-                    <div className="flex justify-center">
-                        <LinkButton onClick={() => void kyc.start()} disabled={kyc.isStarting}>
-                            {t('openAgain')}
-                        </LinkButton>
-                    </div>
                 </PageStack.Center>
             </PageStack>
         )

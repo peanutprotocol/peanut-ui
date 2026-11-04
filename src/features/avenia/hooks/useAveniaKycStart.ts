@@ -14,7 +14,11 @@ import { reserveDetachedTab } from '@/utils/reserved-tab'
 const REARM_INTERVAL_MS = 20_000
 
 export interface AveniaKycStart {
-    /** Call straight out of a click: on the web it reserves the tab inside the gesture. */
+    /**
+     * Call straight out of the control under Avenia's named and linked terms ("By continuing,
+     * you agree to…"): the request carries the user's acceptance. On the web it reserves the
+     * tab inside the gesture.
+     */
     start: () => Promise<void>
     isStarting: boolean
     /** The hosted page was opened, or Avenia is reviewing: the screen waits for the rail. */
@@ -58,7 +62,7 @@ export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): Av
         setError(null)
         setIsStarting(true)
         try {
-            const started = await aveniaApi.startKyc()
+            const started = await aveniaApi.startKyc({ termsAccepted: true })
             if (started.state === 'kyc' && started.kycUrl) {
                 if (native) await openExternalUrl(started.kycUrl)
                 else if (reservedTab && !reservedTab.closed) reservedTab.location.href = started.kycUrl
@@ -83,7 +87,10 @@ export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): Av
                 if (userId) markAveniaUnavailable(userId)
                 return
             }
-            if (code === API_ERROR_CODES.AVENIA_CPF_REQUIRED) setError(t('setup.cpfRequired'))
+            // a schema 400 or a missing record: the acceptance did not reach the ledger, so nothing started
+            if (code === API_ERROR_CODES.AVENIA_TERMS_REQUIRED || apiErrorStatus(caught) === 400)
+                setError(t('setup.termsNotSaved'))
+            else if (code === API_ERROR_CODES.AVENIA_CPF_REQUIRED) setError(t('setup.cpfRequired'))
             else if (apiErrorStatus(caught) === 409) setError(t('setup.settingUp'))
             else setError(t('unavailable'))
         } finally {

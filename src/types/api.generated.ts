@@ -589,7 +589,7 @@ export interface paths {
         put?: never;
         /**
          * Start Pix with Avenia (first use)
-         * @description For a Brazilian resident with an approved identity and a CPF: creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.
+         * @description For a Brazilian resident with an approved identity and a CPF: records their acceptance of Avenia’s terms, creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Refused without `termsAccepted: true`. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.
          */
         post: {
             parameters: {
@@ -600,11 +600,16 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
+            requestBody: {
                 content: {
                     "application/json": {
                         /** Format: uri */
                         redirectUrl?: string;
+                        /**
+                         * @description The user accepted Avenia’s terms on this step. Recorded in the consent ledger with the server time and the caller’s IP.
+                         * @enum {boolean}
+                         */
+                        termsAccepted: true;
                     };
                 };
             };
@@ -625,6 +630,18 @@ export interface paths {
                             kycUrl?: string;
                             reason?: string;
                             state: "enabled" | "kyc" | "pending" | "rejected";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
