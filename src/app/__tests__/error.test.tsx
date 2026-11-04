@@ -4,6 +4,9 @@ import { captureException } from '@/utils/sentry-lazy'
 
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
 
+let mockPathname = '/'
+jest.mock('next/navigation', () => ({ usePathname: () => mockPathname }))
+
 const GUARD_KEY = 'peanut-chunk-reload-at'
 
 const chunkError = () =>
@@ -22,6 +25,7 @@ describe('root error boundary', () => {
             value: { ...originalLocation, reload },
         })
         sessionStorage.clear()
+        mockPathname = '/'
         jest.spyOn(console, 'error').mockImplementation(() => {})
         ;(captureException as jest.Mock).mockClear()
     })
@@ -39,6 +43,14 @@ describe('root error boundary', () => {
         expect(screen.getByRole('link', { name: 'Go home' })).toHaveAttribute('href', '/')
         fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
         expect(reset).toHaveBeenCalledTimes(1)
+    })
+
+    it('uses the locale copy and home link on a localized root homepage', () => {
+        mockPathname = '/pt-br'
+        render(<RootError error={new Error('boom')} reset={jest.fn()} />)
+
+        expect(screen.getByText('Algo deu errado')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: 'Ir para o início' })).toHaveAttribute('href', '/pt-br')
     })
 
     it('reports the error and does not reload for a non-chunk error', () => {
@@ -66,7 +78,7 @@ describe('root error boundary', () => {
         expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     })
 
-    it('makes "Try again" a hard reload for a chunk error, since reset cannot refetch the chunk', () => {
+    it('makes "Try again" a hard reload for any chunk error, since reset cannot refetch the chunk', () => {
         sessionStorage.setItem(GUARD_KEY, String(Date.now()))
         const reset = jest.fn()
         render(<RootError error={chunkError()} reset={reset} />)
@@ -74,5 +86,24 @@ describe('root error boundary', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
         expect(reload).toHaveBeenCalledTimes(1)
         expect(reset).not.toHaveBeenCalled()
+    })
+
+    it('in an installed PWA skips the automatic reload but reloads on "Try again"', () => {
+        const originalMatchMedia = window.matchMedia
+        window.matchMedia = ((query: string) => ({
+            matches: query === '(display-mode: standalone)',
+        })) as unknown as typeof window.matchMedia
+        try {
+            const reset = jest.fn()
+            render(<RootError error={chunkError()} reset={reset} />)
+
+            expect(reload).not.toHaveBeenCalled()
+            expect(sessionStorage.getItem(GUARD_KEY)).toBeNull()
+            fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+            expect(reload).toHaveBeenCalledTimes(1)
+            expect(reset).not.toHaveBeenCalled()
+        } finally {
+            window.matchMedia = originalMatchMedia
+        }
     })
 })
