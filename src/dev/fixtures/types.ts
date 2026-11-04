@@ -2,6 +2,11 @@
 export type Fixture = {
     /** Route the fixture is built for. The listing page links here with the param applied. */
     route: string
+    /**
+     * Where the app sends the user from `route`, when that screen is the state
+     * under test. The capture opens `route` and shoots once it lands here.
+     */
+    landsOn?: string
     /** What the fixture proves. One line, shown on /dev/fixtures. */
     about: string
     /**

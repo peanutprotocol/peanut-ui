@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Dev page: everything the production database stores about one user, read-only.
+ * Dev page: everything the API's database stores about one user, read-only.
  *
  * Team only. The API (/admin/users) checks the signed-in account against its
  * team list; anyone else gets a 403 and sees no data. Search, sort and the
@@ -16,13 +16,14 @@ import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { suppressPrivateRouteTelemetry } from '@/utils/private-route-telemetry'
+import { inferSentryEnvironment } from '@/utils/sentry-env'
 import { twMerge } from '@/utils/tw'
 import DevPageShell from '../_components/DevPageShell'
 import UserList from './_components/UserList'
 import UserRecordView from './_components/UserRecordView'
 import { fetchUserRecordStats } from './userRecords.api'
 import type { UserSort } from './userRecords.types'
-import { SORT_OPTIONS } from './userRecords.utils'
+import { databaseDescription, SORT_OPTIONS } from './userRecords.utils'
 
 const SEARCH_DEBOUNCE_MS = 300
 const numberFormat = new Intl.NumberFormat('en-US')
@@ -49,7 +50,7 @@ export default function UserRecordsPage() {
     return (
         <DevPageShell
             title="User records"
-            description="Everything the production database stores about a user. Read-only, team only, and every view is logged."
+            description={`Everything ${databaseDescription(inferSentryEnvironment())} stores about a user. Read-only, team only, and every view is logged.`}
             actions={
                 stats.data && (
                     <dl className="flex gap-6 text-body-xs">

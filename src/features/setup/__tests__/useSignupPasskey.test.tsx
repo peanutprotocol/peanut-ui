@@ -484,6 +484,29 @@ describe('repeated cancels in the iOS app', () => {
  * NotAllowedError name as a dismissal, and a provider crash with no name at all.
  */
 describe('Android failures that are not cancels', () => {
+    it('shows unsupported-provider guidance inline without signup completion or a generic help drawer', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('Unsupported passkey provider'), {
+                name: 'PasskeyProviderUnsupportedError',
+                code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+            })
+        )
+        const view = renderWithIntl(<Harness />)
+        claim()
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device.'
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
+        expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        // A delayed address must not turn this rejected attempt into a completed signup.
+        mockAddress = '0xlate-after-incompatible-provider'
+        view.rerender(<Harness />)
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(mockSetNoBackLock).not.toHaveBeenCalled()
+        expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, expect.anything())
+    })
+
     it('opens the Android help drawer on the first "no create options" failure', async () => {
         mockHandleRegister.mockRejectedValue(
             Object.assign(new Error('No create options available.'), { name: 'NotAllowedError' })

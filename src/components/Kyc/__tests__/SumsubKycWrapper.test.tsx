@@ -151,7 +151,7 @@ describe('SumsubKycWrapper', () => {
         // Regression: before the callback-ref fix this never fired, leaving the
         // user on an infinite spinner (card_sumsub_opened with 0 completions).
         await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
-        expect(launch.mock.calls[0][0]).toBeInstanceOf(HTMLElement)
+        expect(launch.mock.calls[0][0]).toBe(screen.getByTestId('kyc-sumsub-sdk'))
     })
 
     it('does not launch while hidden', async () => {

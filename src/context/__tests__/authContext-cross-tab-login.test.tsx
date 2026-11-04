@@ -2,6 +2,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { USER } from '@/constants/query.consts'
 
 const mockCompleteAccountSetup = jest.fn()
 const mockRecoverLoginSession = jest.fn()
@@ -27,7 +28,13 @@ const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
-const mockQueryClient = { clear: mockClear, cancelQueries: mockCancelQueries, getQueryData: () => mockUserData }
+const mockRemoveQueries = jest.fn()
+const mockQueryClient = {
+    clear: mockClear,
+    cancelQueries: mockCancelQueries,
+    removeQueries: mockRemoveQueries,
+    getQueryData: (_key?: unknown) => mockUserData,
+}
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => mockQueryClient,
 }))
@@ -44,6 +51,8 @@ jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => mockLocked }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+// sign-up geo delivery has its own tests; here it would read the token mock's missing epoch
+jest.mock('@/services/signup-geo', () => ({ resumeSignupGeo: () => undefined }))
 jest.mock('@/utils/login-session', () => ({
     recoverLoginSession: (...args: unknown[]) => mockRecoverLoginSession(...args),
 }))
@@ -244,4 +253,60 @@ describe('cross-tab AuthProvider reconciliation', () => {
         })
         expect(mockRefetch).toHaveBeenCalledTimes(1)
     })
+})
+
+it('login hydration for B cancels and removes A’s non-USER cache entries', async () => {
+    const { QueryClient } = jest.requireActual('@tanstack/react-query')
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    mockUserData = { user: { userId: 'cached-A', username: 'probe' }, accounts: [] }
+    mockLoading = false
+    mockLocked = false
+    mockDemo = false
+    mockQueryError = null
+    mockLogoutVersion = null
+    endIntentionalLogout()
+    clearRedirectUrl()
+    clearSessionHeld()
+    client.setQueryData([USER], mockUserData)
+    client.setQueryData(['private-kyc', 'cached-A'], { phone: 'A-private-phone' })
+    const aborted = jest.fn()
+    let finish!: (value: unknown) => void
+    const pending = client
+        .fetchQuery({
+            queryKey: ['private-pending', 'cached-A'],
+            queryFn: ({ signal }: { signal: AbortSignal }) => {
+                signal.addEventListener('abort', aborted)
+                return new Promise((resolve) => {
+                    finish = resolve
+                })
+            },
+        })
+        .catch(() => undefined)
+    const originalGet = mockQueryClient.getQueryData
+    mockQueryClient.getQueryData = (key) => client.getQueryData(key)
+    mockCancelQueries.mockImplementation((options) => client.cancelQueries(options))
+    mockRemoveQueries.mockImplementation((options) => client.removeQueries(options))
+    mockRecoverLoginSession.mockResolvedValueOnce({ user: { userId: 'fresh-B', username: 'probe-b' }, accounts: [] })
+    try {
+        const { result, unmount } = renderHook(() => useAuth(), { wrapper })
+        await act(async () => {
+            await result.current.hydrateLoginSession()
+        })
+        expect(client.getQueryData(['private-kyc', 'cached-A'])).toBeUndefined()
+        expect(aborted).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            finish({ phone: 'late-A-phone' })
+            await pending
+        })
+        expect(client.getQueryData(['private-pending', 'cached-A'])).toBeUndefined()
+        unmount()
+    } finally {
+        mockQueryClient.getQueryData = originalGet
+        mockCancelQueries.mockReset().mockResolvedValue(undefined)
+        mockRemoveQueries.mockReset()
+        client.clear()
+        endIntentionalLogout()
+        clearRedirectUrl()
+        clearSessionHeld()
+    }
 })

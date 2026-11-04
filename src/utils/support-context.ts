@@ -27,7 +27,7 @@ import {
     POSTHOG_PERSON_BASE_URL,
     SENTRY_USER_ISSUES_BASE_URL,
 } from '@/constants/support'
-import { type Account, AccountType, type IUserProfile } from '@/interfaces/interfaces'
+import { type Account, AccountType, type IUserProfile, type SupportLinkedAccount } from '@/interfaces/interfaces'
 import type { RainCardOverview } from '@/services/rain'
 
 const usd = (units: bigint): string => `$${formatUsdcBalance(units)}`
@@ -136,6 +136,15 @@ export function buildLinkedAccounts(accounts: Account[] | undefined): string | u
         return account.type === AccountType.PEANUT_WALLET || !country ? account.type : `${account.type}:${country}`
     })
     return Array.from(new Set(shapes)).join(' · ')
+}
+
+/**
+ * The direction of an email collision. The public API deliberately withholds
+ * the other account's identifiers; support looks them up in internal tools.
+ */
+export function buildSupportLinkedAccounts(linked: SupportLinkedAccount[] | undefined): string | undefined {
+    if (!linked?.length) return undefined
+    return linked.map(({ relation }) => relation).join(' · ')
 }
 
 export interface SupportSegmentInput {

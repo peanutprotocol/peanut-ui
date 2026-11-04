@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
@@ -67,6 +69,10 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
         try {
             const response = await updateUserById({ userId, email: trimmed })
             if (response.error) {
+                if (response.failureKind !== 'http' || (response.status ?? 0) >= 500)
+                    Sentry.captureException(new Error('KYC email save failed'), {
+                        tags: { ...criticalFlowTags('kyc'), kyc_step: 'email_save' },
+                    })
                 setFlowError(response.error)
                 return
             }
@@ -75,7 +81,8 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             // normal in-progress state instead of this modal).
             await fetchUser()
             onComplete()
-        } catch {
+        } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'email_save' } })
             setFlowError(t('provideEmail.saveFailed'))
         } finally {
             setIsSaving(false)

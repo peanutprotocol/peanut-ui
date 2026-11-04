@@ -9,6 +9,10 @@ import MantecaWithdrawFlow from '../page'
 const mockPush = jest.fn()
 let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
+// The first-use activation has its own tests; the amount screen behind it is what these cover.
+jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
+    KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
+}))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(mockParams),
     useRouter: () => ({ push: mockPush, replace: mockPush, back: jest.fn() }),

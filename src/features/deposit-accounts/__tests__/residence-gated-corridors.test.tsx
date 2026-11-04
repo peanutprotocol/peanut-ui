@@ -1,3 +1,7 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }),
+    useOptionalAuth: () => null,
+}))
 /**
  * Residence decides the two Manteca top-ups, Argentina and Brazil, and the flow
  * behind each states the rule. No account a user can open is residence-gated:

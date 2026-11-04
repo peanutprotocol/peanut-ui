@@ -19,12 +19,14 @@ export const SumsubWebSdkModal = ({
     visible,
     sessionKey,
     accessToken,
+    documentConfig,
     email,
     onClose,
     onComplete,
     onSubmitted,
     onError,
     onRefreshToken,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: SumsubSdkProps) => {
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
@@ -35,11 +37,13 @@ export const SumsubWebSdkModal = ({
         visible,
         sessionKey,
         accessToken,
+        documentConfig,
         email,
         onComplete,
         onSubmitted,
         onError,
         onRefreshToken,
+        onIdentityStepCompleted,
         isMultiLevel,
     })
 
@@ -88,6 +92,7 @@ export const SumsubWebSdkModal = ({
                             </div>
                             <div
                                 ref={setSdkContainer}
+                                data-testid="kyc-sumsub-sdk"
                                 className="relative h-full w-full overflow-auto [&>iframe]:!min-h-full"
                             />
                         </div>

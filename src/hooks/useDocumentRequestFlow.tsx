@@ -6,6 +6,7 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import type { NextAction } from '@/types/capabilities'
 import { upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
+import { bridgeDocumentActionKey, isBridgeDocumentTask } from '@/utils/bridge-tasks.utils'
 
 /**
  * Starts a future-dated document request (a Bridge advisory Sumsub step) from
@@ -17,7 +18,7 @@ import { upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
  * a tap as a silent no-op.
  */
 export function useDocumentRequestFlow(): {
-    start: (task: NextAction) => void
+    start: (task: NextAction, reasonCode?: string) => void
     /** key of the request the user last started */
     startedTaskKey: string | null
     isLoading: boolean
@@ -34,10 +35,10 @@ export function useDocumentRequestFlow(): {
         onKycApproved: () => trackUpliftCompleted(),
         onManualClose: resetUpliftFunnel,
     })
-    const { handleSelfHealResubmit } = kycFlow
+    const { handleSelfHealResubmit, handleFixableRejection } = kycFlow
 
     const start = useCallback(
-        (task: NextAction) => {
+        (task: NextAction, reasonCode?: string) => {
             setStartedTaskKey(task.key)
             const upliftTrigger = task.effectiveDate
                 ? upliftTriggerFromAdvisory({
@@ -50,9 +51,17 @@ export function useDocumentRequestFlow(): {
             // The self-heal resubmit route tags the action so the completed
             // submission reaches the payment partner; a plain start-action token
             // would drop the answers.
-            void handleSelfHealResubmit('BRIDGE', task.requirementKey)
+            if (isBridgeDocumentTask(task)) {
+                void handleFixableRejection({
+                    provider: 'BRIDGE',
+                    actionKey: bridgeDocumentActionKey(task),
+                    reasonCode,
+                })
+            } else {
+                void handleSelfHealResubmit('BRIDGE', task.requirementKey)
+            }
         },
-        [handleSelfHealResubmit, trackUpliftStarted]
+        [handleSelfHealResubmit, handleFixableRejection, trackUpliftStarted]
     )
 
     return {

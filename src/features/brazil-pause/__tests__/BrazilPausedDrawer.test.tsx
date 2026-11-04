@@ -1,5 +1,7 @@
-import { act, fireEvent, screen } from '@testing-library/react'
-import en from '@/i18n/app/messages/en.json'
+import { act, fireEvent, render, screen } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
+import { APP_LOCALES } from '@/i18n/app/config'
+import { loadMessages } from '@/i18n/app/messages'
 import { renderWithIntl } from '@/test-utils/intl'
 import {
     closeBrazilPausedDrawer,
@@ -16,14 +18,19 @@ describe('BrazilPausedDrawer', () => {
         expect(screen.queryByTestId('brazil-paused-drawer')).not.toBeInTheDocument()
     })
 
-    it('explains the pause and closes on Got it', () => {
-        renderWithIntl(<BrazilPausedDrawer />)
+    it.each(APP_LOCALES)('explains the pause in %s and closes on Got it', async (locale) => {
+        const messages = await loadMessages(locale)
+        render(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <BrazilPausedDrawer />
+            </NextIntlClientProvider>
+        )
         act(() => openBrazilPausedDrawer())
 
-        expect(screen.getByText(en.brazilPause.title)).toBeInTheDocument()
-        expect(screen.getByText(en.brazilPause.body)).toBeInTheDocument()
+        expect(screen.getByText(messages.brazilPause.title)).toBeInTheDocument()
+        expect(screen.getByText(messages.brazilPause.body)).toBeInTheDocument()
 
-        fireEvent.click(screen.getByRole('button', { name: en.common.gotIt }))
+        fireEvent.click(screen.getByRole('button', { name: messages.common.gotIt }))
         expect(isBrazilPausedDrawerOpen()).toBe(false)
     })
 })

@@ -108,6 +108,10 @@ const BODY_SENSITIVE_URLS: RegExp[] = [
     /\/(?:login|signup|register|set-password|reset-password|change-password)/,
     // The user's own verified postal address — the whole body is the address
     /\/users\/me\/verified-address(?:[/?]|$)/,
+    // Profile and identity saves — name, address, tax number, citizenship, residence
+    /\/update-user(?:[/?]|$)/,
+    /\/users\/identity(?:[/?]|$)/,
+    /\/users\/residence-change\/start(?:[/?]|$)/,
     // KYC — Bridge, Sumsub, Manteca
     /\/kyc\/(?:start|submit|update)/,
     /\/bridge\/customers/,
@@ -181,6 +185,10 @@ const SENSITIVE_KEYS = new Set([
     'nif',
     'governmentid',
     'governmentidnumber',
+    'nationality',
+    'citizenship',
+    'countryofbirth',
+    'cityofbirth',
     'documentnumber',
     'passport',
     'passportnumber',
@@ -222,6 +230,7 @@ const SENSITIVE_KEYS = new Set([
     // PII — address. NOTE: `address` alone is NOT here — onchain addresses
     // (walletAddress, recipientAddress, etc.) must stay visible for
     // debugging onchain flows.
+    'street',
     'streetaddress',
     'street1',
     'street2',
@@ -239,6 +248,7 @@ const SENSITIVE_KEYS = new Set([
     'permanentaddress',
     'direccion',
     'domicilio',
+    'town',
     'postalcode',
     'zipcode',
     'zip',
@@ -248,6 +258,7 @@ const SENSITIVE_KEYS = new Set([
     'dateofbirth',
     'birthdate',
     'birthday',
+    'phone',
     'phonenumber',
     'mobilenumber',
     'telephone',
@@ -596,16 +607,31 @@ const reportNonOkResponse = async (
     // 401 on cleared session, etc). Logging them clutters DevTools and
     // gets picked up by forward-logs-shared as Sentry breadcrumbs.
     const skipRule = findSkipRule(url, response.status)
-    // A rule with no `errorCodes` decides on URL + status alone, so nothing
-    // below needs to run.
-    if (skipRule && !skipRule.errorCodes) return
+    // Missing /users routes must reach Sentry even when domain 404s are expected.
+    const users404 = response.status === 404 && /\/users(?:[/?#]|$)/.test(url)
+    if (skipRule && !skipRule.errorCodes && !users404) return
 
     let errorContent: JSONValue
     try {
         errorContent = await response.clone().json()
     } catch {
-        errorContent = await response.clone().text()
+        errorContent = await response
+            .clone()
+            .text()
+            .catch(() => '')
     }
+
+    if (
+        users404 &&
+        skipRule &&
+        !(
+            typeof errorContent === 'object' &&
+            errorContent !== null &&
+            !Array.isArray(errorContent) &&
+            errorContent.code === 'route_not_found'
+        )
+    )
+        return
 
     // A scoped rule suppresses only its own codes. Any other failure sharing
     // the status falls through and is reported.

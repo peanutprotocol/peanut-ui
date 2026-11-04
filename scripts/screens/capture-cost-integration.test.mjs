@@ -740,7 +740,7 @@ test('viewer/index maintenance skips app capture and preserves trusted isolated 
     assert.doesNotMatch(galleryCall, /\n\s+with:/)
     for (const permission of ['contents: read', 'actions: read', 'pull-requests: write'])
         assert.ok(galleryCall.includes(permission))
-    assert.match(publisher, /deploy:\n\s+needs: index/)
+    assert.match(publisher, /deploy:\n\s+needs: \[index, publish\]/)
     assert.match(publisher, /screen-library-gallery.yml@dev/)
     assert.match(publisher, /BEFORE: \$\{\{ github.event.before \}\}/)
     assert.match(publisher, /AFTER: \$\{\{ github.sha \}\}/)
@@ -750,7 +750,10 @@ test('viewer/index maintenance skips app capture and preserves trusted isolated 
         publisher,
         /refresh_indexes: \$\{\{ needs.route.outputs.mode == 'skip' && needs.route.outputs.refresh_indexes == 'true' \}\}/
     )
-    assert.match(publisher, /deploy:\n\s+needs: index[\s\S]+with:\n\s+refresh_indexes: false\n\s+deploy_gallery: true/)
+    assert.match(
+        publisher,
+        /deploy:\n\s+needs: \[index, publish\][\s\S]+with:\n\s+refresh_indexes: false\n\s+deploy_gallery: true/
+    )
     assert.match(publisher, /index:\n[\s\S]*?runs-on: ubuntu-24.04\n\s+timeout-minutes: 10/)
     assert.match(publisher, /always\(\) && !cancelled\(\)/)
     assert.match(gallery, /always\(\) && !cancelled\(\)/)

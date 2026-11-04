@@ -1,5 +1,15 @@
 # Peanut UI engineering checklist
 
+## Android signup passkey compatibility
+
+- Check original signed client-data layout before native registration returns to the SDK and submits server verification. Standard create uses challenge-property byte 26; the deployed validator expects byte 23 for get.
+- Preserve exact credential bytes, account addresses, existing validator selection and credential pinning. Backup eligibility alone does not determine compatibility.
+- Reject incompatible/malformed registration with sanitized terminal guidance; no automatic retry, server account creation, navigation or signup success event. Preserve cancellation, timeout and native ownership fences.
+- Verify layout permutations, invalid data and UTF-8 prefixes, retry after rejection, get/web/iOS compatibility and signup recovery copy. A physical failing-provider check remains required before release; create layout cannot prove every future assertion layout.
+
+Undecided: audited dynamic-offset validator adoption and account migration, outside this compatibility guard. Native/provider validation remains separate from mocked acceptance tests.
+
+
 - Browser contract builds: explicitly cap V8 old-space at 4096 MiB on the build
   steps. Preserve blocking browser specs and existing deadlines; heap capacity is
   separate from total runner memory and successful hosted execution.

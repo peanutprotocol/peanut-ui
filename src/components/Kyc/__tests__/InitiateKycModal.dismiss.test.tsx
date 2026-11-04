@@ -52,15 +52,17 @@ const renderModal = (props: Partial<React.ComponentProps<typeof InitiateKycModal
     return onClose
 }
 
+// the unlock offers are the full-screen intro now (InitiateKycModal.intro);
+// the document request is a drawer that starts an SDK run of its own
 describe('InitiateKycModal — dismissal', () => {
     it('cannot be dismissed while verification is starting', () => {
-        const onClose = renderModal({ isLoading: true })
+        const onClose = renderModal({ variant: 'provider_rejection', isLoading: true })
         expect(screen.getByTestId('drawer')).toHaveAttribute('data-dismissible', 'false')
         expect(onClose).not.toHaveBeenCalled()
     })
 
     it('dismisses when nothing is in flight', () => {
-        const onClose = renderModal()
+        const onClose = renderModal({ variant: 'provider_rejection' })
         expect(screen.getByTestId('drawer')).toHaveAttribute('data-dismissible', 'true')
         expect(onClose).toHaveBeenCalled()
     })

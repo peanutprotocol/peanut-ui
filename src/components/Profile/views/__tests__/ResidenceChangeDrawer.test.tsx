@@ -5,14 +5,29 @@ import { IntlWrapper } from '@/test-utils/intl'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
 import { updateUserById } from '@/app/actions/users'
 import { readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
+let mockRestrictionsKnown = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
-    useResidenceRestrictionSets: () => ({
-        full: new Set(['RU']),
-        cardOnly: new Set<string>(),
-        bankingOnly: new Set<string>(),
+    useResidenceRestrictionSets: () =>
+        mockRestrictionsKnown
+            ? {
+                  full: new Set(['RU']),
+                  cardOnly: new Set<string>(),
+                  bankingOnly: new Set<string>(),
+                  refusedIdIssuers: new Set<string>(),
+                  bankingNewCustomersOnly: new Set<string>(),
+              }
+            : null,
+}))
+// Off by default: the older cases pin the save mechanics, not what a move closes.
+let mockIntents = false
+jest.mock('@/hooks/useKycIntents', () => ({
+    useKycIntents: (country: string | null) => ({
+        intents: mockIntents && country ? KYC_INTENTS_BY_COUNTRY[country] : undefined,
+        settled: true,
     }),
 }))
 const mockedUpdate = updateUserById as jest.MockedFunction<typeof updateUserById>
@@ -39,9 +54,30 @@ const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeDrawe
 
 describe('ResidenceChangeDrawer', () => {
     beforeEach(() => {
+        mockRestrictionsKnown = true
         jest.clearAllMocks()
         window.localStorage.clear()
         mockedUpdate.mockResolvedValue({ data: undefined })
+        mockIntents = false
+    })
+
+    // Slava, 2026-10-27: an approved move into a country that restricts a service closes it.
+    it('names what a verified user loses before the move, and asks them to confirm', async () => {
+        mockIntents = true
+        const { onClose } = render({ declared: 'PT', verified: 'PT', pending: 'VE' })
+        expect(screen.getByTestId('residence-change-lost')).toHaveTextContent(
+            "Venezuela doesn't allow the Peanut card and bank accounts. They pause when you submit your move."
+        )
+        fireEvent.click(screen.getByText('Move anyway'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'VE' })
+    })
+
+    it('says nothing about losses when the new country opens the same services', () => {
+        mockIntents = true
+        render({ declared: 'PT', verified: 'PT', pending: 'DE' })
+        expect(screen.queryByTestId('residence-change-lost')).not.toBeInTheDocument()
+        expect(screen.getByText('Save')).toBeInTheDocument()
     })
 
     it('saves the requested residence, refetches, and closes without starting verification', async () => {
@@ -167,6 +203,16 @@ describe('ResidenceChangeDrawer', () => {
         })
     })
 
+    it('a server answer of no second residence keeps a stale device mirror from reordering', async () => {
+        storeSecondResidence('u1', 'FR')
+        const { onClose } = render({ declared: 'ES', verified: 'ES', declaredSecond: null })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'FR' })
+    })
+
     it('preselects an existing pending residence without treating it as active', async () => {
         const { onClose } = render({ declared: 'BR', verified: 'BR', pending: 'ES' })
         expect(screen.getByText('Submit documents')).toBeInTheDocument()
@@ -182,5 +228,11 @@ describe('ResidenceChangeDrawer', () => {
                 "Heads up: bank transfers and card issuing aren't available for residents of this country."
             )
         ).toBeInTheDocument()
+    })
+    it('shows no restriction note when lists are unknown', () => {
+        mockRestrictionsKnown = false
+        render({ declared: 'RU', verified: null })
+        expect(screen.queryByText(/Heads up:/)).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
     })
 })
