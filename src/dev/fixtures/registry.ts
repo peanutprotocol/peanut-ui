@@ -1061,6 +1061,36 @@ const REVIEW_CAUSE_RESPONSE = {
     },
 }
 
+/**
+ * A verified user whose payment partner asks for one more thing for EUR: the
+ * rail's gate reads `fixable-rejection` while the backend still offers the
+ * corridor. USD is the same review once the user has answered (the backend
+ * says `endorsement-pending`), and COP still waits on the identity.
+ */
+const PROVIDER_ASK_RESPONSE = {
+    'GET /users/me': {
+        capabilities: {
+            ...REVIEW_CAUSE_CAPABILITIES,
+            rails: REVIEW_CAUSE_CAPABILITIES.rails.slice(0, 2),
+        },
+        depositAccounts: { enabled: true },
+        residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [CLAIMABLE_EUR, { ...CLAIMABLE_USD_PREVIEW, blockedBy: 'endorsement-pending' }],
+        unavailable: [
+            {
+                railId: 'bridge.bank_transfer_co',
+                method: 'BANK_TRANSFER_CO',
+                country: 'COL',
+                currency: 'COP',
+                reason: 'identity-required',
+            },
+        ],
+    },
+}
+
 /** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
@@ -2734,6 +2764,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/profile/accounts',
         about: 'A verified user whose own review holds EUR (action), USD (under review) and MXN (support); GBP is not open yet. No residence on file, and nothing asks for one.',
         responses: REVIEW_CAUSE_RESPONSE,
+    },
+    'profile-accounts-provider-asks': {
+        route: '/profile/accounts',
+        about: 'A verified user whose payment partner asks for one more thing for EUR ("Action needed"), has answered for USD ("Under review"), and still has COP waiting on the ID ("Verify ID").',
+        responses: PROVIDER_ASK_RESPONSE,
     },
     'profile-accounts-residence-restricted': {
         route: '/profile/accounts',

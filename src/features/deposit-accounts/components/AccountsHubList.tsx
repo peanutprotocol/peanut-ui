@@ -14,7 +14,7 @@ import { twMerge } from '@/utils/tw'
 import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useLocale, useTranslations } from 'next-intl'
 import { useState, type ReactElement, type ReactNode } from 'react'
-import { offersVerification } from '../depositGate'
+import { needsIdentity } from '../depositGate'
 import {
     closedBankRow,
     closedOpenRow,
@@ -141,6 +141,9 @@ export function AccountsHubList({
         }
     }
 
+    const actionNeededBadge = <Badge status="pending" customText={t('list.badgeActionNeeded')} />
+    const underReviewBadge = <Badge status="pending" customText={t('list.badgeUnderReview')} />
+
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
     const openBadge = ({ corridor, openable, unchecked }: OpenAccountRow) => {
         // at the limit the cap is the answer for every row, before any other reason
@@ -153,17 +156,23 @@ export function AccountsHubList({
         // the app's one "contact support" string, so the badge cannot drift
         // from the buttons that do the same thing
         if (reason === 'support-required') return <Badge status="neutral" customText={tCommon('contactSupport')} />
-        if (reason === 'identity-required' || (reason === undefined && offersVerification(accounts?.gates[corridor])))
+        const gate = accounts?.gates[corridor]
+        if (reason === 'identity-required' || (reason === undefined && needsIdentity(gate)))
             return <Badge status="pending" customText={t('list.badgeVerifyId')} />
+        // the identity is fine and the provider asked for one more thing; once it is in, the provider reviews
+        if (reason === undefined && gate?.kind === 'fixable-rejection')
+            return accounts?.claimable?.[corridor]?.blockedBy === 'endorsement-pending'
+                ? underReviewBadge
+                : actionNeededBadge
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
         switch (withheld?.cause) {
             // the user's own review waits on them; the tap starts what clears it
             case 'review-action':
-                return <Badge status="pending" customText={t('list.badgeActionNeeded')} />
+                return actionNeededBadge
             // a reviewer acts next (design.md, "rows the user cannot act on")
             case 'review-pending':
-                return <Badge status="pending" customText={t('list.badgeUnderReview')} />
+                return underReviewBadge
             // the account is being opened after verification; support takes over if it doesn't finish
             case 'setup-pending':
                 return <Badge status="pending" customText={t('list.badgeSettingUp')} />
@@ -172,10 +181,10 @@ export function AccountsHubList({
         switch (accounts?.claimable?.[corridor]?.blockedBy) {
             // the provider is reviewing the corridor the user asked for
             case 'endorsement-pending':
-                return <Badge status="pending" />
+                return underReviewBadge
             // the review waits on the user; the screen behind says what is needed
             case 'endorsement-required':
-                return <Badge status="pending" customText={t('list.badgeActionNeeded')} />
+                return actionNeededBadge
             // the tap explains the limit and offers support
             case 'account-limit':
                 return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
