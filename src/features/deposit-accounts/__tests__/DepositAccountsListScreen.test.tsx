@@ -572,16 +572,15 @@ describe('an account the user could open', () => {
         expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeUnderReview)).not.toBeInTheDocument()
     })
 
-    // the user answered what was asked, so the backend's review is under way even while the gate still reads the old ask
-    it('says the provider is reviewing once the user has answered, whatever the gate still reads', () => {
+    it('keeps an actionable gate ahead of the provider-review badge, as the tap destination does', () => {
         const { container } = list(false, {
             corridors: ['SEPA_EU'],
             gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
             claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-pending') },
         })
 
-        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeUnderReview)).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeActionNeeded)).not.toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeUnderReview)).not.toBeInTheDocument()
         expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
     })
 

@@ -159,11 +159,7 @@ export function AccountsHubList({
         const gate = accounts?.gates[corridor]
         if (reason === 'identity-required' || (reason === undefined && needsIdentity(gate)))
             return <Badge status="pending" customText={t('list.badgeVerifyId')} />
-        // the identity is fine and the provider asked for one more thing; once it is in, the provider reviews
-        if (reason === undefined && gate?.kind === 'fixable-rejection')
-            return accounts?.claimable?.[corridor]?.blockedBy === 'endorsement-pending'
-                ? underReviewBadge
-                : actionNeededBadge
+        if (reason === undefined && gate?.kind === 'fixable-rejection') return actionNeededBadge
         // a read that failed says nothing about what the user holds; the notice above owns it
         if (isError) return null
         switch (withheld?.cause) {
