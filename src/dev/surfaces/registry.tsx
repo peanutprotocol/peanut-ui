@@ -16,7 +16,9 @@ import AmountInput from '@/components/Global/AmountInput'
  * than shooting an empty page.
  */
 
-import React from 'react'
+import React, { useState } from 'react'
+import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
+import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
@@ -247,6 +249,29 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
                 title={action === 'deposit' ? tAddMoney('title') : tNav('withdraw')}
                 onBack={noop}
                 onSupport={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the code screen right after POST /avenia/deposit, with ten minutes on the clock
+function AveniaPixDepositSurface() {
+    const [expiresAt] = useState(() => new Date(Date.now() + 9 * 60_000 + 12_000).toISOString())
+    return (
+        <AppPageSurface>
+            <AveniaPixQrDeposit
+                deposit={{
+                    intentId: 'demo-avenia-deposit',
+                    brCode: DEMO_AVENIA_BR_CODE,
+                    amountBrl: '100.00',
+                    usdcAmount: '17.940500',
+                    expiresAt,
+                    payerCpfMasked: '095.***.***-89',
+                }}
+                blockedBanks={['Caixa', 'Sicredi', 'Sicoob']}
+                onBack={noop}
+                onDone={noop}
+                onComplete={noop}
             />
         </AppPageSurface>
     )
@@ -1125,6 +1150,10 @@ export const SURFACES: Record<string, Surface> = {
     '93-f-withdraw-account-closed': {
         ...SURFACE_META['93-f-withdraw-account-closed'],
         render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
+    },
+    '94-f-avenia-pix-deposit': {
+        ...SURFACE_META['94-f-avenia-pix-deposit'],
+        render: () => <AveniaPixDepositSurface />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

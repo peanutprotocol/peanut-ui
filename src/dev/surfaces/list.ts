@@ -356,6 +356,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'kyc=false'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
+    '94-f-avenia-pix-deposit': {
+        name: 'Avenia Pix deposit — the dynamic code',
+        path: 'features/avenia/components/AveniaPixQrDeposit.tsx',
+        captureState: ['amountBrl=100', 'expiresAt=+10 min', 'blockedBanks=Caixa, Sicredi, Sicoob'],
+        expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
+    },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',
         path: 'Home/FirstPaymentChooser.tsx',

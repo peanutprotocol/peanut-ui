@@ -209,6 +209,58 @@ const BRAZIL_PAUSED_RESPONSES = {
     },
 }
 
+/** A Brazilian resident on Avenia Pix: verified in Brazil, with the AVENIA × PIX_BR rail. */
+const aveniaResponses = (railStatus: 'enabled' | 'requires-info', overrides: Record<string, unknown> = {}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Ana Souza' },
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: {
+            rails: [
+                {
+                    id: 'avenia.pix_br',
+                    provider: 'avenia',
+                    method: 'PIX_BR',
+                    channel: 'bank',
+                    country: 'BR',
+                    currency: 'BRL',
+                    status: railStatus,
+                    ...(railStatus === 'enabled'
+                        ? { operations: { deposit: 'enabled', withdraw: 'enabled' } }
+                        : {
+                              blockingActions: ['avenia-hosted'],
+                              reason: {
+                                  code: 'avenia_kyc_required',
+                                  userMessage: 'Verify your identity with our Brazilian payments partner to use Pix.',
+                              },
+                          }),
+                },
+            ],
+            nextActions:
+                railStatus === 'enabled'
+                    ? []
+                    : [{ key: 'avenia-hosted', kind: 'avenia-hosted', purpose: 'unlock-avenia-pix' }],
+            restrictions: [],
+        },
+    },
+    'GET /avenia/deposit/eligibility': {
+        minAmountBrl: '20',
+        blockedBanks: [
+            { ispb: '00360305', name: 'Caixa' },
+            { ispb: '01181521', name: 'Sicredi' },
+            { ispb: '02038232', name: 'Sicoob' },
+        ],
+    },
+    ...overrides,
+})
+
+const AVENIA_OWN_KEY = '09579927189'
+const AVENIA_OTHER_KEY = '+5511987654321'
+const AVENIA_WITHDRAW_ROUTE = '/withdraw/manteca?method=bank-transfer&country=brazil'
+
 const PIX_FAVORITE = {
     id: 'fixture-pix-favorite-1',
     userId: 'demo-user',
@@ -1545,6 +1597,65 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/withdraw/manteca?country=brazil&method=pix',
         about: 'A Brazil Pix send during the Brazil pause: the paused screen instead of the key entry.',
         responses: BRAZIL_PAUSED_RESPONSES,
+    },
+    // ---- Avenia Pix for Brazilian residents (PR C of the Brazil Avenia work) ----
+    'avenia-first-use': {
+        route: '/add-money/brazil/manteca',
+        about: "Avenia's first use: the provider and its terms named before its hosted verification opens.",
+        responses: aveniaResponses('requires-info'),
+    },
+    'avenia-deposit-amount': {
+        route: '/add-money/brazil/manteca',
+        about: 'Avenia Pix deposit: the amount in reais, R$20 minimum, the provider under the button.',
+        responses: aveniaResponses('enabled'),
+    },
+    'avenia-withdraw-key': {
+        route: `${AVENIA_WITHDRAW_ROUTE}&destination=${AVENIA_OWN_KEY}`,
+        about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'GET /avenia/pix-key-info': {
+                holderName: 'Ana Souza',
+                holderTaxIdMasked: '095.***.***-89',
+                bankName: 'Banco Inter',
+                ispb: '00416968',
+                ownAccount: true,
+                blocked: false,
+            },
+        }),
+    },
+    'avenia-withdraw-key-other': {
+        route: `${AVENIA_WITHDRAW_ROUTE}&destination=${encodeURIComponent(AVENIA_OTHER_KEY)}`,
+        about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'GET /avenia/pix-key-info': {
+                holderName: 'Maria Silva',
+                holderTaxIdMasked: '123.***.***-45',
+                bankName: 'Nubank',
+                ispb: '18236120',
+                ownAccount: false,
+                blocked: false,
+            },
+        }),
+    },
+    'avenia-withdraw-review': {
+        route: `${AVENIA_WITHDRAW_ROUTE}&destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        about: 'Avenia Pix withdrawal review: reais as the headline, one provider fee, the total in USD.',
+        responses: aveniaResponses('enabled', {
+            'POST /avenia/withdraw/preview': {
+                amountBrl: '503.00',
+                pixKey: AVENIA_OWN_KEY,
+                ownAccount: true,
+                holderName: 'Ana Souza',
+                bankName: 'Banco Inter',
+                withdrawUsd: '92.504310',
+                rate: '5.4900',
+                providerFeeBrl: '4.83',
+                arrivalEstimate: 'About 1 minute',
+                provider: 'Avenia',
+            },
+        }),
     },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
