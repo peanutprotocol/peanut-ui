@@ -65,7 +65,9 @@ jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ address: '0xA' }) 
 jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({ address: '0xA', isKernelClientReady: true }),
 }))
-jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({ useMultiPhaseKycFlow: () => ({ handleStartAction: jest.fn() }) }))
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({ handleStartAction: jest.fn(), blockIfFinal: () => false }),
+}))
 jest.mock('@/hooks/useNotifications', () => ({ offerPushPrompt: jest.fn() }))
 
 const mockGetOverview = rainApi.getOverview as jest.Mock

@@ -17,6 +17,7 @@ import { useQrPayFlow } from '../QrPayFlowContext'
  */
 export function QrPayBlockedView() {
     const t = useAppTranslations('qrPay')
+    const tKyc = useAppTranslations('kyc')
     const {
         view,
         paymentMethodName,
@@ -57,7 +58,7 @@ export function QrPayBlockedView() {
                         <IconBubble icon="alert" color="red" size="m" />
                         <p className="text-body-m">
                             {isVerificationClosed
-                                ? t('kyc.blockedDescription')
+                                ? tKyc('terminalDescription')
                                 : errorInitiatingPayment || t('errors.genericQrDetails')}
                         </p>
 

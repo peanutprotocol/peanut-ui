@@ -1303,7 +1303,7 @@
     },
     "kyc": {
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
-        "terminalDescription": "Tu verificación no se puede reintentar. Contactá a soporte para recibir ayuda.",
+        "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escribinos y te ayudamos desde ahí. Tus fondos siguen en tu cuenta.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
         "errorSdkUnavailable": "La verificación no está disponible. Actualizá la app.",
         "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
