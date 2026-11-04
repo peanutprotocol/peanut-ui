@@ -111,7 +111,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                 onChangeAvatar()
                             }}
                             aria-label={tAvatar('change')}
-                            className="shrink-0 rounded-full focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-action-focus"
+                            className="flex shrink-0 rounded-full focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-action-focus"
                         >
                             {ownAvatar}
                         </button>
