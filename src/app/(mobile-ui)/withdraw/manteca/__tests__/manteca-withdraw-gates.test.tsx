@@ -19,6 +19,7 @@ import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-l
 import { registerSpendArtifactMeta, SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // ---------- module-level mocks ----------
 
@@ -210,7 +211,13 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
         return null
     },
 }))
-jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
+jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
+    SumsubKycWrapper: ({ visible }: { visible: boolean }) => {
+        const { useKycControl } = jest.requireActual('@/features/paperwork-verification/analytics')
+        const { track } = useKycControl('manteca-rfi', 'kyc_legacy')
+        return visible ? <button onClick={() => track('help', 'open')}>RFI help</button> : null
+    },
+}))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => <div data-testid="maintenance" />,
 }))
@@ -305,9 +312,10 @@ const sumsubFlowStub = {
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => sumsubFlowStub,
 }))
+let mockLimitIncreaseOpen = false
 jest.mock('@/hooks/useSumsubActionFlow', () => ({
     useSumsubActionFlow: () => ({
-        showWrapper: false,
+        showWrapper: mockLimitIncreaseOpen,
         accessToken: null,
         isLoading: false,
         handleInitiate: jest.fn(),
@@ -489,6 +497,7 @@ const clickConfirm = () => fireEvent.click(screen.getByText('navigation.withdraw
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockLimitIncreaseOpen = false
     mockBalance = 100n * 10n ** 6n
     mockUrlAmount = '50'
     mockStepper.step = 'amount'
@@ -496,6 +505,19 @@ beforeEach(() => {
     mockVerifiedForCountry = true
     mockMantecaRejection = { state: 'none', userMessage: null }
     mockKycModal = null
+})
+
+it('wraps the limit-increase SDK shell in the provider-request flow, without destination or token data', () => {
+    mockLimitIncreaseOpen = true
+    render(<MantecaWithdrawFlow />)
+    fireEvent.click(screen.getByRole('button', { name: 'RFI help' }))
+    expect(mockPosthogCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+        [
+            ANALYTICS_EVENTS.CONTROL_USED,
+            { flow: 'kyc_provider_request', screen_id: 'manteca-rfi', control: 'help', action: 'open' },
+        ],
+    ])
+    expect(JSON.stringify(mockPosthogCapture.mock.calls)).not.toContain('0000003100010000000001')
 })
 
 // ---------- tests ----------

@@ -7,7 +7,10 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  */
 import React from 'react'
 import { act, fireEvent, screen } from '@testing-library/react'
+import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import { signupControls } from '@/test-utils/signup-controls'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { SetupWrapper, useSetupFullScreen } from '../SetupWrapper'
 
 const mockReducedMotion = { value: true }
@@ -16,6 +19,7 @@ const mockSetBackgroundColor = jest.fn()
 
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
@@ -166,6 +170,27 @@ describe('SetupWrapper navigation', () => {
         renderWrapper({ showBackButton: true, onBack })
         fireEvent.click(screen.getByRole('button', { name: 'Go back' }))
         expect(onBack).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports Back and Skip taps, and gives the step its screen for its own controls', () => {
+        const StepControl = () => {
+            const { track } = useSignupControl()
+            return <button onClick={() => track('continue', 'tap')}>Step control</button>
+        }
+        renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="invite" showBackButton showSkipButton onBack={jest.fn()}>
+                <StepControl />
+            </SetupWrapper>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Go back' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Step control' }))
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['back:tap', 'skip:tap', 'continue:tap'])
+        expect((posthog.capture as jest.Mock).mock.calls.map(([, props]) => props.screen_id)).toEqual([
+            'invite',
+            'invite',
+            'invite',
+        ])
     })
 })
 

@@ -4,6 +4,7 @@
 // no-user-account public-link claim path.
 
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
@@ -30,7 +31,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
                     : TRANSACTION_NAME_KEYS.receivedViaLink,
             fullName: entry.senderAccount?.fullName ?? '',
             showFullName: isPeerActuallyUser ? entry.senderAccount?.showFullName : undefined,
-            avatarKey: entry.senderAccount?.avatarKey,
+            peer: personFrom(entry.senderAccount),
             isPeerActuallyUser,
             isLinkTx: !isPeerActuallyUser,
         }
@@ -55,7 +56,7 @@ export const sendLink: TransactionStrategy = (entry: HistoryEntry): TransactionS
             nameForDetails: entry.recipientAccount?.username ?? entry.recipientAccount?.identifier ?? '',
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
-            avatarKey: entry.recipientAccount?.avatarKey,
+            peer: personFrom(entry.recipientAccount),
             isPeerActuallyUser: true,
             isLinkTx: false,
         }

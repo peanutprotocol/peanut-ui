@@ -2,17 +2,21 @@ const mockToastError = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
+import posthog from 'posthog-js'
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
+    getIdentityDocumentMismatch,
     getKycQuestions,
     saveKycAnswers,
     skipProofOfAddress,
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
+import { updateUserById } from '@/app/actions/users'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -39,7 +43,10 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     saveKycAnswers: jest.fn(),
     startPaperworkVerificationIdentity: jest.fn(),
     skipProofOfAddress: jest.fn(async () => true),
+    getIdentityDocumentMismatch: jest.fn(async () => null),
 }))
+jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn(async () => ({})) }))
+jest.mock('@/hooks/useKycIntents', () => ({ useKycIntents: () => ({ intents: null, settled: true }) }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
     refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
@@ -62,8 +69,21 @@ jest.mock('@/features/paperwork-verification/components/VerifySetupPrelude', () 
     ),
 }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
-    SumsubKycWrapper: ({ visible, onComplete }: { visible: boolean; onComplete: () => void }) =>
-        visible ? <button onClick={onComplete}>sumsub-submit</button> : null,
+    SumsubKycWrapper: ({
+        visible,
+        onComplete,
+        onIdentityStepCompleted,
+    }: {
+        visible: boolean
+        onComplete: () => void
+        onIdentityStepCompleted?: () => void
+    }) =>
+        visible ? (
+            <>
+                <button onClick={onComplete}>sumsub-submit</button>
+                <button onClick={() => onIdentityStepCompleted?.()}>sumsub-id-step-done</button>
+            </>
+        ) : null,
 }))
 
 const mockQuestions = getKycQuestions as jest.MockedFunction<typeof getKycQuestions>
@@ -72,6 +92,8 @@ const mockToken = startPaperworkVerificationIdentity as jest.MockedFunction<type
 const mockPlan = findKycDocumentPlan as jest.MockedFunction<typeof findKycDocumentPlan>
 const mockStatus = getKycDocumentStatus as jest.MockedFunction<typeof getKycDocumentStatus>
 const mockRefresh = refreshKycIdentityStatus as jest.MockedFunction<typeof refreshKycIdentityStatus>
+const mockMismatch = getIdentityDocumentMismatch as jest.MockedFunction<typeof getIdentityDocumentMismatch>
+const mockUpdateUser = updateUserById as jest.MockedFunction<typeof updateUserById>
 
 const plan = {
     available: true,
@@ -248,6 +270,35 @@ describe("PaperworkVerificationFlow: a user handed back to today's flow", () => 
 })
 
 describe('PaperworkVerificationFlow: the steps overview', () => {
+    it('keeps paperwork dimensions on loading Back and failed-load Retry controls', async () => {
+        const capture = posthog.capture as jest.Mock
+        capture.mockClear()
+        mockQuestions.mockRejectedValueOnce(new Error('offline'))
+        renderFlow()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(capture).toHaveBeenCalledWith(
+            'control_used',
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: null,
+                screen_id: 'steps-overview',
+                control: 'back',
+                action: 'tap',
+            })
+        )
+        fireEvent.click(await screen.findByTestId('verify-retry-load'))
+        expect(capture).toHaveBeenCalledWith(
+            'control_used',
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: null,
+                screen_id: 'load-failed',
+                control: 'retry',
+                action: 'tap',
+            })
+        )
+        await screen.findByTestId('verify-steps')
+    })
     // Slava, 2026-10-26: the loading mascot showed before the steps on APK #6.
     it('opens at once as a skeleton of the steps, never the loading mascot, Continue off until filled', async () => {
         let answer: (value: PaperworkVerificationQuestions) => void = () => {}
@@ -431,27 +482,36 @@ describe('PaperworkVerificationFlow', () => {
         expect(continueButton()).toBeDisabled()
     })
 
-    // Slava, 2026-10-27: any random number passed the tax step.
-    it('checks the tax number with the residence validators the API names, as it is typed', async () => {
+    // Slava, 2026-10-27: any random number passed the tax step. 2026-11-03: a real
+    // Ukrainian number failed the check, so the country check warns and only zeros block.
+    it('warns on a tax number the residence validators refuse, and refuses only zeros', async () => {
         const questions = build({ money: true }, 'tax')
         questions.steps[2].fields = [
             { key: 'taxId', kind: 'taxId', required: true, format: null, checks: ['de.idnr'], value: null },
         ]
         mockQuestions.mockResolvedValue({ ...questions, residence: 'DE' })
+        const warning = 'We couldn’t verify this tax number. Are you sure it’s correct?'
         const wrong = 'Check the number. It doesn’t look right.'
         await startFlow()
         const input = await screen.findByTestId('verify-input-taxId')
         fireEvent.change(input, { target: { value: '3657426' } })
-        await waitFor(() => expect(continueButton()).toBeDisabled())
-        expect(screen.queryByText(wrong)).not.toBeInTheDocument()
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        expect(screen.queryByText(warning)).not.toBeInTheDocument()
         fireEvent.blur(input)
-        expect(await screen.findByText(wrong)).toBeInTheDocument()
+        expect(await screen.findByText(warning)).toBeInTheDocument()
+        expect(continueButton()).toHaveTextContent('I confirm')
         fireEvent.change(input, { target: { value: '36574261808' } })
-        expect(screen.getByText(wrong)).toBeInTheDocument()
-        expect(continueButton()).toBeDisabled()
-        fireEvent.change(input, { target: { value: '36 574 261 809' } })
+        expect(screen.getByText(warning)).toBeInTheDocument()
         expect(screen.queryByText(wrong)).not.toBeInTheDocument()
         expect(continueButton()).toBeEnabled()
+        fireEvent.change(input, { target: { value: '36 574 261 809' } })
+        expect(screen.queryByText(warning)).not.toBeInTheDocument()
+        expect(continueButton()).toBeEnabled()
+        expect(continueButton()).not.toHaveTextContent('I confirm')
+        fireEvent.change(input, { target: { value: '000 000 000 00' } })
+        expect(screen.getByText(wrong)).toBeInTheDocument()
+        expect(screen.queryByText(warning)).not.toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
     })
 
     it('offline or a 5xx past its retries: back on the step with a retry message and its values, nothing stored', async () => {
@@ -507,6 +567,78 @@ describe('PaperworkVerificationFlow', () => {
         await waitFor(() => expect(mockRefresh).toHaveBeenCalled())
         fireEvent.click(screen.getByTestId('verify-review-home'))
         expect(mockPush).toHaveBeenCalledWith('/home')
+    })
+
+    describe("an ID Sumsub reads as another country's", () => {
+        const openSumsubOnPassport = async () => {
+            mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+            mockToken.mockResolvedValue({
+                kind: 'session',
+                session: {
+                    attemptId: 'attempt-1',
+                    token: 'tok',
+                    applicantId: 'app',
+                    levelName: 'base',
+                    sdkConfig: {
+                        documentDefinitions: { IDENTITY: { country: 'USA', idDocType: 'PASSPORT' } },
+                        autoSelectDocumentDefinitions: true,
+                    },
+                } as never,
+            })
+            await startFlow()
+            fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+            fireEvent.click(await screen.findByText('sumsub-id-step-done'))
+        }
+        const mismatchCopy = /It seems like you submitted a document from a different country/
+
+        it('closes Sumsub before the selfie and asks which country the profile belongs to', async () => {
+            mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })
+            await openSumsubOnPassport()
+            expect(await screen.findByText(mismatchCopy)).toBeInTheDocument()
+            expect(mockMismatch).toHaveBeenCalledWith('attempt-1')
+            expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
+            expect(screen.getByTestId('setup-residence-select-US')).toBeInTheDocument()
+            expect(screen.getByTestId('setup-residence-select-UA')).toBeInTheDocument()
+        })
+
+        it('keeping the declared country goes back to the document choice', async () => {
+            mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })
+            await openSumsubOnPassport()
+            fireEvent.click(await screen.findByTestId('setup-residence-select-US'))
+            expect(await screen.findByTestId('verify-id-option-PASSPORT-US')).toBeInTheDocument()
+            expect(mockUpdateUser).not.toHaveBeenCalled()
+        })
+
+        it("choosing the document's country makes it the residence and reads the questions again", async () => {
+            mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })
+            await openSumsubOnPassport()
+            const reads = mockQuestions.mock.calls.length
+            fireEvent.click(await screen.findByTestId('setup-residence-select-UA'))
+            await waitFor(() =>
+                expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'user-a', residenceCountry: 'UA' })
+            )
+            await waitFor(() => expect(mockQuestions.mock.calls.length).toBeGreaterThan(reads))
+            await waitFor(() => expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument())
+        })
+
+        it('a check that answers after the selfie was sent leaves the review in place', async () => {
+            let answer: (value: { picked: string; recognised: string }) => void = () => {}
+            mockMismatch.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+            await openSumsubOnPassport()
+            fireEvent.click(screen.getByText('sumsub-submit'))
+            expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+            await act(async () => answer({ picked: 'US', recognised: 'UA' }))
+            expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument()
+            expect(screen.getByTestId('verify-review-home')).toBeInTheDocument()
+        })
+
+        it('an ID from the picked country leaves Sumsub open', async () => {
+            mockMismatch.mockResolvedValue(null)
+            await openSumsubOnPassport()
+            await waitFor(() => expect(mockMismatch).toHaveBeenCalledWith('attempt-1'))
+            expect(screen.getByText('sumsub-submit')).toBeInTheDocument()
+            expect(screen.queryByText(mismatchCopy)).not.toBeInTheDocument()
+        })
     })
 
     // Slava, 2026-10-27: back from Home after the selfie, Verify restarted the questions and the ID.

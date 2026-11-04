@@ -9,8 +9,9 @@ import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
-import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import type { Person } from '@/lib/person/person.types'
+import { useSelfPerson } from '@/lib/person/useSelfPerson'
 import { useTranslations } from 'next-intl'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { useAuth } from '@/context/authContext'
@@ -30,9 +31,10 @@ interface ProfileHeaderProps {
     haveSentMoneyToUser?: boolean
     /** Self profile only: makes the avatar a button that opens the picker (TASK-22142). */
     onChangeAvatar?: () => void
-    /** Counterparty profile only: the profile owner's picked avatar (TASK-22625).
-     *  The self branch reads the signed-in user's own pick instead. */
-    avatarKey?: string | null
+    /** Counterparty profile only: the profile owner (TASK-23756). Null while
+     *  they load, which leaves the avatar slot empty. The self branch reads the
+     *  signed-in user instead. */
+    person?: Person | null
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -43,7 +45,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     showShareButton = true,
     haveSentMoneyToUser = false,
     onChangeAvatar,
-    avatarKey,
+    person,
 }) => {
     const origin = useAppOrigin()
     const { user: authenticatedUser } = useAuth()
@@ -56,10 +58,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
     // /users/:userId). Rail-approval is unrelated.
     const { isVerified: selfIsIdentityVerified } = useIdentityVerification()
-    const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
+    const self = useSelfPerson()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
-    const ownAvatar = (size: 'm' | 'xl') => <UserAvatar name={username} avatarKey={ownAvatarKey} size={size} />
+    const ownAvatar = (size: 'm' | 'xl') => self && <UserAvatar person={self} size={size} />
 
     // Preview and staging links use their own origin.
     const profileUrl = shareableUrl(`/${username}`, origin)
@@ -111,7 +113,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         ownAvatar('xl')
                     )
                 ) : (
-                    <UserAvatar name={username} avatarKey={avatarKey} size="l" />
+                    person && <UserAvatar person={person} size="l" />
                 )}
 
                 {/* Without a full name, the self profile's handle appears only in the pill. */}

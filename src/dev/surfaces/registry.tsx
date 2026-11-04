@@ -67,6 +67,7 @@ import { FAQsPanel } from '@/components/Global/FAQs'
 import { BackupFaqDrawers } from '@/components/Profile/BackupFaqDrawers'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
+import { personFrom } from '@/lib/person/person'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import type { OnboardingState } from '@/utils/activation-step.utils'
@@ -508,6 +509,7 @@ export const SURFACES: Record<string, Surface> = {
             <ConfirmInviteModal
                 isOpen
                 onClose={noop}
+                username="maria"
                 method="Google"
                 handleLoseInvite={noop}
                 handleContinueWithPeanut={noop}
@@ -734,12 +736,18 @@ export const SURFACES: Record<string, Surface> = {
                     {
                         uuid: 'c1',
                         username: 'ana',
-                        avatarKey: 'basic.star',
+                        person: personFrom({ username: 'ana', avatarKey: 'basic.star' }),
                         amount: '25.00',
                         createdAt: '2026-08-01T10:00:00.000Z',
                     },
                     // no pick — the username letter beside someone who has one
-                    { uuid: 'c2', username: 'bruno', amount: '10.00', createdAt: '2026-08-01T11:00:00.000Z' },
+                    {
+                        uuid: 'c2',
+                        username: 'bruno',
+                        person: personFrom({ username: 'bruno' }),
+                        amount: '10.00',
+                        createdAt: '2026-08-01T11:00:00.000Z',
+                    },
                 ]}
             />
         ),
@@ -967,7 +975,7 @@ export const SURFACES: Record<string, Surface> = {
                     isAmountEntered
                     usdAmount="25"
                     recipientUserId="demo-ana"
-                    recipientUsername="ana"
+                    person={personFrom({ username: 'ana' })}
                     onPayWithPeanut={noop}
                     onPayWithExternalWallet={noop}
                 />
@@ -1089,8 +1097,7 @@ export const SURFACES: Record<string, Surface> = {
                             payerAmount: { amount: '21.50', currency: 'GBP', isEstimate: true },
                         },
                     ]}
-                    recipientUsername="ana"
-                    recipientAvatarKey="basic.frog"
+                    person={personFrom({ username: 'ana', avatarKey: 'basic.frog' })}
                     requestMessage="Dinner in Berlin"
                     requestAmount="25.00 EUR"
                     bankRowProps={{ bankPayable: true, remainingUsd: 27 }}

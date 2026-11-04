@@ -4,6 +4,7 @@ import Card from '../Card'
 import { type CardPosition } from '../Card/card.utils'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import type { Person } from '@/lib/person/person.types'
 import { getColorForUsername } from '@/utils/color.utils'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { formatTokenAmount } from '@/utils/general.utils'
@@ -22,8 +23,8 @@ export type Contributor = {
     fulfillmentPayment: Payment | null
     isUserVerified: boolean
     isPeanutUser: boolean
-    /** Picked profile avatar of a Peanut contributor; null for a raw address. */
-    avatarKey?: string | null
+    /** The Peanut contributor (TASK-23756); null for a raw address. */
+    person?: Person | null
 }
 
 const ContributorCard = ({ contributor, position }: { contributor: Contributor; position: CardPosition }) => {
@@ -43,13 +44,8 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                     }}
                     className={twMerge('flex items-center gap-2', contributor.isPeanutUser && 'cursor-pointer')}
                 >
-                    {contributor.isPeanutUser ? (
-                        <UserAvatar
-                            name={contributor.username ?? ''}
-                            avatarKey={contributor.avatarKey}
-                            size="s"
-                            decorative
-                        />
+                    {contributor.isPeanutUser && contributor.person ? (
+                        <UserAvatar person={contributor.person} size="s" decorative />
                     ) : (
                         <AvatarWithBadge
                             name={contributor.username ?? ''}

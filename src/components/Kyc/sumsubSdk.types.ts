@@ -22,6 +22,8 @@ export interface SumsubSdkProps {
     onSubmitted?: (source?: SumsubSubmissionSource) => void
     onError?: (error: unknown) => void
     onRefreshToken: () => Promise<string>
+    /** The ID step is done, before the selfie: the caller may check the document Sumsub recognised. */
+    onIdentityStepCompleted?: () => void
     /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
     isMultiLevel?: boolean
 }

@@ -82,6 +82,7 @@
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
         "supportUnread": "New support reply",
+        "accounts": "Accounts",
         "card": "Card",
         "exchangeRates": "Exchange rates",
         "scanQr": "Scan QR"
@@ -978,16 +979,15 @@
                     "p2p": "Peanut to Peanut",
                     "pix": "PIX payments & transfers",
                     "arQr": "QR payments & own-account transfers",
-                    "spei": "Mexican peso bank transfers",
-                    "usdAch": "US dollar bank transfers",
-                    "eurSepa": "Euro bank transfers",
-                    "gbpFps": "British pound bank transfers",
+                    "bankAccount": "Bank account: {currencies}",
                     "bank": "Bank transfers where supported",
                     "card": "Peanut card"
                 },
-                "missing": {
-                    "banking": "Bank transfers",
-                    "card": "Peanut card"
+                "currencies": {
+                    "USD": "US dollar",
+                    "EUR": "euro",
+                    "GBP": "British pound",
+                    "MXN": "Mexican peso"
                 },
                 "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country should be selected?",
@@ -995,7 +995,7 @@
                 "title": "Link your profile to one country",
                 "description": "Here’s what each unlocks."
             },
-            "sentence": "I’m a resident <nw>of <residence></residence></nw> and hold the nationality <nw>of <nationality></nationality>.</nw>",
+            "sentence": "I’m a resident <nw>of <residence></residence></nw><br></br>and hold the nationality <nw>of <nationality></nationality>.</nw>",
             "residenceTitle": "Where are you a resident?",
             "nationalityTitle": "What’s your nationality?",
             "sameCountry": "the same country",
@@ -1622,7 +1622,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Add your ID once more",
-                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie, and QR payments work again.",
+                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie. When we accept your ID for QR payments, they work again.",
                     "cta": "Upload your ID"
                 },
                 "restartPending": {
@@ -3077,8 +3077,8 @@
         "resubmitVerification": "Re-submit verification",
         "retryVerification": "Retry verification",
         "rejectLabelsFallbackDescription": "We need a bit more from you to confirm your ID. Please provide the requested details to continue.",
-        "terminalDescription": "Your verification cannot be retried. Please contact support for help.",
-        "failedTitleTerminal": "Verification failed",
+        "terminalDescription": "Before you can start a new verification, our support team needs to review your account. Message us and we'll help you from there. Your funds stay in your account.",
+        "failedTitleTerminal": "Your account needs a review",
         "failedTitleRetry": "Let's try that again",
         "failedDescriptionRetry": "We weren't able to confirm your ID. You can have another go.",
         "actionRequiredTitle": "One more step",
@@ -3924,7 +3924,14 @@
                 "done": "Done",
                 "backHome": "Back to Home",
                 "setUpPayments": "Set up payments",
-                "verifiedNote": "Now choose how you want to pay and get paid."
+                "verifiedNote": "Now choose how you want to pay and get paid.",
+                "followUp": {
+                    "cardAddress": "Add a proof of address",
+                    "cardIdentity": "Send your ID again",
+                    "bankDocument": "Add one more document",
+                    "bankTerms": "Accept the bank transfer terms",
+                    "bankCheck": "Finish the bank transfer check"
+                }
             },
             "saved": {
                 "title": "Answers saved!",
@@ -3971,6 +3978,11 @@
             "policyHold": {
                 "description": "This document cannot be used for verification. Please choose another document.",
                 "cta": "Choose another document"
+            },
+            "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
+            "taxConfirm": "I confirm",
+            "documentMismatch": {
+                "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
             }
         }
     },
@@ -4204,10 +4216,10 @@
             "descriptionNoRewards": "Share your link so friends can join you on Peanut."
         },
         "confirmInviteModal": {
-            "title": "Create your Peanut wallet?",
-            "description": "Create a wallet to keep this referral attached to your account. Using {method} will continue without signing up.",
-            "joinCta": "Create wallet",
-            "continueWithMethod": "Continue with {method}"
+            "title": "{username} invited you to Peanut",
+            "description": "Sign up to get this money in your own Peanut account. {username} gets rewards when you use Peanut. You can also claim to {method} without an account.",
+            "joinCta": "Sign up and claim",
+            "claimWithoutSignup": "Claim without signing up"
         },
         "earlyUserModal": {
             "title": "Earn from invites",
@@ -4716,84 +4728,52 @@
         "initialName": "Just {letter}",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
-                "crystal": "Arbiverse Crystal",
-                "hex": "Arbiverse Hex",
-                "cheer": "Arbiverse Cheer"
+                "hex": "Arbiverse Hex"
             },
             "BETA_TESTER": {
-                "flask": "Beta Flask",
-                "bubble": "Beta Bubble",
-                "wink": "Beta Wink"
+                "flask": "Beta Flask"
             },
             "BUG_WHISPERER": {
-                "beetle": "Bug Beetle",
-                "shell": "Bug Shell",
-                "peek": "Bug Peek"
+                "beetle": "Bug Beetle"
             },
             "CARD_ALPHA": {
-                "card": "Alpha Card",
-                "swipe": "Alpha Swipe",
-                "tape": "Alpha Tape"
+                "card": "Alpha Card"
             },
             "CARD_FIRST_SWIPE": {
-                "card": "First Swipe Card",
-                "chip": "First Swipe Chip",
-                "wink": "First Swipe Wink"
+                "card": "First Swipe Card"
             },
             "CARD_SPENT_1K": {
-                "stack": "Spender Stack",
-                "note": "Spender Note",
-                "cheer": "Spender Cheer"
+                "stack": "Spender Stack"
             },
             "DEVCONNECT_BA_2025": {
-                "sun": "Devconnect Sun",
-                "rise": "Devconnect Sunrise",
-                "wink": "Devconnect Wink"
+                "sun": "Devconnect Sun"
             },
             "ETHFLORIPA_HUB": {
-                "eth": "EthFloripa ETH",
-                "island": "EthFloripa Island",
-                "palm": "EthFloripa Palm"
+                "eth": "EthFloripa ETH"
             },
             "EVENT_ALUMNI": {
-                "cap": "Alumni Cap",
-                "board": "Alumni Board",
-                "wink": "Alumni Wink"
+                "cap": "Alumni Cap"
             },
             "IRL_NOMADS": {
-                "pack": "Nomad Pack",
-                "roll": "Nomad Roll",
-                "pocket": "Nomad Pocket"
+                "pack": "Nomad Pack"
             },
             "NAIJA": {
-                "flag": "Naija Flag",
-                "wave": "Naija Wave",
-                "wink": "Naija Wink"
+                "flag": "Naija Flag"
             },
             "NITA": {
-                "letter": "NITA Letter",
-                "sparkle": "NITA Sparkle",
-                "wink": "NITA Wink"
+                "letter": "NITA Letter"
             },
             "OFFRAMP_USER": {
-                "bolt": "Offramp Bolt",
-                "spark": "Offramp Spark",
-                "wink": "Offramp Wink"
+                "bolt": "Offramp Bolt"
             },
             "OG_2025_10_12": {
-                "coin": "OG Coin",
-                "link": "OG Link",
-                "shades": "OG Shades"
+                "link": "OG Link"
             },
             "SHHHHH": {
-                "lips": "Secret Lips",
-                "shush": "Secret Shush",
-                "wink": "Secret Wink"
+                "shush": "Secret Shush"
             },
             "WAITLIST_SKIP": {
-                "key": "Waitlist Key",
-                "keyhole": "Waitlist Keyhole",
-                "wink": "Waitlist Wink"
+                "key": "Waitlist Key"
             }
         },
         "cast": {

@@ -6,12 +6,15 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { twMerge } from '@/utils/tw'
 import { useInsetColor } from '../useInsetColor'
+import { useKycControl, type KycControlFlow } from '../analytics'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 
 type StepState = 'done' | 'current' | 'next'
 type StepKey = 'residence' | 'questions' | 'photo' | 'selfie' | 'review' | 'unlock'
-type StepRow = { key: StepKey; state: StepState }
+/** A step a feature still asks for once the review passed (Rain's proof of address, a bank document). */
+export type FollowUpLabel = 'cardAddress' | 'cardIdentity' | 'bankDocument' | 'bankTerms' | 'bankCheck'
+type StepRow = { key: string; label: `steps.${StepKey}` | `steps.followUp.${FollowUpLabel}`; state: StepState }
 
 /** Before the ID check, waiting for its review, or verified: one timeline, its rows filled in as far as the user got. */
 export type StepsPhase = 'intro' | 'review' | 'verified'
@@ -20,17 +23,38 @@ const SKELETON_ROWS = 6
 const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
 
 const PHASE_COPY = {
-    intro: { title: 'steps.title', note: null, cta: 'continue', testId: 'verify-steps-continue' },
-    review: { title: 'steps.title', note: 'review.description', cta: 'steps.backHome', testId: 'verify-review-home' },
+    intro: {
+        title: 'steps.title',
+        note: null,
+        cta: 'continue',
+        testId: 'verify-steps-continue',
+        screenId: 'steps-overview',
+        control: 'continue',
+    },
+    review: {
+        title: 'steps.title',
+        note: 'review.description',
+        cta: 'steps.backHome',
+        testId: 'verify-review-home',
+        screenId: 'id-checking',
+        control: 'home',
+    },
     verified: {
         title: 'steps.title',
         note: 'steps.verifiedNote',
         cta: 'steps.setUpPayments',
         testId: 'verify-verified-payments',
+        screenId: 'id-confirmed',
+        control: 'set_up_payments',
     },
 } as const
 
-function stepRows(phase: StepsPhase, hasQuestions: boolean, questionsDone: boolean): StepRow[] {
+function stepRows(
+    phase: StepsPhase,
+    hasQuestions: boolean,
+    questionsDone: boolean,
+    followUps: readonly FollowUpLabel[]
+): StepRow[] {
     const keys: StepKey[] = [
         'residence',
         ...(hasQuestions ? (['questions'] as const) : []),
@@ -39,19 +63,33 @@ function stepRows(phase: StepsPhase, hasQuestions: boolean, questionsDone: boole
         'review',
         'unlock',
     ]
-    if (phase === 'verified') return keys.map((key) => ({ key, state: 'done' }))
+    const row = (key: StepKey, state: StepState): StepRow => ({ key, label: `steps.${key}`, state })
+    if (phase === 'verified') {
+        // Payments unlock only once every step a feature still asks for is done: those steps
+        // come after the review, the first one current, and Unlock waits behind them.
+        const reviewed = keys.filter((key) => key !== 'unlock').map((key) => row(key, 'done'))
+        const asked = followUps.map(
+            (label, index): StepRow => ({
+                key: `follow-up-${index}`,
+                label: `steps.followUp.${label}`,
+                state: index === 0 ? 'current' : 'next',
+            })
+        )
+        return [...reviewed, ...asked, row('unlock', followUps.length ? 'next' : 'done')]
+    }
     if (phase === 'review')
-        return keys.map((key) => ({ key, state: key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done' }))
+        return keys.map((key) => row(key, key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done'))
     const photoCurrent = !hasQuestions || questionsDone
-    return keys.map((key) => ({
-        key,
-        state:
+    return keys.map((key) =>
+        row(
+            key,
             key === 'residence' || (key === 'questions' && questionsDone)
                 ? 'done'
                 : key === 'questions' || (key === 'photo' && photoCurrent)
                   ? 'current'
-                  : 'next',
-    }))
+                  : 'next'
+        )
+    )
 }
 
 /**
@@ -59,7 +97,7 @@ function stepRows(phase: StepsPhase, hasQuestions: boolean, questionsDone: boole
  * features ask any. `loading` is every visit's first frame while the server
  * says which steps are left: the screen with its rows still to fill. After the
  * selfie the same timeline waits on the review, and once verified sends the
- * user on to their payment methods.
+ * user on to their payment methods, or first to what a feature still asks for.
  */
 export function StepsScreen({
     phase = 'intro',
@@ -69,6 +107,11 @@ export function StepsScreen({
     busy = false,
     continueTestId,
     aside,
+    screenId,
+    controlFlow,
+    followUps = [],
+    note,
+    cta,
     onBack,
     onContinue,
 }: {
@@ -81,19 +124,32 @@ export function StepsScreen({
     continueTestId?: string
     /** above the button: the provider today's flow opens an account with */
     aside?: React.ReactNode
+    /** the analytics screen id when the timeline stands in for another screen, and its flow off /verify */
+    screenId?: string
+    controlFlow?: KycControlFlow
+    /** verified: the steps a feature still asks for, after the review and before Unlock */
+    followUps?: readonly FollowUpLabel[]
+    /** in place of the phase's note and button, for the open follow-up */
+    note?: string
+    cta?: string
     onBack: () => void
     onContinue?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     useInsetColor(false)
-    const rows = stepRows(phase, hasQuestions, questionsDone)
+    const rows = stepRows(phase, hasQuestions, questionsDone, phase === 'verified' ? followUps : [])
     const copy = PHASE_COPY[phase]
+    const control = useKycControl(screenId ?? copy.screenId, controlFlow)
+    const noteText = note ?? (copy.note ? t(copy.note) : null)
     return (
         <div className={twMerge('flex w-full flex-col bg-white px-6 pt-4 pb-6', SCREEN_HEIGHT)}>
             <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-x-6">
                 <Button
                     variant="ghost"
-                    onClick={onBack}
+                    onClick={() => {
+                        control.track('back', 'tap')
+                        onBack()
+                    }}
                     className={NAV_CIRCLE_BUTTON_CLASSES}
                     aria-label={t('back')}
                     data-testid="verify-back"
@@ -105,9 +161,9 @@ export function StepsScreen({
                 </h1>
                 <span />
             </div>
-            {copy.note && (
+            {noteText && (
                 <p className="mt-3 text-center text-body-s text-foreground-secondary" data-testid="verify-steps-note">
-                    {t(copy.note)}
+                    {noteText}
                 </p>
             )}
             {loading ? (
@@ -160,8 +216,10 @@ export function StepsScreen({
                                     index + 1
                                 )}
                             </span>
-                            <span className="flex h-8 items-center text-body-m-semibold text-foreground-primary">
-                                {t(`steps.${row.key}`)}
+                            {/* min-h, not h: a follow-up's label can take two lines on a narrow phone;
+                                self-start keeps a one-line label on its circle instead of stretching to the row */}
+                            <span className="flex min-h-8 items-center self-start text-body-m-semibold text-foreground-primary">
+                                {t(row.label)}
                                 {row.state === 'done' && <span className="sr-only"> {t('steps.done')}</span>}
                             </span>
                         </li>
@@ -173,12 +231,15 @@ export function StepsScreen({
                 <Button
                     shadowSize="4"
                     className="w-full"
-                    onClick={onContinue}
+                    onClick={() => {
+                        control.track(cta ? 'follow_up' : copy.control, 'tap')
+                        onContinue?.()
+                    }}
                     loading={busy}
                     disabled={loading || busy || !onContinue}
                     data-testid={continueTestId ?? copy.testId}
                 >
-                    {t(copy.cta)}
+                    {cta ?? t(copy.cta)}
                 </Button>
             </div>
         </div>

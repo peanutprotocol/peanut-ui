@@ -11,6 +11,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { saveSignupPaymentPlan } from '@/features/setup/saveSignupAnswers'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useAuth } from '@/context/authContext'
 import {
     setupChannelsForResidence,
@@ -58,11 +59,18 @@ function ChannelPicker<C extends SetupChannel>({
     onChange: (channel: C) => void
 }) {
     const shown = value ? compactLabel(value) : placeholder
+    const { track } = useSignupControl()
+    const control = `${kind}_channel`
     return (
         <DrawerSelect<C>
             title={title}
             value={value}
-            onChange={onChange}
+            onChange={(channel) => {
+                track(control, 'select', channel)
+                onChange(channel)
+            }}
+            onOpen={() => track(control, 'open')}
+            onDismiss={() => track(control, 'dismiss')}
             options={options.map((channel) => ({
                 value: channel,
                 label: label(channel),
@@ -112,6 +120,7 @@ export default function PaymentPlanStep() {
     const { handleNext, isLoading } = useSetupFlow()
     const { user } = useAuth()
     const { sets, settled: setsSettled } = useResidenceRestrictionSetsWithStatus()
+    const { track } = useSignupControl()
     const { intents, settled: intentsSettled } = useKycIntents(residenceCountry)
     // The server's answer for the residence, or the tiers when it could not be read.
     const settled = intentsSettled && (!!intents || setsSettled)
@@ -131,6 +140,7 @@ export default function PaymentPlanStep() {
 
     const onContinue = () => {
         if (!funding || !payment) return
+        track('continue', 'tap')
         if (sets?.full.has(residenceCountry)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED, {
                 residence_country: residenceCountry,

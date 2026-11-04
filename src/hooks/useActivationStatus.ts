@@ -69,6 +69,7 @@ export function useActivationStatus(): ActivationStatus {
             isLoading: isLoadingCapabilities || !user,
             features: capabilities.features,
             nextActions,
+            rails,
         })
         const firstPaymentRoute = selectFirstPaymentRoute({
             canSpendViaCard,

@@ -11,7 +11,7 @@ import type { KycPlace, PaperworkVerificationField } from '@/app/actions/types/k
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { twMerge } from '@/utils/tw'
-import { usePaperworkVerificationTrack } from '../analytics'
+import { useKycControl, usePaperworkVerificationTrack } from '../analytics'
 import { SentencePill } from './AnswerPicker'
 
 export const PLACE_QUERY_MIN_LENGTH = 3
@@ -38,6 +38,7 @@ export function PlaceField({
     describedBy,
     autoFocus,
     onChange,
+    onType,
     onPick,
 }: {
     id: string
@@ -49,6 +50,8 @@ export function PlaceField({
     describedBy?: string
     autoFocus?: boolean
     onChange: (value: string) => void
+    /** the user typed in the field, as opposed to a suggestion filling it */
+    onType?: () => void
     /** a suggestion was picked (after onChange), as opposed to typed */
     onPick?: (name: string) => void
 }) {
@@ -129,6 +132,7 @@ export function PlaceField({
                 aria-invalid={invalid || undefined}
                 value={value}
                 onChange={(event) => {
+                    onType?.()
                     onChange(event.target.value)
                     setOpen(true)
                 }}
@@ -204,6 +208,7 @@ export function PlacePicker({
     const t = useTranslations('kyc.paperworkVerification')
     const locale = useLocale()
     const track = usePaperworkVerificationTrack()
+    const control = useKycControl()
     const id = useId()
     const [open, setOpen] = useState(false)
     const [draft, setDraft] = useState(value)
@@ -214,14 +219,20 @@ export function PlacePicker({
     const openChange = (next: boolean) => {
         if (next === open) return
         if (next) {
+            control.track(field.key, 'open')
             kept.current = false
             setDraft(value)
             track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, { field: field.key, had_answer: !!value })
-        } else track(ANALYTICS_EVENTS.KYC_PV_PICKER_CLOSED, { field: field.key, chose: kept.current })
+        } else {
+            if (!kept.current) control.track(field.key, 'dismiss')
+            track(ANALYTICS_EVENTS.KYC_PV_PICKER_CLOSED, { field: field.key, chose: kept.current })
+        }
         setOpen(next)
     }
-    const keep = (name: string) => {
+    // The value says how the place was chosen, never which place: a suggestion, or Done on what was typed.
+    const keep = (name: string, how: 'suggestion' | 'typed') => {
         if (!name.trim()) return
+        control.track(field.key, 'select', how)
         kept.current = true
         onChange(name.trim())
         openChange(false)
@@ -250,7 +261,8 @@ export function PlacePicker({
                             describedBy={countryName ? `${id}-help` : undefined}
                             autoFocus
                             onChange={setDraft}
-                            onPick={keep}
+                            onType={() => control.trackOnce(field.key, 'change')}
+                            onPick={(name) => keep(name, 'suggestion')}
                         />
                         {countryName && (
                             <p id={`${id}-help`} className="text-body-xs text-foreground-secondary">
@@ -262,7 +274,7 @@ export function PlacePicker({
                         shadowSize="4"
                         className="w-full"
                         disabled={!draft.trim()}
-                        onClick={() => keep(draft)}
+                        onClick={() => keep(draft, 'typed')}
                         data-testid="verify-place-done"
                     >
                         {t('place.done')}

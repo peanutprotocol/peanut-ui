@@ -9,16 +9,22 @@ import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDra
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { verifiedFollowUps } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import {
+    getIdentityDocumentMismatch,
     getKycQuestions,
     savePaperworkVerificationFeatures,
     skipProofOfAddress,
 } from '@/app/actions/kyc-paperwork-verification'
+import { updateUserById } from '@/app/actions/users'
+import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
+import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
 import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
@@ -248,8 +254,16 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     // The signup prelude's wrapper paints the native status bar and leaves it painted.
     useEffect(() => restoreNativeStatusBar, [])
 
-    if (state.kind === 'loading') return <VerifyLoading onBack={exit} />
-    if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+    if (state.kind === 'loading' || state.kind === 'failed')
+        return (
+            <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
+                {state.kind === 'loading' ? (
+                    <VerifyLoading onBack={exit} />
+                ) : (
+                    <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+                )}
+            </PaperworkVerificationTrackingProvider>
+        )
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
     return (
         <PaperworkVerificationSteps
@@ -279,6 +293,13 @@ function PaperworkVerificationSteps({
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    // What a feature still waits on once the identity is verified: steps of the verified timeline.
+    const tRoot = useTranslations()
+    const { nextActions, capabilities } = useCapabilities()
+    const followUps = useMemo(
+        () => verifiedFollowUps(nextActions, capabilities.features),
+        [nextActions, capabilities.features]
+    )
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
@@ -289,6 +310,9 @@ function PaperworkVerificationSteps({
     // A replacement hands off before its submission webhook necessarily arrives.
     const [submitted, setSubmitted] = useState(stepParam === 'review')
     const [idError, setIdError] = useState<string | null>(null)
+    // Sumsub recognised the uploaded ID as another country's: which country the profile belongs to.
+    const [documentMismatch, setDocumentMismatch] = useState<{ declared: string; document: string } | null>(null)
+    const [mismatchBusy, setMismatchBusy] = useState(false)
     const [documentRequired, setDocumentRequired] = useState(false)
     const identity = usePaperworkVerificationIdentity({ onHandedBack: () => router.replace('/home') })
     const queryClient = useQueryClient()
@@ -599,6 +623,53 @@ function PaperworkVerificationSteps({
         void goToStep('id')
     }, [identity.documentRequired, goToStep])
 
+    // A check that answers after the selfie was sent finds the review: it must not reopen the choice.
+    const sumsubOpenRef = useRef(false)
+    sumsubOpenRef.current = !!identity.session && !submitted
+    const checkIdentityDocument = async () => {
+        const attemptId = identity.attemptIdRef.current
+        const declared = questions.residence
+        if (!attemptId || !declared) return
+        const mismatch = await getIdentityDocumentMismatch(attemptId)
+        if (!mismatch || mismatch.recognised === declared || !sumsubOpenRef.current) return
+        track(ANALYTICS_EVENTS.KYC_PV_DOCUMENT_COUNTRY_MISMATCH, {
+            picked: mismatch.picked,
+            recognised: mismatch.recognised,
+        })
+        identity.close()
+        setDocumentMismatch({ declared, document: mismatch.recognised })
+    }
+
+    /** Keeping the declared country picks its ID again; the document's country becomes the residence. */
+    const chooseDocumentCountry = async (country: string) => {
+        if (!documentMismatch || mismatchBusy) return
+        const keptDeclared = country === documentMismatch.declared
+        track(ANALYTICS_EVENTS.KYC_PV_DOCUMENT_COUNTRY_CHOSEN, { kept_declared: keptDeclared })
+        if (keptDeclared) {
+            setDocumentMismatch(null)
+            void stepper.goTo('id')
+            return
+        }
+        setMismatchBusy(true)
+        try {
+            const userId = user?.user.userId
+            const result = await updateUserById({ userId, residenceCountry: country })
+            if (result.error) {
+                setIdError(result.error)
+                setDocumentMismatch(null)
+                void stepper.goTo('id')
+                return
+            }
+            storeDeclaredResidence(userId, country)
+            // The questions follow the residence: the server rebuilds them for the new country.
+            await Promise.resolve(fetchUser()).catch(() => {})
+            await reload()
+            setDocumentMismatch(null)
+        } finally {
+            setMismatchBusy(false)
+        }
+    }
+
     const continueWithoutLocal = async () => {
         const currentPlan = await findKycDocumentPlan()
         if (!currentPlan) throw new Error('KYC plan unavailable')
@@ -685,7 +756,19 @@ function PaperworkVerificationSteps({
 
     const current = questions.steps.find((s) => s.id === step)
     let screen: React.ReactNode = null
-    if (showIntro) {
+    if (documentMismatch) {
+        screen = (
+            <ResidenceCompare
+                residence={documentMismatch.declared}
+                nationality={documentMismatch.document}
+                labelOf={(country) => localizedCountryName(locale, country, country)}
+                restrictionSets={null}
+                busy={mismatchBusy}
+                onChoose={(country) => void chooseDocumentCountry(country)}
+                description={t('documentMismatch.description')}
+            />
+        )
+    } else if (showIntro) {
         screen = (
             <StepsScreen
                 hasQuestions={questionIds.length > 0}
@@ -764,8 +847,13 @@ function PaperworkVerificationSteps({
             <StepsScreen
                 phase="verified"
                 hasQuestions={questionIds.length > 0}
+                // The identity's own status page also names what a feature still asks for (Rain's
+                // proof of address, a bank's document) as steps of its own, before Unlock.
+                followUps={followUps.map((followUp) => followUp.label)}
+                note={followUps[0] && tRoot(followUps[0].note)}
+                cta={followUps[0] && t('continue')}
                 onBack={goHome}
-                onContinue={() => router.push(PAYMENT_METHODS_HREF)}
+                onContinue={() => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)}
             />
         )
     } else if (step === 'address-proof') {
@@ -831,6 +919,7 @@ function PaperworkVerificationSteps({
                     })
                 }}
                 onRefreshToken={identity.refreshToken}
+                onIdentityStepCompleted={() => void checkIdentityDocument()}
             />
         </PaperworkVerificationTrackingProvider>
     )

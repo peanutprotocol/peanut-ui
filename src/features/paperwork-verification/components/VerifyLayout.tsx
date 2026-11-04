@@ -14,18 +14,23 @@ import { confettiPresets } from '@/utils/confetti'
 import { twMerge } from '@/utils/tw'
 import { useVerifyShellHold } from '@/utils/verify-shell'
 import { useInsetColor } from '../useInsetColor'
+import { useKycControl } from '../analytics'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 // The setup flow's panel: px-6, the CTA on one baseline, tighter on short phones.
 const PANEL =
     'flex min-h-0 flex-1 flex-col justify-between gap-8 bg-white px-6 pt-10 pb-6 compact:gap-6 compact:pt-6 compact:pb-4 short:gap-4 short:pt-4 short:pb-3'
 
-function BackButton({ onBack }: { onBack: () => void }) {
+function BackButton({ onBack, screenId }: { onBack: () => void; screenId?: string }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl(screenId, 'kyc_status')
     return (
         <Button
             variant="ghost"
-            onClick={onBack}
+            onClick={() => {
+                controls.track('back', 'tap')
+                onBack()
+            }}
             className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'bg-white')}
             aria-label={t('back')}
             data-testid="verify-back"
@@ -89,6 +94,7 @@ export function VerifyQuestionLayout({
 /** A hero screen: the setup flow's blue hero with a mascot pose, then the white panel. */
 export function VerifyHeroLayout({
     pose,
+    screenId,
     onBack,
     title,
     description,
@@ -96,6 +102,8 @@ export function VerifyHeroLayout({
     footer,
 }: {
     pose: MascotPose
+    /** the analytics id of the screen, for its Back */
+    screenId?: string
     onBack?: () => void
     title: ReactNode
     description?: ReactNode
@@ -108,7 +116,7 @@ export function VerifyHeroLayout({
         <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
             {onBack && (
                 <div className="absolute top-4 z-20 px-4">
-                    <BackButton onBack={onBack} />
+                    <BackButton onBack={onBack} screenId={screenId} />
                 </div>
             )}
             <div className="setup-hero-height setup-hero-background relative flex w-full shrink-0 items-center justify-center overflow-hidden px-4 md:h-[40dvh]">

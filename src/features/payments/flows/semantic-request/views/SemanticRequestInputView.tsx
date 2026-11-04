@@ -28,6 +28,7 @@ import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPea
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { personFrom } from '@/lib/person/person'
 import { useTranslations } from 'next-intl'
 
 // the amount field is in USD, to USDC precision
@@ -103,9 +104,9 @@ export function SemanticRequestInputView() {
         }
     }
 
-    // An open-amount request names who is asking: the charge carries their
-    // handle, while the recipient derived from it is only their address.
-    const openAmountRequester = charge?.openAmount ? charge.requestLink?.recipientAccount?.user : undefined
+    // An open-amount request names who is asking: the charge carries the
+    // person, while the recipient derived from it is only their address.
+    const requester = personFrom(charge?.openAmount ? charge.requestLink?.recipientAccount?.user : undefined)
 
     // determine button state
     const isButtonDisabled = !canProceed || isLoading
@@ -121,12 +122,12 @@ export function SemanticRequestInputView() {
 
             <PageStack.Center className="gap-4">
                 {/* recipient card */}
-                {openAmountRequester?.username ? (
+                {requester ? (
                     <UserCard
                         type="request_pay"
-                        username={openAmountRequester.username}
+                        username={requester.username}
                         recipientType="USERNAME"
-                        avatarKey={openAmountRequester.avatarKey}
+                        person={requester}
                         isVerified={false}
                         isOpenAmount
                         message={charge?.requestLink?.reference ?? undefined}
@@ -140,7 +141,10 @@ export function SemanticRequestInputView() {
                             username={
                                 recipient.recipientType === 'ADDRESS' ? recipient.resolvedAddress : recipient.identifier
                             }
-                            recipientType={recipient.recipientType}
+                            // a handle's card draws the person; an address or ENS name has none
+                            {...(recipient.recipientType === 'USERNAME'
+                                ? { recipientType: recipient.recipientType, person: recipient.person }
+                                : { recipientType: recipient.recipientType })}
                             isVerified={false}
                         />
                     )

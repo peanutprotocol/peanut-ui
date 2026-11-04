@@ -84,6 +84,24 @@ describe('SumsubNativeSdk analytics', () => {
         ])
     })
 
+    it('tells the caller the ID step is done, not when it was cancelled or another step ended', async () => {
+        const identityDone = jest.fn()
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props()} onIdentityStepCompleted={identityDone} />)
+        })
+
+        act(() => {
+            handlers.onEvent?.({ eventType: 'StepCompleted', payload: { idDocSetType: 'IDENTITY', isCancelled: true } })
+            handlers.onEvent?.({ eventType: 'StepCompleted', payload: { idDocSetType: 'SELFIE' } })
+            handlers.onEvent?.({
+                eventType: 'StepCompleted',
+                payload: { idDocSetType: 'IDENTITY', isCancelled: false },
+            })
+        })
+
+        expect(identityDone).toHaveBeenCalledTimes(1)
+    })
+
     it('reports how the native screen closed', async () => {
         launch.mockResolvedValue({ success: true, status: 'Pending' })
 

@@ -2,16 +2,14 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { LandingDownloadCta } from '../LandingDownloadCta'
 import { FooterStoreLinks } from '../FooterStoreLinks'
 import { StickyMobileCTA } from '../StickyMobileCTA'
-import { STORE_URL } from '@/constants/migration.consts'
-
 let mockDevice = 'web'
-const mockTrackStoreClick = jest.fn()
+const mockStoreAnchorHref = jest.fn((_store: string) => '/store')
+const mockOnStoreAnchorClick = jest.fn()
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
-    trackStoreClick: (...args: unknown[]) => mockTrackStoreClick(...args),
-    storeAnchorHref: () => '/store',
-    onStoreAnchorClick: jest.fn(),
+    storeAnchorHref: (store: string) => mockStoreAnchorHref(store),
+    onStoreAnchorClick: (...args: unknown[]) => mockOnStoreAnchorClick(...args),
 }))
 const mockIntercept = jest.fn(() => true)
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
@@ -45,7 +43,8 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 beforeEach(() => {
     mockDevice = 'web'
     mockIntercept.mockClear()
-    mockTrackStoreClick.mockClear()
+    mockOnStoreAnchorClick.mockClear()
+    mockStoreAnchorHref.mockImplementation(() => '/store')
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 })
 })
 
@@ -79,12 +78,13 @@ it.each([
     const icons = screen.getAllByText('downloadNow').map((el) => el.getAttribute('data-icon'))
     expect(icons).toEqual([icon, icon])
 })
-it.each(['ios', 'android'])('tracks the %s footer store link without changing its destination', (store) => {
+it.each(['ios', 'android'])('the %s footer store link writes the deferred hand-off and tracks the footer', (store) => {
+    mockStoreAnchorHref.mockImplementation((target) => `/store/${target}`)
     render(<FooterStoreLinks />)
     const link = screen.getByRole('link', { name: store === 'ios' ? 'App Store' : 'Google Play' })
-    expect(link).toHaveAttribute('href', STORE_URL[store as 'ios' | 'android'])
+    expect(link).toHaveAttribute('href', `/store/${store}`)
     fireEvent.click(link)
-    expect(mockTrackStoreClick).toHaveBeenCalledWith(store, 'landing_footer')
+    expect(mockOnStoreAnchorClick).toHaveBeenCalledWith(store, 'landing_footer')
 })
 
 it('offers only the store download in the sticky bar', () => {

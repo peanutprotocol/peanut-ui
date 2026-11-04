@@ -11,7 +11,8 @@
  * used by: /send/[...username] route
  */
 
-import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { personFrom } from '@/lib/person/person'
+import { usePerson } from '@/lib/person/usePerson'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { AccountType } from '@/interfaces/interfaces'
 import Loading from '@/components/Global/Loading'
@@ -30,24 +31,24 @@ interface DirectSendPageWrapperProps {
 export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) {
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
-    const { user, isLoading, error } = useUserByUsername(username)
+    const { profile, isLoading, error } = usePerson(username)
 
     // resolve user to recipient
     const recipient = useMemo<DirectSendRecipient | null>(() => {
-        if (!user) return null
+        if (!profile) return null
 
         // find peanut wallet address
-        const walletAccount = user.accounts.find((acc) => acc.type === AccountType.PEANUT_WALLET)
+        const walletAccount = profile.accounts.find((acc) => acc.type === AccountType.PEANUT_WALLET)
         if (!walletAccount) return null
 
         return {
-            username: user.username,
+            username: profile.username,
             address: walletAccount.identifier as Address,
-            userId: user.userId,
-            fullName: user.fullName,
-            avatarKey: user.avatarKey ?? null,
+            userId: profile.userId,
+            fullName: profile.fullName,
+            person: personFrom(profile),
         }
-    }, [user])
+    }, [profile])
 
     // loading state
     if (isLoading) {
@@ -70,7 +71,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
                     <EmptyState
                         icon="user"
                         title={t('errors.userNotFoundTitle')}
-                        description={error || t('errors.userNotFoundDescription', { username })}
+                        description={t('errors.userNotFoundDescription', { username })}
                     />
                 </div>
             </div>

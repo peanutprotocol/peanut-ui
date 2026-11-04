@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { fireEvent, screen, within, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import PaymentPlanStep from '../PaymentPlan'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
@@ -270,4 +271,32 @@ it('does not name bank currencies after a failed intents read', () => {
     mockIntentsMissing = true
     renderWithIntl(ui('PT'))
     expect(optionsIn('Add money with')).toEqual(['Bank transfer', 'Crypto', 'Another Peanut user'])
+})
+
+it('reports each picker opening, the channel picked, a dismissal and Continue, naming the host', async () => {
+    renderWithIntl(
+        onSignupScreen(
+            'payment-plan',
+            ui('PT', async () => undefined)
+        )
+    )
+    await choose('Add money with', 'Choose', 'Crypto')
+    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Choose', hidden: true }))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    expect(signupControls(posthog.capture as jest.Mock)).toEqual([
+        'funding_channel:open',
+        'funding_channel:select:crypto',
+        'payment_channel:open',
+        'payment_channel:dismiss',
+        'payment_channel:open',
+        'payment_channel:select:qr',
+        'continue:tap',
+    ])
+    expect((posthog.capture as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ screen_id: 'payment-plan', setup_host: 'verify-prelude' })
+    )
 })

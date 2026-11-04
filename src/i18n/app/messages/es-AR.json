@@ -841,7 +841,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Agregá tu documento otra vez",
-                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Subí tu documento y sacate una selfie rápida, y los pagos con QR vuelven a funcionar."
+                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Subí tu documento y sacate una selfie rápida. Cuando aceptemos tu documento para pagos con QR, vuelven a funcionar."
                 },
                 "restartPending": {
                     "title": "Terminá de verificar tu nuevo documento",
@@ -1300,7 +1300,7 @@
     },
     "kyc": {
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
-        "terminalDescription": "Tu verificación no se puede reintentar. Contactá a soporte para recibir ayuda.",
+        "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escribinos y te ayudamos desde ahí. Tus fondos siguen en tu cuenta.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
         "errorSdkUnavailable": "La verificación no está disponible. Actualizá la app.",
         "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
@@ -1651,7 +1651,14 @@
                 "photo": "Sacá una foto de tu documento",
                 "selfie": "Sacate una selfie rápida",
                 "review": "Recibí una revisión segura",
-                "unlock": "Desbloqueá los pagos disponibles"
+                "unlock": "Desbloqueá los pagos disponibles",
+                "followUp": {
+                    "cardAddress": "Agregá un comprobante de domicilio",
+                    "cardIdentity": "Enviá tu documento otra vez",
+                    "bankDocument": "Agregá un documento más",
+                    "bankTerms": "Aceptá los términos de transferencias bancarias",
+                    "bankCheck": "Completá la verificación de transferencias bancarias"
+                }
             },
             "review": {
                 "description": "La revisión suele tardar unos minutos. Si una persona necesita revisarlo, tarda de 1 a 3 días hábiles. Podés salir de esta pantalla y te vamos a avisar cuando esté listo."
@@ -1794,8 +1801,8 @@
             "shareSheetTitle": "Compartir enlace de invitación"
         },
         "confirmInviteModal": {
-            "description": "Creá una billetera para que esta referencia quede vinculada a tu cuenta. Si usás {method}, vas a continuar sin registrarte.",
-            "joinCta": "Creá tu billetera"
+            "description": "Registrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usás Peanut. También podés reclamarlo en {method} sin una cuenta.",
+            "joinCta": "Registrate y reclamá"
         },
         "earlyUserModal": {
             "title": "Ganá con tus invitaciones",

@@ -10,6 +10,9 @@ import {
 } from '@/app/actions/kyc-paperwork-verification'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { AddFeatureFlow, AddFeatureQuestions } from '../AddFeatureFlow'
+import posthog from 'posthog-js'
+
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: 'user-a' } } }),
@@ -76,6 +79,20 @@ beforeEach(() => {
 })
 
 describe('AddFeatureQuestions', () => {
+    it('tracks failed-load Back and retry under add-later context without exposing errors', async () => {
+        mockQuestions.mockRejectedValue(new Error('private-load-error'))
+        renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={jest.fn()} />)
+        fireEvent.click(await screen.findByTestId('verify-back'))
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        const calls = jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')
+        expect(calls.map(([, p]) => [p?.flow, p?.feature, p?.screen_id, p?.control, p?.action])).toEqual([
+            ['add_later', 'bank', 'add-feature', 'back', 'tap'],
+            ['add_later', 'bank', 'add-feature', 'retry', 'tap'],
+        ])
+        await screen.findByTestId('verify-back')
+        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toContain('private-load-error')
+    })
+
     it('asks the pickers on one screen and the typed answers on the next, never an ID check', async () => {
         mockQuestions.mockResolvedValue(cardQuestions())
         mockSave.mockResolvedValue({ kind: 'saved', next: null })
@@ -420,6 +437,20 @@ describe('AddFeatureFlow', () => {
         expect(screen.getByText(/setting up your bank account/)).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-feature-done'))
         expect(onExit).toHaveBeenCalled()
+        expect(jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')).toEqual([
+            [
+                'control_used',
+                expect.objectContaining({
+                    flow: 'add_later',
+                    residence: 'US',
+                    feature: 'bank',
+                    screen_id: 'feature-ready',
+                    control: 'done',
+                    action: 'tap',
+                }),
+            ],
+        ])
+        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toContain('private-ready-value')
     })
 })
 

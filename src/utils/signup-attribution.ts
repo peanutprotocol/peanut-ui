@@ -323,6 +323,26 @@ export function captureSignupAttribution({
     return bounded
 }
 
+type SignupAttributionCampaign = Pick<SignupAttributionTouch, 'utmSource' | 'utmMedium' | 'utmCampaign' | 'utmContent'>
+
+/** A new Android journey whose first touch is the campaign in a Play install referrer, or null without a usable tag. */
+export function installReferrerSignupAttribution(campaign: SignupAttributionCampaign): SignupAttributionContext | null {
+    const firstTouch: SignupAttributionTouch = { occurredAt: new Date().toISOString() }
+    for (const key of ['utmSource', 'utmMedium', 'utmCampaign', 'utmContent'] as const) {
+        const value = cleanMarketingValue(campaign[key])
+        if (value) firstTouch[key] = value
+    }
+    if (Object.keys(firstTouch).length === 1) return null
+    return canonicalSignupAttribution({
+        schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
+        journeyId: newJourneyId(),
+        platform: 'android',
+        analyticsState: 'enabled',
+        captureMethod: 'deferred_link',
+        firstTouch,
+    })
+}
+
 export function restoreSignupAttribution(context: SignupAttributionContext): SignupAttributionContext {
     if (!analyticsCollectionAvailable()) return context
     const existing = readSignupAttribution()

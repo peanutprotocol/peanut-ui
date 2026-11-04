@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useNotifications } from './useNotifications'
+import { PERMISSION_REQUEST_SOURCES } from '@/constants/push-prompt.consts'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from './useCapabilities'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
@@ -187,7 +188,7 @@ export const useHomeCarouselCTAs = ({
                 onClick: async () => {
                     // Native permission recovery opens the operating-system settings
                     // when the user already denied the prompt.
-                    const result = await requestPermission()
+                    const result = await requestPermission(PERMISSION_REQUEST_SOURCES.HOME_CAROUSEL)
                     await afterPermissionAttempt()
                     // 'default' = browser suppressed prompt (policy/Shields) or
                     // user dismissed it — calling again won't help this session.
@@ -204,6 +205,7 @@ export const useHomeCarouselCTAs = ({
             isLoading: false,
             features: capabilities.features,
             nextActions,
+            rails,
         })
         if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
             _carouselCTAs.push({

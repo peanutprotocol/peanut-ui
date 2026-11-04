@@ -12,6 +12,7 @@ import { setupCountrySignalProperties, setupCountrySuggestion } from '@/features
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { saveSignupResidence } from '@/features/setup/saveSignupAnswers'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useAuth } from '@/context/authContext'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import posthog from 'posthog-js'
@@ -35,6 +36,7 @@ const ResidenceStep = () => {
     const countrySignals = useSetupCountrySignals()
     const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
     const [view, setView] = useState<'question' | 'compare'>('question')
+    const { track } = useSignupControl()
 
     /*
      * The confirmed residence. The payment plan right after this step reads it
@@ -125,12 +127,14 @@ const ResidenceStep = () => {
 
     const onContinue = () => {
         if (!residence) return
+        track('continue', 'tap')
         if (nationality) setView('compare')
         else continueWith(residence)
     }
 
     // Picking the nationality country sets Peanut up there; the nationality answer stays.
     const onChoose = (country: string) => {
+        track('compare_choice', 'tap', country === residence ? 'residence' : 'nationality')
         if (country !== residenceCountry) {
             wasPrefilledRef.current = false
             setResidenceCountry(country)
@@ -155,12 +159,14 @@ const ResidenceStep = () => {
             <h1 className="text-heading-m leading-[2.75rem] compact:text-heading-s compact:leading-[2.5rem] tight:leading-[2.25rem]">
                 {t.rich('sentence', {
                     nw: (chunks) => <span className="inline-block max-w-full whitespace-nowrap">{chunks}</span>,
+                    br: () => <br />,
                     residence: () => (
                         <SetupCountryPicker
                             title={t('residenceTitle')}
                             value={residence}
                             options={countryOptions}
                             testId="setup-residence-country"
+                            control="residence_country"
                             onChange={(country) => {
                                 wasPrefilledRef.current = false
                                 setResidenceCountry(country)
@@ -174,6 +180,7 @@ const ResidenceStep = () => {
                             same={residence}
                             options={countryOptions}
                             testId="setup-nationality-country"
+                            control="nationality_country"
                             onChange={setNationalityCountry}
                         />
                     ),

@@ -9,7 +9,10 @@ import { copyTextToClipboard } from '@/utils/clipboard.utils'
 
 type SearchParamsReader = Pick<URLSearchParams, 'get'>
 
-export const useCopyLinkActions = (searchParams: SearchParamsReader): ActionModalButtonProps[] => {
+export const useCopyLinkActions = (
+    searchParams: SearchParamsReader,
+    onCopyTap?: () => void
+): ActionModalButtonProps[] => {
     const t = useTranslations('global')
     const toast = useToast()
     const [hasCopied, setHasCopied] = useState(false)
@@ -23,6 +26,7 @@ export const useCopyLinkActions = (searchParams: SearchParamsReader): ActionModa
     )
 
     const copyLink = async (): Promise<void> => {
+        onCopyTap?.()
         if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
 
         try {

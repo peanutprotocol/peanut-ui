@@ -1,8 +1,8 @@
 'use client'
 
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
-import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
-import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
+import type { ISetupStep, ScreenId } from '@/components/Setup/Setup.types'
+import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels'
 
@@ -19,6 +19,9 @@ const DEFAULT_NOTIFICATION_CHOICES: NotificationChoices = {
     emailUpdates: false,
     cascaded: false,
 }
+
+/** Nothing set since the flow started; every write makes a new object, so identity tells. */
+export const isUntouchedNotificationChoices = (choices: NotificationChoices) => choices === DEFAULT_NOTIFICATION_CHOICES
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a

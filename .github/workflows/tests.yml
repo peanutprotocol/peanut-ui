@@ -239,6 +239,9 @@ jobs:
               run: pnpm next typegen
 
             - name: Typecheck
+              # tsc outgrew Node's default heap: about one run in four died out of memory (Nov 2026).
+              env:
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: pnpm typecheck
 
     # The only pre-merge coverage for the Capacitor static export. Nothing else
@@ -294,6 +297,8 @@ jobs:
               env:
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # Dev leads the production API between releases and this job ships nothing: API skew warns only.
+                  NATIVE_EXPORT_COMPILE_CHECK_ONLY: '1'
               run: node scripts/native-build.js
 
             - name: Verify export output
@@ -632,6 +637,8 @@ jobs:
 
             - name: Build
               env:
+                  # Node 20's implicit ~2 GiB heap exhausts on this build (#3900).
+                  NODE_OPTIONS: --max-old-space-size=4096
                   # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
                   # ignored, and every screen redirects to /setup. It is a
                   # NEXT_PUBLIC_ value, so it must be set on the build, not on
@@ -827,8 +834,8 @@ jobs:
             always() && needs.backdoor-scan.result == 'success' &&
             needs.ds-shots-filter.outputs.render == 'true'
         runs-on: ubuntu-latest
-        # Build ~5m + gate ~9m + stress gate. A hang past this is a bug, not a
-        # slow day.
+        # Build ~6m + gate and stress gate on 4 workers. A hang past this is a bug,
+        # not a slow day.
         timeout-minutes: 45
         permissions:
             contents: read
@@ -893,11 +900,22 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
+            # Restore-only, same entry ds-shots reads (saved by dev push runs).
+            - name: Restore the Next build cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  restore-keys: |
+                      ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
+
             # Same build env as ds-shots: preview enables ?__fixture=, and the
             # base URL matches the server in playwright.shots.config.ts.
             - name: Build
               id: build
               env:
+                  # Node 20's implicit ~2 GiB heap exhausts on this build (#3900).
+                  NODE_OPTIONS: --max-old-space-size=4096
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.

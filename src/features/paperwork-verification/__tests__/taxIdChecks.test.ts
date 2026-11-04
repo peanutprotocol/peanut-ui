@@ -1,6 +1,6 @@
 import type { PaperworkVerificationField } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { stepComplete } from '../paperworkVerification.utils'
-import { loadTaxIdChecker, taxIdVerdict, type TaxIdChecker } from '../taxIdChecks'
+import { isZeroTaxId, loadTaxIdChecker, taxIdOutcome, taxIdVerdict, type TaxIdChecker } from '../taxIdChecks'
 
 const field = (extra: Partial<PaperworkVerificationField> = {}): PaperworkVerificationField => ({
     key: 'taxId',
@@ -69,6 +69,62 @@ describe('taxIdVerdict', () => {
         expect(taxIdVerdict(field(), { taxId: '123' }, { checker: null, pending: true })).toBe('pending')
         expect(taxIdVerdict(field(), { taxId: '123' }, { checker: null, pending: false })).toBe('valid')
         expect(taxIdVerdict(field(), { taxId: ' 123 ' }, ready)).toBe('invalid')
+    })
+})
+
+describe('taxIdOutcome', () => {
+    const country = field()
+    const ssn = field({ format: 'ssn', checks: undefined })
+
+    it('only warns when a country check refuses the number, and keeps Continue open', () => {
+        expect(taxIdOutcome(country, { taxId: '36574261808' }, 'invalid', false)).toEqual({
+            blocks: false,
+            error: null,
+            warning: true,
+        })
+        expect(taxIdOutcome(country, { taxId: '3657426' }, 'incomplete', false).warning).toBe(false)
+        expect(taxIdOutcome(country, { taxId: '3657426' }, 'incomplete', true)).toEqual({
+            blocks: false,
+            error: null,
+            warning: true,
+        })
+        expect(taxIdOutcome(country, { taxId: '36574261809' }, 'pending', false).blocks).toBe(false)
+    })
+
+    it('holds Continue on a provider format the provider would refuse', () => {
+        expect(taxIdOutcome(ssn, { taxId: '123-45-678' }, 'incomplete', false)).toEqual({
+            blocks: true,
+            error: null,
+            warning: false,
+        })
+        expect(taxIdOutcome(ssn, { taxId: '000-12-3456' }, 'invalid', false)).toEqual({
+            blocks: true,
+            error: 'invalid_tax_id',
+            warning: false,
+        })
+        expect(taxIdOutcome(ssn, { taxId: '123-45-6789' }, 'pending', false).blocks).toBe(true)
+    })
+
+    it('refuses zeros everywhere, flagged from four zeros or once left', () => {
+        expect(taxIdOutcome(country, { taxId: '0000000000' }, 'valid', false)).toEqual({
+            blocks: true,
+            error: 'invalid_tax_id',
+            warning: false,
+        })
+        expect(taxIdOutcome(country, { taxId: '000' }, 'incomplete', false)).toEqual({
+            blocks: true,
+            error: null,
+            warning: false,
+        })
+        expect(taxIdOutcome(country, { taxId: '0' }, 'incomplete', true).error).toBe('invalid_tax_id')
+        expect(taxIdOutcome(ssn, { taxId: '000-00-0000' }, 'invalid', false).error).toBe('invalid_tax_id')
+    })
+
+    it('treats separators as part of zeros but any other digit as a number', () => {
+        expect(isZeroTaxId('000.000.000-00')).toBe(true)
+        expect(isZeroTaxId('00 00')).toBe(true)
+        expect(isZeroTaxId('0000000001')).toBe(false)
+        expect(isZeroTaxId('O000')).toBe(false)
     })
 })
 

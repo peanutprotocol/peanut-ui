@@ -12,6 +12,7 @@ import { DocSection } from '../../_components/DocSection'
 import { COLOR_TOKENS } from '../../foundations/tokens.generated'
 import {
     AVATAR_BADGE_ENTRIES,
+    AVATAR_BADGE_RULE,
     AVATAR_BASIC_ENTRIES,
     AVATAR_LETTER_ENTRIES,
     BADGE_ENTRIES,
@@ -63,7 +64,7 @@ function PublicArtGrid({ entries, tile = 'h-10' }: { entries: PublicArtEntry[]; 
                             className={`${tile} w-auto`}
                         />
                     </div>
-                    <p className="font-mono text-label-m">{entry.label}</p>
+                    <p className="font-mono text-label-m break-all">{entry.label}</p>
                     <p className="font-mono text-body-xs break-all text-foreground-secondary">{entry.src}</p>
                     <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
                 </Card>
@@ -182,7 +183,7 @@ export default function MarketingAssetsPage() {
 
             <DocSection
                 title="Avatars"
-                description="Sticker avatars. Basics and badge-unlocked poses mirror the API manifest badge-assets.json; the a–z letters come from avatar.utils. Nothing is listed twice by hand."
+                description="Sticker avatars. Basics and badge avatars mirror the API manifest badge-assets.json; the a–z letters come from avatar.utils. Nothing is listed twice by hand."
             >
                 <DocSection.Content>
                     <p className="text-label-m">Sticker set — {AVATAR_BASIC_ENTRIES.length}, every user</p>
@@ -197,26 +198,10 @@ export default function MarketingAssetsPage() {
                         public/avatars/letter/&lt;a-z&gt;.webp
                     </p>
 
-                    <p className="text-label-m">
-                        Badge-unlocked poses — {AVATAR_BADGE_ENTRIES.length} badges,{' '}
-                        {AVATAR_BADGE_ENTRIES.reduce((n, entry) => n + entry.slugs.length, 0)} files
-                    </p>
-                    <ul className="space-y-1">
-                        {AVATAR_BADGE_ENTRIES.map(({ code, slugs, sample }) => (
-                            <li key={code} className="flex items-center gap-2 text-body-xs">
-                                <Image
-                                    src={sample}
-                                    alt=""
-                                    width={176}
-                                    height={176}
-                                    unoptimized
-                                    className="h-8 w-8 object-contain"
-                                />
-                                <span className="font-mono">{code}</span>
-                                <span className="text-foreground-secondary">{slugs.join(', ')}</span>
-                            </li>
-                        ))}
-                    </ul>
+                    <p className="text-label-m">Badge avatars — {AVATAR_BADGE_ENTRIES.length}, one per badge</p>
+                    <DesignNote type="info">{AVATAR_BADGE_RULE}</DesignNote>
+                    <ContactSheet entries={AVATAR_BADGE_ENTRIES} size="h-6 w-6" />
+                    <PublicArtGrid entries={AVATAR_BADGE_ENTRIES} tile="h-12" />
                     <p className="font-mono text-body-xs text-foreground-secondary">
                         public/avatars/badge/&lt;CODE&gt;/&lt;slug&gt;.webp
                     </p>
@@ -224,7 +209,7 @@ export default function MarketingAssetsPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="avatar"
-                        code={`import { UserAvatar } from '@/components/Avatar/UserAvatar'\n\n<UserAvatar name={user.username} avatarKey={user.avatarKey} size="m" />`}
+                        code={`import { UserAvatar } from '@/components/Avatar/UserAvatar'\nimport { personFrom } from '@/lib/person/person'\n\n<UserAvatar person={personFrom(user)} size="m" />`}
                     />
                 </DocSection.Code>
             </DocSection>

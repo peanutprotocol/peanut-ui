@@ -82,6 +82,7 @@
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
         "supportUnread": "Nueva respuesta de soporte",
+        "accounts": "Cuentas",
         "card": "Tarjeta",
         "exchangeRates": "Tipos de cambio",
         "scanQr": "Escanear QR"
@@ -978,16 +979,15 @@
                     "p2p": "Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
                     "arQr": "Pagos QR y transferencias propias",
-                    "spei": "Transferencias bancarias en pesos mexicanos",
-                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
-                    "eurSepa": "Transferencias bancarias en euros",
-                    "gbpFps": "Transferencias bancarias en libras esterlinas",
+                    "bankAccount": "Cuenta bancaria: {currencies}",
                     "bank": "Transferencias bancarias donde haya soporte",
                     "card": "Tarjeta Peanut"
                 },
-                "missing": {
-                    "banking": "Transferencias bancarias",
-                    "card": "Tarjeta Peanut"
+                "currencies": {
+                    "USD": "dólar estadounidense",
+                    "EUR": "euro",
+                    "GBP": "libra esterlina",
+                    "MXN": "peso mexicano"
                 },
                 "multiCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
                 "guideTitle": "¿Qué país debes seleccionar?",
@@ -995,7 +995,7 @@
                 "title": "Vincula tu perfil a un solo país",
                 "description": "Esto es lo que habilita cada uno."
             },
-            "sentence": "Mi país de residencia <nw>es <residence></residence></nw> y el de nacionalidad <nw>es <nationality></nationality>.</nw>",
+            "sentence": "Mi país de residencia <nw>es <residence></residence></nw><br></br>y el de nacionalidad <nw>es <nationality></nationality>.</nw>",
             "residenceTitle": "¿Dónde tienes residencia?",
             "nationalityTitle": "¿Cuál es tu nacionalidad?",
             "sameCountry": "el mismo",
@@ -1622,7 +1622,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Agrega tu documento otra vez",
-                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Sube tu documento y tómate una selfie rápida, y los pagos con QR vuelven a funcionar.",
+                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Sube tu documento y tómate una selfie rápida. Cuando aceptemos tu documento para pagos con QR, vuelven a funcionar.",
                     "cta": "Subir documento"
                 },
                 "restartPending": {
@@ -3077,8 +3077,8 @@
         "resubmitVerification": "Volver a enviar la verificación",
         "retryVerification": "Reintentar la verificación",
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Envía los datos solicitados para continuar.",
-        "terminalDescription": "Tu verificación no se puede reintentar. Contacta a soporte para recibir ayuda.",
-        "failedTitleTerminal": "La verificación no se completó",
+        "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escríbenos y te ayudaremos a partir de ahí. Tus fondos siguen en tu cuenta.",
+        "failedTitleTerminal": "Tu cuenta necesita una revisión",
         "failedTitleRetry": "Intentémoslo de nuevo",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Puedes intentarlo otra vez.",
         "actionRequiredTitle": "Un paso más",
@@ -3924,7 +3924,14 @@
                 "done": "Listo",
                 "backHome": "Volver al inicio",
                 "setUpPayments": "Configurar pagos",
-                "verifiedNote": "Ahora elige cómo quieres pagar y recibir pagos."
+                "verifiedNote": "Ahora elige cómo quieres pagar y recibir pagos.",
+                "followUp": {
+                    "cardAddress": "Agrega un comprobante de domicilio",
+                    "cardIdentity": "Envía tu documento otra vez",
+                    "bankDocument": "Agrega un documento más",
+                    "bankTerms": "Acepta los términos de transferencias bancarias",
+                    "bankCheck": "Completa la verificación de transferencias bancarias"
+                }
             },
             "saved": {
                 "title": "¡Respuestas guardadas!",
@@ -3971,6 +3978,11 @@
             "policyHold": {
                 "description": "Este documento no se puede usar para verificar tu identidad. Elige otro documento.",
                 "cta": "Elegir otro documento"
+            },
+            "taxWarning": "No pudimos verificar este número fiscal. ¿Seguro que es correcto?",
+            "taxConfirm": "Lo confirmo",
+            "documentMismatch": {
+                "description": "Parece que enviaste un documento de un país distinto al que declaraste. Esto es lo que habilita cada uno."
             }
         }
     },
@@ -4204,10 +4216,10 @@
             "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut."
         },
         "confirmInviteModal": {
-            "title": "¿Crear tu billetera de Peanut?",
-            "description": "Crea una billetera para que esta referencia quede vinculada a tu cuenta. Si usas {method}, continuarás sin registrarte.",
-            "joinCta": "Crear billetera",
-            "continueWithMethod": "Continuar con {method}"
+            "title": "{username} te invitó a Peanut",
+            "description": "Regístrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usas Peanut. También puedes reclamarlo en {method} sin una cuenta.",
+            "joinCta": "Regístrate y reclama",
+            "claimWithoutSignup": "Reclamar sin registrarte"
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",
@@ -4716,84 +4728,52 @@
         "initialName": "Solo {letter}",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
-                "crystal": "Cristal de Arbiverse",
-                "hex": "Hexágono de Arbiverse",
-                "cheer": "Celebración de Arbiverse"
+                "hex": "Hexágono de Arbiverse"
             },
             "BETA_TESTER": {
-                "flask": "Matraz de beta",
-                "bubble": "Burbuja de beta",
-                "wink": "Guiño beta"
+                "flask": "Matraz de beta"
             },
             "BUG_WHISPERER": {
-                "beetle": "Escarabajo de bugs",
-                "shell": "Concha de bugs",
-                "peek": "Mirada de bugs"
+                "beetle": "Escarabajo de bugs"
             },
             "CARD_ALPHA": {
-                "card": "Carta alfa",
-                "swipe": "Deslizada alfa",
-                "tape": "Cinta alfa"
+                "card": "Carta alfa"
             },
             "CARD_FIRST_SWIPE": {
-                "card": "Carta del primer swipe",
-                "chip": "Chip del primer swipe",
-                "wink": "Guiño del primer swipe"
+                "card": "Carta del primer swipe"
             },
             "CARD_SPENT_1K": {
-                "stack": "Pila del gastador",
-                "note": "Nota del gastador",
-                "cheer": "Celebración del gastador"
+                "stack": "Pila del gastador"
             },
             "DEVCONNECT_BA_2025": {
-                "sun": "Sol de Devconnect",
-                "rise": "Amanecer de Devconnect",
-                "wink": "Guiño de Devconnect"
+                "sun": "Sol de Devconnect"
             },
             "ETHFLORIPA_HUB": {
-                "eth": "ETH de EthFloripa",
-                "island": "Isla de EthFloripa",
-                "palm": "Palmera de EthFloripa"
+                "eth": "ETH de EthFloripa"
             },
             "EVENT_ALUMNI": {
-                "cap": "Gorra de alumni",
-                "board": "Pizarra de alumni",
-                "wink": "Guiño de alumni"
+                "cap": "Gorra de alumni"
             },
             "IRL_NOMADS": {
-                "pack": "Mochila nómada",
-                "roll": "Rollo nómada",
-                "pocket": "Bolsillo nómada"
+                "pack": "Mochila nómada"
             },
             "NAIJA": {
-                "flag": "Bandera de Naija",
-                "wave": "Ola de Naija",
-                "wink": "Guiño de Naija"
+                "flag": "Bandera de Naija"
             },
             "NITA": {
-                "letter": "Carta de NITA",
-                "sparkle": "Destello de NITA",
-                "wink": "Guiño de NITA"
+                "letter": "Carta de NITA"
             },
             "OFFRAMP_USER": {
-                "bolt": "Rayo de offramp",
-                "spark": "Destello de offramp",
-                "wink": "Guiño de offramp"
+                "bolt": "Rayo de offramp"
             },
             "OG_2025_10_12": {
-                "coin": "Moneda OG",
-                "link": "Enlace OG",
-                "shades": "Gafas OG"
+                "link": "Enlace OG"
             },
             "SHHHHH": {
-                "lips": "Labios secretos",
-                "shush": "Shhh secreto",
-                "wink": "Guiño secreto"
+                "shush": "Shhh secreto"
             },
             "WAITLIST_SKIP": {
-                "key": "Llave de la lista",
-                "keyhole": "Cerradura de la lista",
-                "wink": "Guiño de la lista"
+                "key": "Llave de la lista"
             }
         },
         "cast": {

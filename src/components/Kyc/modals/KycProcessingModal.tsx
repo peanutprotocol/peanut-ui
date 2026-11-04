@@ -7,6 +7,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycProcessingModalProps {
     visible: boolean
@@ -31,6 +32,7 @@ export const KycProcessingModal = ({
     onResume,
     onContactSupport,
 }: KycProcessingModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
@@ -52,7 +54,10 @@ export const KycProcessingModal = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) {
+                    track('kyc_status', 'dismiss')
+                    onClose()
+                }
             }}
         >
             <DrawerContent>
@@ -79,16 +84,37 @@ export const KycProcessingModal = ({
                     {/* gap-6: the LinkButton's hit area reaches 14px above its text */}
                     <div className="flex w-full flex-col items-center gap-6">
                         {canResume ? (
-                            <Button shadowSize="4" className="w-full justify-center" onClick={onResume}>
+                            <Button
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    track('continue', 'tap')
+                                    onResume?.()
+                                }}
+                            >
                                 {t('continueVerification')}
                             </Button>
                         ) : (
-                            <Button shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                            <Button
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    track('got_it', 'tap')
+                                    onClose()
+                                }}
+                            >
                                 {tCommon('gotIt')}
                             </Button>
                         )}
                         {isStale && !supplementInReview && onContactSupport && (
-                            <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
+                            <LinkButton
+                                onClick={() => {
+                                    track('support', 'tap')
+                                    onContactSupport()
+                                }}
+                            >
+                                {tCommon('contactSupport')}
+                            </LinkButton>
                         )}
                     </div>
                 </div>

@@ -155,7 +155,7 @@ export const ProfileEditView = () => {
                                 {...field}
                                 label={t('fields.name')}
                                 error={fieldState.error?.message}
-                                disabled
+                                locked
                                 autoComplete="given-name"
                             />
                         )}
@@ -167,7 +167,7 @@ export const ProfileEditView = () => {
                             <ProfileEditField
                                 {...field}
                                 label={t('fields.surname')}
-                                disabled
+                                locked
                                 autoComplete="family-name"
                             />
                         )}

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { appendFileSync, copyFileSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { canReuseBaseline } from './baseline-reuse.mjs'
@@ -14,7 +15,7 @@ const [afterDir, destinationArg] = process.argv.slice(2)
 const destination = resolve(destinationArg)
 const api = (path) =>
     JSON.parse(
-        execFileSync('gh', ['api', repositoryApiPath(repository, path)], {
+        ghApiSync([repositoryApiPath(repository, path)], {
             encoding: 'utf8',
             timeout: 60000,
             maxBuffer: 64 * 1024 * 1024,

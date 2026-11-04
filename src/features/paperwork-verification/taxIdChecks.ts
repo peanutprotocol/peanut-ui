@@ -146,6 +146,41 @@ export function taxIdVerdict(
     return check.checker?.(value) ?? 'valid'
 }
 
+/** Zeros only, separators aside: a placeholder, never anyone's tax number. */
+export const isZeroTaxId = (value: string) => /^0+$/.test(value.replace(/[\s./-]/g, ''))
+
+export interface TaxIdOutcome {
+    /** holds Continue */
+    blocks: boolean
+    /** the field's error line */
+    error: 'invalid_tax_id' | null
+    /** a warning under the field; Continue stays open */
+    warning: boolean
+}
+
+/**
+ * What the screen does with the tax number's verdict. A fixed provider format
+ * (SSN, CPF, CUIT…) that the provider would refuse holds Continue; a country
+ * checksum only warns, because real numbers fail it too (a Ukrainian RNOKPP was
+ * refused). All zeros is refused everywhere.
+ */
+export function taxIdOutcome(
+    field: PaperworkVerificationField,
+    values: PaperworkVerificationAnswers,
+    verdict: TaxIdVerdict,
+    blurred: boolean
+): TaxIdOutcome {
+    const value = values[field.key]?.trim() ?? ''
+    if (value && !maskedUntouched(field, values) && isZeroTaxId(value)) {
+        // Shown from four zeros, so a number that merely starts with one is not flagged while typed.
+        const zeros = value.replace(/\D/g, '').length
+        return { blocks: true, error: blurred || zeros >= 4 ? 'invalid_tax_id' : null, warning: false }
+    }
+    const refused = verdict === 'invalid' || (verdict === 'incomplete' && blurred)
+    if (field.format) return { blocks: verdict !== 'valid', error: refused ? 'invalid_tax_id' : null, warning: false }
+    return { blocks: false, error: null, warning: refused }
+}
+
 /** The checker of a tax field's checks, loaded when the field shows; pending until it loads. */
 export function useTaxIdChecker(checks: readonly string[] | undefined) {
     const key = checks?.join(',') ?? ''

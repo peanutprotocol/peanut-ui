@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { existsSync, readdirSync } from 'node:fs'
 import { repositoryApiPath } from './repository-api.mjs'
 import { reviewHeadRevision, reviewProvenance, reviewPullRequest } from './review-provenance.mjs'
@@ -15,7 +16,7 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? ''))
 // A page of 100 workflow runs is over 1 MB, execFileSync's default buffer (ENOBUFS).
 const api = (path, args = []) =>
     JSON.parse(
-        execFileSync('gh', ['api', repositoryApiPath(repo, path), ...args], {
+        ghApiSync([repositoryApiPath(repo, path), ...args], {
             encoding: 'utf8',
             maxBuffer: 64 * 1024 * 1024,
         })

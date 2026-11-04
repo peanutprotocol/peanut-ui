@@ -13,6 +13,7 @@
 import React, { createContext, useContext, useMemo, useState, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
+import type { Person } from '@/lib/person/person.types'
 
 // view states
 export type DirectSendFlowView = 'INITIAL' | 'STATUS'
@@ -23,8 +24,8 @@ export interface DirectSendRecipient {
     address: Address
     userId?: string
     fullName?: string
-    /** Their picked profile avatar; null means the username-letter fallback. */
-    avatarKey?: string | null
+    /** The person behind the username, for their avatar (TASK-23756). */
+    person: Person
 }
 
 // attachment options

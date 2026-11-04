@@ -11,6 +11,7 @@
 import { render } from '@testing-library/react'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { personFrom } from '@/lib/person/person'
 import type { PaymentCreationResponse, TChargeTransactionType, TRequestChargeResponse } from '@/services/services.types'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -272,7 +273,7 @@ describe('PaymentSuccessView — the settled network fee on the receipt', () => 
                 <PaymentSuccessView
                     type="SEND"
                     recipientType="USERNAME"
-                    user={{ username: 'alice', fullName: 'Alice' }}
+                    recipient={personFrom({ username: 'alice', fullName: 'Alice' })}
                     amount="5"
                     usdAmount="5"
                     chargeDetails={charge('DIRECT_SEND')}
@@ -295,7 +296,7 @@ describe('PaymentSuccessView — the settled network fee on the receipt', () => 
                 <PaymentSuccessView
                     type="SEND"
                     recipientType="USERNAME"
-                    user={{ username: 'alice', fullName: 'Alice' }}
+                    recipient={personFrom({ username: 'alice', fullName: 'Alice' })}
                     amount="5"
                     usdAmount="5"
                     chargeDetails={charge('REQUEST')}
@@ -317,7 +318,7 @@ describe('PaymentSuccessView — the settled network fee on the receipt', () => 
             <PaymentSuccessView
                 type="SEND"
                 recipientType="USERNAME"
-                user={{ username: 'alice', fullName: 'Alice' }}
+                recipient={personFrom({ username: 'alice', fullName: 'Alice' })}
                 amount="5"
                 usdAmount="5"
                 chargeDetails={charge('REQUEST', { chainId: '1' })}

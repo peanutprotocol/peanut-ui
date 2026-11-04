@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LandingStep from '../Landing'
 
@@ -40,7 +41,11 @@ jest.mock('@/constants/migration.consts', () => ({
 }))
 jest.mock('@/components/Migration/StoreButtons', () => ({
     __esModule: true,
-    default: () => <div data-testid="store-buttons" />,
+    default: ({ onStoreClick }: { onStoreClick?: (store: string) => void }) => (
+        <button data-testid="store-buttons" onClick={() => onStoreClick?.('ios')}>
+            App Store
+        </button>
+    ),
 }))
 jest.mock('@/components/Setup/components/SetupDocsDrawer', () => ({
     // the doc link is not under test; a plain span keeps the lint rule for page links out of it
@@ -182,5 +187,39 @@ describe('Landing — test-build web sign-up', () => {
 
         expect(screen.getByRole('button', { name: 'Sign up' })).toBeInTheDocument()
         expect(screen.queryByText('Test build')).not.toBeInTheDocument()
+    })
+})
+
+describe('Landing — control analytics', () => {
+    const controls = () => signupControls(posthog.capture as jest.Mock)
+
+    it('reports Sign up and Log in taps on the landing screen', async () => {
+        mockLogin.mockResolvedValue(undefined)
+        renderWithIntl(onSignupScreen('landing', <LandingStep />))
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+        logIn()
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
+        expect(controls()).toEqual(['sign_up:tap', 'log_in:tap'])
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+    })
+
+    it('reports each recovery drawer action and a dismissal', async () => {
+        mockLogin.mockRejectedValue(passkeyError('PASSKEY_NOT_FOUND'))
+        renderWithIntl(onSignupScreen('landing', <LandingStep />))
+        logIn()
+        await screen.findByRole('dialog')
+        fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
+        fireEvent.keyDown(await screen.findByRole('dialog'), { key: 'Escape' })
+        await waitFor(() => expect(recoveryActions()).toEqual(['retry', 'dismiss']))
+        expect(controls()).toEqual(['log_in:tap', 'recovery_retry:tap', 'login_recovery:dismiss'])
+    })
+
+    it('reports the store button on the web app-only layout', () => {
+        mockNative = false
+        mockDeviceType = 'ios'
+        renderWithIntl(onSignupScreen('landing', <LandingStep />))
+        fireEvent.click(screen.getByTestId('store-buttons'))
+        expect(controls()).toEqual(['store_button:tap:ios'])
     })
 })

@@ -48,7 +48,7 @@ export async function settle(page: Page): Promise<void> {
             return false
         },
         null,
-        { polling: 250 }
+        { polling: 100 }
     )
 }
 

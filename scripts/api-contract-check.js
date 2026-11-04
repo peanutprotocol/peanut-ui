@@ -96,4 +96,9 @@ async function checkApiContracts({
         logger.log(`✅ API contracts and ${requiredOperations.length} called operations checked`)
 }
 
-module.exports = { checkApiContracts }
+// A compile-check export ships nothing and its API half may not be deployed: warn only.
+function isCompileCheckOnly(env = process.env) {
+    return env.GITHUB_EVENT_NAME === 'pull_request' || env.NATIVE_EXPORT_COMPILE_CHECK_ONLY === '1'
+}
+
+module.exports = { checkApiContracts, isCompileCheckOnly }

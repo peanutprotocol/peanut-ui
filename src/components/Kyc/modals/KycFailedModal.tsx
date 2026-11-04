@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { KycFailedContent } from '../KycFailedContent'
 import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycFailedModalProps {
     visible: boolean
@@ -34,6 +35,7 @@ export const KycFailedModal = ({
     failureCount,
     isTerminal: forcedTerminal = false,
 }: KycFailedModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -47,7 +49,10 @@ export const KycFailedModal = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) {
+                    track('kyc_status', 'dismiss')
+                    onClose()
+                }
             }}
         >
             <DrawerContent>
@@ -70,6 +75,7 @@ export const KycFailedModal = ({
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 onClick={() => {
+                                    track('support', 'tap')
                                     onClose()
                                     setIsSupportModalOpen(true)
                                 }}
@@ -82,7 +88,10 @@ export const KycFailedModal = ({
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 disabled={isLoading}
-                                onClick={onRetry}
+                                onClick={() => {
+                                    track('retry', 'tap')
+                                    onRetry()
+                                }}
                             >
                                 {tCommon(isLoading ? 'loading' : 'tryAgain')}
                             </Button>

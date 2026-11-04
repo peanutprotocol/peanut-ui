@@ -240,3 +240,36 @@ function needsRestartFor(code: string) {
         nextActions: [],
     })
 }
+
+describe('selectQrKycGate without a report (an API rolled back past it) reads the Manteca rails', () => {
+    const qr = (overrides: Partial<RailCapability> = {}) =>
+        pix({ id: 'manteca.qr_ar', method: 'QR_AR', channel: 'qr-only', country: 'AR', currency: 'ARS', ...overrides })
+    const read = (rails: RailCapability[], nextActions: NextAction[] = []) =>
+        selectQrKycGate({ isLoading: false, features: undefined, nextActions, rails })
+
+    it('an enabled QR rail still pays', () => {
+        expect(read([qr()]).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
+        expect(read([pix()]).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
+    })
+    it('a bank-only Manteca rail does not open a QR payment, an explicit pay operation does', () => {
+        const bank = pix({ id: 'manteca.bank_transfer_ar', method: 'BANK_TRANSFER_AR', country: 'AR', currency: 'ARS' })
+        expect(read([bank]).kycGateState).toBe(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+        expect(read([{ ...bank, operations: { pay: 'enabled' } }]).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
+    })
+    it('a non-Manteca rail does not pay a QR', () => {
+        const bridge = pix({ id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', country: 'US' })
+        expect(read([bridge]).kycGateState).toBe(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    })
+    it('a rail that is not enabled does not pay, and says why', () => {
+        expect(read([qr({ status: 'pending' })]).kycGateState).toBe(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+        expect(read([qr({ status: 'blocked' })]).kycGateState).toBe(QrKycState.PROVIDER_REJECTION_BLOCKED)
+    })
+    it('no rails at all is a visitor: verification is the way in', () => {
+        expect(read([]).kycGateState).toBe(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    })
+    it('loading stays loading', () => {
+        expect(
+            selectQrKycGate({ isLoading: true, features: undefined, nextActions: [], rails: [qr()] }).kycGateState
+        ).toBe(QrKycState.LOADING)
+    })
+})

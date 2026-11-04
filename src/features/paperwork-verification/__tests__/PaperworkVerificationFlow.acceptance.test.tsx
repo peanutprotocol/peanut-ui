@@ -15,6 +15,7 @@ import {
 import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -335,7 +336,9 @@ describe('US person local-transfer opt-out acceptance', () => {
         mockSave.mockResolvedValue({ kind: 'invalid', errors: { isFatca: 'us_citizen_not_supported' } })
         jest.mocked(savePaperworkVerificationFeatures).mockResolvedValue({ kind: 'saved' })
         await startFlow()
-        await screen.findByTestId('verify-toggle-isFatca')
+        const fatca = await screen.findByTestId('verify-toggle-isFatca')
+        fireEvent.click(fatca)
+        fireEvent.click(fatca)
         fireEvent.click(continueButton())
         const optOut = await screen.findByRole('button', { name: /continue without local bank transfers/i })
         const readsBeforeOptOut = mockQuestions.mock.calls.length
@@ -349,9 +352,31 @@ describe('US person local-transfer opt-out acceptance', () => {
         expect(mockToken).not.toHaveBeenCalled()
         // This recovery path implies a FATCA answer even without a value property.
         // Keep its UI controls but never publish an identified answer-specific event.
-        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toMatch(
+        // control_used may say a declaration was toggled or the opt-out tapped (2026-11-03), never with a value.
+        const calls = jest.mocked(posthog.capture).mock.calls
+        const isUse = (props: unknown, control: string) =>
+            (props as { control?: string } | undefined)?.control === control
+        const uses = calls.filter(
+            ([event, props]) =>
+                event === ANALYTICS_EVENTS.CONTROL_USED &&
+                (isUse(props, 'isFatca') || isUse(props, 'continue_without_local'))
+        )
+        const allowed = uses.filter(([, props]) => !Object.prototype.hasOwnProperty.call(props, 'value'))
+        expect(allowed).toEqual(uses)
+        expect(JSON.stringify(calls.filter((call) => !allowed.includes(call)))).not.toMatch(
             /us_citizen_not_supported|us_person|local_refused|continue_without_local/
         )
+        expect(JSON.stringify(calls)).not.toMatch(/"(on|off|yes|no)"/)
+        expect(allowed.map(([, props]) => props)).toEqual([
+            expect.objectContaining({ screen_id: 'declarations', control: 'isFatca', action: 'toggle' }),
+            expect.objectContaining({ screen_id: 'declarations', control: 'isFatca', action: 'toggle' }),
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                screen_id: 'declarations',
+                control: 'continue_without_local',
+                action: 'tap',
+            }),
+        ])
     })
 })
 

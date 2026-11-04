@@ -16,6 +16,7 @@ import { useAuth } from '@/context/authContext'
 import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
 import { supportCaseOf } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -35,6 +36,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     const t = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
+    const control = useKycControl('kyc-status', 'kyc_status')
 
     // A block only support lifts gets a prefill naming it, so the agent looks
     // past this one account (TASK-24046).
@@ -172,7 +174,10 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         <>
             <Drawer
                 open={isOpen && !user?.identityVerification?.oneShot && (!checksTimeline || timelineChecked)}
-                onOpenChange={onClose}
+                onOpenChange={(open) => {
+                    if (!open) control.track('kyc_status', 'dismiss')
+                    onClose()
+                }}
             >
                 <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="pt-4" scrollAreaClassName="pb-12">
                     {renderContent()}

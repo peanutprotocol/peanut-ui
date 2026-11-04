@@ -457,7 +457,12 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
     // another address for it (ENSIP-11), so a pick re-resolves it (Chip, #3804).
     describe('a scanned ENS name re-resolves for the network picked', () => {
         it('disables Send while it resolves, then continues with the new address', async () => {
-            const resolution = deferred<{ identifier: string; recipientType: 'ENS'; resolvedAddress: string }>()
+            const resolution = deferred<{
+                identifier: string
+                recipientType: 'ENS'
+                resolvedAddress: string
+                person: null
+            }>()
             mockResolve.mockReturnValue(resolution.promise)
             const { onContinue } = renderView({ name: 'alice.eth' })
             expect(await ctaReady()).toBeEnabled()
@@ -468,7 +473,12 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
             fireEvent.click(cta())
             expect(onContinue).not.toHaveBeenCalled()
 
-            resolution.resolve({ identifier: 'alice.eth', recipientType: 'ENS', resolvedAddress: USDC_BASE })
+            resolution.resolve({
+                identifier: 'alice.eth',
+                recipientType: 'ENS',
+                resolvedAddress: USDC_BASE,
+                person: null,
+            })
             await waitFor(() => expect(cta()).toBeEnabled())
             expect(screen.getByTestId('recipient')).toHaveTextContent(USDC_BASE)
             fireEvent.click(cta())
@@ -499,7 +509,7 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
 
         it('a hit after a miss clears the miss message (Chip, #3804)', async () => {
             const miss = deferred<never>()
-            const hit = deferred<{ identifier: string; recipientType: 'ENS'; resolvedAddress: string }>()
+            const hit = deferred<{ identifier: string; recipientType: 'ENS'; resolvedAddress: string; person: null }>()
             mockResolve.mockReturnValueOnce(miss.promise).mockReturnValueOnce(hit.promise)
             renderView({ name: 'alice.eth' })
             await ctaReady()
@@ -511,7 +521,7 @@ describe('ScannedDestinationPayView (TASK-23974)', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'switch back' }))
             await waitFor(() => expect(mockResolve).toHaveBeenCalledTimes(2))
-            hit.resolve({ identifier: 'alice.eth', recipientType: 'ENS', resolvedAddress: USDC_BASE })
+            hit.resolve({ identifier: 'alice.eth', recipientType: 'ENS', resolvedAddress: USDC_BASE, person: null })
 
             await waitFor(() => expect(cta()).toBeEnabled())
             expect(screen.queryByRole('alert')).toBeNull()

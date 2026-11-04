@@ -28,6 +28,11 @@ describe('KycFailedModal', () => {
 
         expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-        expect(screen.getByText('Verification failed')).toBeInTheDocument()
+        expect(screen.getByText('Your account needs a review')).toBeInTheDocument()
+        expect(
+            screen.getByText(
+                "Before you can start a new verification, our support team needs to review your account. Message us and we'll help you from there. Your funds stay in your account."
+            )
+        ).toBeInTheDocument()
     })
 })

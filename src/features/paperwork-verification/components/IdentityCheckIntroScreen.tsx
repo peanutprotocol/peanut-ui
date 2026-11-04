@@ -8,6 +8,7 @@ import { ProviderRow } from '@/components/Provider/ProviderRow'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import type { ProviderId, ProviderLabel } from '@/types/provider.types'
 import { StepsScreen } from './StepsScreen'
+import { useKycControl } from '../analytics'
 
 /**
  * /verify's intro in front of today's ID check (InitiateKycModal's unlock
@@ -41,6 +42,7 @@ export function IdentityCheckIntroScreen({
     onContinue: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const control = useKycControl('id-handoff', 'kyc_legacy')
     const layerRef = useRef<HTMLDivElement>(null)
     useBackHandler(() => {
         if (!busy) onBack()
@@ -63,13 +65,21 @@ export function IdentityCheckIntroScreen({
         >
             <div className="mx-auto w-full max-w-md">
                 <StepsScreen
+                    screenId="id-handoff"
+                    controlFlow="kyc_legacy"
                     hasQuestions={hasQuestions}
                     busy={busy}
                     continueTestId={continueTestId}
                     aside={
                         providerId ? (
                             <Card position="solo" className="px-4 py-0">
-                                <ProviderRow providerId={providerId} label={providerLabel} prospective />
+                                <ProviderRow
+                                    providerId={providerId}
+                                    label={providerLabel}
+                                    prospective
+                                    onOpenChange={(open) => control.track('provider_help', open ? 'open' : 'dismiss')}
+                                    onDocumentClick={(document) => control.track(`provider_${document}`, 'tap')}
+                                />
                             </Card>
                         ) : undefined
                     }

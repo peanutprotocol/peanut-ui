@@ -1,15 +1,15 @@
 'use client'
-import { STORE_URL, STORE_NAME, MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { trackStoreClick } from '@/utils/migration.utils'
+import { STORE_NAME, MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 export function FooterStoreLinks() {
     return (
         <div className="mt-6 flex gap-6 text-body-s text-white">
             {(['ios', 'android'] as const).map((store) => (
                 <a
-                    onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_FOOTER)}
+                    onClick={() => onStoreAnchorClick(store, MIGRATION_SURFACES.LANDING_FOOTER)}
                     key={store}
                     className="underline"
-                    href={STORE_URL[store]}
+                    href={storeAnchorHref(store)}
                     target="_blank"
                     rel="noopener noreferrer"
                 >

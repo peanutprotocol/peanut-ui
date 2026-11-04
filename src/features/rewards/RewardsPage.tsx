@@ -30,6 +30,7 @@ import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
 import { getTierBadge, getTierProgressPercent, inviteeDisplayName } from './utils'
 import { twMerge } from '@/utils/tw'
+import { personFrom } from '@/lib/person/person'
 
 const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
 const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
@@ -306,7 +307,7 @@ export function RewardsPage() {
                                                     // name — an empty name reads as "not a
                                                     // user" and drops to a wallet icon.
                                                     userName={username || displayName || undefined}
-                                                    avatarKey={invite.avatarKey}
+                                                    person={personFrom(invite)}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
                                                     size="m"
