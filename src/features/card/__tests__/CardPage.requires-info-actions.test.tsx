@@ -18,6 +18,8 @@ import { findKycReplacementPlan } from '@/app/actions/kyc-workflow'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import { CardPage } from '../CardPage'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const mockSetSupportOpen = jest.fn()
 const mockHostedStart = jest.fn()
@@ -97,9 +99,17 @@ jest.mock('next/image', () => ({
 }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
     SumsubKycWrapper: function MockSumsubKycWrapper(props: Record<string, unknown>) {
+        const { useKycControl } = jest.requireActual('@/features/paperwork-verification/analytics')
+        const { track } = useKycControl('id-check', 'kyc_legacy')
         const id = String((props.sessionKey as string | undefined) ?? 'default')
         mockSumsubInstances.set(id, props)
-        return props.visible ? <div data-testid="sumsub-sdk" data-token={String(props.accessToken ?? '')} /> : null
+        return props.visible ? (
+            <div
+                data-testid="sumsub-sdk"
+                data-token={String(props.accessToken ?? '')}
+                onClick={() => track('help', 'open')}
+            />
+        ) : null
     },
 }))
 
@@ -250,6 +260,36 @@ beforeEach(() => {
 })
 
 describe('Rain tax-ID and date-of-birth actions on the requires-information card screen', () => {
+    it('scopes the Rain information SDK shell controls to provider-request without sending its token', async () => {
+        setCapabilities({ cardActions: [taxId] })
+        mockStartActionSuccess()
+        render()
+        fireEvent.click(newActionButtons()[0])
+        await waitFor(() => expect(openSdkTokens()).toEqual([tokenFor[taxId.key]]))
+        fireEvent.click(screen.getByTestId('sumsub-sdk'))
+        const capture = posthog.capture as jest.Mock
+        expect(capture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+            [
+                ANALYTICS_EVENTS.CONTROL_USED,
+                expect.objectContaining({
+                    screen_id: 'provider-request',
+                    flow: 'kyc_provider_request',
+                    control: 'tax_id',
+                    action: 'tap',
+                }),
+            ],
+            [
+                ANALYTICS_EVENTS.CONTROL_USED,
+                expect.objectContaining({
+                    screen_id: 'id-check',
+                    flow: 'kyc_provider_request',
+                    control: 'help',
+                    action: 'open',
+                }),
+            ],
+        ])
+        expect(JSON.stringify(capture.mock.calls)).not.toContain(tokenFor[taxId.key])
+    })
     it.each([
         ['tax ID', taxId],
         ['date of birth', birthDate],

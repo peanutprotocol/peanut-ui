@@ -14,6 +14,7 @@ import React from 'react'
 import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction, RailCapability } from '@/types/capabilities'
+import posthog from 'posthog-js'
 import CapNudgeCard from '../CapNudgeCard'
 
 let mockRails: RailCapability[] = []
@@ -46,14 +47,25 @@ jest.mock('@/hooks/useLimits', () => ({
 jest.mock('@/app/actions/sumsub', () => ({
     startKycAction: (key: string) => mockStartKycAction(key),
 }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
-    SumsubKycWrapper: (props: { visible: boolean; accessToken: string | null; onComplete: () => void }) =>
-        props.visible ? (
+    SumsubKycWrapper: function MockSumsubKycWrapper(props: {
+        visible: boolean
+        accessToken: string | null
+        onComplete: () => void
+    }) {
+        // The real SDK chrome reports through the same hook, with the legacy flow as its fallback.
+        const { track } = jest
+            .requireActual('@/features/paperwork-verification/analytics')
+            .useKycControl('id-check', 'kyc_legacy')
+        return props.visible ? (
             <div data-testid="sumsub-sdk">
                 <span>{props.accessToken}</span>
                 <button onClick={props.onComplete}>submit-document</button>
+                <button onClick={() => track('help', 'open')}>sdk-help</button>
             </div>
-        ) : null,
+        ) : null
+    },
 }))
 jest.mock('@/utils/capacitor', () => ({
     isNativeBridge: () => false,
@@ -125,6 +137,21 @@ describe('CapNudgeCard', () => {
             await waitFor(() => expect(screen.getByTestId('sumsub-sdk')).toBeInTheDocument())
             expect(mockStartKycAction).toHaveBeenCalledWith('sumsub:source_of_funds')
             expect(screen.getByText('tok-1')).toBeInTheDocument()
+        })
+
+        test("reports the SDK's controls as a provider request, never its token", async () => {
+            const capture = posthog.capture as jest.Mock
+            capture.mockClear()
+            render(<CapNudgeCard />)
+            fireEvent.click(screen.getByRole('button', { name: /verify income/i }))
+            fireEvent.click(await screen.findByText('sdk-help'))
+            expect(capture.mock.calls.filter(([event]) => event === 'control_used')).toEqual([
+                [
+                    'control_used',
+                    { flow: 'kyc_provider_request', screen_id: 'id-check', control: 'help', action: 'open' },
+                ],
+            ])
+            expect(JSON.stringify(capture.mock.calls)).not.toContain('tok-1')
         })
 
         test('two taps in one tick mint exactly one Sumsub action', async () => {

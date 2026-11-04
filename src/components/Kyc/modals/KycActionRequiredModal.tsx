@@ -3,6 +3,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { RejectLabelsList } from '../RejectLabelsList'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycActionRequiredModalProps {
     visible: boolean
@@ -20,6 +21,7 @@ export const KycActionRequiredModal = ({
     isLoading,
     rejectLabels,
 }: KycActionRequiredModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
 
@@ -27,7 +29,10 @@ export const KycActionRequiredModal = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) {
+                    track('kyc_status', 'dismiss')
+                    onClose()
+                }
             }}
         >
             <DrawerContent>
@@ -50,7 +55,10 @@ export const KycActionRequiredModal = ({
                             shadowSize="4"
                             className="w-full justify-center"
                             disabled={isLoading}
-                            onClick={onResubmit}
+                            onClick={() => {
+                                track('continue', 'tap')
+                                onResubmit()
+                            }}
                         >
                             {tCommon(isLoading ? 'loading' : 'continue')}
                         </Button>

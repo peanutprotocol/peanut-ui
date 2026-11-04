@@ -6,6 +6,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { twMerge } from '@/utils/tw'
 import { useInsetColor } from '../useInsetColor'
+import { useKycControl, type KycControlFlow } from '../analytics'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 
@@ -20,13 +21,29 @@ const SKELETON_ROWS = 6
 const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
 
 const PHASE_COPY = {
-    intro: { title: 'steps.title', note: null, cta: 'continue', testId: 'verify-steps-continue' },
-    review: { title: 'steps.title', note: 'review.description', cta: 'steps.backHome', testId: 'verify-review-home' },
+    intro: {
+        title: 'steps.title',
+        note: null,
+        cta: 'continue',
+        testId: 'verify-steps-continue',
+        screenId: 'steps-overview',
+        control: 'continue',
+    },
+    review: {
+        title: 'steps.title',
+        note: 'review.description',
+        cta: 'steps.backHome',
+        testId: 'verify-review-home',
+        screenId: 'id-checking',
+        control: 'home',
+    },
     verified: {
         title: 'steps.title',
         note: 'steps.verifiedNote',
         cta: 'steps.setUpPayments',
         testId: 'verify-verified-payments',
+        screenId: 'id-confirmed',
+        control: 'set_up_payments',
     },
 } as const
 
@@ -69,6 +86,8 @@ export function StepsScreen({
     busy = false,
     continueTestId,
     aside,
+    screenId,
+    controlFlow,
     onBack,
     onContinue,
 }: {
@@ -81,6 +100,9 @@ export function StepsScreen({
     continueTestId?: string
     /** above the button: the provider today's flow opens an account with */
     aside?: React.ReactNode
+    /** the analytics screen id when the timeline stands in for another screen, and its flow off /verify */
+    screenId?: string
+    controlFlow?: KycControlFlow
     onBack: () => void
     onContinue?: () => void
 }) {
@@ -88,12 +110,16 @@ export function StepsScreen({
     useInsetColor(false)
     const rows = stepRows(phase, hasQuestions, questionsDone)
     const copy = PHASE_COPY[phase]
+    const control = useKycControl(screenId ?? copy.screenId, controlFlow)
     return (
         <div className={twMerge('flex w-full flex-col bg-white px-6 pt-4 pb-6', SCREEN_HEIGHT)}>
             <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-x-6">
                 <Button
                     variant="ghost"
-                    onClick={onBack}
+                    onClick={() => {
+                        control.track('back', 'tap')
+                        onBack()
+                    }}
                     className={NAV_CIRCLE_BUTTON_CLASSES}
                     aria-label={t('back')}
                     data-testid="verify-back"
@@ -173,7 +199,10 @@ export function StepsScreen({
                 <Button
                     shadowSize="4"
                     className="w-full"
-                    onClick={onContinue}
+                    onClick={() => {
+                        control.track(copy.control, 'tap')
+                        onContinue?.()
+                    }}
                     loading={busy}
                     disabled={loading || busy || !onContinue}
                     data-testid={continueTestId ?? copy.testId}

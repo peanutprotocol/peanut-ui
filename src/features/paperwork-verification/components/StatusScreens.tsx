@@ -13,6 +13,7 @@ import type {
     PaperworkVerificationFeature,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { VerifyCelebrationLayout, VerifyFooter, VerifyHeroLayout, VerifyQuestionLayout } from './VerifyLayout'
+import { useKycControl } from '../analytics'
 
 const primary = (label: string, onClick: () => void, testId: string, loading = false, variant?: ButtonVariant) => (
     <Button
@@ -41,6 +42,7 @@ export function SavedScreen({
     onContinue: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('answers-saved')
     const line = ({ feature, reason }: PaperworkVerificationClosedFeature) => {
         if (t.has(`closed.${feature}.${reason}` as never)) return t(`closed.${feature}.${reason}` as never)
         const tokens = reason.split(/[._-]/)
@@ -62,7 +64,19 @@ export function SavedScreen({
             celebrate
             title={t('saved.title')}
             description={t('saved.description')}
-            footer={<VerifyFooter actions={primary(t('continue'), onContinue, 'verify-saved-continue', busy)} />}
+            footer={
+                <VerifyFooter
+                    actions={primary(
+                        t('continue'),
+                        () => {
+                            controls.track('continue', 'tap')
+                            onContinue()
+                        },
+                        'verify-saved-continue',
+                        busy
+                    )}
+                />
+            }
         >
             {closed.length > 0 && (
                 <Callout priority="info" className="w-full max-w-80 text-left" data-testid="verify-closed-features">
@@ -93,6 +107,11 @@ export function ReviewScreen({
     policyHold?: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('id-failed')
+    const home = () => {
+        controls.track('home', 'tap')
+        onHome()
+    }
     return (
         <VerifyCelebrationLayout
             pose="sad"
@@ -104,13 +123,16 @@ export function ReviewScreen({
                         onRetry
                             ? primary(
                                   t(policyHold ? 'policyHold.cta' : 'failed.retry'),
-                                  onRetry,
+                                  () => {
+                                      controls.track('retry', 'tap')
+                                      onRetry()
+                                  },
                                   'verify-review-retry',
                                   busy
                               )
-                            : primary(t('failed.cta'), onHome, 'verify-review-home', false, 'secondary')
+                            : primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
                     }
-                    secondary={onRetry ? primary(t('failed.cta'), onHome, 'verify-review-home') : undefined}
+                    secondary={onRetry ? primary(t('failed.cta'), home, 'verify-review-home') : undefined}
                 >
                     {error && <Callout priority="error">{error}</Callout>}
                 </VerifyFooter>
@@ -122,12 +144,24 @@ export function ReviewScreen({
 /** Add-later is saved: the providers take it from here, and the account rows show their status. */
 export function FeatureReadyScreen({ feature, onDone }: { feature: PaperworkVerificationFeature; onDone: () => void }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('feature-ready', 'kyc_status')
     return (
         <VerifyHeroLayout
             pose="too-cool"
             title={t('addLater.doneTitle')}
             description={t(`addLater.doneDescription.${feature}`)}
-            footer={<VerifyFooter actions={primary(t('addLater.doneCta'), onDone, 'verify-feature-done')} />}
+            footer={
+                <VerifyFooter
+                    actions={primary(
+                        t('addLater.doneCta'),
+                        () => {
+                            controls.track('done', 'tap')
+                            onDone()
+                        },
+                        'verify-feature-done'
+                    )}
+                />
+            }
         />
     )
 }
@@ -160,13 +194,29 @@ export function ProofOfAddressScreen({
     onSkip: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('poa')
     return (
         <VerifyQuestionLayout
             footer={
                 <VerifyFooter
-                    actions={primary(t('poa.upload'), onUpload, 'verify-poa-upload', uploading)}
+                    actions={primary(
+                        t('poa.upload'),
+                        () => {
+                            controls.track('upload', 'tap')
+                            onUpload()
+                        },
+                        'verify-poa-upload',
+                        uploading
+                    )}
                     secondary={
-                        <LinkButton onClick={onSkip} disabled={uploading} data-testid="verify-poa-skip">
+                        <LinkButton
+                            onClick={() => {
+                                controls.track('skip', 'tap')
+                                onSkip()
+                            }}
+                            disabled={uploading}
+                            data-testid="verify-poa-skip"
+                        >
                             {t('poa.skip')}
                         </LinkButton>
                     }

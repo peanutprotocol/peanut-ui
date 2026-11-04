@@ -102,6 +102,7 @@ import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step
 import { useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 
 export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams: Pick<URLSearchParams, 'get'> }) {
     const t = useTranslations('withdraw')
@@ -1138,14 +1139,16 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 verifyEntry={{ intent: 'LATAM', targetCountry: selectedCountry?.id }}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
-            <SumsubKycWrapper
-                visible={limitIncreaseFlow.showWrapper}
-                accessToken={limitIncreaseFlow.accessToken}
-                onClose={limitIncreaseFlow.handleClose}
-                onComplete={limitIncreaseFlow.handleSdkComplete}
-                onRefreshToken={limitIncreaseFlow.refreshToken}
-                isMultiLevel
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={limitIncreaseFlow.showWrapper}
+                    accessToken={limitIncreaseFlow.accessToken}
+                    onClose={limitIncreaseFlow.handleClose}
+                    onComplete={limitIncreaseFlow.handleSdkComplete}
+                    onRefreshToken={limitIncreaseFlow.refreshToken}
+                    isMultiLevel
+                />
+            </KycControlFlowProvider>
             <NavHeader
                 title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onPrev={() => {

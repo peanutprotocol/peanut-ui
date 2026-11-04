@@ -8,6 +8,12 @@ export const ANALYTICS_EVENTS = {
 
     // ── Signup funnel ──
     SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    // One use of any control in a flow (autocapture is off), one shape for every
+    // flow so a single query covers them: `flow` (signup), `screen_id`, `control`,
+    // `action` (tap | open | dismiss | select | change | error | toggle) and a
+    // low-cardinality `value` (ISO code, channel id, on/off, error category),
+    // never what the user typed. Sent beside the outcome events, not instead of them.
+    CONTROL_USED: 'control_used',
     SIGNUP_COUNTRY_SIGNALS_CAPTURED: 'signup_country_signals_captured',
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',

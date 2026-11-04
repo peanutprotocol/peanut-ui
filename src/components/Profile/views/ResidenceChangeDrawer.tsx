@@ -17,6 +17,7 @@ import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 const SERVICES = ['card', 'bank', 'local', 'qr'] as const
 type Service = (typeof SERVICES)[number]
@@ -67,6 +68,8 @@ const ResidenceChangeDrawer = ({
     const tCommon = useTranslations('common')
     const restrictionSets = useResidenceRestrictionSets()
     const locale = useLocale()
+    // Reports only inside /verify's flow; the profile page's drawer has no KYC screen around it.
+    const control = useKycControl('change-residence')
     const [selected, setSelected] = useState<string>(pending ?? declared ?? verified ?? '')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -153,7 +156,9 @@ const ResidenceChangeDrawer = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (isOpen) return
+                control.track('change_residence', 'dismiss')
+                onClose()
             }}
         >
             <DrawerContent>
@@ -172,7 +177,10 @@ const ResidenceChangeDrawer = ({
                             options={countryOptions}
                             placeholder={t('countryPlaceholder')}
                             value={selected || undefined}
-                            onValueChange={setSelected}
+                            onValueChange={(country) => {
+                                control.track('residence_country', 'select', country)
+                                setSelected(country)
+                            }}
                         />
                         {differsFromVerified && (
                             <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
@@ -202,7 +210,10 @@ const ResidenceChangeDrawer = ({
                             shadowSize="4"
                             className="mt-1 w-full justify-center"
                             disabled={isSaving || !selected || !userId}
-                            onClick={() => void save(false)}
+                            onClick={() => {
+                                control.track('save', 'tap')
+                                void save(false)
+                            }}
                         >
                             {isSaving ? tCommon('loading') : lost.length > 0 ? t('saveAnyway') : t('save')}
                         </Button>
@@ -211,7 +222,10 @@ const ResidenceChangeDrawer = ({
                                 variant="secondary"
                                 className="w-full justify-center"
                                 disabled={isSaving}
-                                onClick={() => void save(true)}
+                                onClick={() => {
+                                    control.track('save_and_reverify', 'tap')
+                                    void save(true)
+                                }}
                             >
                                 {t('saveAndReverify')}
                             </Button>

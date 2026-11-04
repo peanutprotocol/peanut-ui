@@ -7,6 +7,7 @@ import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { FeatureAction } from './FeatureAction'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { FeatureReadyScreen } from './components/StatusScreens'
+import { useKycControl } from './analytics'
 
 export function KycFeatureActivationStatus({
     feature,
@@ -22,6 +23,7 @@ export function KycFeatureActivationStatus({
     onBack: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('feature-status', 'kyc_status')
     const tKyc = useTranslations('kyc')
     const report = result?.kind === 'report' ? result.report : null
     if (report?.state === 'action_required' && report.action?.startsWith('supplement:')) {
@@ -38,6 +40,7 @@ export function KycFeatureActivationStatus({
         return <FeatureReadyScreen feature={feature} onDone={onBack} />
     return (
         <VerifyHeroLayout
+            screenId="feature-status"
             pose={failed || refused ? 'sad' : 'thinking'}
             onBack={onBack}
             title={
@@ -68,7 +71,11 @@ export function KycFeatureActivationStatus({
                             className="w-full"
                             loading={isLoading}
                             disabled={isLoading}
-                            onClick={failed || consent ? onRetry : onBack}
+                            onClick={() => {
+                                controls.track(consent ? 'continue' : failed ? 'retry' : 'done', 'tap')
+                                if (failed || consent) onRetry()
+                                else onBack()
+                            }}
                         >
                             {consent ? t('continue') : failed ? t('loadFailed.retry') : t('addLater.doneCta')}
                         </Button>

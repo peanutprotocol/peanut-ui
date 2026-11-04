@@ -10,6 +10,7 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { DocumentRequestState } from '@/components/Kyc/DocumentRequestState'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 type Variant =
     | 'pending'
@@ -83,6 +84,13 @@ interface SelfServeAction {
     onClick: () => void
 }
 
+const SELF_SERVE_CONTROLS = {
+    proofOfAddress: 'upload_proof_of_address',
+    identity: 'upload_identity',
+    taxId: 'tax_id',
+    birthDate: 'birth_date',
+} as const satisfies Record<SelfServeKind, string>
+
 /** A self-serve step on the screen replaces the support line with what to do. */
 const REQUIRES_INFO_BODY_KEYS = {
     proofOfAddress: 'status.requiresInfoProofOfAddressBody',
@@ -115,6 +123,17 @@ const ApplicationStatusScreen: FC<Props> = ({
     uploadError,
     onPrev,
 }) => {
+    const isProviderRequest = variant === 'requires-info'
+    const { track } = useKycControl(
+        isProviderRequest ? 'provider-request' : 'card-status',
+        isProviderRequest ? 'kyc_provider_request' : 'kyc_status'
+    )
+    const handleBack = onPrev
+        ? () => {
+              track('back', 'tap')
+              onPrev()
+          }
+        : undefined
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
@@ -152,7 +171,7 @@ const ApplicationStatusScreen: FC<Props> = ({
     )
         return (
             <PageStack>
-                <NavHeader title={t('navAddCard')} onPrev={onPrev} />
+                <NavHeader title={t('navAddCard')} onPrev={handleBack} />
                 <PageStack.Center>
                     <DocumentRequestState
                         reason={reasonText}
@@ -167,7 +186,7 @@ const ApplicationStatusScreen: FC<Props> = ({
         )
     return (
         <PageStack>
-            <NavHeader title={t('navAddCard')} onPrev={onPrev} />
+            <NavHeader title={t('navAddCard')} onPrev={handleBack} />
             <div className="my-auto flex flex-col items-center gap-6 text-center">
                 {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
                 {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
@@ -183,15 +202,24 @@ const ApplicationStatusScreen: FC<Props> = ({
                     <p className="text-foreground-secondary">{t(bodyKey)}</p>
                 </div>
                 {variant === 'geo-blocked' && (
-                    <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
+                    <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external onClick={() => track('policy', 'tap')}>
                         {t('status.geoBlockedPolicyLink')}
                     </LinkButton>
                 )}
                 {variant === 'pending-residence-blocked' && (
-                    <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
+                    <LinkButton href={RESIDENCE_CHANGE_URL} onClick={() => track('change_residence', 'tap')}>
+                        {t('status.pendingResidenceBlockedCta')}
+                    </LinkButton>
                 )}
                 {selfServeAction && (
-                    <Button variant="primary" className="w-full" onClick={selfServeAction.onClick}>
+                    <Button
+                        variant="primary"
+                        className="w-full"
+                        onClick={() => {
+                            track(SELF_SERVE_CONTROLS[selfServeAction.kind], 'tap')
+                            selfServeAction.onClick()
+                        }}
+                    >
                         {selfServeAction.label}
                     </Button>
                 )}
@@ -201,7 +229,14 @@ const ApplicationStatusScreen: FC<Props> = ({
                     </p>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
-                    <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
+                    <LinkButton
+                        onClick={() => {
+                            track('support', 'tap')
+                            onContactSupport()
+                        }}
+                    >
+                        {tCommon('contactSupport')}
+                    </LinkButton>
                 )}
             </div>
         </PageStack>

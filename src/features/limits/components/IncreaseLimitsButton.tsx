@@ -9,6 +9,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 import { isBrUserEligibleForLimitIncrease } from '../utils'
 
 const INCREASE_LIMITS_MESSAGE = 'Hi, I would like to increase my payment limits.'
@@ -58,14 +59,16 @@ export default function IncreaseLimitsButton() {
 
             {actionFlow.error && <p className="text-center text-body-xs text-foreground-error">{actionFlow.error}</p>}
 
-            <SumsubKycWrapper
-                visible={actionFlow.showWrapper}
-                accessToken={actionFlow.accessToken}
-                onClose={actionFlow.handleClose}
-                onComplete={actionFlow.handleSdkComplete}
-                onRefreshToken={actionFlow.refreshToken}
-                isMultiLevel
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={actionFlow.showWrapper}
+                    accessToken={actionFlow.accessToken}
+                    onClose={actionFlow.handleClose}
+                    onComplete={actionFlow.handleSdkComplete}
+                    onRefreshToken={actionFlow.refreshToken}
+                    isMultiLevel
+                />
+            </KycControlFlowProvider>
         </>
     )
 }

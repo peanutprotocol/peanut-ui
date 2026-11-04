@@ -21,6 +21,7 @@ import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 
 const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
 
@@ -404,39 +405,43 @@ export const CardPage: FC = () => {
                 />
                 {renderState()}
             </div>
-            <SumsubKycWrapper
-                visible={poaToken !== null}
-                accessToken={poaToken}
-                onClose={() => setPoaToken(null)}
-                onComplete={() => {
-                    // Document submitted to Sumsub. Review + the backend webhook
-                    // stamp happen async — flip the optimistic banner and refetch
-                    // so the screen picks up the backend's wait state when ready.
-                    setPoaToken(null)
-                    setPoaSubmitted(true)
-                    invalidateOverview()
-                    void fetchUser()
-                }}
-                onRefreshToken={async () => {
-                    const response = await initiateSelfHealResubmission('RAIN')
-                    if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
-                    return response.data.token
-                }}
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={poaToken !== null}
+                    accessToken={poaToken}
+                    onClose={() => setPoaToken(null)}
+                    onComplete={() => {
+                        // Document submitted to Sumsub. Review + the backend webhook
+                        // stamp happen async — flip the optimistic banner and refetch
+                        // so the screen picks up the backend's wait state when ready.
+                        setPoaToken(null)
+                        setPoaSubmitted(true)
+                        invalidateOverview()
+                        void fetchUser()
+                    }}
+                    onRefreshToken={async () => {
+                        const response = await initiateSelfHealResubmission('RAIN')
+                        if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
+                        return response.data.token
+                    }}
+                />
+            </KycControlFlowProvider>
             <SumsubKycModals flow={kycFlow} />
-            <SumsubKycWrapper
-                sessionKey={informationSession?.key}
-                visible={informationSession !== null}
-                accessToken={informationSession?.token ?? null}
-                onClose={() => setInformationSession(null)}
-                onComplete={() => {
-                    markSubmitted()
-                    setInformationSession(null)
-                    invalidateOverview()
-                    void fetchUser()
-                }}
-                onRefreshToken={refreshInformationToken}
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    sessionKey={informationSession?.key}
+                    visible={informationSession !== null}
+                    accessToken={informationSession?.token ?? null}
+                    onClose={() => setInformationSession(null)}
+                    onComplete={() => {
+                        markSubmitted()
+                        setInformationSession(null)
+                        invalidateOverview()
+                        void fetchUser()
+                    }}
+                    onRefreshToken={refreshInformationToken}
+                />
+            </KycControlFlowProvider>
             <IdentityCheckIntroScreen
                 visible={showCardIntro}
                 hasQuestions

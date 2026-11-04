@@ -1,8 +1,8 @@
 'use client'
 
-import { createContext, useCallback, useContext } from 'react'
+import { createContext, useCallback, useContext, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
-import type { AnalyticsEvent } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS, type AnalyticsEvent } from '@/constants/analytics.consts'
 import type {
     PaperworkVerificationFeature,
     PaperworkVerificationStep,
@@ -16,6 +16,9 @@ import type {
  * field key and the error code, and never carries what was typed or picked:
  * the funnel can say "the CPF field is refused 30% of the time on Brazil's tax
  * step", never whose CPF. Search events send the query length, not the query.
+ * `control_used` is the one exception, asked for its control funnel (2026-11-03):
+ * a picker's option code, never typed text. A declaration sends only that it
+ * was toggled, never its answer.
  */
 export interface PaperworkVerificationTrackingContext {
     flow: 'paperwork_verification' | 'add_later'
@@ -32,6 +35,69 @@ export interface PaperworkVerificationTrackingContext {
 const Context = createContext<PaperworkVerificationTrackingContext | null>(null)
 export const PaperworkVerificationTrackingProvider = Context.Provider
 export const usePaperworkVerificationTrackingContext = () => useContext(Context)
+
+export type KycControlAction = 'tap' | 'open' | 'dismiss' | 'select' | 'change' | 'error' | 'toggle'
+/** The `flow` of a KYC surface outside the verification flow's tracking provider. */
+export type KycControlFlow = 'kyc_status' | 'kyc_legacy' | 'kyc_provider_request'
+
+const ControlScreenContext = createContext<string | null>(null)
+/** The screen a control sits on, so a picker or drawer deep inside a screen needs no prop. */
+export const KycControlScreenProvider = ControlScreenContext.Provider
+const ControlFlowContext = createContext<KycControlFlow | null>(null)
+/** The flow of a surface outside the verification flow, for the shared controls it renders. */
+export const KycControlFlowProvider = ControlFlowContext.Provider
+
+/**
+ * One use of a KYC control (CONTROL_USED), sent beside the screen's own events.
+ * Inside the verification flow it carries that flow's context, elsewhere the
+ * surface's fixed flow; with neither, or no screen, it sends nothing.
+ * `value` is an option code, never what the user typed.
+ */
+export function trackKycControl(
+    where: { ctx: PaperworkVerificationTrackingContext | null; flow?: KycControlFlow | null; screenId?: string | null },
+    control: string,
+    action: KycControlAction,
+    value?: string
+): void {
+    const { ctx, flow, screenId } = where
+    if (!screenId || (!ctx && !flow)) return
+    try {
+        posthog.capture(ANALYTICS_EVENTS.CONTROL_USED, {
+            ...(ctx ? baseProperties(ctx) : { flow }),
+            screen_id: screenId,
+            control,
+            action,
+            ...(value !== undefined && { value }),
+        })
+    } catch {
+        // Analytics never breaks a verification step.
+    }
+}
+
+/** `trackKycControl` for the screen in view; `fallbackFlow` applies outside the flow and any surface's own flow. */
+export function useKycControl(screenId?: string, fallbackFlow?: KycControlFlow) {
+    const ctx = useContext(Context)
+    const scopedScreen = useContext(ControlScreenContext)
+    const scopedFlow = useContext(ControlFlowContext)
+    const sentOnce = useRef(new Set<string>())
+    const screen = screenId ?? scopedScreen
+    const flow = scopedFlow ?? fallbackFlow
+
+    return useMemo(() => {
+        const track = (control: string, action: KycControlAction, value?: string) =>
+            trackKycControl({ ctx, flow, screenId: screen }, control, action, value)
+        return {
+            track,
+            /** Once per mount, so a field reports that it was edited, not every keystroke. */
+            trackOnce: (control: string, action: KycControlAction) => {
+                const key = `${control}:${action}`
+                if (sentOnce.current.has(key)) return
+                sentOnce.current.add(key)
+                track(control, action)
+            },
+        }
+    }, [ctx, screen, flow])
+}
 
 const baseProperties = (ctx: PaperworkVerificationTrackingContext | null) =>
     ctx

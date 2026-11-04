@@ -248,8 +248,16 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     // The signup prelude's wrapper paints the native status bar and leaves it painted.
     useEffect(() => restoreNativeStatusBar, [])
 
-    if (state.kind === 'loading') return <VerifyLoading onBack={exit} />
-    if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+    if (state.kind === 'loading' || state.kind === 'failed')
+        return (
+            <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
+                {state.kind === 'loading' ? (
+                    <VerifyLoading onBack={exit} />
+                ) : (
+                    <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+                )}
+            </PaperworkVerificationTrackingProvider>
+        )
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
     return (
         <PaperworkVerificationSteps

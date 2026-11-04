@@ -15,9 +15,12 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { ANALYTICS_EVENTS, type AnalyticsEvent } from '@/constants/analytics.consts'
 import {
+    KycControlScreenProvider,
     secondsSince,
     stepsLabel,
+    trackKycControl,
     trackPaperworkVerification,
+    useKycControl,
     usePaperworkVerificationTrack,
     usePaperworkVerificationTrackingContext,
     PaperworkVerificationTrackingProvider,
@@ -107,11 +110,13 @@ export function trackSaveOutcome(
 export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId | 'nationality'> }) {
     const t = useTranslations('kyc.paperworkVerification')
     const track = usePaperworkVerificationTrack()
+    const control = useKycControl()
     const [open, setOpen] = useState(false)
     return (
         <>
             <LinkButton
                 onClick={() => {
+                    control.track('why', 'open')
                     setOpen(true)
                     track(ANALYTICS_EVENTS.KYC_PV_WHY_OPENED, { steps: steps.join('+') })
                 }}
@@ -119,7 +124,13 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
             >
                 {t('whyAsk')}
             </LinkButton>
-            <Drawer open={open} onOpenChange={setOpen}>
+            <Drawer
+                open={open}
+                onOpenChange={(next) => {
+                    if (!next) control.track('why', 'dismiss')
+                    setOpen(next)
+                }}
+            >
                 <DrawerContent>
                     <div className="flex flex-col gap-4 pb-4">
                         <DrawerTitle>{t('whyTitle')}</DrawerTitle>
@@ -129,7 +140,14 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
                             </p>
                         ))}
                         <p className="text-body-s text-foreground-secondary">{t('whyShared')}</p>
-                        <Button variant="secondary" shadowSize="4" onClick={() => setOpen(false)}>
+                        <Button
+                            variant="secondary"
+                            shadowSize="4"
+                            onClick={() => {
+                                control.track('why_got_it', 'tap')
+                                setOpen(false)
+                            }}
+                        >
                             {t('gotIt')}
                         </Button>
                     </div>
@@ -194,6 +212,8 @@ export function QuestionStepScreen({
     )
     const track = (event: AnalyticsEvent, properties?: Record<string, unknown>) =>
         trackPaperworkVerification(tracking, event, { steps: stepsLabel(steps), ...properties })
+    const screenId = stepsLabel(steps)
+    const tapped = (control: string) => trackKycControl({ ctx: tracking, screenId }, control, 'tap')
     const viewedAt = useRef(Date.now())
     const rejections = useRef(0)
     const flagged = useRef(new Set<string>())
@@ -202,6 +222,7 @@ export function QuestionStepScreen({
     const removingRef = useRef(false)
     const removeLocal = async () => {
         if (removingRef.current || form.saving) return
+        tapped('continue_without_local')
         removingRef.current = true
         setRemovingLocal(true)
         try {
@@ -274,6 +295,7 @@ export function QuestionStepScreen({
 
     const submit = async () => {
         if (!complete || removingRef.current || submitting.current) return
+        tapped('continue')
         submitting.current = true
         const seconds = secondsSince(viewedAt.current)
         track(ANALYTICS_EVENTS.KYC_PV_STEP_SUBMITTED, { seconds_on_step: seconds, rejected_before: rejections.current })
@@ -314,79 +336,83 @@ export function QuestionStepScreen({
 
     return (
         <PaperworkVerificationTrackingProvider value={tracking}>
-            <VerifyQuestionLayout
-                progress={progress}
-                onBack={back}
-                footer={
-                    <VerifyFooter
-                        actions={
-                            <Button
-                                shadowSize="4"
-                                className="w-full"
-                                onClick={() => void submit()}
-                                disabled={!complete || form.saving || removingLocal}
-                                loading={form.saving}
-                                data-testid="verify-continue"
-                            >
-                                {continueLabel ?? t('continue')}
-                            </Button>
-                        }
-                        secondary={<WhyWeAsk steps={steps.map(whyKeyOf)} />}
-                    >
-                        {onContinueWithoutLocal && Object.values(form.errors).includes('us_citizen_not_supported') && (
-                            <Button
-                                variant="secondary"
-                                className="w-full"
-                                onClick={() => void removeLocal()}
-                                loading={removingLocal}
-                                disabled={removingLocal || form.saving}
-                            >
-                                {t('continueWithoutLocal')}
-                            </Button>
-                        )}
-                        {(form.formMessage || form.formError) && (
-                            <Callout priority="error" className="w-full text-left" data-testid="verify-form-error">
-                                {form.formMessage ?? (form.formError && t(FORM_ERROR_KEYS[form.formError] as never))}
-                            </Callout>
-                        )}
-                    </VerifyFooter>
-                }
-            >
-                {title ? (
-                    <SetupTitleBlock title={title} description={description} size="s" />
-                ) : (
-                    heading && <SetupTitleBlock title={heading.title} description={heading.description} size="s" />
-                )}
-                <form
-                    className="contents"
-                    onSubmit={(e) => {
-                        e.preventDefault()
-                        void submit()
-                    }}
+            <KycControlScreenProvider value={screenId}>
+                <VerifyQuestionLayout
+                    progress={progress}
+                    onBack={back}
+                    footer={
+                        <VerifyFooter
+                            actions={
+                                <Button
+                                    shadowSize="4"
+                                    className="w-full"
+                                    onClick={() => void submit()}
+                                    disabled={!complete || form.saving || removingLocal}
+                                    loading={form.saving}
+                                    data-testid="verify-continue"
+                                >
+                                    {continueLabel ?? t('continue')}
+                                </Button>
+                            }
+                            secondary={<WhyWeAsk steps={steps.map(whyKeyOf)} />}
+                        >
+                            {onContinueWithoutLocal &&
+                                Object.values(form.errors).includes('us_citizen_not_supported') && (
+                                    <Button
+                                        variant="secondary"
+                                        className="w-full"
+                                        onClick={() => void removeLocal()}
+                                        loading={removingLocal}
+                                        disabled={removingLocal || form.saving}
+                                    >
+                                        {t('continueWithoutLocal')}
+                                    </Button>
+                                )}
+                            {(form.formMessage || form.formError) && (
+                                <Callout priority="error" className="w-full text-left" data-testid="verify-form-error">
+                                    {form.formMessage ??
+                                        (form.formError && t(FORM_ERROR_KEYS[form.formError] as never))}
+                                </Callout>
+                            )}
+                        </VerifyFooter>
+                    }
                 >
-                    <QuestionFields
-                        fields={fields}
-                        values={form.values}
-                        errors={errors}
-                        residence={residence}
-                        onChange={form.change}
-                        onFieldBlur={onFieldBlur}
-                        onChangeResidence={changeResidence}
-                        sentenceSize={compact ? 's' : 'm'}
-                        sentencesAsHeading={!titled}
-                        phonePartner={phonePartner(steps)}
-                        sections={steps.map((s) => ({ id: s.id, keys: s.fields.map((f) => f.key) }))}
-                    />
-                    {/* Return on the last typed field submits, as the CTA does. */}
-                    <button type="submit" className="sr-only" aria-hidden tabIndex={-1} />
-                </form>
-                {hint && (
-                    <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">
-                        <Icon name="info" size={16} className="mt-0.5 shrink-0" />
-                        {hint}
-                    </p>
-                )}
-            </VerifyQuestionLayout>
+                    {title ? (
+                        <SetupTitleBlock title={title} description={description} size="s" />
+                    ) : (
+                        heading && <SetupTitleBlock title={heading.title} description={heading.description} size="s" />
+                    )}
+                    <form
+                        className="contents"
+                        onSubmit={(e) => {
+                            e.preventDefault()
+                            void submit()
+                        }}
+                    >
+                        <QuestionFields
+                            fields={fields}
+                            values={form.values}
+                            errors={errors}
+                            residence={residence}
+                            onChange={form.change}
+                            onFieldBlur={onFieldBlur}
+                            onChangeResidence={changeResidence}
+                            sentenceSize={compact ? 's' : 'm'}
+                            sentencesAsHeading={!titled}
+                            phonePartner={phonePartner(steps)}
+                            sections={steps.map((s) => ({ id: s.id, keys: s.fields.map((f) => f.key) }))}
+                        />
+                        {/* Return on the last typed field submits, as the CTA does. */}
+                        <button type="submit" className="sr-only" aria-hidden tabIndex={-1} />
+                    </form>
+                    {hint && (
+                        <p className="flex items-start gap-2 text-body-s leading-5 text-foreground-secondary">
+                            <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+                            {hint}
+                        </p>
+                    )}
+                </VerifyQuestionLayout>
+            </KycControlScreenProvider>
         </PaperworkVerificationTrackingProvider>
     )
 }

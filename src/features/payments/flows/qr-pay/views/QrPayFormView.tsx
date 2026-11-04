@@ -22,6 +22,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { useLimits } from '@/hooks/useLimits'
@@ -113,14 +114,16 @@ export function QrPayFormView() {
 
     return (
         <>
-            <SumsubKycWrapper
-                visible={qrLimitIncreaseFlow.showWrapper}
-                accessToken={qrLimitIncreaseFlow.accessToken}
-                onClose={qrLimitIncreaseFlow.handleClose}
-                onComplete={qrLimitIncreaseFlow.handleSdkComplete}
-                onRefreshToken={qrLimitIncreaseFlow.refreshToken}
-                isMultiLevel
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={qrLimitIncreaseFlow.showWrapper}
+                    accessToken={qrLimitIncreaseFlow.accessToken}
+                    onClose={qrLimitIncreaseFlow.handleClose}
+                    onComplete={qrLimitIncreaseFlow.handleSdkComplete}
+                    onRefreshToken={qrLimitIncreaseFlow.refreshToken}
+                    isMultiLevel
+                />
+            </KycControlFlowProvider>
             <PageStack>
                 <NavHeader title={tNav('pay')} />
 

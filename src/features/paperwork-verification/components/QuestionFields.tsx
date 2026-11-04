@@ -21,6 +21,7 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { countryForPhone } from '../callingCodes'
+import { useKycControl } from '../analytics'
 import { useOptionLabel } from '../useOptionLabel'
 import { fieldErrorKey, formatTaxId, jobModeOf, looksLikeItin, maskedUntouched } from '../paperworkVerification.utils'
 import { AnswerPicker } from './AnswerPicker'
@@ -222,6 +223,11 @@ function TypedFields({
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const optionLabel = useOptionLabel()
+    const control = useKycControl()
+    const typedChange = (key: string, value: string) => {
+        control.trackOnce(key, 'change')
+        onChange(key, value)
+    }
     const byKey = useMemo(() => new Map(fields.map((f) => [f.key, f])), [fields])
     const select = (field: PaperworkVerificationField) => {
         const inputId = `${idPrefix}-${field.key}`
@@ -232,7 +238,10 @@ function TypedFields({
                 name={field.key}
                 className="input h-12 w-full px-4"
                 value={values[field.key] ?? ''}
-                onChange={(event) => onChange(field.key, event.target.value)}
+                onChange={(event) => {
+                    control.track(field.key, 'select', event.target.value || undefined)
+                    onChange(field.key, event.target.value)
+                }}
                 onBlur={() => onFieldBlur?.(field.key)}
                 required={field.required}
                 disabled={field.locked}
@@ -257,7 +266,7 @@ function TypedFields({
                 id={inputId}
                 name={field.key}
                 value={values[field.key] ?? ''}
-                onChange={(e) => onChange(field.key, e.target.value)}
+                onChange={(e) => typedChange(field.key, e.target.value)}
                 onBlur={() => onFieldBlur?.(field.key)}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${inputId}-error` : undefined}
@@ -344,7 +353,13 @@ function TypedFields({
                                 )
                             },
                             country.locked && onChangeResidence ? (
-                                <LinkButton onClick={onChangeResidence} data-testid="verify-change-residence">
+                                <LinkButton
+                                    onClick={() => {
+                                        control.track('change_residence', 'tap')
+                                        onChangeResidence()
+                                    }}
+                                    data-testid="verify-change-residence"
+                                >
                                     {t('labels.changeResidence')}
                                 </LinkButton>
                             ) : country.locked ? (
@@ -383,7 +398,13 @@ function TypedFields({
                 fieldFor(
                     tax,
                     (f) => input(f, { readOnly: true, value: f.value ?? '' }),
-                    <LinkButton onClick={() => onChange(tax.key, '')} data-testid="verify-tax-replace">
+                    <LinkButton
+                        onClick={() => {
+                            control.track(`${tax.key}_clear`, 'tap')
+                            onChange(tax.key, '')
+                        }}
+                        data-testid="verify-tax-replace"
+                    >
                         {t('tax.replace')}
                     </LinkButton>
                 )}
@@ -400,7 +421,7 @@ function TypedFields({
                             placeholder: t(`tax.placeholder.${taxFormat ?? 'other'}` as never),
                             enterKeyHint: 'done',
                             maxLength: 30,
-                            onChange: (e) => onChange(f.key, formatTaxId(taxFormat, e.target.value)),
+                            onChange: (e) => typedChange(f.key, formatTaxId(taxFormat, e.target.value)),
                             'aria-invalid': itin || errorText(f.key) ? true : undefined,
                         }),
                     itin ? undefined : t(`tax.help.${taxFormat ?? 'other'}` as never)
@@ -426,7 +447,10 @@ function TypedFields({
                                         trailing={
                                             <Toggle
                                                 checked={values[f.key] === 'yes'}
-                                                onChange={(on) => onChange(f.key, on ? 'yes' : 'no')}
+                                                onChange={(on) => {
+                                                    control.track(f.key, 'toggle')
+                                                    onChange(f.key, on ? 'yes' : 'no')
+                                                }}
                                                 aria-label={title}
                                                 data-testid={`verify-toggle-${f.key}`}
                                             />

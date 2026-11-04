@@ -9,6 +9,7 @@ import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { SumsubHelpModal } from './SumsubHelpModal'
 import { useSumsubWebSdk } from './useSumsubWebSdk'
 import type { SumsubSdkProps, SumsubHelpModalVariant } from './sumsubSdk.types'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 /**
  * The web (non-Capacitor) Sumsub driver: full-screen modal hosting the WebSDK
@@ -28,6 +29,7 @@ export const SumsubWebSdkModal = ({
     onRefreshToken,
     isMultiLevel,
 }: SumsubSdkProps) => {
+    const { track } = useKycControl('id-check', 'kyc_legacy')
     const [isHelpModalOpen, setIsHelpModalOpen] = useState(false)
     const [modalVariant, setModalVariant] = useState<SumsubHelpModalVariant>('trouble')
     const t = useTranslations('kyc')
@@ -49,13 +51,14 @@ export const SumsubWebSdkModal = ({
     // you want to stop?" modal is misleading — they're done, not abandoning.
     // Skip straight to onClose in that case.
     const handleCloseButton = useCallback(() => {
+        track('close', 'tap')
         if (hasSubmittedRef.current) {
             onClose()
             return
         }
         setModalVariant('stop-verification')
         setIsHelpModalOpen(true)
-    }, [onClose, hasSubmittedRef])
+    }, [onClose, hasSubmittedRef, track])
 
     const dismissHelpModal = useCallback(() => setIsHelpModalOpen(false), [])
 
@@ -78,6 +81,7 @@ export const SumsubWebSdkModal = ({
                     <div className="flex h-full flex-col">
                         <VerificationFrameHeader
                             onSupport={() => {
+                                track('help', 'open')
                                 setModalVariant('trouble')
                                 setIsHelpModalOpen(true)
                             }}

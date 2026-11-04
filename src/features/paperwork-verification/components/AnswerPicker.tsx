@@ -4,7 +4,7 @@ import { twMerge } from '@/utils/tw'
 
 import { forwardRef, useEffect, useMemo, useRef, useState, type ComponentPropsWithoutRef } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { usePaperworkVerificationTrack } from '../analytics'
+import { usePaperworkVerificationTrack, useKycControl } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -167,6 +167,7 @@ export function AnswerPicker({
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
     const track = usePaperworkVerificationTrack()
+    const control = useKycControl()
     const chose = useRef(false)
     const searched = useRef(false)
     const reportedEmpty = useRef(false)
@@ -213,11 +214,13 @@ export function AnswerPicker({
     const openChange = (next: boolean) => {
         if (next === open) return
         if (next) {
+            control.track(field.key, 'open')
             chose.current = false
             searched.current = false
             reportedEmpty.current = false
             track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, { field: field.key, had_answer: !!value })
         } else {
+            if (!chose.current) control.track(field.key, 'dismiss')
             track(ANALYTICS_EVENTS.KYC_PV_PICKER_CLOSED, {
                 field: field.key,
                 chose: chose.current,
@@ -227,6 +230,7 @@ export function AnswerPicker({
         setOpen(next)
     }
     const choose = (option: string) => {
+        control.track(field.key, 'select', option)
         chose.current = true
         onChange(option)
         openChange(false)
@@ -279,6 +283,7 @@ export function AnswerPicker({
                                 autoComplete="off"
                                 value={query}
                                 onChange={(e) => {
+                                    control.trackOnce(`${field.key}_search`, 'change')
                                     searched.current = true
                                     setQuery(e.target.value)
                                 }}
