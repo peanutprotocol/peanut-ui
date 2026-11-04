@@ -25,7 +25,7 @@ import type {
     FeatureReportEntry,
 } from '@/types/capabilities'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { entryAction, reportEntry, UNKNOWN_REPORT, VERIFY_ACTION } from '@/features/kyc-features/report'
+import { entryAction, isUnmappedEntry, reportEntry, VERIFY_ACTION } from '@/features/kyc-features/report'
 
 /**
  * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
@@ -245,6 +245,38 @@ export function railUserMessage(rail: RailCapability): string | null {
     return rail.resolved?.blocking?.userMessage || rail.reason?.userMessage || null
 }
 
+/** Read operation status with rail-level fallback (per the contract's `operations?.[op] ?? status` semantics). */
+function operationStatus(rail: RailCapability, op: RailOperation): RailCapability['status'] {
+    return rail.operations?.[op] ?? rail.status
+}
+
+/** verdict-carrying candidate — computed once per derive, shared across branches */
+interface RailWithVerdict {
+    rail: RailCapability
+    verdict: ResolvedRail
+}
+
+/** message helper over a computed candidate (avoids re-deriving inside the ladder) */
+function verdictMessage({ rail, verdict }: RailWithVerdict): string | null {
+    return verdict.blocking?.userMessage || rail.reason?.userMessage || null
+}
+
+/**
+ * The most-urgent advisory pre-empt among the given (ready) rails — the
+ * verdict nextAction carrying the earliest `effectiveDate`. Returns undefined
+ * when no rail has a future-dated hint.
+ */
+function firstAdvisory(candidates: RailWithVerdict[]): GateAdvisory | undefined {
+    let best: NextAction | undefined
+    for (const { verdict } of candidates) {
+        const action = verdict.nextAction
+        if (!action?.effectiveDate) continue
+        if (!best || action.effectiveDate < best.effectiveDate!) best = action
+    }
+    if (!best) return undefined
+    return { effectiveDate: best.effectiveDate!, actionKey: best.key, requirementKey: best.requirementKey }
+}
+
 /**
  * Purposes the Manteca cap-nudge is emitted under (peanut-api-ts
  * `kyc/capabilities/resolver.ts`). A full-tier Manteca rail that recently hit
@@ -334,8 +366,14 @@ export function selectMantecaCapNudge(rails: RailCapability[], nextActions: Next
 export interface CapabilityState {
     rails: RailCapability[]
     nextActions: NextAction[]
-    /** The API's feature report: the gate's one answer. Absent until the API sends it. */
+    /**
+     * The API's feature report: the gate's one answer. Absent until the API
+     * sends it, and from an API that predates it (a rollback): the gate then
+     * reads the rails, as it did before the report.
+     */
     features?: FeatureReport
+    /** identityVerification.status === 'verified' — NOT any-rail-enabled. */
+    identityVerified?: boolean
     /** True until the user query settles. Holds the gate in 'loading'. */
     isLoading: boolean
 }
@@ -383,6 +421,7 @@ export function capabilityStateForProfile(user: IUserProfile | null | undefined,
         rails: user?.capabilities?.rails ?? [],
         nextActions: user?.capabilities?.nextActions ?? [],
         features: user?.capabilities?.features,
+        identityVerified: user?.identityVerification?.status === 'verified',
         isLoading,
     }
 }
@@ -403,12 +442,113 @@ function supportCaseGate(
  * The gate for one operation in one scope: the API's feature report entry for
  * that scope (the account a method, rail or country opens, else the feature
  * the operation is), in the gate's words. The API decides; the gate names it.
- * While the user query settles the gate stays `loading`; a report the API has
- * not sent offers nothing and refuses nothing (`pending`).
+ * While the user query settles the gate stays `loading`. An API that sends no
+ * report (one rolled back past it) is read through its rails
+ * ({@link deriveGateFromRails}), so a working method stays working.
  */
 export function deriveGate(state: CapabilityState, op: RailOperation, scope: GateScope = {}): GateState {
     if (state.isLoading) return { kind: 'loading' }
-    return gateFromEntry(reportEntry(state.features ?? UNKNOWN_REPORT, op, scope, state.rails), state)
+    if (!state.features) return deriveGateFromRails(state, op, scope)
+    const entry = reportEntry(state.features, op, scope, state.rails)
+    // A verified identity with no account of this kind to open is an enrollment, not a new identity check.
+    if (isUnmappedEntry(entry) && state.identityVerified) return { kind: 'needs-enrollment' }
+    return gateFromEntry(entry, state)
+}
+
+/**
+ * The gate over the per-rail VERDICT, for an API that sends no feature report.
+ * Priority order:
+ *
+ *   ready (an in-scope rail enabled for the op, above every blocker) →
+ *   provide-email → restart-identity / blocked-rejection → accept-tos →
+ *   fixable-rejection with a step → pending → fixable-rejection without one →
+ *   waiting-on-provider → needs-identity (identity not verified) →
+ *   needs-enrollment (identity verified, no rail in scope).
+ */
+function deriveGateFromRails(state: CapabilityState, op: RailOperation, scope: GateScope): GateState {
+    const actionByKey = new Map(state.nextActions.map((action) => [action.key, action]))
+    const candidates: RailWithVerdict[] = filterRailsByScope(state.rails, scope).map((rail) => ({
+        rail,
+        verdict: railVerdict(rail, actionByKey),
+    }))
+
+    // 2. ready — per-op refinement wins over rail-level status.
+    const readyRails = candidates.filter(({ rail }) => operationStatus(rail, op) === 'enabled')
+    if (readyRails.length > 0) {
+        // A working rail can still carry a future-dated requirement as a
+        // non-blocking hint — surface it as a SKIPPABLE pre-empt without
+        // demoting `ready` (the rail is usable now).
+        const advisory = firstAdvisory(readyRails)
+        return advisory ? { kind: 'ready', advisory } : { kind: 'ready' }
+    }
+
+    // 3. provide-email
+    const emailFix = candidates.find(({ verdict }) => verdict.blocking?.selfHealKind === 'provide-email')
+    if (emailFix) {
+        return { kind: 'provide-email', userMessage: verdictMessage(emailFix), reason: emailFix.rail.reason }
+    }
+
+    // 4. blocked family — decided on the FIRST blocked verdict in scope, so an
+    // account-wide terminal block wins over a sibling's restart-identity CTA
+    // (re-verifying cannot unblock a terminal rail and burns Sumsub attempts).
+    const blocked = candidates.find(({ verdict }) => verdict.status === 'blocked')
+    if (blocked) {
+        if (blocked.verdict.blocking?.selfHealKind === 'restart-identity') {
+            return { kind: 'restart-identity', userMessage: verdictMessage(blocked), reason: blocked.rail.reason }
+        }
+        return { kind: 'blocked-rejection', userMessage: verdictMessage(blocked), reason: blocked.rail.reason }
+    }
+
+    const fixables = candidates.filter(({ verdict }) => verdict.status === 'fixable')
+
+    // 5. accept-tos
+    const tos = fixables.find(({ verdict }) => verdict.nextAction?.kind === 'accept-tos')
+    if (tos) {
+        return {
+            kind: 'accept-tos',
+            tosUrl: tos.verdict.nextAction?.tosUrl,
+            userMessage: verdictMessage(tos),
+            reason: tos.rail.reason,
+        }
+    }
+
+    // 6. fixable with a concrete action (Sumsub RFI / restart) — the user has a
+    // step to take now, so it outranks provisioning
+    const actionableFixable = fixables.find(({ verdict }) => verdict.nextAction !== undefined)
+    if (actionableFixable) {
+        return {
+            kind: 'fixable-rejection',
+            userMessage: verdictMessage(actionableFixable),
+            reason: actionableFixable.rail.reason,
+            actionKey: actionableFixable.verdict.nextAction?.key,
+        }
+    }
+
+    // 7. pending — BE is provisioning, no user action needed
+    const hasPending = candidates.some(
+        ({ verdict }) => verdict.status === 'pending' && verdict.nextAction?.kind !== 'wait'
+    )
+    if (hasPending) return { kind: 'pending' }
+
+    // 8. action-less fixable (the document-punt tier): completable via the
+    // resubmit endpoint but with nothing concrete to click — ranked below
+    // pending (matches the old 7b placement: mid-provisioning wins).
+    if (fixables.length > 0) {
+        return { kind: 'fixable-rejection', userMessage: verdictMessage(fixables[0]), reason: fixables[0].rail.reason }
+    }
+
+    // 9. waiting-on-provider — only wait-marked verdicts remain in scope
+    const waiting = candidates.find(
+        ({ verdict }) => verdict.status === 'pending' && verdict.nextAction?.kind === 'wait'
+    )
+    if (waiting) {
+        return { kind: 'waiting-on-provider', userMessage: verdictMessage(waiting), reason: waiting.rail.reason }
+    }
+
+    // 10/11. no functional rail in scope. Distinguish identity-not-cleared vs
+    // identity-cleared-but-no-rail-for-this-scope (needs enrollment / cross-region).
+    if (!state.identityVerified) return { kind: 'needs-identity' }
+    return { kind: 'needs-enrollment' }
 }
 
 /** A report entry in the gate's words, with the action's own details (terms URL, the step to start). */

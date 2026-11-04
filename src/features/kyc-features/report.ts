@@ -34,6 +34,14 @@ export const UNKNOWN_REPORT: FeatureReport = {
     card: UNKNOWN,
 }
 
+/**
+ * The entry for a scope that names no account the report knows (a country or
+ * currency with no rail). It asks for identity first; a gate that knows the
+ * identity is verified reads it as an enrollment instead ({@link isUnmappedEntry}).
+ */
+const UNMAPPED: FeatureReportEntry = Object.freeze({ state: 'action_required', action: VERIFY_ACTION })
+export const isUnmappedEntry = (entry: FeatureReportEntry): boolean => entry === UNMAPPED
+
 /** The account a bank method opens. A catalog fact: which currency a rail carries. */
 const METHOD_ACCOUNTS: Readonly<Record<string, { feature: 'bank' | 'local'; currency: string }>> = {
     ACH_US: { feature: 'bank', currency: 'USD' },
@@ -66,10 +74,7 @@ export function accountEntry(report: FeatureReport, feature: 'bank' | 'local', c
     const known = Object.values(METHOD_ACCOUNTS).some(
         (account) => account.feature === feature && account.currency === currency
     )
-    return (
-        report[feature].accounts[currency] ??
-        (known ? report[feature] : { state: 'action_required', action: VERIFY_ACTION })
-    )
+    return report[feature].accounts[currency] ?? (known ? report[feature] : UNMAPPED)
 }
 
 /**
@@ -103,7 +108,7 @@ export function reportEntry(
             : undefined) ??
         (country ? COUNTRY_ACCOUNTS[country] : undefined)
     if (account) return accountEntry(report, account.feature as 'bank' | 'local', account.currency)
-    if (scope.railId || scope.method || scope.country) return { state: 'action_required', action: VERIFY_ACTION }
+    if (scope.railId || scope.method || scope.country) return UNMAPPED
     if (provider === 'manteca') return report.local
     if (provider === 'bridge') return report.bank
     if (op === 'pay' && !scope.channel) return report.qr
