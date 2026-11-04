@@ -1926,13 +1926,18 @@
         },
         "physical": {
             "navTitle": "Physical card",
-            "onListTitle": "You are on the list!",
-            "onListBody": "You are #{position} on the list. We'll let you know when cards are ready to be shipped.",
-            "comingSoonTitle": "Coming soon!",
-            "comingSoonBody": "Join our waiting list and be amongst the first to get it.",
-            "joinCta": "Join waiting list",
+            "onListTitle": "You're on the waiting list",
+            "onListBody": "We'll tell you as soon as you can order it.",
+            "comingSoonTitle": "The physical card is on its way",
+            "comingSoonBody": "You can't order it yet. Here's how it will work:",
+            "joinCta": "Join the waiting list",
             "joinFailed": "Failed to join waitlist",
-            "onListBodyPending": "You are on the list. We'll let you know when cards are ready to be shipped."
+            "stepJoin": "Join the waiting list today",
+            "stepNotify": "We'll tell you when ordering opens",
+            "stepShip": "Order it and we'll ship it to you",
+            "notAvailableBadge": "Not available yet",
+            "positionBadge": "You're #{position} on the list",
+            "onListBadge": "You're on the list"
         },
         "yourCard": {
             "navTitle": "Card",

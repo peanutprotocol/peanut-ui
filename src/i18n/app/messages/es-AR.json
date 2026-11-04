@@ -1012,8 +1012,11 @@
             "description": "Revisá y aceptá"
         },
         "physical": {
-            "onListBody": "Sos el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "comingSoonBody": "Unite a nuestra lista de espera y sé de los primeros en tenerla."
+            "onListBody": "Te avisamos apenas puedas pedirla.",
+            "comingSoonBody": "Todavía no podés pedirla. Así va a funcionar:",
+            "stepJoin": "Unite hoy a la lista de espera",
+            "stepShip": "Pedila y te la enviamos",
+            "positionBadge": "Sos el #{position} en la lista"
         },
         "yourCard": {
             "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contactá a soporte para saldarla.",

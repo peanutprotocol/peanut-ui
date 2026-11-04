@@ -1,7 +1,7 @@
 {
     "budget": 60,
     "screens": {
-        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 421,
+        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 420,
         "app/(mobile-ui)/add-money/[country]/bank/page.tsx": 229,
         "app/(mobile-ui)/add-money/[country]/page.tsx": 404,
         "app/(mobile-ui)/badges/page.tsx": 114,
@@ -20,7 +20,7 @@
         "app/(mobile-ui)/withdraw/[country]/bank/page.tsx": 229,
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 404,
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 127,
-        "app/(mobile-ui)/withdraw/manteca/page.tsx": 628,
+        "app/(mobile-ui)/withdraw/manteca/page.tsx": 627,
         "app/(setup)/setup/finish/page.tsx": 68,
         "app/[...recipient]/page.tsx": 177,
         "app/invite/page.tsx": 91,
@@ -31,7 +31,7 @@
         "components/Card/CancelCardModal.tsx": 87,
         "components/Card/CardPinScreen.tsx": 105,
         "components/Card/CardTermsScreen.tsx": 118,
-        "components/Card/PhysicalCardScreen.tsx": 80,
+        "components/Card/PhysicalCardScreen.tsx": 92,
         "components/Card/YourCardScreen.tsx": 259,
         "components/Claim/Link/Initial.view.tsx": 286,
         "components/Claim/Link/Onchain/Success.view.tsx": 191,
