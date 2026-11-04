@@ -3,7 +3,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
-import { getTokenDetails } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'

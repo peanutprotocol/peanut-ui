@@ -28,6 +28,9 @@ jest.mock('@/app/actions/currency', () => ({ getCachedCurrencyPrice: jest.fn() }
 const mockGetCachedCurrencyPrice = getCachedCurrencyPrice as jest.Mock
 jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: jest.fn(() => null),
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
     getTokenDetails: jest.fn(() => ({ symbol: 'USDC', decimals: 6 })),
 }))
 
