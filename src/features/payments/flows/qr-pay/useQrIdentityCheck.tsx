@@ -33,6 +33,7 @@ export function useQrIdentityCheck(): { start: () => void; modals: ReactNode } {
             isLoading: isLoading || !user,
             features: capabilities.features,
             nextActions,
+            rails: capabilities.rails,
         }).kycGateState === QrKycState.PROCEED_TO_PAY
     // An approved user whose identity evidence is missing: the start route
     // answers "already approved" and opens nothing, so this is the restart.
