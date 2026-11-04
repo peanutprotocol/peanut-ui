@@ -17,6 +17,8 @@ export interface UsEuAccountCaptureProps {
     /** The outer corner the sign sits on: the ones clear of the Knerd above and of the other card. */
     badgeCorner: 'bottom-left' | 'top-right'
     className?: string
+    /** The page's LCP image: preloaded at high fetch priority. Every other capture loads lazily. */
+    priority?: boolean
 }
 
 /** One row of the How it works timeline: a clock time beside a drawn moment. */
@@ -44,6 +46,8 @@ export interface UsEuAccountPairProps {
     className?: string
     /** Analytics surface of the click; STAR_LP by default. */
     surface?: MigrationSurface
+    /** Set where the pair is the hero art: the USD capture (the LCP image) loads first. */
+    priority?: boolean
 }
 
 /** The words on the request strips, in the page language. `{username}` in `requesting`,
