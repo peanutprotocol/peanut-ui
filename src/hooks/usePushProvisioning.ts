@@ -18,6 +18,22 @@ import {
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
 
+const AVAILABILITY_TIMEOUT_MS = 5000
+
+async function getBoundedPushProvisioningAvailability(last4: string) {
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    try {
+        return await Promise.race([
+            getPushProvisioningAvailability(last4).catch(() => null),
+            new Promise<null>((resolve) => {
+                timeout = setTimeout(() => resolve(null), AVAILABILITY_TIMEOUT_MS)
+            }),
+        ])
+    } finally {
+        if (timeout !== undefined) clearTimeout(timeout)
+    }
+}
+
 /**
  * Native one-tap add-to-wallet (Apple Pay / Google Pay via MeaWallet MPP).
  * `nativeAvailable` is false on web, on binaries without the SDK, behind the
@@ -51,6 +67,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
 
     useEffect(() => {
         let cancelled = false
+        const authEpochAtStart = getClearEpoch()
         setAlreadyInWallet(false)
         if (!flagOn || wallet === null) {
             setNativeAvailable(false)
@@ -61,11 +78,16 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             if (cancelled) return
             cancelled = true
             setCheckedScope(availabilityScope)
-        }, 5000)
+        }, AVAILABILITY_TIMEOUT_MS)
         void (async () => {
             const { available, alreadyInWallet: suffixMatch } = await getPushProvisioningAvailability(card.last4)
             if (cancelled) return
             clearTimeout(timeout)
+            if (getClearEpoch() !== authEpochAtStart) {
+                setNativeAvailable(false)
+                setCheckedScope(availabilityScope)
+                return
+            }
             // Only the native add result identifies this card on this device.
             setNativeAvailable(wallet === 'google' ? available || suffixMatch : available)
             setCheckedScope(availabilityScope)
@@ -96,6 +118,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
                 const loggedOut = getClearEpoch() !== authEpochAtStart
                 if (availabilityScopeRef.current === scopeAtStart && !loggedOut) return null
+                if (loggedOut && availabilityScopeRef.current === scopeAtStart) {
+                    setNativeAvailable(false)
+                    setAlreadyInWallet(false)
+                }
                 const currentSelection = () =>
                     (availabilityScopeRef.current === '' && getWalletProvisioningOwner()) || latestSelectionRef.current
                 const latest = currentSelection()
@@ -146,6 +172,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 last4: data.last4,
                 address: data.billingAddress,
             })
+            // A native sheet already started cannot be undone, but its late
+            // result must not update a cleared or replaced app session.
+            const staleAfterAdd = await cancelStaleAdd(wallet === 'apple')
+            if (staleAfterAdd) return staleAfterAdd
             posthog.capture(
                 result.alreadyInWallet
                     ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_ALREADY_ADDED
@@ -167,7 +197,9 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 // take it. Recheck both devices instead of hiding the native row.
                 // An availability failure must not turn a successful add into a
                 // reported provisioning failure.
-                const availability = await getPushProvisioningAvailability(card.last4).catch(() => null)
+                const availability = await getBoundedPushProvisioningAvailability(card.last4)
+                const staleAfterRefresh = await cancelStaleAdd(true)
+                if (staleAfterRefresh) return staleAfterRefresh
                 if (availabilityScopeRef.current === scopeAtStart && flagOn) {
                     setNativeAvailable(availability?.available ?? false)
                     setAlreadyInWallet(!!availability?.alreadyInWallet && !availability.available)

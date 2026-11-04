@@ -124,6 +124,7 @@ export async function walletScenario(options: {
     mockNativeAdd.mockResolvedValue({ added: false, canceled: true })
     let provisioningWait: ReturnType<typeof deferred<typeof data>> | undefined
     let nativeWait: ReturnType<typeof deferred<AddCardToWalletResult>> | undefined
+    let nextLookup: ReturnType<typeof deferred<PushProvisioningAvailability>> | undefined
     let mounted = true
     const component = () => (
         <YourCardScreen
@@ -142,6 +143,24 @@ export async function walletScenario(options: {
     await flush()
     return {
         flush,
+        deferNextLookup() {
+            nextLookup = deferred<PushProvisioningAvailability>()
+            mockAvailability.mockImplementationOnce(() => nextLookup!.promise)
+        },
+        async resolveNextLookup(value: PushProvisioningAvailability) {
+            await act(async () => {
+                nextLookup!.resolve(value)
+            })
+            nextLookup = undefined
+        },
+        beginAdd(outcome?: AddCardToWalletResult) {
+            if (outcome) mockNativeAdd.mockResolvedValueOnce(outcome)
+            let operation!: Promise<AddCardToWalletResult>
+            act(() => {
+                operation = mockHookResult.addToWallet()
+            })
+            return operation
+        },
         nextAvailability(value: PushProvisioningAvailability | Error) {
             if (value instanceof Error) mockAvailability.mockRejectedValueOnce(value)
             else mockAvailability.mockResolvedValueOnce(value)
@@ -226,6 +245,7 @@ export async function walletScenario(options: {
             const addedLabel = mockPlatform === 'android' ? 'Added to Google Wallet' : 'Added to Apple Wallet'
             return {
                 action,
+                isAdding: mockHookResult.isAdding,
                 added: mounted && !!within(rendered.container).queryByText(addedLabel),
                 provisioningCalls: mockProvisioning.mock.calls.length,
                 nativeAddCalls: mockNativeAdd.mock.calls.length,

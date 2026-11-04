@@ -1,5 +1,4 @@
 /** Frozen observable expectations. The adapter must render real UI/hooks. */
-import { describe, expect, test } from '@jest/globals'
 import { walletScenario } from './review-acceptance-adapter'
 
 const CARD_A = { id: 'synthetic-card-a', last4: '4242' }
