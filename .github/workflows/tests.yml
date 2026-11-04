@@ -834,8 +834,8 @@ jobs:
             always() && needs.backdoor-scan.result == 'success' &&
             needs.ds-shots-filter.outputs.render == 'true'
         runs-on: ubuntu-latest
-        # Build ~5m + gate ~9m + stress gate. A hang past this is a bug, not a
-        # slow day.
+        # Build ~6m + gate and stress gate on 4 workers. A hang past this is a bug,
+        # not a slow day.
         timeout-minutes: 45
         permissions:
             contents: read
@@ -899,6 +899,15 @@ jobs:
                   done
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
+
+            # Restore-only, same entry ds-shots reads (saved by dev push runs).
+            - name: Restore the Next build cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  restore-keys: |
+                      ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             # Same build env as ds-shots: preview enables ?__fixture=, and the
             # base URL matches the server in playwright.shots.config.ts.
