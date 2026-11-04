@@ -1221,7 +1221,7 @@
             "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
             "rateLocked": "El tipo de cambio queda fijo por 10 minutos cuando confirmás.",
             "quoteMoved": "La cotización cambió desde la revisión. Revisá los nuevos montos y confirmá de nuevo.",
-            "unconfirmed": "Enviado, pero aún sin confirmar. Revisá el Historial en unos minutos antes de intentar de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisá el Historial en unos minutos antes de intentar de nuevo.",
             "errors": {
                 "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
                 "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",

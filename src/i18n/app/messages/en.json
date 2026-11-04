@@ -2455,7 +2455,8 @@
             "sent": "On its way. It usually arrives in about a minute.",
             "sentTo": "On its way to {destination}. It usually arrives in about a minute.",
             "quoteMoved": "The rate moved since the review. Check the new amounts and confirm again.",
-            "unconfirmed": "Sent, but not confirmed yet. Check History in a few minutes before trying again.",
+            "unconfirmed": "Not confirmed yet. Check History in a few minutes before trying again.",
+            "notSent": "This withdrawal did not go through. Your balance has not changed.",
             "errors": {
                 "limitExceeded": "This withdrawal is over the monthly Pix limit.",
                 "inProgress": "Too many Pix withdrawals are still on their way. Try again later.",

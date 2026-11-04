@@ -103,7 +103,6 @@ export function AveniaPixQrDeposit({
             <NavHeader title={t('title')} onPrev={onBack} />
             <PageStack.Center>
                 <div className="text-center">
-                    <p className="text-body-s text-foreground-secondary">{t('pix.payWithPix')}</p>
                     <p className="text-heading-s text-foreground-primary">
                         {formatBankAmount(deposit.amountBrl, 'BRL')}
                     </p>

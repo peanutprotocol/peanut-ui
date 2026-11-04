@@ -32,6 +32,7 @@ import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -94,6 +95,12 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         staleTime: 30_000,
     })
 
+    // A send whose receipt never resolved is settled by the withdrawal's own history entry.
+    const unconfirmed = submit.phase === 'unconfirmed'
+    const entry = useHistoryEntry(submit.opened?.intentId, 'OFFRAMP', { enabled: unconfirmed })
+    const settled = entry.data?.status === 'COMPLETED'
+    const didNotGoThrough = unconfirmed && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(entry.data?.status ?? '')
+
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const brl = useCurrency('BRL')
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
@@ -110,18 +117,30 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
     if (step === 'success' && submit.opened && isSent) {
         const { display } = submit.opened
         const to = [display.bankName, display.holderName].filter(Boolean).join(' · ')
-        const confirmed = submit.phase === 'sent'
+        const confirmed = submit.phase === 'sent' || settled
         return (
             <PageStack>
                 {confirmed && <SoundPlayer sound="success" />}
                 <NavHeader title={title} hideBackBtn />
                 <PageStack.Center className="items-center text-center">
-                    {/* a receipt that never came is a wait, not a success */}
-                    <IconBubble icon={confirmed ? 'check' : 'clock'} size="l" color={confirmed ? 'green' : 'yellow'} />
+                    {/* a receipt that never came is a wait, not a success, until the history entry settles it */}
+                    <IconBubble
+                        icon={confirmed ? 'check' : didNotGoThrough ? 'alert' : 'clock'}
+                        size="l"
+                        color={confirmed ? 'green' : didNotGoThrough ? 'red' : 'yellow'}
+                    />
                     <TitleBlock
                         align="center"
                         title={formatBankAmount(display.amountBrl, 'BRL')}
-                        description={!confirmed ? t('unconfirmed') : to ? t('sentTo', { destination: to }) : t('sent')}
+                        description={
+                            didNotGoThrough
+                                ? t('notSent')
+                                : !confirmed
+                                  ? t('unconfirmed')
+                                  : to
+                                    ? t('sentTo', { destination: to })
+                                    : t('sent')
+                        }
                     />
                     <Button variant="primary" className="w-full" onClick={leaveToHome}>
                         {tCommon('done')}

@@ -2455,7 +2455,8 @@
             "sent": "A caminho. Normalmente chega em cerca de um minuto.",
             "sentTo": "A caminho de {destination}. Normalmente chega em cerca de um minuto.",
             "quoteMoved": "A cotação mudou desde a revisão. Confira os novos valores e confirme de novo.",
-            "unconfirmed": "Enviado, mas ainda sem confirmação. Confira o Histórico em alguns minutos antes de tentar de novo.",
+            "unconfirmed": "Ainda sem confirmação. Confira o Histórico em alguns minutos antes de tentar de novo.",
+            "notSent": "Este saque não foi concluído. Seu saldo não mudou.",
             "errors": {
                 "limitExceeded": "Este saque passa do limite mensal do Pix.",
                 "inProgress": "Há saques por Pix demais ainda a caminho. Tente de novo mais tarde.",

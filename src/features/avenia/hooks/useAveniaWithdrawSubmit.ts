@@ -58,9 +58,9 @@ export interface AveniaWithdrawSubmit {
  * and the app reports the mined transaction. Rhino delivers the USDC to the
  * user's Avenia wallet on Base and Avenia pays the Pix.
  *
- * Init quotes again, seconds after the review. When that quote takes more
- * USD or pays fewer reais than the reviewed one, nothing is signed until the
- * user confirms the new amounts.
+ * Init quotes again, seconds after the review. When that quote takes any more
+ * USD or pays any fewer reais than the reviewed one, nothing is signed until
+ * the user confirms the new amounts.
  */
 export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
     const tShared = useTranslations('avenia')
