@@ -15,8 +15,16 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { type NotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { readNotificationsVariant, trackPromptAnswer } from '@/features/setup/notificationsExperiment'
+import {
+    isUntouchedNotificationChoices,
+    type NotificationChoices,
+    useSetupFlowContext,
+} from '@/features/setup/SetupFlowContext'
+import {
+    readNotificationsVariant,
+    type SwitchesVariant,
+    trackPromptAnswer,
+} from '@/features/setup/notificationsExperiment'
 import NotificationsControl from './NotificationsControl'
 import NotificationsStepLayout from '../components/NotificationsStepLayout'
 import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
@@ -36,19 +44,34 @@ const SWITCHES: { key: Switch; icon: IconName; label: 'important' | 'offers' | '
 ]
 
 const ALL_OFF = { push: false, marketingPush: false, emailUpdates: false }
+// Already cascaded, so switching Important back on never brings back an Email updates the user turned off.
+const DEFAULTS_ON: NotificationChoices = {
+    push: true,
+    // Never on by default: App Store Review Guideline 4.5.4 requires the user's explicit opt-in to marketing pushes.
+    marketingPush: false,
+    emailUpdates: true,
+    cascaded: true,
+}
 
 /**
- * Three switches, all off at the start. The first time Important alerts turns on,
- * Email updates turns on with it. Offers and perks never follows another switch:
- * marketing pushes need the user's own tap (App Store 4.5.4, GDPR, LGPD).
+ * Three switches. In `switches` they start off, and the first time Important alerts
+ * turns on, Email updates turns on with it; Offers and perks never follows another
+ * switch. In `defaults_on` Important alerts and Email updates start on until the
+ * user changes one, and Offers and perks still starts off.
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
-function NotificationSwitches() {
+function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     const t = useTranslations('setup.notifications')
     const tSetup = useTranslations('setup')
-    const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
+    const {
+        notificationChoices: storedChoices,
+        setNotificationChoices,
+        setIsLoading: setSetupLoading,
+    } = useSetupFlowContext()
+    const notificationChoices =
+        variant === 'defaults_on' && isUntouchedNotificationChoices(storedChoices) ? DEFAULTS_ON : storedChoices
     const { handleNext } = useSetupFlow()
-    const { requestPermission, afterPermissionAttempt, permissionState } = useNotifications()
+    const { requestPermission, afterPermissionAttempt } = useNotifications()
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string>()
     const savingRef = useRef(false)
@@ -76,10 +99,10 @@ function NotificationSwitches() {
             await afterPermissionAttempt()
             if (!session.current()) return 'dismissed'
             permissionRef.current = permission
-            trackPromptAnswer('switches', permission)
+            trackPromptAnswer(variant, permission)
             return permission
         } catch {
-            if (session.current()) trackPromptAnswer('switches', 'dismissed')
+            if (session.current()) trackPromptAnswer(variant, 'dismissed')
             return 'dismissed'
         }
     }
@@ -115,20 +138,19 @@ function NotificationSwitches() {
                 () => false
             )
             if (!session.current()) return
-            // Continue always needs acknowledgement. A skip only does when push could arrive.
-            const pushCouldArrive = permissionState === 'granted' || permissionRef.current === 'granted'
-            if (!ok && (!skip || pushCouldArrive)) {
+            // A skip needs acknowledgement too: the API stores only opt-outs, so unsaved Email updates stays on.
+            if (!ok) {
                 setError(t('saveFailed'))
                 return
             }
             setNotificationChoices(saved)
-            if (ok)
-                posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
-                    outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
-                    important: saved.push,
-                    offers: saved.marketingPush,
-                    email: saved.emailUpdates,
-                })
+            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
+                variant,
+                outcome: skip ? 'skipped' : (answer ?? 'not_asked'),
+                important: saved.push,
+                offers: saved.marketingPush,
+                email: saved.emailUpdates,
+            })
             await handleNext()
         } finally {
             savingRef.current = false
@@ -190,5 +212,5 @@ function NotificationSwitches() {
 
 export default function NotificationsStep() {
     const [variant] = useState(readNotificationsVariant)
-    return variant === 'switches' ? <NotificationSwitches /> : <NotificationsControl />
+    return variant === 'control' ? <NotificationsControl /> : <NotificationSwitches variant={variant} />
 }
