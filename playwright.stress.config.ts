@@ -1,7 +1,7 @@
 /**
  * Stress gate (TASK-23132): e2e/shots/overflow-stress.spec.ts over every
  * fixture, with worst-case data (en, pt-BR) and with large system text
- * (150%, 200%), all at 320px. Server, timeouts and determinism come from
+ * (150%, 200%, one page load for both), all at 320px. Server, timeouts and determinism come from
  * playwright.shots.config.ts. Kept out of playwright.overflow.config.ts so the
  * i18n gate's runtime and verdict do not change while this one is advisory.
  *
@@ -25,11 +25,11 @@ export default defineConfig({
             metadata: { stress: true },
             use: { ...base.use, viewport, locale },
         })),
-        ...(['150%', '200%'] as const).map((rootFontSize) => ({
-            name: `large-text-${rootFontSize.replace('%', '')}`,
+        {
+            name: 'large-text',
             testMatch: /overflow-stress\.spec\.ts/,
-            metadata: { rootFontSize },
+            metadata: { rootFontSizes: ['150%', '200%'] },
             use: { ...base.use, viewport, locale: 'en' },
-        })),
+        },
     ],
 })
