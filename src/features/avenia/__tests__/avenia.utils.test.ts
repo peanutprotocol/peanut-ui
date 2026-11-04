@@ -4,6 +4,7 @@ import {
     aveniaWithdrawAmount,
     aveniaWithdrawRefusalKey,
     quoteMovedAgainstUser,
+    signMatchesDisplay,
     brazilPixPath,
     completePixKey,
     countdownLabel,
@@ -192,5 +193,15 @@ describe('quoteMovedAgainstUser', () => {
 
     it('counts an amount it cannot read as moved', () => {
         expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: 'n/a', amountBrl: '503' })).toBe(true)
+    })
+})
+
+describe('signMatchesDisplay', () => {
+    it('binds the signed amount to the USD the user is shown', () => {
+        const display = { withdrawUsd: '92.504310' }
+        expect(signMatchesDisplay(display, { payAmount: '92.50431', payAmountUnits: '92504310' })).toBe(true)
+        expect(signMatchesDisplay(display, { payAmount: '92.50431', payAmountUnits: '92504311' })).toBe(false)
+        expect(signMatchesDisplay(display, { payAmount: '95', payAmountUnits: '92504310' })).toBe(false)
+        expect(signMatchesDisplay(display, { payAmount: 'x', payAmountUnits: 'y' })).toBe(false)
     })
 })

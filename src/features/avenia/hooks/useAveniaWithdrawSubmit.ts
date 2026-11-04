@@ -16,7 +16,7 @@ import {
     type AveniaWithdrawSign,
 } from '@/services/avenia'
 import { wireErrorCode } from '@/services/api-error'
-import { aveniaWithdrawRefusalKey, quoteMovedAgainstUser } from '@/features/avenia/avenia.utils'
+import { aveniaWithdrawRefusalKey, quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
@@ -156,10 +156,12 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
                 }
                 const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
                 setOpened(withdrawal)
-                // The wallet only ever approves its own USDC; anything else is a contract break.
+                // The wallet only ever approves its own USDC, for exactly the USD the user is shown;
+                // anything else is a contract break.
                 if (
                     init.sign.kind !== 'deposit-with-id' ||
-                    !areEvmAddressesEqual(init.sign.tokenAddress, PEANUT_WALLET_TOKEN)
+                    !areEvmAddressesEqual(init.sign.tokenAddress, PEANUT_WALLET_TOKEN) ||
+                    !signMatchesDisplay(init.display, init.sign)
                 ) {
                     Sentry.captureException(new Error('Avenia withdrawal sign request off-contract'), {
                         extra: { intentId: init.intentId, kind: init.sign.kind },

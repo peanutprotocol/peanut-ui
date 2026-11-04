@@ -161,6 +161,24 @@ export function aveniaWithdrawRefusalKey(
 }
 
 /**
+ * Whether the sign request asks for exactly the USD the opened quote shows.
+ * The user confirms `display.withdrawUsd`; the wallet signs `payAmountUnits`.
+ * PR B builds both from Rhino's pay amount, and the app checks they agree
+ * before signing anything.
+ */
+export function signMatchesDisplay(
+    display: Pick<AveniaWithdrawDisplay, 'withdrawUsd'>,
+    sign: { payAmount: string; payAmountUnits: string }
+): boolean {
+    try {
+        const shown = parseUnits(display.withdrawUsd, 6)
+        return BigInt(sign.payAmountUnits) === shown && parseUnits(sign.payAmount, 6) === shown
+    } catch {
+        return false
+    }
+}
+
+/**
  * Whether the quote opened at Confirm is worse for the user than the one they
  * reviewed: more USD leaves the wallet, or fewer reais arrive. Any move counts,
  * so the wallet never signs an amount the user has not seen. An amount that

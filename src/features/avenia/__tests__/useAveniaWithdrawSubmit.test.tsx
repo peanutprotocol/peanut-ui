@@ -51,6 +51,10 @@ const display = {
     provider: 'Avenia' as const,
 }
 const inAMinute = () => new Date(Date.now() + 60_000).toISOString()
+const units = (usd: string) => {
+    const [whole, fraction = ''] = usd.split('.')
+    return BigInt(whole + fraction.padEnd(6, '0').slice(0, 6)).toString()
+}
 const initResponse = (overrides: Record<string, unknown> = {}, opened: Partial<typeof display> = {}) => ({
     intentId: 'w1',
     display: { ...display, ...opened },
@@ -58,8 +62,8 @@ const initResponse = (overrides: Record<string, unknown> = {}, opened: Partial<t
         kind: 'deposit-with-id',
         contractAddress: BRIDGE,
         tokenAddress: USDC,
-        payAmount: '92.50431',
-        payAmountUnits: '92504310',
+        payAmount: opened.withdrawUsd ?? display.withdrawUsd,
+        payAmountUnits: units(opened.withdrawUsd ?? display.withdrawUsd),
         commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
         quoteExpiresAt: inAMinute(),
         ticketExpiresAt: '2026-11-04T12:10:00.000Z',
@@ -198,7 +202,7 @@ describe('useAveniaWithdrawSubmit', () => {
             await result.current.confirmOpened()
         })
         expect(mockSendTransactions).toHaveBeenCalledTimes(1)
-        expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 92_504_310n })
+        expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 93_100_000n })
         expect(mockInit).toHaveBeenCalledTimes(1)
         expect(result.current.phase).toBe('sent')
     })
@@ -235,6 +239,19 @@ describe('useAveniaWithdrawSubmit', () => {
 
         expect(mockSendTransactions).not.toHaveBeenCalled()
         expect(result.current.error).toBe('withdraw.errors.quoteExpired')
+        expect(result.current.lockedAfterInit).toBe(true)
+    })
+
+    it('signs nothing when the sign request asks for another amount than the opened quote shows', async () => {
+        mockInit.mockResolvedValue(initResponse({ payAmount: '95', payAmountUnits: '95000000' }))
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(result.current.error).toBe('unavailable')
         expect(result.current.lockedAfterInit).toBe(true)
     })
 })
