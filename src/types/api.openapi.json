@@ -963,7 +963,7 @@
 		},
 		"/avenia/pix-key-info": {
 			"get": {
-				"description": "DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key is the user’s own (CPF match) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.",
+				"description": "DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key is the user’s own (masked CPF and holder name match) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.",
 				"parameters": [
 					{
 						"in": "query",
@@ -12156,12 +12156,6 @@
 												},
 												{
 													"enum": [
-														"avenia"
-													],
-													"type": "string"
-												},
-												{
-													"enum": [
 														"reference"
 													],
 													"type": "string"
@@ -12225,12 +12219,6 @@
 												{
 													"enum": [
 														"manteca"
-													],
-													"type": "string"
-												},
-												{
-													"enum": [
-														"avenia"
 													],
 													"type": "string"
 												},
@@ -12420,12 +12408,6 @@
 															},
 															{
 																"enum": [
-																	"avenia"
-																],
-																"type": "string"
-															},
-															{
-																"enum": [
 																	"reference"
 																],
 																"type": "string"
@@ -12464,12 +12446,6 @@
 															{
 																"enum": [
 																	"manteca"
-																],
-																"type": "string"
-															},
-															{
-																"enum": [
-																	"avenia"
 																],
 																"type": "string"
 															},
