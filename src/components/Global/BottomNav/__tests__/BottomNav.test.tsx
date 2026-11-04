@@ -30,6 +30,19 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 let mockShowCardSurface = true
+let mockAccountsOn = true
+let mockDeposit: { accounts: { status: string }[]; claimable: unknown[] } | undefined
+let mockQueryEnabled: boolean | undefined
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => mockAccountsOn,
+}))
+jest.mock('@tanstack/react-query', () => ({
+    ...jest.requireActual('@tanstack/react-query'),
+    useQuery: (options: { enabled?: boolean }) => {
+        mockQueryEnabled = options.enabled
+        return { data: options.enabled ? mockDeposit : undefined }
+    },
+}))
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
     // typed to the real contract so a hook change breaks this suite loudly
     useCardSurfaceAccess: (): ReturnType<typeof import('@/hooks/useCardSurfaceAccess').useCardSurfaceAccess> => ({
@@ -134,8 +147,9 @@ describe('BottomNav pill release', () => {
 
 /*
  * The middle slot is the card tab only while the card is attainable — a user
- * whose residence prohibits the card gets the exchange-rates page in that
- * slot instead. Applications are public, so the tab always links /card.
+ * whose residence prohibits the card gets Accounts in that slot instead: their
+ * bank accounts when they hold or can open one, payment methods otherwise.
+ * Applications are public, so the card tab always links /card.
  */
 const stubRect = (el: HTMLElement, left: number) => {
     el.getBoundingClientRect = () => ({ left, width: 68, right: left + 68, top: 0, bottom: 52, height: 52 }) as DOMRect
@@ -157,25 +171,55 @@ describe('BottomNav middle slot', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
+        mockAccountsOn = true
+        mockDeposit = { accounts: [{ status: 'active' }], claimable: [] }
+        mockQueryEnabled = undefined
         mockPush.mockReset()
     })
 
-    it('links the middle tab to /card', () => {
+    it('links the middle tab to /card and reads no accounts', () => {
         render(<BottomNav />)
         expect(screen.getByLabelText('card')).toHaveAttribute('href', '/card')
-        expect(screen.queryByLabelText('exchangeRates')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('accounts')).not.toBeInTheDocument()
+        expect(mockQueryEnabled).toBe(false)
     })
 
-    it('swaps the middle tab to exchange rates when the card is not available', () => {
+    it.each([
+        ['an account', { accounts: [{ status: 'active' }], claimable: [] }, '/profile/accounts'],
+        [
+            'an account still being set up',
+            { accounts: [{ status: 'provisioning' }], claimable: [] },
+            '/profile/accounts',
+        ],
+        ['an account they can open', { accounts: [], claimable: [{}] }, '/profile/accounts'],
+        ['no account', { accounts: [], claimable: [] }, '/profile/payments'],
+        ['only a closed account', { accounts: [{ status: 'revoked' }], claimable: [] }, '/profile/payments'],
+    ])('without the card, a user with %s gets Accounts linking %s', (_, deposit, href) => {
         mockShowCardSurface = false
+        mockDeposit = deposit
         render(<BottomNav />)
-        expect(screen.getByLabelText('exchangeRates')).toHaveAttribute('href', '/profile/exchange-rate')
+        expect(screen.getByLabelText('accounts')).toHaveAttribute('href', href)
         expect(screen.queryByLabelText('card')).not.toBeInTheDocument()
     })
 
-    it('lights the pill on the exchange-rates route', () => {
+    it('opens payment methods while the accounts are loading', () => {
         mockShowCardSurface = false
-        mockPathname = '/profile/exchange-rate'
+        mockDeposit = undefined
+        render(<BottomNav />)
+        expect(screen.getByLabelText('accounts')).toHaveAttribute('href', '/profile/payments')
+    })
+
+    it('opens payment methods, reading nothing, where deposit accounts are off', () => {
+        mockShowCardSurface = false
+        mockAccountsOn = false
+        render(<BottomNav />)
+        expect(screen.getByLabelText('accounts')).toHaveAttribute('href', '/profile/payments')
+        expect(mockQueryEnabled).toBe(false)
+    })
+
+    it.each(['/profile/accounts', '/profile/payments'])('lights the pill on %s', (pathname) => {
+        mockShowCardSurface = false
+        mockPathname = pathname
         render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
     })
@@ -203,13 +247,13 @@ describe('BottomNav middle slot', () => {
         // would always snap to the first tab. Give the two tabs real centres
         // so the nearest-centre search can actually resolve to the middle one.
         stubRect(screen.getByLabelText('home'), 0)
-        stubRect(screen.getByLabelText('exchangeRates'), 150)
+        stubRect(screen.getByLabelText('accounts'), 150)
 
         fireEvent(pill, pointer('pointerdown', 10))
         fireEvent(pill, pointer('pointermove', 160))
         fireEvent(pill, pointer('pointerup', 160))
 
-        expect(mockPush).toHaveBeenCalledWith('/profile/exchange-rate')
+        expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
     })
 })
 
