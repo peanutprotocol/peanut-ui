@@ -419,6 +419,8 @@ function TypedFields({
                             autoCorrect: 'off',
                             spellCheck: false,
                             placeholder: t(`tax.placeholder.${taxFormat ?? 'other'}` as never),
+                            // the format example ends in … rather than a hard cut at large text sizes
+                            className: 'text-ellipsis',
                             enterKeyHint: 'done',
                             maxLength: 30,
                             onChange: (e) => typedChange(f.key, formatTaxId(taxFormat, e.target.value)),

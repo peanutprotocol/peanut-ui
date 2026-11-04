@@ -74,6 +74,20 @@ test('flags a placeholder wider than its input', async ({ page }) => {
     expect(found[0].kind).toBe('placeholder')
 })
 
+test('flags a read-only or disabled value wider than its input, even with an ellipsis', async ({ page }) => {
+    const found = await detect(
+        page,
+        `
+        <input style="width:80px" readonly value="Wolfeschlegelsteinhausenberger">
+        <input style="width:80px;text-overflow:ellipsis" disabled value="aaaaaaaaaaaaaaaa@example.com">
+        `
+    )
+    expect(found.map((item) => [item.kind, item.text])).toEqual([
+        ['placeholder', 'Wolfeschlegelsteinhausenberger'],
+        ['placeholder', 'aaaaaaaaaaaaaaaa@example.com'],
+    ])
+})
+
 test('flags vertically clipped text in a fixed-height box', async ({ page }) => {
     const found = await detect(
         page,
@@ -99,6 +113,8 @@ test('stays quiet on deliberate truncation, scrollers, hidden text and exemption
         <span style="position:absolute;width:1px;height:1px;overflow:hidden">solo para lectores de pantalla</span>
         <div class="exempt-me" style="width:100px;overflow:hidden;white-space:nowrap">texto de marquesina en movimiento</div>
         <input style="width:200px" placeholder="Tu usuario">
+        <input style="width:80px" value="un valor que la persona escribe y que se desplaza">
+        <input style="width:80px;text-overflow:ellipsis" placeholder="Buscar moneda o país">
         <div style="width:200px">texto corto que cabe</div>
         `
     )
