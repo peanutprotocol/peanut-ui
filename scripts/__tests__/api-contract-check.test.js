@@ -1,4 +1,4 @@
-const { checkApiContracts } = require('../api-contract-check')
+const { checkApiContracts, isCompileCheckOnly } = require('../api-contract-check')
 const {
     REQUIRED_API_CONTRACTS: { kyc: requiredKyc },
 } = require('../../src/constants/api-contracts.json')
@@ -184,5 +184,35 @@ describe('native API contract preflight', () => {
         } finally {
             jest.useRealTimers()
         }
+    })
+})
+
+describe('isCompileCheckOnly', () => {
+    it.each([
+        [{ GITHUB_EVENT_NAME: 'pull_request' }, true],
+        [{ NATIVE_EXPORT_COMPILE_CHECK_ONLY: '1' }, true],
+        [{ GITHUB_EVENT_NAME: 'push', NATIVE_EXPORT_COMPILE_CHECK_ONLY: '1' }, true],
+        [{ GITHUB_EVENT_NAME: 'push' }, false],
+        [{ GITHUB_EVENT_NAME: 'workflow_dispatch', NATIVE_EXPORT_COMPILE_CHECK_ONLY: '0' }, false],
+        [{ NATIVE_EXPORT_COMPILE_CHECK_ONLY: 'true' }, false],
+        [{}, false],
+    ])('%j -> %s', (env, expected) => {
+        expect(isCompileCheckOnly(env)).toBe(expected)
+    })
+
+    it('turns a skewed API into a warning on a push when the signal is set', async () => {
+        const env = { GITHUB_EVENT_NAME: 'push', NATIVE_EXPORT_COMPILE_CHECK_ONLY: '1' }
+        const log = logger()
+        await checkApiContracts(
+            options(fetchFor(response(200, version(0))), { production: isCompileCheckOnly(env), logger: log })
+        )
+        expect(log.warn).toHaveBeenCalled()
+    })
+
+    it('still fails a skewed API on a plain push', async () => {
+        const production = isCompileCheckOnly({ GITHUB_EVENT_NAME: 'push' })
+        await expect(checkApiContracts(options(fetchFor(response(200, version(0))), { production }))).rejects.toThrow(
+            /kyc/i
+        )
     })
 })
