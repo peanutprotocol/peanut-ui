@@ -109,11 +109,19 @@ const roboto = Roboto_Flex({
 // axis the CSS uses — the full 13-axis variable TTF was 1.6 MB, this is 53 KB).
 // The OG image routes still read the .ttf files at runtime (satori needs TTF),
 // so don't delete those.
+// Knerd swaps in late on `/` (no preload), so the hero headline first paints in
+// the fallback and stays readable meanwhile. adjustFontFallback: 'Arial' (the
+// next/font default, spelled out so it is not switched off) emits a size-adjusted
+// "knerd* Fallback" face: measured at the hero's 68px, GLOBALLY is 324 px wide in
+// it against 320 px in Knerd, the same height, so the swap barely moves the
+// headline. 'Times New Roman' is the only other choice next/font supports, and a
+// serif is further from Knerd's block letters.
 const knerdOutline = localFont({
     src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
     preload: false,
+    adjustFontFallback: 'Arial',
 })
 
 const knerdFilled = localFont({
@@ -121,6 +129,7 @@ const knerdFilled = localFont({
     variable: '--font-knerd-filled',
     display: 'swap',
     preload: false,
+    adjustFontFallback: 'Arial',
 })
 
 const robotoFlexBold = localFont({
