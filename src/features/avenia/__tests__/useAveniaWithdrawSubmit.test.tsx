@@ -106,10 +106,11 @@ describe('useAveniaWithdrawSubmit', () => {
     })
 
     it.each([
-        ['AVENIA_LIMIT_EXCEEDED', 'errors.limitExceeded'],
-        ['WITHDRAWAL_IN_PROGRESS', 'errors.inProgress'],
-        ['AVENIA_TICKET_WINDOW_SHORT', 'errors.quoteExpired'],
-        ['PIX_KEY_NOT_OWN', 'keyNotOwn'],
+        ['AVENIA_LIMIT_EXCEEDED', 'withdraw.errors.limitExceeded'],
+        ['WITHDRAWAL_IN_PROGRESS', 'withdraw.errors.inProgress'],
+        ['AVENIA_TICKET_WINDOW_SHORT', 'withdraw.errors.quoteExpired'],
+        ['PIX_KEY_NOT_OWN', 'withdraw.keyNotOwn'],
+        ['PROVIDER_REJECTED', 'providerRejected'],
         ['PROVIDER_UNAVAILABLE', 'unavailable'],
     ])('names a refused init (%s) and allows another try', async (code, message) => {
         mockInit.mockRejectedValue(new ApiError('refused', { status: 422, code }))

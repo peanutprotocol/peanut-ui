@@ -2,6 +2,7 @@ import {
     aveniaDepositPhase,
     aveniaSetupState,
     aveniaWithdrawAmount,
+    aveniaWithdrawRefusalKey,
     brazilPixPath,
     completePixKey,
     countdownLabel,
@@ -173,5 +174,18 @@ describe('maskedTaxIdKind', () => {
     it('tells a CPF from a CNPJ by the masked positions', () => {
         expect(maskedTaxIdKind('***.456.789-**')).toBe('CPF')
         expect(maskedTaxIdKind('12.***.***/0001-**')).toBe('CNPJ')
+    })
+})
+
+describe('aveniaWithdrawRefusalKey', () => {
+    it('names each refusal the preview and the init can send, and nothing else', () => {
+        expect(aveniaWithdrawRefusalKey('AVENIA_LIMIT_EXCEEDED')).toBe('withdraw.errors.limitExceeded')
+        expect(aveniaWithdrawRefusalKey('WITHDRAWAL_IN_PROGRESS')).toBe('withdraw.errors.inProgress')
+        expect(aveniaWithdrawRefusalKey('AVENIA_TICKET_WINDOW_SHORT')).toBe('withdraw.errors.quoteExpired')
+        expect(aveniaWithdrawRefusalKey('PIX_KEY_NOT_OWN')).toBe('withdraw.keyNotOwn')
+        expect(aveniaWithdrawRefusalKey('PIX_KEY_BLOCKED')).toBe('withdraw.keyBlocked')
+        expect(aveniaWithdrawRefusalKey('PROVIDER_REJECTED')).toBe('providerRejected')
+        expect(aveniaWithdrawRefusalKey('PROVIDER_UNAVAILABLE')).toBe('unavailable')
+        expect(aveniaWithdrawRefusalKey(undefined)).toBe('unavailable')
     })
 })

@@ -21,6 +21,7 @@ import {
     AVENIA_WITHDRAW_STEPS,
     aveniaSetupState,
     aveniaWithdrawAmount,
+    aveniaWithdrawRefusalKey,
     completePixKey,
 } from '@/features/avenia/avenia.utils'
 import { AveniaPixKeyStep } from '@/features/avenia/components/AveniaPixKeyStep'
@@ -35,7 +36,7 @@ import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { aveniaApi } from '@/services/avenia'
-import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { wireErrorCode } from '@/services/api-error'
 import type { RailCapability } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
@@ -216,18 +217,8 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
             : null
 
     function previewErrorMessage(error: unknown): string {
-        switch (wireErrorCode(error)) {
-            case API_ERROR_CODES.AVENIA_LIMIT_EXCEEDED:
-                return t('errors.limitExceeded')
-            case API_ERROR_CODES.PIX_KEY_NOT_OWN:
-                return t('keyNotOwn')
-            case API_ERROR_CODES.PIX_KEY_BLOCKED:
-                return t('keyBlocked')
-            case API_ERROR_CODES.PROVIDER_REJECTED:
-                return tErrors('providerRejected')
-            default:
-                return tShared('unavailable')
-        }
+        const key = aveniaWithdrawRefusalKey(wireErrorCode(error))
+        return key === 'providerRejected' ? tErrors(key) : tShared(key)
     }
 
     return (

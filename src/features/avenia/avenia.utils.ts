@@ -2,6 +2,7 @@ import { parsePix, hasError } from 'pix-utils'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { AveniaDepositStatus, PixKeyInfo } from '@/services/avenia'
 import type { RailCapability } from '@/types/capabilities'
+import { API_ERROR_CODES } from '@/services/api-error'
 
 /** The Avenia rail of a Brazilian resident: Pix deposits and withdrawals (no QR pay before reliance). */
 export const AVENIA_PIX_RAIL_ID = 'avenia.pix_br'
@@ -145,3 +146,32 @@ export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
 /** The steps of an Avenia Pix withdrawal: the key first, as on the Manteca flow it replaces. */
 export const AVENIA_WITHDRAW_STEPS = ['pix-key', 'amount', 'review', 'success'] as const
 export type AveniaWithdrawStep = (typeof AVENIA_WITHDRAW_STEPS)[number]
+
+/** The `avenia` catalog key that explains a refused withdrawal preview or init, by wire code. */
+export function aveniaWithdrawRefusalKey(
+    code: string | undefined
+):
+    | 'withdraw.errors.limitExceeded'
+    | 'withdraw.errors.inProgress'
+    | 'withdraw.errors.quoteExpired'
+    | 'withdraw.keyNotOwn'
+    | 'withdraw.keyBlocked'
+    | 'providerRejected'
+    | 'unavailable' {
+    switch (code) {
+        case API_ERROR_CODES.AVENIA_LIMIT_EXCEEDED:
+            return 'withdraw.errors.limitExceeded'
+        case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
+            return 'withdraw.errors.inProgress'
+        case API_ERROR_CODES.AVENIA_TICKET_WINDOW_SHORT:
+            return 'withdraw.errors.quoteExpired'
+        case API_ERROR_CODES.PIX_KEY_NOT_OWN:
+            return 'withdraw.keyNotOwn'
+        case API_ERROR_CODES.PIX_KEY_BLOCKED:
+            return 'withdraw.keyBlocked'
+        case API_ERROR_CODES.PROVIDER_REJECTED:
+            return 'providerRejected'
+        default:
+            return 'unavailable'
+    }
+}

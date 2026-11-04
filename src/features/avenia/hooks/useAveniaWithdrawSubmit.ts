@@ -10,7 +10,8 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { aveniaApi, type AveniaWithdrawDisplay, type AveniaWithdrawRequest } from '@/services/avenia'
-import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { wireErrorCode } from '@/services/api-error'
+import { aveniaWithdrawRefusalKey } from '@/features/avenia/avenia.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
@@ -40,7 +41,6 @@ export interface AveniaWithdrawSubmit {
  * user's Avenia wallet on Base and Avenia pays the Pix.
  */
 export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
-    const t = useTranslations('avenia.withdraw')
     const tShared = useTranslations('avenia')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
@@ -54,24 +54,10 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
 
     const initError = useCallback(
         (caught: unknown): string => {
-            switch (wireErrorCode(caught)) {
-                case API_ERROR_CODES.AVENIA_LIMIT_EXCEEDED:
-                    return t('errors.limitExceeded')
-                case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
-                    return t('errors.inProgress')
-                case API_ERROR_CODES.AVENIA_TICKET_WINDOW_SHORT:
-                    return t('errors.quoteExpired')
-                case API_ERROR_CODES.PIX_KEY_NOT_OWN:
-                    return t('keyNotOwn')
-                case API_ERROR_CODES.PIX_KEY_BLOCKED:
-                    return t('keyBlocked')
-                case API_ERROR_CODES.PROVIDER_REJECTED:
-                    return tErrors('providerRejected')
-                default:
-                    return tShared('unavailable')
-            }
+            const key = aveniaWithdrawRefusalKey(wireErrorCode(caught))
+            return key === 'providerRejected' ? tErrors(key) : tShared(key)
         },
-        [t, tShared, tErrors]
+        [tShared, tErrors]
     )
 
     const submit = useCallback(
