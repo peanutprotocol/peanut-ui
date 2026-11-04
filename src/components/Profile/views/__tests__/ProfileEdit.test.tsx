@@ -97,15 +97,15 @@ test('shows the committed replacement when the old native support session cannot
 test.each([false, true])('all names are owned by identity verification with verified=%s', async (verified) => {
     mockVerified = verified
     renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toBeDisabled()
-    expect(screen.getByLabelText('Surname')).toBeDisabled()
+    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-readonly', 'true')
+    expect(screen.getByLabelText('Surname')).toHaveAttribute('aria-readonly', 'true')
     expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 
-    // A synthetic change event must not sneak a typed name into an otherwise
-    // legitimate email save, even before the user has verified an identity.
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Typed' } })
-    fireEvent.change(screen.getByLabelText('Surname'), { target: { value: 'Replacement' } })
+    // the names are shown, not inputs: nothing typed can ride along with an
+    // otherwise legitimate email save, even before identity verification
+    expect(screen.getByRole('textbox', { name: 'Name' }).tagName).not.toBe('INPUT')
+    expect(screen.getByRole('textbox', { name: 'Surname' }).tagName).not.toBe('INPUT')
     await change('Email for notifications', 'new@example.com')
     save()
     await verify()
@@ -130,8 +130,8 @@ test.each(['', 'invalid', 'a@'])('rejects invalid changed email %s inline', asyn
 test('a user without a name still sees locked identity-owned name fields', () => {
     mockUser!.user.fullName = ''
     renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toBeDisabled()
-    expect(screen.getByLabelText('Surname')).toBeDisabled()
+    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-readonly', 'true')
+    expect(screen.getByLabelText('Surname')).toHaveAttribute('aria-readonly', 'true')
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 })
 
@@ -185,7 +185,7 @@ test('background refresh preserves edits and does not send an untouched stale na
     mockUser = { user: { ...mockUser!.user, fullName: 'New Verified Name' } }
     mockVerified = true
     view.rerender(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toHaveValue('New Verified')
+    expect(screen.getByLabelText('Name')).toHaveTextContent('New Verified')
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('new@example.com')
     save()
     await verify()
@@ -248,7 +248,7 @@ test('a previously verified name stays locked during re-verification', () => {
     mockUser!.profileNameLocked = true
     mockVerified = false
     renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toBeDisabled()
+    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-readonly', 'true')
     expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
     expect(screen.getByLabelText('Email for notifications')).toBeEnabled()
 })

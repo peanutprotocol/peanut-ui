@@ -11,6 +11,8 @@ interface ProfileEditFieldProps {
     type?: 'text' | 'email' | 'tel' | 'url'
     badge?: string
     disabled?: boolean
+    /** shown, never edited: wraps instead of clipping a long value */
+    locked?: boolean
     name?: string
     onBlur?: () => void
     autoComplete?: string
@@ -40,6 +42,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
             type = 'text',
             badge,
             disabled = false,
+            locked = false,
             name,
             onBlur,
             autoComplete,
@@ -57,31 +60,45 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
             <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                     <label
-                        htmlFor={id}
-                        className={disabled ? 'text-label-l text-foreground-secondary' : 'text-label-l'}
+                        id={`${id}-label`}
+                        htmlFor={locked ? undefined : id}
+                        className={disabled || locked ? 'text-label-l text-foreground-secondary' : 'text-label-l'}
                     >
                         {label}
                     </label>
                     {badge && <Badge status="soon" size="small" customText={badge} />}
                 </div>
                 <Field error={error} errorId={`${id}-error`}>
-                    <BaseInput
-                        ref={ref}
-                        name={name}
-                        onBlur={onBlur}
-                        autoComplete={autoComplete}
-                        inputMode={inputMode}
-                        maxLength={maxLength}
-                        aria-invalid={error ? true : undefined}
-                        aria-describedby={error ? `${id}-error` : undefined}
-                        id={id}
-                        size={inputSize}
-                        type={type}
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                    />
+                    {locked ? (
+                        // a disabled input cannot scroll, so a long verified surname would be cut off
+                        <div
+                            id={id}
+                            role="textbox"
+                            aria-readonly="true"
+                            aria-labelledby={`${id}-label`}
+                            className="input h-auto min-h-10 border-border-subtle bg-background-disabled px-3 py-[calc(0.625rem-1px)] leading-5 break-words text-foreground-secondary"
+                        >
+                            {value}
+                        </div>
+                    ) : (
+                        <BaseInput
+                            ref={ref}
+                            name={name}
+                            onBlur={onBlur}
+                            autoComplete={autoComplete}
+                            inputMode={inputMode}
+                            maxLength={maxLength}
+                            aria-invalid={error ? true : undefined}
+                            aria-describedby={error ? `${id}-error` : undefined}
+                            id={id}
+                            size={inputSize}
+                            type={type}
+                            value={value}
+                            onChange={(e) => onChange(e.target.value)}
+                            placeholder={placeholder}
+                            disabled={disabled}
+                        />
+                    )}
                 </Field>
             </div>
         )
