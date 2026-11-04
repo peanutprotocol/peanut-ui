@@ -170,7 +170,7 @@ const InvitesPage = () => {
                                             size="small"
                                         />
                                     </div>
-                                    <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                    <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                         <VerifiedUserLabel
                                             name={displayName}
                                             username={username}

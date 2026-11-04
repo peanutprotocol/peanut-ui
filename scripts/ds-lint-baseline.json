@@ -4,7 +4,7 @@
     "inlineStyle": 21,
     "stockTextSize": 0,
     "dsTextScale": 11,
-    "nonDsClassesInViews": 15,
+    "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 44,
     "nuqsFiles": 25,
     "legacyColorClasses": 0,
@@ -19,7 +19,7 @@
     "rawDuration": 6,
     "retypedCardLiteral": 16,
     "hoverNoActiveFiles": 44,
-    "arbitraryFontSize": 111,
+    "arbitraryFontSize": 110,
     "rawErrorText": 25,
     "handRolledCloseGlyphFiles": 9,
     "_meta": [

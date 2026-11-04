@@ -74,7 +74,7 @@ const NetworkListView: React.FC<NetworkListViewProps> = ({
                 placeholder={t('tokenSelector.searchNetworkPlaceholder')}
             />
 
-            <div className="space-y-2 flex max-h-[60vh] flex-col gap-3 overflow-y-auto pt-2 pr-1">
+            <div className="space-y-2 flex max-h-screen-60 flex-col gap-3 overflow-y-auto pt-2 pr-1">
                 {filteredChains.length > 0 ? (
                     filteredChains.map((chain) => (
                         <NetworkListItem

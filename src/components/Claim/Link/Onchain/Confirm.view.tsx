@@ -246,7 +246,7 @@ export const ConfirmClaimLinkView = ({
                                 label={t('confirm.tokenAndNetwork')}
                                 value={
                                     <div className="flex items-center gap-2">
-                                        <div className="relative flex h-6 w-6 min-w-[24px] items-center justify-center">
+                                        <div className="relative flex h-6 w-6 min-w-6 items-center justify-center">
                                             <DisplayIcon
                                                 iconUrl={tokenIconUrl}
                                                 altText={resolvedTokenSymbol || t('confirm.tokenAlt')}
