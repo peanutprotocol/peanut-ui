@@ -30,6 +30,13 @@ describe('avatar catalog', () => {
         }
     })
 
+    // one avatar per badge, drawn to read at 24 px (TASK-24388)
+    it('unlocks at most one avatar per badge', () => {
+        for (const [code, slugs] of Object.entries(badgeAssets.avatars.badges)) {
+            expect({ code, atMostOne: slugs.length <= 1 }).toEqual({ code, atMostOne: true })
+        }
+    })
+
     // the letter set is the day-0 fallback and has no manifest entry, so nothing
     // else checks it: one missing file is a broken image for every user whose
     // name starts with that letter
@@ -53,18 +60,16 @@ describe('avatar catalog', () => {
         expect(badgeAvatarKeys([])).toEqual([])
         // a catalog badge without art is listed as [] in the manifest: nothing unlocked
         expect(badgeAvatarKeys(['FIRST_INVITE', 'NOT_A_BADGE'])).toEqual([])
-        expect(badgeAvatarKeys(['BUG_WHISPERER'])).toEqual([
-            'badge.BUG_WHISPERER.beetle',
-            'badge.BUG_WHISPERER.shell',
-            'badge.BUG_WHISPERER.peek',
-        ])
-        // 26 letters + 20 basics + the 3 OFFRAMP_USER avatars
-        expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(49)
+        expect(badgeAvatarKeys(['BUG_WHISPERER'])).toEqual(['badge.BUG_WHISPERER.beetle'])
+        // 26 letters + 20 basics + the one OFFRAMP_USER avatar
+        expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(47)
     })
 
     it('maps keys to their art and rejects anything the manifest does not know', () => {
         expect(avatarSrc('basic.apple')).toBe('/avatars/basic/apple.webp')
-        expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBe('/avatars/badge/OFFRAMP_USER/wink.webp')
+        expect(avatarSrc('badge.OFFRAMP_USER.bolt')).toBe('/avatars/badge/OFFRAMP_USER/bolt.webp')
+        // retired with one avatar per badge (TASK-24388)
+        expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBeNull()
         expect(avatarSrc('basic.peanut')).toBeNull()
         expect(avatarSrc('badge.BUG_WHISPERER.nope')).toBeNull()
         expect(avatarSrc('badge.FIRST_INVITE.beetle')).toBeNull()
@@ -105,8 +110,10 @@ describe('dealHand', () => {
     })
 
     it('keeps the pick in the hand and always deals at least one earned avatar', () => {
+        // one avatar per badge: a second earned card needs a second badge
+        const two = badgeAvatarKeys(['BUG_WHISPERER', 'OFFRAMP_USER'])
         for (const pick of ['basic.sun', 'badge.BUG_WHISPERER.beetle']) {
-            const hand = dealHand(pick, unlocked, { random: seeded(2) })
+            const hand = dealHand(pick, two, { random: seeded(2) })
             expect(hand).toContain(pick)
             // a worn badge avatar does not count: the guarantee is a second earned card
             expect(hand.filter((key) => isBadge(key) && key !== pick).length).toBeGreaterThan(0)
@@ -147,7 +154,7 @@ describe('dealHand', () => {
     // the same badge code twice unlocks the same files twice: one drawing, one tile
     it('never deals two tiles that draw the same art', () => {
         const twice = badgeAvatarKeys(['BUG_WHISPERER', 'BUG_WHISPERER'])
-        expect(twice).toHaveLength(6)
+        expect(twice).toEqual(['badge.BUG_WHISPERER.beetle', 'badge.BUG_WHISPERER.beetle'])
         for (let seed = 1; seed <= 20; seed++) {
             const art = dealHand('basic.sun', twice, { random: seeded(seed) })
                 .slice(1)
