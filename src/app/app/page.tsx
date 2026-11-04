@@ -23,9 +23,12 @@ import {
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
-import { captureSignupAttribution } from '@/utils/signup-attribution'
+import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
+
+// '/' sends no destination, so a new install opens to its normal first screen.
+const AD_ENTRY_DEST = '/'
 
 export default function SmartStoreRedirect() {
     const nativePlatform = useNativePlatform()
@@ -69,6 +72,17 @@ export default function SmartStoreRedirect() {
                 }
             }
         } else if (parsed) setPayload(new URLSearchParams(search).toString())
+        else if (!isNativeBridge() && marketingQrAnalyticsAllowed() && hasMarketingTouch()) {
+            // Without a hand-off, an ad campaign in utm_* never reaches the installed app.
+            try {
+                if (captureSignupAttribution()) {
+                    setPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'android'))
+                    setIosPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'ios'))
+                }
+            } catch {
+                // The stores stay reachable without a hand-off.
+            }
+        }
         // A native-flavored web build can lack the bridge and still need the store page.
         if (!isNativeBridge()) return
         // Installed apps apply the QR's context immediately, then open its destination.
