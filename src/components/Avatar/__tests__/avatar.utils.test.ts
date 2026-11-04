@@ -30,7 +30,7 @@ describe('avatar catalog', () => {
         }
     })
 
-    // one avatar per badge, drawn to read at 24 px (TASK-24388)
+    // one avatar per badge, drawn to read at 32 px (TASK-24388)
     it('unlocks at most one avatar per badge', () => {
         for (const [code, slugs] of Object.entries(badgeAssets.avatars.badges)) {
             expect({ code, atMostOne: slugs.length <= 1 }).toEqual({ code, atMostOne: true })
@@ -176,11 +176,12 @@ describe('dealHand', () => {
     })
 })
 
-// TASK-22677: every sticker is a 176x176 WebP, so one slot draws every pick at
-// one size. mono/skills/badges-recraft export-avatar.mjs writes that canvas
-// and refuses strip-shaped art; this keeps a hand-dropped file honest.
+// TASK-22677: every sticker is a 288x288 WebP (3x the 96 px avatar, TASK-24388),
+// so one slot draws every pick at one size. mono/skills/badges-recraft
+// export-avatar.mjs writes that canvas and refuses strip-shaped art; this keeps
+// a hand-dropped file honest.
 describe('avatar artwork geometry', () => {
-    const STICKER_SIDE = 176
+    const STICKER_SIDE = 288
     // RIFF container: 'VP8 ' lossy, 'VP8L' lossless, 'VP8X' extended (alpha)
     const webpSize = (webp: Buffer) => {
         if (webp.toString('ascii', 0, 4) !== 'RIFF' || webp.toString('ascii', 8, 12) !== 'WEBP') return null
@@ -193,7 +194,7 @@ describe('avatar artwork geometry', () => {
         return { width: webp.readUInt16LE(26) & 0x3fff, height: webp.readUInt16LE(28) & 0x3fff }
     }
 
-    it('ships every sticker on a 176x176 canvas', () => {
+    it('ships every sticker on a 288x288 canvas', () => {
         const paths = [
             ...'abcdefghijklmnopqrstuvwxyz'.split('').map((letter) => `/avatars/letter/${letter}.webp`),
             ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.webp`),

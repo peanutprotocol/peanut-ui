@@ -58,8 +58,8 @@ function PublicArtGrid({ entries, tile = 'h-10' }: { entries: PublicArtEntry[]; 
                         <Image
                             src={entry.src}
                             alt=""
-                            width={176}
-                            height={176}
+                            width={288}
+                            height={288}
                             unoptimized
                             className={`${tile} w-auto`}
                         />
@@ -82,8 +82,8 @@ function ContactSheet({ entries, size }: { entries: PublicArtEntry[]; size: 'h-6
                     <Image
                         src={entry.src}
                         alt=""
-                        width={176}
-                        height={176}
+                        width={288}
+                        height={288}
                         unoptimized
                         className="size-full object-contain"
                     />
