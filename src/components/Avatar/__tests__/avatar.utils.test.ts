@@ -176,11 +176,14 @@ describe('dealHand', () => {
     })
 })
 
-// TASK-22677: every sticker is a 176x176 WebP, so one slot draws every pick at
-// one size. mono/skills/badges-recraft export-avatar.mjs writes that canvas
-// and refuses strip-shaped art; this keeps a hand-dropped file honest.
+// TASK-22677: every sticker is a square WebP, so one slot draws every pick at
+// one size. Badge stickers are 288x288, 3x the 96 px avatar (TASK-24388); the
+// letters and basics are still 176x176. mono/skills/badges-recraft
+// export-avatar.mjs writes that canvas and refuses strip-shaped art; this keeps
+// a hand-dropped file honest.
 describe('avatar artwork geometry', () => {
-    const STICKER_SIDE = 176
+    const BADGE_STICKER_SIDE = 288
+    const LEGACY_STICKER_SIDE = 176
     // RIFF container: 'VP8 ' lossy, 'VP8L' lossless, 'VP8X' extended (alpha)
     const webpSize = (webp: Buffer) => {
         if (webp.toString('ascii', 0, 4) !== 'RIFF' || webp.toString('ascii', 8, 12) !== 'WEBP') return null
@@ -193,17 +196,22 @@ describe('avatar artwork geometry', () => {
         return { width: webp.readUInt16LE(26) & 0x3fff, height: webp.readUInt16LE(28) & 0x3fff }
     }
 
-    it('ships every sticker on a 176x176 canvas', () => {
-        const paths = [
-            ...'abcdefghijklmnopqrstuvwxyz'.split('').map((letter) => `/avatars/letter/${letter}.webp`),
-            ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.webp`),
+    it('ships badge stickers on a 288x288 canvas and the rest on 176x176', () => {
+        const paths: [string, number][] = [
+            ...'abcdefghijklmnopqrstuvwxyz'
+                .split('')
+                .map((letter): [string, number] => [`/avatars/letter/${letter}.webp`, LEGACY_STICKER_SIDE]),
+            ...badgeAssets.avatars.basics.map((slug): [string, number] => [
+                `/avatars/basic/${slug}.webp`,
+                LEGACY_STICKER_SIDE,
+            ]),
             ...Object.entries(badgeAssets.avatars.badges).flatMap(([code, slugs]) =>
-                slugs.map((slug) => `/avatars/badge/${code}/${slug}.webp`)
+                slugs.map((slug): [string, number] => [`/avatars/badge/${code}/${slug}.webp`, BADGE_STICKER_SIDE])
             ),
         ]
-        for (const path of paths) {
+        for (const [path, side] of paths) {
             const size = webpSize(readFileSync(join(process.cwd(), 'public', path)))
-            expect({ path, size }).toEqual({ path, size: { width: STICKER_SIDE, height: STICKER_SIDE } })
+            expect({ path, size }).toEqual({ path, size: { width: side, height: side } })
         }
     })
 })
