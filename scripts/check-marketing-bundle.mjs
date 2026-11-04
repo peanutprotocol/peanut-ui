@@ -11,10 +11,12 @@
 //   loaded through src/constants/token-registry.consts.ts. No other source has it.
 //
 // A route's client chunks are read from the build output: the root main files
-// in build-manifest.json, plus the route's client-reference manifest (entry
-// files and the chunks of every client component in its tree), plus every chunk
-// named in the prerendered HTML and RSC payload when the route is static.
-// Chunks behind a dynamic import() are not counted: they do not load with the page.
+// in build-manifest.json, the route's entry files from its client-reference
+// manifest, and every chunk named in the prerendered HTML and RSC payload (the
+// client components the page renders). Not counted: chunks behind a dynamic
+// import(), and client components in the tree that the page does not render
+// (the manifest lists those too, e.g. the wallet providers behind the marketing
+// switch). A dynamic route has no prerendered HTML, so only its entry files count.
 //
 // --report prints each chunk with raw and gzip bytes.
 
@@ -54,8 +56,12 @@ function clientReferenceManifest(route) {
     return Object.values(sandbox.__RSC_MANIFEST ?? {})[0]
 }
 
+function prerenderedBase(route) {
+    return join(nextDir, 'server', 'app', route === '/' ? 'index' : routeDir(route))
+}
+
 function prerenderedChunks(route) {
-    const base = join(nextDir, 'server', 'app', route === '/' ? 'index' : routeDir(route))
+    const base = prerenderedBase(route)
     const chunks = new Set()
     for (const file of [`${base}.html`, `${base}.rsc`]) {
         if (!existsSync(file)) continue
@@ -75,11 +81,6 @@ function routeChunks(route) {
     if (!manifest) throw new Error(`no client-reference manifest for ${route}; is it an app route, and was it built?`)
     for (const files of Object.values(manifest.entryJSFiles ?? {})) {
         for (const file of files) chunks.add(file)
-    }
-    for (const mod of Object.values(manifest.clientModules ?? {})) {
-        for (const file of mod.chunks ?? []) {
-            if (file.endsWith('.js')) chunks.add(file.replace(/^\/?_next\//, ''))
-        }
     }
     for (const file of prerenderedChunks(route)) chunks.add(file)
     return [...chunks].filter((file) => file.endsWith('.js')).sort()
@@ -111,7 +112,8 @@ for (const route of routes) {
             if (text.includes(marker)) hits.push(`  ${chunk} contains "${marker}" (${catalog})`)
         }
     }
-    console.log(`${route}: ${rows.length} client chunks, ${raw} B raw / ${gz} B gz`)
+    const prerendered = existsSync(`${prerenderedBase(route)}.html`) ? 'prerendered HTML read' : 'no prerendered HTML'
+    console.log(`${route}: ${rows.length} client chunks (${prerendered}), ${raw} B raw / ${gz} B gz`)
     if (report) console.log(rows.join('\n'))
     if (hits.length) {
         failed = true
