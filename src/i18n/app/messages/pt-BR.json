@@ -1770,14 +1770,14 @@
             "cta": "Pedir cartão"
         },
         "addToWallet": {
-            "appleWallet": "Apple Wallet",
+            "appleWallet": "Carteira da Apple",
             "googleWallet": "Google Wallet",
             "stepIndicator": "Passo {current} de {total}",
-            "iosStep1": "Abra o app Wallet",
+            "iosStep1": "Abra o app Carteira",
             "iosStep2": "Toque em + no canto superior direito",
             "iosStep3": "Toque em Cartão de débito ou crédito",
             "iosStep4": "Siga os passos na tela",
-            "androidStep1": "Abra o app Wallet",
+            "androidStep1": "Abra o app Carteira do Google",
             "androidStep2": "Toque em + adicionar à wallet",
             "androidStep3": "Toque em Cartão de pagamento",
             "androidStep4": "Siga os passos na tela"
