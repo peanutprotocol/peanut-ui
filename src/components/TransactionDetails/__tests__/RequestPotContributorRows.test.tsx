@@ -21,7 +21,7 @@ const row = (overrides: Partial<Row>): Row =>
         fulfillmentPayment: null,
         isUserVerified: true,
         isPeanutUser: true,
-        avatarKey: null,
+        person: null,
         ...overrides,
     }) as Row
 

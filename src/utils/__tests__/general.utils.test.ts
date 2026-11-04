@@ -647,13 +647,13 @@ describe('General Utilities', () => {
             const payment = makePayment('SUCCESSFUL', 'alice')
             payment.payerAccount!.user!.avatarKey = 'basic.frog'
             const contributors = getContributorsFromCharge([makeCharge('c1', [payment])])
-            expect(contributors[0].avatarKey).toBe('basic.frog')
+            expect(contributors[0].person).toMatchObject({ username: 'alice', avatarKey: 'basic.frog' })
         })
 
         it('reports null for an anonymous on-chain contributor', () => {
             const contributors = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', null)])])
             expect(contributors[0].isPeanutUser).toBe(false)
-            expect(contributors[0].avatarKey).toBeNull()
+            expect(contributors[0].person).toBeNull()
         })
 
         // TASK-23856: $99.16 asked, Hugo paid $40.65, a second payer's $58.51

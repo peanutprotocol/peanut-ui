@@ -15,6 +15,7 @@ import { useMemo } from 'react'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
+import { personFrom } from '@/lib/person/person'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -78,7 +79,7 @@ export function SemanticRequestReceiptView() {
                 link: receiptLink,
             },
             userName: payerName,
-            avatarKey: successfulPayment.payerAccount?.user?.avatarKey ?? null,
+            peer: personFrom(successfulPayment.payerAccount?.user),
             sourceView: 'status',
             memo: charge.requestLink?.reference || undefined,
             attachmentUrl: charge.requestLink?.attachmentUrl || undefined,

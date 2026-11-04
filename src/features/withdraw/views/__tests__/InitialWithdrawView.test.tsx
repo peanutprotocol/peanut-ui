@@ -356,7 +356,12 @@ describe('InitialWithdrawView', () => {
     })
 
     it('keeps Review disabled while an ENS name resolves for a new chain', async () => {
-        const resolution = deferred<{ identifier: string; recipientType: 'ENS'; resolvedAddress: string }>()
+        const resolution = deferred<{
+            identifier: string
+            recipientType: 'ENS'
+            resolvedAddress: string
+            person: null
+        }>()
         mockValidateAndResolveRecipient.mockReturnValue(resolution.promise)
 
         render(
@@ -379,6 +384,7 @@ describe('InitialWithdrawView', () => {
             identifier: 'alice.eth',
             recipientType: 'ENS',
             resolvedAddress: '0x2222222222222222222222222222222222222222',
+            person: null,
         })
 
         await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())

@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
 import ProfileHeader from '../ProfileHeader'
+import { personFrom } from '@/lib/person/person'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 
@@ -244,7 +245,12 @@ describe('ProfileHeader avatar', () => {
     // themselves everywhere else.
     it("shows the counterparty's picked avatar", () => {
         const { container } = renderWithIntl(
-            <ProfileHeader name="Hal Finney" username="hal" avatarKey="basic.frog" showShareButton />
+            <ProfileHeader
+                name="Hal Finney"
+                username="hal"
+                person={personFrom({ username: 'hal', avatarKey: 'basic.frog' })}
+                showShareButton
+            />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
@@ -252,10 +258,25 @@ describe('ProfileHeader avatar', () => {
 
     it('falls back to the username letter when the counterparty has no pick', () => {
         const { container } = renderWithIntl(
-            <ProfileHeader name="Hal Finney" username="hal" avatarKey={null} showShareButton />
+            <ProfileHeader
+                name="Hal Finney"
+                username="hal"
+                person={personFrom({ username: 'hal', avatarKey: null })}
+                showShareButton
+            />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/h.webp')
+    })
+
+    // TASK-23756: no person yet means no avatar, not a letter that might be wrong
+    it('leaves the avatar slot empty while the counterparty loads', () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader name="Hal Finney" username="hal" person={null} showShareButton />
+        )
+
+        expect(container.querySelector('img')).toBeNull()
+        expect(screen.getByTestId('profile-name')).toHaveTextContent('Hal Finney')
     })
 
     it("shows the signed-in user's own pick on their own profile", () => {

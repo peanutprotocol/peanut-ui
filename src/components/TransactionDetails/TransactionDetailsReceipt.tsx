@@ -205,7 +205,7 @@ export const TransactionDetailsReceipt = ({
                 merchantLogo={
                     isCardPaymentEntry(transaction) ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo : null
                 }
-                avatarKey={transaction.avatarKey}
+                person={transaction.peer}
                 isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isNameClickable={isNameClickable}

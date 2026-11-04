@@ -224,7 +224,7 @@ export default function MarketingAssetsPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="avatar"
-                        code={`import { UserAvatar } from '@/components/Avatar/UserAvatar'\n\n<UserAvatar name={user.username} avatarKey={user.avatarKey} size="m" />`}
+                        code={`import { UserAvatar } from '@/components/Avatar/UserAvatar'\nimport { personFrom } from '@/lib/person/person'\n\n<UserAvatar person={personFrom(user)} size="m" />`}
                     />
                 </DocSection.Code>
             </DocSection>

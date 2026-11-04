@@ -57,11 +57,7 @@ export function ContributePotSuccessView() {
             type="SEND"
             headerTitle={t('headers.contribute')}
             recipientType="USERNAME"
-            user={
-                recipient
-                    ? { username: recipient.username, fullName: recipient.fullName, avatarKey: recipient.avatarKey }
-                    : undefined
-            }
+            recipient={recipient?.person}
             amount={paidAmount}
             usdAmount={paidAmount}
             message={attachment.message}

@@ -286,13 +286,17 @@ jest.mock('@/hooks/useRequestContact', () => ({
     useRequestContact: () => ({ data: { relationshipTypes: ['sent_money'] }, isLoading: false, isError: false }),
 }))
 
-const mockUseUserByUsername = jest.fn(() => ({
-    user: { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false },
-    isLoading: false,
-    error: undefined,
-}))
-jest.mock('@/hooks/useUserByUsername', () => ({
-    useUserByUsername: () => mockUseUserByUsername(),
+const mockUsePerson = jest.fn(() => {
+    const profile = { userId: 'recip-1', username: 'test-user', fullName: 'Test User', isVerified: false }
+    return {
+        person: jest.requireActual('@/lib/person/person').personFrom(profile),
+        profile,
+        isLoading: false,
+        error: undefined,
+    }
+})
+jest.mock('@/lib/person/usePerson', () => ({
+    usePerson: () => mockUsePerson(),
 }))
 
 const mockUseUserInteractions = jest.fn(() => ({ interactions: {} }))

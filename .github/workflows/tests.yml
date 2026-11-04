@@ -239,6 +239,9 @@ jobs:
               run: pnpm next typegen
 
             - name: Typecheck
+              # tsc outgrew Node's default heap: about one run in four died out of memory (Nov 2026).
+              env:
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: pnpm typecheck
 
     # The only pre-merge coverage for the Capacitor static export. Nothing else
@@ -632,7 +635,7 @@ jobs:
 
             - name: Build
               env:
-                  # Node 20's implicit ~2 GiB heap exhausts on this build too (press-contract, #3900).
+                  # Node 20's implicit ~2 GiB heap exhausts on this build (#3900).
                   NODE_OPTIONS: --max-old-space-size=4096
                   # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
                   # ignored, and every screen redirects to /setup. It is a
@@ -900,7 +903,7 @@ jobs:
             - name: Build
               id: build
               env:
-                  # Node 20's implicit ~2 GiB heap exhausts on this build too (press-contract, #3900).
+                  # Node 20's implicit ~2 GiB heap exhausts on this build (#3900).
                   NODE_OPTIONS: --max-old-space-size=4096
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080

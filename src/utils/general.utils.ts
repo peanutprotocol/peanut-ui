@@ -23,6 +23,7 @@ import * as wagmiChains from 'wagmi/chains'
 import { type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
 import { contributedAmount } from '@/utils/request-pot.utils'
+import { personFrom } from '@/lib/person/person'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
@@ -1351,7 +1352,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
                 // charge/service.ts to immutable response building). Scoped separately.
                 isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
                 isPeanutUser,
-                avatarKey: payerAccount?.user?.avatarKey ?? null,
+                person: personFrom(payerAccount?.user),
             }
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)

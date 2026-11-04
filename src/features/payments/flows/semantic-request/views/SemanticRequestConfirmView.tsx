@@ -147,6 +147,7 @@ export function SemanticRequestConfirmView() {
                         transactionType={'REQUEST_PAYMENT'}
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
+                        person={recipient.person}
                         amount={displayAmount}
                         tokenSymbol="$"
                         message={attachment?.message ?? ''}
