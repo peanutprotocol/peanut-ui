@@ -1,5 +1,4 @@
 /** Badge and actual destination must agree; adapter renders the real UI. */
-import { describe, expect, test } from '@jest/globals'
 import { bankScenario } from './review-acceptance-adapter'
 
 describe('bank badge actionable-gate precedence', () => {
