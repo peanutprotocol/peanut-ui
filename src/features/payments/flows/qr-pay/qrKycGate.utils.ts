@@ -84,9 +84,20 @@ export function selectQrKycGate(input: {
     }
 }
 
+/** Manteca methods that pay a QR (the pool QR rails are `qr-only`). */
+const QR_PAYING_METHODS: ReadonlySet<string> = new Set(['PIX_BR', 'MERCADOPAGO_QR_AR'])
+
 /** The Manteca rails' answer to a QR payment, for an API that sends no feature report. */
 function qrGateFromRails(rails: readonly RailCapability[], nextActions: readonly NextAction[]): QrKycGate {
-    const mantecaRails = rails.filter((rail) => rail.provider === 'manteca')
+    // Only a rail that can pay a QR: a bank-only Manteca rail (BANK_TRANSFER_AR) says nothing of `pay`,
+    // and its rail-level status must not open a payment it cannot make.
+    const mantecaRails = rails.filter(
+        (rail) =>
+            rail.provider === 'manteca' &&
+            (rail.operations?.pay !== undefined ||
+                rail.channel === 'qr-only' ||
+                QR_PAYING_METHODS.has(rail.method.toUpperCase()))
+    )
     const rail = deriveGate({ rails: mantecaRails, nextActions: [...nextActions], isLoading: false }, 'pay')
     return qrGateFromGate(rail)
 }

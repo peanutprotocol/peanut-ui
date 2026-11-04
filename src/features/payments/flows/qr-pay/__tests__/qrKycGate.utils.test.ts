@@ -251,6 +251,11 @@ describe('selectQrKycGate without a report (an API rolled back past it) reads th
         expect(read([qr()]).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
         expect(read([pix()]).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
     })
+    it('a bank-only Manteca rail does not open a QR payment, an explicit pay operation does', () => {
+        const bank = pix({ id: 'manteca.bank_transfer_ar', method: 'BANK_TRANSFER_AR', country: 'AR', currency: 'ARS' })
+        expect(read([bank]).kycGateState).toBe(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+        expect(read([{ ...bank, operations: { pay: 'enabled' } }]).kycGateState).toBe(QrKycState.PROCEED_TO_PAY)
+    })
     it('a non-Manteca rail does not pay a QR', () => {
         const bridge = pix({ id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', country: 'US' })
         expect(read([bridge]).kycGateState).toBe(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
