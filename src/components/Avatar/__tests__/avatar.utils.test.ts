@@ -252,6 +252,19 @@ describe('served avatar art', () => {
         expect(badgeAvatarKeys(['NEW_BADGE'], { 'badge.NEW_BADGE.owl': 'https://evil.example/x.webp' })).toEqual([])
     })
 
+    // TASK-24388: an API that still serves a retired slug (before its own
+    // one-avatar change) must not put it back in the pool, but someone still
+    // wearing it keeps their art
+    it('ignores served slugs for a badge with bundled art, and still draws a worn one', () => {
+        const swipe = served('avatar-badge-CARD_ALPHA-swipe.0123456789ab.webp')
+        const old = {
+            'badge.CARD_ALPHA.swipe': swipe,
+            'badge.CARD_ALPHA.tape': served('avatar-badge-CARD_ALPHA-tape.webp'),
+        }
+        expect(badgeAvatarKeys(['CARD_ALPHA'], old)).toEqual(['badge.CARD_ALPHA.card'])
+        expect(avatarSrc('badge.CARD_ALPHA.swipe', old)).toBe(swipe)
+    })
+
     it('deals a served-only badge avatar to its holder', () => {
         const hand = dealHand(null, badgeAvatarKeys(['NEW_BADGE'], art), { art })
         expect(hand).toContain('badge.NEW_BADGE.owl')

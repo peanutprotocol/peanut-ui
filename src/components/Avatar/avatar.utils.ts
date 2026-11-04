@@ -14,7 +14,8 @@
  *
  * The API also serves the art (GET /avatars/art, TASK-23547) as a key → url
  * map. The bundled file wins; the map fills in keys this bundle does not know
- * (a badge avatar added after it shipped), which are then pickable too. An
+ * (a badge avatar added after it shipped), which are then pickable too, but
+ * only for a badge the bundle has no avatar for. An
  * empty map (an API without the route, or without an art bucket) leaves
  * everything as the bundle has it.
  */
@@ -47,9 +48,14 @@ const withServed = (bundled: readonly string[], prefix: string, art: AvatarArtUr
 }
 
 // plain JSON object: a code like `constructor` must read as "no avatars", not
-// as Object.prototype
-const slugsOf = (code: string, art: AvatarArtUrls = {}): string[] =>
-    withServed(Object.hasOwn(BADGE_AVATARS, code) ? BADGE_AVATARS[code] : [], `badge.${code}.`, art)
+// as Object.prototype. One avatar per badge (TASK-24388): a badge with bundled
+// art unlocks that one slug, and the served map fills in only a badge the
+// bundle has none for, so an API that still serves retired slugs cannot add
+// them back to the pool.
+const slugsOf = (code: string, art: AvatarArtUrls = {}): string[] => {
+    const bundled = Object.hasOwn(BADGE_AVATARS, code) ? BADGE_AVATARS[code] : []
+    return bundled.length ? [...bundled] : withServed([], `badge.${code}.`, art)
+}
 
 export const basicAvatarKeys = (art: AvatarArtUrls = {}): string[] =>
     withServed(BASICS, 'basic.', art).map((slug) => `basic.${slug}`)
