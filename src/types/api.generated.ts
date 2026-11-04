@@ -937,7 +937,7 @@ export interface paths {
         put?: never;
         /**
          * Start a Pix withdrawal
-         * @description Opens the Avenia ticket (10 minutes), then quotes and commits Rhino in receive mode for exactly its USDC. The app approves the USDC to the bridge contract and calls depositWithId, then reports the hash to /avenia/withdraw/:intentId/funded.
+         * @description Opens the Avenia ticket (10 minutes), then quotes and commits Rhino in receive mode for exactly its USDC. The app approves the USDC to the bridge contract and calls depositWithId, then reports the hash to /avenia/withdraw/:intentId/funded. Avenia matches a deposit by wallet and exact amount, so every unpaid ticket keeps a USDC amount of its own: while an earlier withdrawal is unaccounted for, the ticket can be up to 0.0001 USDC above the asked amount (the display shows the real one).
          */
         post: {
             parameters: {
