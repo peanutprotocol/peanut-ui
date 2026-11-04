@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { repositoryApiPath } from './repository-api.mjs'
@@ -24,7 +24,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         )
             throw new Error('Invalid exact PR revision for capture preflight')
         const pr = JSON.parse(
-            execFileSync('gh', ['api', repositoryApiPath(repository, `pulls/${number}`)], {
+            ghApiSync([repositoryApiPath(repository, `pulls/${number}`)], {
                 encoding: 'utf8',
                 timeout: 60000,
                 maxBuffer: 4 * 1024 * 1024,
