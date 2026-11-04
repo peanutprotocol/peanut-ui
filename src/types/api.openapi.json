@@ -790,7 +790,7 @@
 		},
 		"/avenia/kyc/start": {
 			"post": {
-				"description": "For a Brazilian resident with an approved identity and a CPF: creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.",
+				"description": "For a Brazilian resident with an approved identity and a CPF: records their acceptance of Avenia’s terms, creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Refused without `termsAccepted: true`. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.",
 				"parameters": [
 					{
 						"in": "header",
@@ -809,12 +809,23 @@
 									"redirectUrl": {
 										"format": "uri",
 										"type": "string"
+									},
+									"termsAccepted": {
+										"description": "The user accepted Avenia’s terms on this step. Recorded in the consent ledger with the server time and the caller’s IP.",
+										"enum": [
+											true
+										],
+										"type": "boolean"
 									}
 								},
+								"required": [
+									"termsAccepted"
+								],
 								"type": "object"
 							}
 						}
-					}
+					},
+					"required": true
 				},
 				"responses": {
 					"200": {
@@ -863,6 +874,27 @@
 									},
 									"required": [
 										"state"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
 									],
 									"type": "object"
 								}
