@@ -4216,10 +4216,10 @@
             "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut."
         },
         "confirmInviteModal": {
-            "title": "¿Crear tu billetera de Peanut?",
-            "description": "Crea una billetera para que esta referencia quede vinculada a tu cuenta. Si usas {method}, continuarás sin registrarte.",
-            "joinCta": "Crear billetera",
-            "continueWithMethod": "Continuar con {method}"
+            "title": "{username} te invitó a Peanut",
+            "description": "Regístrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usas Peanut. También puedes reclamarlo en {method} sin una cuenta.",
+            "joinCta": "Regístrate y reclama",
+            "claimWithoutSignup": "Reclamar sin registrarte"
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",

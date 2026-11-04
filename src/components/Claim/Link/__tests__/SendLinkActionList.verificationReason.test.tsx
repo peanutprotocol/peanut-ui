@@ -167,7 +167,18 @@ describe('invite prompt on an invite link', () => {
         expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('regional-account-required')
     })
 
-    test('bank still asks first, since a bank claim can go ahead without an account', () => {
+    test('a bank claim this guest can only make with an account skips the prompt that promises "without an account"', () => {
+        renderList({ isInviteLink: true })
+
+        fireEvent.click(screen.getByText('Bank transfer'))
+
+        expect(screen.queryByText('invite prompt')).not.toBeInTheDocument()
+        expect(mockSetVerificationPromptReason).toHaveBeenCalledWith('account-required')
+        expect(mockSetShowVerificationModal).toHaveBeenCalledWith(true)
+    })
+
+    test('a bank claim that goes ahead without an account still asks first', () => {
+        mockClaimType = 'guest-bank-claim'
         renderList({ isInviteLink: true })
 
         fireEvent.click(screen.getByText('Bank transfer'))

@@ -509,6 +509,7 @@ export const SURFACES: Record<string, Surface> = {
             <ConfirmInviteModal
                 isOpen
                 onClose={noop}
+                username="maria"
                 method="Google"
                 handleLoseInvite={noop}
                 handleContinueWithPeanut={noop}
