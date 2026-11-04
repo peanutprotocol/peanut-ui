@@ -13,7 +13,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { Address, TransactionReceipt } from 'viem'
 import { getAddress, isAddress, erc20Abi } from 'viem'
-import * as wagmiChains from 'wagmi/chains'
+import { getSupportedViemChain } from '@/constants/supported-chains.consts'
 /*
  * Type-only, so this module does not pull `actions/clients` — and through it
  * viem's ~700-chain registry (596 KB) — into every bundle that imports these
@@ -389,9 +389,7 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
 export const isTestnetChain = (chainId: string) => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).
-    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
-    const chain = all.find((c) => c?.id === Number(chainId))
-    return chain?.testnet === true
+    return getSupportedViemChain(chainId)?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
@@ -649,8 +647,7 @@ export function getChainName(chainId: string): string | undefined {
     if (chainId === '0') {
         return 'Solana'
     }
-    const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
-    return chain?.name ?? undefined
+    return getSupportedViemChain(chainId)?.name
 }
 
 /**
