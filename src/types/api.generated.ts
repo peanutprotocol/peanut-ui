@@ -693,7 +693,7 @@ export interface paths {
         };
         /**
          * Resolve a Pix key to its holder and bank
-         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key is the user’s own (masked CPF and holder name match) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.
+         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key looks like the user’s own (the masked CPF and the holder name match; DICT shows only part of the CPF, and Avenia checks the full one at payout) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.
          */
         get: {
             parameters: {
@@ -730,6 +730,7 @@ export interface paths {
                             holderName: string | null;
                             holderTaxIdMasked: string | null;
                             ispb: string | null;
+                            /** @description Precheck: the masked CPF and holder name match the user. Avenia refuses a payout to another CPF. */
                             ownAccount: boolean;
                         };
                     };
