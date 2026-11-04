@@ -7,15 +7,8 @@ import {
 } from '@/components/TransactionDetails/transaction-types'
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import type { Person } from '@/lib/person/person.types'
-import {
-    getExplorerUrl,
-    getTransactionExplorerUrl,
-    getInitialsFromName,
-    getTokenDetails,
-    getChainName,
-    getTokenLogo,
-    getChainLogo,
-} from '@/utils/general.utils'
+import { getInitialsFromName, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
+import { getExplorerUrl, getTransactionExplorerUrl, getTokenDetails } from '@/utils/token.utils'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'

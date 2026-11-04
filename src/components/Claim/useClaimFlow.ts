@@ -20,14 +20,8 @@ import {
     sendLinksApi,
     type ClaimLinkData,
 } from '@/services/sendLinks'
-import {
-    getInitialsFromName,
-    getTokenDetails,
-    isStableCoin,
-    getChainName,
-    getTokenLogo,
-    getChainLogo,
-} from '@/utils/general.utils'
+import { getInitialsFromName, isStableCoin, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getUserById } from '@/app/actions/users'
 import * as Sentry from '@sentry/nextjs'
