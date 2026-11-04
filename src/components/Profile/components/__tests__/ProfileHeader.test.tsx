@@ -286,3 +286,41 @@ describe('ProfileHeader avatar', () => {
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
     })
 })
+
+// TASK-24388: a profile shows its owner at 96 px, the avatar xl, on all
+// three branches: someone else's profile, your own full header, and your
+// own profile tab, where the avatar is the change-avatar button.
+describe('ProfileHeader avatar size', () => {
+    // the sticker's own box: the span that holds the art
+    const stickerBox = (container: HTMLElement) => container.querySelector('img')!.parentElement!
+
+    it("draws someone else's profile at 96", () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader
+                name="Hal Finney"
+                username="hal"
+                person={personFrom({ username: 'hal', avatarKey: 'basic.frog' })}
+                showShareButton
+            />
+        )
+
+        expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+    })
+
+    it('draws your own full header at 96', () => {
+        const { container } = renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+
+        expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+    })
+
+    it('grows the profile tab avatar button to 96 around a 96 avatar', () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={jest.fn()} />
+        )
+
+        expect(avatarButton()).toHaveClass('size-24')
+        expect(avatarButton()).not.toHaveClass('size-16')
+        expect(avatarButton()).toContainElement(stickerBox(container))
+        expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+    })
+})

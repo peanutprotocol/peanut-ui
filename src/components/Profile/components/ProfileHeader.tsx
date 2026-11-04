@@ -61,7 +61,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const self = useSelfPerson()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
-    const ownAvatar = (size: 'm' | 'xl') => self && <UserAvatar person={self} size={size} />
+    // a profile shows its owner at the avatar xl (96), on every branch
+    const ownAvatar = self && <UserAvatar person={self} size="xl" />
 
     // Preview and staging links use their own origin.
     const profileUrl = shareableUrl(`/${username}`, origin)
@@ -105,15 +106,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             shadowSize="4"
                             onClick={onChangeAvatar}
                             aria-label={tAvatar('change')}
-                            className="size-16 w-16 shrink-0 rounded-full p-0"
+                            className="size-24 shrink-0 rounded-full p-0"
                         >
-                            {ownAvatar('m')}
+                            {ownAvatar}
                         </Button>
                     ) : (
-                        ownAvatar('xl')
+                        ownAvatar
                     )
                 ) : (
-                    person && <UserAvatar person={person} size="l" />
+                    person && <UserAvatar person={person} size="xl" />
                 )}
 
                 {/* Without a full name, the self profile's handle appears only in the pill. */}

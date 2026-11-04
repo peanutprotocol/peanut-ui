@@ -8,6 +8,12 @@ import { AVATAR_SIZE_CLASSES, type AvatarSize } from './avatar-size.consts'
 
 export type { AvatarSize }
 
+// half the box, the same glyph-to-bubble ratio as IconBubble s and xl
+const ICON_SIZES: Record<AvatarSize, number> = {
+    s: 16,
+    xl: 48,
+}
+
 /**
  * props for the avatarwithbadge component.
  */
@@ -42,7 +48,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     name,
     icon,
     className,
-    size = 'l',
+    size = 's',
     inlineStyle,
     textColor,
     iconFillColor,
@@ -51,13 +57,6 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     firstLetterOnly,
 }) => {
     const [logoFailed, setLogoFailed] = useState(false)
-    const iconSizeMap: Record<AvatarSize, number> = {
-        xs: 12,
-        s: 16,
-        m: 18,
-        l: 32,
-        xl: 48,
-    }
 
     const initials = useMemo(() => {
         if (!name) return ''
@@ -115,7 +114,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
             >
                 {/* display icon if provided, otherwise display initials */}
                 {icon ? (
-                    <Icon name={icon} size={iconSizeMap[size]} fill={iconFillColor} style={{ color: textColor }} />
+                    <Icon name={icon} size={ICON_SIZES[size]} fill={iconFillColor} style={{ color: textColor }} />
                 ) : (
                     initials
                 )}

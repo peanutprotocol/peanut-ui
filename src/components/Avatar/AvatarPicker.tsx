@@ -180,7 +180,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     <AvatarSticker
                                         letterOf={initial ? (username ?? '') : ''}
                                         avatarKey={initial ? initialKey : key}
-                                        size="l"
+                                        size="xl"
                                         className="aspect-square h-auto w-3/5"
                                     />
                                     {/* Two lines reserved for every name, so a roll that deals only one-line
