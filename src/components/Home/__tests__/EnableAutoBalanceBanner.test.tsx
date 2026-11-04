@@ -42,13 +42,15 @@ jest.mock('@/hooks/useCardFundingAccess', () => {
     }
 })
 
-type MockCard = { id?: string; status: string; hasWithdrawApproval: boolean }
+type MockCard = { id?: string; status: string; hasWithdrawApproval: boolean; hasStoredWithdrawApproval?: boolean }
 let mockCards: MockCard[] = []
+let mockSpendingPower: number | null = null
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({
         overview: {
             cards: mockCards,
             status: { contractAddress: '0xabc', coordinatorAddress: '0xdef' },
+            balance: mockSpendingPower === null ? null : { spendingPower: mockSpendingPower },
         },
     }),
 }))
@@ -62,12 +64,14 @@ jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: (props: {
         visible: boolean
+        title?: string
         description?: string
         ctas?: { text: string; onClick: () => void; disabled?: boolean }[]
         tertiaryCta?: { text: string; disabled?: boolean; onClick?: () => void }
     }) =>
         props.visible ? (
             <div data-testid="modal">
+                <h3>{props.title}</h3>
                 <p>{props.description}</p>
                 {props.ctas?.map((c) => (
                     <button key={c.text} onClick={c.onClick} disabled={c.disabled}>
@@ -84,6 +88,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
 }))
 
 import EnableAutoBalanceBanner from '../EnableAutoBalanceBanner'
+import { resetFundingPromptHoldsForTests } from '@/features/attention/cardFunding'
 
 const onActed = jest.fn()
 const onSnoozed = jest.fn()
@@ -101,7 +106,9 @@ beforeEach(() => {
     mockLastError = null
     mockGrant.mockResolvedValue({ ok: false })
     mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
+    mockSpendingPower = null
     mockAccess = { fundingMode: 'legacy', enrollmentAllowed: false }
+    resetFundingPromptHoldsForTests()
 })
 
 describe('EnableAutoBalanceBanner — the funding decision', () => {
@@ -480,5 +487,75 @@ describe('EnableAutoBalanceBanner — settling the ask', () => {
         })
         rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
         expect(onActed).not.toHaveBeenCalled()
+    })
+})
+
+// R2: a long-time cardholder is never told to finish setting up a card that already worked.
+describe('EnableAutoBalanceBanner — an update for a card that already worked', () => {
+    const title = () => screen.getByRole('heading', { level: 3 }).textContent
+    const OUTDATED: MockCard = {
+        id: 'card-a',
+        status: 'ACTIVE',
+        hasWithdrawApproval: false,
+        hasStoredWithdrawApproval: true,
+    }
+
+    it('a new card finishes setup, before and after a failure', () => {
+        const { rerender } = render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(title()).toBe('Finish setting up the card')
+        expect(screen.getByText('One passkey tap to start using your card.')).toBeInTheDocument()
+
+        mockLastError = { kind: 'unexpected', message: 'boom' }
+        rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(title()).toBe('Finish setting up the card')
+        expect(screen.getByText(/couldn't finish setting up your card/i)).toBeInTheDocument()
+    })
+
+    it.each([
+        ['an outdated approval on file', () => (mockCards = [OUTDATED])],
+        ['card balance', () => (mockSpendingPower = 1_250)],
+    ])('a card with %s reads as an update, before and after a failure', (_evidence, arrange) => {
+        arrange()
+        const { rerender } = render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+        expect(screen.getByText('Approve the update with your passkey.')).toBeInTheDocument()
+
+        mockLastError = { kind: 'unexpected', message: 'boom' }
+        rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+        expect(
+            screen.getByText(
+                "We couldn't finish the update. Try again, or skip for now. We'll ask again next time you open Home."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/setting up|start using/i)).not.toBeInTheDocument()
+    })
+
+    it('an update stuck after an ok grant stays an update', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockCards = [OUTDATED]
+        mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
+        render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        expect(title()).toBe('Card payments update')
+        expect(screen.getByText(/couldn't finish the update/i)).toBeInTheDocument()
+    })
+
+    it('an approval its own grant stored is not evidence: a stuck new card keeps finishing setup', async () => {
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockGrant.mockImplementation(async () => {
+            mockCards = [{ ...OUTDATED }]
+            return { ok: true, overviewFresh: true }
+        })
+        const { rerender } = render(<EnableAutoBalanceBanner {...surfaceProps} />)
+        await act(async () => {
+            fireEvent.click(screen.getByText('Continue'))
+        })
+        rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
+        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        expect(title()).toBe('Finish setting up the card')
     })
 })

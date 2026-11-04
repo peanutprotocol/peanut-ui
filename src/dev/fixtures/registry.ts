@@ -1915,7 +1915,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'card-funding-migration': {
         route: '/home',
-        about: 'Managed cardholder with a legacy grant to retire: the same prompt, saying there are two confirmations.',
+        about: 'Managed cardholder with a legacy grant to retire: the card payments update prompt.',
         responses: {
             'GET /rain/cards': CARD_HOLDER_OVERVIEW,
             'GET /rain/cards/funding/access': cardAccess('managed', true),
@@ -1926,11 +1926,11 @@ export const FIXTURES: Record<string, Fixture> = {
         },
         waitFor: '[data-testid="card-funding-consent"]',
     },
-    // Card balance from before goes back to the wallet before the old grant is
-    // retired: the same prompt names the amount and every confirmation.
+    // Card balance from before goes back to the wallet once the update is
+    // confirmed: the update prompt names the amount.
     'card-funding-return': {
         route: '/home',
-        about: 'Existing cardholder with card balance and a legacy grant: the same prompt names the amount and more than one confirmation.',
+        about: 'Existing cardholder with card balance and a legacy grant: the card payments update prompt names the amount.',
         responses: {
             'GET /rain/cards': {
                 ...CARD_HOLDER_OVERVIEW,

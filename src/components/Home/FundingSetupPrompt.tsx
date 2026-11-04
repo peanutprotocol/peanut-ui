@@ -11,8 +11,10 @@ import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import {
     fundingPromptShows,
     fundingReturnCents,
+    holdsCardApproval,
     isFinishingReturn,
     setFundingPromptHold,
+    useCardPaymentsUpdate,
 } from '@/features/attention/cardFunding'
 import type { AskSurfaceProps } from '@/features/attention/types'
 
@@ -40,6 +42,11 @@ const SKIP_MS = 60 * 60 * 1000
  * for a pending grant once the polling window has passed. Skipping is local: it grants
  * nothing, forgets nothing in flight (the hook keeps polling and the grant
  * keeps running), and the manager asks again an hour later.
+ *
+ * A card that already worked (an approval of the old permission, the old
+ * permission still on the wallet, or card balance) reads as a card payments
+ * update in every state, pending, the balance move and errors included; a new
+ * card reads as finishing setup (`useCardPaymentsUpdate`).
  *
  * A legacy user confirms twice (the old permission is retired first). Card
  * balance moves back to the wallet only after the backend confirms the new
@@ -129,6 +136,7 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
     // funding is confirmed ready, which can take more than one confirmation. An
     // unreadable balance shows the usual copy; the return itself reads fresh.
     const returnCents = fundingReturnCents(overview)
+    const isUpdate = useCardPaymentsUpdate(cardId, holdsCardApproval(card) || isMigration || returnCents > 0)
     // Funding is ready and the setup started here still owes that move: one
     // explicit step (a tap, never a render), and funding stays as it is.
     const finishingReturn = isFinishingReturn(owesReturn, status, returnCents, !!returnError)
@@ -276,9 +284,9 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
 
     const description = finishingReturn ? (
         returnRetryable ? (
-            failureDescription(returnError, t('descriptionReturnRetry'))
+            failureDescription(returnError, t(isUpdate ? 'descriptionUpdateReturnRetry' : 'descriptionReturnRetry'))
         ) : (
-            t('descriptionReadyReturn', { amount })
+            t(isUpdate ? 'descriptionUpdateReadyReturn' : 'descriptionReadyReturn', { amount })
         )
     ) : isWithdrawalInFlight ? (
         t('descriptionWithdrawalInFlight')
@@ -287,15 +295,13 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
     ) : termsChanged ? (
         tFunding('termsChanged')
     ) : hardError ? (
-        failureDescription(lastError, t('descriptionError'))
-    ) : isMigration || offersEnrollment ? (
+        failureDescription(lastError, t(isUpdate ? 'descriptionUpdateError' : 'descriptionError'))
+    ) : isUpdate ? (
         <div className="flex flex-col gap-3">
             <p>{t('updateIntro')}</p>
             {returnCents > 0 && <p>{t('updateReturn', { amount })}</p>}
             <p>{t('updateApprove')}</p>
         </div>
-    ) : returnCents > 0 ? (
-        t('descriptionReturn', { amount })
     ) : (
         t('description')
     )
@@ -307,14 +313,14 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
             preventClose
             hideModalCloseButton
             concept="card"
-            title={t(isMigration || offersEnrollment ? 'updateTitle' : 'title')}
+            title={t(isUpdate ? 'updateTitle' : 'title')}
             description={description}
             content={
                 // The move after setup needs no new consent: nothing is granted.
                 stalled || finishingReturn ? undefined : (
                     <CardFundingConsent
                         authorizationText={authorizationText}
-                        showDisclosure={!isMigration && !offersEnrollment}
+                        showDisclosure={!isUpdate}
                         authorizationAccepted={authorizationAccepted}
                         onAuthorizationChange={setAuthorizationAccepted}
                         disabled={busy}

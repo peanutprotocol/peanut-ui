@@ -161,7 +161,7 @@ beforeEach(() => {
     mockContinueSetup.mockResolvedValue({ ok: true, status: 'ready' })
     mockOwesReturn = false
     mockReturnError = null
-    mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
+    mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
     mockSpendingPower = null
     mockBalanceUnavailable = false
     mockInFlight = false
@@ -348,6 +348,7 @@ describe('FundingSetupPrompt — consent gates Continue', () => {
 
 describe('FundingSetupPrompt — one confirmation or two', () => {
     it('shows the approved update copy for enrollment without a return paragraph at zero balance', () => {
+        mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
         mockAccess = { fundingMode: 'legacy', enrollmentAllowed: true }
         mockStatus = 'temporarily_unavailable'
         mockSpendingPower = 0
@@ -395,15 +396,14 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
     const description = () => screen.getByTestId('description')
 
     it.each<[Status]>([['required'], ['migration_required']])(
-        '%s: names the amount and more than one confirmation, with no exact count, in one dialog',
+        '%s: card balance makes it an update that names the amount, with no exact count, in one dialog',
         (status) => {
             mockSpendingPower = 1_234.7
             mockStatus = status
             render(<FundingSetupPrompt {...surfaceProps} />)
+            expect(screen.getByText('Card payments update')).toBeInTheDocument()
             expect(description()).toHaveTextContent(
-                status === 'migration_required'
-                    ? 'Once the update is confirmed, $12.34 on your card will return to your wallet.'
-                    : 'When setup is confirmed, $12.34 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
+                'Once the update is confirmed, $12.34 on your card will return to your wallet.'
             )
             expect(description()).not.toHaveTextContent(/One passkey tap|twice|\d+ times/)
             expect(boxes()).toHaveLength(1)
@@ -435,7 +435,7 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
         ['return-pending', /not confirmed yet/],
         ['return-wait', /cannot move right now/],
         ['balance-unavailable', /couldn't read your card balance/i],
-        ['return-failed', /couldn't finish setting up your card/],
+        ['return-failed', /couldn't finish the update/],
     ])('a %s stop explains it and offers Try again and Skip for now in the same dialog', (kind, text) => {
         mockSpendingPower = 500
         mockLastError = { kind } as RainFundingError
@@ -496,7 +496,7 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
         it('stays open with one explicit move step: no consent box, no new grant', async () => {
             render(<FundingSetupPrompt {...surfaceProps} />)
             expect(description()).toHaveTextContent(
-                'Your card is set up. Move $5.00 of card balance to your wallet now, or later from the card screen.'
+                'The update is done. Move $5.00 of card balance to your wallet now, or later from the card screen.'
             )
             expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
             expect(screen.getByText('Skip for now')).toBeInTheDocument()
@@ -515,7 +515,7 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
         })
 
         it.each([
-            ['return-failed', /your card is set up, but moving your card balance didn't finish/i],
+            ['return-failed', /the update is done, but moving your card balance didn't finish/i],
             ['return-pending', /not confirmed yet/],
             ['return-wait', /cannot move right now/],
             ['balance-unavailable', /couldn't read your card balance/i],
@@ -534,7 +534,7 @@ describe('FundingSetupPrompt — card balance moves back after setup is confirme
         it('a cancelled move simply offers the move again', () => {
             mockReturnError = { kind: 'user-cancelled' }
             render(<FundingSetupPrompt {...surfaceProps} />)
-            expect(description()).toHaveTextContent(/^Your card is set up\. Move \$5\.00/)
+            expect(description()).toHaveTextContent(/^The update is done\. Move \$5\.00/)
             expect(screen.getByRole('button', { name: 'Move card balance to wallet' })).toBeEnabled()
         })
 
@@ -817,5 +817,161 @@ describe('FundingSetupPrompt — as an attention ask', () => {
         view.unmount()
         expect(getFundingPromptHold('card-a').endedForGood).toBe(true)
         expect(getFundingPromptHold('card-b').endedForGood).toBe(false)
+    })
+})
+
+// R2: a long-time cardholder is never told to finish setting up a card that already worked.
+describe('FundingSetupPrompt — an update for a card that already worked', () => {
+    const title = () => screen.getByRole('heading', { level: 3 }).textContent
+    const description = () => screen.getByTestId('description')
+    const SETUP_COPY = /finish setting up|set up|start using/i
+    const EXISTING: MockCard = {
+        id: 'card-a',
+        status: 'ACTIVE',
+        hasWithdrawApproval: false,
+        hasStoredWithdrawApproval: true,
+    }
+    const NEW_CARD_B: MockCard = { id: 'card-b', status: 'ACTIVE', hasWithdrawApproval: false }
+
+    afterEach(() => jest.useRealTimers())
+
+    const STATES: [string, () => void][] = [
+        ['the permission is missing', () => (mockStatus = 'required')],
+        ['the old permission is still on the wallet', () => (mockStatus = 'migration_required')],
+        [
+            'managed funding is offered',
+            () => {
+                mockAccess = { fundingMode: 'legacy', enrollmentAllowed: true }
+                mockStatus = 'temporarily_unavailable'
+            },
+        ],
+        ['the passkey was cancelled', () => (mockLastError = { kind: 'user-cancelled' })],
+        ['the grant failed', () => (mockLastError = { kind: 'unexpected', message: 'boom' })],
+        ['the grant is pending', () => (mockStatus = 'pending')],
+        [
+            'a card withdrawal is confirming',
+            () => {
+                mockStatus = 'temporarily_unavailable'
+                mockInFlight = true
+            },
+        ],
+        [
+            'the balance move is owed',
+            () => {
+                mockStatus = 'ready'
+                mockOwesReturn = true
+                mockSpendingPower = 500
+            },
+        ],
+        [
+            'the balance move failed',
+            () => {
+                mockStatus = 'ready'
+                mockOwesReturn = true
+                mockSpendingPower = 500
+                mockReturnError = { kind: 'return-failed' }
+            },
+        ],
+    ]
+
+    it.each(STATES)('an existing card reads as an update when %s', (_state, arrange) => {
+        mockCards = [EXISTING]
+        arrange()
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+        expect(description()).not.toHaveTextContent(SETUP_COPY)
+    })
+
+    it('an existing card whose wait stalled still reads as an update', () => {
+        jest.useFakeTimers()
+        mockCards = [EXISTING]
+        mockStatus = 'pending'
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        act(() => void jest.advanceTimersByTime(60_001))
+        expect(screen.getByRole('button', { name: 'Check status' })).toBeInTheDocument()
+        expect(title()).toBe('Card payments update')
+    })
+
+    // the old permission and card balance are themselves the evidence of a card that worked
+    const NEW_CARD_STATES = STATES.filter(([state]) => !/old permission|balance move/.test(state))
+
+    it.each(NEW_CARD_STATES)('a new card keeps finishing setup when %s', (_state, arrange) => {
+        arrange()
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Finish setting up the card')
+    })
+
+    it('a new card offered managed funding gets the setup copy and the permission description', () => {
+        mockAccess = { fundingMode: 'legacy', enrollmentAllowed: true }
+        mockStatus = 'temporarily_unavailable'
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Finish setting up the card')
+        expect(description()).toHaveTextContent('One passkey tap to start using your card.')
+        expect(screen.getByText(/Peanut manages how much our third party provider/)).toBeInTheDocument()
+    })
+
+    it('an approval from an API without the stored-approval flag still marks an existing card', () => {
+        mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: true }]
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+    })
+
+    it('card balance alone marks an existing card, so a reload mid-update stays an update', () => {
+        mockStatus = 'pending'
+        mockSpendingPower = 500
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+    })
+
+    it('keeps the update through pending, an error and the move back after the old permission is gone', () => {
+        mockCards = [EXISTING]
+        mockStatus = 'migration_required'
+        const { rerender } = render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+
+        // the grant clears the stored approval and retires the old permission
+        mockCards = [{ ...EXISTING, hasStoredWithdrawApproval: false }]
+        mockStatus = 'pending'
+        rerender(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+
+        mockStatus = 'required'
+        mockLastError = { kind: 'unexpected', message: 'boom' }
+        rerender(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+        expect(description()).toHaveTextContent(
+            "We couldn't finish the update. Try again, or skip for now. We'll ask again next time you open Home."
+        )
+
+        mockLastError = null
+        mockStatus = 'ready'
+        mockOwesReturn = true
+        mockReturnError = { kind: 'return-failed' }
+        rerender(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+        expect(description()).toHaveTextContent(
+            "The update is done, but moving your card balance didn't finish. Try again now, or later from the card screen."
+        )
+    })
+
+    it('the update outlives the prompt closing and reopening in the same app load', () => {
+        mockCards = [EXISTING]
+        mockStatus = 'migration_required'
+        render(<FundingSetupPrompt {...surfaceProps} />).unmount()
+
+        mockCards = [{ ...EXISTING, hasStoredWithdrawApproval: false }]
+        mockStatus = 'pending'
+        render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+    })
+
+    it('a re-issued new card does not inherit the earlier card’s update', () => {
+        mockCards = [EXISTING]
+        const { rerender } = render(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Card payments update')
+
+        mockCards = [{ ...EXISTING, status: 'CANCELED' }, NEW_CARD_B]
+        rerender(<FundingSetupPrompt {...surfaceProps} />)
+        expect(title()).toBe('Finish setting up the card')
     })
 })

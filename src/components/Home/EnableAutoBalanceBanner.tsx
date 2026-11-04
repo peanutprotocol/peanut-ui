@@ -9,6 +9,7 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { fundingReturnCents, holdsCardApproval, useCardPaymentsUpdate } from '@/features/attention/cardFunding'
 import type { AskSurfaceProps } from '@/features/attention/types'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -47,6 +48,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * All the "have we been here" state (grant success, skip dismissal, Sentry
  * dedupe) is keyed by card id, so a later re-issued card always gets its
  * own clean setup pass.
+ *
+ * A card that already worked (an outdated approval on file, or card balance)
+ * reads as a card payments update in every state; a new card reads as
+ * finishing setup.
  */
 export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
     const t = useTranslations('home.fundingSetup')
@@ -68,6 +73,11 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
     // this a failure on card A would leak "Try again" copy and the escape
     // hatch into a re-issued card B's first-ever prompt.
     const [lastAttemptFor, setLastAttemptFor] = useState<string | null>(null)
+    const isUpdate = useCardPaymentsUpdate(
+        card?.id ?? null,
+        // an approval this prompt just stored is the stuck shape below, not evidence of an older card
+        (holdsCardApproval(card) && grantSucceededFor !== card?.id) || fundingReturnCents(overview) > 0
+    )
 
     const shouldShow =
         setupPath === 'legacy' &&
@@ -168,8 +178,12 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
             onClose={() => {}}
             dismissible={false}
             concept="card"
-            title={t('title')}
-            description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
+            title={t(isUpdate ? 'updateTitle' : 'title')}
+            description={
+                hardError || stuckAfterSuccess
+                    ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
+                    : t(isUpdate ? 'updateApprove' : 'description')
+            }
             ctas={ctas}
             tertiaryCta={tertiaryCta}
         />

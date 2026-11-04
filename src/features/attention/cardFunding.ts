@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from 'react'
-import type { RainCardFunding, RainCardOverview, RainFundingAccess } from '@/services/rain'
+import { useEffect, useSyncExternalStore } from 'react'
+import type { RainCardFunding, RainCardOverview, RainCardSummary, RainFundingAccess } from '@/services/rain'
 import { isRainBalanceKnown } from '@/utils/balance.utils'
 import { fundingSetupPath, isFundingWithdrawalInFlight, needsFundingGrant } from '@/utils/rain-funding.utils'
 import type { CardSetupPath } from './types'
@@ -28,6 +28,8 @@ export interface FundingPromptHold {
 const NO_HOLD: FundingPromptHold = { owesReturn: false, returnError: false, endedForGood: false }
 let holds: Record<string, FundingPromptHold> = {}
 const listeners = new Set<() => void>()
+/** cards whose setup prompt was an update this app load */
+const updatingCards = new Set<string>()
 
 export function getFundingPromptHold(cardId: string | null): FundingPromptHold {
     return (cardId && holds[cardId]) || NO_HOLD
@@ -48,6 +50,26 @@ export function setFundingPromptHold(cardId: string, patch: Partial<FundingPromp
 
 export function resetFundingPromptHoldsForTests(): void {
     holds = {}
+    updatingCards.clear()
+}
+
+/** The card holds an approval of the existing card permission, whatever controller it targets. */
+export const holdsCardApproval = (
+    card: Pick<RainCardSummary, 'hasWithdrawApproval' | 'hasStoredWithdrawApproval'> | null | undefined
+): boolean => !!card && (card.hasWithdrawApproval || card.hasStoredWithdrawApproval === true)
+
+/**
+ * Whether a card's setup prompt is an update of a card that already worked,
+ * from `workedBefore`: the old permission on the card or the wallet, or card
+ * balance. The setup clears that permission and moves the balance back, so the
+ * evidence is gone by the time it is pending or returning; once seen, the card
+ * stays an update for the app load.
+ */
+export function useCardPaymentsUpdate(cardId: string | null, workedBefore: boolean): boolean {
+    useEffect(() => {
+        if (cardId && workedBefore) updatingCards.add(cardId)
+    }, [cardId, workedBefore])
+    return workedBefore || (!!cardId && updatingCards.has(cardId))
 }
 
 export function useFundingPromptHold(cardId: string | null): FundingPromptHold {
