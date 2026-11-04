@@ -76,7 +76,7 @@ const ProfileEditField = forwardRef<HTMLInputElement, ProfileEditFieldProps>(
                             role="textbox"
                             aria-readonly="true"
                             aria-labelledby={`${id}-label`}
-                            className="input h-auto min-h-10 border-border-subtle bg-background-disabled px-3 py-[calc(0.625rem-1px)] leading-5 break-words text-foreground-secondary"
+                            className="input flex h-auto min-h-10 items-center border-border-subtle bg-background-disabled px-3 py-2 leading-5 wrap-anywhere text-foreground-secondary"
                         >
                             {value}
                         </div>
