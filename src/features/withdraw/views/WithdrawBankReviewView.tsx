@@ -154,7 +154,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
             <PeanutActionDetailsCard
                 countryCodeForFlag={accountCountryCode}
-                avatarSize="m"
                 transactionType={'WITHDRAW_BANK_ACCOUNT'}
                 recipientType={'BANK_ACCOUNT'}
                 recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}

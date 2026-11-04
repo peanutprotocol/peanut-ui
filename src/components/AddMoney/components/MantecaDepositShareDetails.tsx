@@ -10,7 +10,7 @@ import ShareButton from '@/components/Global/ShareButton'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
-import Image from 'next/image'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import {
@@ -105,16 +105,13 @@ const MantecaDepositShareDetails = ({
                 {/* Amount Display Card */}
                 <Card className="p-4">
                     <div className="space-x-3 flex items-center">
-                        <div className="relative h-12 w-12">
-                            <Image
-                                src={getFlagUrl(countryCodeForFlag)}
-                                alt={t('manteca.flagAlt')}
-                                width={48}
-                                height={48}
-                                className="h-12 w-12 rounded-full object-cover"
-                            />
-                            <IconBubble {...CONCEPT_ICONS.bank} size="xs" className="absolute -right-1 -bottom-1" />
-                        </div>
+                        {/* a card shows its counterparty at 32, one leading element:
+                            the flag, with the bank bubble if it fails to load */}
+                        <AvatarWithBadge
+                            size="s"
+                            logo={getFlagUrl(countryCodeForFlag)}
+                            fallback={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                        />
                         <div>
                             <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                 <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}

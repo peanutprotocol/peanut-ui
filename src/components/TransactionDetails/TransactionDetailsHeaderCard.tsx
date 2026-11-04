@@ -300,7 +300,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             isLinkTransaction={isLinkTransaction}
             transactionType={typeForAvatar}
             status={status}
-            size="m"
+            size="xl"
             countryCode={countryCode}
         />
     )
@@ -308,7 +308,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
-                <Image src={LOGO} alt="Peanut Logo" width={64} height={64} className="size-12" />
+                <Image src={LOGO} alt="Peanut Logo" width={96} height={96} className="size-24" />
             ) : (
                 <div
                     // ph-sensitive: its aria-label can be the counterparty's real name
@@ -334,8 +334,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             : undefined
                     }
                 >
+                    {/* one 96 px slot (the avatar xl) for every branch: a person,
+                        a flag, a bubble, an image or a merchant logo */}
                     {avatarUrl ? (
-                        <div className="flex size-12 items-center justify-center rounded-full">
+                        <div className="flex size-24 items-center justify-center rounded-full">
                             <Image
                                 src={avatarUrl}
                                 alt="Icon"
@@ -345,7 +347,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             />
                         </div>
                     ) : merchantLogo ? (
-                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="md" />
+                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="xl" />
                     ) : (
                         genericBadge
                     )}
