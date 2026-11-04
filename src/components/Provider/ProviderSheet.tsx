@@ -19,6 +19,7 @@ interface ProviderSheetProps {
     nested?: boolean
     /** shown before the user accepts the provider's terms: the relationship line speaks of it as ahead */
     prospective?: boolean
+    onDocumentClick?: (document: 'terms' | 'privacy') => void
 }
 
 /**
@@ -26,7 +27,14 @@ interface ProviderSheetProps {
  * Rows and their order follow Konrad's disclosure sheet. Only fields present
  * in the registry render, so an unverified fact never shows.
  */
-export const ProviderSheet = ({ providerId, open, onClose, nested, prospective }: ProviderSheetProps) => {
+export const ProviderSheet = ({
+    providerId,
+    open,
+    onClose,
+    nested,
+    prospective,
+    onDocumentClick,
+}: ProviderSheetProps) => {
     const t = useTranslations('provider')
     const tCommon = useTranslations('common')
     const provider = PROVIDERS[providerId]
@@ -36,8 +44,14 @@ export const ProviderSheet = ({ providerId, open, onClose, nested, prospective }
     // not their bank app, so it shares the argentina wording
     const executionRole = provider.role === 'mantecaBr' ? 'mantecaAr' : provider.role
 
-    const documentLink = (label: string, href: string) => (
-        <LinkButton icon onClick={() => void openExternalUrl(href)}>
+    const documentLink = (document: 'terms' | 'privacy', label: string, href: string) => (
+        <LinkButton
+            icon
+            onClick={() => {
+                onDocumentClick?.(document)
+                void openExternalUrl(href)
+            }}
+        >
             {label}
         </LinkButton>
     )
@@ -54,10 +68,13 @@ export const ProviderSheet = ({ providerId, open, onClose, nested, prospective }
         provider.programManager && { label: t('field.programManager'), value: provider.programManager },
         { label: t('field.execution'), value: t(`execution.${executionRole}`, { brand }) },
         { label: t('field.peanutRole'), value: t('peanutRole') },
-        provider.termsUrl && { label: t('field.terms'), value: documentLink(t('field.viewTerms'), provider.termsUrl) },
+        provider.termsUrl && {
+            label: t('field.terms'),
+            value: documentLink('terms', t('field.viewTerms'), provider.termsUrl),
+        },
         provider.privacyUrl && {
             label: t('field.privacy'),
-            value: documentLink(t('field.viewPrivacy'), provider.privacyUrl),
+            value: documentLink('privacy', t('field.viewPrivacy'), provider.privacyUrl),
         },
         provider.support && { label: t('field.support'), value: provider.support },
     ].filter((row) => !!row)

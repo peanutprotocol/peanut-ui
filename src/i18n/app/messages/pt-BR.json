@@ -82,6 +82,7 @@
         "peanutLogoAlt": "Logo do Peanut",
         "receipt": "Recibo",
         "supportUnread": "Nova resposta do suporte",
+        "accounts": "Contas",
         "card": "Cartão",
         "exchangeRates": "Câmbio",
         "scanQr": "Escanear QR"
@@ -1039,16 +1040,15 @@
                     "p2p": "Peanut para Peanut",
                     "pix": "Pagamentos e transferências PIX",
                     "arQr": "Pagamentos QR e transferências próprias",
-                    "spei": "Transferências bancárias em pesos mexicanos",
-                    "usdAch": "Transferências bancárias em dólares americanos",
-                    "eurSepa": "Transferências bancárias em euros",
-                    "gbpFps": "Transferências bancárias em libras esterlinas",
+                    "bankAccount": "Conta bancária: {currencies}",
                     "bank": "Transferências bancárias onde houver suporte",
                     "card": "Cartão Peanut"
                 },
-                "missing": {
-                    "banking": "Transferências bancárias",
-                    "card": "Cartão Peanut"
+                "currencies": {
+                    "USD": "dólar americano",
+                    "EUR": "euro",
+                    "GBP": "libra esterlina",
+                    "MXN": "peso mexicano"
                 },
                 "multiCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
                 "guideTitle": "Qual país você deve selecionar?",
@@ -1683,7 +1683,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Envie seu documento mais uma vez",
-                    "description": "Mudamos de parceiro de verificação e a foto do seu documento não veio junto. A falha foi nossa. Envie seu documento e tire uma selfie rápida, e os pagamentos por QR voltam a funcionar.",
+                    "description": "Mudamos de parceiro de verificação e a foto do seu documento não veio junto. A falha foi nossa. Envie seu documento e tire uma selfie rápida. Quando seu documento for aceito para pagamentos por QR, eles voltam a funcionar.",
                     "cta": "Enviar documento"
                 },
                 "restartPending": {

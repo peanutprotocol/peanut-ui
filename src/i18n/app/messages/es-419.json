@@ -82,6 +82,7 @@
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
         "supportUnread": "Nueva respuesta de soporte",
+        "accounts": "Cuentas",
         "card": "Tarjeta",
         "exchangeRates": "Tipos de cambio",
         "scanQr": "Escanear QR"
@@ -1039,16 +1040,15 @@
                     "p2p": "Peanut a Peanut",
                     "pix": "Pagos y transferencias PIX",
                     "arQr": "Pagos QR y transferencias propias",
-                    "spei": "Transferencias bancarias en pesos mexicanos",
-                    "usdAch": "Transferencias bancarias en dólares estadounidenses",
-                    "eurSepa": "Transferencias bancarias en euros",
-                    "gbpFps": "Transferencias bancarias en libras esterlinas",
+                    "bankAccount": "Cuenta bancaria: {currencies}",
                     "bank": "Transferencias bancarias donde haya soporte",
                     "card": "Tarjeta Peanut"
                 },
-                "missing": {
-                    "banking": "Transferencias bancarias",
-                    "card": "Tarjeta Peanut"
+                "currencies": {
+                    "USD": "dólar estadounidense",
+                    "EUR": "euro",
+                    "GBP": "libra esterlina",
+                    "MXN": "peso mexicano"
                 },
                 "multiCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
                 "guideTitle": "¿Qué país debes seleccionar?",
@@ -1683,7 +1683,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Agrega tu documento otra vez",
-                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Sube tu documento y tómate una selfie rápida, y los pagos con QR vuelven a funcionar.",
+                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Sube tu documento y tómate una selfie rápida. Cuando aceptemos tu documento para pagos con QR, vuelven a funcionar.",
                     "cta": "Subir documento"
                 },
                 "restartPending": {

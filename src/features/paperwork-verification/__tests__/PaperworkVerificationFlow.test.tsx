@@ -2,6 +2,8 @@ const mockToastError = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
+import posthog from 'posthog-js'
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -268,6 +270,35 @@ describe("PaperworkVerificationFlow: a user handed back to today's flow", () => 
 })
 
 describe('PaperworkVerificationFlow: the steps overview', () => {
+    it('keeps paperwork dimensions on loading Back and failed-load Retry controls', async () => {
+        const capture = posthog.capture as jest.Mock
+        capture.mockClear()
+        mockQuestions.mockRejectedValueOnce(new Error('offline'))
+        renderFlow()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(capture).toHaveBeenCalledWith(
+            'control_used',
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: null,
+                screen_id: 'steps-overview',
+                control: 'back',
+                action: 'tap',
+            })
+        )
+        fireEvent.click(await screen.findByTestId('verify-retry-load'))
+        expect(capture).toHaveBeenCalledWith(
+            'control_used',
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: null,
+                screen_id: 'load-failed',
+                control: 'retry',
+                action: 'tap',
+            })
+        )
+        await screen.findByTestId('verify-steps')
+    })
     // Slava, 2026-10-26: the loading mascot showed before the steps on APK #6.
     it('opens at once as a skeleton of the steps, never the loading mascot, Continue off until filled', async () => {
         let answer: (value: PaperworkVerificationQuestions) => void = () => {}

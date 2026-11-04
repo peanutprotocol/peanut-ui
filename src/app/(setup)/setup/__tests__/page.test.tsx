@@ -5,6 +5,8 @@ import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 
@@ -55,6 +57,7 @@ let mockStoredRedirect: {
 } | null = null
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
@@ -185,6 +188,16 @@ it('shows retry and support when no current setup step can render', async () => 
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
+    expect(posthog.capture).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.CONTROL_USED,
+        expect.objectContaining({
+            flow: 'signup',
+            screen_id: 'setup-error',
+            control: 'contact_support',
+            action: 'tap',
+            value: 'missing_step',
+        })
+    )
     expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
     )

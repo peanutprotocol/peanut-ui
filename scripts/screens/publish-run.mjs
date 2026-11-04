@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { appendFileSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createStorage } from './cloudflare-storage.mjs'
@@ -53,7 +54,7 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? '') || !/^\
     throw new Error('Invalid run identity')
 const api = (path) =>
     JSON.parse(
-        execFileSync('gh', ['api', repositoryApiPath(repo, path)], {
+        ghApiSync([repositoryApiPath(repo, path)], {
             encoding: 'utf8',
             timeout: 60000,
             maxBuffer: 64 * 1024 * 1024,
@@ -76,7 +77,7 @@ if (mainRelease) {
 } else if (run.event === 'pull_request') {
     const reviewHead = reviewHeadRevision(run)
     const candidates = JSON.parse(
-        execFileSync('gh', ['api', `repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
+        ghApiSync([`repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
             encoding: 'utf8',
         })
     ).flat()
@@ -92,11 +93,9 @@ if (mainRelease) {
     if (run.head_branch !== 'dev') throw new Error('Only dev integration pushes may publish')
     expectedBase = pushRevisions({ head: run.head_sha, before: process.env.PUSH_BEFORE }).before
     pr = JSON.parse(
-        execFileSync(
-            'gh',
-            ['api', `repos/${repo}/commits/${run.head_sha}/pulls?per_page=100`, '--paginate', '--slurp'],
-            { encoding: 'utf8' }
-        )
+        ghApiSync([`repos/${repo}/commits/${run.head_sha}/pulls?per_page=100`, '--paginate', '--slurp'], {
+            encoding: 'utf8',
+        })
     )
         .flat()
         .find((p) => p.merged_at && p.base.ref === 'dev' && p.merge_commit_sha === run.head_sha)
@@ -426,11 +425,9 @@ if (pr) {
             ' · '
         )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${harnessNote}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}`
     const comments = JSON.parse(
-        execFileSync(
-            'gh',
-            ['api', `repos/${repo}/issues/${pr.number}/comments?per_page=100`, '--paginate', '--slurp'],
-            { encoding: 'utf8' }
-        )
+        ghApiSync([`repos/${repo}/issues/${pr.number}/comments?per_page=100`, '--paginate', '--slurp'], {
+            encoding: 'utf8',
+        })
     ).flat()
     const existing = comments.find((c) => c.user.login === 'github-actions[bot]' && c.body.startsWith(marker))
     execFileSync(

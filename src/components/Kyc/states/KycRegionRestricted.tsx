@@ -5,6 +5,7 @@ import Card from '@/components/Global/Card'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { KYCStatusDrawerItem } from '../KYCStatusDrawerItem'
 import { KycRegionRestrictedContent, useRegionRestrictedCta } from '../KycRegionRestrictedContent'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 /**
  * Drawer state for a terminal rejection caused by the document's jurisdiction —
@@ -19,6 +20,7 @@ export const KycRegionRestricted = ({ reviewedAt, onNavigate }: { reviewedAt?: s
     const t = useTranslations('kyc')
     const format = useFormatter()
     const cta = useRegionRestrictedCta(onNavigate)
+    const control = useKycControl('kyc-status', 'kyc_status')
 
     const rejectedOn = useMemo(() => {
         if (!reviewedAt) return t('notAvailable')
@@ -37,7 +39,15 @@ export const KycRegionRestricted = ({ reviewedAt, onNavigate }: { reviewedAt?: s
 
             <KycRegionRestrictedContent />
 
-            <Button variant="primary" className="w-full" shadowSize="4" onClick={cta.onClick}>
+            <Button
+                variant="primary"
+                className="w-full"
+                shadowSize="4"
+                onClick={() => {
+                    control.track('send', 'tap')
+                    cta.onClick()
+                }}
+            >
                 {cta.label}
             </Button>
         </div>

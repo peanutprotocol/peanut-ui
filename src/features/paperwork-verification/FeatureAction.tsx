@@ -6,9 +6,13 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
+import { KycControlFlowProvider, useKycControl } from './analytics'
 
 export function FeatureAction({ action, onBack, onDone }: { action: string; onBack: () => void; onDone: () => void }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const screenId =
+        action === 'supplement:bridge' ? 'poa' : action === 'supplement:manteca' ? 'manteca-rfi' : 'provider-request'
+    const controls = useKycControl(screenId, 'kyc_provider_request')
     const flow = useSumsubKycFlow({ onKycSuccess: onDone })
     const started = useRef(false)
     useEffect(() => {
@@ -17,9 +21,10 @@ export function FeatureAction({ action, onBack, onDone }: { action: string; onBa
         void flow.handleStartAction(action)
     }, [action, flow])
     return (
-        <>
+        <KycControlFlowProvider value="kyc_provider_request">
             <VerifyHeroLayout
                 pose="thinking"
+                screenId={screenId}
                 onBack={onBack}
                 title={t('addLater.actionTitle')}
                 description={flow.error ?? t('addLater.actionDescription')}
@@ -30,7 +35,10 @@ export function FeatureAction({ action, onBack, onDone }: { action: string; onBa
                                 className="w-full"
                                 loading={flow.isLoading}
                                 disabled={flow.isLoading}
-                                onClick={() => void flow.handleStartAction(action)}
+                                onClick={() => {
+                                    controls.track('continue', 'tap')
+                                    void flow.handleStartAction(action)
+                                }}
                             >
                                 {t('continue')}
                             </Button>
@@ -48,6 +56,6 @@ export function FeatureAction({ action, onBack, onDone }: { action: string; onBa
                 }}
                 onRefreshToken={flow.refreshToken}
             />
-        </>
+        </KycControlFlowProvider>
     )
 }

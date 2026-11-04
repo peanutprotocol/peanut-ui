@@ -3,6 +3,7 @@
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useNotifications } from '@/hooks/useNotifications'
+import { PERMISSION_REQUEST_SOURCES } from '@/constants/push-prompt.consts'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import type { ZoneSurfaceProps } from '../../types'
 import { useAttention } from '../../AttentionProvider'
@@ -37,7 +38,7 @@ export default function PushCard({ onActed, onSnoozed }: ZoneSurfaceProps) {
                 try {
                     if (session.ready) await session.ready
                     if (!session.current()) return
-                    const result = await requestPermission()
+                    const result = await requestPermission(PERMISSION_REQUEST_SOURCES.HOME_CAROUSEL)
                     if (!session.current()) return
                     if (result === 'granted') {
                         if (!state.userId) throw new Error('Missing account')

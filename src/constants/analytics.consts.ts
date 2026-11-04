@@ -8,6 +8,12 @@ export const ANALYTICS_EVENTS = {
 
     // ── Signup funnel ──
     SIGNUP_STEP_VIEWED: 'signup_step_viewed',
+    // One use of any control in a flow (autocapture is off), one shape for every
+    // flow so a single query covers them: `flow` (signup), `screen_id`, `control`,
+    // `action` (tap | open | dismiss | select | change | error | toggle) and a
+    // low-cardinality `value` (ISO code, channel id, on/off, error category),
+    // never what the user typed. Sent beside the outcome events, not instead of them.
+    CONTROL_USED: 'control_used',
     SIGNUP_COUNTRY_SIGNALS_CAPTURED: 'signup_country_signals_captured',
     SIGNUP_RESIDENCE_SELECTED: 'signup_residence_selected',
     SIGNUP_RESIDENCE_RESTRICTED_SHOWN: 'signup_residence_restricted_shown',
@@ -200,9 +206,15 @@ export const ANALYTICS_EVENTS = {
     PROFILE_LINK_COPIED: 'profile_link_copied',
 
     // ── Notifications ──
+    // The three answers carry `trigger` (the ask), `via` (`request`: the answer our
+    // ask returned; `change`: a change made elsewhere, such as the OS settings) and
+    // `previous_permission`. An already granted permission asked again sends none.
     NOTIFICATION_PERMISSION_REQUESTED: 'notification_permission_requested',
     NOTIFICATION_PERMISSION_GRANTED: 'notification_permission_granted',
     NOTIFICATION_PERMISSION_DENIED: 'notification_permission_denied',
+    // Closed without an answer. On Android 13+ a first "Don't allow" also lands
+    // here: the OS lets the app ask again, so OneSignal reports it still askable.
+    NOTIFICATION_PERMISSION_DISMISSED: 'notification_permission_dismissed',
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',

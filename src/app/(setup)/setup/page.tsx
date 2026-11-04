@@ -10,6 +10,7 @@ import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { SignupScreenContext, useSignupControl } from '@/features/setup/useSignupControl'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -255,6 +256,7 @@ function SetupPageContent() {
         signupEntryFlow,
     })
     useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
+    const { track: trackErrorScreen } = useSignupControl('setup-error')
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -572,8 +574,21 @@ function SetupPageContent() {
                 <h1 className="text-center text-heading-m">{tCommon('somethingWentWrong')}</h1>
                 <p className="text-center">{tCommon('genericError')}</p>
                 <div className="flex w-full max-w-sm flex-col gap-3">
-                    <Button onClick={() => window.location.reload()}>{tCommon('tryAgain')}</Button>
-                    <Button variant="secondary" onClick={() => setIsSupportModalOpen(true)}>
+                    <Button
+                        onClick={() => {
+                            trackErrorScreen('try_again', 'tap', recoveryReason)
+                            window.location.reload()
+                        }}
+                    >
+                        {tCommon('tryAgain')}
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            trackErrorScreen('contact_support', 'tap', recoveryReason)
+                            setIsSupportModalOpen(true)
+                        }}
+                    >
                         {tCommon('contactSupport')}
                     </Button>
                 </div>
@@ -589,7 +604,11 @@ function SetupPageContent() {
         )
 
     if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
-        return <UnsupportedBrowserModal visible={true} allowClose={false} />
+        return (
+            <SignupScreenContext.Provider value="unsupported-browser">
+                <UnsupportedBrowserModal visible={true} allowClose={false} />
+            </SignupScreenContext.Provider>
+        )
     }
 
     if (!step) return null

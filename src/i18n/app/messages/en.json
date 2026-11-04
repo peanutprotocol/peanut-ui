@@ -82,6 +82,7 @@
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
         "supportUnread": "New support reply",
+        "accounts": "Accounts",
         "card": "Card",
         "exchangeRates": "Exchange rates",
         "scanQr": "Scan QR"
@@ -1039,16 +1040,15 @@
                     "p2p": "Peanut to Peanut",
                     "pix": "PIX payments & transfers",
                     "arQr": "QR payments & own-account transfers",
-                    "spei": "Mexican peso bank transfers",
-                    "usdAch": "US dollar bank transfers",
-                    "eurSepa": "Euro bank transfers",
-                    "gbpFps": "British pound bank transfers",
+                    "bankAccount": "Bank account: {currencies}",
                     "bank": "Bank transfers where supported",
                     "card": "Peanut card"
                 },
-                "missing": {
-                    "banking": "Bank transfers",
-                    "card": "Peanut card"
+                "currencies": {
+                    "USD": "US dollar",
+                    "EUR": "euro",
+                    "GBP": "British pound",
+                    "MXN": "Mexican peso"
                 },
                 "multiCurrencyNote": "Transfers in another currency need a bank account in that currency.",
                 "guideTitle": "Which country should be selected?",
@@ -1683,7 +1683,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Add your ID once more",
-                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie, and QR payments work again.",
+                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie. When we accept your ID for QR payments, they work again.",
                     "cta": "Upload your ID"
                 },
                 "restartPending": {

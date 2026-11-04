@@ -1503,10 +1503,9 @@ describe('deriveGate — supplied report overrides rail ranking', () => {
         expect(deriveGate({ ...input, rails: [...input.rails].reverse() }, 'withdraw').kind).toBe(kind)
         expect(deriveGate({ ...input, rails: [] }, 'deposit').kind).toBe(kind)
     })
-    test('missing report is pending even with a working rail; loading remains loading', () => {
-        const input = { rails: [bankRail()], nextActions: [], isLoading: false }
-        expect(deriveGate(input, 'deposit')).toEqual({ kind: 'pending' })
-        expect(deriveGate({ ...input, isLoading: true }, 'deposit')).toEqual({ kind: 'loading' })
+    test('loading remains loading without a report', () => {
+        const input = { rails: [bankRail()], nextActions: [], isLoading: true }
+        expect(deriveGate(input, 'deposit')).toEqual({ kind: 'loading' })
     })
     test('an unreferenced restart does not change a refused account or an on feature', () => {
         const restart: NextAction = { key: 'restart', kind: 'restart-identity', purpose: 'identity_missing' }
@@ -1539,5 +1538,142 @@ describe('deriveGate — supplied report overrides rail ranking', () => {
         expect(deriveGate(input, 'withdraw', { country: 'AR' }).kind).toBe('ready')
         expect(deriveGate(input, 'pay', { channel: 'card' }).kind).toBe('pending')
         expect(deriveGate(input, 'pay', { channel: 'qr-only' }).kind).toBe('ready')
+    })
+})
+
+describe('deriveGate — an API that sends no feature report (rolled back) reads the rails', () => {
+    const noReport = (rails: RailCapability[], identityVerified = true): CapabilityState => ({
+        rails,
+        nextActions: [],
+        identityVerified,
+        isLoading: false,
+    })
+    const pix = bankRail({
+        id: 'manteca.pix_br',
+        provider: 'manteca',
+        method: 'PIX_BR',
+        country: 'BR',
+        currency: 'BRL',
+    })
+    const qr = bankRail({ id: 'manteca.qr', provider: 'manteca', method: 'QR', channel: 'qr-only', country: 'AR' })
+
+    test('a working rail stays ready for QR and withdraw, not pending', () => {
+        const input = noReport([qr, bankRail()])
+        expect(deriveGate(input, 'pay', { channel: 'qr-only' }).kind).toBe('ready')
+        expect(deriveGate(input, 'withdraw', { channel: 'bank', country: 'US' }).kind).toBe('ready')
+        expect(deriveGate(noReport([pix]), 'withdraw', { method: 'PIX_BR' }).kind).toBe('ready')
+    })
+    test('a working rail wins over a blocked sibling', () => {
+        const input = noReport([bankRail({ id: 'bridge.sepa_eu', method: 'SEPA_EU', status: 'blocked' }), bankRail()])
+        expect(deriveGate(input, 'withdraw').kind).toBe('ready')
+    })
+    test('no rail in scope reads the identity: needs-identity unverified, needs-enrollment verified', () => {
+        expect(deriveGate(noReport([], false), 'deposit', { country: 'US' }).kind).toBe('needs-identity')
+        expect(deriveGate(noReport([], true), 'deposit', { country: 'US' }).kind).toBe('needs-enrollment')
+    })
+    test('capabilityStateForProfile carries the identity so the fallback can read it', () => {
+        const user = {
+            identityVerification: { status: 'verified' },
+            capabilities: { rails: [bankRail()], nextActions: [], restrictions: [] },
+        } as unknown as Parameters<typeof capabilityStateForProfile>[0]
+        expect(deriveGate(capabilityStateForProfile(user, false), 'withdraw').kind).toBe('ready')
+    })
+})
+
+describe('deriveGate — the rails fallback keeps what the report path carries', () => {
+    const noReport = (rails: RailCapability[], nextActions: NextAction[] = [], extra = {}): CapabilityState => ({
+        rails: rails.map((rail) => ({
+            ...rail,
+            resolved: railVerdict(rail, new Map(nextActions.map((action) => [action.key, action]))),
+        })),
+        nextActions,
+        identityVerified: true,
+        isLoading: false,
+        ...extra,
+    })
+
+    test.each([
+        ['questions', { key: 'q', kind: 'questions', purpose: 'add-later', feature: 'bank' }, 'questions'],
+        ['bridge-hosted', { key: 'h', kind: 'bridge-hosted', purpose: 'unlock-bridge-sepa' }, 'hosted-check'],
+    ] as const)('a fixable rail whose step is %s keeps the step, so the CTA opens it', (_name, action, remedy) => {
+        const rail = bankRail({ status: 'requires-info', blockingActions: [action.key] })
+        const gate = deriveGate(noReport([rail], [action as NextAction]), 'withdraw')
+        expect(gate.kind).toBe('fixable-rejection')
+        expect(gateRemedy(gate)).toBe(remedy)
+    })
+
+    test('an unattached due Bridge hosted check is the step of an actionless Bridge rail', () => {
+        const hosted: NextAction = { key: 'h', kind: 'bridge-hosted', purpose: 'unlock-bridge-sepa' }
+        const rail = bankRail({ status: 'requires-info' })
+        expect(gateRemedy(deriveGate(noReport([rail], [hosted]), 'withdraw'))).toBe('hosted-check')
+        expect(gateRemedy(deriveGate(noReport([rail], []), 'withdraw'))).toBe('provider-fix')
+    })
+
+    test('a native Sumsub step on a Bridge rail stands the hosted check down', () => {
+        const hosted: NextAction = { key: 'h', kind: 'bridge-hosted', purpose: 'unlock-bridge-sepa' }
+        const sumsub: NextAction = { key: 's', kind: 'sumsub', purpose: 'proof-of-address', levelKey: 'poa' }
+        const rails = [
+            bankRail({ status: 'requires-info', blockingActions: ['s'] }),
+            bankRail({ id: 'bridge.sepa_eu', method: 'SEPA_EU', status: 'requires-info' }),
+        ]
+        const gate = deriveGate(noReport(rails, [hosted, sumsub]), 'withdraw', { method: 'SEPA_EU' })
+        expect(gateRemedy(gate)).toBe('provider-fix')
+    })
+
+    test('a wait-marked rail keeps its age, so a slow review reads as slow', () => {
+        const wait: NextAction = { key: 'w', kind: 'wait', purpose: 'bridge-review' }
+        const rail = bankRail({
+            status: 'requires-info',
+            blockingActions: ['w'],
+            pendingSince: '2026-10-01T00:00:00Z',
+            reason: { code: 'bridge_processing', userMessage: '' },
+        })
+        const gate = deriveGate(noReport([rail], [wait]), 'withdraw')
+        expect(gate).toEqual(
+            expect.objectContaining({
+                kind: 'waiting-on-provider',
+                pendingSince: '2026-10-01T00:00:00Z',
+                railId: 'bridge.ach_us',
+            })
+        )
+    })
+
+    test('an identity held on DUPLICATE_EMAIL is a duplicate account, ahead of rail fixes', () => {
+        const user = (rails: RailCapability[]) =>
+            ({
+                identityVerification: { status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] },
+                capabilities: { rails, nextActions: [], restrictions: [] },
+            }) as unknown as Parameters<typeof capabilityStateForProfile>[0]
+        const none = deriveGate(capabilityStateForProfile(user([]), false), 'deposit', { country: 'US' })
+        expect(gateSupportCase(none)).toBe('duplicate-account')
+        const fixable = deriveGate(
+            capabilityStateForProfile(user([bankRail({ status: 'requires-info' })]), false),
+            'deposit'
+        )
+        expect(gateSupportCase(fixable)).toBe('duplicate-account')
+        const working = deriveGate(capabilityStateForProfile(user([bankRail()]), false), 'deposit')
+        expect(working.kind).toBe('ready')
+    })
+})
+
+describe('deriveGate — a verified user with no rail for an account kind', () => {
+    // Colombia is outside the fixed six accounts: with no COP rail yet there is
+    // nothing the report can name, and a verified identity needs enrollment.
+    const scope = { channel: 'bank', country: 'CO', method: 'BANK_TRANSFER_CO' } as const
+    test.each(['deposit', 'withdraw'] as const)('COP %s is needs-enrollment, not needs-identity', (op) => {
+        const verified = { ...state([bankRail()]), identityVerified: true }
+        expect(deriveGate(verified, op, scope).kind).toBe('needs-enrollment')
+    })
+    test('an unverified identity still starts with the identity check', () => {
+        const unverified = { ...state([bankRail()], [], { status: 'not_started' }), identityVerified: false }
+        expect(deriveGate(unverified, 'deposit', scope).kind).toBe('needs-identity')
+    })
+    test('a report that names the account is not overridden by the identity', () => {
+        const verified = { ...state([bankRail()]), identityVerified: true }
+        verified.features!.local = {
+            state: 'ready',
+            accounts: { BRL: { state: 'action_required', action: 'verify' }, ARS: { state: 'on' } },
+        }
+        expect(deriveGate(verified, 'deposit', { country: 'BR' }).kind).toBe('needs-identity')
     })
 })

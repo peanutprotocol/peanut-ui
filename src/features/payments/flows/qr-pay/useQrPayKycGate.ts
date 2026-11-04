@@ -49,8 +49,9 @@ export function useQrPayKycGate() {
                 isLoading: isLoadingCapabilities || (!user && !userFetchSettled),
                 features: capabilities.features,
                 nextActions,
+                rails: capabilities.rails,
             }),
-        [isLoadingCapabilities, capabilities.features, nextActions, user, userFetchSettled]
+        [isLoadingCapabilities, capabilities.features, capabilities.rails, nextActions, user, userFetchSettled]
     )
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY

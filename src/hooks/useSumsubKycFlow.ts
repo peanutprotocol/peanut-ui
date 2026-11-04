@@ -229,6 +229,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // actionKeyRef because it has its own idempotent token endpoint and must
     // never refresh through ordinary /users/identity.
     const residenceChangeRef = useRef(false)
+    // Analytics only: the open flow answers a provider's request (start-action or self-heal), through to its last modal.
+    const [isProviderRequest, setIsProviderRequest] = useState(false)
 
     // A submitted verification attempt is followed on /verify's own status screens, not in a modal here.
     const handOffAttemptToVerify = useCallback(() => {
@@ -460,6 +462,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             selfHealProviderRef.current = null
             actionKeyRef.current = null
             residenceChangeRef.current = false
+            if (!correctSession) setIsProviderRequest(false)
             setIsLoading(true)
             setError(null)
             setIsTerminalError(false)
@@ -870,10 +873,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     const closeVerificationProgressModal = useCallback(() => {
         setIsVerificationProgressModalOpen(false)
+        setIsProviderRequest(false)
     }, [])
 
     const closeVerificationModalAndGoHome = useCallback(() => {
         setIsVerificationProgressModalOpen(false)
+        setIsProviderRequest(false)
         router.push('/home')
     }, [router])
 
@@ -886,7 +891,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // user lands back on the document-upload screen so they can verify with a
     // different ID. Used as the CTA for the `restart-identity` gate state
     // (Manteca country-ineligibility — uploaded a non-AR/BR document).
-    const handleRestartIdentity = useCallback(
+    const restartIdentity = useCallback(
         async (overrideIntent?: KYCRegionIntent) => {
             documentAttemptRef.current = null
             setDocumentConfig(undefined)
@@ -976,6 +981,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         },
         [t, actionErrorMessage, setError, acceptDocumentSession, router]
     )
+    // A restart the user starts; a provider request that falls back to one keeps its origin.
+    const handleRestartIdentity = useCallback(
+        (overrideIntent?: KYCRegionIntent) => {
+            setIsProviderRequest(false)
+            return restartIdentity(overrideIntent)
+        },
+        [restartIdentity]
+    )
 
     // Open the applicant action associated with the current pending residence.
     // This is intentionally not handleRestartIdentity: the base applicant stays
@@ -997,6 +1010,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             actionKeyRef.current = null
             residenceChangeRef.current = true
             residenceChangeCountryRef.current = targetCountry.trim().toUpperCase()
+            setIsProviderRequest(false)
 
             try {
                 const response = await startResidenceChangeVerification(residenceChangeCountryRef.current)
@@ -1042,6 +1056,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             selfHealProviderRef.current = provider
             actionKeyRef.current = null
             residenceChangeRef.current = false
+            setIsProviderRequest(true)
 
             try {
                 const response = await initiateSelfHealResubmission(provider, requirementKey)
@@ -1049,7 +1064,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 if (response.fallback === 'restart-identity') {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
-                    return await handleRestartIdentity()
+                    return await restartIdentity()
                 }
 
                 if (response.error) {
@@ -1079,7 +1094,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError, handleRestartIdentity]
+        [t, actionErrorMessage, setError, restartIdentity]
     )
 
     // Start a capability nextAction by key (POST /users/kyc/start-action) and
@@ -1103,6 +1118,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             selfHealProviderRef.current = null
             actionKeyRef.current = null
             residenceChangeRef.current = false
+            setIsProviderRequest(true)
 
             try {
                 let response = await startKycAction(key)
@@ -1124,7 +1140,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 // The step the API names instead: a supplement it no longer asks for, or a new ID through the restart.
                 if (response.fallback) {
                     userInitiatedRef.current = false
-                    if (response.fallback === 'restart-identity') return await handleRestartIdentity()
+                    if (response.fallback === 'restart-identity') return await restartIdentity()
                     if (response.fallback === 'contact-support') {
                         setIsTerminalError(true)
                         setError(
@@ -1163,7 +1179,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, tIdentity, actionErrorMessage, setError, acceptSessionView, onKycSuccess, handleRestartIdentity]
+        [t, tIdentity, actionErrorMessage, setError, acceptSessionView, onKycSuccess, restartIdentity]
     )
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,
@@ -1231,6 +1247,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleSelfHealResubmit,
         handleStartAction,
         getActionKey,
+        isProviderRequest,
         handleFixableRejection,
         handleFixableGate,
         handleSdkComplete,

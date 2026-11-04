@@ -899,7 +899,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Agregá tu documento otra vez",
-                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Subí tu documento y sacate una selfie rápida, y los pagos con QR vuelven a funcionar."
+                    "description": "Cambiamos de proveedor de verificación y la foto de tu documento no se transfirió. Es nuestra responsabilidad. Subí tu documento y sacate una selfie rápida. Cuando aceptemos tu documento para pagos con QR, vuelven a funcionar."
                 },
                 "restartPending": {
                     "title": "Terminá de verificar tu nuevo documento",

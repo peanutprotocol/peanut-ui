@@ -81,8 +81,18 @@ export function IdentityRestartFlow({ onExit }: { onExit: () => void }) {
         void load()
     }, [load])
 
-    if (state.kind === 'loading') return <VerifyLoading onBack={onExit} />
-    if (state.kind === 'failed') return <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+    if (state.kind !== 'ready')
+        return (
+            <PaperworkVerificationTrackingProvider
+                value={{ flow: 'paperwork_verification', residence: null, restart: true }}
+            >
+                {state.kind === 'loading' ? (
+                    <VerifyLoading onBack={onExit} />
+                ) : (
+                    <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
+                )}
+            </PaperworkVerificationTrackingProvider>
+        )
     return <RestartSteps plan={state.plan} nationality={state.nationality} onExit={onExit} />
 }
 

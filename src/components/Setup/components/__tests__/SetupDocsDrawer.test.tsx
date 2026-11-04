@@ -1,9 +1,13 @@
 /** @jest-environment jsdom */
 import { fireEvent, render, screen } from '@testing-library/react'
+import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { SetupDocLink, SetupDocsProvider, type SetupDocuments } from '../SetupDocsDrawer'
 import { NextIntlClientProvider } from 'next-intl'
 import en from '@/i18n/app/messages/en.json'
+
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 const localized = (title: string, text: string) => ({ title, content: <p>{text}</p> })
 const documents: SetupDocuments = {
@@ -24,6 +28,25 @@ const documents: SetupDocuments = {
 }
 
 describe('setup document drawers', () => {
+    it('reports which document opened on which screen, and its dismissal', () => {
+        renderWithIntl(
+            onSignupScreen(
+                'signup',
+                <SetupDocsProvider documents={documents}>
+                    <SetupDocLink kind="terms" href="/terms">
+                        T&amp;C
+                    </SetupDocLink>
+                </SetupDocsProvider>
+            )
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'T&C' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['terms_doc:open', 'terms_doc:dismiss'])
+        expect((posthog.capture as jest.Mock).mock.calls[0][1]).toEqual(
+            expect.objectContaining({ screen_id: 'signup' })
+        )
+    })
+
     it('opens legal content in place and keeps form input when closed', async () => {
         const pathname = window.location.pathname
         renderWithIntl(

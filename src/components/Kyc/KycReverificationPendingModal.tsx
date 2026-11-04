@@ -1,6 +1,7 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycReverificationPendingModalProps {
     isOpen: boolean
@@ -25,6 +26,7 @@ export const KycReverificationPendingModal = ({
     message,
     onContactSupport,
 }: KycReverificationPendingModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -32,7 +34,10 @@ export const KycReverificationPendingModal = ({
     return (
         <ActionModal
             visible={isOpen}
-            onClose={onClose}
+            onClose={() => {
+                track('kyc_status', 'dismiss')
+                onClose()
+            }}
             tone="attention"
             icon="clock"
             title={t('reverificationPending.title')}
@@ -40,12 +45,14 @@ export const KycReverificationPendingModal = ({
             ctas={[
                 {
                     text: tCommon(onContactSupport ? 'contactSupport' : 'goToHome'),
-                    onClick:
-                        onContactSupport ??
-                        (() => {
+                    onClick: () => {
+                        track(onContactSupport ? 'support' : 'home', 'tap')
+                        if (onContactSupport) onContactSupport()
+                        else {
                             onClose()
                             router.push('/home')
-                        }),
+                        }
+                    },
                     variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',

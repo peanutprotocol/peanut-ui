@@ -14,6 +14,7 @@ import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -27,6 +28,7 @@ interface BridgeTosStepProps {
 // Bridge's page. The `tos_acceptance_link` endpoint serves the terms the
 // customer still owes (base or SEPA v2), so the prompt is the same for both.
 export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProps) => {
+    const { track } = useKycControl('tos', 'kyc_legacy')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { fetchUser } = useAuth()
@@ -48,6 +50,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
     }, [visible])
 
     const handleContinue = useCallback(async () => {
+        track(error ? 'retry' : 'continue', 'tap')
         setIsLoading(true)
         setError(null)
 
@@ -70,12 +73,13 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
         } finally {
             setIsLoading(false)
         }
-    }, [t])
+    }, [t, error, track])
 
     const handleIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
             setShowIframe(false)
             if (source === 'manual') {
+                track('tos_page', 'dismiss')
                 onSkip()
                 return
             }
@@ -95,7 +99,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                 setIsConfirming(false)
             }
         },
-        [fetchUser, onComplete, onSkip, t]
+        [fetchUser, onComplete, onSkip, t, track]
     )
 
     if (!visible) return null
@@ -105,7 +109,10 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
             {/* confirmation modal — hidden when iframe is open or ToS is being confirmed */}
             <ActionModal
                 visible={visible && !showIframe && !isConfirming}
-                onClose={onSkip}
+                onClose={() => {
+                    track('tos', 'dismiss')
+                    onSkip()
+                }}
                 tone={error ? 'error' : 'info'}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : t('bridgeTos.title')}
@@ -121,7 +128,13 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                         shadowSize: '4',
                     },
                 ]}
-                tertiaryCta={{ text: t('bridgeTos.notNow'), onClick: onSkip }}
+                tertiaryCta={{
+                    text: t('bridgeTos.notNow'),
+                    onClick: () => {
+                        track('not_now', 'tap')
+                        onSkip()
+                    },
+                }}
             />
 
             {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} />}

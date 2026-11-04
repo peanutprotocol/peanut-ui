@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -12,6 +12,7 @@ import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { normalizeSearch } from '@/features/paperwork-verification/occupations/search'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import type { ResidenceCountryOption } from '@/utils/residence-options'
 
 function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
@@ -38,6 +39,7 @@ export function SetupCountryPicker({
     onChange,
     same,
     testId,
+    control,
 }: {
     title: string
     value: string
@@ -45,10 +47,13 @@ export function SetupCountryPicker({
     onChange: (country: string) => void
     same?: string
     testId: string
+    /** The analytics name of this picker. */
+    control: string
 }) {
     const t = useTranslations('setup.residenceStep')
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
+    const { track, trackOnce, trackError } = useSignupControl()
     const labelOf = (country: string) => options.find((o) => o.value === country)?.label ?? country
     const isSame = !!same && !value
     const shown = isSame ? t('sameCountry') : value ? labelOf(value) : t('choose')
@@ -57,14 +62,27 @@ export function SetupCountryPicker({
         ? options.filter((o) => words.every((word) => normalizeSearch(o.label).includes(word)))
         : options
 
+    const noResults = words.length > 0 && listed.length === 0
+    useEffect(() => {
+        trackError(`${control}_search`, noResults ? 'no_results' : null)
+    }, [control, noResults, trackError])
+
     const choose = (country: string) => {
+        track(control, 'select', country || 'same')
         onChange(country)
         setOpen(false)
         setQuery('')
     }
 
     return (
-        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+        <Drawer
+            open={open}
+            onOpenChange={(next) => {
+                track(control, next ? 'open' : 'dismiss')
+                setOpen(next)
+            }}
+            shouldScaleBackground={false}
+        >
             <DrawerTrigger asChild>
                 <Button
                     variant="secondary"
@@ -112,7 +130,10 @@ export function SetupCountryPicker({
                             type="search"
                             autoComplete="off"
                             value={query}
-                            onChange={(e) => setQuery(e.target.value)}
+                            onChange={(e) => {
+                                trackOnce(`${control}_search`, 'change')
+                                setQuery(e.target.value)
+                            }}
                             placeholder={t('searchCountry')}
                             aria-label={t('searchCountry')}
                             leftContent={<Icon name="search" size={20} className="text-foreground-secondary" />}

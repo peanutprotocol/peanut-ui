@@ -1,10 +1,11 @@
 import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 const shaPattern = /^[a-f0-9]{40}$/
 export function integrationBase(repository, head, execute = execFileSync) {
     if (!/^[\w.-]+\/[\w.-]+$/.test(repository) || !shaPattern.test(head))
         throw new Error('Invalid integration identity')
     const api = (path, args = []) =>
-        execute('gh', ['api', `repos/${repository}/${path}`, ...args], { encoding: 'utf8' })
+        ghApiSync([`repos/${repository}/${path}`, ...args], { encoding: 'utf8' }, { run: execute })
     const commit = JSON.parse(api(`commits/${head}`))
     if (commit.parents.length !== 1) return commit.parents[0].sha
     const prs = JSON.parse(api(`commits/${head}/pulls?per_page=100`, ['--paginate', '--slurp']))

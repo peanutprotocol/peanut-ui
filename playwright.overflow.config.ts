@@ -18,8 +18,10 @@ import base from './playwright.shots.config'
 
 const LOCALES = ['es-419', 'pt-BR', 'es-AR'] as const
 
+// ubuntu-latest has 4 vCPUs; the shared base keeps 2 for the screenshot jobs.
 export default defineConfig({
     ...base,
+    workers: process.env.CI ? 4 : base.workers,
     projects: [
         ...LOCALES.map((locale) => ({
             name: locale,

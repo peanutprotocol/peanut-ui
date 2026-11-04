@@ -453,6 +453,7 @@ export function useJourneyState(): JourneyState {
                         isLoading: capabilitiesLoading || !user,
                         features: capabilities.features,
                         nextActions,
+                        rails,
                     })
                     const railsInFlight = rails.some(
                         (rail) => rail.status === 'pending' || rail.status === 'requires-info'

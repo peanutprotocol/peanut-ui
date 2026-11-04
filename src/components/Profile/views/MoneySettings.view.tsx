@@ -147,6 +147,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         isLoading: isLoadingCapabilities,
         features: capabilities.features,
         nextActions,
+        rails,
     }).kycGateState
     const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
 

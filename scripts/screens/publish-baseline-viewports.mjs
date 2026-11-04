@@ -1,5 +1,5 @@
 /** Trusted main-triggered baseline publisher. Downloaded capture bytes are data, never code. */
-import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -38,7 +38,7 @@ if (
     !/^[a-f0-9]{40}$/.test(devSha ?? '')
 )
     throw new Error('Invalid baseline publication environment')
-const api = (path) => JSON.parse(execFileSync('gh', ['api', repositoryApiPath(repository, path)], { encoding: 'utf8' }))
+const api = (path) => JSON.parse(ghApiSync([repositoryApiPath(repository, path)], { encoding: 'utf8' }))
 const run = api(`actions/runs/${runId}`)
 if (
     run.id !== Number(runId) ||

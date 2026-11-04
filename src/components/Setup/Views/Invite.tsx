@@ -11,6 +11,7 @@ import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { invitesApi } from '@/services/invites'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
@@ -35,6 +36,7 @@ export default function InviteStep() {
     const [isAccepting, setIsAccepting] = useState(false)
     const [error, setError] = useState('')
     const valueRef = useRef('')
+    const { track, trackOnce, trackError } = useSignupControl()
 
     const ownUsername = toInviteCode(user?.user.username ?? username)
     const busy = isLoading || isAccepting
@@ -43,6 +45,7 @@ export default function InviteStep() {
         setError('')
         if (ownUsername && toInviteCode(value) === ownUsername) {
             setError(t('signupStep.inviterIsSelf'))
+            trackError('inviter_username', 'self')
             return false
         }
         const result = await invitesApi.validateInviteCode(value)
@@ -52,6 +55,7 @@ export default function InviteStep() {
         // "Not found" only for a confirmed miss; a failed request says the check did not work.
         const notFound = result.notFound || (result.success && !result.attributionResolved)
         if (!valid) setError(t(notFound ? 'signupStep.inviterNotFound' : 'signupStep.inviterCheckFailed'))
+        trackError('inviter_username', valid ? null : notFound ? 'not_found' : 'check_failed')
         return valid
     }
 
@@ -59,6 +63,7 @@ export default function InviteStep() {
         const code = toInviteCode(draft)
         const userId = user?.user.userId
         if (!isValid || isChanging || busy || !code || !userId) return
+        track('continue', 'tap')
         setIsAccepting(true)
         try {
             stashInvite(code, EInviteType.DIRECT)
@@ -76,12 +81,14 @@ export default function InviteStep() {
             }
             // A transient failure keeps the stash for the next app start; Skip clears it.
             setError(t(outcome.status === 'retryable' ? 'signupStep.inviterCheckFailed' : 'signupStep.inviterNotFound'))
+            trackError('inviter_username', outcome.status === 'retryable' ? 'accept_failed' : 'not_found')
         } finally {
             setIsAccepting(false)
         }
     }
 
     const onSkip = () => {
+        track('skip', 'tap')
         // Only this step can leave a stash here: the step is hidden when the signup had an invite.
         if (readInviteCode()) clearInvite()
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
@@ -99,6 +106,7 @@ export default function InviteStep() {
                     validate={validate}
                     shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
                     onUpdate={({ value, isValid, isChanging }) => {
+                        if (isChanging) trackOnce('inviter_username', 'change')
                         valueRef.current = value
                         setDraft(value)
                         setIsValid(isValid)
@@ -109,6 +117,7 @@ export default function InviteStep() {
                     isInputChanging={isChanging}
                     prefix="@"
                     className="rounded-sm"
+                    onClear={() => track('inviter_username_clear', 'tap')}
                 />
                 <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
             </div>
