@@ -1,6 +1,11 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import { installPasskeyVerifyCapture } from '../passkey-auth-capture'
+import {
+    installPasskeyVerifyCapture,
+    PasskeyAccountDeletedError,
+    PasskeyOptionsFailedError,
+    PasskeyVerifyRejectedError,
+} from '../passkey-auth-capture'
 import { stashCeremonyStepUpToken, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -73,6 +78,43 @@ describe('installPasskeyVerifyCapture', () => {
             expect(stashCeremonyStepUpToken).not.toHaveBeenCalled()
         }
     )
+
+    it('surfaces a deleted account before ZeroDev decodes the 403 body as a success', async () => {
+        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'ACCOUNT_DELETED' }, 403))
+
+        const pending = window.fetch('/passkeys/login/verify', { method: 'POST' })
+
+        await expect(pending).rejects.toBeInstanceOf(PasskeyAccountDeletedError)
+        await expect(pending).rejects.not.toBeInstanceOf(PasskeyVerifyRejectedError)
+        expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
+        expect(stashCeremonyStepUpToken).not.toHaveBeenCalled()
+    })
+
+    it('leaves any other 403 from /login/verify to the existing classification', async () => {
+        const response = jsonResponse({ error: 'Forbidden' }, 403)
+        mockUnderlyingFetch.mockResolvedValueOnce(response)
+
+        await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).resolves.toBe(response)
+    })
+
+    it.each(['login', 'register'])(
+        'surfaces a 500 from /passkeys/%s/options before ZeroDev reads a missing challenge',
+        async (flow) => {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'Internal Server Error' }, 500))
+
+            const pending = window.fetch(`https://api.peanut.me/passkeys/${flow}/options`, { method: 'POST' })
+
+            await expect(pending).rejects.toBeInstanceOf(PasskeyOptionsFailedError)
+            await expect(pending).rejects.toMatchObject({ status: 500 })
+        }
+    )
+
+    it('passes successful options responses through', async () => {
+        const response = jsonResponse({ challenge: 'abc' })
+        mockUnderlyingFetch.mockResolvedValueOnce(response)
+
+        await expect(window.fetch('/passkeys/login/options', { method: 'POST' })).resolves.toBe(response)
+    })
 
     it('preserves non-auth login failures for the existing server/network classification', async () => {
         const response = jsonResponse({ error: 'Login unavailable' }, 500)

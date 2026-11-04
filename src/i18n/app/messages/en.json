@@ -1015,6 +1015,8 @@
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
+            "accountDeleted": "This account was deleted. Sign up to create a new one.",
+            "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
             "learnMore": "Learn more about Passkeys",
             "help": {

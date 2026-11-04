@@ -7,6 +7,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupFooter from '../components/SetupFooter'
 import { LoginRecoveryDrawer } from './LoginRecoveryDrawer'
@@ -48,6 +49,7 @@ const LandingStep = () => {
     const toast = useToast()
     const { track } = useSignupControl()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
+    const [isAccountDeleted, setIsAccountDeleted] = useState(false)
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
@@ -78,8 +80,11 @@ const LandingStep = () => {
 
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
-        const recovery = offersRecovery(getPasskeyErrorCode(error))
-        if (recovery) {
+        const passkeyErrorCode = getPasskeyErrorCode(error)
+        const recovery = offersRecovery(passkeyErrorCode)
+        if (passkeyErrorCode === 'ACCOUNT_DELETED') {
+            setIsAccountDeleted(true)
+        } else if (recovery) {
             recoveryActionRef.current = null
             setIsRecoveryOpen(true)
         } else {
@@ -97,6 +102,7 @@ const LandingStep = () => {
     }
 
     const login = async () => {
+        setIsAccountDeleted(false)
         try {
             await handleLoginClick()
         } catch (e) {
@@ -165,10 +171,17 @@ const LandingStep = () => {
         </SetupDocLink>
     )
 
+    const accountDeletedCallout = isAccountDeleted && (
+        <Callout priority="error" data-testid="account-deleted">
+            {t('passkey.accountDeleted')}
+        </Callout>
+    )
+
     if (blockSignup) {
         return (
             <>
                 <div className="flex flex-col gap-6">
+                    {accountDeletedCallout}
                     <div className="space-y-2 pb-2">
                         {/* heading only above the desktop QR — a lone store button
                             explains itself */}
@@ -211,17 +224,20 @@ const LandingStep = () => {
                 <div className="text-left">{recoveryLink}</div>
                 <SetupFooter
                     actions={
-                        <Button
-                            shadowSize="4"
-                            // native only: mid-ceremony Sign Up taps flashed the next setup
-                            // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
-                            // pend minutes — Sign Up must stay an escape hatch there, and a
-                            // mid-ceremony register fails cleanly as CeremonyConflictError.
-                            disabled={isLoggingIn && nativePlatform.isCapacitor}
-                            onClick={onSignUpClick}
-                        >
-                            {t('landing.signUp')}
-                        </Button>
+                        <>
+                            {accountDeletedCallout}
+                            <Button
+                                shadowSize="4"
+                                // native only: mid-ceremony Sign Up taps flashed the next setup
+                                // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
+                                // pend minutes — Sign Up must stay an escape hatch there, and a
+                                // mid-ceremony register fails cleanly as CeremonyConflictError.
+                                disabled={isLoggingIn && nativePlatform.isCapacitor}
+                                onClick={onSignUpClick}
+                            >
+                                {t('landing.signUp')}
+                            </Button>
+                        </>
                     }
                     secondary={
                         <Button

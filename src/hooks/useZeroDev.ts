@@ -306,7 +306,9 @@ export const useZeroDev = () => {
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that
             // tells us WHERE native logins hang.
-            if (isCeremonyGuardError(err)) {
+            if (code === 'ACCOUNT_DELETED') {
+                // Expected state, not a fault: the server minted no session, so local state stays as it was.
+            } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
                 // Platform/device outcomes never invalidate an existing session.
