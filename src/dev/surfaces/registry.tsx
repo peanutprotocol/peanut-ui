@@ -46,6 +46,7 @@ import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
+import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -624,6 +625,22 @@ export const SURFACES: Record<string, Surface> = {
     '34-c-lockcardmodal': {
         ...SURFACE_META['34-c-lockcardmodal'],
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
+    },
+    '35-c-googlewalletbutton': {
+        ...SURFACE_META['35-c-googlewalletbutton'],
+        render: () => (
+            <AppPageSurface>
+                <GoogleWalletButton isAdding={false} onClick={noop} />
+            </AppPageSurface>
+        ),
+    },
+    '35-c-googlewalletbutton-adding': {
+        ...SURFACE_META['35-c-googlewalletbutton-adding'],
+        render: () => (
+            <AppPageSurface>
+                <GoogleWalletButton isAdding onClick={noop} />
+            </AppPageSurface>
+        ),
     },
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],

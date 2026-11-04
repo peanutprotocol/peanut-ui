@@ -76,6 +76,12 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
     const walletPlatform = useWalletPlatform()
     const walletLabel =
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
+    const walletAddedLabel =
+        walletPlatform === 'android'
+            ? t('addedToGoogleWallet')
+            : walletPlatform === 'ios'
+              ? t('addedToAppleWallet')
+              : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
     const { nativeAvailable, alreadyInWallet, isAdding, addToWallet } = usePushProvisioning({
@@ -159,14 +165,13 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
                 <ProviderFinePrint providerId="third-national" label="cardProvider" />
             </div>
 
-            {walletPlatform === 'android' &&
-                (alreadyInWallet ? (
-                    <p role="status" className="text-center text-body-m text-foreground-secondary">
-                        {t('addedToGoogleWallet')}
-                    </p>
-                ) : nativeAvailable ? (
-                    <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
-                ) : null)}
+            {alreadyInWallet && walletAddedLabel ? (
+                <p role="status" className="text-center text-body-m text-foreground-secondary">
+                    {walletAddedLabel}
+                </p>
+            ) : walletPlatform === 'android' && nativeAvailable ? (
+                <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+            ) : null}
 
             {/* Card payments come from the wallet; older collateral cannot pay them.
                 The note and its action leave only once a refreshed read shows none. */}
@@ -240,7 +245,8 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
                             onClick={() => router.push('/card/physical')}
                         />
                         {walletLabel &&
-                            !(walletPlatform === 'android' && (nativeAvailable || alreadyInWallet)) &&
+                            !alreadyInWallet &&
+                            !(walletPlatform === 'android' && nativeAvailable) &&
                             // use native provisioning when it is available
                             (nativeAvailable ? (
                                 <ListItem

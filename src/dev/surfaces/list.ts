@@ -157,6 +157,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
+    '35-c-googlewalletbutton': {
+        name: 'Add to Google Wallet button (native Android only)',
+        path: 'Card/GoogleWalletButton.tsx',
+        expectSelector: 'button[aria-busy="false"]',
+    },
+    '35-c-googlewalletbutton-adding': {
+        name: 'Add to Google Wallet button — adding (held pressed)',
+        path: 'Card/GoogleWalletButton.tsx',
+        captureState: ['isAdding=true'],
+        expectSelector: 'button[aria-busy="true"]',
+    },
     '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
     '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },

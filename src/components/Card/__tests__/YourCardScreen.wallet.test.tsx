@@ -77,7 +77,7 @@ it('preserves manual instructions when the Google flag or native SDK is unavaila
 it('replaces the Google action with a status once the card is provisioned', () => {
     mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
     renderScreen()
-    expect(screen.getByText('Added to Google Wallet')).toHaveTextContent('Added to Google Wallet')
+    expect(screen.getByText('Added to Google Wallet')).toHaveAttribute('role', 'status')
     expect(screen.queryByRole('button', { name: 'Add to Google Wallet' })).not.toBeInTheDocument()
 })
 
@@ -85,6 +85,23 @@ it('disables the Google control during provisioning', () => {
     mockProvisioning.isAdding = true
     renderScreen()
     expect(screen.getByRole('button', { name: 'Add to Google Wallet' })).toBeDisabled()
+})
+
+it('replaces the Apple row with a status once the card is in Apple Wallet', () => {
+    mockPlatform = 'ios'
+    mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
+    renderScreen()
+    expect(screen.getByText('Added to Apple Wallet')).toHaveAttribute('role', 'status')
+    expect(screen.queryByRole('button', { name: 'Add to Apple Wallet' })).not.toBeInTheDocument()
+})
+
+it('keeps the manual Apple row while the card is not confirmed in Apple Wallet', () => {
+    mockPlatform = 'ios'
+    mockProvisioning = { nativeAvailable: false, alreadyInWallet: false, isAdding: false }
+    renderScreen()
+    expect(screen.queryByText('Added to Apple Wallet')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
+    expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
 })
 
 it('keeps Apple on its existing platform control', () => {

@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { resolveLocale, type AppLocale } from '@/i18n/app/config'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 type Artwork = {
     file: string
@@ -43,19 +44,25 @@ const ARTWORK: Record<AppLocale, Artwork> = {
 export default function GoogleWalletButton({ isAdding, onClick }: { isAdding: boolean; onClick: () => void }) {
     const t = useTranslations('card.yourCard')
     const artwork = ARTWORK[resolveLocale(useLocale())]
+    const { triggerHaptic } = useAppHaptic()
 
     return (
         // Vendor branding exception: Google's artwork on Google's pill, full width as in
         // Google's Android codelab. Where the one-line artwork doesn't fit, Google's
         // guidelines call for the two-line badge, which needs >=53dp height.
+        // Pressed moves the whole pill 1px down-right and leaves the artwork as Google
+        // drew it; it stays pressed while the add is in flight.
         <div className="@container w-full">
             <button
                 type="button"
                 disabled={isAdding}
                 aria-busy={isAdding}
                 aria-label={t('addToGoogleWallet')}
-                onClick={onClick}
-                className={`flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-background-google-wallet p-0 ring-1 ring-border-google-wallet ring-inset focus-visible:outline-[3px] focus-visible:outline-action-focus ${artwork.fits.pill}`}
+                onClick={() => {
+                    triggerHaptic()
+                    onClick()
+                }}
+                className={`flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-background-google-wallet p-0 ring-1 ring-border-google-wallet transition-all duration-instant ring-inset focus-visible:outline-[3px] focus-visible:outline-action-focus active:translate-x-px active:translate-y-px aria-busy:translate-x-px aria-busy:translate-y-px ${artwork.fits.pill}`}
             >
                 <Image
                     src={`/wallet/google/one-line/${artwork.file}.svg`}

@@ -1937,6 +1937,7 @@
             "addToGoogleWallet": "Add to Google Wallet",
             "addedToGoogleWallet": "Added to Google Wallet",
             "addToAppleWallet": "Add to Apple Wallet",
+            "addedToAppleWallet": "Added to Apple Wallet",
             "walletAddSuccess": "Card added to wallet",
             "walletAddFailed": "Couldn't add the card to your wallet. Please try again.",
             "cardNumberCopied": "Card number copied",
