@@ -45,6 +45,20 @@ describe('AvatarSize', () => {
     })
 })
 
+describe('AvatarWithBadge logo alt', () => {
+    // a nameless logo (a confirm card's flag) is decorative: no English
+    // "logo" read out in a Spanish or Portuguese session
+    it('leaves a nameless logo out of the accessibility tree', () => {
+        const { container } = render(<AvatarWithBadge logo="/flags/ar.svg" />)
+        expect(container.querySelector('img')).toHaveAttribute('alt', '')
+    })
+
+    it('names a logo that has a name', () => {
+        const { container } = render(<AvatarWithBadge logo="/m.png" name="Shop" />)
+        expect(container.querySelector('img')).toHaveAttribute('alt', 'Shop logo')
+    })
+})
+
 // Every branch of the slot resolver must fill the slot it is given, or a row
 // with a bank next to a row with a person would not line up.
 describe('TransactionAvatarBadge fills its slot on every branch', () => {

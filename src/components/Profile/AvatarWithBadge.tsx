@@ -73,9 +73,11 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
                         className
                     )}
                 >
+                    {/* with no name the logo is decorative (a flag beside its own
+                        text): an empty alt, not an English "logo" in every locale */}
                     <Image
                         src={logo}
-                        alt={name ? `${name} logo` : 'logo'}
+                        alt={name ? `${name} logo` : ''}
                         width={160}
                         height={160}
                         className={`size-full rounded-full object-cover`}
