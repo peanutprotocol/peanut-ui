@@ -524,9 +524,7 @@ describe('EnableAutoBalanceBanner — an update for a card that already worked',
         rerender(<EnableAutoBalanceBanner {...surfaceProps} />)
         expect(title()).toBe('Card payments update')
         expect(
-            screen.getByText(
-                "We couldn't finish the update. Try again, or skip for now. We'll ask again next time you open Home."
-            )
+            screen.getByText("We couldn't finish the update. Try again, or skip for now. We'll ask again later.")
         ).toBeInTheDocument()
         expect(screen.queryByText(/setting up|start using/i)).not.toBeInTheDocument()
     })

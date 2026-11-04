@@ -940,7 +940,7 @@ describe('FundingSetupPrompt — an update for a card that already worked', () =
         rerender(<FundingSetupPrompt {...surfaceProps} />)
         expect(title()).toBe('Card payments update')
         expect(description()).toHaveTextContent(
-            "We couldn't finish the update. Try again, or skip for now. We'll ask again next time you open Home."
+            "We couldn't finish the update. Try again, or skip for now. We'll ask again later."
         )
 
         mockLastError = null
