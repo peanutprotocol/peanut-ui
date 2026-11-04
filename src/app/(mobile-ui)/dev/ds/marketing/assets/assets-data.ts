@@ -250,7 +250,7 @@ export const AVATAR_BADGE_RULE = 'One avatar per badge, drawn to read at 32 px. 
 
 /** The two avatar sizes (TASK-24388), the AvatarSize type in avatar-size.consts.ts. */
 export const AVATAR_SIZE_RULE =
-    'Avatars have two sizes: 32 px (s) in lists, rows and cards, and 96 px (xl) on profiles and the payment details header. Approved by Konrad, 2026-11-04.'
+    "Avatars have two sizes: 32 px (s) in every list, row, card and confirm card, and 96 px (xl) on profiles (your own, the profile-tab button, and someone else's) and in the payment details header. The avatar picker tiles keep their own size. Approved by Konrad, 2026-11-04."
 
 export const AVATAR_BADGE_ENTRIES: PublicArtEntry[] = Object.entries(badgeAssets.avatars.badges).flatMap(
     ([code, slugs]) =>
