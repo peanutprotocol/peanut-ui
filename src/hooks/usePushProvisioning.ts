@@ -4,10 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
-import { rainApi, type RainCardWallet } from '@/services/rain'
+import { rainApi } from '@/services/rain'
 import { getClearEpoch } from '@/utils/auth-token'
 import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
-import { rememberCardAddedOnThisDevice, wasCardAddedOnThisDevice } from '@/utils/wallet-added-cards'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
@@ -18,13 +17,6 @@ import {
     syncWalletAuthorizationToken,
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
-
-function isTokenizedAtRain(cardId: string, wallet: RainCardWallet): Promise<boolean> {
-    return rainApi.getCardWallets(cardId).then(
-        (wallets) => wallets.includes(wallet),
-        () => false
-    )
-}
 
 /**
  * Native one-tap add-to-wallet (Apple Pay / Google Pay via MeaWallet MPP).
@@ -44,7 +36,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const [alreadyInWallet, setAlreadyInWallet] = useState(false)
     const addingRef = useRef(false)
     const [checkedScope, setCheckedScope] = useState('')
-    const availabilityScope = `${flagOn}:${card.id}:${card.last4}`
+    const availabilityScope = `${wallet}:${flagOn}:${card.id}:${card.last4}`
     const availabilityScopeRef = useRef(availabilityScope)
     const latestSelectionRef = useRef({ cardId: card.id, last4: card.last4, flagOn })
 
@@ -65,25 +57,28 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             return
         }
         setNativeAvailable(false)
+        const timeout = setTimeout(() => {
+            if (cancelled) return
+            cancelled = true
+            setCheckedScope(availabilityScope)
+        }, 5000)
         void (async () => {
             const { available, alreadyInWallet: suffixMatch } = await getPushProvisioningAvailability(card.last4)
-            // A last-four match can be another card with the same digits, so it
-            // counts only once this device added this card or Rain reports it.
-            const confirmed =
-                suffixMatch && (wasCardAddedOnThisDevice(card.id) || (await isTokenizedAtRain(card.id, wallet)))
             if (cancelled) return
-            // Android reports a match only after its wallet check passed, and
-            // addCard checks the exact token, so an unconfirmed match keeps the
-            // button. iOS cannot add a suffix PassKit already holds.
-            const walletReady = wallet === 'google' ? available || suffixMatch : available && !suffixMatch
-            setNativeAvailable(walletReady && !confirmed)
-            setAlreadyInWallet(confirmed)
+            clearTimeout(timeout)
+            // Only the native add result identifies this card on this device.
+            setNativeAvailable(wallet === 'google' ? available || suffixMatch : available)
             setCheckedScope(availabilityScope)
         })().catch(() => {
-            if (!cancelled) setNativeAvailable(false)
+            if (!cancelled) {
+                clearTimeout(timeout)
+                setNativeAvailable(false)
+                setCheckedScope(availabilityScope)
+            }
         })
         return () => {
             cancelled = true
+            clearTimeout(timeout)
         }
     }, [availabilityScope, flagOn, card.id, card.last4, wallet])
 
@@ -161,7 +156,6 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                         : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
                 { wallet, error: result.error }
             )
-            if (result.added || result.alreadyInWallet) rememberCardAddedOnThisDevice(card.id)
             if (wallet === 'google' && (result.added || result.alreadyInWallet)) {
                 // Both results identify the exact card, unlike a suffix match.
                 if (availabilityScopeRef.current === scopeAtStart) {
@@ -173,13 +167,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 // take it. Recheck both devices instead of hiding the native row.
                 // An availability failure must not turn a successful add into a
                 // reported provisioning failure.
-                const { available, alreadyInWallet } = await getPushProvisioningAvailability(card.last4).catch(() => ({
-                    available: false,
-                    alreadyInWallet: false,
-                }))
+                const availability = await getPushProvisioningAvailability(card.last4).catch(() => null)
                 if (availabilityScopeRef.current === scopeAtStart && flagOn) {
-                    setNativeAvailable(available && !alreadyInWallet)
-                    setAlreadyInWallet(alreadyInWallet)
+                    setNativeAvailable(availability?.available ?? false)
+                    setAlreadyInWallet(!!availability?.alreadyInWallet && !availability.available)
                 }
             } else if (result.alreadyInWallet && availabilityScopeRef.current === scopeAtStart) {
                 setNativeAvailable(false)
@@ -201,6 +192,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     return {
         nativeAvailable: flagOn && checkedScope === availabilityScope && nativeAvailable,
         alreadyInWallet: flagOn && checkedScope === availabilityScope && alreadyInWallet,
+        isChecking: flagOn && checkedScope !== availabilityScope,
         isAdding,
         addToWallet,
     }

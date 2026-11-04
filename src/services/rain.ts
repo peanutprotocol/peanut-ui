@@ -316,8 +316,6 @@ export interface RainProvisioningAuthorizationResponse {
     walletAuthorizationExpiresIn: number
 }
 
-export type RainCardWallet = 'apple' | 'google'
-
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
 
 export interface RainCardLimit {
@@ -1054,20 +1052,6 @@ export const rainApi = {
             rateLimitSensitive: true,
             noStore: true,
         })
-    },
-
-    /**
-     * Wallets Rain reports this exact card tokenized into, on any device.
-     * Confirms a native last-four match; it cannot say which phone holds it.
-     */
-    getCardWallets: async (cardId: string): Promise<RainCardWallet[]> => {
-        const { wallets } = await rainRequest<{ wallets: RainCardWallet[] }>({
-            method: 'GET',
-            path: `/rain/cards/${cardId}/wallets`,
-            // The wallet row waits on this; past it, the row shows the add action.
-            timeoutMs: 5_000,
-        })
-        return wallets
     },
 
     /** Read the current spending limits (per-txn / 24h / 30d / all-time) from Rain. */

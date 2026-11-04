@@ -47,6 +47,7 @@ import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
 import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -630,7 +631,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['35-c-googlewalletbutton'],
         render: () => (
             <AppPageSurface>
-                <GoogleWalletButton isAdding={false} onClick={noop} />
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding={false} onClick={noop} />
+                </div>
             </AppPageSurface>
         ),
     },
@@ -638,7 +642,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['35-c-googlewalletbutton-adding'],
         render: () => (
             <AppPageSurface>
-                <GoogleWalletButton isAdding onClick={noop} />
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding onClick={noop} />
+                </div>
             </AppPageSurface>
         ),
     },

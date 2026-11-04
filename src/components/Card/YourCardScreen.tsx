@@ -84,7 +84,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
               : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
-    const { nativeAvailable, alreadyInWallet, isAdding, addToWallet } = usePushProvisioning({
+    const { nativeAvailable, alreadyInWallet, isChecking, isAdding, addToWallet } = usePushProvisioning({
         id: card.id,
         last4: card.last4,
     })
@@ -245,6 +245,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
                             onClick={() => router.push('/card/physical')}
                         />
                         {walletLabel &&
+                            !isChecking &&
                             !alreadyInWallet &&
                             !(walletPlatform === 'android' && nativeAvailable) &&
                             // use native provisioning when it is available
