@@ -98,9 +98,19 @@ for (const route of routes) {
     let gz = 0
     const hits = []
     const rows = []
+    // A check that reads nothing must not pass: each of these means the guard
+    // would scan less than the page loads.
+    const problems = []
+    if (chunks.length === 0) problems.push('no client chunks found')
+    const hasHtml = existsSync(`${prerenderedBase(route)}.html`)
+    if (route === '/' && !hasHtml)
+        problems.push('/ has no prerendered HTML, so its rendered client components cannot be read')
     for (const chunk of chunks) {
         const path = join(nextDir, decodeURIComponent(chunk))
-        if (!existsSync(path)) continue
+        if (!existsSync(path)) {
+            problems.push(`listed chunk missing on disk: ${chunk}`)
+            continue
+        }
         const source = readFileSync(path)
         const size = source.length
         const gzSize = gzipSync(source).length
@@ -112,13 +122,17 @@ for (const route of routes) {
             if (text.includes(marker)) hits.push(`  ${chunk} contains "${marker}" (${catalog})`)
         }
     }
-    const prerendered = existsSync(`${prerenderedBase(route)}.html`) ? 'prerendered HTML read' : 'no prerendered HTML'
+    const prerendered = hasHtml ? 'prerendered HTML read' : 'no prerendered HTML'
     console.log(`${route}: ${rows.length} client chunks (${prerendered}), ${raw} B raw / ${gz} B gz`)
     if (report) console.log(rows.join('\n'))
+    if (problems.length) {
+        failed = true
+        console.error(`${route}: FAIL — the guard cannot read the route's bundle:\n  ${problems.join('\n  ')}`)
+    }
     if (hits.length) {
         failed = true
         console.error(`${route}: FAIL — a marketing route ships a catalog it never renders:\n${hits.join('\n')}`)
-    } else {
+    } else if (!problems.length) {
         console.log(`${route}: ok — no marker of ${MARKERS.map((m) => m.catalog).join(' or ')}`)
     }
 }
