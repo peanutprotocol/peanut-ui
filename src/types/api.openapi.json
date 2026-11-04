@@ -393,6 +393,2142 @@
 				]
 			}
 		},
+		"/avenia/deposit": {
+			"post": {
+				"description": "Quotes BRL/PIX → USDC on Base on the user’s Avenia sub-account and opens a ticket that delivers to their Rhino inflow address, which bridges to their wallet. Returns the dynamic Pix code; it lives 10 minutes.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"description": "Reais, at most two decimals",
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"amountBrl"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "100.00",
+									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63041D3A",
+									"expiresAt": "2026-11-04T12:10:00.000Z",
+									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+									"payerCpfMasked": "123.***.***-09",
+									"usdcAmount": "17.940500"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"type": "string"
+										},
+										"brCode": {
+											"type": "string"
+										},
+										"expiresAt": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"payerCpfMasked": {
+											"type": "string"
+										},
+										"usdcAmount": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"intentId",
+										"brCode",
+										"amountBrl",
+										"usdcAmount",
+										"expiresAt",
+										"payerCpfMasked"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Create a Pix deposit (BRL → USDC)",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/deposit/eligibility": {
+			"get": {
+				"description": "The minimum amount and the banks Avenia refuses a Pix deposit from (its pay-in deny-list).",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"blockedBanks": [
+										{
+											"ispb": "00360305",
+											"name": "Caixa Economica Federal"
+										}
+									],
+									"minAmountBrl": "20"
+								},
+								"schema": {
+									"properties": {
+										"blockedBanks": {
+											"items": {
+												"properties": {
+													"ispb": {
+														"type": "string"
+													},
+													"name": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"ispb",
+													"name"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"minAmountBrl": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"minAmountBrl",
+										"blockedBanks"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Pix deposit rules for the amount step",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/deposit/{intentId}": {
+			"get": {
+				"description": "Read-only: the webhook and the poller move the deposit; the app polls this behind the code.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"expiresAt": "2026-11-04T12:10:00.000Z",
+									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+									"status": "PROCESSING",
+									"ticketStatus": "PROCESSING"
+								},
+								"schema": {
+									"properties": {
+										"expiresAt": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"status": {
+											"type": "string"
+										},
+										"ticketStatus": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"intentId",
+										"status",
+										"ticketStatus",
+										"expiresAt"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Pix deposit status",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/kyc/start": {
+			"post": {
+				"description": "For a Brazilian resident with an approved identity and a CPF: creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"redirectUrl": {
+										"format": "uri",
+										"type": "string"
+									}
+								},
+								"type": "object"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"kycUrl": "https://kyc.avenia.io/level-1?session=8f2d1c",
+									"state": "kyc"
+								},
+								"schema": {
+									"properties": {
+										"kycUrl": {
+											"type": "string"
+										},
+										"reason": {
+											"type": "string"
+										},
+										"state": {
+											"anyOf": [
+												{
+													"enum": [
+														"enabled"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"kyc"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
+												}
+											]
+										}
+									},
+									"required": [
+										"state"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Start Pix with Avenia (first use)",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/pix-key-info": {
+			"get": {
+				"description": "DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key is the user’s own (CPF match) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "key",
+						"required": true,
+						"schema": {
+							"maxLength": 140,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"bankName": "Nu Pagamentos S.A.",
+									"blocked": false,
+									"holderName": "Ana Souza",
+									"holderTaxIdMasked": "***.456.789-**",
+									"ispb": "18236120",
+									"ownAccount": true
+								},
+								"schema": {
+									"properties": {
+										"bankName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"blocked": {
+											"type": "boolean"
+										},
+										"holderName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"holderTaxIdMasked": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ispb": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ownAccount": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"holderName",
+										"holderTaxIdMasked",
+										"bankName",
+										"ispb",
+										"ownAccount",
+										"blocked"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Resolve a Pix key to its holder and bank",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/webhook": {
+			"post": {
+				"description": "Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT",
+				"parameters": [
+					{
+						"description": "Base64 RSA-PSS signature of the raw body",
+						"in": "header",
+						"name": "signature",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"event": {
+										"properties": {
+											"accountId": {
+												"minLength": 1,
+												"type": "string"
+											},
+											"createdAt": {
+												"type": "string"
+											},
+											"data": {
+												"properties": {
+													"type": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"type"
+												],
+												"type": "object"
+											},
+											"id": {
+												"minLength": 1,
+												"type": "string"
+											},
+											"subscription": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"id",
+											"accountId",
+											"subscription",
+											"data"
+										],
+										"type": "object"
+									}
+								},
+								"required": [
+									"event"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"received": true
+								},
+								"schema": {
+									"properties": {
+										"received": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"received"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Avenia webhook handler",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/withdraw/init": {
+			"post": {
+				"description": "Opens the Avenia ticket (10 minutes), then quotes and commits Rhino in receive mode for exactly its USDC. The app approves the USDC to the bridge contract and calls depositWithId, then reports the hash to /avenia/withdraw/:intentId/funded.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									},
+									"amountUsd": {
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									},
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"display": {
+										"amountBrl": "106.75",
+										"arrivalEstimate": "About 1 minute",
+										"bankName": "Nu Pagamentos S.A.",
+										"holderName": "Ana Souza",
+										"ownAccount": true,
+										"pixKey": "12345678909",
+										"provider": "Avenia",
+										"providerFeeBrl": "1.68",
+										"rate": "5.416",
+										"withdrawUsd": "20.020325"
+									},
+									"intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
+									"sign": {
+										"commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+										"contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+										"kind": "deposit-with-id",
+										"payAmount": "20.020325",
+										"payAmountUnits": "20020325",
+										"quoteExpiresAt": "2026-11-04T12:03:00.000Z",
+										"ticketExpiresAt": "2026-11-04T12:10:00.000Z",
+										"tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+									}
+								},
+								"schema": {
+									"properties": {
+										"display": {
+											"properties": {
+												"amountBrl": {
+													"description": "The headline: reais credited to the account",
+													"type": "string"
+												},
+												"arrivalEstimate": {
+													"type": "string"
+												},
+												"bankName": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"holderName": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"ownAccount": {
+													"enum": [
+														true
+													],
+													"type": "boolean"
+												},
+												"pixKey": {
+													"type": "string"
+												},
+												"provider": {
+													"enum": [
+														"Avenia"
+													],
+													"type": "string"
+												},
+												"providerFeeBrl": {
+													"description": "Avenia and Rhino fees together, in reais",
+													"type": "string"
+												},
+												"rate": {
+													"description": "BRL per USDC before fees",
+													"type": "string"
+												},
+												"withdrawUsd": {
+													"description": "USDC that leaves the wallet",
+													"type": "string"
+												}
+											},
+											"required": [
+												"amountBrl",
+												"pixKey",
+												"ownAccount",
+												"holderName",
+												"bankName",
+												"withdrawUsd",
+												"rate",
+												"providerFeeBrl",
+												"arrivalEstimate",
+												"provider"
+											],
+											"type": "object"
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"sign": {
+											"properties": {
+												"commitmentId": {
+													"type": "string"
+												},
+												"contractAddress": {
+													"type": "string"
+												},
+												"kind": {
+													"enum": [
+														"deposit-with-id"
+													],
+													"type": "string"
+												},
+												"payAmount": {
+													"type": "string"
+												},
+												"payAmountUnits": {
+													"type": "string"
+												},
+												"quoteExpiresAt": {
+													"type": "string"
+												},
+												"ticketExpiresAt": {
+													"type": "string"
+												},
+												"tokenAddress": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"kind",
+												"contractAddress",
+												"tokenAddress",
+												"payAmount",
+												"payAmountUnits",
+												"commitmentId",
+												"quoteExpiresAt",
+												"ticketExpiresAt"
+											],
+											"type": "object"
+										}
+									},
+									"required": [
+										"intentId",
+										"display",
+										"sign"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Start a Pix withdrawal",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/withdraw/preview": {
+			"post": {
+				"description": "Own-key check, monthly limit, Avenia’s and Rhino’s quotes. Opens no ticket.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									},
+									"amountUsd": {
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									},
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "106.75",
+									"arrivalEstimate": "About 1 minute",
+									"bankName": "Nu Pagamentos S.A.",
+									"holderName": "Ana Souza",
+									"ownAccount": true,
+									"pixKey": "12345678909",
+									"provider": "Avenia",
+									"providerFeeBrl": "1.68",
+									"rate": "5.416",
+									"withdrawUsd": "20.020325"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"description": "The headline: reais credited to the account",
+											"type": "string"
+										},
+										"arrivalEstimate": {
+											"type": "string"
+										},
+										"bankName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"holderName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ownAccount": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										},
+										"pixKey": {
+											"type": "string"
+										},
+										"provider": {
+											"enum": [
+												"Avenia"
+											],
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Avenia and Rhino fees together, in reais",
+											"type": "string"
+										},
+										"rate": {
+											"description": "BRL per USDC before fees",
+											"type": "string"
+										},
+										"withdrawUsd": {
+											"description": "USDC that leaves the wallet",
+											"type": "string"
+										}
+									},
+									"required": [
+										"amountBrl",
+										"pixKey",
+										"ownAccount",
+										"holderName",
+										"bankName",
+										"withdrawUsd",
+										"rate",
+										"providerFeeBrl",
+										"arrivalEstimate",
+										"provider"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Preview a Pix withdrawal",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/withdraw/{intentId}/funded": {
+			"post": {
+				"description": "Checks the receipt funds this withdrawal’s Rhino commitment from the user’s wallet, for exactly the pay amount.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"txHash": {
+										"pattern": "^0x[0-9a-fA-F]{64}$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"txHash"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"status": "PROCESSING"
+								},
+								"schema": {
+									"properties": {
+										"status": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"status"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Report the withdrawal’s deposit transaction",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
+		"/avenia/withdraw/{intentId}/recovery-key": {
+			"post": {
+				"description": "When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"accepted": true
+								},
+								"schema": {
+									"properties": {
+										"accepted": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"accepted"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Name another own Pix key for a refused withdrawal",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
 		"/badge/award": {
 			"post": {
 				"parameters": [
@@ -10020,6 +12156,12 @@
 												},
 												{
 													"enum": [
+														"avenia"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
 														"reference"
 													],
 													"type": "string"
@@ -10083,6 +12225,12 @@
 												{
 													"enum": [
 														"manteca"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"avenia"
 													],
 													"type": "string"
 												},
@@ -10272,6 +12420,12 @@
 															},
 															{
 																"enum": [
+																	"avenia"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
 																	"reference"
 																],
 																"type": "string"
@@ -10310,6 +12464,12 @@
 															{
 																"enum": [
 																	"manteca"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"avenia"
 																],
 																"type": "string"
 															},
@@ -10508,6 +12668,58 @@
 			"get": {
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/healthz/avenia": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"checkedAt": "2026-01-01T00:00:00.000Z",
+									"provider": "avenia",
+									"responseTime": 120,
+									"status": "healthy",
+									"timestamp": "2026-01-01T00:00:00.000Z"
+								},
+								"schema": {
+									"properties": {
+										"checkedAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"provider": {
+											"type": "string"
+										},
+										"responseTime": {
+											"type": "number"
+										},
+										"status": {
+											"enum": [
+												"healthy"
+											],
+											"type": "string"
+										},
+										"timestamp": {
+											"format": "date-time",
+											"type": "string"
+										}
+									},
+									"required": [
+										"status",
+										"provider",
+										"timestamp",
+										"checkedAt",
+										"responseTime"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -12038,7 +14250,7 @@
 														"type": "number"
 													},
 													"preparationId": {
-														"minLength": 1,
+														"format": "uuid",
 														"type": "string"
 													},
 													"preparedCoordinatorAddress": {
@@ -12577,7 +14789,7 @@
 														"type": "number"
 													},
 													"preparationId": {
-														"minLength": 1,
+														"format": "uuid",
 														"type": "string"
 													},
 													"preparedCoordinatorAddress": {
@@ -13278,6 +15490,7 @@
 								"properties": {
 									"usageId": {
 										"description": "PerkUsage id to claim",
+										"format": "uuid",
 										"type": "string"
 									}
 								},
@@ -16077,7 +18290,7 @@
 										"type": "string"
 									},
 									"chargeId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"directTransfer": {
@@ -16347,7 +18560,7 @@
 							"schema": {
 								"properties": {
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									}
 								},
@@ -16622,7 +18835,7 @@
 							"schema": {
 								"properties": {
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"txHash": {
@@ -16960,7 +19173,7 @@
 										"type": "number"
 									},
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"preparedCoordinatorAddress": {
@@ -17581,7 +19794,7 @@
 												"type": "number"
 											},
 											"preparationId": {
-												"minLength": 1,
+												"format": "uuid",
 												"type": "string"
 											},
 											"preparedCoordinatorAddress": {
@@ -18210,7 +20423,7 @@
 												"type": "number"
 											},
 											"preparationId": {
-												"minLength": 1,
+												"format": "uuid",
 												"type": "string"
 											},
 											"preparedCoordinatorAddress": {
@@ -21137,6 +23350,15 @@
 			"post": {
 				"parameters": [
 					{
+						"in": "query",
+						"name": "chargeId",
+						"required": false,
+						"schema": {
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
 						"in": "path",
 						"name": "depositAddress",
 						"required": true,
@@ -23226,6 +25448,12 @@
 																			"questions"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia-hosted"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -23255,6 +25483,12 @@
 																				{
 																					"enum": [
 																						"rain"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
 																					],
 																					"type": "string"
 																				}
@@ -23450,6 +25684,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -23611,6 +25851,12 @@
 																							"questions"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"avenia-hosted"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -23640,6 +25886,12 @@
 																								{
 																									"enum": [
 																										"rain"
+																									],
+																									"type": "string"
+																								},
+																								{
+																									"enum": [
+																										"avenia"
 																									],
 																									"type": "string"
 																								}
@@ -25502,6 +27754,12 @@
 																"questions"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"avenia-hosted"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -25531,6 +27789,12 @@
 																	{
 																		"enum": [
 																			"rain"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
 																		],
 																		"type": "string"
 																	}
@@ -27696,6 +29960,109 @@
 											"type": "string"
 										}
 									},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/kyc/attempts/{attemptId}/document-check": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "attemptId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"countryMismatch": true,
+									"picked": {
+										"issuingCountry": "PT",
+										"type": "RESIDENCE_PERMIT"
+									},
+									"recognised": {
+										"issuingCountry": "UA",
+										"type": "PASSPORT"
+									}
+								},
+								"schema": {
+									"properties": {
+										"countryMismatch": {
+											"type": "boolean"
+										},
+										"picked": {
+											"anyOf": [
+												{
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"recognised": {
+											"anyOf": [
+												{
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"picked",
+										"recognised",
+										"countryMismatch"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {},
 									"type": "object"
 								}
 							}
@@ -32545,6 +34912,12 @@
 																			"questions"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia-hosted"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -32574,6 +34947,12 @@
 																				{
 																					"enum": [
 																						"rain"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
 																					],
 																					"type": "string"
 																				}
@@ -32769,6 +35148,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -32930,6 +35315,12 @@
 																							"questions"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"avenia-hosted"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -32959,6 +35350,12 @@
 																								{
 																									"enum": [
 																										"rain"
+																									],
+																									"type": "string"
+																								},
+																								{
+																									"enum": [
+																										"avenia"
 																									],
 																									"type": "string"
 																								}
