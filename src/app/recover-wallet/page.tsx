@@ -37,7 +37,8 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
-import { areEvmAddressesEqual, getExplorerUrl, isTxReverted } from '@/utils/general.utils'
+import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
+import { getExplorerUrl } from '@/utils/token.utils'
 import { decodeRecoveryKey, toRescueWebAuthnKey, type RecoveryKeyInput } from '@/utils/walletRescue.utils'
 import { captureException } from '@sentry/nextjs'
 import { useSearchParams } from 'next/navigation'

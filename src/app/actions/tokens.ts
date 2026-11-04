@@ -1,5 +1,5 @@
 import { unstable_cache } from '@/utils/no-cache'
-import { getTokenDetails } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import { parseAbi } from 'viem'
 import { type ChainId, getPublicClient } from '@/app/actions/clients'
 import type { Address } from 'viem'

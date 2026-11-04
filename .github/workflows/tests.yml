@@ -1137,6 +1137,11 @@ jobs:
                   NODE_OPTIONS: --max-old-space-size=4096
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: pnpm build
+            # Production build: fail if the homepage ships viem's chain registry
+            # or the token list again. Star LPs join once they stop mounting the
+            # wallet app, which still brings the token list.
+            - name: Marketing bundle guard
+              run: pnpm check:marketing-bundle /
             - name: Check every rendered sitemap URL
               run: pnpm test:seo:rendered
             - name: Upload failures

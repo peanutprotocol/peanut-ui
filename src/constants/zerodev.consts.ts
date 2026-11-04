@@ -1,7 +1,8 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import { extractChain } from 'viem'
-import * as chains from 'viem/chains'
+import type { Chain } from 'viem'
+import type { ChainId } from '@/app/actions/clients'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
+import { getSupportedViemChain } from './supported-chains.consts'
 import { PEANUT_API_URL } from './general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 
@@ -72,10 +73,9 @@ export const PEANUT_WALLET_CHAIN =
         ? arbitrum
         : USE_SEPOLIA
           ? arbitrumSepolia
-          : extractChain({
-                chains: Object.values(chains),
-                id: walletChainId as (typeof chains)[keyof typeof chains]['id'],
-            })
+          : // Same contract as the old whole-registry `extractChain`: an id outside the
+            // supported map resolves to undefined and fails where the chain is used.
+            (getSupportedViemChain(walletChainId) as Chain & { id: ChainId })
 export { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from './wallet-token.consts'
 export const PEANUT_WALLET_TOKEN_NAME = process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_NAME || 'USD Coin'
 export const PEANUT_WALLET_TOKEN_IMG_URL =

@@ -43,6 +43,9 @@ jest.mock('@/constants/rhino.consts', () => ({
 jest.mock('@/constants/chainRegistry.consts', () => ({ NON_EVM_WITHDRAW_CHAINS: {} }))
 jest.mock('@/utils/general.utils', () => ({
     areEvmAddressesEqual: (a: string, b: string) => a.toLowerCase() === b.toLowerCase(),
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
     getTokenSymbol: (address: string) => (address.startsWith('0xaf88') ? 'USDC' : 'ETH'),
 }))
 jest.mock('@/utils/peanut-claim.utils', () => ({ prepareRequestLinkFulfillmentTransaction: jest.fn() }))

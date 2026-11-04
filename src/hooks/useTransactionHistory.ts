@@ -4,7 +4,7 @@ import type { InfiniteData, InfiniteQueryObserverResult, QueryObserverResult } f
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { completeHistoryEntry } from '@/utils/history.utils'
 import type { HistoryEntry } from '@/utils/history.utils'
-import { getTokenDetails } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import type { ChargeEntry } from '@/services/services.types'
 import { formatUnits, type Address } from 'viem'
 import { isDemoMode } from '@/utils/demo'
