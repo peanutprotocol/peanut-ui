@@ -190,3 +190,41 @@ test('screen tests use supported Node and install the isolated worker dependency
         'other application jobs must remain on their existing Node 20 runtime'
     )
 })
+
+test('closed review skip propagates through baseline resolution, publication and dependent jobs', () => {
+    const publishJob = publisher.slice(publisher.indexOf('\n    publish:'), publisher.indexOf('\n    gallery:'))
+    assert.match(publishJob, /mode: \$\{\{ steps\.baseline\.outputs\.mode \}\}/)
+    const resolution = publishJob.split(/^ {12}- /m).find((step) => step.startsWith('name: Resolve verified baseline'))
+    assert.match(resolution, /node scripts\/screens\/resolve-baseline\.mjs --current >> "\$GITHUB_OUTPUT"/)
+    assert.doesNotMatch(resolution, /echo 'mode=(?:external|current)'/)
+    const laterSteps = publishJob.slice(publishJob.indexOf('            - name: Download verified baseline'))
+    for (const step of laterSteps.split(/^ {12}- /m).filter((step) => step.trim()))
+        assert.match(step, /if: steps\.baseline\.outputs\.mode (?:== 'external'|!= 'skip')/)
+    const indexJob = publisher.slice(publisher.indexOf('\n    index:'), publisher.indexOf('\n    deploy:'))
+    assert.match(indexJob, /if: always\(\) && needs\.publish\.outputs\.mode != 'skip'/)
+    const deployJob = publisher.slice(publisher.indexOf('\n    deploy:'))
+    assert.match(deployJob, /needs: \[index, publish\]/)
+    assert.match(
+        deployJob,
+        /if: always\(\) && !cancelled\(\) && needs\.index\.result == 'success' && needs\.publish\.outputs\.mode != 'skip'/
+    )
+    // The route-only gallery job is exclusive to dev pushes; closed PRs cannot enter it.
+    const galleryJob = publisher.slice(publisher.indexOf('\n    gallery:'), publisher.indexOf('\n    index:'))
+    assert.match(galleryJob, /needs\.route\.result == 'success'/)
+    const routeJob = publisher.slice(publisher.indexOf('\n    route:'), publisher.indexOf('\n    publish:'))
+    assert.match(routeJob, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/dev'/)
+})
+
+test('gallery uses the checked-in bounded diagnostic helper and retains deployment budgets', () => {
+    assert.match(gallery, /install -m 700 scripts\/screens\/deploy-operation\.sh \/tmp\/screen-deploy-operation/)
+    assert.match(gallery, /timeout-minutes: 10/)
+    for (const step of gallery
+        .split(/^ {12}- /m)
+        .filter((step) => step.includes('run: bash /tmp/screen-deploy-operation')))
+        assert.match(step, /timeout-minutes: 5/)
+    const helper = readFileSync('scripts/screens/deploy-operation.sh', 'utf8')
+    assert.match(helper, /timeout --signal=TERM --kill-after=10s 270s/)
+    assert.match(helper, /WRANGLER_LOG_SANITIZE=true/)
+    assert.match(helper, /sleep 45/)
+    assert.match(helper, /node scripts\/screens\/deploy-diagnostics\.mjs/)
+})

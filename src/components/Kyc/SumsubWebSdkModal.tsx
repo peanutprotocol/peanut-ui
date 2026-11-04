@@ -27,6 +27,7 @@ export const SumsubWebSdkModal = ({
     onSubmitted,
     onError,
     onRefreshToken,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: SumsubSdkProps) => {
     const { track } = useKycControl('id-check', 'kyc_legacy')
@@ -44,6 +45,7 @@ export const SumsubWebSdkModal = ({
         onSubmitted,
         onError,
         onRefreshToken,
+        onIdentityStepCompleted,
         isMultiLevel,
     })
 

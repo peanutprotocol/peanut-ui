@@ -1331,6 +1331,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-paperwork-verification-verified-card-follow-up",
+        "flow": "Card",
+        "route": "/verify"
+    },
+    {
         "id": "fixture-paperwork-verification-add-card",
         "flow": "Card",
         "route": "/verify?feature=card"

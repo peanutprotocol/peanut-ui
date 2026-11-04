@@ -58,6 +58,7 @@ const ExternalWalletPaymentView = () => {
     return (
         <div className="flex flex-col gap-4">
             <RhinoDepositView
+                chargeId={charge?.uuid}
                 showUserCard
                 headerTitle={t('headers.pay')}
                 chainType={chainType}

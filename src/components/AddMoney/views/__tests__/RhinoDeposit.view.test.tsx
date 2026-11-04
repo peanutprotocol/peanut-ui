@@ -124,9 +124,11 @@ describe('RhinoDepositView after a short deposit', () => {
         expect(onDone).toHaveBeenCalledTimes(1)
     })
 
-    it('clears the address status so the poll sees the next transfer', async () => {
-        renderView(58.51, { shortDeposit })
-        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS))
+    it('clears the address status, with the charge id, so the poll sees the next transfer', async () => {
+        renderView(58.51, { shortDeposit, chargeId: 'charge-1' })
+        await waitFor(() =>
+            expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS, 'charge-1')
+        )
     })
 
     // Rhino can report a top-up before the API books it; the read-back then

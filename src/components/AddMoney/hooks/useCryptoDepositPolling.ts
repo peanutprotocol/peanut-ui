@@ -11,7 +11,9 @@ type DepositStatus = 'not_started' | 'loading' | 'failed' | 'completed'
 
 export function useCryptoDepositPolling(
     depositAddress: string | undefined,
-    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void
+    onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void,
+    /** The charge a request-payment address was opened for; needed to clear its status. */
+    chargeId?: string
 ) {
     const [isDelayComplete, setIsDelayComplete] = useState(false)
     const [isResetting, setIsResetting] = useState(false)
@@ -65,7 +67,7 @@ export function useCryptoDepositPolling(
         isResettingRef.current = true
         setIsResetting(true)
         try {
-            await rhinoApi.resetDepositAddressStatus(depositAddress)
+            await rhinoApi.resetDepositAddressStatus(depositAddress, chargeId)
             await queryClient.cancelQueries({ queryKey })
             hasCalledSuccess.current = false
             queryClient.setQueryData<DepositAddressStatusResponse>(queryKey, { status: 'not_started' })
@@ -77,7 +79,7 @@ export function useCryptoDepositPolling(
             isResettingRef.current = false
             setIsResetting(false)
         }
-    }, [depositAddress, queryKey, queryClient])
+    }, [depositAddress, chargeId, queryKey, queryClient])
 
     return { status, resetStatus, isResetting }
 }

@@ -993,7 +993,7 @@
                 "title": "Link your profile to one country",
                 "description": "Here’s what each unlocks."
             },
-            "sentence": "I’m a resident <nw>of <residence></residence></nw> and hold the nationality <nw>of <nationality></nationality>.</nw>",
+            "sentence": "I’m a resident <nw>of <residence></residence></nw><br></br>and hold the nationality <nw>of <nationality></nationality>.</nw>",
             "residenceTitle": "Where are you a resident?",
             "nationalityTitle": "What’s your nationality?",
             "sameCountry": "the same country",
@@ -3924,7 +3924,14 @@
                 "done": "Done",
                 "backHome": "Back to Home",
                 "setUpPayments": "Set up payments",
-                "verifiedNote": "Now choose how you want to pay and get paid."
+                "verifiedNote": "Now choose how you want to pay and get paid.",
+                "followUp": {
+                    "cardAddress": "Add a proof of address",
+                    "cardIdentity": "Send your ID again",
+                    "bankDocument": "Add one more document",
+                    "bankTerms": "Accept the bank transfer terms",
+                    "bankCheck": "Finish the bank transfer check"
+                }
             },
             "saved": {
                 "title": "Answers saved!",
@@ -3971,6 +3978,11 @@
             "policyHold": {
                 "description": "This document cannot be used for verification. Please choose another document.",
                 "cta": "Choose another document"
+            },
+            "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
+            "taxConfirm": "I confirm",
+            "documentMismatch": {
+                "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
             }
         }
     },

@@ -66,6 +66,30 @@ export async function skipProofOfAddress(): Promise<'skipped' | 'handed_back' | 
     }
 }
 
+/**
+ * After Sumsub's ID step: the country of the ID Sumsub recognised, when it is
+ * not the picked one. Null when they match or the check cannot be read, so a
+ * failed read never stops the ID check.
+ */
+export async function getIdentityDocumentMismatch(
+    attemptId: string
+): Promise<{ picked: string; recognised: string } | null> {
+    try {
+        const response = await call(
+            `/users/kyc/attempts/${encodeURIComponent(attemptId)}/document-check`,
+            'document_check'
+        )
+        const body = response.ok ? await json(response) : null
+        const picked = body?.picked?.issuingCountry
+        const recognised = body?.recognised?.issuingCountry
+        return body?.countryMismatch === true && typeof picked === 'string' && typeof recognised === 'string'
+            ? { picked, recognised }
+            : null
+    } catch {
+        return null
+    }
+}
+
 /** What sign-up and verification collected, for Profile; throws when it cannot be read. */
 export async function getKycDetails(): Promise<KycCollectedDetails> {
     const response = await call('/users/kyc/details', 'details_read')

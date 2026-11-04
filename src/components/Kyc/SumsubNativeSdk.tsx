@@ -55,6 +55,7 @@ export const SumsubNativeSdk = ({
     onError,
     onRefreshToken,
     onSubmitted,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: SumsubSdkProps) => {
     const t = useTranslations('kyc')
@@ -77,6 +78,7 @@ export const SumsubNativeSdk = ({
     emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
     const onSubmittedRef = useRef(onSubmitted)
+    const onIdentityStepCompletedRef = useRef(onIdentityStepCompleted)
     const sumsubLocaleRef = useRef(toSumsubLocale(locale))
 
     useEffect(() => {
@@ -87,7 +89,8 @@ export const SumsubNativeSdk = ({
         accessTokenRef.current = accessToken
         isMultiLevelRef.current = isMultiLevel
         onSubmittedRef.current = onSubmitted
-    }, [onClose, onComplete, onError, onRefreshToken, accessToken, isMultiLevel, onSubmitted])
+        onIdentityStepCompletedRef.current = onIdentityStepCompleted
+    }, [onClose, onComplete, onError, onRefreshToken, accessToken, isMultiLevel, onSubmitted, onIdentityStepCompleted])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -173,6 +176,13 @@ export const SumsubNativeSdk = ({
                     },
                     onEvent: (event) => {
                         tracker.step(event?.eventType, event?.payload?.idDocSetType, event?.payload?.isCancelled)
+                        const cancelled = event?.payload?.isCancelled === true || event?.payload?.isCancelled === 'true'
+                        if (
+                            event?.eventType === 'StepCompleted' &&
+                            event?.payload?.idDocSetType === 'IDENTITY' &&
+                            !cancelled
+                        )
+                            onIdentityStepCompletedRef.current?.()
                     },
                 })
                 .withLocale(sumsubLocaleRef.current)

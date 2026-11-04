@@ -298,6 +298,8 @@ export const ANALYTICS_EVENTS = {
     KYC_PV_PICKER_CLOSED: 'kyc_paperwork_picker_closed',
     KYC_PV_SEARCH_EMPTY: 'kyc_paperwork_search_empty',
     KYC_PV_RESIDENCE_CHANGE_OPENED: 'kyc_paperwork_residence_change_opened',
+    KYC_PV_DOCUMENT_COUNTRY_MISMATCH: 'kyc_paperwork_document_country_mismatch',
+    KYC_PV_DOCUMENT_COUNTRY_CHOSEN: 'kyc_paperwork_document_country_chosen',
     KYC_PV_LOCAL_REFUSED: 'kyc_paperwork_local_refused',
     KYC_PV_CONTINUE_WITHOUT_LOCAL: 'kyc_paperwork_continue_without_local',
     KYC_PV_ID_VIEWED: 'kyc_paperwork_id_viewed',
