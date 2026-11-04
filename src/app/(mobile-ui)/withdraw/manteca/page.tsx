@@ -9,6 +9,7 @@ import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServic
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
+import { BrazilPixWithdraw } from '@/features/avenia/components/BrazilPixWithdraw'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
@@ -30,10 +31,8 @@ export default function MantecaWithdrawFlow() {
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
     // ride the QR-payment endpoint, not Manteca offramp) stay open.
     const withdrawCurrency = countryData.find((c) => c.path === searchParams.get('country'))?.currency?.toUpperCase()
-    if (withdrawCurrency && (disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
-        return <MantecaTransfersMaintenanceView action="withdrawals" />
-    }
-    return (
+    const mantecaUnavailable = !!withdrawCurrency && (disabledMantecaCurrencies as string[]).includes(withdrawCurrency)
+    const mantecaFlow = (
         <KycFeatureActivationGate
             feature="local"
             scope={{ channel: 'bank', country: countryData.find((c) => c.path === searchParams.get('country'))?.id }}
@@ -41,4 +40,12 @@ export default function MantecaWithdrawFlow() {
             <MantecaBankWithdrawFlow searchParams={searchParams} />
         </KycFeatureActivationGate>
     )
+    // A Brazilian resident withdraws BRL through Avenia; the Manteca flow stays for everyone else.
+    if (searchParams.get('country') === 'brazil') {
+        return <BrazilPixWithdraw mantecaUnavailable={mantecaUnavailable} manteca={mantecaFlow} />
+    }
+    if (mantecaUnavailable) {
+        return <MantecaTransfersMaintenanceView action="withdrawals" />
+    }
+    return mantecaFlow
 }

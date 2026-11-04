@@ -4,6 +4,7 @@ import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/Mant
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
+import { BrazilPixAddMoney } from '@/features/avenia/components/BrazilPixAddMoney'
 import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -23,7 +24,10 @@ export default function AddMoneyRegionalMethodPage() {
         // Manteca provider outage — block the onramp only for currencies still down.
         const currency = countryDetails?.currency?.toUpperCase() ?? ''
         if (brazilPaused && currency === 'BRL') return <BrazilPausedScreen />
-        if ((disabledMantecaCurrencies as string[]).includes(currency)) {
+        const mantecaUnavailable = (disabledMantecaCurrencies as string[]).includes(currency)
+        if (currency === 'BRL')
+            return <BrazilPixAddMoney searchParams={searchParams} mantecaUnavailable={mantecaUnavailable} />
+        if (mantecaUnavailable) {
             return <MantecaTransfersMaintenanceView action="deposits" />
         }
         return <MantecaAddMoney />

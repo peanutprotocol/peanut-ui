@@ -1203,6 +1203,30 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         }
     },
+    "avenia": {
+        "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
+        "setup": {
+            "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
+            "rejected": "Avenia no pudo verificar tu identidad, así que Pix no está disponible. Contactá a soporte si creés que es un error.",
+            "checkingBody": "Terminá los pasos en la página de Avenia. Esta pantalla avanza cuando Avenia confirme, normalmente en pocos minutos.",
+            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
+            "settingUp": "La cuenta Pix se está configurando. Intentá de nuevo en un minuto."
+        },
+        "deposit": {
+            "returnedBody": "El Pix volvió a la cuenta de origen. Pagá desde una cuenta con tu CPF {cpf}."
+        },
+        "withdraw": {
+            "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",
+            "notACode": "Ingresá una clave Pix, no un código Pix.",
+            "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
+            "rateLocked": "El tipo de cambio queda fijo por 10 minutos cuando confirmás.",
+            "errors": {
+                "inProgress": "Otro retiro por Pix sigue abierto. Intentá de nuevo en 10 minutos.",
+                "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",
+                "afterInit": "Revisá el Historial antes de intentar de nuevo. Un nuevo retiro se abre después de 10 minutos."
+            }
+        }
+    },
     "transaction": {
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "perk": {

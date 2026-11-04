@@ -2420,6 +2420,50 @@
             "otherCountriesPitch": "Pick a country"
         }
     },
+    "avenia": {
+        "unavailable": "Pix is not available right now. Try again soon.",
+        "setup": {
+            "title": "Verify identity for Pix",
+            "body": "Avenia provides Pix deposits and withdrawals for residents of Brazil. It asks once for a photo of your ID and a selfie.",
+            "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
+            "rejected": "Avenia could not verify your identity, so Pix is not available. Contact support if this looks wrong.",
+            "checkingBody": "Finish the steps on Avenia's page. This screen moves on once Avenia confirms, usually within a few minutes.",
+            "openAgain": "Open verification again",
+            "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
+            "settingUp": "The Pix account is being set up. Try again in a minute."
+        },
+        "deposit": {
+            "minimum": "The minimum is {amount}.",
+            "limitExceeded": "This deposit is over the monthly Pix limit.",
+            "ownCpf": "From an account under your CPF {cpf}",
+            "payee": "The Pix goes to {payee}.",
+            "blockedBanks": "Pix from {banks} is not accepted.",
+            "returnedTitle": "Pix returned",
+            "returnedBody": "The Pix went back to the account it came from. Pay from an account under your CPF {cpf}."
+        },
+        "withdraw": {
+            "keyIntro": "Enter a Pix key of an account under your CPF.",
+            "notACode": "Enter a Pix key, not a Pix code.",
+            "lookupFailed": "This key could not be checked. Try again.",
+            "keyNotOwn": "This key belongs to someone else. Withdrawals go only to an account under your CPF.",
+            "keyBlocked": "Pix withdrawals to this bank are not available.",
+            "unknownHolder": "Name not shown",
+            "ownAccount": "Own account",
+            "someoneElses": "Someone else's",
+            "toAccount": "to {destination}",
+            "providerFee": "Provider fee",
+            "arrivesSoon": "In about a minute",
+            "rateLocked": "The exchange rate is locked for 10 minutes once you confirm.",
+            "sent": "On its way. It usually arrives in about a minute.",
+            "sentTo": "On its way to {destination}. It usually arrives in about a minute.",
+            "errors": {
+                "limitExceeded": "This withdrawal is over the monthly Pix limit.",
+                "inProgress": "Another Pix withdrawal is still open. Try again in 10 minutes.",
+                "quoteExpired": "The quote took too long. Try again.",
+                "afterInit": "Check History before trying again. A new withdrawal opens after 10 minutes."
+            }
+        }
+    },
     "transaction": {
         "drawerTitle": "Transaction details",
         "officialReceipt": {
@@ -5170,7 +5214,8 @@
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Fiat on-ramp (ARS), off-ramp, QR payer and holder of the ARS deposit account",
-            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer"
+            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer",
+            "aveniaBr": "Fiat on-ramp and off-ramp (BRL Pix)"
         },
         "about": "About {brand}",
         "execution": {
@@ -5178,7 +5223,8 @@
             "bridgeEea": "Signed by you, {brand} pays out",
             "mantecaAr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
-            "thirdNational": "Third National issues and settles"
+            "thirdNational": "Third National issues and settles",
+            "aveniaBr": "Settled by {brand}"
         },
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
