@@ -10,6 +10,17 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 jest.mock('../SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('../KycRestartCooldownModal', () => ({ KycRestartCooldownModal: () => null }))
 jest.mock('../KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
+jest.mock('../modals/KycFailedModal', () => ({
+    KycFailedModal: ({
+        visible,
+        isTerminal,
+        onClose,
+    }: {
+        visible: boolean
+        isTerminal?: boolean
+        onClose: () => void
+    }) => (visible ? <button onClick={onClose}>{isTerminal ? 'Account review' : 'Retry'}</button> : null),
+}))
 jest.mock('@/components/Global/IframeWrapper', () => ({
     __esModule: true,
     default: ({ visible, onClose }: { visible: boolean; onClose: (source?: string) => void }) =>
@@ -100,3 +111,13 @@ it.each(['kyc_legacy', 'kyc_provider_request'] as const)(
         expect(JSON.stringify(capture.mock.calls)).not.toContain('private-token')
     }
 )
+
+it('shows the account review when a final rejection stops a new verification (H9)', () => {
+    const flow = {
+        showVerificationReview: true,
+        dismissVerificationReview: jest.fn(),
+    } as unknown as ReturnType<typeof useMultiPhaseKycFlow>
+    renderWithIntl(<SumsubKycModals flow={flow} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Account review' }))
+    expect(flow.dismissVerificationReview).toHaveBeenCalledTimes(1)
+})

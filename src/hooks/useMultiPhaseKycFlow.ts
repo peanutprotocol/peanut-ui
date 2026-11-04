@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
@@ -152,6 +153,15 @@ export const useMultiPhaseKycFlow = ({
     const { fetchUser, user } = useAuth()
     const t = useTranslations('kyc')
     const acquisitionSource = user?.invitedBy ? 'referred' : 'organic'
+    const { isTerminalFailure } = useIdentityVerification()
+    const [showVerificationReview, setShowVerificationReview] = useState(false)
+    // A final decision is one no new document can change: support reviews the account first (H9).
+    const blockIfFinal = useCallback(() => {
+        if (!isTerminalFailure) return false
+        setShowVerificationReview(true)
+        return true
+    }, [isTerminalFailure])
+    const dismissVerificationReview = useCallback(() => setShowVerificationReview(false), [])
 
     // multi-phase modal state
     const [modalPhase, setModalPhase] = useState<KycModalPhase>('verifying')
@@ -497,6 +507,7 @@ export const useMultiPhaseKycFlow = ({
             targetCountry?: string,
             corridor?: DepositCorridor
         ) => {
+            if (blockIfFinal()) return false
             const intent = overrideIntent ?? regionIntent
             setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
@@ -519,7 +530,7 @@ export const useMultiPhaseKycFlow = ({
 
             return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, blockIfFinal]
     )
 
     useSumsubReloadResume(
@@ -786,6 +797,9 @@ export const useMultiPhaseKycFlow = ({
     return {
         // initiation
         handleInitiateKyc,
+        blockIfFinal,
+        showVerificationReview,
+        dismissVerificationReview,
         handleRestartIdentity,
         handleResidenceChange,
         handleSelfHealResubmit,

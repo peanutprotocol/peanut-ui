@@ -121,7 +121,7 @@ jest.mock('@/context/kernelClient.context', () => ({
     useKernelClient: () => ({ address: '0xA', isKernelClientReady: true }),
 }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction }),
+    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction, blockIfFinal: () => false }),
 }))
 
 const mockApplyForCard = rainApi.applyForCard as jest.Mock
