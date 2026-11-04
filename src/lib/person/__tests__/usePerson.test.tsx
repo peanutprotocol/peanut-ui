@@ -82,6 +82,18 @@ describe('usePerson', () => {
         client.clear()
     })
 
+    it('fetchProfile asks the API again even when the cache is fresh', async () => {
+        mockServerFetch.mockResolvedValue(response(200, alice))
+        client = queryClient
+        client.clear()
+
+        await fetchProfile('alice')
+        await fetchProfile('alice')
+
+        expect(mockServerFetch).toHaveBeenCalledTimes(2)
+        client.clear()
+    })
+
     it('stays idle while there is no username', () => {
         const { result } = renderHook(() => usePerson(''), { wrapper })
 

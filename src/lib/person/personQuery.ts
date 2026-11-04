@@ -20,6 +20,10 @@ export const personQuery = (username: string) => ({
     },
 })
 
-/** Outside React (the URL parser): same key, same cache. Returns the profile
- *  because the parser also needs the wallet address. */
-export const fetchProfile = (username: string): Promise<ApiUser> => queryClient.fetchQuery(personQuery(username))
+/** Outside React (the URL parser): a fresh fetch every time, because the
+ *  answer decides where a payment goes and the API 404s a handle whose owner
+ *  has since asked for deletion. It still lands in the cache under the same
+ *  key, so the views that follow read this profile with no second request.
+ *  Returns the profile because the parser also needs the wallet address. */
+export const fetchProfile = (username: string): Promise<ApiUser> =>
+    queryClient.fetchQuery({ ...personQuery(username), staleTime: 0 })
