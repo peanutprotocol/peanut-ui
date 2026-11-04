@@ -65,8 +65,8 @@ describe('TEST_WEB_SIGNUP', () => {
         return value
     }
 
-    it('never shows the test sign-up on peanut.me', () => {
-        expect(onBuild('https://peanut.me')).toBe(false)
+    it.each(['https://peanut.me', 'https://peanut.me/'])('never shows the test sign-up on %s', (baseUrl) => {
+        expect(onBuild(baseUrl)).toBe(false)
     })
 
     it('shows it under next dev, where an unset base URL falls back to peanut.me', () => {

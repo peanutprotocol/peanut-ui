@@ -1,4 +1,5 @@
 import { BASE_URL, IS_DEV } from '@/constants/general.consts'
+import { isProductionDomain } from '@/constants/seo-route-policy'
 
 /**
  * Signup is app-only. The web never offers it: it shows download prompts and
@@ -11,8 +12,9 @@ import { BASE_URL, IS_DEV } from '@/constants/general.consts'
  * marked test-build sign-up on the web landing, so the team can still create
  * web accounts there. Decided at build time: peanut.me never renders it.
  * `next dev` counts too, because BASE_URL falls back to peanut.me when unset.
+ * isProductionDomain ignores a trailing slash, so `https://peanut.me/` is prod too.
  */
-export const TEST_WEB_SIGNUP = IS_DEV || BASE_URL !== 'https://peanut.me'
+export const TEST_WEB_SIGNUP = IS_DEV || !isProductionDomain(BASE_URL)
 
 /**
  * Marks the already-native-associated `/home` route as an app-download entry
