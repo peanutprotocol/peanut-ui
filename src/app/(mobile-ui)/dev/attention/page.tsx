@@ -128,7 +128,7 @@ export default function AttentionDebugPage() {
                         ? 'Live backend catalogue'
                         : 'Generated fallback (live catalogue unavailable/unsupported)'}
                 </p>
-                <table className="w-full text-left text-sm">
+                <table className="w-full min-w-[90rem] border-collapse text-left text-sm [&_td]:border-b [&_td]:px-3 [&_td]:py-3 [&_td]:align-top [&_th]:border-b [&_th]:px-3 [&_th]:py-3 [&_th]:align-top [&_th]:whitespace-nowrap">
                     <thead>
                         <tr>
                             <th>Ask</th>
