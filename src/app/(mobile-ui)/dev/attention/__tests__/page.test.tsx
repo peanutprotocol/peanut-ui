@@ -64,9 +64,9 @@ test('shows policy and unknown explanation for the signed-in account without pro
     expect(screen.getByText(/Waiting for facts/)).toBeInTheDocument()
     expect(screen.getByText('Home decision preview')).toBeInTheDocument()
     expect(screen.getByText('Generated fallback (live catalogue unavailable/unsupported)')).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'home', exact: true })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: '9', exact: true })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'No automatic expiry', exact: true })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'home' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '9' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'No automatic expiry' })).toBeInTheDocument()
     expect(mockDecide).toHaveBeenCalledWith(
         expect.objectContaining({ route: 'home' }),
         expect.anything(),
