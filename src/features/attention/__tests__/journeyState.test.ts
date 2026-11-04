@@ -169,7 +169,11 @@ describe('summarizeHistory', () => {
         ({ extraData: { kind }, timestamp: new Date(timestamp), userRole }) as never
     test('undefined while loading; the newest spend; a paid request of the user', () => {
         expect(summarizeHistory(undefined)).toEqual({ lastSpendAt: null, hasReceivedRequestPayment: undefined })
-        expect(summarizeHistory([])).toEqual({ lastSpendAt: null, hasReceivedRequestPayment: false })
+        // a page without a paid request proves nothing: the payment may be older than the page
+        expect(summarizeHistory([])).toEqual({ lastSpendAt: null, hasReceivedRequestPayment: undefined })
+        expect(
+            summarizeHistory([entry('REQUEST_PAY', '2026-10-10T00:00:00Z', 'SENDER')]).hasReceivedRequestPayment
+        ).toBe(undefined)
         const out = summarizeHistory([
             entry('P2P_SEND', '2026-10-10T00:00:00Z'),
             entry('CARD_SPEND', '2026-10-01T00:00:00Z'),
@@ -180,6 +184,6 @@ describe('summarizeHistory', () => {
         // paying someone else's request is not "someone paid mine"
         expect(
             summarizeHistory([entry('REQUEST_PAY', '2026-09-01T00:00:00Z', 'SENDER')]).hasReceivedRequestPayment
-        ).toBe(false)
+        ).toBeUndefined()
     })
 })

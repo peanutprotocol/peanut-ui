@@ -145,7 +145,10 @@ export function outdatedConsentDocuments(status: ConsentStatusResponse | undefin
         .map((d) => ({ slug: d.slug, currentVersion: String(d.currentVersion) }))
 }
 
-/** What the latest history page says about spending and requests; undefined while it loads. */
+/**
+ * What the latest history page says about spending and requests; undefined while it loads. A paid
+ * request on the page is proof; none on it proves nothing, so that stays unknown for the server's lifetime fact.
+ */
 export function summarizeHistory(entries: HistoryEntry[] | undefined): {
     lastSpendAt: string | null
     hasReceivedRequestPayment: boolean | undefined
@@ -160,9 +163,9 @@ export function summarizeHistory(entries: HistoryEntry[] | undefined): {
     }
     return {
         lastSpendAt: last === null ? null : new Date(last).toISOString(),
-        hasReceivedRequestPayment: entries.some(
-            (entry) => entry.extraData?.kind === 'REQUEST_PAY' && entry.userRole === 'RECIPIENT'
-        ),
+        hasReceivedRequestPayment:
+            entries.some((entry) => entry.extraData?.kind === 'REQUEST_PAY' && entry.userRole === 'RECIPIENT') ||
+            undefined,
     }
 }
 
