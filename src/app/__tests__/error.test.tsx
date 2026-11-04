@@ -65,4 +65,14 @@ describe('root error boundary', () => {
         // the fallback stays on screen so the visitor can still act
         expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     })
+
+    it('makes "Try again" a hard reload for a chunk error, since reset cannot refetch the chunk', () => {
+        sessionStorage.setItem(GUARD_KEY, String(Date.now()))
+        const reset = jest.fn()
+        render(<RootError error={chunkError()} reset={reset} />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        expect(reload).toHaveBeenCalledTimes(1)
+        expect(reset).not.toHaveBeenCalled()
+    })
 })

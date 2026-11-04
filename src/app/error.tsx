@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { PageErrorScreen } from '@/components/Global/PageErrorScreen'
-import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
+import { isChunkLoadError, recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { captureException } from '@/utils/sentry-lazy'
 
 // English only: the routes that reach this boundary are the root landing page,
@@ -32,5 +32,10 @@ export default function RootError({ error, reset }: { error: Error & { digest?: 
         recoverFromChunkError(error)
     }, [error])
 
-    return <PageErrorScreen strings={STRINGS} homeHref="/" onRetry={reset} />
+    // reset() re-renders against the chunk that already failed, so it cannot
+    // recover a chunk error. When the reload guard held back the automatic
+    // reload, "Try again" does it instead; a tap cannot loop.
+    const retry = isChunkLoadError(error) ? () => window.location.reload() : reset
+
+    return <PageErrorScreen strings={STRINGS} homeHref="/" onRetry={retry} />
 }
