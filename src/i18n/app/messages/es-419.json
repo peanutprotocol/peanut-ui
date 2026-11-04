@@ -2460,9 +2460,9 @@
             "unconfirmed": "Enviado, pero aún sin confirmar. Revisa el Historial en unos minutos antes de intentar de nuevo.",
             "errors": {
                 "limitExceeded": "Este retiro supera el límite mensual de Pix.",
-                "inProgress": "Otro retiro por Pix sigue abierto. Intenta de nuevo en 10 minutos.",
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intenta de nuevo más tarde.",
                 "quoteExpired": "La cotización tardó demasiado. Intenta de nuevo.",
-                "afterInit": "Revisa el Historial antes de intentar de nuevo. Un nuevo retiro se abre después de 10 minutos."
+                "afterInit": "Revisa el Historial antes de intentar de nuevo."
             }
         }
     },

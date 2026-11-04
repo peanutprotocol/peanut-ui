@@ -693,7 +693,7 @@ export interface paths {
         };
         /**
          * Resolve a Pix key to its holder and bank
-         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key is the user’s own (CPF match) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.
+         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key is the user’s own (masked CPF and holder name match) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.
          */
         get: {
             parameters: {
@@ -6771,7 +6771,7 @@ export interface paths {
                             basis: "display_sell";
                             effectiveAt: string | null;
                             from: string;
-                            fromSource: "identity" | "bridge" | "manteca" | "avenia" | "reference";
+                            fromSource: "identity" | "bridge" | "manteca" | "reference";
                             /** Format: date-time */
                             generatedAt: string;
                             /** @enum {boolean} */
@@ -6779,7 +6779,7 @@ export interface paths {
                             rate: string;
                             selection: "identity" | "provider_pair" | "reference_pair";
                             to: string;
-                            toSource: "identity" | "bridge" | "manteca" | "avenia" | "reference";
+                            toSource: "identity" | "bridge" | "manteca" | "reference";
                         };
                     };
                 };
@@ -6875,10 +6875,10 @@ export interface paths {
                             /** @enum {boolean} */
                             indicative: true;
                             rates: {
-                                baseSource: "identity" | "bridge" | "manteca" | "avenia" | "reference";
+                                baseSource: "identity" | "bridge" | "manteca" | "reference";
                                 code: string;
                                 effectiveAt: string | null;
-                                quoteSource: "identity" | "bridge" | "manteca" | "avenia" | "reference";
+                                quoteSource: "identity" | "bridge" | "manteca" | "reference";
                                 selection: "identity" | "provider_pair" | "reference_pair";
                                 unitsPerBase: string;
                             }[];

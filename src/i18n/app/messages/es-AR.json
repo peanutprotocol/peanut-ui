@@ -1223,9 +1223,9 @@
             "quoteMoved": "La cotización cambió desde la revisión. Revisá los nuevos montos y confirmá de nuevo.",
             "unconfirmed": "Enviado, pero aún sin confirmar. Revisá el Historial en unos minutos antes de intentar de nuevo.",
             "errors": {
-                "inProgress": "Otro retiro por Pix sigue abierto. Intentá de nuevo en 10 minutos.",
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
                 "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",
-                "afterInit": "Revisá el Historial antes de intentar de nuevo. Un nuevo retiro se abre después de 10 minutos."
+                "afterInit": "Revisá el Historial antes de intentar de nuevo."
             }
         }
     },

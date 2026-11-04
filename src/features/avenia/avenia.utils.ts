@@ -178,18 +178,30 @@ export function aveniaWithdrawRefusalKey(
 }
 
 /**
+ * How far the opened quote may move against the user before it needs a second
+ * Confirm: 10 basis points (0.1%). Init quotes again seconds after the review,
+ * and a fixed-reais quote ticks up about half the time; R$0.50 on R$500 is the
+ * most this lets through unseen.
+ */
+export const QUOTE_TOLERANCE_BPS = 10n
+
+/**
  * Whether the quote opened at Confirm is worse for the user than the one they
- * reviewed: more USD leaves the wallet, or fewer reais arrive. An amount that
- * does not parse counts as worse, so the user sees it before anything is signed.
+ * reviewed, beyond {@link QUOTE_TOLERANCE_BPS}: more USD leaves the wallet, or
+ * fewer reais arrive. An amount that does not parse counts as worse, so the
+ * user sees it before anything is signed.
  */
 export function quoteMovedAgainstUser(
     reviewed: Pick<AveniaWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>,
     opened: Pick<AveniaWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>
 ): boolean {
     try {
+        const scale = 10_000n
+        const usdOut = parseUnits(opened.withdrawUsd, 6) * scale
+        const brlIn = parseUnits(opened.amountBrl, 2) * scale
         return (
-            parseUnits(opened.withdrawUsd, 6) > parseUnits(reviewed.withdrawUsd, 6) ||
-            parseUnits(opened.amountBrl, 2) < parseUnits(reviewed.amountBrl, 2)
+            usdOut > parseUnits(reviewed.withdrawUsd, 6) * (scale + QUOTE_TOLERANCE_BPS) ||
+            brlIn < parseUnits(reviewed.amountBrl, 2) * (scale - QUOTE_TOLERANCE_BPS)
         )
     } catch {
         return true

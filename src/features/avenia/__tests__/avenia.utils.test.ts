@@ -194,10 +194,12 @@ describe('aveniaWithdrawRefusalKey', () => {
 describe('quoteMovedAgainstUser', () => {
     const reviewed = { withdrawUsd: '92.504310', amountBrl: '503.00' }
 
-    it('flags more USD out or fewer reais in, and nothing else', () => {
+    it('lets a move within 0.1% through and flags more USD out or fewer reais in beyond it', () => {
         expect(quoteMovedAgainstUser(reviewed, reviewed)).toBe(false)
-        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.504311', amountBrl: '503.00' })).toBe(true)
-        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.504310', amountBrl: '502.99' })).toBe(true)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.596000', amountBrl: '503.00' })).toBe(false)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.600000', amountBrl: '503.00' })).toBe(true)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.504310', amountBrl: '502.50' })).toBe(false)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.504310', amountBrl: '502.49' })).toBe(true)
         expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.4', amountBrl: '503.5' })).toBe(false)
     })
 
