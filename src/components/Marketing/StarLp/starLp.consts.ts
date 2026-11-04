@@ -59,15 +59,7 @@ export const SECTION_TITLE_CLASS: Record<SectionTitleSize, string> = {
     display: 'text-headingSmall md:text-headingMedium',
 }
 
-/** The six public feature landing pages. */
-export const STAR_LP_ROUTES = {
-    usEuAccounts: '/us-europe-accounts',
-    qrArgentina: '/qr-payments/argentina',
-    qrBrazil: '/qr-payments/brazil',
-    peanutCard: '/peanut-card',
-    requestLinks: '/request-links',
-    selfCustody: '/self-custody',
-} as const
+export { STAR_LP_ROUTES } from '@/constants/star-lp-routes.consts'
 
 /** CTA destinations while the PWA-sunset flag is off (on: /app for all). */
 export const STAR_LP_HREF = {
