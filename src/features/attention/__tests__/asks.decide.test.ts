@@ -212,6 +212,31 @@ describe('each new card’s eligibility rule', () => {
         // share-bank-details: "depositAccounts.active > 0"
         ['share-bank-details', 'an account is active', { depositAccounts: DEPOSIT_ACTIVE }, 'show'],
         ['share-bank-details', 'no active account', { depositAccounts: DEPOSIT_CLAIMABLE }, 'not-show'],
+        // done once money arrived by bank transfer; only the server's true counts
+        [
+            'share-bank-details',
+            'a bank deposit arrived',
+            { depositAccounts: DEPOSIT_ACTIVE, bankDepositReceived: true },
+            'done',
+        ],
+        [
+            'share-bank-details',
+            'no bank deposit yet',
+            { depositAccounts: DEPOSIT_ACTIVE, bankDepositReceived: false },
+            'show',
+        ],
+        [
+            'share-bank-details',
+            'the server cannot tell',
+            { depositAccounts: DEPOSIT_ACTIVE, bankDepositReceived: null },
+            'show',
+        ],
+        [
+            'share-bank-details',
+            'an API without the fact',
+            { depositAccounts: DEPOSIT_ACTIVE, bankDepositReceived: undefined },
+            'show',
+        ],
 
         // request-money: "activated and hasReceivedRequestPayment === false (undefined = unknown)"
         ['request-money', 'never received a request payment', { hasReceivedRequestPayment: false }, 'show'],

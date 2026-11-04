@@ -105,6 +105,46 @@ test('B3 missing authoritative history remains unknown and never means no QR pay
     expect(built.hasReceivedRequestPayment).toBeUndefined()
 })
 
+describe('the bank deposit fact', () => {
+    const facts = {
+        onboarding: null,
+        firstPeerPaymentAt: null,
+        lastSpendAt: null,
+        spendHistoryAvailable: true,
+        hasMadeQrPayment: true,
+        hasReceivedRequestPayment: false,
+    }
+    const state = {
+        userId: 'user-a',
+        userLoaded: true,
+        qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr: false },
+        depositAccounts: { enabled: true, loaded: true, claimable: 0, active: 1 },
+        onboarding: null,
+    } as JourneyState
+    const shareBankDetails = ASKS.find((ask) => ask.id === 'share-bank-details')!
+
+    test.each([
+        ['true', { bankDepositReceived: true }, true, 'done'],
+        ['false', { bankDepositReceived: false }, false, 'show'],
+        ['null', { bankDepositReceived: null }, null, 'show'],
+        ['missing', {}, null, 'show'],
+        ['not a boolean', { bankDepositReceived: 'yes' }, null, 'show'],
+    ])('%s reads as %p and share bank details is %s', (_label, patch, fact, verdict) => {
+        const built = applyServerFacts(state, asServerAttention(envelope({ facts: { ...facts, ...patch } })))
+        expect(built.bankDepositReceived).toBe(fact)
+        expect(shareBankDetails.eligible(built)).toBe(verdict)
+        // a fact this client reads defensively never drops the facts beside it
+        expect(built.qr.hasMadeQrPayment).toBe(true)
+        expect(built.hasReceivedRequestPayment).toBe(false)
+    })
+
+    test('no server answer leaves it unknown and the card keeps showing', () => {
+        const built = applyServerFacts(state, undefined)
+        expect(built.bankDepositReceived).toBeNull()
+        expect(shareBankDetails.eligible(built)).toBe('show')
+    })
+})
+
 test('CAT.4 response decoding retains only bounded explanation identifiers', () => {
     const server = asServerAttention(
         envelope({

@@ -253,6 +253,8 @@ export const shareBankDetails = defineAsk('share-bank-details', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
+        // the details reached a payer once money arrived by bank transfer; unknown keeps asking
+        if (s.bankDepositReceived === true) return 'done'
         return s.depositAccounts.active > 0 ? 'show' : 'ineligible'
     },
 }) // N11

@@ -235,6 +235,8 @@ export interface JourneyState {
     documentSlideKey: string | null
     flags: { userInterview: boolean }
     depositAccounts: { enabled: boolean; loaded: boolean; claimable: number; active: number }
+    /** money arrived by bank transfer on one of the user's deposit accounts; null or absent when the server cannot tell */
+    bankDepositReceived?: boolean | null
     /** authoritative newest QR pay or card spend when history is available */
     lastSpendAt: string | null
     /** false when the server could not establish the latest spend; absent on legacy fixtures */

@@ -109,6 +109,7 @@ export const stateArb: fc.Arbitrary<JourneyState> = fc
             claimable: fc.nat(1),
             active: fc.nat(1),
         }),
+        bankDepositReceived: fc.constantFrom(undefined, null, true, false),
         lastSpendAt: fc.constantFrom(null, iso(-1), iso(-20)),
         hasReceivedRequestPayment: fc.constantFrom(undefined, true, false),
         firstPeerPaymentAt: fc.constantFrom(null, iso(-30)),

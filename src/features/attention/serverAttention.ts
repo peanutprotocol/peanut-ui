@@ -37,6 +37,7 @@ export type ServerAttention = Omit<
         spendHistoryAvailable: boolean
         hasMadeQrPayment: boolean | null
         hasReceivedRequestPayment: boolean | null
+        bankDepositReceived: boolean | null
     }
     explanations?: Record<string, { verdict: Verdict; reason: string; unknownSources: string[] }>
 }
@@ -121,6 +122,8 @@ function asFacts(value: unknown): ServerAttention['facts'] {
         spendHistoryAvailable: value.spendHistoryAvailable,
         hasMadeQrPayment: value.hasMadeQrPayment as boolean | null,
         hasReceivedRequestPayment: value.hasReceivedRequestPayment as boolean | null,
+        // newer than the other facts: an API without it, or any other value, is unknown, never a bad body
+        bankDepositReceived: typeof value.bankDepositReceived === 'boolean' ? value.bankDepositReceived : null,
     }
 }
 
@@ -151,6 +154,7 @@ export function applyServerFacts(state: JourneyState, server: ServerAttention | 
         ...state,
         attentionSettings: getSettings(server),
         spendHistoryAvailable: facts?.spendHistoryAvailable ?? false,
+        bankDepositReceived: facts?.bankDepositReceived ?? null,
         ...(facts
             ? {
                   onboarding: facts.onboarding ?? state.onboarding,
