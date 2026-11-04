@@ -32,6 +32,7 @@ import {
     stable,
     taikoHekla,
     tempo,
+    tron,
     zkSync,
     zkSyncSepoliaTestnet,
 } from 'viem/chains'
@@ -43,8 +44,13 @@ import {
  * registry (≈120 KB gz) into every bundle that touches the importing module,
  * including the marketing pages. This map names only the chains the app knows:
  * every EVM chain in `chain-details.json`, the EVM chains in `CHAIN_REGISTRY`
- * (Kaia) and the sandbox wallet chain (Arbitrum Sepolia). Milkomeda C1 (2001)
- * is in `chain-details.json` but not in viem, so it never resolved.
+ * (Kaia), the sandbox wallet chain (Arbitrum Sepolia) and Tron (728126428).
+ * Milkomeda C1 (2001) is in `chain-details.json` but not in viem, so it never
+ * resolved.
+ *
+ * Chain ids also arrive from the backend, not only from chain-details: Rhino
+ * Tron deposits are stored with sourceChainId 728126428 and history passes it
+ * as `chainId`, so receipts name the network through this map.
  *
  * A chain added to `chain-details.json` or `CHAIN_REGISTRY` must be added here;
  * `supported-chains.consts.test.ts` fails until it is.
@@ -84,6 +90,7 @@ export const SUPPORTED_VIEM_CHAINS: readonly Chain[] = [
     katana,
     sepolia,
     degen,
+    tron,
 ]
 
 const SUPPORTED_VIEM_CHAINS_BY_ID: ReadonlyMap<number, Chain> = new Map(

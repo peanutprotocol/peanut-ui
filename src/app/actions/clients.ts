@@ -53,8 +53,8 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
 > = {
     // Primary wallet chain - always included (configurable via NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID)
     [PEANUT_WALLET_CHAIN.id]: {
-        // FOLLOW-UP: PEANUT_WALLET_CHAIN is `Chain | <extractChain return>`
-        // (env-driven). The extractChain return is broader than Chain at the
+        // FOLLOW-UP: PEANUT_WALLET_CHAIN is a union of the default chains and an
+        // env-driven `Chain & { id: ChainId }`, which is broader than Chain at the
         // type level even though it's structurally identical at runtime. Cast
         // here so the rest of the map literal infers cleanly.
         client: createPublicClient({

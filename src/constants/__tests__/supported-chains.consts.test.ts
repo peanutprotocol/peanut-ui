@@ -16,6 +16,9 @@ const supportedIds = [
             entry.id,
             ...(entry.aliasIds ?? []),
         ]),
+        // Not in chain-details: the backend stores Rhino Tron deposits with this
+        // sourceChainId, and history passes it to getChainName.
+        '728126428',
     ]),
 ].map(Number)
 
