@@ -6785,6 +6785,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -6989,6 +6990,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -8961,6 +8963,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount: string;
+                        /** Format: uuid */
                         chargeId?: string;
                         directTransfer: boolean;
                         /** Format: uuid */
@@ -9109,6 +9112,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         preparationId: string;
                     };
                 };
@@ -9303,6 +9307,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         preparationId: string;
                         txHash: string;
                     };
@@ -9459,6 +9464,7 @@ export interface paths {
                         executorSalt: string;
                         executorSignature: string;
                         expiresAt: number;
+                        /** Format: uuid */
                         preparationId: string;
                         preparedCoordinatorAddress?: string;
                         recipientAddress: string;
@@ -9788,6 +9794,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -10149,6 +10156,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -11708,7 +11716,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    chargeId?: string;
+                };
                 header?: never;
                 path: {
                     depositAddress: string;
@@ -14265,6 +14275,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/attempts/{attemptId}/document-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    attemptId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "countryMismatch": true,
+                         *       "picked": {
+                         *         "issuingCountry": "PT",
+                         *         "type": "RESIDENCE_PERMIT"
+                         *       },
+                         *       "recognised": {
+                         *         "issuingCountry": "UA",
+                         *         "type": "PASSPORT"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            countryMismatch: boolean;
+                            picked: {
+                                issuingCountry: string;
+                                type: string;
+                            } | null;
+                            recognised: {
+                                issuingCountry: string;
+                                type: string;
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/attempts/{attemptId}/token": {
         parameters: {
             query?: never;
@@ -16241,6 +16320,7 @@ export interface paths {
                          *         }
                          *       },
                          *       "facts": {
+                         *         "bankDepositReceived": false,
                          *         "canPayQr": null,
                          *         "canSpendViaCard": null,
                          *         "consent": {
@@ -16461,6 +16541,7 @@ export interface paths {
                                 };
                             };
                             facts: {
+                                bankDepositReceived: boolean | null;
                                 canPayQr: boolean | null;
                                 canSpendViaCard: boolean | null;
                                 consent: {

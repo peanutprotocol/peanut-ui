@@ -12044,7 +12044,7 @@
 														"type": "number"
 													},
 													"preparationId": {
-														"minLength": 1,
+														"format": "uuid",
 														"type": "string"
 													},
 													"preparedCoordinatorAddress": {
@@ -12583,7 +12583,7 @@
 														"type": "number"
 													},
 													"preparationId": {
-														"minLength": 1,
+														"format": "uuid",
 														"type": "string"
 													},
 													"preparedCoordinatorAddress": {
@@ -16083,7 +16083,7 @@
 										"type": "string"
 									},
 									"chargeId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"directTransfer": {
@@ -16353,7 +16353,7 @@
 							"schema": {
 								"properties": {
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									}
 								},
@@ -16628,7 +16628,7 @@
 							"schema": {
 								"properties": {
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"txHash": {
@@ -16966,7 +16966,7 @@
 										"type": "number"
 									},
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"preparedCoordinatorAddress": {
@@ -17587,7 +17587,7 @@
 												"type": "number"
 											},
 											"preparationId": {
-												"minLength": 1,
+												"format": "uuid",
 												"type": "string"
 											},
 											"preparedCoordinatorAddress": {
@@ -18216,7 +18216,7 @@
 												"type": "number"
 											},
 											"preparationId": {
-												"minLength": 1,
+												"format": "uuid",
 												"type": "string"
 											},
 											"preparedCoordinatorAddress": {
@@ -21142,6 +21142,15 @@
 		"/rhino/reset-status/{depositAddress}": {
 			"post": {
 				"parameters": [
+					{
+						"in": "query",
+						"name": "chargeId",
+						"required": false,
+						"schema": {
+							"minLength": 1,
+							"type": "string"
+						}
+					},
 					{
 						"in": "path",
 						"name": "depositAddress",
@@ -27715,6 +27724,109 @@
 				}
 			}
 		},
+		"/users/kyc/attempts/{attemptId}/document-check": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "attemptId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"countryMismatch": true,
+									"picked": {
+										"issuingCountry": "PT",
+										"type": "RESIDENCE_PERMIT"
+									},
+									"recognised": {
+										"issuingCountry": "UA",
+										"type": "PASSPORT"
+									}
+								},
+								"schema": {
+									"properties": {
+										"countryMismatch": {
+											"type": "boolean"
+										},
+										"picked": {
+											"anyOf": [
+												{
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"recognised": {
+											"anyOf": [
+												{
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"picked",
+										"recognised",
+										"countryMismatch"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/users/kyc/attempts/{attemptId}/token": {
 			"post": {
 				"parameters": [
@@ -33993,6 +34105,7 @@
 										}
 									},
 									"facts": {
+										"bankDepositReceived": false,
 										"canPayQr": null,
 										"canSpendViaCard": null,
 										"consent": {
@@ -34417,6 +34530,16 @@
 										},
 										"facts": {
 											"properties": {
+												"bankDepositReceived": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
 												"canPayQr": {
 													"anyOf": [
 														{
@@ -34651,6 +34774,7 @@
 												"spendHistoryAvailable",
 												"hasMadeQrPayment",
 												"hasReceivedRequestPayment",
+												"bankDepositReceived",
 												"consent"
 											],
 											"type": "object"

@@ -1,6 +1,6 @@
 {
     "source": "peanut-api-ts/src/attention/catalogue.ts",
-    "sourceDigest": "0b8f0de24a185f6686fd2f0ef9d9f1e72630f22fa725a4034c2a3895a4af1d61",
+    "sourceDigest": "810ac415202c18a52ddac707446ecde248e3d58be4fc1792959dd143f028f70d",
     "catalogueVersion": 1,
     "settings": {
         "settleMs": 4000,
@@ -120,8 +120,8 @@
             "analyticsKey": "checklist",
             "emailMappings": [
                 { "prefix": "lifecycle.verify_" },
-                { "prefix": "lifecycle.fund_" },
-                { "prefix": "lifecycle.first_spend_" },
+                { "prefix": "lifecycle.fund_", "when": "not-activated" },
+                { "prefix": "lifecycle.first_spend_", "when": "not-activated" },
                 { "prefix": "lifecycle.create_card_", "when": "not-activated" }
             ]
         },
