@@ -14,7 +14,7 @@ import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
-import { startWebVitalsShim } from '@/utils/web-vitals-shim'
+import { startWebVitalsShim, WEB_VITALS_FLUSH_DELAY_MS } from '@/utils/web-vitals-shim'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
@@ -153,6 +153,10 @@ if (
             // Masks amounts, ids, addresses, names in sensitive areas, picked images,
             // QR payloads and claim-link secrets; drops network bodies and headers.
             session_recording: SESSION_RECORDING_PRIVACY,
+            // Only the flush delay is set here: web vitals and their metric list
+            // stay with the remote config. A metric buffered when the visitor
+            // leaves is lost, so a shorter wait keeps more LCP samples.
+            capture_performance: { web_vitals_delayed_flush_ms: WEB_VITALS_FLUSH_DELAY_MS },
         })
 
         if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())
