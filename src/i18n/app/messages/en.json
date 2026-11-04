@@ -241,7 +241,9 @@
             },
             "nextPayment": {
                 "title": "Pay with Peanut again",
-                "description": "Your balance is ready. Scan a QR or tap your card."
+                "descriptionQrOrCard": "Your balance is ready. Pay with a QR code or your Peanut card.",
+                "descriptionQr": "Your balance is ready. Scan a QR code to pay.",
+                "descriptionCard": "Your balance is ready. Pay with your Peanut card."
             },
             "shareBankDetails": {
                 "title": "Share your bank details",

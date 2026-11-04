@@ -13,15 +13,23 @@ export default function NextPaymentCard({ onDismissed }: ZoneSurfaceProps) {
     const router = useRouter()
     const { setIsQRScannerOpen } = useModalsContext()
     const { state } = useAttention()
+    const canPayQr = state.qr.canPayNow
+    const canPayCard = state.cardOffer.canSpendViaCard === true
     return (
         <CarouselCTA
             title={t('nextPayment.title')}
-            description={t('nextPayment.description')}
-            concept={state.qr.canPayNow ? 'qrPay' : 'card'}
+            description={t(
+                canPayQr && canPayCard
+                    ? 'nextPayment.descriptionQrOrCard'
+                    : canPayQr
+                      ? 'nextPayment.descriptionQr'
+                      : 'nextPayment.descriptionCard'
+            )}
+            concept={canPayQr ? 'qrPay' : 'card'}
             onClose={onDismissed}
             onClick={() => {
-                if (state.qr.canPayNow) setIsQRScannerOpen(true)
-                else if (state.cardOffer.canSpendViaCard) router.push('/card')
+                if (canPayQr) setIsQRScannerOpen(true)
+                else if (canPayCard) router.push('/card')
             }}
         />
     )

@@ -116,7 +116,9 @@
             },
             "nextPayment": {
                 "title": "Pagá con Peanut otra vez",
-                "description": "Tu saldo está listo. Escaneá un QR o usá tu tarjeta."
+                "descriptionQrOrCard": "Tu saldo está listo. Pagá con un código QR o con tu Peanut Card.",
+                "descriptionQr": "Tu saldo está listo. Escaneá un código QR para pagar.",
+                "descriptionCard": "Tu saldo está listo. Pagá con tu Peanut Card."
             },
             "shareBankDetails": {
                 "title": "Compartí tus datos bancarios",
