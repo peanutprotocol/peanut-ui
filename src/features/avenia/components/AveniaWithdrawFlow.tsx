@@ -73,15 +73,16 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         guards: {
             amount: { ok: !!pixKey, fallback: 'pix-key' },
             review: { ok: !!pixKey && !!amount, fallback: pixKey ? 'amount' : 'pix-key' },
-            success: { ok: submit.phase === 'sent' },
+            success: { ok: submit.phase === 'sent' || submit.phase === 'unconfirmed' },
         },
     })
     const step = stepper.step
     const { goTo } = stepper
-    // the signature went through: the success step is the only way on
+    // the deposit was sent: the success step is the only way on
+    const isSent = submit.phase === 'sent' || submit.phase === 'unconfirmed'
     useEffect(() => {
-        if (submit.phase === 'sent' && step !== 'success') void goTo('success')
-    }, [submit.phase, step, goTo])
+        if (isSent && step !== 'success') void goTo('success')
+    }, [isSent, step, goTo])
 
     const request = pixKey && amount ? { pixKey, ...amount } : null
     const preview = useQuery({
@@ -106,19 +107,21 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
 
     if (aveniaSetupState(rail) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} rail={rail} />
 
-    if (step === 'success' && submit.sent) {
-        const { display } = submit.sent
+    if (step === 'success' && submit.opened && isSent) {
+        const { display } = submit.opened
         const to = [display.bankName, display.holderName].filter(Boolean).join(' · ')
+        const confirmed = submit.phase === 'sent'
         return (
             <PageStack>
-                <SoundPlayer sound="success" />
+                {confirmed && <SoundPlayer sound="success" />}
                 <NavHeader title={title} hideBackBtn />
                 <PageStack.Center className="items-center text-center">
-                    <IconBubble icon="check" size="l" color="green" />
+                    {/* a receipt that never came is a wait, not a success */}
+                    <IconBubble icon={confirmed ? 'check' : 'clock'} size="l" color={confirmed ? 'green' : 'yellow'} />
                     <TitleBlock
                         align="center"
                         title={formatBankAmount(display.amountBrl, 'BRL')}
-                        description={to ? t('sentTo', { destination: to }) : t('sent')}
+                        description={!confirmed ? t('unconfirmed') : to ? t('sentTo', { destination: to }) : t('sent')}
                     />
                     <Button variant="primary" className="w-full" onClick={leaveToHome}>
                         {tCommon('done')}
@@ -205,7 +208,9 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         )
     }
 
-    const display = submit.sent?.display ?? preview.data ?? null
+    // once Confirm opened the ticket, its own numbers are the ones the wallet signs
+    const display = submit.opened?.display ?? preview.data ?? null
+    const reconfirm = submit.phase === 'reconfirm'
     const fundsShort = !!display && !isAmountWithinBalance(display.withdrawUsd, spendableBalance)
     const reviewError = submit.error
         ? // once Avenia's ticket is open, a second Confirm could pay twice: no retry here
@@ -214,7 +219,9 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
           ? { message: previewErrorMessage(preview.error), onRetry: () => void preview.refetch() }
           : fundsShort
             ? { message: tErrors('insufficientBalance') }
-            : null
+            : reconfirm
+              ? { message: t('quoteMoved'), priority: 'attention' as const }
+              : null
 
     function previewErrorMessage(error: unknown): string {
         const key = aveniaWithdrawRefusalKey(wireErrorCode(error))
@@ -228,17 +235,19 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
             isLoading={preview.isLoading}
             isSubmitting={submit.phase === 'starting' || submit.phase === 'signing'}
             error={reviewError}
-            canConfirm={!!display && !!request && !fundsShort && !submit.lockedAfterInit}
-            onBack={() => void stepper.goTo('amount')}
+            canConfirm={!!display && !!request && !fundsShort && (reconfirm || !submit.lockedAfterInit)}
+            // an opened ticket keeps its amount: back leaves instead of editing it
+            onBack={() => (submit.lockedAfterInit ? leaveFlow() : void stepper.goTo('amount'))}
             onCancel={leaveFlow}
             onConfirm={async () => {
-                if (!request) return
+                if (reconfirm) return submit.confirmOpened()
+                if (!request || !preview.data) return
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
-                    amount_usd: display?.withdrawUsd,
+                    amount_usd: preview.data.withdrawUsd,
                     method_type: 'avenia',
                     country: 'brazil',
                 })
-                await submit.submit(request)
+                await submit.submit(request, preview.data)
             }}
         />
     )

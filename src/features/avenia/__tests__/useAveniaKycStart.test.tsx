@@ -82,6 +82,19 @@ describe('useAveniaKycStart', () => {
         }
     )
 
+    it('falls back to Manteca on an API without the Avenia routes (404)', async () => {
+        reservedTab()
+        mockStartKyc.mockRejectedValue(new ApiError('Route POST:/avenia/kyc/start not found', { status: 404 }))
+        const hook = renderHook(() => useAveniaKycStart({ railEnabled: false }))
+
+        await act(async () => {
+            await hook.result.current.start()
+        })
+
+        expect(mockMarkUnavailable).toHaveBeenCalledWith('user-1')
+        expect(hook.result.current.error).toBeNull()
+    })
+
     it('names a missing CPF and a sub-account still being set up', async () => {
         reservedTab()
         mockStartKyc.mockRejectedValueOnce(new ApiError('cpf', { status: 422, code: 'AVENIA_CPF_REQUIRED' }))

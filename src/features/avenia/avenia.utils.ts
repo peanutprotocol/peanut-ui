@@ -1,6 +1,7 @@
 import { parsePix, hasError } from 'pix-utils'
+import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
-import type { AveniaDepositStatus, PixKeyInfo } from '@/services/avenia'
+import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/services/avenia'
 import type { RailCapability } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
 
@@ -173,5 +174,24 @@ export function aveniaWithdrawRefusalKey(
             return 'providerRejected'
         default:
             return 'unavailable'
+    }
+}
+
+/**
+ * Whether the quote opened at Confirm is worse for the user than the one they
+ * reviewed: more USD leaves the wallet, or fewer reais arrive. An amount that
+ * does not parse counts as worse, so the user sees it before anything is signed.
+ */
+export function quoteMovedAgainstUser(
+    reviewed: Pick<AveniaWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>,
+    opened: Pick<AveniaWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>
+): boolean {
+    try {
+        return (
+            parseUnits(opened.withdrawUsd, 6) > parseUnits(reviewed.withdrawUsd, 6) ||
+            parseUnits(opened.amountBrl, 2) < parseUnits(reviewed.amountBrl, 2)
+        )
+    } catch {
+        return true
     }
 }

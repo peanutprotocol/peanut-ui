@@ -2456,6 +2456,8 @@
             "rateLocked": "El tipo de cambio queda fijo por 10 minutos cuando confirmas.",
             "sent": "En camino. Normalmente llega en un minuto aproximadamente.",
             "sentTo": "En camino a {destination}. Normalmente llega en un minuto aproximadamente.",
+            "quoteMoved": "La cotización cambió desde la revisión. Revisa los nuevos montos y confirma de nuevo.",
+            "unconfirmed": "Enviado, pero aún sin confirmar. Revisa el Historial en unos minutos antes de intentar de nuevo.",
             "errors": {
                 "limitExceeded": "Este retiro supera el límite mensual de Pix.",
                 "inProgress": "Otro retiro por Pix sigue abierto. Intenta de nuevo en 10 minutos.",

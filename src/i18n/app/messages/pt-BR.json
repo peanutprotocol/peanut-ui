@@ -2456,6 +2456,8 @@
             "rateLocked": "A taxa de câmbio fica travada por 10 minutos depois que você confirmar.",
             "sent": "A caminho. Normalmente chega em cerca de um minuto.",
             "sentTo": "A caminho de {destination}. Normalmente chega em cerca de um minuto.",
+            "quoteMoved": "A cotação mudou desde a revisão. Confira os novos valores e confirme de novo.",
+            "unconfirmed": "Enviado, mas ainda sem confirmação. Confira o Histórico em alguns minutos antes de tentar de novo.",
             "errors": {
                 "limitExceeded": "Este saque passa do limite mensal do Pix.",
                 "inProgress": "Outro saque por Pix ainda está aberto. Tente de novo em 10 minutos.",

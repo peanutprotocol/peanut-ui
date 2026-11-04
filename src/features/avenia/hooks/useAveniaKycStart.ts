@@ -31,7 +31,8 @@ export interface AveniaKycStart {
  * open, and the rail push from the KYC webhook refreshes it at once.
  *
  * A 403 means Avenia is not open to this user (the rollout gate, or a Peanut
- * verification still to do): the user keeps the Manteca flow this session.
+ * verification still to do), and a 404 an API without the Avenia routes: in
+ * both cases the user keeps the Manteca flow this session.
  */
 export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): AveniaKycStart {
     const t = useTranslations('avenia')
@@ -73,7 +74,12 @@ export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): Av
         } catch (caught) {
             reservedTab?.close()
             const code = wireErrorCode(caught)
-            if (code === API_ERROR_CODES.AVENIA_NOT_AVAILABLE || code === API_ERROR_CODES.AVENIA_KYC_REQUIRED) {
+            // a 404 is an API without the Avenia routes: the Manteca flow still serves the user
+            if (
+                code === API_ERROR_CODES.AVENIA_NOT_AVAILABLE ||
+                code === API_ERROR_CODES.AVENIA_KYC_REQUIRED ||
+                apiErrorStatus(caught) === 404
+            ) {
                 if (userId) markAveniaUnavailable(userId)
                 return
             }

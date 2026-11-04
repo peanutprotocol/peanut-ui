@@ -38,10 +38,22 @@ import { useAveniaWithdrawSubmit } from '../hooks/useAveniaWithdrawSubmit'
 
 const DEPOSIT_ABI = parseAbi(['function depositWithId(address tokenAddress, uint256 amount, uint256 commitmentId)'])
 const REQUEST = { pixKey: '09579927189', amountBrl: '503' }
-const display = { amountBrl: '503.00', withdrawUsd: '92.504310' }
-const initResponse = (overrides: Record<string, unknown> = {}) => ({
+const display = {
+    amountBrl: '503.00',
+    pixKey: '09579927189',
+    ownAccount: true as const,
+    holderName: 'Ana Souza',
+    bankName: 'Banco Inter',
+    withdrawUsd: '92.504310',
+    rate: '5.49',
+    providerFeeBrl: '4.83',
+    arrivalEstimate: 'About 1 minute',
+    provider: 'Avenia' as const,
+}
+const inAMinute = () => new Date(Date.now() + 60_000).toISOString()
+const initResponse = (overrides: Record<string, unknown> = {}, opened: Partial<typeof display> = {}) => ({
     intentId: 'w1',
-    display,
+    display: { ...display, ...opened },
     sign: {
         kind: 'deposit-with-id',
         contractAddress: BRIDGE,
@@ -49,7 +61,7 @@ const initResponse = (overrides: Record<string, unknown> = {}) => ({
         payAmount: '92.50431',
         payAmountUnits: '92504310',
         commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
-        quoteExpiresAt: '2026-11-04T12:03:00.000Z',
+        quoteExpiresAt: inAMinute(),
         ticketExpiresAt: '2026-11-04T12:10:00.000Z',
         ...overrides,
     },
@@ -73,7 +85,7 @@ describe('useAveniaWithdrawSubmit', () => {
         const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
 
         expect(mockInit).toHaveBeenCalledWith(REQUEST)
@@ -89,19 +101,19 @@ describe('useAveniaWithdrawSubmit', () => {
         ])
         expect(mockReportFunding).toHaveBeenCalledWith('w1', MINED)
         expect(result.current.phase).toBe('sent')
-        expect(result.current.sent).toEqual({ intentId: 'w1', display })
+        expect(result.current.opened).toEqual({ intentId: 'w1', display })
     })
 
-    it('reports nothing it cannot prove: no receipt, no funding report', async () => {
+    it('never calls a send with no receipt a success, and reports nothing it cannot prove', async () => {
         mockInit.mockResolvedValue(initResponse())
         mockSendTransactions.mockResolvedValue({ receipt: null })
         const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
 
-        expect(result.current.phase).toBe('sent')
+        expect(result.current.phase).toBe('unconfirmed')
         expect(mockReportFunding).not.toHaveBeenCalled()
     })
 
@@ -117,7 +129,7 @@ describe('useAveniaWithdrawSubmit', () => {
         const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
 
         expect(result.current.error).toBe(message)
@@ -132,13 +144,13 @@ describe('useAveniaWithdrawSubmit', () => {
         const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
         expect(result.current.error).toBe('friendly: passkey cancelled')
         expect(result.current.lockedAfterInit).toBe(true)
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
         expect(mockInit).toHaveBeenCalledTimes(1)
         expect(mockSendTransactions).toHaveBeenCalledTimes(1)
@@ -149,7 +161,7 @@ describe('useAveniaWithdrawSubmit', () => {
         const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
 
         expect(mockSendTransactions).not.toHaveBeenCalled()
@@ -162,11 +174,67 @@ describe('useAveniaWithdrawSubmit', () => {
         const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
 
         await act(async () => {
-            await result.current.submit(REQUEST)
+            await result.current.submit(REQUEST, display)
         })
 
         expect(result.current.phase).toBe('idle')
-        expect(result.current.sent).toBeNull()
+        expect(result.current.lockedAfterInit).toBe(true)
         expect(mockReportFunding).not.toHaveBeenCalled()
+    })
+
+    it('signs nothing when the opened quote takes more USD than the review showed, until confirmed again', async () => {
+        mockInit.mockResolvedValue(initResponse({}, { withdrawUsd: '93.100000' }))
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        expect(result.current.phase).toBe('reconfirm')
+        expect(result.current.opened?.display.withdrawUsd).toBe('93.100000')
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await result.current.confirmOpened()
+        })
+        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 92_504_310n })
+        expect(mockInit).toHaveBeenCalledTimes(1)
+        expect(result.current.phase).toBe('sent')
+    })
+
+    it('asks again when the opened quote pays fewer reais, and signs at once when it is better', async () => {
+        mockInit.mockResolvedValueOnce(initResponse({}, { amountBrl: '502.10' }))
+        const first = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+        await act(async () => {
+            await first.result.current.submit(REQUEST, display)
+        })
+        expect(first.result.current.phase).toBe('reconfirm')
+
+        mockInit.mockResolvedValueOnce(initResponse({}, { withdrawUsd: '92.400000', amountBrl: '503.00' }))
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const second = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+        await act(async () => {
+            await second.result.current.submit(REQUEST, display)
+        })
+        expect(second.result.current.phase).toBe('sent')
+    })
+
+    it("refuses to sign once Rhino's quote has expired", async () => {
+        mockInit.mockResolvedValue(
+            initResponse({ quoteExpiresAt: new Date(Date.now() - 1000).toISOString() }, { withdrawUsd: '93.1' })
+        )
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        await act(async () => {
+            await result.current.confirmOpened()
+        })
+
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(result.current.error).toBe('withdraw.errors.quoteExpired')
+        expect(result.current.lockedAfterInit).toBe(true)
     })
 })

@@ -3,6 +3,7 @@ import {
     aveniaSetupState,
     aveniaWithdrawAmount,
     aveniaWithdrawRefusalKey,
+    quoteMovedAgainstUser,
     brazilPixPath,
     completePixKey,
     countdownLabel,
@@ -187,5 +188,20 @@ describe('aveniaWithdrawRefusalKey', () => {
         expect(aveniaWithdrawRefusalKey('PROVIDER_REJECTED')).toBe('providerRejected')
         expect(aveniaWithdrawRefusalKey('PROVIDER_UNAVAILABLE')).toBe('unavailable')
         expect(aveniaWithdrawRefusalKey(undefined)).toBe('unavailable')
+    })
+})
+
+describe('quoteMovedAgainstUser', () => {
+    const reviewed = { withdrawUsd: '92.504310', amountBrl: '503.00' }
+
+    it('flags more USD out or fewer reais in, and nothing else', () => {
+        expect(quoteMovedAgainstUser(reviewed, reviewed)).toBe(false)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.504311', amountBrl: '503.00' })).toBe(true)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.504310', amountBrl: '502.99' })).toBe(true)
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: '92.4', amountBrl: '503.5' })).toBe(false)
+    })
+
+    it('counts an amount it cannot read as moved', () => {
+        expect(quoteMovedAgainstUser(reviewed, { withdrawUsd: 'n/a', amountBrl: '503' })).toBe(true)
     })
 })

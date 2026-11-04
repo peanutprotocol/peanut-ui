@@ -36,7 +36,8 @@ export function AveniaWithdrawReview({
     display: AveniaWithdrawDisplay | null
     isLoading: boolean
     isSubmitting: boolean
-    error: { message: string; onRetry?: () => void } | null
+    /** A refusal (error), or the opened quote that moved since the review (attention). */
+    error: { message: string; onRetry?: () => void; priority?: 'error' | 'attention' } | null
     canConfirm: boolean
     onBack: () => void
     onConfirm: () => void
@@ -98,7 +99,7 @@ export function AveniaWithdrawReview({
 
                 {error && (
                     <Callout
-                        priority="error"
+                        priority={error.priority ?? 'error'}
                         ctas={error.onRetry ? [{ label: tCommon('retry'), onClick: error.onRetry }] : undefined}
                     >
                         {error.message}
