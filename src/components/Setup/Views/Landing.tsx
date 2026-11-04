@@ -23,6 +23,7 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
@@ -46,6 +47,7 @@ const LandingStep = () => {
     const { handleNext } = useSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
+    const { track } = useSignupControl()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
@@ -95,7 +97,7 @@ const LandingStep = () => {
         })
     }
 
-    const onLoginClick = async () => {
+    const login = async () => {
         try {
             await handleLoginClick()
         } catch (e) {
@@ -103,14 +105,25 @@ const LandingStep = () => {
         }
     }
 
-    const onSignUpClick = () => {
+    const onLoginClick = () => {
+        track('log_in', 'tap')
+        void login()
+    }
+
+    const signUp = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
         handleNext()
+    }
+
+    const onSignUpClick = () => {
+        track('sign_up', 'tap')
+        signUp()
     }
 
     const recover = (action: RecoveryAction) => {
         recoveryActionRef.current = action
         posthog.capture(ANALYTICS_EVENTS.LOGIN_RECOVERY_ACTION, { action, native: isCapacitor() })
+        track(`recovery_${action}`, 'tap')
         setIsRecoveryOpen(false)
     }
 
@@ -124,13 +137,14 @@ const LandingStep = () => {
                         action: 'dismiss',
                         native: isCapacitor(),
                     })
+                    track('login_recovery', 'dismiss')
                 }
                 recoveryActionRef.current = null
                 setIsRecoveryOpen(false)
             }}
             onRetry={() => {
                 recover('retry')
-                void onLoginClick()
+                void login()
             }}
             // Signup is app-only on the blocked web layout; the store buttons sit behind the drawer there.
             onSignUp={
@@ -138,7 +152,7 @@ const LandingStep = () => {
                     ? undefined
                     : () => {
                           recover('signup')
-                          onSignUpClick()
+                          signUp()
                       }
             }
             onSupport={() => recover('support')}
@@ -164,7 +178,10 @@ const LandingStep = () => {
                                 {tMigration('banner.title')}
                             </p>
                         )}
-                        <StoreButtons surface={MIGRATION_SURFACES.SETUP} />
+                        <StoreButtons
+                            surface={MIGRATION_SURFACES.SETUP}
+                            onStoreClick={(store) => track('store_button', 'tap', store)}
+                        />
                     </div>
                     <div className="text-center">
                         <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>

@@ -13,6 +13,7 @@ import { Toggle } from '@/components/0_Bruddle/Toggle'
 import NavHeader from '@/components/Global/NavHeader'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useNotifications } from '@/hooks/useNotifications'
+import { PERMISSION_REQUEST_SOURCES } from '@/constants/push-prompt.consts'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import {
     notificationsApi,
@@ -57,7 +58,7 @@ export const NotificationsView = () => {
         try {
             if (session.ready) await session.ready
             if (!session.current()) return 'dismissed'
-            const permission = toPushPermission(await requestPermission())
+            const permission = toPushPermission(await requestPermission(PERMISSION_REQUEST_SOURCES.SETTINGS))
             if (!session.current()) return 'dismissed'
             await afterPermissionAttempt()
             return permission

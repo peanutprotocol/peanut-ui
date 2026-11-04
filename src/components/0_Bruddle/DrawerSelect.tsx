@@ -15,6 +15,9 @@ interface DrawerSelectProps<T extends string> {
     value: T | null
     /** The drawer closes after this resolves, so an async choice (a locale) lands first. */
     onChange: (value: T) => void | Promise<void>
+    onOpen?: () => void
+    /** Closed without a choice. */
+    onDismiss?: () => void
 }
 
 /**
@@ -24,7 +27,15 @@ interface DrawerSelectProps<T extends string> {
  * inline Button inside a sentence or a ghost Button in a header. The rows are a
  * SelectList, so the chosen row follows the selected-row rule.
  */
-export function DrawerSelect<T extends string>({ title, trigger, options, value, onChange }: DrawerSelectProps<T>) {
+export function DrawerSelect<T extends string>({
+    title,
+    trigger,
+    options,
+    value,
+    onChange,
+    onOpen,
+    onDismiss,
+}: DrawerSelectProps<T>) {
     const [open, setOpen] = useState(false)
     const choose = async (next: T) => {
         // close even if an async choice fails (a locale that will not load), so
@@ -36,7 +47,15 @@ export function DrawerSelect<T extends string>({ title, trigger, options, value,
         }
     }
     return (
-        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
+        <Drawer
+            open={open}
+            onOpenChange={(next) => {
+                setOpen(next)
+                if (next) onOpen?.()
+                else onDismiss?.()
+            }}
+            shouldScaleBackground={false}
+        >
             <DrawerTrigger asChild>{trigger}</DrawerTrigger>
             <DrawerContent>
                 <div className="flex flex-col gap-4 pb-4">

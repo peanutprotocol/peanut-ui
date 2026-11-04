@@ -32,6 +32,7 @@ import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import type en from '@/i18n/app/messages/en.json'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { confettiPresets } from '@/utils/confetti'
 import { isAa24Error } from '@/utils/walletCredential.utils'
 import { classifyPasskeyError, getPasskeySetupKey } from '@/utils/webauthn.utils'
@@ -62,8 +63,17 @@ export function SetupConfirmationView({
 }) {
     const t = useTranslations('setup')
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
+    const { track } = useSignupControl()
     const button = (
-        <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+        <Button
+            onClick={() => {
+                track('finish', 'tap')
+                onConfirm()
+            }}
+            loading={isLoading}
+            disabled={isLoading}
+            className="w-full"
+        >
             {buttonText || t(merged ? 'cta.finish' : 'testTransaction.confirmAndFinish')}
         </Button>
     )
@@ -89,7 +99,12 @@ export function SetupConfirmationView({
             </PageStack.Center>
             <SetupFooter actions={button} secondary={secondary}>
                 <p className="text-center text-body-xs text-foreground-secondary">
-                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
+                    <LinkButton
+                        onClick={() => {
+                            track('passkey_info', 'open')
+                            setIsPasskeyInfoOpen(true)
+                        }}
+                    >
                         <Icon name="info" size={16} className="shrink-0" />
                         {t('passkey.learnMore')}
                     </LinkButton>
@@ -116,6 +131,7 @@ const SignTestTransaction = ({
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
+    const { track } = useSignupControl()
     const {
         residenceCountry,
         nationalityCountry,
@@ -416,7 +432,13 @@ const SignTestTransaction = ({
             showTitle={!!onComplete}
             secondary={
                 showLogout && (
-                    <LinkButton onClick={() => void logoutUser()} disabled={isLoggingOut}>
+                    <LinkButton
+                        onClick={() => {
+                            track('log_out', 'tap')
+                            void logoutUser()
+                        }}
+                        disabled={isLoggingOut}
+                    >
                         {tProfile('logOut')}
                     </LinkButton>
                 )

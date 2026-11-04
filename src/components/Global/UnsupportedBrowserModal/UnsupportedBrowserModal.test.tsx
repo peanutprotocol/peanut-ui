@@ -1,6 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import posthog from 'posthog-js'
 import { renderWithIntl as render } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import UnsupportedBrowserModal from './index'
 
 const mockIsLikelyWebview = jest.fn()
@@ -15,6 +17,8 @@ jest.mock('@/context/passkeySupportContext', () => ({
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: async () => true }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     useToast: () => ({ error: jest.fn(), success: jest.fn() }),
 }))
@@ -112,5 +116,28 @@ describe('UnsupportedBrowserModal', () => {
         render(<UnsupportedBrowserModal visible allowClose={false} />)
 
         expect(screen.getByRole('dialog')).toHaveTextContent('Open this link in a browser')
+    })
+
+    it('reports Copy Link and a dismissal when it blocks sign-up, and nothing elsewhere', async () => {
+        ;(posthog.capture as jest.Mock).mockClear()
+        mockIsLikelyWebview.mockReturnValue(false)
+        mockPasskeySupport = { isSupported: false, isLoading: false }
+        const { unmount } = render(
+            onSignupScreen('unsupported-browser', <UnsupportedBrowserModal allowClose={false} />)
+        )
+        fireEvent.click(await screen.findByRole('button', { name: 'Close' }))
+        unmount()
+
+        render(onSignupScreen('unsupported-browser', <UnsupportedBrowserModal visible allowClose={false} />))
+        fireEvent.click(screen.getByRole('button', { name: 'Copy Link' }))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Copied!' })).toBeInTheDocument())
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual([
+            'compatibility_notice:dismiss:passkey',
+            'copy_link:tap',
+        ])
+        ;(posthog.capture as jest.Mock).mockClear()
+        render(<UnsupportedBrowserModal visible allowClose={false} />)
+        fireEvent.click(screen.getAllByRole('button', { name: /Copy Link|Copied!/ }).at(-1)!)
+        expect(posthog.capture).not.toHaveBeenCalled()
     })
 })

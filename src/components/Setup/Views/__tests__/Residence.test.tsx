@@ -12,6 +12,7 @@ import React from 'react'
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import en from '@/i18n/app/messages/en.json'
 import ResidenceStep from '@/components/Setup/Views/Residence'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -25,6 +26,7 @@ const mockSetNationalityCountry = jest.fn()
 let mockSetupState: { residenceCountry: string; nationalityCountry: string }
 let mockOnFinish: (() => Promise<void>) | undefined
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({
         ...mockSetupState,
         onFinish: mockOnFinish,
@@ -495,5 +497,51 @@ describe('ResidenceStep', () => {
             expect(mockedCapture).not.toHaveBeenCalledWith(event, expect.anything())
         }
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    describe('control analytics', () => {
+        const controls = () => signupControls(mockedCapture)
+
+        it('reports each picker opening, the country picked, a search that found nothing and a dismissal', () => {
+            mockSetupState.residenceCountry = 'PT'
+            render(onSignupScreen('residence', <ResidenceStep />))
+            fireEvent.click(screen.getByTestId('setup-residence-country'))
+            const search = screen.getByRole('searchbox', { name: 'Search countries' })
+            fireEvent.change(search, { target: { value: 'Ar' } })
+            fireEvent.change(search, { target: { value: 'Atlantis' } })
+            expect(screen.getByText('No country matches “Atlantis”.')).toBeInTheDocument()
+            fireEvent.change(search, { target: { value: 'Argentina' } })
+            fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Argentina' }))
+            fireEvent.click(screen.getByTestId('setup-nationality-country'))
+            fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+            fireEvent.click(screen.getByRole('button', { name: 'Continue', hidden: true }))
+            expect(controls()).toEqual([
+                'residence_country:open',
+                'residence_country_search:change',
+                'residence_country_search:error:no_results',
+                'residence_country:select:AR',
+                'nationality_country:open',
+                'nationality_country:dismiss',
+                'continue:tap',
+            ])
+            expect(mockedCapture.mock.calls[0][1]).toEqual(
+                expect.objectContaining({ screen_id: 'residence', setup_host: 'signup' })
+            )
+        })
+
+        it('reports the nationality kept as the same country, and which country the comparison picked', () => {
+            mockSetupState = { residenceCountry: 'PT', nationalityCountry: 'BR' }
+            render(onSignupScreen('residence', <ResidenceStep />))
+            fireEvent.click(screen.getByTestId('setup-nationality-country'))
+            fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^The same country/ }))
+            fireEvent.click(screen.getByRole('button', { name: 'Continue', hidden: true }))
+            fireEvent.click(screen.getByTestId('setup-residence-select-BR'))
+            expect(controls()).toEqual([
+                'nationality_country:open',
+                'nationality_country:select:same',
+                'continue:tap',
+                'compare_choice:tap:nationality',
+            ])
+        })
     })
 })

@@ -2,6 +2,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -46,7 +47,7 @@ function AcceptedState() {
 const renderInvite = () =>
     renderWithIntl(
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
-            <InviteStep />
+            {onSignupScreen('invite', <InviteStep />)}
             <AcceptedState />
         </SetupFlowProvider>
     )
@@ -239,5 +240,38 @@ describe('Invited by a friend? (after registration)', () => {
         fireEvent.change(field(), { target: { value: 'demo' } })
         await waitFor(() => expect(mockValidateInviter).toHaveBeenCalledWith('demo'))
         expect(isDemoMode()).toBe(false)
+    })
+})
+
+describe('Invited by a friend? — control analytics', () => {
+    const controls = () => signupControls(posthog.capture as jest.Mock)
+
+    it('reports the first edit, why an inviter failed, and Continue', async () => {
+        mockValidateInviter.mockResolvedValueOnce({ success: true, notFound: true, attributionResolved: false })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: 'nobodyhere' } })
+        await screen.findByText(/couldn’t find|could not find|not found/i)
+        fireEvent.change(field(), { target: { value: 'newbie' } })
+        await waitFor(() => expect(controls()).toContain('inviter_username:error:self'))
+        fireEvent.change(field(), { target: { value: 'alice' } })
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(controls()).toEqual([
+            'inviter_username:change',
+            'inviter_username:error:not_found',
+            'inviter_username:error:self',
+            'continue:tap',
+        ])
+        const controlEvents = (posthog.capture as jest.Mock).mock.calls.filter(
+            ([event]) => event === ANALYTICS_EVENTS.CONTROL_USED
+        )
+        expect(JSON.stringify(controlEvents)).not.toMatch(/nobodyhere|alice/)
+    })
+
+    it('reports Skip', () => {
+        renderInvite()
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+        expect(controls()).toEqual(['skip:tap'])
     })
 })
