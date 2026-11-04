@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { Button } from '@/components/0_Bruddle/Button'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { PageErrorScreen, type PageErrorScreenStrings } from '@/components/Global/PageErrorScreen'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { useUrlLocale } from '@/i18n/useUrlLocale'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
@@ -11,7 +10,7 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 // importing '@/i18n' would ship every locale's full catalog with each marketing
 // route's client chunk for four fallback strings. Keep in sync with the
 // error* keys in src/i18n/{locale}.json.
-const STRINGS: Record<Locale, { title: string; body: string; tryAgain: string; goHome: string }> = {
+const STRINGS: Record<Locale, PageErrorScreenStrings> = {
     en: {
         title: 'Something went wrong',
         body: 'We had trouble loading this page. Please try again or go back to the homepage.',
@@ -40,7 +39,6 @@ const STRINGS: Record<Locale, { title: string; body: string; tryAgain: string; g
 
 export default function MarketingError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const locale = useUrlLocale()
-    const i18n = STRINGS[locale]
 
     useEffect(() => {
         console.error(error)
@@ -50,18 +48,10 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
     }, [error])
 
     return (
-        // same container as MarketingErrorBoundary, the other marketing error
-        // surface — one shape for "this page did not load".
-        <div className="mx-auto max-w-2xl px-6 py-16">
-            <TitleBlock align="center" size="s" title={i18n.title} description={i18n.body} />
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-                <Button variant="primary" onClick={reset} className="w-fit">
-                    {i18n.tryAgain}
-                </Button>
-                <Button variant="secondary" href={locale === DEFAULT_LOCALE ? '/' : `/${locale}`} className="w-fit">
-                    {i18n.goHome}
-                </Button>
-            </div>
-        </div>
+        <PageErrorScreen
+            strings={STRINGS[locale]}
+            homeHref={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}
+            onRetry={reset}
+        />
     )
 }
