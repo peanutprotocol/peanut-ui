@@ -76,7 +76,6 @@ const INLINE_STYLE_ALLOW = [
     'Global/InvitesGraph/', // d3 force graph
     'dev/kyc-flows/', // mermaid theming
     'dev/journey/', // dev tooling
-    'dev/full-graph/', // dev tooling
     'dev/payment-graph/', // dev tooling
     'dev/share-builder/', // dev tooling
     'dev/loading-words/', // dev tooling

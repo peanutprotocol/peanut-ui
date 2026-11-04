@@ -10,23 +10,14 @@ const logCalculatePointsFailureOnce = (detail: unknown) => {
     console.error('calculatePoints: preview failed, degrading to no points estimate', detail)
 }
 
-/** Qualitative labels for anonymized data */
-export type FrequencyLabel = 'rare' | 'occasional' | 'regular' | 'frequent'
-export type VolumeLabel = 'small' | 'medium' | 'large' | 'whale'
-export type SizeLabel = 'tiny' | 'small' | 'medium' | 'large' | 'huge'
-
-/** P2P edge - can be full (with counts) or anonymized (with labels) */
-export type P2PEdge = {
+/** P2P payment edge between two users */
+type P2PEdge = {
     source: string
     target: string
     type: 'SEND_LINK' | 'REQUEST_PAYMENT' | 'DIRECT_TRANSFER'
     bidirectional: boolean
-    // Full mode (exact values) - optional in anonymized mode
     count?: number
     totalUsd?: number
-    // Anonymized mode (qualitative labels) - optional in full mode
-    frequency?: FrequencyLabel
-    volume?: VolumeLabel
 }
 
 type InvitesGraphResponse = {
@@ -36,14 +27,11 @@ type InvitesGraphResponse = {
             id: string
             username: string
             hasAppAccess: boolean
-            // Full mode fields - optional in payment mode
             directPoints?: number
             transitivePoints?: number
             totalPoints?: number
             createdAt?: string
             lastActiveAt?: string | null
-            // Payment mode fields - optional in full mode
-            size?: SizeLabel
             kycRegions: string[] | null
         }>
         edges: Array<{
@@ -65,84 +53,15 @@ type InvitesGraphResponse = {
     error?: string
 }
 
-/** External node types for payment destinations outside our user base */
-export type ExternalNodeType = 'WALLET' | 'BANK' | 'MERCHANT'
-
-/** Direction of payment flow for external nodes */
-export type ExternalDirection = 'INCOMING' | 'OUTGOING'
-
-/** Per-user transaction data with direction
- * Supports both full mode (with exact values) and anonymized mode (with labels)
- */
-export type UserTxDataEntry = {
-    direction: ExternalDirection
-    // Full mode (exact values) - optional in anonymized mode
-    txCount?: number
-    totalUsd?: number
-    // Anonymized mode (qualitative labels) - optional in full mode
-    frequency?: FrequencyLabel
-    volume?: VolumeLabel
-}
-
-/** External payment destination node
- * Supports both full mode and anonymized mode with optional fields
- */
-export type ExternalNode = {
-    id: string
-    type: ExternalNodeType
-    label: string
-    userTxData: Record<string, UserTxDataEntry>
-    // Full mode fields - optional in anonymized mode
-    uniqueUsers?: number
-    userIds?: string[]
-    txCount?: number
-    totalUsd?: number
-    lastTxDate?: string
-    // Anonymized mode fields - optional in full mode
-    size?: SizeLabel
-    frequency?: FrequencyLabel
-    volume?: VolumeLabel
-}
-
-type ExternalNodesResponse = {
-    success: boolean
-    data: {
-        nodes: ExternalNode[]
-        stats: {
-            total: number
-            byType: {
-                WALLET: number
-                BANK: number
-                MERCHANT: number
-            }
-            totalTxCount?: number
-            totalVolumeUsd?: number
-        }
-    } | null
-    error?: string
-}
-
-async function fetchInvitesGraph(
-    endpoint: string,
-    extraHeaders?: Record<string, string>,
-    handleStatusError?: (status: number) => string | null
-): Promise<InvitesGraphResponse> {
+async function fetchInvitesGraph(endpoint: string): Promise<InvitesGraphResponse> {
     try {
         const response = await serverFetch(endpoint, {
             method: 'GET',
-            headers: extraHeaders,
             timeoutMs: 30_000, // large graph data can be slow
         })
 
         if (!response.ok) {
-            console.error('getInvitesGraph: API request failed', response.status, response.statusText)
-
-            // Handle custom status errors if provided
-            const customError = handleStatusError?.(response.status)
-            if (customError) {
-                return { success: false, data: null, error: customError }
-            }
-
+            console.error('getUserInvitesGraph: API request failed', response.status, response.statusText)
             return { success: false, data: null, error: 'Failed to load invite graph. Please try again.' }
         }
 
@@ -150,10 +69,10 @@ async function fetchInvitesGraph(
         return { success: true, data }
     } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-            console.error('getInvitesGraph: Request timeout after 30s')
+            console.error('getUserInvitesGraph: Request timeout after 30s')
             return { success: false, data: null, error: 'Request timeout. The graph is too large.' }
         } else {
-            console.error('getInvitesGraph: Unexpected error', error)
+            console.error('getUserInvitesGraph: Unexpected error', error)
             return { success: false, data: null, error: 'Unexpected error loading graph.' }
         }
     }
@@ -214,35 +133,6 @@ export const pointsApi = {
         }
     },
 
-    getInvitesGraph: async (
-        apiKey: string,
-        options?: { mode?: 'full' | 'payment'; topNodes?: number; includeNewDays?: number }
-    ): Promise<InvitesGraphResponse> => {
-        const isPaymentMode = options?.mode === 'payment'
-        const params = new URLSearchParams()
-        if (isPaymentMode) {
-            params.set('mode', 'payment')
-        }
-        if (options?.topNodes && options.topNodes > 0) {
-            params.set('topNodes', options.topNodes.toString())
-        }
-        if (options?.includeNewDays && options.includeNewDays > 0) {
-            params.set('includeNewDays', options.includeNewDays.toString())
-        }
-        const endpoint = `/invites/graph${params.toString() ? `?${params}` : ''}`
-        // Full mode: JWT + the backend's team whitelist (its api-key check is a no-op).
-        // Payment mode still needs the server's password, which no client passes any more.
-        const headers: Record<string, string> = isPaymentMode ? {} : { 'api-key': apiKey }
-        return fetchInvitesGraph(endpoint, headers, (status) => {
-            if (status === 403) {
-                return 'Access denied. Only authorized users can access this tool.'
-            } else if (status === 401) {
-                return isPaymentMode ? 'Invalid or missing password.' : 'Invalid API key or authentication token.'
-            }
-            return null
-        })
-    },
-
     getUserInvitesGraph: async (): Promise<InvitesGraphResponse> => {
         return fetchInvitesGraph('/invites/user-graph')
     },
@@ -280,67 +170,6 @@ export const pointsApi = {
         } catch (error) {
             console.error('getCashStatus: Unexpected error', error)
             return { success: false, data: null }
-        }
-    },
-
-    getExternalNodes: async (
-        apiKey: string,
-        options?: {
-            mode?: 'full' | 'payment'
-            minConnections?: number
-            types?: ExternalNodeType[]
-            limit?: number
-            topNodes?: number
-        }
-    ): Promise<ExternalNodesResponse> => {
-        try {
-            const isPaymentMode = options?.mode === 'payment'
-
-            // Build query params
-            const params = new URLSearchParams()
-            if (options?.mode) {
-                params.set('mode', options.mode)
-            }
-            if (options?.minConnections) {
-                params.set('minConnections', options.minConnections.toString())
-            }
-            if (options?.types?.length) {
-                params.set('types', options.types.join(','))
-            }
-            if (options?.limit) {
-                params.set('limit', options.limit.toString())
-            }
-            if (options?.topNodes && options.topNodes > 0) {
-                params.set('topNodes', options.topNodes.toString())
-            }
-
-            const path = `/invites/graph/external${params.toString() ? `?${params}` : ''}`
-
-            // Build custom headers:
-            // - Payment mode: no API key required (uses password auth)
-            // - Full mode: API key required
-            const headers: Record<string, string> = {}
-            if (!isPaymentMode) {
-                headers['api-key'] = apiKey
-            }
-
-            const response = await serverFetch(path, {
-                method: 'GET',
-                headers,
-            })
-
-            if (!response.ok) {
-                if (response.status === 403) {
-                    return { success: false, data: null, error: 'Access denied.' }
-                }
-                return { success: false, data: null, error: 'Failed to load external nodes.' }
-            }
-
-            const data = await response.json()
-            return { success: true, data }
-        } catch (error) {
-            console.error('getExternalNodes: Unexpected error', error)
-            return { success: false, data: null, error: 'Unexpected error loading external nodes.' }
         }
     },
 }
