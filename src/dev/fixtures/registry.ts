@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import {
@@ -2627,8 +2628,14 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: {
             'GET /users/me': { showEarlyUserModal: true },
-            // a tier-6 announcement waits for a third session; the server ranking lets a capture's first one open it
-            'GET /users/me/attention': { ranking: [{ id: 'early-user', tier: 1, rank: 0 }] },
+            // the announcement waits for a quiet third session; the server's policy lets a capture's first one open it
+            'GET /users/me/attention': {
+                catalogueVersion: ATTENTION_POLICY.catalogueVersion,
+                settings: ATTENTION_POLICY.settings,
+                catalogue: ATTENTION_POLICY.catalogue.map((row) =>
+                    row.id === 'early-user' ? { ...row, tier: 1, rank: 0, policy: { interrupt: 'always' } } : row
+                ),
+            },
         },
     },
 
