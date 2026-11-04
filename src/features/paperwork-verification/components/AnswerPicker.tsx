@@ -230,7 +230,7 @@ export function AnswerPicker({
         setOpen(next)
     }
     const choose = (option: string) => {
-        control.track(field.key, 'select', option)
+        control.track(field.key, 'select')
         chose.current = true
         onChange(option)
         openChange(false)

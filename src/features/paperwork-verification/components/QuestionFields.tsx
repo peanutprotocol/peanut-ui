@@ -239,7 +239,7 @@ function TypedFields({
                 className="input h-12 w-full px-4"
                 value={values[field.key] ?? ''}
                 onChange={(event) => {
-                    control.track(field.key, 'select', event.target.value || undefined)
+                    control.track(field.key, 'select')
                     onChange(field.key, event.target.value)
                 }}
                 onBlur={() => onFieldBlur?.(field.key)}

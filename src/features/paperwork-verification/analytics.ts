@@ -16,9 +16,9 @@ import type {
  * field key and the error code, and never carries what was typed or picked:
  * the funnel can say "the CPF field is refused 30% of the time on Brazil's tax
  * step", never whose CPF. Search events send the query length, not the query.
- * `control_used` is the one exception, asked for its control funnel (2026-11-03):
- * a picker's option code, never typed text. A declaration sends only that it
- * was toggled, never its answer.
+ * `control_used` follows the same rule: a field reports that it was edited,
+ * picked or toggled, never the answer. Its only values are what other events
+ * already send (the residence, the document type) and UI modes.
  */
 export interface PaperworkVerificationTrackingContext {
     flow: 'paperwork_verification' | 'add_later'

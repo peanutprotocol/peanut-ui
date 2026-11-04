@@ -106,7 +106,7 @@ describe('question controls', () => {
             expect(matching(key, 'change')).toHaveLength(1)
         }
         fireEvent.change(screen.getByRole('combobox', { name: /state or region/i }), { target: { value: 'CA' } })
-        expectControl('state', 'select', 'CA')
+        expectControl('state', 'select')
         noSecrets()
         view.unmount()
         renderWithIntl(
@@ -150,7 +150,7 @@ describe('question controls', () => {
         })
         fireEvent.click(screen.getByRole('button', { name: /united states/i }))
         expectControl('countryOfBirth_search', 'change')
-        expectControl('countryOfBirth', 'select', 'US')
+        expectControl('countryOfBirth', 'select')
         expect(matching('countryOfBirth', 'dismiss')).toHaveLength(0)
     })
 })
