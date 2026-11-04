@@ -827,8 +827,8 @@ jobs:
             always() && needs.backdoor-scan.result == 'success' &&
             needs.ds-shots-filter.outputs.render == 'true'
         runs-on: ubuntu-latest
-        # Build ~5m + gate ~9m + stress gate. A hang past this is a bug, not a
-        # slow day.
+        # Build ~6m + gate and stress gate on 4 workers. A hang past this is a bug,
+        # not a slow day.
         timeout-minutes: 45
         permissions:
             contents: read

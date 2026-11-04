@@ -14,8 +14,10 @@ import base from './playwright.shots.config'
 
 const viewport = { width: 320, height: 568 }
 
+// ubuntu-latest has 4 vCPUs; the shared base keeps 2 for the screenshot jobs.
 export default defineConfig({
     ...base,
+    workers: process.env.CI ? 4 : base.workers,
     projects: [
         ...(['en', 'pt-BR'] as const).map((locale) => ({
             name: `stress-${locale}`,
