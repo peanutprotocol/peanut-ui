@@ -1619,7 +1619,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Envie seu documento mais uma vez",
-                    "description": "Mudamos de parceiro de verificação e a foto do seu documento não veio junto. A falha foi nossa. Envie seu documento e tire uma selfie rápida, e os pagamentos por QR voltam a funcionar.",
+                    "description": "Mudamos de parceiro de verificação e a foto do seu documento não veio junto. A falha foi nossa. Envie seu documento e tire uma selfie rápida. Quando seu documento for aceito para pagamentos por QR, eles voltam a funcionar.",
                     "cta": "Enviar documento"
                 },
                 "restartPending": {

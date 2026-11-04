@@ -1619,7 +1619,7 @@
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Add your ID once more",
-                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie, and QR payments work again.",
+                    "description": "We moved to a new identity partner, and your ID photo didn’t come across. That’s on us. Upload your ID and take a quick selfie. When we accept your ID for QR payments, they work again.",
                     "cta": "Upload your ID"
                 },
                 "restartPending": {
