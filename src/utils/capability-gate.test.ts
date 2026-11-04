@@ -1580,6 +1580,82 @@ describe('deriveGate — an API that sends no feature report (rolled back) reads
     })
 })
 
+describe('deriveGate — the rails fallback keeps what the report path carries', () => {
+    const noReport = (rails: RailCapability[], nextActions: NextAction[] = [], extra = {}): CapabilityState => ({
+        rails: rails.map((rail) => ({
+            ...rail,
+            resolved: railVerdict(rail, new Map(nextActions.map((action) => [action.key, action]))),
+        })),
+        nextActions,
+        identityVerified: true,
+        isLoading: false,
+        ...extra,
+    })
+
+    test.each([
+        ['questions', { key: 'q', kind: 'questions', purpose: 'add-later', feature: 'bank' }, 'questions'],
+        ['bridge-hosted', { key: 'h', kind: 'bridge-hosted', purpose: 'unlock-bridge-sepa' }, 'hosted-check'],
+    ] as const)('a fixable rail whose step is %s keeps the step, so the CTA opens it', (_name, action, remedy) => {
+        const rail = bankRail({ status: 'requires-info', blockingActions: [action.key] })
+        const gate = deriveGate(noReport([rail], [action as NextAction]), 'withdraw')
+        expect(gate.kind).toBe('fixable-rejection')
+        expect(gateRemedy(gate)).toBe(remedy)
+    })
+
+    test('an unattached due Bridge hosted check is the step of an actionless Bridge rail', () => {
+        const hosted: NextAction = { key: 'h', kind: 'bridge-hosted', purpose: 'unlock-bridge-sepa' }
+        const rail = bankRail({ status: 'requires-info' })
+        expect(gateRemedy(deriveGate(noReport([rail], [hosted]), 'withdraw'))).toBe('hosted-check')
+        expect(gateRemedy(deriveGate(noReport([rail], []), 'withdraw'))).toBe('provider-fix')
+    })
+
+    test('a native Sumsub step on a Bridge rail stands the hosted check down', () => {
+        const hosted: NextAction = { key: 'h', kind: 'bridge-hosted', purpose: 'unlock-bridge-sepa' }
+        const sumsub: NextAction = { key: 's', kind: 'sumsub', purpose: 'proof-of-address', levelKey: 'poa' }
+        const rails = [
+            bankRail({ status: 'requires-info', blockingActions: ['s'] }),
+            bankRail({ id: 'bridge.sepa_eu', method: 'SEPA_EU', status: 'requires-info' }),
+        ]
+        const gate = deriveGate(noReport(rails, [hosted, sumsub]), 'withdraw', { method: 'SEPA_EU' })
+        expect(gateRemedy(gate)).toBe('provider-fix')
+    })
+
+    test('a wait-marked rail keeps its age, so a slow review reads as slow', () => {
+        const wait: NextAction = { key: 'w', kind: 'wait', purpose: 'bridge-review' }
+        const rail = bankRail({
+            status: 'requires-info',
+            blockingActions: ['w'],
+            pendingSince: '2026-10-01T00:00:00Z',
+            reason: { code: 'bridge_processing', userMessage: '' },
+        })
+        const gate = deriveGate(noReport([rail], [wait]), 'withdraw')
+        expect(gate).toEqual(
+            expect.objectContaining({
+                kind: 'waiting-on-provider',
+                pendingSince: '2026-10-01T00:00:00Z',
+                railId: 'bridge.ach_us',
+            })
+        )
+    })
+
+    test('an identity held on DUPLICATE_EMAIL is a duplicate account, ahead of rail fixes', () => {
+        const user = (rails: RailCapability[]) =>
+            ({
+                identityVerification: { status: 'action_required', rejectLabels: ['DUPLICATE_EMAIL'] },
+                capabilities: { rails, nextActions: [], restrictions: [] },
+            }) as unknown as Parameters<typeof capabilityStateForProfile>[0]
+        const none = deriveGate(capabilityStateForProfile(user([]), false), 'deposit', { country: 'US' })
+        expect(gateSupportCase(none)).toBe('duplicate-account')
+        const fixable = deriveGate(
+            capabilityStateForProfile(user([bankRail({ status: 'requires-info' })]), false),
+            'deposit'
+        )
+        expect(gateSupportCase(fixable)).toBe('duplicate-account')
+        const working = deriveGate(capabilityStateForProfile(user([bankRail()]), false), 'deposit')
+        expect(working.kind).toBe('ready')
+    })
+})
+
 describe('deriveGate — a verified user with no rail for an account kind', () => {
     // Colombia is outside the fixed six accounts: with no COP rail yet there is
     // nothing the report can name, and a verified identity needs enrollment.

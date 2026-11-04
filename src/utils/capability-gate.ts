@@ -374,6 +374,8 @@ export interface CapabilityState {
     features?: FeatureReport
     /** identityVerification.status === 'verified' — NOT any-rail-enabled. */
     identityVerified?: boolean
+    /** The identity check's hold, for a fallback that has no report: a hold only support can lift. */
+    identityHold?: SupportCase
     /** True until the user query settles. Holds the gate in 'loading'. */
     isLoading: boolean
 }
@@ -411,6 +413,19 @@ export function supportCaseOf(value: string | null | undefined): SupportCase | u
     return value ? SUPPORT_CASE_MARKERS[value.replace(/-/g, '_')] : undefined
 }
 
+const DUPLICATE_EMAIL_LABEL = 'DUPLICATE_EMAIL'
+
+/** The support case an identity check is held on: a reason code, or an older API's `DUPLICATE_EMAIL` label. */
+function identityHoldOf(identity: IUserProfile['identityVerification'] | undefined): SupportCase | undefined {
+    if (!identity) return undefined
+    return (
+        supportCaseOf(identity.reason?.code) ??
+        (identity.status === 'action_required' && identity.rejectLabels?.includes(DUPLICATE_EMAIL_LABEL)
+            ? 'duplicate-account'
+            : undefined)
+    )
+}
+
 /**
  * The gate's input, read off a user profile. The hook reads the rendered
  * profile through it; a caller holding a profile it just fetched reads that
@@ -422,6 +437,7 @@ export function capabilityStateForProfile(user: IUserProfile | null | undefined,
         nextActions: user?.capabilities?.nextActions ?? [],
         features: user?.capabilities?.features,
         identityVerified: user?.identityVerification?.status === 'verified',
+        identityHold: identityHoldOf(user?.identityVerification),
         isLoading,
     }
 }
@@ -455,6 +471,19 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     return gateFromEntry(entry, state)
 }
 
+/** Bridge's hosted check while it is what Bridge waits on; it stands down beside a Sumsub step on a Bridge rail. */
+function dueBridgeHostedAction(state: CapabilityState, actionByKey: Map<string, NextAction>): NextAction | undefined {
+    const hosted = state.nextActions.find((action) => action.kind === 'bridge-hosted' && !action.effectiveDate)
+    if (!hosted) return undefined
+    const nativeStep = state.rails.some(
+        (rail) =>
+            rail.provider === 'bridge' &&
+            rail.status === 'requires-info' &&
+            railActions(rail, actionByKey).some((action) => action.kind === 'sumsub')
+    )
+    return nativeStep ? undefined : hosted
+}
+
 /**
  * The gate over the per-rail VERDICT, for an API that sends no feature report.
  * Priority order:
@@ -481,6 +510,9 @@ function deriveGateFromRails(state: CapabilityState, op: RailOperation, scope: G
         const advisory = firstAdvisory(readyRails)
         return advisory ? { kind: 'ready', advisory } : { kind: 'ready' }
     }
+
+    // A hold only support can lift outranks every rail fix: no verify, restart or email step clears it.
+    if (state.identityHold) return supportCaseGate(state.identityHold, undefined, null)
 
     // 3. provide-email
     const emailFix = candidates.find(({ verdict }) => verdict.blocking?.selfHealKind === 'provide-email')
@@ -521,6 +553,7 @@ function deriveGateFromRails(state: CapabilityState, op: RailOperation, scope: G
             userMessage: verdictMessage(actionableFixable),
             reason: actionableFixable.rail.reason,
             actionKey: actionableFixable.verdict.nextAction?.key,
+            nextAction: actionableFixable.verdict.nextAction,
         }
     }
 
@@ -534,7 +567,14 @@ function deriveGateFromRails(state: CapabilityState, op: RailOperation, scope: G
     // resubmit endpoint but with nothing concrete to click — ranked below
     // pending (matches the old 7b placement: mid-provisioning wins).
     if (fixables.length > 0) {
-        return { kind: 'fixable-rejection', userMessage: verdictMessage(fixables[0]), reason: fixables[0].rail.reason }
+        // When Bridge waits on its hosted check, a resubmit only re-runs the ID check Bridge already has.
+        const hosted = fixables[0].rail.provider === 'bridge' ? dueBridgeHostedAction(state, actionByKey) : undefined
+        return {
+            kind: 'fixable-rejection',
+            userMessage: verdictMessage(fixables[0]),
+            reason: fixables[0].rail.reason,
+            ...(hosted ? { actionKey: hosted.key, nextAction: hosted } : {}),
+        }
     }
 
     // 9. waiting-on-provider — only wait-marked verdicts remain in scope
@@ -542,7 +582,12 @@ function deriveGateFromRails(state: CapabilityState, op: RailOperation, scope: G
         ({ verdict }) => verdict.status === 'pending' && verdict.nextAction?.kind === 'wait'
     )
     if (waiting) {
-        return { kind: 'waiting-on-provider', userMessage: verdictMessage(waiting), reason: waiting.rail.reason }
+        return {
+            kind: 'waiting-on-provider',
+            userMessage: verdictMessage(waiting),
+            reason: waiting.rail.reason,
+            ...(waiting.rail.pendingSince ? { pendingSince: waiting.rail.pendingSince, railId: waiting.rail.id } : {}),
+        }
     }
 
     // 10/11. no functional rail in scope. Distinguish identity-not-cleared vs
