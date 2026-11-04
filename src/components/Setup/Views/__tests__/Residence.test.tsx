@@ -248,8 +248,7 @@ describe('ResidenceStep', () => {
         const brazil = within(screen.getByRole('heading', { level: 2, name: 'Brazil' }).closest('section')!)
         for (const item of [
             'PIX payments & transfers',
-            'US dollar bank transfers',
-            'Euro bank transfers',
+            'Bank account: US dollar, euro, British pound or Mexican peso',
             'Peanut card',
         ])
             expect(brazil.getByText(item)).toBeInTheDocument()
@@ -283,7 +282,7 @@ describe('ResidenceStep', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
         const brazil = within(screen.getByRole('heading', { level: 2, name: 'Brazil' }).closest('section')!)
         expect(brazil.getByText('PIX payments & transfers')).toBeInTheDocument()
-        expect(brazil.getByText('US dollar bank transfers')).toBeInTheDocument()
+        expect(brazil.getByText('Bank account: US dollar, euro, British pound or Mexican peso')).toBeInTheDocument()
         expect(brazil.getByText('Peanut card')).toBeInTheDocument()
     })
 
