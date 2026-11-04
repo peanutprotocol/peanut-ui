@@ -1,6 +1,7 @@
 import React from 'react'
 import { render } from '@testing-library/react'
 import { personFrom } from '@/lib/person/person'
+import { firstSquareBoxPx } from '@/test-utils/avatar-box'
 import { IntlWrapper } from '@/test-utils/intl'
 import { TransactionDetailsHeaderCard } from '../TransactionDetailsHeaderCard'
 
@@ -29,18 +30,6 @@ const renderHeader = (props: HeaderProps) =>
         />,
         { wrapper: IntlWrapper }
     )
-
-// the box the slot's first sized element draws, in px
-function slotPx(container: HTMLElement): number[] {
-    const sized = Array.from(container.querySelectorAll('*')).filter((el) =>
-        /(?:^|\s)(size-\d+|h-\d+)(?:\s|$)/.test(el.className.toString())
-    )
-    // the slot sits above the title, so it is the first sized element
-    const cls = sized[0].className.toString()
-    const size = cls.match(/(?:^|\s)size-(\d+)(?:\s|$)/)
-    if (size) return [Number(size[1]) * 4]
-    return [Number(cls.match(/(?:^|\s)h-(\d+)(?:\s|$)/)![1]) * 4, Number(cls.match(/(?:^|\s)w-(\d+)(?:\s|$)/)![1]) * 4]
-}
 
 // TASK-24388: the payment details header shows the counterparty at 96 px,
 // and whatever stands in their place takes the same 96 px slot.
@@ -71,6 +60,6 @@ describe('TransactionDetailsHeaderCard avatar slot is 96 px', () => {
 
     test.each(cases)('%s', (_label, props) => {
         const { container } = renderHeader(props)
-        for (const px of slotPx(container)) expect(px).toBe(96)
+        expect(firstSquareBoxPx(container)).toBe(96)
     })
 })

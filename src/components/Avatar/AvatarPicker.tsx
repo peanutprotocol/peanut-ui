@@ -181,7 +181,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                         letterOf={initial ? (username ?? '') : ''}
                                         avatarKey={initial ? initialKey : key}
                                         size="xl"
-                                        className="aspect-square h-auto w-3/5"
+                                        // a chooser tile, not a person avatar: the tile sets the
+                                        // width, and the art-failed fallback keeps the tile's own
+                                        // Heading/S letter and 32 glyph instead of the xl steps
+                                        className="aspect-square h-auto w-3/5 text-heading-s [&_svg]:size-8"
                                     />
                                     {/* Two lines reserved for every name, so a roll that deals only one-line
                                         names keeps the rows as tall as one with a wrapped name (TASK-23054). */}

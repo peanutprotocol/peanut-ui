@@ -1,7 +1,7 @@
 import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
-import { Button } from '@/components/0_Bruddle/Button'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -53,6 +53,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const tGlobal = useTranslations('global')
     const tKyc = useTranslations('kyc')
     const toast = useToast()
+    const { triggerHaptic } = useAppHaptic()
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
@@ -100,16 +101,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     one is also the picker button. */}
                 {isSelfProfile ? (
                     onChangeAvatar ? (
-                        <Button
+                        // The sticker itself is the button: plain on the page like
+                        // every sticker (no circle, no shadow), so its art is never
+                        // cut by a border. A 96 sticker overflowed the old 96 circle.
+                        <button
                             type="button"
-                            variant="secondary"
-                            shadowSize="4"
-                            onClick={onChangeAvatar}
+                            onClick={() => {
+                                triggerHaptic()
+                                onChangeAvatar()
+                            }}
                             aria-label={tAvatar('change')}
-                            className="size-24 shrink-0 rounded-full p-0"
+                            className="shrink-0 rounded-full focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-action-focus"
                         >
                             {ownAvatar}
-                        </Button>
+                        </button>
                     ) : (
                         ownAvatar
                     )

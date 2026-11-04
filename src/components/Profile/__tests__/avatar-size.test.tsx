@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { personFrom } from '@/lib/person/person'
+import { firstSquareBoxPx } from '@/test-utils/avatar-box'
 import { renderWithIntl } from '@/test-utils/intl'
 import { AVATAR_SIZE_CLASSES, type AvatarSize } from '../avatar-size.consts'
 import AvatarWithBadge from '../AvatarWithBadge'
@@ -17,24 +18,6 @@ jest.mock('@/components/Avatar/useAvatarArt', () => ({ useAvatarArt: () => ({}) 
 const BOX: Record<AvatarSize, string[]> = {
     s: ['h-8', 'w-8'],
     xl: ['h-24', 'w-24'],
-}
-
-// the size a rendered slot occupies, whichever element (sticker, initials,
-// flag, bubble) the branch drew: h-N w-N or size-N, read off the outer box
-function boxOf(el: Element): string {
-    const cls = el.className.toString()
-    const size = cls.match(/(?:^|\s)size-(\d+)(?:\s|$)/)
-    if (size) return `${Number(size[1]) * 4}`
-    const h = cls.match(/(?:^|\s)h-(\d+)(?:\s|$)/)
-    const w = cls.match(/(?:^|\s)w-(\d+)(?:\s|$)/)
-    return h && w && h[1] === w[1] ? `${Number(h[1]) * 4}` : `none (${cls})`
-}
-
-// the element that carries the size: AvatarWithBadge wraps its circle in an
-// unsized `relative` div
-const sizedBox = (container: HTMLElement): Element => {
-    const first = container.firstElementChild!
-    return first.classList.contains('relative') ? first.firstElementChild! : first
 }
 
 describe('AvatarSize', () => {
@@ -56,9 +39,9 @@ describe('AvatarSize', () => {
 
     it('draws the initials fallback at 32 by default and 96 at xl', () => {
         const small = render(<AvatarWithBadge name="Satoshi Nakamoto" />)
-        expect(boxOf(sizedBox(small.container))).toBe('32')
+        expect(firstSquareBoxPx(small.container)).toBe(32)
         const large = render(<AvatarWithBadge name="Satoshi Nakamoto" size="xl" />)
-        expect(boxOf(sizedBox(large.container))).toBe('96')
+        expect(firstSquareBoxPx(large.container)).toBe(96)
     })
 })
 
@@ -81,11 +64,11 @@ describe('TransactionAvatarBadge fills its slot on every branch', () => {
 
     test.each(branches)('%s', (_label, props) => {
         for (const [size, px] of [
-            ['s', '32'],
-            ['xl', '96'],
+            ['s', 32],
+            ['xl', 96],
         ] as const) {
             const { container, unmount } = renderWithIntl(<TransactionAvatarBadge {...props} size={size} />)
-            expect(boxOf(sizedBox(container))).toBe(px)
+            expect(firstSquareBoxPx(container)).toBe(px)
             unmount()
         }
     })
@@ -94,6 +77,6 @@ describe('TransactionAvatarBadge fills its slot on every branch', () => {
         const { container } = renderWithIntl(
             <TransactionAvatarBadge transactionType="send" userName="satoshi" initials="S" person={satoshi} />
         )
-        expect(boxOf(sizedBox(container))).toBe('32')
+        expect(firstSquareBoxPx(container)).toBe(32)
     })
 })

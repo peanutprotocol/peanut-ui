@@ -214,8 +214,9 @@ describe('ProfileHeader avatar', () => {
             <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={onChangeAvatar} />
         )
 
-        // the DS Button, so the pressed state comes from `.btn-*`
-        expect(avatarButton()).toHaveClass('btn')
+        // TASK-24388: the sticker is the button, plain on the page — no
+        // bordered, shadowed circle for its art to cross
+        expect(avatarButton()).not.toHaveClass('btn')
 
         fireEvent.click(avatarButton()!)
 
@@ -313,14 +314,17 @@ describe('ProfileHeader avatar size', () => {
         expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
     })
 
-    it('grows the profile tab avatar button to 96 around a 96 avatar', () => {
+    it('makes the 96 sticker itself the profile tab button, with no circle around it', () => {
         const { container } = renderWithIntl(
             <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={jest.fn()} />
         )
 
-        expect(avatarButton()).toHaveClass('size-24')
-        expect(avatarButton()).not.toHaveClass('size-16')
-        expect(avatarButton()).toContainElement(stickerBox(container))
+        const button = avatarButton()!
+        expect(button).toContainElement(stickerBox(container))
         expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+        // the button adds no box of its own: no border, shadow or fixed size
+        expect(button.className).not.toMatch(/(?:^|\s)(btn|border|shadow|size-\d+|[hw]-\d+)(?:-|\s|$)/)
+        // keyboard focus stays visible
+        expect(button).toHaveClass('focus-visible:outline-action-focus')
     })
 })

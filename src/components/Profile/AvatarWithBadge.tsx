@@ -96,9 +96,9 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
             {/* the main avatar circle */}
             <div
                 className={twMerge(
-                    // no font-weight here: the size classes carry the board
-                    // weights (Label/M is 800, Body/M-SemiBold 600, Heading/S
-                    // 800) and a blanket bold rendered all three at 700.
+                    // no font-weight here: the size classes carry the type
+                    // tokens' own weights (Label/M and Heading/M are both 800),
+                    // and a blanket bold would render them at 700.
                     `flex items-center justify-center rounded-full`,
                     AVATAR_SIZE_CLASSES[size],
                     className
