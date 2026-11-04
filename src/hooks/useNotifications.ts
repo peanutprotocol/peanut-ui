@@ -16,7 +16,11 @@ import { useAppLocked } from '@/hooks/useAppLocked'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
-import { PUSH_PROMPT_TRIGGERS, type PermissionRequestTrigger, type PushPromptTrigger } from '@/constants/push-prompt.consts'
+import {
+    PUSH_PROMPT_TRIGGERS,
+    type PermissionRequestTrigger,
+    type PushPromptTrigger,
+} from '@/constants/push-prompt.consts'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
