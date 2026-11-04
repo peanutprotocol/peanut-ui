@@ -2,13 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-
-export interface PageErrorScreenStrings {
-    title: string
-    body: string
-    tryAgain: string
-    goHome: string
-}
+import type { PageErrorScreenStrings } from '@/components/Global/pageErrorScreen.types'
 
 /**
  * "This page did not load" fallback shared by the route-level error.tsx

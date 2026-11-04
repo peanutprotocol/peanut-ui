@@ -1,41 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
-import { PageErrorScreen, type PageErrorScreenStrings } from '@/components/Global/PageErrorScreen'
+import { PageErrorScreen } from '@/components/Global/PageErrorScreen'
+import { PAGE_ERROR_STRINGS } from '@/components/Global/pageErrorStrings'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 import { useUrlLocale } from '@/i18n/useUrlLocale'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-
-// Inlined rather than read from the catalogs: this is a client component, and
-// importing '@/i18n' would ship every locale's full catalog with each marketing
-// route's client chunk for four fallback strings. Keep in sync with the
-// error* keys in src/i18n/{locale}.json.
-const STRINGS: Record<Locale, PageErrorScreenStrings> = {
-    en: {
-        title: 'Something went wrong',
-        body: 'We had trouble loading this page. Please try again or go back to the homepage.',
-        tryAgain: 'Try again',
-        goHome: 'Go home',
-    },
-    'es-419': {
-        title: 'Algo salió mal',
-        body: 'Tuvimos problemas para cargar esta página. Inténtalo de nuevo o vuelve al inicio.',
-        tryAgain: 'Intentar de nuevo',
-        goHome: 'Ir al inicio',
-    },
-    'es-ar': {
-        title: 'Algo salió mal',
-        body: 'Tuvimos problemas para cargar esta página. Probá de nuevo o volvé al inicio.',
-        tryAgain: 'Intentar de nuevo',
-        goHome: 'Ir al inicio',
-    },
-    'pt-br': {
-        title: 'Algo deu errado',
-        body: 'Tivemos um problema para carregar esta página. Tente novamente ou volte para a página inicial.',
-        tryAgain: 'Tentar novamente',
-        goHome: 'Ir para o início',
-    },
-}
+import { DEFAULT_LOCALE } from '@/i18n/types'
 
 export default function MarketingError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
     const locale = useUrlLocale()
@@ -49,7 +19,7 @@ export default function MarketingError({ error, reset }: { error: Error & { dige
 
     return (
         <PageErrorScreen
-            strings={STRINGS[locale]}
+            strings={PAGE_ERROR_STRINGS[locale]}
             homeHref={locale === DEFAULT_LOCALE ? '/' : `/${locale}`}
             onRetry={reset}
         />
