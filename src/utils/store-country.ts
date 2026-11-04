@@ -1,4 +1,3 @@
-import countries from 'i18n-iso-countries'
 import { isIOSNative } from './capacitor'
 import { nativeCapability } from './native-capability'
 
@@ -38,7 +37,11 @@ export async function getStoreCountry(): Promise<StoreCountry | null> {
         // responses instead of letting an arbitrary string grant availability.
         if (typeof code !== 'string') return null
         const normalized = code.toUpperCase()
-        if (!/^[A-Z]{2,3}$/.test(normalized) || !countries.isValid(normalized)) return null
+        if (!/^[A-Z]{2,3}$/.test(normalized)) return null
+        // Loaded here, on native only: a static import put the country table in
+        // every web bundle that reaches this module, the landing pages included.
+        const { default: countries } = await import('i18n-iso-countries')
+        if (!countries.isValid(normalized)) return null
         const countryCode = normalized.length === 3 ? countries.alpha3ToAlpha2(normalized) : normalized
         return countryCode ? { countryCode, source } : null
     } finally {
