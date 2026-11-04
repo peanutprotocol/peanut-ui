@@ -632,6 +632,8 @@ jobs:
 
             - name: Build
               env:
+                  # Node 20's implicit ~2 GiB heap exhausts on this build (#3900).
+                  NODE_OPTIONS: --max-old-space-size=4096
                   # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
                   # ignored, and every screen redirects to /setup. It is a
                   # NEXT_PUBLIC_ value, so it must be set on the build, not on
@@ -898,6 +900,8 @@ jobs:
             - name: Build
               id: build
               env:
+                  # Node 20's implicit ~2 GiB heap exhausts on this build (#3900).
+                  NODE_OPTIONS: --max-old-space-size=4096
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
