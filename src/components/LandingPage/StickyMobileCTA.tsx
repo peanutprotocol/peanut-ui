@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { LandingStrings } from './landingStrings'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { useLandingStoreCta } from '@/hooks/useLandingStoreCta'
 import DownloadAppLink from '@/components/Migration/DownloadAppLink'
 
 export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
@@ -16,7 +16,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const exitTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
     const rafId = useRef(0)
     const lastVisible = useRef(false)
-    const migrationOn = useMigrationFlag()
+    const storeCta = useLandingStoreCta()
 
     useEffect(() => {
         if (visible) {
@@ -65,7 +65,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                         visible ? 'sticky-cta-in' : 'sticky-cta-out'
                     }`}
                 >
-                    {migrationOn ? (
+                    {storeCta ? (
                         <DownloadAppLink
                             surface={MIGRATION_SURFACES.LANDING_HERO}
                             variant="primary"

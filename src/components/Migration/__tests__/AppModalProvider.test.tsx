@@ -17,6 +17,7 @@ jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     openStore: (...args: unknown[]) => mockOpenStore(...args),
+    isPwaSunsetPending: () => false,
 }))
 jest.mock('@/components/Migration/ScanToDownloadModal', () => ({
     __esModule: true,

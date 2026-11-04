@@ -2,7 +2,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { BASE_URL, IS_DEV } from '@/constants/general.consts'
 import { PWA_SUNSET_FLAG, STORE_URL, type MigrationSurface, type StoreKind } from '@/constants/migration.consts'
-import { isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
+import { areFeatureFlagsLoaded, isFeatureFlagEnabled } from '@/utils/featureFlag.utils'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import {
@@ -46,6 +46,19 @@ export function isPwaSunsetOn(): boolean {
     }
     if (isVercelPreviewDeployment()) return false
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
+}
+
+/**
+ * PostHog is initialized but has not returned flags yet, which takes seconds on
+ * a first visit. Previews never wait: they keep web signup.
+ */
+export function isPwaSunsetPending(): boolean {
+    if (isVercelPreviewDeployment()) return false
+    try {
+        return posthog.__loaded && !areFeatureFlagsLoaded()
+    } catch {
+        return false
+    }
 }
 
 /** The store this device downloads from. Desktop has none: it gets the QR code instead. */

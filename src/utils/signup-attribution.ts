@@ -290,6 +290,22 @@ export function readSignupAttribution(): SignupAttributionContext | null {
     return stored
 }
 
+// document.referrer belongs to the loaded document, so only that document may use it.
+function isLoadedDocument(): boolean {
+    try {
+        const [entry] = performance.getEntriesByType('navigation')
+        return !!entry && new URL(entry.name).pathname === window.location.pathname
+    } catch {
+        return false
+    }
+}
+
+/** Whether this visit names a campaign (utm_*) or arrived from another site. */
+export function hasMarketingTouch(): boolean {
+    const touch = currentTouch(isLoadedDocument())
+    return !!(touch?.utmSource || touch?.utmMedium || touch?.utmCampaign || touch?.utmContent || touch?.referrerHost)
+}
+
 export function captureSignupAttribution({
     includeDocumentReferrer = false,
 }: { includeDocumentReferrer?: boolean } = {}): SignupAttributionContext | null {

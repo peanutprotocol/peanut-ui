@@ -12,7 +12,7 @@ import type { LandingStrings } from './landingStrings'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { LandingDownloadCta } from './LandingDownloadCta'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
+import { useLandingStoreCta } from '@/hooks/useLandingStoreCta'
 import { useLocale } from 'next-intl'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import type { MarqueeChip } from '@/lib/landingContent'
@@ -38,10 +38,10 @@ export function LandingPageClient({
     footerSlot,
 }: LandingPageClientProps) {
     const { isFooterVisible } = useFooterVisibility()
-    const migrationOn = useMigrationFlag()
+    const storeCta = useLandingStoreCta()
     const locale = useLocale()
 
-    const primaryCta = migrationOn ? undefined : heroConfig.primaryCta
+    const primaryCta = storeCta ? undefined : heroConfig.primaryCta
 
     // Only the words with a real article behind them become links; the rest
     // stay plain text. Words come from the content system's marquee list and are
@@ -72,7 +72,7 @@ export function LandingPageClient({
                 primaryCta={primaryCta}
                 buttonVisible={!isFooterVisible}
                 strings={strings}
-                customCta={migrationOn ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
+                customCta={storeCta ? <LandingDownloadCta subtext={heroConfig.primaryCta.subtext} /> : undefined}
             />
             <Marquee {...marqueeProps} />
             {foldsSlot}
