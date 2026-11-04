@@ -182,7 +182,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     />
                 )}
 
-                {/* Register early for browser caching, notifications, and cache invalidation. */}
+                {/* Listen for updates early; register once the page has loaded and gone idle. */}
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
@@ -198,7 +198,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                     .catch(() => {});
                             }
                             if ('serviceWorker' in navigator && !window.Capacitor) {
-                                window.addEventListener('load', async () => {
+                                /*
+                                 * Register after load plus idle, so the worker's install
+                                 * never competes with a first-time visitor's LCP or first
+                                 * tap. Nothing awaits serviceWorker.ready or .controller,
+                                 * and web push runs on OneSignal's own /onesignal/ worker,
+                                 * so a later registration is safe on every route.
+                                 */
+                                const registerSW = async () => {
                                     try {
                                         const registration = await navigator.serviceWorker.register('/sw.js', {
                                             scope: '/',
@@ -219,6 +226,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                         // Online use can continue without the optional SW.
                                         // Keep a breadcrumb without creating an app-crash event.
                                         console.warn('SW registration failed:', error);
+                                    }
+                                };
+                                window.addEventListener('load', () => {
+                                    if ('requestIdleCallback' in window) {
+                                        window.requestIdleCallback(registerSW, { timeout: 5000 });
+                                    } else {
+                                        setTimeout(registerSW, 2000);
                                     }
                                 });
 
