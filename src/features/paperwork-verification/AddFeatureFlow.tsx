@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -19,6 +19,7 @@ import type {
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     stepsLabel,
+    trackKycControl,
     trackPaperworkVerification,
     PaperworkVerificationTrackingProvider,
     type PaperworkVerificationTrackingContext,
@@ -64,6 +65,7 @@ export function AddFeatureQuestions({
     onBack,
     onDone,
     onReady = onDone,
+    onResidence,
 }: {
     feature: PaperworkVerificationFeature
     /** A step the caller was told is missing (the card application); asked even when the read says answered. */
@@ -71,6 +73,8 @@ export function AddFeatureQuestions({
     onBack: () => void
     onDone: () => void
     onReady?: () => void
+    /** the residence the questions were read for, so the screen after them reports it too */
+    onResidence?: (residence: string | null) => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tKyc = useTranslations('kyc')
@@ -95,6 +99,8 @@ export function AddFeatureQuestions({
     onDoneRef.current = onDone
     const onReadyRef = useRef(onReady)
     onReadyRef.current = onReady
+    const onResidenceRef = useRef(onResidence)
+    onResidenceRef.current = onResidence
     const routerRef = useRef(router)
     routerRef.current = router
     const loadRef = useRef<(required?: string | null) => Promise<void>>(async () => {})
@@ -132,6 +138,7 @@ export function AddFeatureQuestions({
                 const questions = await getKycQuestions(feature)
                 const steps = questions.steps.filter((s) => !s.answered || s.id === required)
                 setResidence(questions.residence)
+                onResidenceRef.current?.(questions.residence)
                 trackingRef.current = { ...trackingRef.current, residence: questions.residence }
                 track(ANALYTICS_EVENTS.KYC_PV_ADD_FEATURE_VIEWED, {
                     steps: stepsLabel(steps),
@@ -158,6 +165,11 @@ export function AddFeatureQuestions({
         void load(firstRequired.current)
     }, [load])
 
+    const tracked = (screen: ReactNode) => (
+        <PaperworkVerificationTrackingProvider value={tracking}>{screen}</PaperworkVerificationTrackingProvider>
+    )
+    const tapped = (control: string) => trackKycControl({ ctx: tracking, screenId: 'add-feature' }, control, 'tap')
+
     if (state.kind === 'loading')
         return (
             <div className="flex h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full items-center justify-center bg-white">
@@ -165,11 +177,12 @@ export function AddFeatureQuestions({
             </div>
         )
     if (state.kind === 'action-required')
-        return <FeatureAction action={state.action} onBack={onBack} onDone={() => onDoneRef.current()} />
+        return tracked(<FeatureAction action={state.action} onBack={onBack} onDone={() => onDoneRef.current()} />)
     if (state.kind === 'refused')
-        return (
+        return tracked(
             <VerifyHeroLayout
                 pose="sad"
+                screenId="add-feature"
                 onBack={onBack}
                 title={t(`addLater.title.${feature}`)}
                 description={tKyc(
@@ -179,7 +192,13 @@ export function AddFeatureQuestions({
                 footer={
                     <VerifyFooter
                         actions={
-                            <Button className="w-full" onClick={onBack}>
+                            <Button
+                                className="w-full"
+                                onClick={() => {
+                                    tapped('done')
+                                    onBack()
+                                }}
+                            >
                                 {t('addLater.doneCta')}
                             </Button>
                         }
@@ -188,16 +207,24 @@ export function AddFeatureQuestions({
             />
         )
     if (state.kind === 'failed')
-        return (
+        return tracked(
             <VerifyHeroLayout
                 pose="sad"
+                screenId="add-feature"
                 onBack={onBack}
                 title={t('loadFailed.title')}
                 description={t('loadFailed.description')}
                 footer={
                     <VerifyFooter
                         actions={
-                            <Button shadowSize="4" className="w-full" onClick={() => void load(firstRequired.current)}>
+                            <Button
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={() => {
+                                    tapped('retry')
+                                    void load(firstRequired.current)
+                                }}
+                            >
                                 {t('loadFailed.retry')}
                             </Button>
                         }
@@ -238,7 +265,21 @@ export function AddFeatureQuestions({
 /** /verify?feature=…: the add-later screen, then the "all set" screen back to where the user came from. */
 export function AddFeatureFlow({ feature, onExit }: { feature: PaperworkVerificationFeature; onExit: () => void }) {
     const [ready, setReady] = useState(false)
+    const [residence, setResidence] = useState<string | null>(null)
     const done = useCallback(() => setReady(true), [])
-    if (ready) return <FeatureReadyScreen feature={feature} onDone={onExit} />
-    return <AddFeatureQuestions feature={feature} onBack={onExit} onDone={done} onReady={onExit} />
+    if (ready)
+        return (
+            <PaperworkVerificationTrackingProvider value={{ flow: 'add_later', residence, feature }}>
+                <FeatureReadyScreen feature={feature} onDone={onExit} />
+            </PaperworkVerificationTrackingProvider>
+        )
+    return (
+        <AddFeatureQuestions
+            feature={feature}
+            onBack={onExit}
+            onDone={done}
+            onReady={onExit}
+            onResidence={setResidence}
+        />
+    )
 }

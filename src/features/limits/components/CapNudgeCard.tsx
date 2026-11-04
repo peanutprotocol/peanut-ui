@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 import { startKycAction } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -201,13 +202,15 @@ export default function CapNudgeCard() {
                 {error && <p className="text-center text-body-xs text-foreground-error">{error}</p>}
             </Card>
 
-            <SumsubKycWrapper
-                visible={token !== null}
-                accessToken={token}
-                onClose={onClose}
-                onComplete={onSubmit}
-                onRefreshToken={refreshToken}
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={token !== null}
+                    accessToken={token}
+                    onClose={onClose}
+                    onComplete={onSubmit}
+                    onRefreshToken={refreshToken}
+                />
+            </KycControlFlowProvider>
         </>
     )
 }

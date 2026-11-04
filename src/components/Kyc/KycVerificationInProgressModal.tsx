@@ -7,6 +7,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import { type KycModalPhase } from '@/interfaces/interfaces'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -21,6 +22,14 @@ interface KycVerificationInProgressModalProps {
     isLoadingTos?: boolean
     preparingTimedOut?: boolean
     preparingStage?: 'initial' | 'configuring' | 'slow'
+}
+
+const PHASE_SCREEN: Record<KycModalPhase, string> = {
+    preparing: 'account-setup',
+    verifying: 'id-checking',
+    bridge_tos: 'tos',
+    supplement: 'poa',
+    complete: 'id-confirmed',
 }
 
 // multi-phase modal shown during and after kyc verification.
@@ -38,6 +47,11 @@ export const KycVerificationInProgressModal = ({
     preparingTimedOut,
     preparingStage = 'initial',
 }: KycVerificationInProgressModalProps) => {
+    const { track } = useKycControl(PHASE_SCREEN[phase], 'kyc_legacy')
+    const handleClose = () => {
+        track('verification', 'dismiss')
+        onClose()
+    }
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -56,6 +70,7 @@ export const KycVerificationInProgressModal = ({
     }, [isOpen, phase])
 
     const handleGoHome = () => {
+        track('home', 'tap')
         onClose()
         router.push('/home')
     }
@@ -67,7 +82,7 @@ export const KycVerificationInProgressModal = ({
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
+                onClose={handleClose}
                 tone="attention"
                 icon={'clock' as IconName}
                 title={t('progress.verifyingTitle')}
@@ -83,7 +98,7 @@ export const KycVerificationInProgressModal = ({
                         shadowSize: '4',
                     },
                 ]}
-                footer={<PeanutDoesntStoreAnyPersonalInformation />}
+                footer={<PeanutDoesntStoreAnyPersonalInformation onOpen={() => track('privacy_help', 'tap')} />}
             />
         )
     }
@@ -122,7 +137,7 @@ export const KycVerificationInProgressModal = ({
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
+                onClose={handleClose}
                 tone="attention"
                 isLoadingIcon
                 title={title}
@@ -150,7 +165,7 @@ export const KycVerificationInProgressModal = ({
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
+                onClose={handleClose}
                 tone="success"
                 icon={'check' as IconName}
                 title={t('bridgeTos.title')}
@@ -160,7 +175,11 @@ export const KycVerificationInProgressModal = ({
                     {
                         // Continue, not Accept: the user accepts on Bridge's page
                         text: tCommon('continue'),
-                        onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
+                        onClick: () => {
+                            track('continue', 'tap')
+                            if (!tosError && onAcceptTerms) onAcceptTerms()
+                            else onClose()
+                        },
                         disabled: isLoadingTos,
                         variant: 'primary',
                         className: 'w-full',
@@ -174,10 +193,14 @@ export const KycVerificationInProgressModal = ({
     }
 
     if (phase === 'supplement') {
+        const skipSupplement = onSkipSupplement ?? onClose
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onSkipSupplement ?? onClose}
+                onClose={() => {
+                    track('poa', 'dismiss')
+                    skipSupplement()
+                }}
                 tone="success"
                 icon={'check' as IconName}
                 title={t('supplement.proofOfAddressTitle')}
@@ -185,7 +208,11 @@ export const KycVerificationInProgressModal = ({
                 ctas={[
                     {
                         text: t('supplement.proofOfAddressCta'),
-                        onClick: onStartSupplement ?? onClose,
+                        onClick: () => {
+                            track('continue', 'tap')
+                            if (onStartSupplement) onStartSupplement()
+                            else onClose()
+                        },
                         variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
@@ -194,7 +221,10 @@ export const KycVerificationInProgressModal = ({
                 ]}
                 tertiaryCta={{
                     text: t('supplement.later'),
-                    onClick: onSkipSupplement ?? onClose,
+                    onClick: () => {
+                        track('not_now', 'tap')
+                        skipSupplement()
+                    },
                     'data-testid': 'kyc-supplement-later',
                 }}
             />
@@ -209,7 +239,7 @@ export const KycVerificationInProgressModal = ({
     return (
         <ActionModal
             visible={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             tone="success"
             icon={'check' as IconName}
             title={t('progress.completeTitle')}
@@ -217,7 +247,11 @@ export const KycVerificationInProgressModal = ({
             ctas={[
                 {
                     text: tCommon('continue'),
-                    onClick: onContinue ?? onClose,
+                    onClick: () => {
+                        track('continue', 'tap')
+                        if (onContinue) onContinue()
+                        else onClose()
+                    },
                     variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',

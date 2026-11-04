@@ -5,6 +5,7 @@ import { KycFailedContent } from '../KycFailedContent'
 import Card from '@/components/Global/Card'
 import { useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 // this component shows the identity-verification status when it's failed/rejected.
 //
@@ -52,6 +53,7 @@ export const KycFailed = ({
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const format = useFormatter()
+    const control = useKycControl('kyc-status', 'kyc_status')
 
     const rejectedOn = useMemo(() => {
         if (!reviewedAt) return t('notAvailable')
@@ -79,7 +81,15 @@ export const KycFailed = ({
             <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} terminalMessage={terminalMessage} />
 
             {isTerminal ? (
-                <Button variant="primary" className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    shadowSize="4"
+                    onClick={() => {
+                        control.track('support', 'tap')
+                        onContactSupport?.()
+                    }}
+                >
                     {tCommon('contactSupport')}
                 </Button>
             ) : (
@@ -88,7 +98,10 @@ export const KycFailed = ({
                     variant="primary"
                     className="w-full"
                     shadowSize="4"
-                    onClick={() => onRetry()}
+                    onClick={() => {
+                        control.track('retry', 'tap')
+                        onRetry()
+                    }}
                     disabled={isLoading}
                 >
                     {isLoading ? tCommon('loading') : t('retryVerification')}

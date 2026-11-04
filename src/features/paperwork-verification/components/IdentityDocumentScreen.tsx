@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { usePaperworkVerificationTrack } from '../analytics'
+import { useKycControl, usePaperworkVerificationTrack } from '../analytics'
 import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -146,6 +146,8 @@ export function IdentityDocumentScreen({
     const [limited, setLimited] = useState<{ choice: Choice; source: 'list' | 'other' } | null>(null)
     const [limitedOpen, setLimitedOpen] = useState(false)
     const track = usePaperworkVerificationTrack()
+    const controls = useKycControl('documents')
+    const otherControls = useKycControl('other-document')
     useEffect(() => {
         track(ANALYTICS_EVENTS.KYC_PV_ID_VIEWED, {
             step: 'id',
@@ -190,6 +192,8 @@ export function IdentityDocumentScreen({
     }
     const pick = (c: Choice, source: 'list' | 'other') => {
         if (busy) return
+        const from = source === 'other' ? otherControls : controls
+        from.track('document_type', 'select', c.type)
         if (closedBy(c).length === 0) return choose(c, source)
         setOtherOpen(false)
         setLimited({ choice: c, source })
@@ -252,7 +256,10 @@ export function IdentityDocumentScreen({
             <div className="absolute inset-x-0 top-4 z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center px-4">
                 <Button
                     variant="ghost"
-                    onClick={onBack}
+                    onClick={() => {
+                        controls.track('back', 'tap')
+                        onBack()
+                    }}
                     className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'bg-white')}
                     aria-label={t('back')}
                     data-testid="verify-back"
@@ -305,6 +312,7 @@ export function IdentityDocumentScreen({
                                 chevron
                                 disabled={busy}
                                 onClick={() => {
+                                    controls.track('other_document', 'open')
                                     track(ANALYTICS_EVENTS.KYC_PV_PICKER_OPENED, {
                                         step: 'id',
                                         field: 'other_documents',
@@ -325,7 +333,13 @@ export function IdentityDocumentScreen({
                 {onChangeResidence && (
                     <p className="flex flex-wrap items-baseline gap-1 text-body-s text-foreground-secondary">
                         <span>{t('documentList.noneFit')}</span>
-                        <LinkButton onClick={onChangeResidence} data-testid="verify-id-change-residence">
+                        <LinkButton
+                            onClick={() => {
+                                controls.track('change_residence', 'tap')
+                                onChangeResidence()
+                            }}
+                            data-testid="verify-id-change-residence"
+                        >
                             {t('documentList.changeResidence')}
                         </LinkButton>
                     </p>
@@ -334,7 +348,13 @@ export function IdentityDocumentScreen({
                     {t('midpoint.privacy')}
                 </p>
             </div>
-            <Drawer open={otherOpen} onOpenChange={setOtherOpen}>
+            <Drawer
+                open={otherOpen}
+                onOpenChange={(open) => {
+                    if (!open) controls.track('other_document', 'dismiss')
+                    setOtherOpen(open)
+                }}
+            >
                 <DrawerContent>
                     <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-other-drawer">
                         <DrawerTitle>{t('documentList.otherTitle')}</DrawerTitle>
@@ -348,14 +368,23 @@ export function IdentityDocumentScreen({
                             variant="secondary"
                             shadowSize="4"
                             className="w-full"
-                            onClick={() => setOtherOpen(false)}
+                            onClick={() => {
+                                otherControls.track('back_to_list', 'tap')
+                                setOtherOpen(false)
+                            }}
                         >
                             {t('documentList.backToList')}
                         </Button>
                     </div>
                 </DrawerContent>
             </Drawer>
-            <Drawer open={limitedOpen} onOpenChange={setLimitedOpen}>
+            <Drawer
+                open={limitedOpen}
+                onOpenChange={(open) => {
+                    if (!open) controls.track('limited_document', 'dismiss')
+                    setLimitedOpen(open)
+                }}
+            >
                 <DrawerContent>
                     {limited && (
                         <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-limited-drawer">
@@ -383,6 +412,7 @@ export function IdentityDocumentScreen({
                                 shadowSize="4"
                                 className="w-full"
                                 onClick={() => {
+                                    controls.track('limited_continue', 'tap')
                                     setLimitedOpen(false)
                                     choose(limited.choice, limited.source)
                                 }}
@@ -394,7 +424,10 @@ export function IdentityDocumentScreen({
                                 variant="secondary"
                                 shadowSize="4"
                                 className="w-full"
-                                onClick={() => setLimitedOpen(false)}
+                                onClick={() => {
+                                    controls.track('limited_choose_another', 'tap')
+                                    setLimitedOpen(false)
+                                }}
                                 data-testid="verify-id-limited-back"
                             >
                                 {t('documentList.chooseAnother')}

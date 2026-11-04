@@ -19,6 +19,8 @@ interface DocsLinkProps {
     openInDrawer?: boolean
     children: ReactNode
     'aria-label'?: string
+    /** the link was used, whichever way it opens */
+    onOpen?: () => void
 }
 
 /**
@@ -45,7 +47,7 @@ export function localizeDocsHref(href: string, appLocale: string): string {
  * An `/en/…` path is retargeted at the reader's app locale, so call sites can
  * keep writing the canonical English path.
  */
-export default function DocsLink({ href, className, children, openInDrawer = false, ...rest }: DocsLinkProps) {
+export default function DocsLink({ href, className, children, openInDrawer = false, onOpen, ...rest }: DocsLinkProps) {
     const nativePlatform = useNativePlatform()
 
     const locale = useLocale()
@@ -65,10 +67,14 @@ export default function DocsLink({ href, className, children, openInDrawer = fal
                 role="button"
                 tabIndex={0}
                 className={twMerge('cursor-pointer', className)}
-                onClick={() => openHelp(helpSlug)}
+                onClick={() => {
+                    onOpen?.()
+                    openHelp(helpSlug)
+                }}
                 onKeyDown={(e) => {
                     if (e.key !== 'Enter' && e.key !== ' ') return
                     e.preventDefault()
+                    onOpen?.()
                     openHelp(helpSlug)
                 }}
                 {...rest}
@@ -80,7 +86,7 @@ export default function DocsLink({ href, className, children, openInDrawer = fal
 
     if (isStandalone && !nativePlatform.isCapacitor) {
         return (
-            <Link href={localizedHref} className={className} {...rest}>
+            <Link href={localizedHref} className={className} onClick={onOpen} {...rest}>
                 {children}
             </Link>
         )
@@ -93,6 +99,7 @@ export default function DocsLink({ href, className, children, openInDrawer = fal
             rel="noopener noreferrer"
             className={className}
             onClick={(e) => {
+                onOpen?.()
                 if (isCapacitor()) {
                     e.preventDefault()
                     void openExternalUrl(`${BASE_URL}${localizedHref}`)

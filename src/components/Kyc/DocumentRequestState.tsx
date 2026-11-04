@@ -6,6 +6,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import type { IconName } from '@/components/Global/Icons/Icon'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface DocumentRequestStateProps {
     /** Defaults to "One more document needed"; a check on the provider's own page names itself. */
@@ -43,6 +44,7 @@ export function DocumentRequestState({
     error,
     onContactSupport,
 }: DocumentRequestStateProps) {
+    const { track } = useKycControl('provider-request', 'kyc_provider_request')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     return (
@@ -64,13 +66,25 @@ export function DocumentRequestState({
                 icon={ctaIcon ?? undefined}
                 loading={ctaLoading}
                 disabled={ctaLoading}
-                onClick={onCta}
+                onClick={() => {
+                    track('continue', 'tap')
+                    onCta()
+                }}
                 data-testid={ctaTestId}
             >
                 {ctaLabel}
             </Button>
             {error && <Callout priority="error">{error}</Callout>}
-            {onContactSupport && <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>}
+            {onContactSupport && (
+                <LinkButton
+                    onClick={() => {
+                        track('support', 'tap')
+                        onContactSupport()
+                    }}
+                >
+                    {tCommon('contactSupport')}
+                </LinkButton>
+            )}
         </div>
     )
 }

@@ -145,6 +145,26 @@ beforeEach(() => {
 })
 
 describe('IdentityRestartFlow', () => {
+    it('preserves restart choice context without duplicating SDK-owned controls on close', async () => {
+        renderFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-PT'))
+        fireEvent.click(await screen.findByText('sumsub-close'))
+        expect(captured('control_used')).toEqual([
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: 'PT',
+                restart: true,
+                screen_id: 'documents',
+                control: 'document_type',
+                action: 'select',
+                value: 'PASSPORT',
+            }),
+        ])
+        expect(captured(ANALYTICS_EVENTS.KYC_PV_IDENTITY_CLOSED)).toHaveLength(1)
+        expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('token-1')
+        expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('tester')
+    })
+
     it('restarts on the picked ID, opens Sumsub, then hands off to ordinary status observation', async () => {
         renderFlow()
         expect(await screen.findByText('Verify with a different document')).toBeInTheDocument()

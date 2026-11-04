@@ -1,7 +1,13 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { IdentityDocumentScreen } from '../components/IdentityDocumentScreen'
+import { PaperworkVerificationTrackingProvider } from '../analytics'
+import posthog from 'posthog-js'
+
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+
+beforeEach(() => jest.clearAllMocks())
 
 jest.mock('../components/IdCardScanAnimation', () => ({ IdCardScanAnimation: () => null }))
 
@@ -45,24 +51,38 @@ function render({
     nationality = null,
     onContinue = jest.fn(),
     onChangeResidence,
+    error = null,
+    tracked = false,
 }: {
     documentPlan: KycDocumentPlan
     residence: string
     nationality?: string | null
     onContinue?: jest.Mock
     onChangeResidence?: jest.Mock
+    error?: string | null
+    /** inside /verify's tracking context, as the flow renders it */
+    tracked?: boolean
 }) {
-    renderWithIntl(
+    const ui = (
         <IdentityDocumentScreen
             plan={documentPlan}
             residence={residence}
             nationality={nationality}
             busy={false}
-            error={null}
+            error={error}
             onBack={jest.fn()}
             onContinue={onContinue}
             onChangeResidence={onChangeResidence}
         />
+    )
+    renderWithIntl(
+        tracked ? (
+            <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence }}>
+                {ui}
+            </PaperworkVerificationTrackingProvider>
+        ) : (
+            ui
+        )
     )
     return onContinue
 }
@@ -70,6 +90,87 @@ function render({
 const option = (type: string, country: string) => screen.queryByTestId(`verify-id-option-${type}-${country}`)
 
 describe('IdentityDocumentScreen: the list', () => {
+    it('tracks chrome, residence changes and every document choice with codes only', () => {
+        render({
+            documentPlan: plan(['ES']),
+            residence: 'ES',
+            onChangeResidence: jest.fn(),
+            error: 'private-typed-value',
+            tracked: true,
+        })
+        fireEvent.click(screen.getByTestId('verify-back'))
+        fireEvent.click(screen.getByTestId('verify-id-change-residence'))
+        fireEvent.click(option('PASSPORT', 'ES')!)
+        const calls = jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')
+        expect(calls.map(([, p]) => [p?.screen_id, p?.control, p?.action, p?.value])).toEqual([
+            ['documents', 'back', 'tap', undefined],
+            ['documents', 'change_residence', 'tap', undefined],
+            ['documents', 'document_type', 'select', 'PASSPORT'],
+        ])
+        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toContain('private-typed-value')
+    })
+
+    it('records Other open, its Back to the list or a choice, and never a dismissal with a choice', () => {
+        render({ documentPlan: plan(['ES']), residence: 'ES', error: 'private-typed-value', tracked: true })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        fireEvent.click(screen.getByText('Back to the list'))
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        fireEvent.click(option('DRIVERS', 'ES')!)
+        const calls = jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')
+        expect(calls.map(([, p]) => [p?.screen_id, p?.control, p?.action, p?.value])).toEqual([
+            ['documents', 'other_document', 'open', undefined],
+            ['other-document', 'back_to_list', 'tap', undefined],
+            ['documents', 'other_document', 'open', undefined],
+            ['other-document', 'document_type', 'select', 'DRIVERS'],
+        ])
+        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toContain('private-typed-value')
+    })
+
+    it('records the Other drawer closed without a choice on the list it opened from', async () => {
+        render({ documentPlan: plan(['ES']), residence: 'ES', tracked: true })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        fireEvent.keyDown(document, { key: 'Escape' })
+        await waitFor(() =>
+            expect(
+                jest
+                    .mocked(posthog.capture)
+                    .mock.calls.filter(([event]) => event === 'control_used')
+                    .map(([, p]) => [p?.screen_id, p?.control, p?.action])
+            ).toEqual([
+                ['documents', 'other_document', 'open'],
+                ['documents', 'other_document', 'dismiss'],
+            ])
+        )
+    })
+
+    it('sends nothing outside the verification flow', () => {
+        render({ documentPlan: plan(['ES']), residence: 'ES' })
+        fireEvent.click(screen.getByTestId('verify-back'))
+        fireEvent.click(option('PASSPORT', 'ES')!)
+        expect(jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')).toEqual([])
+    })
+
+    it('tracks limited document confirmation and cancellation without duplicating selection', () => {
+        render({
+            documentPlan: plan(['ES'], { documentTypeRefusals: { ES: { PASSPORT: ['bank'] } } }),
+            residence: 'ES',
+            error: 'private-typed-value',
+            tracked: true,
+        })
+        fireEvent.click(option('PASSPORT', 'ES')!)
+        fireEvent.click(screen.getByTestId('verify-id-limited-back'))
+        fireEvent.click(option('PASSPORT', 'ES')!)
+        fireEvent.click(screen.getByTestId('verify-id-limited-continue'))
+        const calls = jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')
+        expect(calls.map(([, p]) => [p?.control, p?.action, p?.value])).toEqual([
+            ['document_type', 'select', 'PASSPORT'],
+            ['limited_choose_another', 'tap', undefined],
+            ['document_type', 'select', 'PASSPORT'],
+            ['limited_continue', 'tap', undefined],
+        ])
+        expect(JSON.stringify(jest.mocked(posthog.capture).mock.calls)).not.toContain('private-typed-value')
+    })
+
     it('lists the permit from the residence and the passport and ID from the nationality; a tap opens that document', () => {
         const onContinue = render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', nationality: 'DE' })
         expect(screen.getByText(/Which document/)).toBeInTheDocument()

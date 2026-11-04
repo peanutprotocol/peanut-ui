@@ -1,12 +1,21 @@
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 import { setAuthToken } from '@/utils/auth-token'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react'
+import type { PropsWithChildren } from 'react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationStep } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PaperworkVerificationTrackingProvider } from '../analytics'
+import {
+    KycControlFlowProvider,
+    KycControlScreenProvider,
+    PaperworkVerificationTrackingProvider,
+    trackKycControl,
+    useKycControl,
+    type KycControlFlow,
+    type PaperworkVerificationTrackingContext,
+} from '../analytics'
 import { QuestionStepScreen, trackSaveOutcome } from '../components/QuestionStepScreen'
 
 jest.mock('@/context/authContext', () => ({
@@ -79,7 +88,7 @@ describe('Smart Paperwork Verification tracking', () => {
         fillIn()
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(events()).toContain(ANALYTICS_EVENTS.KYC_PV_STEP_SAVED))
-        expect(events()).toEqual([
+        expect(events().filter((event) => event !== ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
             ANALYTICS_EVENTS.KYC_PV_STEP_VIEWED,
             ANALYTICS_EVENTS.KYC_PV_STEP_SUBMITTED,
             ANALYTICS_EVENTS.KYC_PV_STEP_SAVED,
@@ -167,5 +176,309 @@ describe('declaration analytics privacy', () => {
         )
         const sent = JSON.stringify(track.mock.calls)
         expect(sent).not.toMatch(/us_citizen_not_supported|us_person|local_refused/)
+    })
+})
+
+describe('KYC control tracking contract', () => {
+    const context = {
+        flow: 'paperwork_verification' as const,
+        residence: 'BR',
+        features: { card: true, base: false },
+        feature: 'card' as const,
+        step: 'address',
+        restart: true,
+    }
+
+    function Provider({ children }: PropsWithChildren) {
+        return <PaperworkVerificationTrackingProvider value={context}>{children}</PaperworkVerificationTrackingProvider>
+    }
+
+    function renderControl(flowOverride?: Parameters<typeof useKycControl>[1]) {
+        return renderHook(() => useKycControl('verification-details', flowOverride), { wrapper: Provider })
+    }
+
+    // KC-01: controls inherit the same provider context as existing verification events.
+    it('captures the control with all existing provider context dimensions', () => {
+        const { result } = renderControl()
+
+        act(() => result.current.track('continue', 'tap', 'next'))
+
+        expect(mockCapture).toHaveBeenCalledTimes(1)
+        expect(mockCapture).toHaveBeenCalledWith(
+            'control_used',
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: 'BR',
+                feature_card: true,
+                feature_base: false,
+                feature: 'card',
+                step: 'address',
+                restart: true,
+                screen_id: 'verification-details',
+                control: 'continue',
+                action: 'tap',
+                value: 'next',
+            })
+        )
+    })
+
+    // KC-02: an override supplies context only when there is no provider.
+    it('keeps provider flow and context when an explicit fallback flow is also supplied', () => {
+        const { result } = renderControl('kyc_status')
+
+        act(() => result.current.track('continue', 'tap'))
+
+        expect(propsOf('control_used')).toEqual([
+            expect.objectContaining({
+                flow: 'paperwork_verification',
+                residence: 'BR',
+                step: 'address',
+                restart: true,
+                feature: 'card',
+                feature_card: true,
+                feature_base: false,
+            }),
+        ])
+    })
+
+    it.each(['kyc_status', 'kyc_legacy', 'kyc_provider_request'] as const)(
+        'captures controls safely outside the provider with the explicit %s fallback',
+        (flow) => {
+            const { result } = renderHook(() => useKycControl('verification-details', flow))
+
+            act(() => {
+                result.current.track('continue', 'tap')
+                result.current.trackOnce('street', 'change')
+            })
+
+            expect(propsOf('control_used')).toEqual([
+                expect.objectContaining({
+                    flow,
+                    screen_id: 'verification-details',
+                    control: 'continue',
+                    action: 'tap',
+                }),
+                expect.objectContaining({
+                    flow,
+                    screen_id: 'verification-details',
+                    control: 'street',
+                    action: 'change',
+                }),
+            ])
+        }
+    )
+
+    // KC-03: an unscoped control must never be attributed to a guessed KYC flow.
+    it('does nothing without both a provider and an explicit fallback', () => {
+        const { result, rerender } = renderHook(() => useKycControl('verification-details'))
+
+        expect(() => {
+            act(() => {
+                result.current.track('continue', 'tap', 'next')
+                result.current.trackOnce('street', 'change')
+            })
+            rerender()
+            act(() => result.current.trackOnce('street', 'change'))
+        }).not.toThrow()
+        expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    // KC-04: ordinary interactions remain repeatable; only trackOnce deduplicates.
+    it('captures every ordinary track invocation for the same control and action', () => {
+        const { result } = renderControl()
+
+        act(() => {
+            result.current.track('continue', 'tap')
+            result.current.track('continue', 'tap')
+        })
+
+        expect(propsOf('control_used')).toHaveLength(2)
+    })
+
+    it('deduplicates trackOnce by control and action for one mount, including rerenders', () => {
+        const { result, rerender } = renderControl()
+
+        act(() => {
+            result.current.trackOnce('street', 'change')
+            result.current.trackOnce('street', 'change')
+        })
+        rerender()
+        act(() => result.current.trackOnce('street', 'change'))
+
+        expect(propsOf('control_used')).toEqual([expect.objectContaining({ control: 'street', action: 'change' })])
+    })
+
+    it('tracks a different control or action independently in the same mount', () => {
+        const { result } = renderControl()
+
+        act(() => {
+            result.current.trackOnce('street', 'change')
+            result.current.trackOnce('street', 'error')
+            result.current.trackOnce('town', 'change')
+            result.current.trackOnce('street', 'error')
+            result.current.trackOnce('town', 'change')
+        })
+
+        expect(propsOf('control_used')).toEqual([
+            expect.objectContaining({ control: 'street', action: 'change' }),
+            expect.objectContaining({ control: 'street', action: 'error' }),
+            expect.objectContaining({ control: 'town', action: 'change' }),
+        ])
+    })
+
+    it('resets trackOnce deduplication on a new mount', () => {
+        const first = renderControl()
+        act(() => first.result.current.trackOnce('street', 'change'))
+        first.unmount()
+
+        const second = renderControl()
+        act(() => second.result.current.trackOnce('street', 'change'))
+
+        expect(propsOf('control_used')).toEqual([
+            expect.objectContaining({ control: 'street', action: 'change' }),
+            expect.objectContaining({ control: 'street', action: 'change' }),
+        ])
+    })
+
+    // KC-05: omit an absent value rather than emitting an undefined property.
+    it('omits the value property when no value or an explicit undefined is supplied', () => {
+        const { result } = renderControl()
+
+        act(() => {
+            result.current.track('continue', 'tap')
+            result.current.track('back', 'tap', undefined)
+            result.current.trackOnce('street', 'change')
+        })
+
+        expect(propsOf('control_used')).toHaveLength(3)
+        for (const props of propsOf('control_used')) expect(props).not.toHaveProperty('value')
+    })
+
+    // KC-06: telemetry failure cannot escape into the interaction handler.
+    it('contains capture exceptions for both tracking methods and allows later interactions', () => {
+        const { result } = renderControl()
+        mockCapture
+            .mockImplementationOnce(() => {
+                throw new Error('capture unavailable')
+            })
+            .mockImplementationOnce(() => {
+                throw new Error('capture unavailable')
+            })
+
+        expect(() => act(() => result.current.track('continue', 'tap'))).not.toThrow()
+        expect(() => act(() => result.current.trackOnce('street', 'change'))).not.toThrow()
+        expect(() => act(() => result.current.track('back', 'tap'))).not.toThrow()
+
+        expect(mockCapture).toHaveBeenCalledTimes(3)
+        expect(propsOf('control_used')[2]).toMatchObject({ control: 'back', action: 'tap' })
+    })
+
+    // KC-07: field interaction telemetry carries identifiers, never typed answers.
+    it('keeps typed secrets out of the captured control payloads', () => {
+        const typed = { street: 'Rua Privada 42', postCode: '04512-999', phone: '+55 11 91234 5678' }
+        renderWithIntl(
+            <Provider>
+                <QuestionStepScreen steps={steps} residence="BR" onSaved={jest.fn()} />
+            </Provider>
+        )
+        for (const [key, value] of Object.entries(typed)) {
+            const input = screen.getByTestId(`verify-input-${key}`)
+            fireEvent.focus(input)
+            fireEvent.change(input, { target: { value } })
+            fireEvent.change(input, { target: { value: `${value}0` } })
+            fireEvent.blur(input)
+        }
+
+        const edits = propsOf('control_used').filter((props) => props.action === 'change')
+        expect(edits.map((props) => props.control)).toEqual(Object.keys(typed))
+        for (const props of edits) expect(props).not.toHaveProperty('value')
+        const sent = JSON.stringify(mockCapture.mock.calls)
+        for (const secret of ['Privada', '04512', '91234']) expect(sent).not.toContain(secret)
+    })
+})
+
+describe('KYC control scopes', () => {
+    const scoped = (
+        flow: KycControlFlow | null,
+        screenId: string | null,
+        ctx: PaperworkVerificationTrackingContext | null = null
+    ) =>
+        function Scoped({ children }: PropsWithChildren) {
+            return (
+                <PaperworkVerificationTrackingProvider value={ctx}>
+                    <KycControlFlowProvider value={flow}>
+                        <KycControlScreenProvider value={screenId}>{children}</KycControlScreenProvider>
+                    </KycControlFlowProvider>
+                </PaperworkVerificationTrackingProvider>
+            )
+        }
+
+    it('takes the screen from the surrounding screen when the control names none, and its own over it', () => {
+        const { result } = renderHook(
+            () => ({ picker: useKycControl(), back: useKycControl('documents', 'kyc_status') }),
+            { wrapper: scoped('kyc_status', 'address+phone') }
+        )
+        act(() => {
+            result.current.picker.track('countryOfBirth', 'select', 'BR')
+            result.current.back.track('back', 'tap')
+        })
+        expect(propsOf(ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+            {
+                flow: 'kyc_status',
+                screen_id: 'address+phone',
+                control: 'countryOfBirth',
+                action: 'select',
+                value: 'BR',
+            },
+            { flow: 'kyc_status', screen_id: 'documents', control: 'back', action: 'tap' },
+        ])
+    })
+
+    it('reports nothing without a screen, even with a flow', () => {
+        const { result } = renderHook(() => useKycControl(undefined, 'kyc_status'))
+        act(() => result.current.track('back', 'tap'))
+        expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    it("lets a surface's flow outrank a control's fallback, and /verify's context outrank both", () => {
+        const fallback = renderHook(() => useKycControl('id-check', 'kyc_legacy'), {
+            wrapper: scoped('kyc_provider_request', null),
+        })
+        act(() => fallback.result.current.track('close', 'tap'))
+        const inFlow = renderHook(() => useKycControl('id-check', 'kyc_legacy'), {
+            wrapper: scoped('kyc_provider_request', null, { flow: 'add_later', residence: 'AR', feature: 'local' }),
+        })
+        act(() => inFlow.result.current.track('close', 'tap'))
+        expect(propsOf(ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+            { flow: 'kyc_provider_request', screen_id: 'id-check', control: 'close', action: 'tap' },
+            {
+                flow: 'add_later',
+                residence: 'AR',
+                feature: 'local',
+                screen_id: 'id-check',
+                control: 'close',
+                action: 'tap',
+            },
+        ])
+    })
+
+    it('trackKycControl sends the same shape for a screen that builds its own context', () => {
+        trackKycControl(
+            { ctx: { flow: 'paperwork_verification', residence: 'BR', step: 'tax' }, screenId: 'tax' },
+            'continue',
+            'tap'
+        )
+        trackKycControl({ ctx: null, screenId: 'tax' }, 'continue', 'tap')
+        trackKycControl({ ctx: null, flow: 'kyc_status', screenId: null }, 'continue', 'tap')
+        expect(propsOf(ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+            {
+                flow: 'paperwork_verification',
+                residence: 'BR',
+                step: 'tax',
+                screen_id: 'tax',
+                control: 'continue',
+                action: 'tap',
+            },
+        ])
     })
 })

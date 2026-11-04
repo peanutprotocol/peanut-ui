@@ -28,6 +28,7 @@ import Loading from '@/components/Global/Loading'
 import type { PaperworkVerificationEntry } from '@/features/paperwork-verification/paperworkVerificationEntry'
 import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 type InitiateKycVariant =
     | 'default'
@@ -173,6 +174,10 @@ export const InitiateKycModal = ({
     const isCountryPayments = resolvedVariant === 'country_payments'
     const router = useRouter()
     const regionRestrictedCta = useRegionRestrictedCta(onClose)
+    const control = useKycControl(
+        isKycDegraded ? 'outage' : isProviderRejection ? 'provider-request' : 'initiate-kyc',
+        isProviderRejection ? 'kyc_provider_request' : 'kyc_legacy'
+    )
     // Only the unlock offers start a verification; every other variant is an
     // ending of its own, and the outage and region screens outrank them all.
     const isUnlockOffer = resolvedVariant === 'default' || isCrossRegion || isCountryPayments
@@ -206,19 +211,20 @@ export const InitiateKycModal = ({
         return resolvedProviderMessage
     }
 
-    const getCta = (): { text: string; onClick: () => void; icon?: IconName; testId?: string } => {
+    const getCta = (): { text: string; onClick: () => void; control: string; icon?: IconName; testId?: string } => {
         // No retry and no contact-support: nobody can lift a residence block, so
         // the only useful CTA is the part of the app that still works. Same three
         // rules as KycRegionRestrictedContent, whose CTA this reuses.
         if (isBankUnavailable) {
-            return { text: regionRestrictedCta.label, onClick: regionRestrictedCta.onClick }
+            return { text: regionRestrictedCta.label, onClick: regionRestrictedCta.onClick, control: 'send' }
         }
-        if (slow) return { text: tCommon('contactSupport'), onClick: onContactSupport ?? onClose }
-        if (isSupplementInReview) return { text: tCommon('gotIt'), onClick: onClose }
+        if (slow) return { text: tCommon('contactSupport'), onClick: onContactSupport ?? onClose, control: 'support' }
+        if (isSupplementInReview) return { text: tCommon('gotIt'), onClick: onClose, control: 'got_it' }
         if (error || isBlocked) {
             return {
                 text: tCommon('contactSupport'),
                 onClick: onContactSupport ?? onClose,
+                control: 'support',
             }
         }
         if (isRegionUnavailable) {
@@ -228,6 +234,7 @@ export const InitiateKycModal = ({
                     onClose()
                     router.push('/withdraw')
                 },
+                control: 'withdraw',
             }
         }
         if (isRestartIdentity) {
@@ -235,26 +242,43 @@ export const InitiateKycModal = ({
             return {
                 text: isLoading ? tCommon('loading') : label,
                 onClick: onVerify,
+                control: 'restart_identity',
                 icon: 'upload-cloud',
             }
         }
         if (isHostedCheck) {
-            return { text: t('continueVerification'), onClick: onVerify, icon: 'check-circle' }
+            return { text: t('continueVerification'), onClick: onVerify, control: 'continue', icon: 'check-circle' }
         }
         if (isProviderRejection) {
             return {
                 text: isLoading ? tCommon('loading') : t(kycActionCtaKey(nextAction, reasonCode)),
                 onClick: onVerify,
+                control: 'continue',
                 icon: kycActionCtaKey(nextAction, reasonCode).startsWith('initiate.ctaAnswerQuestion')
                     ? undefined
                     : 'upload-cloud',
                 testId: reasonCode === 'requirements_missing' ? 'kyc-supplement-cta' : undefined,
             }
         }
-        return { text: tCommon('gotIt'), onClick: onClose }
+        return { text: tCommon('gotIt'), onClick: onClose, control: 'got_it' }
     }
 
     const cta = getCta()
+    const onCta = () => {
+        control.track(cta.control, 'tap')
+        cta.onClick()
+    }
+    const back = onBack
+        ? () => {
+              control.track('back', 'tap')
+              onBack()
+          }
+        : undefined
+    const dismiss = () => {
+        control.track('initiate_kyc', 'dismiss')
+        onClose()
+    }
+    const privacyHelp = () => control.track('privacy_help', 'tap')
 
     if (cooldownActive) return null
     if (redirecting) return presentation === 'page' ? <Loading variant="mascot" /> : null
@@ -268,7 +292,7 @@ export const InitiateKycModal = ({
             <Drawer
                 open={visible}
                 onOpenChange={(isOpen) => {
-                    if (!isOpen) onClose()
+                    if (!isOpen) dismiss()
                 }}
             >
                 <DrawerContent>
@@ -283,6 +307,7 @@ export const InitiateKycModal = ({
                             shadowSize="4"
                             className="mt-2 w-full justify-center"
                             onClick={() => {
+                                control.track('notify_me', 'tap')
                                 posthog.capture(ANALYTICS_EVENTS.KYC_DEGRADED_NOTIFY_REQUESTED)
                                 // cohort tag: ops pushes to exactly these users when
                                 // the flag flips back off
@@ -293,7 +318,14 @@ export const InitiateKycModal = ({
                             {t('degraded.notifyMe')}
                         </Button>
                         <div className="mt-2 flex justify-center">
-                            <LinkButton onClick={onClose}>{tCommon('gotIt')}</LinkButton>
+                            <LinkButton
+                                onClick={() => {
+                                    control.track('got_it', 'tap')
+                                    onClose()
+                                }}
+                            >
+                                {tCommon('gotIt')}
+                            </LinkButton>
                         </div>
                     </div>
                 </DrawerContent>
@@ -344,7 +376,7 @@ export const InitiateKycModal = ({
         isRestartIdentity ||
         isRegionUnavailable ||
         isBankUnavailable ? undefined : (
-            <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+            <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" onOpen={privacyHelp} />
         )
 
     if (presentation === 'page') {
@@ -361,7 +393,7 @@ export const InitiateKycModal = ({
         if (isProviderRejection && !error)
             return (
                 <PageStack>
-                    <NavHeader title={navTitle ?? getTitle()} onPrev={onBack} />
+                    <NavHeader title={navTitle ?? getTitle()} onPrev={back} />
                     <PageStack.Center>
                         <DocumentRequestState
                             title={getTitle()}
@@ -379,7 +411,7 @@ export const InitiateKycModal = ({
             )
         return (
             <div className="flex flex-col gap-6">
-                <NavHeader title={headerTitle} onPrev={onBack} />
+                <NavHeader title={headerTitle} onPrev={back} />
                 {/* NavHeader's title is a div, so without this the page has no
                     heading at all whenever the visible one is dropped. */}
                 {titleIsGeneric && <h1 className="sr-only">{headerTitle}</h1>}
@@ -393,7 +425,7 @@ export const InitiateKycModal = ({
                 <Button
                     variant="primary"
                     shadowSize="4"
-                    onClick={cta.onClick}
+                    onClick={onCta}
                     disabled={isLoading && !isBlocked}
                     className="h-11 w-full"
                     data-testid={cta.testId}
@@ -419,7 +451,7 @@ export const InitiateKycModal = ({
             open={visible}
             dismissible={!isDismissLocked}
             onOpenChange={(isOpen) => {
-                if (!isOpen && !isDismissLocked) onClose()
+                if (!isOpen && !isDismissLocked) dismiss()
             }}
         >
             <DrawerContent>
@@ -442,7 +474,7 @@ export const InitiateKycModal = ({
                             shadowSize="4"
                             className="w-full justify-center"
                             disabled={isLoading && !isBlocked}
-                            onClick={cta.onClick}
+                            onClick={onCta}
                             data-testid={cta.testId}
                             {...(cta.icon ? { icon: cta.icon } : {})}
                         >

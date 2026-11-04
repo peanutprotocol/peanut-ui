@@ -3,6 +3,24 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import WithdrawLayout from '@/app/(mobile-ui)/withdraw/layout'
 import type { UseIdentityVerificationResult } from '@/hooks/useIdentityVerification'
+import posthog from 'posthog-js'
+
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+const capture = jest.mocked(posthog.capture)
+const controlCalls = () =>
+    capture.mock.calls.filter(([event]) => event === 'control_used').map(([, properties]) => properties)
+const expectControls = (...expected: string[]) =>
+    expect(controlCalls()).toEqual(
+        expected.map((control) =>
+            expect.objectContaining({ flow: 'kyc_status', screen_id: 'kyc-status', control, action: 'tap' })
+        )
+    )
+
+afterEach(() => {
+    expect(JSON.stringify(capture.mock.calls)).not.toContain('alice')
+    expect(JSON.stringify(capture.mock.calls)).not.toContain('private-status-error')
+    expect(JSON.stringify(capture.mock.calls)).not.toContain('private-rejection-label')
+})
 
 let mockParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
@@ -114,6 +132,61 @@ beforeEach(() => {
 })
 
 describe('Send → Bank identity entry', () => {
+    it('tracks standalone status Back and retry without identity, reason or error data', () => {
+        setIdentity('failed')
+        mockIdentity.identity = {
+            status: 'failed',
+            actionMessage: 'private-status-error',
+            rejectLabels: ['private-rejection-label'],
+        }
+        mockFlowError = 'private-status-error'
+        render(tree())
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Retry verification' }))
+        expectControls('back', 'retry')
+    })
+
+    it('tracks standalone continue without duplicating the shared initiate callback', () => {
+        setIdentity('action_required')
+        mockIdentity.identity = { status: 'action_required', actionMessage: 'private-status-error' }
+        render(tree())
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        expectControls('continue')
+        expect(mockStart).toHaveBeenCalledTimes(1)
+    })
+
+    it('tracks standalone terminal support', () => {
+        setIdentity('failed')
+        mockIdentity.isTerminalFailure = true
+        render(tree())
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expectControls('support')
+    })
+
+    it('tracks standalone collision support and logout separately', () => {
+        setIdentity('action_required')
+        mockIdentity.isEmailCollision = true
+        render(tree())
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Log out' }))
+        expectControls('support', 'log_out')
+    })
+
+    it('tracks the restricted-country Send action without changing its navigation', () => {
+        setIdentity('failed')
+        mockIdentity.isRegionRestricted = true
+        render(tree())
+        fireEvent.click(screen.getByRole('button', { name: 'Send or request money' }))
+        expectControls('send')
+    })
+
+    it('lets InitiateKycModal own its controls instead of duplicating them in shared callbacks', () => {
+        render(tree())
+        fireEvent.click(screen.getByRole('button', { name: 'Verify' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+        expectControls()
+    })
+
     it.each([
         'method=bank',
         'method=bank&step=form',
@@ -307,6 +380,7 @@ describe('cross-device approval refresh recovery', () => {
         })
         expect(mockFetchUser).toHaveBeenCalledTimes(7)
         expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+        expectControls('refresh')
     })
 
     it('does not overlap slow reads and cancels the pending retry on unmount', async () => {

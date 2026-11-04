@@ -6,6 +6,9 @@ import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDra
 import { updateUserById } from '@/app/actions/users'
 import { readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { PaperworkVerificationTrackingProvider } from '@/features/paperwork-verification/analytics'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
@@ -234,5 +237,85 @@ describe('ResidenceChangeDrawer', () => {
         render({ declared: 'RU', verified: null })
         expect(screen.queryByText(/Heads up:/)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+    })
+})
+
+describe('ResidenceChangeDrawer control analytics', () => {
+    const controls = () =>
+        (posthog.capture as jest.Mock).mock.calls
+            .filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)
+            .map(([, props]) => props)
+    const renderInFlow = () => {
+        const onClose = jest.fn()
+        rtlRender(
+            <PaperworkVerificationTrackingProvider
+                value={{ flow: 'paperwork_verification', residence: 'BR', features: { card: true } }}
+            >
+                <ResidenceChangeDrawer
+                    visible
+                    onClose={onClose}
+                    userId="u1"
+                    declared="BR"
+                    verified="BR"
+                    onSaved={jest.fn()}
+                    onReverify={jest.fn()}
+                />
+            </PaperworkVerificationTrackingProvider>,
+            { wrapper: IntlWrapper }
+        )
+        return onClose
+    }
+
+    beforeEach(() => {
+        mockRestrictionsKnown = true
+        jest.clearAllMocks()
+        window.localStorage.clear()
+        mockedUpdate.mockResolvedValue({ data: undefined })
+        mockIntents = false
+    })
+
+    it("reports the country pick and the save inside /verify's flow, never the typed search", async () => {
+        const onClose = renderInFlow()
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'privatequery' } })
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Fra' } })
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Submit documents'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(controls().map(({ control, action, value }) => [control, action, value])).toEqual([
+            ['residence_country', 'select', 'FR'],
+            ['save_and_reverify', 'tap', undefined],
+        ])
+        expect(controls()).toEqual(
+            controls().map(() =>
+                expect.objectContaining({
+                    flow: 'paperwork_verification',
+                    residence: 'BR',
+                    feature_card: true,
+                    screen_id: 'change-residence',
+                })
+            )
+        )
+        expect(JSON.stringify((posthog.capture as jest.Mock).mock.calls)).not.toContain('privatequery')
+    })
+
+    it('reports a Save, and a close without one as a dismissal', async () => {
+        const onClose = renderInFlow()
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        fireEvent.keyDown(document, { key: 'Escape' })
+        await waitFor(() => expect(onClose).toHaveBeenCalledTimes(2))
+        expect(controls().map(({ control, action }) => `${control}:${action}`)).toEqual([
+            'save:tap',
+            'change_residence:dismiss',
+        ])
+    })
+
+    it('sends nothing from the profile page, outside the flow', () => {
+        render({ declared: 'BR', verified: 'BR' })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText('France'))
+        fireEvent.click(screen.getByText('Save'))
+        expect(controls()).toEqual([])
     })
 })
