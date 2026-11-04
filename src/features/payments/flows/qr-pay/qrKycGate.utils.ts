@@ -9,6 +9,7 @@ import {
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { FeatureReport, NextAction, RailCapability } from '@/types/capabilities'
 import { entryAction, VERIFY_ACTION } from '@/features/kyc-features/report'
+import { deriveGate, type GateState } from '@/utils/capability-gate'
 
 /**
  * The verification QR pay starts. Any verified user gets the QR pool rails,
@@ -33,6 +34,12 @@ export function selectQrKycGate(input: {
     isLoading: boolean
     features: FeatureReport | undefined
     nextActions: readonly NextAction[]
+    /**
+     * The user's rails. An API that sends no report (rolled back past it) is
+     * read through the Manteca rails, as it was before the report, so a QR
+     * rail that works keeps paying.
+     */
+    rails?: readonly RailCapability[]
 }): QrKycGate {
     const gate = (
         kycGateState: QrKycState,
@@ -44,8 +51,11 @@ export function selectQrKycGate(input: {
         qrKycActionKey,
     })
     if (input.isLoading) return gate(QrKycState.LOADING)
-    // No report is a visitor with no account yet: verification is their way in.
-    if (!input.features) return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    if (!input.features) {
+        // No report and no rails: a visitor with no account yet. Verification is their way in.
+        if (!input.rails?.length) return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+        return qrGateFromRails(input.rails, input.nextActions)
+    }
     const entry = input.features.qr
     const action = entryAction(entry, input.nextActions)
     const message = entry.message || null
@@ -71,6 +81,48 @@ export function selectQrKycGate(input: {
         default:
             // A state this build does not know: block payment and let /verify ask the server.
             return gate(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
+    }
+}
+
+/** The Manteca rails' answer to a QR payment, for an API that sends no feature report. */
+function qrGateFromRails(rails: readonly RailCapability[], nextActions: readonly NextAction[]): QrKycGate {
+    const mantecaRails = rails.filter((rail) => rail.provider === 'manteca')
+    const rail = deriveGate({ rails: mantecaRails, nextActions: [...nextActions], isLoading: false }, 'pay')
+    return qrGateFromGate(rail)
+}
+
+function qrGateFromGate(gate: GateState): QrKycGate {
+    const message = 'userMessage' in gate ? (gate.userMessage ?? null) : null
+    const closed = (
+        kycGateState: QrKycState,
+        userMessage: string | null = null,
+        qrKycActionKey: string | null = null
+    ) => ({
+        kycGateState,
+        qrKycUserMessage: userMessage,
+        qrKycActionKey,
+    })
+    switch (gate.kind) {
+        case 'ready':
+            return closed(QrKycState.PROCEED_TO_PAY)
+        case 'pending':
+        case 'waiting-on-provider':
+            return closed(QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS)
+        case 'restart-identity':
+            return closed(QrKycState.PROVIDER_RESTART_IDENTITY, message)
+        // This surface has no email form or terms step: the blocked ending sends the user to support.
+        case 'blocked-rejection':
+        case 'provide-email':
+        case 'accept-tos':
+            return closed(QrKycState.PROVIDER_REJECTION_BLOCKED, message)
+        case 'fixable-rejection':
+            return closed(
+                QrKycState.PROVIDER_REJECTION_FIXABLE,
+                message,
+                gate.nextAction?.kind === 'sumsub' ? gate.nextAction.key : null
+            )
+        default:
+            return closed(QrKycState.REQUIRES_IDENTITY_VERIFICATION)
     }
 }
 

@@ -206,6 +206,7 @@ export const useHomeCarouselCTAs = ({
             isLoading: false,
             features: capabilities.features,
             nextActions,
+            rails,
         })
         if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
             _carouselCTAs.push({
