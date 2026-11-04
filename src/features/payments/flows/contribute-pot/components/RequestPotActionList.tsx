@@ -30,6 +30,7 @@ import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.const
 import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaymentMethodLabels'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
 import { EInviteType } from '@/services/services.types'
+import type { Person } from '@/lib/person/person.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
@@ -46,8 +47,8 @@ interface RequestPotActionListProps {
     isAmountEntered: boolean
     usdAmount: string
     recipientUserId?: string
-    recipientUsername?: string
-    recipientAvatarKey?: string | null
+    /** The requester (TASK-23756): named in the bank drawer, and the inviter of a signed-out payer. */
+    person?: Person | null
     requestMessage?: string
     /** the request being paid — needed to read its bank details */
     requestId?: string
@@ -69,8 +70,7 @@ export function RequestPotActionList({
     isAmountEntered,
     usdAmount,
     recipientUserId,
-    recipientUsername,
-    recipientAvatarKey,
+    person,
     requestMessage,
     requestId,
     bankPayable = false,
@@ -175,8 +175,8 @@ export function RequestPotActionList({
                     router.push('/add-money')
                 } else {
                     const redirectUri = encodeURIComponent('/add-money')
-                    if (recipientUsername) {
-                        const inviteCode = toInviteCode(recipientUsername)
+                    if (person?.username) {
+                        const inviteCode = toInviteCode(person.username)
                         stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
                         router.push(inviteFlowUrl(inviteCode, redirectUri))
                     } else {
@@ -285,8 +285,7 @@ export function RequestPotActionList({
         <BankTransferChooserDrawer
             requestId={requestId}
             rails={bankRails}
-            recipientUsername={recipientUsername}
-            recipientAvatarKey={recipientAvatarKey}
+            person={person}
             requestMessage={requestMessage}
             requestAmount={requestContextAmount}
             bankRowProps={bankRowProps}
@@ -326,7 +325,7 @@ export function RequestPotActionList({
                 disabled={!isAmountEntered || isPaymentLoading || isExternalWalletLoading || isBalancePending}
                 loading={isPaymentLoading}
                 insufficientBalance={!userHasSufficientPeanutBalance}
-                inviterUsername={recipientUsername}
+                inviterUsername={person?.username}
             />
 
             <Divider text={tCommon('or')} />

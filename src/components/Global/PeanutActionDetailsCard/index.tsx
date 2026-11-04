@@ -1,7 +1,6 @@
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
-import { avatarSrc, letterAvatarSrc } from '@/components/Avatar/avatar.utils'
-import { useAvatarArt } from '@/components/Avatar/useAvatarArt'
+import type { Person } from '@/lib/person/person.types'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
@@ -51,9 +50,9 @@ export interface PeanutActionDetailsCardProps {
     currencySymbol?: string
     isLoading?: boolean
     logo?: StaticImageData
-    /** The other person's picked avatar (TASK-22625). Read only on the branch
+    /** The Peanut user behind the card (TASK-23756). Read only on the branch
      *  that would otherwise draw their initials — every icon branch ignores it. */
-    avatarKey?: string | null
+    person?: Person | null
     /**
      * A withdraw the user reached through the send flow (Send → Exchange or
      * Wallet / Bank). Mechanically identical to a withdraw — only the verb
@@ -83,11 +82,10 @@ export default function PeanutActionDetailsCard({
     currencySymbol,
     isLoading = false,
     logo,
-    avatarKey,
+    person,
     isFromSendFlow = false,
 }: PeanutActionDetailsCardProps) {
     const t = useTranslations('global')
-    const avatarArt = useAvatarArt()
     const renderRecipient = () => {
         if (recipientType === 'ADDRESS') return printableAddress(recipientName)
 
@@ -188,14 +186,12 @@ export default function PeanutActionDetailsCard({
     // No icon means the avatar slot stood for a person — the only case where an
     // avatar belongs. A caller-supplied brand logo still wins.
     //
-    // The art check is load-bearing: the claim views and CountryListRouter
-    // hardcode recipientType="USERNAME" while passing a resolved display name,
-    // which is a shortened address whenever the counterparty has no Peanut
-    // account. Those draw neither a pick nor a letter, so they keep the
-    // initials bubble they had.
+    // The claim views and CountryListRouter hardcode recipientType="USERNAME"
+    // while passing a resolved display name, which is a shortened address
+    // whenever the counterparty has no Peanut account. With no person behind
+    // the row they keep the initials bubble.
     const avatarIcon = getAvatarIcon()
-    const showsPersonAvatar =
-        !avatarIcon && !logo && !!(avatarSrc(avatarKey, avatarArt) ?? letterAvatarSrc(recipientName, avatarArt))
+    const showsPersonAvatar = !!person && !avatarIcon && !logo
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
@@ -228,7 +224,7 @@ export default function PeanutActionDetailsCard({
                         // The branch that used to draw the counterparty's
                         // initials: a Peanut handle with no icon of its own.
                         // `decorative` because the card names them above.
-                        <UserAvatar name={recipientName} avatarKey={avatarKey} size={avatarSize} decorative />
+                        <UserAvatar person={person} size={avatarSize} decorative />
                     ) : (
                         <AvatarWithBadge
                             icon={avatarIcon}

@@ -206,6 +206,17 @@ const RESTRICTED_SYNTAX_BASE = [
         message:
             "Don't read env(safe-area-inset-*) directly — use var(--safe-top|--safe-right|--safe-bottom|--safe-left) (or the pt-safe-top / pb-safe-bottom utilities) from globals.css. The tokens carry the Android < 15 zeroing and the native inset injection; env() bypasses both. The only legal raw read is the diagnostic at src/app/(mobile-ui)/dev/safe-area/page.tsx.",
     },
+    {
+        // The avatar is a property of the person (TASK-23756). A loose
+        // avatarKey prop is how the request-link card drew the handle's letter
+        // for a user who had picked one: nobody passed the key, and "not
+        // passed" rendered the same as "never picked". Surfaces hand a Person
+        // (src/lib/person) to UserAvatar; only src/components/Avatar renders a
+        // bare key (AvatarSticker, for the picker's candidate tiles).
+        selector: "JSXAttribute[name.name='avatarKey']",
+        message:
+            "Don't pass avatarKey as a prop — hand the component a Person (personFrom / usePerson from '@/lib/person') and let UserAvatar read person.avatarKey. Only src/components/Avatar/ renders a bare key (AvatarSticker, for the picker's tiles).",
+    },
 ]
 
 // Same shape as restrictedImportsExcept: an override names the selector it
@@ -364,6 +375,17 @@ module.exports = [
                         !r.selector.includes("[property.name='length']") &&
                         !r.selector.includes("[callee.property.name='back']")
                 ),
+            ],
+        },
+    },
+    {
+        // The key-level renderer and the picker's candidate tiles are the one
+        // place a bare avatarKey prop is the design (TASK-23756).
+        files: ['src/components/Avatar/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                ...restrictedSyntaxExcept("[name.name='avatarKey']"),
+                ...QUERY_STRING_PUSH_RESTRICTIONS,
             ],
         },
     },

@@ -1,30 +1,24 @@
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { Card } from '@/components/0_Bruddle/Card'
+import type { Person } from '@/lib/person/person.types'
 
 export interface RequestPaymentContextProps {
-    recipientUsername?: string
-    recipientAvatarKey?: string | null
+    /** The requester (TASK-23756). Absent while the request has nobody to show. */
+    person?: Person | null
     requestMessage?: string
     requestAmount?: string
 }
 
-export function RequestPaymentContext({
-    recipientUsername,
-    recipientAvatarKey,
-    requestMessage,
-    requestAmount,
-}: RequestPaymentContextProps) {
-    if (!recipientUsername && !requestMessage && !requestAmount) return null
+export function RequestPaymentContext({ person, requestMessage, requestAmount }: RequestPaymentContextProps) {
+    if (!person && !requestMessage && !requestAmount) return null
     return (
         <Card className="mb-4 flex-row items-start gap-3 p-3">
-            {recipientUsername && (
-                <UserAvatar name={recipientUsername} avatarKey={recipientAvatarKey} size="s" decorative />
-            )}
+            {person && <UserAvatar person={person} size="s" decorative />}
             <div className="min-w-0">
-                {recipientUsername && (
+                {person && (
                     <p className="truncate text-body-m-semibold">
                         {'@'}
-                        {recipientUsername}
+                        {person.username}
                     </p>
                 )}
                 {requestAmount && <p className="text-body-s">{requestAmount}</p>}

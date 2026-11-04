@@ -18,16 +18,15 @@
 import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
-import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
+import { type ParsedURL, type RecipientPerson } from '@/lib/url-parser/types/payment'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 
 // view states for semantic request flow
 export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT' | 'EXTERNAL_WALLET'
 
 // recipient info from parsed url
-export interface SemanticRequestRecipient {
+export type SemanticRequestRecipient = RecipientPerson & {
     identifier: string
-    recipientType: RecipientType
     resolvedAddress: Address
 }
 
@@ -154,25 +153,18 @@ export function SemanticRequestFlowProvider({
         // name survives. Keep the name while it resolves to the charge's address.
         if (chargeAddress) {
             if (urlRecipient && areEvmAddressesEqual(urlRecipient.resolvedAddress, chargeAddress)) {
-                return {
-                    identifier: urlRecipient.identifier,
-                    recipientType: urlRecipient.recipientType,
-                    resolvedAddress: chargeAddress as Address,
-                }
+                return { ...urlRecipient, resolvedAddress: chargeAddress as Address }
             }
             return {
                 identifier: chargeAddress,
-                recipientType: 'ADDRESS' as RecipientType,
+                recipientType: 'ADDRESS',
                 resolvedAddress: chargeAddress as Address,
+                person: null,
             }
         }
         // Otherwise use parsed URL recipient
         if (!urlRecipient) return null
-        return {
-            identifier: urlRecipient.identifier,
-            recipientType: urlRecipient.recipientType,
-            resolvedAddress: urlRecipient.resolvedAddress as Address,
-        }
+        return { ...urlRecipient, resolvedAddress: urlRecipient.resolvedAddress as Address }
     }, [parsedUrl, charge])
 
     // reset flow

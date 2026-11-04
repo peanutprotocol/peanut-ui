@@ -5,7 +5,6 @@ import { renderWithIntl } from '@/test-utils/intl'
 import es419 from '@/i18n/app/messages/es-419.json'
 import ptBR from '@/i18n/app/messages/pt-BR.json'
 import { AvatarPicker } from '../AvatarPicker'
-import { readLetterAvatar, resetLetterAvatarCache } from '../avatar-letter.storage'
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -105,7 +104,6 @@ function fakeServer() {
 beforeEach(() => {
     jest.clearAllMocks()
     window.localStorage.clear()
-    resetLetterAvatarCache()
     jest.spyOn(Math, 'random').mockReturnValue(0)
     mockBadgeParam = null
     mockHasUser = true
@@ -492,49 +490,23 @@ describe('AvatarPicker', () => {
         expect(tile(A)).toHaveAttribute('aria-checked', 'true')
     })
 
-    it('keeps a letter this API build still rejects, on the device, without an error toast', async () => {
+    // The API accepts letter keys (TASK-23756), so a letter that fails to save
+    // is reported like any other pick and the tile follows the server.
+    it.each(['API rejection', 'network failure'])('reports a letter that meets %s', async (failure) => {
+        mockUser.user.avatarKey = KEY_A
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         fireEvent.click(tiles()[0])
-        await server.settle(0, { error: 'body/avatarKey must match pattern' })
+        if (failure === 'API rejection') await server.settle(0, { error: 'Could not save' })
+        else await server.reject(0)
 
-        // the pick survives the rejection and the user is not told off for it
-        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.s'))
-        expect(mockToast).not.toHaveBeenCalled()
-        await waitFor(() => expect(tiles()[0]).toHaveAttribute('aria-checked', 'true'))
+        expect(mockToast).toHaveBeenCalledWith({ type: 'error', message: 'Could not save your avatar. Try again.' })
+        await waitFor(() => expect(tile(A)).toHaveAttribute('aria-checked', 'true'))
+        expect(tiles()[0]).toHaveAttribute('aria-checked', 'false')
     })
 
-    it.each(['API rejection', 'network failure'])(
-        'keeps a queued initial after a sticker saves and the initial encounters %s',
-        async (failure) => {
-            mockUser.user.avatarKey = KEY_A
-            const server = fakeServer()
-            const view = renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-
-            fireEvent.click(tile(B))
-            fireEvent.click(tiles()[0])
-            await server.settle(0)
-            expect(server.posts.map((post) => post.key)).toEqual([KEY_B, 'letter.s'])
-
-            if (failure === 'API rejection') await server.settle(1, { error: 'body/avatarKey must match pattern' })
-            else await server.reject(1)
-
-            await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
-            expect(server.committed()).toBe(KEY_B)
-            expect(readLetterAvatar('u1')).toEqual({ key: 'letter.s', serverKey: KEY_B })
-            expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
-            expect(tile(B)).toHaveAttribute('aria-checked', 'false')
-            expect(mockToast).not.toHaveBeenCalled()
-
-            view.unmount()
-            resetLetterAvatarCache()
-            renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-            expect(tiles()[0]).toHaveAttribute('aria-checked', 'true')
-        }
-    )
-
-    it('still reports a rejected sticker — those have no device-local fallback', async () => {
+    it('reports a rejected sticker', async () => {
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
@@ -542,7 +514,6 @@ describe('AvatarPicker', () => {
         await server.settle(0, { error: 'Avatar not unlocked' })
 
         expect(mockToast).toHaveBeenCalledWith({ type: 'error', message: 'Could not save your avatar. Try again.' })
-        expect(readLetterAvatar('u1')).toBeNull()
     })
 
     it('restores the saved badge to the hand when a save fails after a roll', async () => {
@@ -574,20 +545,5 @@ describe('AvatarPicker', () => {
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
         expect(tile(A)).toHaveAttribute('aria-checked', 'true')
         expect(tiles().map((el) => el.textContent)).toEqual(hand)
-    })
-
-    it('a server write that lands drops the mirror, so the durable copy wins', async () => {
-        const server = fakeServer()
-        renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
-
-        fireEvent.click(tiles()[0])
-        await server.settle(0, { error: 'body/avatarKey must match pattern' })
-        await waitFor(() => expect(readLetterAvatar('u1')?.key).toBe('letter.s'))
-
-        fireEvent.click(tile(A))
-        await server.settle(1)
-
-        await waitFor(() => expect(readLetterAvatar('u1')).toBeNull())
-        expect(server.committed()).toBe(KEY_A)
     })
 })

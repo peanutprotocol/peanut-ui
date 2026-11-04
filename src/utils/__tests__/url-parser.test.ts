@@ -104,6 +104,7 @@ describe('URL Parser Tests', () => {
                 identifier: '0x1234567890123456789012345678901234567890',
                 recipientType: 'ADDRESS',
                 resolvedAddress: '0x1234567890123456789012345678901234567890',
+                person: null,
             })
         })
 
@@ -113,6 +114,7 @@ describe('URL Parser Tests', () => {
                 identifier: 'vitalik.eth',
                 recipientType: 'ENS',
                 resolvedAddress: '0x1234567890123456789012345678901234567890',
+                person: null,
             })
         })
 
@@ -165,6 +167,7 @@ describe('URL Parser Tests', () => {
                         identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
                         recipientType: 'ADDRESS',
                         resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
+                        person: null,
                     },
                     chain: undefined,
                     token: undefined,
@@ -184,6 +187,7 @@ describe('URL Parser Tests', () => {
                         identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
                         recipientType: 'ADDRESS',
                         resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
+                        person: null,
                     },
                     amount: '0.1',
                     token: expect.objectContaining({
@@ -262,6 +266,7 @@ describe('URL Parser Tests', () => {
                     identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
                     recipientType: 'ADDRESS',
                     resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
+                    person: null,
                 },
                 chain: undefined,
                 token: undefined,
@@ -319,6 +324,7 @@ describe('URL Parser Tests', () => {
                         identifier: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
                         recipientType: 'ADDRESS',
                         resolvedAddress: '0x0fdaEB9903A291aB8450DFA25B3fa962E075547A',
+                        person: null,
                     },
                     amount: '5',
                     token: expect.objectContaining({
