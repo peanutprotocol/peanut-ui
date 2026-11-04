@@ -268,7 +268,6 @@ function AveniaPixDepositSurface() {
                     expiresAt,
                     payerCpfMasked: '095.***.***-89',
                 }}
-                blockedBanks={['Caixa', 'Sicredi', 'Sicoob']}
                 onBack={noop}
                 onDone={noop}
                 onComplete={noop}

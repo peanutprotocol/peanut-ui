@@ -8,7 +8,6 @@ import {
     completePixKey,
     countdownLabel,
     maskedTaxIdKind,
-    pixCodePayee,
     pixKeyVerdict,
     toApiDecimal,
 } from '../avenia.utils'
@@ -99,16 +98,6 @@ describe('countdownLabel', () => {
         expect(countdownLabel(59_999)).toBe('0:59')
         expect(countdownLabel(0)).toBeNull()
         expect(countdownLabel(-1)).toBeNull()
-    })
-})
-
-describe('pixCodePayee', () => {
-    it("reads the payee the bank app shows from the code's merchant name", () => {
-        expect(pixCodePayee(DEMO_AVENIA_BR_CODE)).toBe('AVENIA SOCIEDADE PRESTADO')
-    })
-
-    it('says nothing for a code that does not parse', () => {
-        expect(pixCodePayee('not a pix code')).toBeNull()
     })
 })
 

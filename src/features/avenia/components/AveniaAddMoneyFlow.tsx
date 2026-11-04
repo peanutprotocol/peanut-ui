@@ -141,7 +141,6 @@ export function AveniaAddMoneyFlow({
         return (
             <AveniaPixQrDeposit
                 deposit={deposit}
-                blockedBanks={(eligibility.data?.blockedBanks ?? []).flatMap((bank) => (bank.name ? [bank.name] : []))}
                 // the code is made; back leaves the flow rather than offering a second code
                 onBack={onBack}
                 onDone={leaveToHome}
@@ -165,6 +164,8 @@ export function AveniaAddMoneyFlow({
             setDisplayedAmount={(value) => void setUrlState({ amount: value || null })}
             limitsCurrency="BRL"
             onBack={onBack}
+            // the code carries the amount and the bank app cannot change it
+            amountFixedByCode
             providerFinePrint={<ProviderFinePrint providerId="avenia-br" />}
         />
     )

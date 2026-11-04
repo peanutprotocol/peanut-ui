@@ -42,6 +42,8 @@ test.describe('Avenia Pix', () => {
         await expect(page.getByText('The minimum is R$20.')).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
         await expect(page.getByText('Provider · Avenia')).toBeVisible()
+        // the code carries the amount, so the bank-transfer "must match" helper does not show
+        await expect(page.getByText('This must exactly match what you send from your bank')).toHaveCount(0)
     })
 
     test("the user's own key resolves to holder and bank, and continues", async ({ page }) => {
@@ -59,7 +61,7 @@ test.describe('Avenia Pix', () => {
         const holder = page.getByTestId('avenia-pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText("Someone else's")
-        await expect(page.getByRole('alert')).toContainText('This key belongs to someone else.')
+        await expect(page.getByRole('alert').filter({ hasText: 'This key belongs to someone else.' })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
     })
 

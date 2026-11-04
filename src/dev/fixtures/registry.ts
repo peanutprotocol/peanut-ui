@@ -246,14 +246,7 @@ const aveniaResponses = (railStatus: 'enabled' | 'requires-info', overrides: Rec
             restrictions: [],
         },
     },
-    'GET /avenia/deposit/eligibility': {
-        minAmountBrl: '20',
-        blockedBanks: [
-            { ispb: '00360305', name: 'Caixa' },
-            { ispb: '01181521', name: 'Sicredi' },
-            { ispb: '02038232', name: 'Sicoob' },
-        ],
-    },
+    'GET /avenia/deposit/eligibility': { minAmountBrl: '20', blockedBanks: [] },
     ...overrides,
 })
 

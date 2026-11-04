@@ -1,4 +1,3 @@
-import { parsePix, hasError } from 'pix-utils'
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/services/avenia'
@@ -77,22 +76,6 @@ export function countdownLabel(remainingMs: number): string | null {
     const minutes = Math.floor(remainingMs / 60_000)
     const seconds = Math.floor((remainingMs % 60_000) / 1000)
     return `${minutes}:${String(seconds).padStart(2, '0')}`
-}
-
-/**
- * The payee a bank app shows for a Pix code (EMV tag 59). The deposit screen
- * says it so the name in the bank app is no surprise. Null when the code does
- * not parse.
- */
-export function pixCodePayee(brCode: string): string | null {
-    try {
-        const pix = parsePix(brCode)
-        if (hasError(pix)) return null
-        const name = 'merchantName' in pix ? pix.merchantName?.trim() : ''
-        return name || null
-    } catch {
-        return null
-    }
 }
 
 /**

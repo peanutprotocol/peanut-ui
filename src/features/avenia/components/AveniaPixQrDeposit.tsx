@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -13,26 +13,23 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useAuth } from '@/context/authContext'
-import { countdownLabel, pixCodePayee } from '@/features/avenia/avenia.utils'
+import { countdownLabel } from '@/features/avenia/avenia.utils'
 import { useAveniaDepositStatus } from '@/features/avenia/hooks/useAveniaDepositStatus'
 import type { AveniaDeposit } from '@/services/avenia'
 import { formatBankAmount } from '@/utils/currency'
 
 /**
  * The dynamic Pix code of an Avenia deposit: the amount in reais, the time the
- * code has left, who the payer must be (an account under the user's own CPF:
- * Avenia returns any other Pix) and who the bank app will show as the payee.
+ * code has left, and who the payer must be (an account under the user's own
+ * CPF: Avenia returns any other Pix).
  */
 export function AveniaPixQrDeposit({
     deposit,
-    blockedBanks,
     onBack,
     onDone,
     onComplete,
 }: {
     deposit: AveniaDeposit
-    /** Banks Avenia refuses a Pix from, from GET /avenia/deposit/eligibility. */
-    blockedBanks: string[]
     onBack: () => void
     /** Leaves the flow: the deposit is paid, or there is nothing left to pay. */
     onDone: () => void
@@ -41,7 +38,6 @@ export function AveniaPixQrDeposit({
     const t = useTranslations('addMoney')
     const tAvenia = useTranslations('avenia.deposit')
     const tCommon = useTranslations('common')
-    const locale = useLocale()
     const { user } = useAuth()
     const { phase } = useAveniaDepositStatus(deposit.intentId, onComplete)
 
@@ -57,15 +53,6 @@ export function AveniaPixQrDeposit({
         const interval = setInterval(() => setNowMs(Date.now()), 1000)
         return () => clearInterval(interval)
     }, [phase, isExpired, expiresAtMs])
-
-    const payee = useMemo(() => pixCodePayee(deposit.brCode), [deposit.brCode])
-    const blockedList = useMemo(
-        () =>
-            blockedBanks.length
-                ? new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(blockedBanks)
-                : null,
-        [blockedBanks, locale]
-    )
 
     if (phase === 'completed') {
         return (
@@ -148,19 +135,11 @@ export function AveniaPixQrDeposit({
                     </div>
                 )}
 
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        {user?.user?.fullName && <AvatarWithBadge name={user.user.fullName} size="xs" />}
-                        <p className="text-body-s text-foreground-secondary">
-                            {tAvenia('ownCpf', { cpf: deposit.payerCpfMasked })}
-                        </p>
-                    </div>
-                    {payee && <p className="text-body-xs text-foreground-secondary">{tAvenia('payee', { payee })}</p>}
-                    {blockedList && (
-                        <p className="text-body-xs text-foreground-secondary">
-                            {tAvenia('blockedBanks', { banks: blockedList })}
-                        </p>
-                    )}
+                <div className="flex items-center gap-2">
+                    {user?.user?.fullName && <AvatarWithBadge name={user.user.fullName} size="xs" />}
+                    <p className="text-body-s text-foreground-secondary">
+                        {tAvenia('ownCpf', { cpf: deposit.payerCpfMasked })}
+                    </p>
                 </div>
 
                 <ProviderFinePrint providerId="avenia-br" />

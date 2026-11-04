@@ -2436,8 +2436,6 @@
             "minimum": "El mínimo es {amount}.",
             "limitExceeded": "Este depósito supera el límite mensual de Pix.",
             "ownCpf": "Desde una cuenta con tu CPF {cpf}",
-            "payee": "El Pix va a {payee}.",
-            "blockedBanks": "No se aceptan Pix de {banks}.",
             "returnedTitle": "Pix devuelto",
             "returnedBody": "El Pix volvió a la cuenta de origen. Paga desde una cuenta con tu CPF {cpf}."
         },

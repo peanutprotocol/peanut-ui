@@ -359,7 +359,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '94-f-avenia-pix-deposit': {
         name: 'Avenia Pix deposit — the dynamic code',
         path: 'features/avenia/components/AveniaPixQrDeposit.tsx',
-        captureState: ['amountBrl=100', 'expiresAt=+10 min', 'blockedBanks=Caixa, Sicredi, Sicoob'],
+        captureState: ['amountBrl=100', 'expiresAt=+10 min'],
         // the signed-in Brazilian resident the CPF line's avatar is drawn for
         shotFixture: 'avenia-deposit-amount',
         expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',

@@ -39,6 +39,8 @@ interface InputAmountStepProps {
     maintenanceBanner?: React.ReactNode
     // who provides the deposit, one line under the continue button (TASK-23295)
     providerFinePrint?: React.ReactNode
+    // a dynamic Pix code carries the amount, so the "must match" helper does not apply
+    amountFixedByCode?: boolean
 }
 
 const InputAmountStep = ({
@@ -58,6 +60,7 @@ const InputAmountStep = ({
     onBack,
     maintenanceBanner,
     providerFinePrint,
+    amountFixedByCode = false,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -98,7 +101,7 @@ const InputAmountStep = ({
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
                 <Field
-                    helper={t('mustMatchBankTransfer')}
+                    helper={amountFixedByCode ? undefined : t('mustMatchBankTransfer')}
                     error={!limitsValidation?.isBlocking ? validationError : undefined}
                     errorTestId="error-alert"
                 >
