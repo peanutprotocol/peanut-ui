@@ -11,7 +11,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * anything visibly breaking.
  */
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
 import posthog from 'posthog-js'
@@ -58,10 +58,12 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 
 let mockFlagOn = true
+let mockFlagsLoaded = true
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
     isPwaSunsetOn: () => mockFlagOn,
+    isPwaSunsetOff: () => mockFlagsLoaded && !mockFlagOn,
     trackStoreClick: jest.fn(),
 }))
 
@@ -123,6 +125,7 @@ beforeEach(() => {
     mockDeviceType = 'web'
     mockNative = false
     mockFlagOn = true
+    mockFlagsLoaded = true
     visit('')
 })
 
@@ -408,6 +411,46 @@ describe('ad landing link (/app with campaign parameters)', () => {
         renderPage()
         expect(mockNotFound).toHaveBeenCalled()
         expect(locationReplace).not.toHaveBeenCalled()
+    })
+
+    describe('when flags never load (blocked analytics)', () => {
+        beforeEach(() => {
+            jest.useFakeTimers()
+            mockFlagOn = false
+            mockFlagsLoaded = false
+            jest.mocked(posthog.onFeatureFlags).mockImplementation(() => jest.fn())
+        })
+        afterEach(() => jest.useRealTimers())
+
+        it('still bounces Android to Play with the campaign after the wait', () => {
+            mockDeviceType = 'android'
+            visit(AD_QUERY)
+            renderPage()
+            act(() => jest.advanceTimersByTime(4000))
+            expect(mockNotFound).not.toHaveBeenCalled()
+            const referrer = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
+            expect(parseDeferredPayload(referrer)?.attribution?.firstTouch.utmCampaign).toBe('launch-films-ar')
+        })
+
+        it('still offers the iOS store tap that writes the hand-off', () => {
+            mockDeviceType = 'ios'
+            visit(AD_QUERY)
+            renderPage()
+            act(() => jest.advanceTimersByTime(4000))
+            expect(mockNotFound).not.toHaveBeenCalled()
+            fireEvent.click(storeButton(/app store/i))
+            expect(mockCopyIOSHandoff).toHaveBeenCalledTimes(1)
+            expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
+        })
+
+        it('keeps the 404 for a visit with no campaign', () => {
+            mockDeviceType = 'android'
+            visit('')
+            renderPage()
+            act(() => jest.advanceTimersByTime(4000))
+            expect(mockNotFound).toHaveBeenCalled()
+            expect(locationReplace).not.toHaveBeenCalled()
+        })
     })
 
     it('inside the app, goes home without building a hand-off', () => {

@@ -23,7 +23,7 @@ import {
     playStoreUrlWithReferrer,
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
-import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
+import { isPwaSunsetOff, isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
 import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
@@ -44,6 +44,7 @@ export default function SmartStoreRedirect() {
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
     const [marketingEntry, setMarketingEntry] = useState(false)
+    const [campaignEntry, setCampaignEntry] = useState(false)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
@@ -76,15 +77,18 @@ export default function SmartStoreRedirect() {
                 }
             }
         } else if (parsed) setPayload(new URLSearchParams(search).toString())
-        else if (!isNativeBridge() && marketingQrAnalyticsAllowed() && hasMarketingTouch()) {
+        else if (!isNativeBridge() && hasMarketingTouch()) {
+            setCampaignEntry(true)
             // Without a hand-off, an ad campaign in utm_* never reaches the installed app.
-            try {
-                if (captureSignupAttribution()) {
-                    setPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'android'))
-                    setIosPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'ios'))
+            if (marketingQrAnalyticsAllowed()) {
+                try {
+                    if (captureSignupAttribution()) {
+                        setPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'android'))
+                        setIosPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'ios'))
+                    }
+                } catch {
+                    // The stores stay reachable without a hand-off.
                 }
-            } catch {
-                // The stores stay reachable without a hand-off.
             }
         }
         // A native-flavored web build can lack the bridge and still need the store page.
@@ -111,7 +115,8 @@ export default function SmartStoreRedirect() {
         }
     }, [])
 
-    const migrationOn = mounted && isPwaSunsetOn()
+    // An ad link must not 404 because flags never loaded (blocked analytics); a flag evaluated off still 404s.
+    const migrationOn = mounted && (isPwaSunsetOn() || (campaignEntry && flagsSettled && !isPwaSunsetOff()))
     const settled = mounted && flagsSettled
     const storeReady = (settled && migrationOn) || (mounted && marketingEntry)
 

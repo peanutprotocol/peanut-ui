@@ -61,6 +61,20 @@ export function isPwaSunsetPending(): boolean {
     }
 }
 
+/**
+ * The flag was evaluated and is off, or this is a preview, which keeps web
+ * signup. Flags that never loaded (blocked or slow analytics) are not "off".
+ */
+export function isPwaSunsetOff(): boolean {
+    if (isPwaSunsetOn()) return false
+    if (isVercelPreviewDeployment()) return true
+    try {
+        return areFeatureFlagsLoaded()
+    } catch {
+        return false
+    }
+}
+
 /** The store this device downloads from. Desktop has none: it gets the QR code instead. */
 export function storeForDevice(deviceType: DeviceType): StoreKind | null {
     if (deviceType === DeviceType.IOS) return 'ios'
