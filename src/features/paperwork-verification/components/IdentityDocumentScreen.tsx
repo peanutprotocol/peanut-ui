@@ -21,6 +21,7 @@ import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { twMerge } from '@/utils/tw'
+import { ExitButton } from './ExitButton'
 import { IdCardScanAnimation } from './IdCardScanAnimation'
 import { DOCUMENT_KEYS } from '../paperworkVerification.utils'
 import { useInsetColor } from '../useInsetColor'
@@ -296,18 +297,12 @@ export function IdentityDocumentScreen({
                     <span />
                 )}
                 {onExit ? (
-                    <Button
-                        variant="ghost"
+                    <ExitButton
                         onClick={() => {
                             controls.track('exit', 'open')
                             setExitOpen(true)
                         }}
-                        className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'bg-white')}
-                        aria-label={t('documentList.close')}
-                        data-testid="verify-id-exit"
-                    >
-                        <Icon name="cancel" size={16} />
-                    </Button>
+                    />
                 ) : (
                     <span />
                 )}

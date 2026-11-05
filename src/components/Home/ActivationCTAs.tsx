@@ -1,7 +1,6 @@
 'use client'
 
-import { Icon } from '@/components/Global/Icons/Icon'
-import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
+import { CAROUSEL_CLOSE_BUTTON_POSITION } from '@/constants/carousel.consts'
 import { twMerge } from '@/utils/tw'
 import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
@@ -286,8 +285,10 @@ export default function ActivationCTAs({
         <Card position="solo" className="relative p-0">
             {blockedCard && onHideBlockedCard && (
                 // The same close as the Home carousel cards; support stays in Profile → Accounts.
-                <button
-                    type="button"
+                <Button
+                    variant="ghost"
+                    icon="cancel"
+                    iconSize={16}
                     aria-label={tGettingStarted('hide')}
                     onClick={() => {
                         posthog.capture(ANALYTICS_EVENTS.HOME_BLOCKED_CARD_HIDDEN, {
@@ -296,14 +297,9 @@ export default function ActivationCTAs({
                         })
                         onHideBlockedCard(blockedCard.ctaId)
                     }}
-                    className={twMerge(
-                        CAROUSEL_CLOSE_BUTTON_POSITION,
-                        'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
-                    )}
+                    className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10 size-6 p-0 after:absolute after:-inset-4')}
                     data-testid="blocked-card-hide"
-                >
-                    <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
-                </button>
+                />
             )}
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
                 <IconBubble {...step.bubble} />
