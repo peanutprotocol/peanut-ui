@@ -143,7 +143,6 @@ export function SemanticRequestConfirmView() {
             <PageStack.Center className="gap-4 pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
-                        avatarSize="m"
                         transactionType={'REQUEST_PAYMENT'}
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}

@@ -76,12 +76,7 @@ export function HomeFolds({ locale, strings, contentHrefs, faqItems, closeCta }:
                 decoration={<></>}
                 cta={
                     <CloseGloveCta>
-                        <StarLpCta
-                            href={closeCta.href}
-                            ground="pink"
-                            surface={MIGRATION_SURFACES.LANDING_APP_FOLD}
-                            qrPlacement="app-fold"
-                        >
+                        <StarLpCta ground="pink" surface={MIGRATION_SURFACES.LANDING_APP_FOLD} qrPlacement="app-fold">
                             {closeCta.label}
                         </StarLpCta>
                     </CloseGloveCta>

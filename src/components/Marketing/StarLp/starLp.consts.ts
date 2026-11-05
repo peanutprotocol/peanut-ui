@@ -69,14 +69,10 @@ export const STAR_LP_ROUTES = {
     selfCustody: '/self-custody',
 } as const
 
-/** CTA destinations while the PWA-sunset flag is off (on: /app for all). */
+/** The /peanut-card CTA's destinations; a guest's store hand-off carries /card as the deferred destination. */
 export const STAR_LP_HREF = {
-    signup: '/setup',
     cardGuest: `/setup?redirect_uri=${encodeURIComponent('/card')}`,
     cardSignedIn: '/card',
-    /** /us-europe-accounts: the bank-accounts list (held accounts plus every corridor offered). */
-    accountsGuest: `/setup?redirect_uri=${encodeURIComponent('/add-money?method=bank')}`,
-    accountsSignedIn: '/add-money?method=bank',
 } as const
 
 /** Scene springs, ported from peanutsplit motion.ts (stiffness / damping). */

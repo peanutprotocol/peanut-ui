@@ -1,10 +1,7 @@
 'use client'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { STORE_NAME, MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { onStoreAnchorClick, storeAnchorHref } from '@/utils/migration.utils'
 export function FooterStoreLinks() {
-    const migrationOn = useMigrationFlag()
-    if (!migrationOn) return null
     return (
         <div className="mt-6 flex gap-6 text-body-s text-white">
             {(['ios', 'android'] as const).map((store) => (

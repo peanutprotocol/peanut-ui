@@ -52,7 +52,7 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                             strings={strings}
                             contentHrefs={contentHrefs}
                             faqItems={faqItems}
-                            closeCta={{ label: heroConfig.primaryCta.label, href: heroConfig.primaryCta.href }}
+                            closeCta={{ label: heroConfig.primaryCta.label }}
                         />
                     }
                     footerSlot={<Footer locale={locale} padForStickyCta />}

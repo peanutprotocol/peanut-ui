@@ -130,6 +130,7 @@ const PASSKEY_LOGIN_MESSAGES = {
     // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
     CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
     PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
+    ACCOUNT_DELETED: 'This account was deleted. Sign up to create a new one.',
     LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
 } as const satisfies Record<string, string>
 
@@ -154,6 +155,7 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     PASSKEY_UNSUPPORTED: 'passkey.unsupported',
     PASSKEY_PROVIDER_UNSUPPORTED: 'testTransaction.errors.passkeyProviderUnsupported',
     PASSKEY_ORIGIN: 'passkey.origin',
+    ACCOUNT_DELETED: 'passkey.accountDeleted',
     LOGIN_ERROR: 'passkey.loginError',
 } as const satisfies Record<PasskeyErrorCode, string>
 
@@ -230,6 +232,7 @@ export class PasskeyServerError extends Error {
 }
 
 export function normalizePasskeyServerError(error: unknown): unknown {
+    if (error instanceof Error && error.name === 'PasskeyOptionsFailedError') return new PasskeyServerError(error)
     if (!(error instanceof TypeError)) return error
     const message = error.message ?? ''
     if (PASSKEY_SERVER_TYPE_ERROR.test(message)) return new PasskeyServerError(error)
@@ -356,7 +359,11 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             code = 'PASSKEY_STATE'
             break
         case 'PasskeyServerError':
+        case 'PasskeyOptionsFailedError':
             code = 'NETWORK'
+            break
+        case 'PasskeyAccountDeletedError':
+            code = 'ACCOUNT_DELETED'
             break
         default:
             if (isNetworkError(err)) code = 'NETWORK'

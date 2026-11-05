@@ -18,10 +18,6 @@ jest.mock('next-intl', () => ({
     useLocale: () => 'en',
 }))
 
-jest.mock('@/hooks/useMigrationFlag', () => ({
-    useMigrationFlag: () => false,
-}))
-
 jest.mock('@/hooks/useGetDeviceType', () => ({
     ...jest.requireActual('@/hooks/useGetDeviceType'),
     useDeviceType: () => ({ deviceType: 'web' }),

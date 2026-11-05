@@ -86,8 +86,8 @@ export function AvatarSticker({ avatarKey, letterOf, size = 's', className, deco
             <Image
                 src={art}
                 alt=""
-                width={176}
-                height={176}
+                width={288}
+                height={288}
                 unoptimized
                 className="size-full object-contain"
                 onError={() => setFailedArt(art)}
