@@ -27,13 +27,13 @@ import { reportQrScanError } from './utils'
 // ============================================================================
 
 // Brand names stay verbatim — they are proper nouns in every locale. The EVM
-// row is the odd one out: its label and alt text are descriptive prose, so it
+// row is the odd one out: its label is descriptive prose, so it
 // carries a key instead and is resolved at render.
 const PAYMENT_METHODS = [
-    { src: LOGO, alt: 'Peanut', name: 'Peanut' },
-    { src: MERCADO_PAGO, alt: 'Mercado Pago', name: 'Mercado Pago' },
-    { src: PIX, alt: 'PIX', name: 'PIX' },
-    { src: ETHEREUM_ICON, alt: null, name: null },
+    { src: LOGO, name: 'Peanut' },
+    { src: MERCADO_PAGO, name: 'Mercado Pago' },
+    { src: PIX, name: 'Pix' },
+    { src: ETHEREUM_ICON, name: null },
 ] as const
 
 const CORNER_POSITIONS = [
@@ -43,8 +43,8 @@ const CORNER_POSITIONS = [
     { position: '-bottom-1 -right-1', rotation: '-rotate-180' },
 ] as const
 
-// The same 730px threshold the icon grid uses. Tracked in JS (not CSS
-// dual-render): rendering PasteActions twice put duplicate interactive
+// Below 730px, use compact pills and anchored paste actions. Tracked in JS
+// (not CSS dual-render): rendering PasteActions twice put duplicate interactive
 // controls in the DOM and the a11y tree order could not be trusted.
 const SHORT_VIEWPORT_QUERY = '(max-height: 729px)'
 
@@ -93,14 +93,23 @@ function PinkCorner({ className }: { className?: string }) {
     )
 }
 
-function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name: string }) {
+// Konrad's approved 06A treatment: informational network pills on the camera,
+// separate from the DS Badge's status colours and from selectable controls.
+function PaymentMethodPill({ src, name, compact }: { src: string; name: string; compact: boolean }) {
     return (
-        <div className="flex max-w-26 items-center gap-1">
-            <Image src={src} alt={alt} height={24} priority />
-            <span className="text-left text-label-m leading-none tracking-wider break-normal text-white uppercase">
-                {name}
-            </span>
-        </div>
+        <li
+            className={`flex min-w-0 items-center justify-center gap-1 rounded-full border border-foreground-inverse/25 bg-background-default/12 px-2 text-foreground-inverse backdrop-blur ${compact ? 'min-h-6 py-0.5 text-body-xs' : 'min-h-8 py-1 text-body-s'}`}
+        >
+            <Image
+                src={src}
+                alt=""
+                width={compact ? 16 : 20}
+                height={compact ? 16 : 20}
+                className={`shrink-0 object-contain ${compact ? 'size-4' : 'size-5'}`}
+                priority
+            />
+            <span className="text-center">{name}</span>
+        </li>
     )
 }
 
@@ -190,6 +199,8 @@ function ScanRegionOverlay({
 }) {
     const t = useTranslations('global')
     const isShortViewport = useIsShortViewport()
+    const hasClipboardShortcut = Boolean(detectedAddress) || showPasteChip
+    const compactNetworks = isShortViewport || hasClipboardShortcut
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -201,26 +212,35 @@ function ScanRegionOverlay({
                     ))}
                 </div>
 
-                {/* Icons (2-per-row grid) then paste actions, hanging one XL
-                    section gap (24px) below the scan square so the group reads
-                    as part of it. Ruled 2026-09-02 (TASK-22121 #20), replacing
-                    the drawer-anchored strip. Tall viewports only: the short
-                    fallback below cannot live in this subtree, because the
-                    square's transform makes it the containing block for
-                    position:fixed — a bottom offset here would resolve against
-                    the 256px square, not the viewport. */}
-                {!isShortViewport && (
-                    <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
-                        <div className="grid grid-cols-2 gap-2">
-                            {PAYMENT_METHODS.map((method) => (
-                                <PaymentMethodBadge
-                                    key={method.name ?? 'evm'}
-                                    src={method.src}
-                                    alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
-                                    name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                                />
-                            ))}
+                {/* The pills stay on the camera. Compact screens retain the
+                    existing anchored paste actions below; when their clipboard
+                    shortcut needs the space, hide the informational group. */}
+                <div
+                    className={`pointer-events-auto absolute inset-x-0 top-full z-50 flex flex-col items-center ${isShortViewport ? 'mt-2' : 'mt-6'}`}
+                >
+                    {!(isShortViewport && hasClipboardShortcut) && (
+                        <div className="w-[calc(100vw-3rem)] max-w-80 [@media(max-height:666px)]:hidden">
+                            <p
+                                className={`text-center text-body-xs text-foreground-inverse ${compactNetworks ? 'mb-1' : 'mb-2'}`}
+                            >
+                                {t('qrScanner.supportedQrCodes')}
+                            </p>
+                            <ul
+                                aria-label={t('qrScanner.supportedQrCodes')}
+                                className={`grid grid-cols-2 gap-x-2 ${compactNetworks ? 'gap-y-1' : 'gap-y-2'}`}
+                            >
+                                {PAYMENT_METHODS.map((method) => (
+                                    <PaymentMethodPill
+                                        key={method.name ?? 'evm'}
+                                        src={method.src}
+                                        name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                                        compact={compactNetworks}
+                                    />
+                                ))}
+                            </ul>
                         </div>
+                    )}
+                    {!isShortViewport && (
                         <PasteActions
                             onPaste={onPaste}
                             detectedAddress={detectedAddress}
@@ -228,8 +248,8 @@ function ScanRegionOverlay({
                             showPasteChip={showPasteChip}
                             onUsePasteChip={onUsePasteChip}
                         />
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Short-viewport fallback: a viewport-fixed sibling OUTSIDE the
@@ -322,7 +342,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
      * raises the "Allow Paste" alert, which raced the camera permission dialog
      * and blocked it (PEANUT-UI-PYW) — so only a prompt-free hasStrings check
      * runs here, and the actual read happens on the chip tap (a real gesture).
-     * Web: no pre-read at all; "Click to paste" remains.
+     * Web: no pre-read at all; "Paste code" remains.
      */
     useEffect(() => {
         if (!isScanning) {
@@ -378,7 +398,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
      * rejecting everything else therefore turned the chip into a dead end for
      * the payloads the scanner exists to accept — a pasted Pix copia-e-cola was
      * refused as "not a wallet address". Hand the raw text to the same scan path
-     * as "Click to paste" and let recognizeQr decide.
+     * as "Paste code" and let recognizeQr decide.
      */
     const handleUsePasteChip = async () => {
         const text = await readClipboardText()
