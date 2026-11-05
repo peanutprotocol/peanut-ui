@@ -573,6 +573,12 @@
         "source": "Kyc/KycVerificationInProgressModal.tsx"
     },
     {
+        "id": "24-c-kyctaxidsubmitted",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-c-kyctaxidsubmitted",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
         "id": "25-b-kycactionrequiredmodal",
         "flow": "Verification",
         "route": "/dev/surfaces?s=25-b-kycactionrequiredmodal",

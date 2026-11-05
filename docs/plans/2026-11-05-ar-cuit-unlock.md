@@ -52,3 +52,5 @@ Alert threshold is strictly over 10 minutes. Claims are persisted, expire after 
 Tests use deterministic state matrices, faults, 8 concurrent callers/workers and a 101-row drain workload. No live load or CUIT fuzzing was run because provider policy/parser behavior is unchanged. Existing checksum behavior remains intact; rejected IDs still need exact provider evidence before changing validation policy. No hook was installed or reconfigured; configured guards and hosted branch protection remain in place.
 
 The submitted/notification view is scoped to Argentina sessions, matching the new AR readiness notification. Brazil retains its existing preparing phase and SDK submit/complete semantics; five independent compatibility cases cover that boundary.
+
+Review follow-up: registered the submitted capture in the generated trusted catalogue. Shortened submitted and waiting copy across four locales, preserving the manual-review estimate and notification promise; the modal scores 138 words against its prior 147 baseline, now tightened to 138. The 22 capture-cost integration checks, including exact trusted-catalogue equality, pass.

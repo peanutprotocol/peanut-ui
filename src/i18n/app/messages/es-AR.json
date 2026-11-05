@@ -1286,12 +1286,12 @@
             "descriptionByDate": "Vence el {deadline}. Las transferencias bancarias siguen funcionando hasta entonces. Completalo desde Inicio."
         },
         "progress": {
-            "submittedDescription": "Estamos revisando tu identificación fiscal para habilitar las transferencias bancarias. Podés cerrar esta pantalla. Te avisaremos cuando estén listas.",
-            "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Podés esperar acá o cerrar esto y te enviaremos una notificación.",
+            "submittedDescription": "Estamos revisando tu CUIT. Podés cerrar esta pantalla; te avisaremos cuando las transferencias estén listas.",
+            "verifyingDescription": "La mayoría de las verificaciones son rápidas. Las revisiones manuales tardan de 1 a 3 días hábiles. Podés cerrar esta pantalla; te avisaremos.",
             "preparingTimedOutDescription": "Podés continuar y te avisaremos cuando esté listo.",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Esperá un momento.",
             "verifyingTitle": "Revisando la identificación",
-            "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Podés cerrar esto y te avisaremos cuando haya una decisión.",
+            "verifyingStillGoing": "Esta verificación necesita una revisión más detallada. Podés cerrar esta pantalla; te avisaremos cuando haya una decisión.",
             "closeAndNotify": "Cerrar y avisarme"
         },
         "wrapper": {
