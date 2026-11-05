@@ -119,11 +119,11 @@ export const blockedCard: AttentionAsk = defineAsk('blocked-card', {
     version: (s) => s.blockedCardId ?? undefined,
 })
 
+// No blocked-card check: the card outranks the list, and once hidden the list takes Home, as the API ranks it.
 export const checklist: AttentionAsk = defineAsk('checklist', {
     eligible: (s) => {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
-        if (s.blockedCardId) return 'ineligible'
         if (!s.onboarding) return 'unknown'
         return s.onboarding.step === 'completed' ? 'done' : 'show'
     },
