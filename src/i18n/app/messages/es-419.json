@@ -1084,6 +1084,7 @@
         },
         "testTransaction": {
             "confirmTitle": "Un último paso",
+            "finishLater": "Confirmar después",
             "confirmAndFinish": "Confirmar y terminar",
             "retryAccountSetup": "Reintentar la configuración de la cuenta",
             "errors": {
@@ -1092,7 +1093,9 @@
                 "userNotLoaded": "Tus datos no se han cargado. Recarga la página.",
                 "setupFailed": "No pudimos completar la configuración de tu cuenta. Inténtalo de nuevo con el botón de abajo.",
                 "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda.",
-                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo."
+                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo.",
+                "networkBusy": "La red está ocupada y todavía no pudimos confirmar la cuenta. Inténtalo de nuevo en un momento.",
+                "confirmAgain": "Esa confirmación venció. Toca el botón y vuelve a confirmar con la passkey."
             }
         },
         "finish": {

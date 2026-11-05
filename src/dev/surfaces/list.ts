@@ -92,6 +92,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
+    '05-b-signtesttransaction-network-busy': {
+        name: 'Final passkey confirmation — network busy, confirm later',
+        path: 'Setup/Views/SignTestTransaction.tsx',
+    },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '06-b-invite': { name: 'Invited by a friend', path: 'Setup/Views/Invite.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },

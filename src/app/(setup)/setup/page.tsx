@@ -8,7 +8,13 @@ import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
-import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { isUntouchedNotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import {
+    POST_REGISTRATION_SCREENS,
+    readSignupProgress,
+    resumeScreen,
+    saveSignupProgress,
+} from '@/features/setup/signup-progress'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
@@ -42,18 +48,6 @@ import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 
-// The steps after registration; reaching any of them arms the no-back lock.
-const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
-    'residence',
-    'invite',
-    'advantage-fees',
-    'advantage-card',
-    'payment-plan',
-    'notification-email',
-    'notification-permission',
-    'advantage-control',
-]
-
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
     try {
@@ -84,6 +78,19 @@ function SetupPageContent() {
         setSignupEntryFlow,
         setSignupCompleted,
         signupCompleted,
+        masterScreenIds,
+        residenceCountry,
+        setResidenceCountry,
+        nationalityCountry,
+        setNationalityCountry,
+        fundingChannel,
+        setFundingChannel,
+        paymentChannel,
+        setPaymentChannel,
+        notificationChoices,
+        setNotificationChoices,
+        inviterAccepted,
+        setInviterAccepted,
     } = useSetupFlowContext()
     const {
         step,
@@ -103,6 +110,7 @@ function SetupPageContent() {
     const stepCopy = useSetupStepCopy(step)
     const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
+    const signedInUserId = user?.user?.userId
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
     const setScreenIdRef = useRef(setScreenId)
@@ -118,6 +126,38 @@ function SetupPageContent() {
     stepsRef.current = steps
     const currentScreenRef = useRef(step?.screenId)
     currentScreenRef.current = step?.screenId
+    const userIdRef = useRef<string | undefined>(undefined)
+    userIdRef.current = signedInUserId
+    const progressRestored = useRef(false)
+    const progressOwned = useRef(false)
+    /*
+     * Where a reloaded or restarted signup continues: the step saved on this
+     * device, with the answers given before it, so a person who reached the
+     * last step is not walked through residence, plan and email again.
+     */
+    const resumeTarget = (): ScreenId => {
+        const userId = userIdRef.current
+        const progress = userId ? readSignupProgress(userId) : null
+        const restore = !progressRestored.current
+        progressRestored.current = true
+        if (progress && restore) {
+            const { answers } = progress
+            if (answers.residenceCountry) setResidenceCountry(answers.residenceCountry)
+            if (answers.nationalityCountry) setNationalityCountry(answers.nationalityCountry)
+            if (answers.fundingChannel) setFundingChannel(answers.fundingChannel)
+            if (answers.paymentChannel) setPaymentChannel(answers.paymentChannel)
+            if (answers.notificationChoices) setNotificationChoices(answers.notificationChoices)
+            if (answers.inviterAccepted) setInviterAccepted(true)
+            if (answers.sellScreensCountry !== undefined) setSellScreensCountry(answers.sellScreensCountry)
+        }
+        return resumeScreen(
+            progress,
+            stepsRef.current.map((entry) => entry.screenId),
+            masterScreenIds
+        )
+    }
+    const resumeTargetRef = useRef(resumeTarget)
+    resumeTargetRef.current = resumeTarget
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
     const initializationExpired = useRef(false)
@@ -231,6 +271,39 @@ function SetupPageContent() {
         setSellScreensCountry,
         countrySignals,
     ])
+    useEffect(() => {
+        if (!stepRendered || signupCompleted || !step || !signedInUserId) return
+        if (!POST_REGISTRATION_SCREENS.includes(step.screenId)) return
+        // Never overwrite saved answers before this mount has restored them.
+        if (!progressOwned.current) {
+            if (!progressRestored.current && readSignupProgress(signedInUserId)) return
+            progressOwned.current = true
+        }
+        saveSignupProgress(signedInUserId, {
+            screenId: step.screenId,
+            answers: {
+                residenceCountry,
+                nationalityCountry,
+                fundingChannel,
+                paymentChannel,
+                notificationChoices: isUntouchedNotificationChoices(notificationChoices) ? null : notificationChoices,
+                inviterAccepted,
+                sellScreensCountry,
+            },
+        })
+    }, [
+        stepRendered,
+        signupCompleted,
+        step,
+        signedInUserId,
+        residenceCountry,
+        nationalityCountry,
+        fundingChannel,
+        paymentChannel,
+        notificationChoices,
+        inviterAccepted,
+        sellScreensCountry,
+    ])
     const showBackButton =
         !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 
@@ -291,8 +364,8 @@ function SetupPageContent() {
              * the wallet the last step creates. Leaving for /home skipped the
              * email and every other step after registration, so every exit
              * below resumes instead. Entry never trusts a reloaded ?screen=:
-             * restart at the first step after registration, unless the flow
-             * is already past it.
+             * it continues at the step saved on this device (signup-progress),
+             * else at the first step after registration.
              */
             const resume = !isDemoMode() && unfinishedSignupRoute(user) === '/setup'
             if (resume) resumeSignup.current = true
@@ -302,9 +375,7 @@ function SetupPageContent() {
                     return
                 }
                 if (resolvedEntry.current === null || shownPostRegistration.current) return
-                setScreenIdRef.current(postRegistrationScreen(stepsRef.current.map((entry) => entry.screenId)), {
-                    history: 'replace',
-                })
+                setScreenIdRef.current(resumeTargetRef.current(), { history: 'replace' })
             }
             const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
             const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
@@ -406,7 +477,7 @@ function SetupPageContent() {
                 if (!resumeSignup.current) return target
                 const current = currentScreenRef.current
                 if (shownPostRegistration.current && current) return current
-                return postRegistrationScreen(steps.map((entry) => entry.screenId))
+                return resumeTargetRef.current()
             }
 
             // The entry-step rules (invite code / ?step=signup opening the form

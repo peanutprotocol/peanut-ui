@@ -30,6 +30,7 @@ import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefre
 import { useLongPressGuard } from '@/hooks/useLongPressGuard'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
+import { useDeferredSignupTestTransactionRetry } from '@/features/setup/useDeferredSignupTestTransactionRetry'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
 // Side-effect import: useSafeBack patches history.pushState at module load. Importing here
 // guarantees the patch is installed before any child page's mount-time router.push.
@@ -48,6 +49,7 @@ const AUTH_GATE_TIMEOUT_MS = 15000
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
+    useDeferredSignupTestTransactionRetry()
     const pathName = usePathname()
 
     // Allow access to public paths without authentication.

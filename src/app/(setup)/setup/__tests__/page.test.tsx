@@ -11,13 +11,23 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
+import { readSignupProgress, saveSignupProgress } from '@/features/setup/signup-progress'
 
 let mockNoBackLock: string | null = null
+const mockDefaultChoices = { push: false, marketingPush: false, emailUpdates: false, cascaded: false }
 let mockSignupCompleted = false
 const mockSetNoBackLock = jest.fn()
 const mockSetSellScreensCountry = jest.fn()
 let mockSellScreensCountry: string | null | undefined = undefined
 const mockSupport = jest.fn()
+const mockAnswerSetters = {
+    setResidenceCountry: jest.fn(),
+    setNationalityCountry: jest.fn(),
+    setFundingChannel: jest.fn(),
+    setPaymentChannel: jest.fn(),
+    setNotificationChoices: jest.fn(),
+    setInviterAccepted: jest.fn(),
+}
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
 const mockQueuePendingBadgeCampaigns = jest.fn((campaigns: readonly string[]) => [...campaigns])
@@ -37,7 +47,7 @@ const mockFlow = {
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
 type MockAuthUser = {
-    user?: { username?: string; hasAppAccess?: boolean; email?: string }
+    user?: { userId?: string; username?: string; hasAppAccess?: boolean; email?: string }
     accounts?: { type: string }[]
 }
 // The last setup step creates the wallet, so a finished signup always has one.
@@ -68,7 +78,27 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
         sellScreensCountry: mockSellScreensCountry,
         setSellScreensCountry: mockSetSellScreensCountry,
         setSignupEntryFlow: jest.fn(),
+        masterScreenIds: [
+            'landing',
+            'signup',
+            'invite',
+            'advantage-fees',
+            'advantage-card',
+            'residence',
+            'payment-plan',
+            'notification-email',
+            'notification-permission',
+            'advantage-control',
+        ],
+        residenceCountry: '',
+        nationalityCountry: '',
+        fundingChannel: null,
+        paymentChannel: null,
+        notificationChoices: mockDefaultChoices,
+        inviterAccepted: false,
+        ...mockAnswerSetters,
     }),
+    isUntouchedNotificationChoices: (choices: unknown) => choices === mockDefaultChoices,
 }))
 jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
@@ -809,5 +839,102 @@ describe('a signup interrupted after registration', () => {
         await advance(100)
         expect(mockRouter.replace).not.toHaveBeenCalled()
         expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+    })
+
+    describe('with progress saved on this device', () => {
+        const finalStep: ISetupStep = {
+            ...landing,
+            screenId: 'advantage-control',
+            component: () => <div>Final step</div>,
+        }
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        const registered = { user: { userId: 'u-1', username: 'test044', hasAppAccess: true }, accounts: [] }
+
+        beforeEach(() => {
+            localStorage.clear()
+            mockStore.steps = [landing, residence, paymentPlan, finalStep]
+            mockFlow.step = landing
+            mockSearchParams = new URLSearchParams()
+        })
+
+        it('a reload on the final step resumes there with residence and plan kept', async () => {
+            saveSignupProgress('u-1', {
+                screenId: 'advantage-control',
+                answers: {
+                    residenceCountry: 'AR',
+                    nationalityCountry: 'BR',
+                    fundingChannel: 'arsBank',
+                    paymentChannel: 'qr',
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: 'AR',
+                },
+            })
+            mockAuth.user = registered
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('advantage-control', { history: 'replace' })
+            expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', expect.anything())
+            expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('AR')
+            expect(mockAnswerSetters.setNationalityCountry).toHaveBeenCalledWith('BR')
+            expect(mockAnswerSetters.setFundingChannel).toHaveBeenCalledWith('arsBank')
+            expect(mockAnswerSetters.setPaymentChannel).toHaveBeenCalledWith('qr')
+            expect(mockSetSellScreensCountry).toHaveBeenCalledWith('AR')
+            expect(mockRouter.replace).not.toHaveBeenCalled()
+        })
+
+        it('resumes there too when the profile arrives after the entry step resolved', async () => {
+            saveSignupProgress('u-1', {
+                screenId: 'payment-plan',
+                answers: {
+                    residenceCountry: 'MX',
+                    nationalityCountry: '',
+                    fundingChannel: null,
+                    paymentChannel: null,
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: undefined,
+                },
+            })
+            mockAuth.isFetchingUser = true
+            const view = renderWithIntl(<SetupPage />)
+            await advance(100)
+            mockAuth.isFetchingUser = false
+            mockAuth.user = registered
+            await act(async () => {
+                view.rerender(<SetupPage />)
+            })
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('payment-plan', { history: 'replace' })
+            expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('MX')
+        })
+
+        it('saves the step and the answers as the person reaches it', async () => {
+            mockAuth.user = registered
+            mockFlow.step = finalStep
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(readSignupProgress('u-1')).toMatchObject({ screenId: 'advantage-control' })
+        })
+
+        it('progress saved by another account on this device is not used', async () => {
+            saveSignupProgress('someone-else', {
+                screenId: 'advantage-control',
+                answers: {
+                    residenceCountry: 'AR',
+                    nationalityCountry: '',
+                    fundingChannel: null,
+                    paymentChannel: null,
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: undefined,
+                },
+            })
+            mockAuth.user = registered
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('residence', { history: 'replace' })
+            expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalled()
+        })
     })
 })
