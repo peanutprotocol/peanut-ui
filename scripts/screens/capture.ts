@@ -9,6 +9,7 @@ import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { answerRpc, isChainRpc, isRhinoTokenConfigs } from './rpc'
+import { freezeDate } from './freeze-date.mjs'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
 import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
@@ -239,7 +240,9 @@ async function main() {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
                 if (copyRecording === 'recorded') await page.addInitScript(installCopyRecorder)
-                await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
+                // Freeze Date only: Playwright's clock also replaces the page's timers, which held React
+                // Query's update delivery for seconds and let a screen settle after it was captured.
+                await page.addInitScript(freezeDate, Date.parse('2026-09-01T12:00:00Z'))
                 await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
                     // A constant draw is independent of unrelated startup call order.
