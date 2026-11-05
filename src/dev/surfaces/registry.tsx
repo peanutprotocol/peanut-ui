@@ -278,6 +278,7 @@ function AveniaPixDepositSurface() {
         <AppPageSurface>
             <AveniaPixQrDeposit
                 intentId="demo-avenia-deposit"
+                blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
                 deposit={{
                     intentId: 'demo-avenia-deposit',
                     brCode: DEMO_AVENIA_BR_CODE,

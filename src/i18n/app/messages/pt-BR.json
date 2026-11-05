@@ -2514,6 +2514,8 @@
             "notAvailable": "Não foi possível configurar o Pix para esta conta. Fale com o suporte para concluir."
         },
         "deposit": {
+            "youGet": "Você recebe ≈ {amount}",
+            "blockedBanks": "Um Pix de {banks} é devolvido.",
             "minimum": "O mínimo é {amount}.",
             "limitExceeded": "Este depósito passa do limite mensal do Pix.",
             "ownCpf": "De uma conta no seu CPF {cpf}",

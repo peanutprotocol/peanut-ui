@@ -135,6 +135,9 @@ export function AveniaAddMoneyFlow({
             <AveniaPixQrDeposit
                 intentId={intentId}
                 deposit={deposit?.intentId === intentId ? deposit : undefined}
+                blockedBankNames={
+                    eligibility.data?.blockedBanks.flatMap((bank) => (bank.name ? [bank.name] : [])) ?? []
+                }
                 // the code is made; back leaves the flow rather than offering a second code
                 onBack={onBack}
                 onDone={leaveToHome}

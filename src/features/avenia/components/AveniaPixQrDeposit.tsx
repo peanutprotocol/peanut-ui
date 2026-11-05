@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -28,6 +28,7 @@ import { formatBankAmount } from '@/utils/currency'
 export function AveniaPixQrDeposit({
     intentId,
     deposit,
+    blockedBankNames,
     onBack,
     onDone,
     onComplete,
@@ -35,6 +36,8 @@ export function AveniaPixQrDeposit({
     intentId: string
     /** POST /avenia/deposit's answer; undefined after a reload. */
     deposit: AveniaDeposit | undefined
+    /** Banks whose Pix Avenia sends back (GET /avenia/deposit/eligibility). */
+    blockedBankNames: string[]
     onBack: () => void
     /** Leaves the flow: the deposit is paid, or there is nothing left to pay. */
     onDone: () => void
@@ -43,6 +46,7 @@ export function AveniaPixQrDeposit({
     const t = useTranslations('addMoney')
     const tAvenia = useTranslations('avenia.deposit')
     const tCommon = useTranslations('common')
+    const format = useFormatter()
     const { user } = useAuth()
     const { phase, expiresAt: statusExpiresAt } = useAveniaDepositStatus(intentId, onComplete)
 
@@ -111,6 +115,10 @@ export function AveniaPixQrDeposit({
                             <p className="text-heading-s text-foreground-primary">
                                 {formatBankAmount(deposit.amountBrl, 'BRL')}
                             </p>
+                            {/* Avenia's fees are already out of the quote: this is what the balance receives */}
+                            <p className="text-body-s text-foreground-secondary">
+                                {tAvenia('youGet', { amount: formatBankAmount(deposit.usdcAmount, 'USD') })}
+                            </p>
                             {countdown.timeLeft && (
                                 <p className="text-body-s text-foreground-secondary">
                                     {t('pix.expiresIn', { time: countdown.timeLeft })}
@@ -149,6 +157,13 @@ export function AveniaPixQrDeposit({
                                 {tAvenia('ownCpf', { cpf: deposit.payerCpfMasked })}
                             </p>
                         </div>
+                        {blockedBankNames.length > 0 && (
+                            <p className="text-body-s text-foreground-secondary">
+                                {tAvenia('blockedBanks', {
+                                    banks: format.list(blockedBankNames, { type: 'disjunction' }),
+                                })}
+                            </p>
+                        )}
                     </>
                 )}
 
