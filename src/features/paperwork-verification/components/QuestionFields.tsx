@@ -343,17 +343,13 @@ function TypedFields({
                             country,
                             (f) => {
                                 const code = f.value ?? values[f.key] ?? residence ?? ''
-                                // never edited here, so a long country name wraps instead of being cut at large text sizes
+                                // shown, never edited here: plain text under its label, so a long country name wraps at large text sizes
                                 return (
                                     <div
                                         id={`${idPrefix}-${f.key}`}
-                                        role="textbox"
-                                        aria-readonly="true"
-                                        aria-disabled={f.locked || undefined}
-                                        aria-label={t('labels.country')}
                                         data-testid="verify-input-country"
                                         className={twMerge(
-                                            'input relative flex h-auto min-h-12 items-center py-[calc(0.75rem-1px)] break-words',
+                                            'input relative flex h-auto min-h-12 items-center py-3 break-words',
                                             !!code && 'pl-10',
                                             f.locked &&
                                                 'border-border-subtle bg-background-disabled text-foreground-secondary'
