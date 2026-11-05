@@ -1430,6 +1430,11 @@
 										"maxLength": 140,
 										"minLength": 1,
 										"type": "string"
+									},
+									"spendUsd": {
+										"description": "USDC to leave the wallet, Rhino’s fee included (\"Use balance\"). Send one of the three amounts.",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
 									}
 								},
 								"required": [
@@ -1804,6 +1809,11 @@
 									"pixKey": {
 										"maxLength": 140,
 										"minLength": 1,
+										"type": "string"
+									},
+									"spendUsd": {
+										"description": "USDC to leave the wallet, Rhino’s fee included (\"Use balance\"). Send one of the three amounts.",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
 										"type": "string"
 									}
 								},
@@ -2322,7 +2332,7 @@
 		},
 		"/avenia/withdraw/{intentId}/recovery-key": {
 			"post": {
-				"description": "When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it.",
+				"description": "When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open with the rollout gate or the Avenia kill switch closed, since it only returns the user’s own money.",
 				"parameters": [
 					{
 						"in": "path",
