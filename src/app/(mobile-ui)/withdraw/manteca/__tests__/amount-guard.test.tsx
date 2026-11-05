@@ -69,6 +69,8 @@ let mockBrazilPaused = false
 jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
     useBrazilServicesPaused: () => mockBrazilPaused,
 }))
+let mockResidenceIso2s: string[] = []
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
 jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
     BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
 }))
@@ -76,6 +78,7 @@ jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
 beforeEach(() => {
     mockBrazilPaused = false
+    mockResidenceIso2s = []
     mockBalance = parseUnits('10', 6)
     mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 })
@@ -171,6 +174,13 @@ describe('the Brazil pause', () => {
             expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
         }
     )
+
+    test('shows the paused screen for a Brazil resident sending to a Pix key once the pause is off', () => {
+        mockResidenceIso2s = ['BR']
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+    })
 
     test('leaves Argentina open', () => {
         mockBrazilPaused = true
