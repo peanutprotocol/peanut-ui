@@ -73,15 +73,25 @@ describe('friendlyError', () => {
         })
     })
 
-    test('unconfirmed Android passkey cleanup asks for a restart, wrapped or not', () => {
-        const cleanup = Object.assign(new Error('Passkey cleanup is unconfirmed; restart the app'), {
-            name: 'PasskeyCleanupPendingError',
-        })
-        expect(friendlyError(cleanup)).toEqual({ kind: 'code', code: 'passkeyRestartRequired' })
+    test('a request native still holds gets the still-open copy, wrapped or not', () => {
+        const cleanup = Object.assign(
+            new Error('Passkey cleanup is unconfirmed; native still holds the previous request'),
+            {
+                name: 'PasskeyCleanupPendingError',
+            }
+        )
+        expect(friendlyError(cleanup)).toEqual({ kind: 'code', code: 'passkeyStillOpen' })
         expect(friendlyError(new Error('sign failed', { cause: cleanup }))).toEqual({
             kind: 'code',
-            code: 'passkeyRestartRequired',
+            code: 'passkeyStillOpen',
         })
+    })
+
+    test('a previous request that is still closing gets the short wait-and-retry copy', () => {
+        const settling = Object.assign(new Error('The previous passkey request is still closing'), {
+            name: 'PasskeyRequestSettlingError',
+        })
+        expect(friendlyError(settling)).toEqual({ kind: 'code', code: 'passkeySettling' })
     })
 
     test('unknown errors still fall through to the support-fallback code', () => {
@@ -157,7 +167,8 @@ describe('friendly error copy catalog', () => {
         'insufficientBalance',
         'operationTimedOut',
         'passkeyNotCompleted',
-        'passkeyRestartRequired',
+        'passkeySettling',
+        'passkeyStillOpen',
         'claimLinkFailed',
         'sendLinkAlreadyClaimed',
         'lowLiquidity',

@@ -1014,6 +1014,8 @@
             "notReady": "The app is still getting ready for passkeys. Wait a moment and try again.",
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
+            "settling": "The last passkey prompt is still closing. Wait a few seconds and try again.",
+            "stillOpen": "The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "accountDeleted": "This account was deleted. Sign up to create a new one.",
             "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
@@ -1681,7 +1683,7 @@
             "signFailed": "We couldn't confirm this payment. You weren't charged. Please try again.",
             "preparationFailed": "Something went wrong. You weren't charged. Please try again.",
             "passkeyBusy": "Another confirmation is already open. Close it, then tap Pay again. You weren't charged.",
-            "passkeyRestart": "The last confirmation didn't finish closing. Restart the app, then tap Pay again. You weren't charged.",
+            "passkeyStillOpen": "The last confirmation is still open. Close any passkey window, then tap Pay again. If it keeps happening, close and reopen the app. You weren't charged.",
             "accountStateChanged": "Transaction failed due to account state change. Please try again. If the problem persists, contact support.",
             "sessionExpired": "Payment session expired. Please scan the QR code again.",
             "restartScan": "We couldn't start this payment. Please scan the QR code again.",
@@ -4597,7 +4599,8 @@
         "passkeyDeviceLocked": "Unlock the device, then try again.",
         "passkeyBiometryRequired": "Use Face ID or Touch ID to verify the passkey, then try again.",
         "passkeyVerificationIncomplete": "Passkey verification wasn’t completed. Try again when ready.",
-        "passkeyRestartRequired": "The last passkey request didn’t finish closing. Restart the app, then try again."
+        "passkeySettling": "The last passkey prompt is still closing. Wait a few seconds and try again.",
+        "passkeyStillOpen": "The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app."
     },
     "appLock": {
         "title": "Welcome back!",

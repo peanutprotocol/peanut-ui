@@ -581,13 +581,27 @@ describe('Android failures that are not cancels', () => {
     })
 })
 
-it('shows restart guidance, without a retry drawer, when native cleanup is unconfirmed', async () => {
+it('shows still-open guidance, without a retry drawer, when native still holds the old request', async () => {
     mockHandleRegister.mockRejectedValue(
-        Object.assign(new Error('A previous passkey flow is still pending'), { name: 'PasskeyCleanupPendingError' })
+        Object.assign(new Error('Passkey cleanup is unconfirmed'), { name: 'PasskeyCleanupPendingError' })
     )
     renderWithIntl(<Harness />)
     claim()
-    expect(await screen.findByRole('alert')).toHaveTextContent('Restart the app and try again.')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+        'The last passkey request is still open on this phone. Close any passkey window and try again.'
+    )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mockNext).not.toHaveBeenCalled()
+})
+
+it('asks for a short wait when the previous passkey request is still closing', async () => {
+    mockHandleRegister.mockRejectedValue(
+        Object.assign(new Error('A previous passkey flow is still pending'), { name: 'PasskeyRequestSettlingError' })
+    )
+    renderWithIntl(<Harness />)
+    claim()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+        'The last passkey prompt is still closing. Wait a few seconds and try again.'
+    )
     expect(mockNext).not.toHaveBeenCalled()
 })

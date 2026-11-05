@@ -129,7 +129,8 @@
         "passkeyDeviceLocked": "Desbloqueie o dispositivo e tente de novo.",
         "passkeyBiometryRequired": "Use o Face ID ou Touch ID para verificar a passkey e tente de novo.",
         "passkeyVerificationIncomplete": "A verificação com passkey não foi concluída. Tente de novo quando quiser.",
-        "passkeyRestartRequired": "A última solicitação de passkey não terminou de fechar. Reinicie o app e tente de novo."
+        "passkeySettling": "A última solicitação de passkey ainda está fechando. Espere alguns segundos e tente de novo.",
+        "passkeyStillOpen": "A última solicitação de passkey ainda está aberta neste celular. Feche qualquer janela de passkey e tente de novo. Se continuar acontecendo, feche e abra o app de novo."
     },
     "migration": {
         "downloadPeanut": "Baixar Peanut",

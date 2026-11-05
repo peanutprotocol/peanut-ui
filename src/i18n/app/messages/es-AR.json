@@ -548,6 +548,8 @@
             "notReady": "La app todavía se está preparando para las passkeys. Esperá un momento e intentalo de nuevo.",
             "deviceState": "Hubo un problema con la passkey en este dispositivo. Reiniciá la app e intentalo de nuevo.",
             "interrupted": "Algo interrumpió la solicitud de la passkey. Intentalo de nuevo.",
+            "settling": "La última solicitud de passkey todavía se está cerrando. Esperá unos segundos e intentalo de nuevo.",
+            "stillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cerrá cualquier ventana de passkey e intentalo de nuevo. Si sigue pasando, cerrá y volvé a abrir la app.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
             "accountDeleted": "Esta cuenta fue eliminada. Registrate para crear una nueva.",
             "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elegí otro nombre de usuario para crear una nueva.",
@@ -878,7 +880,7 @@
             "signFailed": "No pudimos confirmar este pago. No se te cobró nada. Intentalo de nuevo.",
             "preparationFailed": "Algo salió mal. No se te cobró nada. Intentalo de nuevo.",
             "passkeyBusy": "Ya hay otra confirmación abierta. Cerrala y tocá Pagar de nuevo. No se te cobró nada.",
-            "passkeyRestart": "La última confirmación no terminó de cerrarse. Reiniciá la app y tocá Pagar de nuevo. No se te cobró nada.",
+            "passkeyStillOpen": "La última confirmación sigue abierta. Cerrá cualquier ventana de passkey y tocá Pagar de nuevo. Si sigue pasando, cerrá y volvé a abrir la app. No se te cobró nada.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Intentalo de nuevo. Si el problema persiste, contactá a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escaneá el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escaneá el código QR de nuevo.",
@@ -1963,7 +1965,8 @@
         "passkeyDeviceLocked": "Desbloqueá el dispositivo e intentalo de nuevo.",
         "passkeyBiometryRequired": "Usá Face ID o Touch ID para verificar la passkey e intentalo de nuevo.",
         "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Intentalo de nuevo cuando quieras.",
-        "passkeyRestartRequired": "La última solicitud de passkey no terminó de cerrarse. Reiniciá la app e intentalo de nuevo."
+        "passkeySettling": "La última solicitud de passkey todavía se está cerrando. Esperá unos segundos e intentalo de nuevo.",
+        "passkeyStillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cerrá cualquier ventana de passkey e intentalo de nuevo. Si sigue pasando, cerrá y volvé a abrir la app."
     },
     "appLock": {
         "prompt": "Desbloqueá para abrir la app.",
