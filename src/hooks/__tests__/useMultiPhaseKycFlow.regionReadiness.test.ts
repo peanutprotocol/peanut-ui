@@ -117,6 +117,19 @@ beforeEach(() => {
 })
 
 describe('L8 deferred refresh and session recovery', () => {
+    it('a terms step that becomes provider review completes without asking for terms again', async () => {
+        const onKycSuccess = jest.fn()
+        const view = await approvedFlow(
+            snapshot({ state: 'action_required', action: 'ar-step' }, [action('accept-tos')]),
+            { onKycSuccess }
+        )
+        expect(view.result.current.modalPhase).toBe('bridge_tos')
+        mockCapabilities = snapshot({ state: 'setting_up', action: 'ar-step' }, [action('wait')])
+        view.rerender()
+        expect(view.result.current.modalPhase).toBe('complete')
+        expect(notice(view.result.current)).toEqual({ kind: 'review', currencies: ['ARS'] })
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
     it('immediate no-SDK approval uses the country selected in the same initiation', async () => {
         mockCapabilities = snapshot({ state: 'action_required', action: 'ar-step' }, [action('questions')], {
             brl: { state: 'on' },

@@ -296,6 +296,7 @@ export const useMultiPhaseKycFlow = ({
             setCompletionNotice(notice)
             clearPreparingTimer()
             setPreparingTimedOut(false)
+            setShowTosIframe(false)
             setModalPhase('complete')
             setForceShowModal(true)
         },
@@ -718,11 +719,11 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (verificationSession) return
         if (!isVerificationProgressModalOpen && !forceShowModal) return
+        if (nextNotice && (modalPhase === 'preparing' || modalPhase === 'bridge_tos')) {
+            showCompletionNotice(nextNotice)
+            return
+        }
         if (modalPhase === 'preparing') {
-            if (nextNotice) {
-                showCompletionNotice(nextNotice)
-                return
-            }
             if (supplementInReview && !supplementKey) {
                 clearPreparingTimer()
                 completeFlow()
@@ -807,6 +808,7 @@ export const useMultiPhaseKycFlow = ({
     // handle ToS iframe close
     const handleTosIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
+            if (finishedRef.current || completionNoticeRef.current) return
             const generation = flowGenerationRef.current
             setShowTosIframe(false)
 
