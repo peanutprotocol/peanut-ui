@@ -135,7 +135,7 @@ export function AveniaPixQrDeposit({
                 )}
 
                 <div className="flex items-center gap-2">
-                    {user?.user?.fullName && <AvatarWithBadge name={user.user.fullName} size="xs" />}
+                    {user?.user?.fullName && <AvatarWithBadge name={user.user.fullName} size="s" />}
                     <p className="text-body-s text-foreground-secondary">
                         {tAvenia('ownCpf', { cpf: deposit.payerCpfMasked })}
                     </p>
