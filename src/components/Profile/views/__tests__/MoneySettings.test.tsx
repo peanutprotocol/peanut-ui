@@ -1451,7 +1451,9 @@ describe('MoneySettings', () => {
             const qrRow = screen.getByText('QR payments')
             fireEvent.click(qrRow)
             const drawer = screen.getByRole('dialog')
-            expect(within(drawer).getByText('Scan to pay.')).toBeInTheDocument()
+            expect(
+                within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
+            ).toBeInTheDocument()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
 
@@ -1698,6 +1700,7 @@ describe('MoneySettings', () => {
             }
         )
 
+        // The drawer keeps the copy every user sees: the Pix pause is temporary (ui#3963 review).
         it('keeps the Argentine QR offer active for a Brazilian resident', () => {
             mockRails = [brazilianRail()]
             render('payments')
@@ -1709,8 +1712,7 @@ describe('MoneySettings', () => {
             expect(within(qrRow).queryByText(/Brazil/)).not.toBeInTheDocument()
             fireEvent.click(screen.getByText('QR payments'))
             const drawer = within(screen.getByRole('dialog'))
-            expect(drawer.getAllByText(/Argentina/)[0]).toBeVisible()
-            expect(drawer.queryByText(/Brazil/)).not.toBeInTheDocument()
+            expect(drawer.getByText('Scan and pay where you live.')).toBeVisible()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
     })

@@ -1,7 +1,6 @@
 'use client'
 
 import { pixQrHost } from '@/utils/pix-qr-host'
-import { isPixQrResidenceBlocked } from '@/utils/pix-qr-eligibility'
 
 import { isPixKeyNotFound, recipientBankNameOf, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
@@ -57,7 +56,7 @@ import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
+import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -229,12 +228,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const isProviderDisabled = useMemo(() => {
         return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor, disabledPaymentProviders])
-    const isBrazilPaused = useBrazilServicesPaused() && qrType === EQrType.PIX
+    const isBrazilPaused = useBrazilPixPaused() && (qrType === EQrType.PIX || isPixEmvcoQr(qrCode))
     // Neither an outage nor the Brazil pause starts a payment. The view keeps them
     // apart: a payment made before the pause still shows its status (TASK-24197).
-    const isPixResidenceBlocked =
-        (qrType === EQrType.PIX || isPixEmvcoQr(qrCode)) && isPixQrResidenceBlocked(user?.residence)
-    const blocksNewPayment = isProviderDisabled || isBrazilPaused || isPixResidenceBlocked
+    const blocksNewPayment = isProviderDisabled || isBrazilPaused
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
@@ -296,18 +293,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      * specific message must win over the generic "Invalid QR code scanned".
      */
     const entryGuardError = useMemo(() => {
-        if (
-            isPixResidenceBlocked &&
-            !submittedPaymentRef.current &&
-            !qrPayment &&
-            !isSuccess &&
-            loadingState !== 'Paying'
-        )
-            return t('errors.pixResidenceNotSupported')
         if (qrCode && isPixRecurringCode(qrCode)) return pixRecurringErrorMessage
         if (!qrCode || !isPaymentProcessorQR(qrCode)) return t('errors.invalidQr')
         return null
-    }, [qrCode, isPixResidenceBlocked, qrPayment, isSuccess, loadingState, pixRecurringErrorMessage, t])
+    }, [qrCode, pixRecurringErrorMessage, t])
 
     // Get amount from payment lock (Manteca)
     useEffect(() => {
@@ -662,7 +651,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         async (recovery: SpendRecoveryQuoteReviewError) => {
             if (!qrCode) return
             // One refresh at a time: a second entry would race two quotes.
-            if (quoteRecoveryInFlightRef.current || isPixResidenceBlocked) return
+            if (quoteRecoveryInFlightRef.current || isBrazilPaused) return
             quoteRecoveryInFlightRef.current = true
             quoteRecoveryCancelledRef.current = false
             setIsSuccess(false)
@@ -723,7 +712,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         [
             qrCode,
             qrType,
-            isPixResidenceBlocked,
+            isBrazilPaused,
             timestamp,
             currencyAmount,
             t,
@@ -749,7 +738,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [cancelQuoteRecovery, onBack])
 
     const handleMantecaPayment = useCallback(async () => {
-        if (!paymentLock || !qrCode || !currencyAmount || isPixResidenceBlocked || amountEntryRejection) return
+        if (!paymentLock || !qrCode || !currencyAmount || isBrazilPaused || amountEntryRejection) return
         // A refresh already owns the flow (cooldown wait or init in flight).
         if (isQuoteRecovering) return
         // The previous re-quote never landed: this tap retries the QUOTE only —
@@ -1141,7 +1130,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [
         queryClient,
         amountEntryRejection,
-        isPixResidenceBlocked,
+        isBrazilPaused,
         tErrors,
         handleQuoteRecovery,
         isQuoteRecovering,
@@ -1288,10 +1277,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     // check if we're still loading payment data before showing anything
     const isLoadingPaymentData = (paymentProcessor === 'MANTECA' && !paymentLock) || !currency
 
+    // The API refused Pix for the user's residence although the app had let the scan through.
+    const refusedForResidence =
+        amountEntryRejection?.code === QR_INIT_CODE.PIX_RESIDENCE ||
+        (scanOutcome.kind === 'failed' && scanOutcome.reason === QR_INIT_CODE.PIX_RESIDENCE)
     const view = deriveQrPayView({
         kycGateState,
         isProviderDisabled,
-        isBrazilPaused,
+        // a residence that turns Brazil mid-payment leaves the submitted payment on screen
+        isBrazilPaused:
+            refusedForResidence || (isBrazilPaused && !submittedPaymentRef.current && loadingState !== 'Paying'),
         errorInitiatingPayment,
         waitingForMerchantAmount,
         showOrderNotReadyModal,

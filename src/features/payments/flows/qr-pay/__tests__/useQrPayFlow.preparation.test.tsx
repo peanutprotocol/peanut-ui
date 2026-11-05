@@ -962,16 +962,35 @@ const PIX_PAYLOAD =
     '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
 describe('residence before a new Pix payment', () => {
     test.each(['PIX', 'MERCADO_PAGO'])(
-        'refuses the actual Pix payload before init even with type %s',
+        'shows the Brazil pause for the actual Pix payload before init even with type %s',
         async (qrType) => {
             mockResidence = { verified: { country: 'BR' } }
             renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'blocked', qrType })
             await act(async () => {})
             expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
-            expect(surface?.errorInitiatingPayment).toBe(en.qrPay.errors.pixResidenceNotSupported)
+            expect(surface?.view).toBe('BRAZIL_PAUSED')
             expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
         }
     )
+    test('a declared Brazil residence with nothing verified gets the pause too', async () => {
+        mockResidence = { declared: { country: 'BR' } }
+        renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'declared', qrType: 'PIX' })
+        await act(async () => {})
+        expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        expect(surface?.view).toBe('BRAZIL_PAUSED')
+    })
+    test('an API residence refusal the app did not foresee shows the pause, without retries', async () => {
+        mockResidence = { verified: { country: 'PT' }, declared: { country: 'BR' } }
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('PIX_RESIDENCE_NOT_SUPPORTED'), {
+                code: 'PIX_RESIDENCE_NOT_SUPPORTED',
+                status: 422,
+            })
+        )
+        renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'api-refusal', qrType: 'PIX' })
+        await waitFor(() => expect(surface?.view).toBe('BRAZIL_PAUSED'))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
     test('hydrated residence cannot sign an already quoted new Pix payment', async () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ type: 'PIX' }))
         const view = renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'hydrate', qrType: 'PIX' })

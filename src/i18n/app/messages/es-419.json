@@ -202,7 +202,7 @@
             },
             "kyc": {
                 "title": "Desbloquea <b>pagos con QR</b>",
-                "description": "Confirma tu identidad para usar los <b>pagos QR</b> disponibles para tu cuenta"
+                "description": "Confirma tu identidad para pagar cualquier clave <b>Pix</b> y códigos QR de <b>Mercado Pago</b> y <b>Pix</b>"
             },
             "closePrompt": "Cerrar aviso",
             "closeTitled": "Cerrar {title}",
@@ -468,7 +468,7 @@
                 "usd": "Agrega o retira dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agrega o retira pesos mexicanos por la red SPEI.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
-                "qrPay": "Escanea para pagar.",
+                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR.",
                 "bankAccount": "Agrega y retira dinero por transferencia bancaria"
             },
             "valueProp": {
@@ -481,7 +481,7 @@
                 "mxn": "Mueve pesos mexicanos entre tu banco y Peanut.",
                 "sepa": "Guarda y mueve euros sin un banco local.",
                 "qrPay": "Escanea y paga donde vives.",
-                "pixSend": "Para quienes residen fuera de Brasil.",
+                "pixSend": "Envía reales a cualquier clave Pix de Brasil.",
                 "bankAccount": "Agrega, guarda y retira dinero en otras monedas."
             },
             "detailsDrawer": {
@@ -1610,7 +1610,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloquea los pagos con QR",
-            "unlockDescription": "Confirma tu identidad para usar los pagos QR disponibles. Toma alrededor de un minuto.",
+            "unlockDescription": "Confirma tu identidad para pagar una clave Pix o un código QR. Toma alrededor de un minuto.",
             "unlockCta": "Verificar identidad",
             "inProgressTitle": "Ya casi",
             "inProgressDescription": "Estamos confirmando tu identidad. Retoma donde quedaste y estarás pagando en un momento.",
@@ -1699,8 +1699,7 @@
             "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisa tu actividad antes de volver a intentarlo. Si el estado no está claro, contacta a soporte.",
             "paymentCancelled": "El proveedor canceló este pago antes de enviar el dinero. Escanea un nuevo código QR para volver a intentarlo.",
             "payerBlocked": "El proveedor de pagos bloqueó tu cuenta para este pago. Usa otro método de pago o contacta a soporte.",
-            "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usa otro método de pago o pide otro QR al comercio.",
-            "pixResidenceNotSupported": "Los pagos QR Pix no están disponibles para residentes de Brasil. Usa otro método de pago."
+            "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usa otro método de pago o pide otro QR al comercio."
         },
         "claim": {
             "navTitle": "Reclamar código QR",

@@ -19,8 +19,6 @@ import { isAndroidNative } from '@/utils/capacitor'
 import { captureException } from '@sentry/nextjs'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
-let mockResidence: { verified?: { country: string }; declared?: { country: string } } | undefined
-jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => ({ user: { residence: mockResidence } }) }))
 const mockToastError = jest.fn()
 
 jest.mock('@capacitor/clipboard', () => ({ Clipboard: { read: jest.fn() } }))
@@ -89,7 +87,6 @@ const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) 
 }
 
 beforeEach(() => {
-    mockResidence = undefined
     jest.clearAllMocks()
     resetBackHandlersForTests()
     cameraState.error = null
@@ -313,14 +310,12 @@ it('paste actions hang below the scan square', async () => {
 })
 
 describe('Pix offer before scan', () => {
-    it('hides Pix for a Brazilian resident before a scan', () => {
-        mockResidence = { verified: { country: 'BR' }, declared: { country: 'PT' } }
-        renderScanner()
+    it('leaves Pix out of the accepted methods when Pix is paused for the user', () => {
+        render(<QRScanner onScan={jest.fn()} hidePix />)
         expect(screen.queryByAltText('PIX')).not.toBeInTheDocument()
         expect(screen.getByAltText('Mercado Pago')).toBeInTheDocument()
     })
-    it('retains Pix for verified foreign residence while a Brazilian move is pending', () => {
-        mockResidence = { verified: { country: 'PT' }, declared: { country: 'BR' } }
+    it('offers Pix otherwise', () => {
         renderScanner()
         expect(screen.getByAltText('PIX')).toBeInTheDocument()
     })

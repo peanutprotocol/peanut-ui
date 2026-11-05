@@ -202,7 +202,7 @@
             },
             "kyc": {
                 "title": "Unlock <b>QR code payments</b>",
-                "description": "Confirm your ID to use <b>QR payments</b> available for your account"
+                "description": "Confirm your ID to pay <b>Pix</b> keys and <b>Mercado Pago</b> or <b>Pix</b> QRs"
             },
             "closePrompt": "Close prompt",
             "closeTitled": "Close {title}",
@@ -468,7 +468,7 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Scan to pay.",
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
                 "bankAccount": "Add and withdraw money by bank transfer"
             },
             "valueProp": {
@@ -481,7 +481,7 @@
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
                 "qrPay": "Scan and pay where you live.",
-                "pixSend": "For residents outside Brazil.",
+                "pixSend": "Send reais to any Pix key in Brazil.",
                 "bankAccount": "Add, hold and withdraw money in other currencies."
             },
             "detailsDrawer": {
@@ -1610,7 +1610,7 @@
         },
         "kyc": {
             "unlockTitle": "Unlock QR payments",
-            "unlockDescription": "Confirm your ID to use available QR payments. Takes a minute.",
+            "unlockDescription": "Confirm your ID to pay any Pix key or QR. Takes a minute.",
             "unlockCta": "Verify identity",
             "inProgressTitle": "Almost there",
             "inProgressDescription": "We're confirming your ID. Pick up where you left off and you'll be paying in no time.",
@@ -1699,8 +1699,7 @@
             "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
             "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again.",
             "payerBlocked": "The payment provider has blocked your payer account for this payment. Use another payment method or contact support.",
-            "merchantBlocked": "The payment provider has blocked this merchant. Use another payment method or ask for a different merchant QR.",
-            "pixResidenceNotSupported": "Pix QR payments are not available for residents of Brazil. Use another payment method."
+            "merchantBlocked": "The payment provider has blocked this merchant. Use another payment method or ask for a different merchant QR."
         },
         "claim": {
             "navTitle": "Claim QR Code",

@@ -1,8 +1,7 @@
 'use client'
 
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
-import { useAuth } from '@/context/authContext'
-import { isPixQrResidenceBlocked } from '@/utils/pix-qr-eligibility'
+import { useBrazilResident } from '@/features/brazil-pause/useBrazilPixPaused'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -111,8 +110,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
     const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
-    const { user } = useAuth()
-    const pixResidenceBlocked = isPixQrResidenceBlocked(user?.residence)
+    const pixResidenceBlocked = useBrazilResident()
     const {
         capabilities,
         rails,
@@ -713,13 +711,9 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                                     {/* A send-led BRL row opens on the send; its bank rail
                                         and that rail's status stay below. */}
                                     <DrawerDescription>
-                                        {detailsRow.labelKey === 'qrPay'
-                                            ? pixResidenceBlocked
-                                                ? t('qrPayArgentinaNote')
-                                                : t('qrPayNote')
-                                            : detailsRow.bankChip
-                                              ? t('valueProp.pixSend')
-                                              : t(`valueProp.${detailsRow.labelKey}`)}
+                                        {detailsRow.bankChip
+                                            ? t('valueProp.pixSend')
+                                            : t(`valueProp.${detailsRow.labelKey}`)}
                                     </DrawerDescription>
                                 </DrawerHeader>
                             </div>

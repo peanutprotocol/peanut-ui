@@ -1706,7 +1706,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'qr-pay-brazil-resident': {
         route: PIX_QR_ROUTE,
-        about: 'A Brazilian resident reaches a Pix deep link: another payment method is offered before init.',
+        about: 'A Brazilian resident reaches a Pix deep link: the Brazil pause screen shows before init.',
         responses: {
             'GET /users/me': {
                 residence: {
