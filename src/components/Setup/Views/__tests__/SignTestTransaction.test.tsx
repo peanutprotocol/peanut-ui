@@ -576,6 +576,19 @@ describe('SignTestTransaction — setup completion', () => {
             consoleError.mockRestore()
         })
 
+        it('still reports a signing failure the passkey reporter does not recognise', async () => {
+            const broken = new SignupTestTxError(
+                'sign',
+                new TypeError("Cannot read properties of undefined (reading 'x')")
+            )
+            await failConfirmWith(broken, en.setup.passkey.interrupted)
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+            expect(Sentry.captureException).toHaveBeenCalledWith(
+                broken,
+                expect.objectContaining({ tags: { feature: 'signup-test-transaction', failure_mode: 'passkey' } })
+            )
+        })
+
         it('reports a submission failure once, with its tags, and never through console.error', async () => {
             const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
             const failure = new SignupTestTxError('submit', new Error('AA21 didn’t pay prefund'))
