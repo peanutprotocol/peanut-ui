@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import type { Address } from 'viem'
 import posthog from 'posthog-js'
@@ -19,7 +19,8 @@ import { wireErrorCode } from '@/services/api-error'
 import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
 import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { TRANSACTIONS } from '@/constants/query.consts'
+import { BALANCE_DECREASE, PIX_WITHDRAW, TRANSACTIONS } from '@/constants/query.consts'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
 import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
 
@@ -64,13 +65,41 @@ export interface AveniaWithdrawSubmit {
  * Init quotes again, seconds after the review. When that quote takes any more
  * USD or pays any fewer reais than the reviewed one, nothing is signed until
  * the user confirms the new amounts.
+ *
+ * `onOpened` gets the withdrawal's id as soon as the ticket is open, before
+ * anything is signed, so the flow can put it in the URL. The signature is a
+ * balance-decreasing mutation: while one is pending (`usePendingTransactions`),
+ * no second withdrawal opens.
  */
-export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
+export function useAveniaWithdrawSubmit({
+    onOpened,
+}: { onOpened?: (intentId: string) => void } = {}): AveniaWithdrawSubmit {
     const tShared = useTranslations('avenia')
     const initError = useAveniaRefusalMessage()
     const toFriendlyError = useFriendlyError()
     const queryClient = useQueryClient()
     const { sendTransactions } = useWallet()
+    const { hasPendingTransactions } = usePendingTransactions()
+    const { mutateAsync: sendDeposit } = useMutation({
+        mutationKey: [BALANCE_DECREASE, PIX_WITHDRAW],
+        // a second send of the same deposit could pay twice
+        retry: false,
+        mutationFn: ({ request, amount }: { request: AveniaWithdrawSign; amount: bigint }) =>
+            sendTransactions(
+                rhinoDepositWithIdCalls({
+                    tokenAddress: request.tokenAddress as Address,
+                    contractAddress: request.contractAddress as Address,
+                    amount,
+                    commitmentId: request.commitmentId,
+                }),
+                {
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    // Rhino's pay amount, so the collateral top-up covers what leaves
+                    requiredUsdcAmount: amount,
+                    kind: 'FIAT_OFFRAMP',
+                }
+            ),
+    })
     const [phase, setPhase] = useState<AveniaWithdrawPhase>('idle')
     const [opened, setOpened] = useState<OpenedWithdrawal | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -88,20 +117,7 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
             const amount = BigInt(request.payAmountUnits)
             let minedHash: string | undefined
             try {
-                const result = await sendTransactions(
-                    rhinoDepositWithIdCalls({
-                        tokenAddress: request.tokenAddress as Address,
-                        contractAddress: request.contractAddress as Address,
-                        amount,
-                        commitmentId: request.commitmentId,
-                    }),
-                    {
-                        chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                        // Rhino's pay amount, so the collateral top-up covers what leaves
-                        requiredUsdcAmount: amount,
-                        kind: 'FIAT_OFFRAMP',
-                    }
-                )
+                const result = await sendDeposit({ request, amount })
                 if (result.receipt && isTxReverted(result.receipt)) {
                     throw new Error(`Transaction failed (reverted). Hash: ${result.receipt.transactionHash}`)
                 }
@@ -126,12 +142,12 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
                 Sentry.captureException(caught, { extra: { intentId } })
             })
         },
-        [queryClient, sendTransactions, tShared, toFriendlyError]
+        [queryClient, sendDeposit, tShared, toFriendlyError]
     )
 
     const submit = useCallback(
         async (request: AveniaWithdrawRequest, reviewed: AveniaWithdrawDisplay) => {
-            if (busyRef.current || opened) return
+            if (busyRef.current || opened || hasPendingTransactions) return
             busyRef.current = true
             setError(null)
             setPhase('starting')
@@ -151,6 +167,7 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
                 }
                 const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
                 setOpened(withdrawal)
+                onOpened?.(init.intentId)
                 // The wallet only ever approves its own USDC, for exactly the USD the user is shown;
                 // anything else is a contract break.
                 if (
@@ -174,7 +191,7 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
                 busyRef.current = false
             }
         },
-        [initError, opened, sign, tShared]
+        [hasPendingTransactions, initError, onOpened, opened, sign, tShared]
     )
 
     const confirmOpened = useCallback(async () => {

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { decodeFunctionData, erc20Abi, parseAbi } from 'viem'
 import { ApiError } from '@/services/api-error'
+import { BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.consts'
 
 const USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
 const BRIDGE = '0x10417734001162Ea139e8b044DFe28DbB8B28ad0'
@@ -106,6 +107,57 @@ describe('useAveniaWithdrawSubmit', () => {
         expect(mockReportFunding).toHaveBeenCalledWith('w1', MINED)
         expect(result.current.phase).toBe('funded')
         expect(result.current.opened).toEqual({ intentId: 'w1', display })
+    })
+
+    it('hands the opened id to the flow before anything is signed', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        const order: string[] = []
+        mockSendTransactions.mockImplementation(async () => {
+            order.push('sign')
+            return { receipt: { status: 'success', transactionHash: MINED, logs: [] } }
+        })
+        const onOpened = jest.fn((id: string) => order.push(`opened ${id}`))
+        const { result } = renderHook(() => useAveniaWithdrawSubmit({ onOpened }), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(order).toEqual(['opened w1', 'sign'])
+    })
+
+    it('signs as a balance-decreasing send, so the pending guard sees it', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        let seen = 0
+        mockSendTransactions.mockImplementation(async () => {
+            seen = queryClient.isMutating({ mutationKey: [BALANCE_DECREASE] })
+            return { receipt: { status: 'success', transactionHash: MINED, logs: [] } }
+        })
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(seen).toBe(1)
+    })
+
+    it('opens no withdrawal while another balance-decreasing send is pending', async () => {
+        void queryClient
+            .getMutationCache()
+            .build(queryClient, {
+                mutationKey: [BALANCE_DECREASE, SEND_MONEY],
+                mutationFn: () => new Promise(() => {}),
+            })
+            .execute(undefined)
+        const { result, rerender } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+        rerender()
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(mockInit).not.toHaveBeenCalled()
     })
 
     it('never calls a send with no receipt a success, and reports nothing it cannot prove', async () => {

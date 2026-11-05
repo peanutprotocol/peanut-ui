@@ -9,27 +9,21 @@ import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Field } from '@/components/0_Bruddle/Field'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import AmountInput from '@/components/Global/AmountInput'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
-import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     AVENIA_MIN_WITHDRAWAL_BRL,
     AVENIA_WITHDRAW_STEPS,
     aveniaSetupState,
     aveniaWithdrawAmount,
-    aveniaWithdrawOutcome,
     completePixKey,
 } from '@/features/avenia/avenia.utils'
-import { aveniaNewKeyUrl } from '@/features/avenia/aveniaRecovery'
 import { AveniaPixKeyStep } from '@/features/avenia/components/AveniaPixKeyStep'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
+import { AveniaWithdrawOutcome } from '@/features/avenia/components/AveniaWithdrawOutcome'
 import { AveniaWithdrawReview } from '@/features/avenia/components/AveniaWithdrawReview'
 import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
 import { useAveniaWithdrawSubmit } from '@/features/avenia/hooks/useAveniaWithdrawSubmit'
@@ -37,9 +31,9 @@ import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
-import { useHistoryEntry } from '@/hooks/useHistoryEntry'
-import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
+import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { aveniaApi } from '@/services/avenia'
@@ -67,45 +61,46 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
     const title = tNav(isFromSendFlow ? 'send' : 'withdraw')
     const backToWithdraw = useSafeBack(WITHDRAW_BACK_FALLBACK_URL)
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
-    const leaveToHome = useReturnTo('/home')
 
     const [destination, setDestination] = useQueryState('destination', parseAsString.withDefault(''))
+    // set once Confirm opened the withdrawal: from then on the URL shows its outcome, never the form again
+    const [intentId, setIntentId] = useQueryState('intentId', parseAsString.withDefault(''))
     const [amountUsd, setAmountUsd] = useWithdrawAmount()
     const [amountBrl, setAmountBrl] = useWithdrawDestinationAmount()
     // "Use balance": the USDC that leaves the wallet, Rhino's fee included, so the whole balance can go
     const [spendUsd, setSpendUsd] = useQueryState('spend', parseAsString.withDefault(''))
     const pixKey = completePixKey(destination)
     const amount = aveniaWithdrawAmount({ amountUsd, amountBrl, spendUsd })
-    const submit = useAveniaWithdrawSubmit()
+    const submit = useAveniaWithdrawSubmit({ onOpened: (id) => void setIntentId(id) })
+    const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
         steps: AVENIA_WITHDRAW_STEPS,
         guards: {
             amount: { ok: !!pixKey, fallback: 'pix-key' },
             review: { ok: !!pixKey && !!amount, fallback: pixKey ? 'amount' : 'pix-key' },
-            success: { ok: submit.phase === 'funded' || submit.phase === 'unconfirmed' },
+            success: { ok: !!intentId },
         },
     })
     const step = stepper.step
     const { goTo } = stepper
-    // the deposit was sent: the last step is the only way on
     const isSent = submit.phase === 'funded' || submit.phase === 'unconfirmed'
+    // The deposit was sent, or the page reloaded after Confirm opened the withdrawal (the
+    // signature is gone with the memory): the last step is the only way on.
+    const showOutcome = !!intentId && (isSent || !submit.opened)
     useEffect(() => {
-        if (isSent && step !== 'success') void goTo('success')
-    }, [isSent, step, goTo])
+        if (showOutcome && step !== 'success') void goTo('success')
+    }, [showOutcome, step, goTo])
 
     const request = pixKey && amount ? { pixKey, ...amount } : null
     const preview = useQuery({
         queryKey: ['avenia-withdraw-preview', request],
         queryFn: () => aveniaApi.previewWithdrawal(request!),
-        // the review shows it; once Confirm opened the ticket, the confirmed numbers stand
-        enabled: step === 'review' && !!request && !submit.lockedAfterInit,
+        // the review shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
+        enabled: step === 'review' && !!request && !intentId && !submit.lockedAfterInit,
         retry: false,
         staleTime: 30_000,
     })
-
-    // Once the deposit is sent, the withdrawal's own history entry says whether Avenia paid the Pix.
-    const entry = useHistoryEntry(submit.opened?.intentId, 'OFFRAMP', { enabled: isSent })
 
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const brl = useCurrency('BRL')
@@ -120,58 +115,24 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         return usd > 0 && brl.price ? (usd * brl.price.sell).toFixed(2) : undefined
     }, [amountBrl, amountUsd, spendUsd, brl.price])
 
-    if (aveniaSetupState(rail) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} rail={rail} />
-
-    if (step === 'success' && submit.opened && isSent) {
-        const { intentId, display } = submit.opened
-        const to = [display.bankName, display.holderName].filter(Boolean).join(' · ')
-        const outcome = aveniaWithdrawOutcome(submit.phase === 'funded' ? 'funded' : 'unconfirmed', entry.data)
-        const failed = outcome === 'not-sent' || outcome === 'refunded'
-        const description = {
-            arrived: to ? t('arrivedTo', { destination: to }) : t('arrived'),
-            'on-its-way': to ? t('sentTo', { destination: to }) : t('sent'),
-            unconfirmed: t('unconfirmed'),
-            'needs-key': tShared('recovery.notice'),
-            refunded: t('refunded'),
-            'not-sent': t('notSent'),
-        }[outcome]
+    if (showOutcome) {
         return (
-            <PageStack>
-                {outcome === 'arrived' && <SoundPlayer sound="success" />}
-                <NavHeader title={title} hideBackBtn />
-                <PageStack.Center className="items-center text-center">
-                    {/* a funded deposit is a wait, not a success, until Avenia's payout completes the entry */}
-                    <IconBubble
-                        icon={outcome === 'arrived' ? 'check' : failed || outcome === 'needs-key' ? 'alert' : 'clock'}
-                        size="l"
-                        color={outcome === 'arrived' ? 'green' : failed ? 'red' : 'yellow'}
-                    />
-                    <TitleBlock
-                        align="center"
-                        title={formatBankAmount(display.amountBrl, 'BRL')}
-                        description={description}
-                    />
-                    {outcome === 'needs-key' ? (
-                        <>
-                            <Button
-                                variant="primary"
-                                className="w-full"
-                                onClick={() => router.push(aveniaNewKeyUrl(intentId))}
-                            >
-                                {tShared('recovery.addKey')}
-                            </Button>
-                            <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
-                        </>
-                    ) : (
-                        <Button variant="primary" className="w-full" onClick={leaveToHome}>
-                            {tCommon('done')}
-                        </Button>
-                    )}
-                    <ProviderFinePrint providerId="avenia-br" />
-                </PageStack.Center>
-            </PageStack>
+            <AveniaWithdrawOutcome
+                title={title}
+                intentId={intentId}
+                sent={
+                    isSent && submit.opened
+                        ? {
+                              phase: submit.phase === 'funded' ? 'funded' : 'unconfirmed',
+                              display: submit.opened.display,
+                          }
+                        : null
+                }
+            />
         )
     }
+
+    if (aveniaSetupState(rail) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} rail={rail} />
 
     if (step === 'pix-key') {
         return (
@@ -279,7 +240,14 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
             isLoading={preview.isLoading}
             isSubmitting={submit.phase === 'starting' || submit.phase === 'signing'}
             error={reviewError}
-            canConfirm={!!display && !!request && !fundsShort && (reconfirm || !submit.lockedAfterInit)}
+            canConfirm={
+                !!display &&
+                !!request &&
+                !fundsShort &&
+                // another balance-decreasing send is still in flight
+                !hasPendingTransactions &&
+                (reconfirm || !submit.lockedAfterInit)
+            }
             // an opened ticket keeps its amount: back leaves instead of editing it
             onBack={() => (submit.lockedAfterInit ? leaveFlow() : void stepper.goTo('amount'))}
             onCancel={leaveFlow}
