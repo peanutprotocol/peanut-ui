@@ -10,12 +10,14 @@ import { Section } from '@/components/0_Bruddle/Section'
 import Badge from '@/components/Global/Badges/Badge'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { rowStatusBadge } from '@/components/Profile/views/RowStatusBadge'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { twMerge } from '@/utils/tw'
 import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useLocale, useTranslations } from 'next-intl'
 import { useState, type ReactElement, type ReactNode } from 'react'
 import { needsIdentity } from '../depositGate'
 import {
+    bankRowRefusedByIdentity,
     closedBankRow,
     closedOpenRow,
     corridorMatchesSearch,
@@ -86,13 +88,16 @@ export function AccountsHubList({
     const locale = useLocale()
     const [closed, setClosed] = useState<ClosedRow | null>(null)
     const residenceIso2s = useResidenceIso2s()
+    const { isTerminalFailure: identityFailed } = useIdentityVerification()
 
     const isLoading = !!accounts?.isLoading
     const isError = !!accounts?.isError
     const matches = (corridor: DepositCorridor, name: string) =>
         corridorMatchesSearch(corridor, searchTerm, locale, name)
 
-    const { held, open } = accounts ? virtualAccountRows(accounts, claimsEnabled) : { held: [], open: [] }
+    const { held, open } = accounts
+        ? virtualAccountRows(accounts, claimsEnabled, identityFailed)
+        : { held: [], open: [] }
     const shownHeld = held.filter((corridor) => matches(corridor, railName(corridor)))
     const shownOpen = open.filter((row) => matches(row.corridor, railName(row.corridor)))
     // A search shows every match, so the fold steps aside while the user types
@@ -145,9 +150,11 @@ export function AccountsHubList({
     const underReviewBadge = <Badge status="pending" customText={t('list.badgeUnderReview')} />
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
-    const openBadge = ({ corridor, openable, unchecked }: OpenAccountRow) => {
+    const openBadge = ({ corridor, openable, unchecked, identityRefused }: OpenAccountRow) => {
         // at the limit the cap is the answer for every row, before any other reason
         if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
+        // a refused identity holds every corridor; support can review it, so it is not "Not available"
+        if (identityRefused) return actionNeededBadge
         // no verdict from the backend: nothing else about the row is known, the gate included
         if (unchecked) return <Badge status="neutral" customText={t('list.badgeNotOffered')} />
         const withheld = accounts?.unavailable?.[corridor]
@@ -260,20 +267,25 @@ export function AccountsHubList({
         />
     )
 
+    const bankIdentity = (row: UnlockRow) => ({
+        failed: identityFailed,
+        gate: row.corridor ? accounts?.gates[row.corridor] : undefined,
+    })
     const bankRow = (row: UnlockRow) => {
         const label = tRows(`rows.${row.labelKey}`)
+        const identityRefused = bankRowRefusedByIdentity(row, bankIdentity(row))
         return (
             <ListItem
                 key={row.id}
                 // a bank row with no country flag still names a bank
                 leading={row.flag ? <CorridorFlag iso2={row.flag} /> : <IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                 title={row.currency ?? label}
-                trailing={rowStatusBadge(row, tRows)}
+                trailing={rowStatusBadge(identityRefused ? { ...row, chip: 'attention' } : row, tRows)}
                 body={row.note && tRows(row.note)}
                 bodyWrap
                 chevron
                 onClick={() => {
-                    const reason = closedBankRow(row, isKycDegraded)
+                    const reason = closedBankRow(row, isKycDegraded, bankIdentity(row))
                     if (reason) setClosed(reason)
                     else onBankRowClick(row)
                 }}
@@ -302,6 +314,7 @@ export function AccountsHubList({
                                       reachedLimit: atLimit ? accountLimit : undefined,
                                       unavailable: accounts?.unavailable?.[row.corridor],
                                       hasResidence: residenceIso2s.length > 0,
+                                      gate: accounts?.gates[row.corridor],
                                   })
                               ),
                     inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined

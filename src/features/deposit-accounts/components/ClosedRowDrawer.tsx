@@ -4,7 +4,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useTranslations } from 'next-intl'
 import { DRAWER_CLOSE_MS } from '../drawer'
@@ -13,6 +15,12 @@ import { DEPOSIT_RAILS } from '../rails'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { supportCaseOf } from '@/utils/capability-gate'
+import {
+    buildContactSupportMessage,
+    buildSupportCaseMessage,
+    SUPPORT_CASE_MESSAGE_KEYS,
+} from '@/utils/contact-support.utils'
 
 /** the residence-gated corridors' own copy, keyed by corridor */
 const RESIDENCE_COPY = {
@@ -47,8 +55,11 @@ export function ClosedRowDrawer({
     const tAccounts = useTranslations('profile.unlockPayments')
     const tKyc = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
+    const tActivation = useTranslations('home.activation')
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
+    const { user } = useAuth()
+    const { identity } = useIdentityVerification()
 
     const content = closed ? drawerContent(closed) : null
 
@@ -151,6 +162,29 @@ export function ClosedRowDrawer({
                     body: t('list.uncheckedBody'),
                     cta: { label: t('list.errorRetry'), act: onRetry },
                 }
+            // the Home "Verification issue" card's words and its support prefill
+            case 'identity-rejected': {
+                const reason = row.reason ?? identity.reason
+                const supportCase = supportCaseOf(reason?.code)
+                const supportCaseKey = supportCase ? reasonCodeKey(reason?.code) : undefined
+                return {
+                    title: tActivation('verificationIssue.title'),
+                    body: supportCaseKey ? tIdentity(supportCaseKey) : tActivation('verificationIssue.description'),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        act: () =>
+                            openSupportWithMessage(
+                                supportCase
+                                    ? buildSupportCaseMessage(
+                                          supportCase,
+                                          tKyc(SUPPORT_CASE_MESSAGE_KEYS[supportCase]),
+                                          reason
+                                      )
+                                    : buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                            ),
+                    },
+                }
+            }
             case 'verification-down':
                 return {
                     title: tAccounts('degraded.title'),

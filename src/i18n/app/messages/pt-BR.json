@@ -1205,19 +1205,20 @@
             "hint": "As opções dependem da sua residência.",
             "funding": {
                 "crypto": "Cripto",
-                "peanut": "Outro usuário do Peanut",
+                "peanut": "Receber de um usuário do Peanut",
                 "bank": "Transferência bancária",
                 "bankCurrencies": "Transferência bancária ({currencies})",
                 "brlBank": "Transferência bancária (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
             "payment": {
-                "peanut": "Outro usuário do Peanut",
+                "peanut": "Pagar um usuário do Peanut",
                 "card": "Cartão Peanut",
                 "bank": "Transferência bancária",
                 "crypto": "Cripto",
                 "qr": "Pagamentos QR"
             },
+            "peanutCompact": "Outro usuário do Peanut",
             "with": "com",
             "unavailable": {
                 "banking": "As transferências bancárias não estão disponíveis no seu país.",
@@ -3265,7 +3266,6 @@
             "underReview": "Em análise",
             "documentNeeded": "Falta um documento",
             "agreementsNeeded": "Faltam os acordos",
-            "verifyId": "Verificar ID",
             "notAvailable": "Não disponível",
             "verifyAgain": "Verificar de novo com documento de {country}",
             "verifyAgainPlain": "Verificar de novo",
@@ -4978,7 +4978,7 @@
             "badgeReady": "Pronta",
             "badgeActive": "Ativo",
             "badgeSetUp": "Configurar",
-            "badgeVerifyId": "Verificar ID",
+            "badgeVerifyId": "Verificar",
             "badgeNotOffered": "Não disponível",
             "badgeRevoked": "Revogada",
             "accountCounter": "{used} de {cap} usadas",

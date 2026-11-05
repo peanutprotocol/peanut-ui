@@ -150,7 +150,7 @@ it.each([
     ['BR', ['Peanut Card', 'QR payments']],
     ['GB', ['QR payments']],
     ['UA', ['QR payments']],
-    ['IR', ['Another Peanut user']],
+    ['IR', ['Pay a Peanut user']],
 ])('offers only the card and QR payments to spend in %s, with a Peanut fallback', (country, expected) => {
     renderWithIntl(ui(country))
     expect(optionsIn('Make a payment with')).toEqual(expected)
@@ -165,7 +165,7 @@ it.each([
         `Bank transfer (${currency})`,
         'Bank transfer (USD, EUR, GBP, MXN)',
         'Crypto',
-        'Another Peanut user',
+        'Receive from a Peanut user',
     ])
     const dialog = screen.getByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: `Bank transfer (${currency})` }))
@@ -177,20 +177,33 @@ it.each([
 
 // Slava, 2026-10-27: Brazil named its bank currencies, North Macedonia did not.
 it.each([
-    ['MK', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
-    ['DE', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
-    ['MX', ['Bank transfer (MXN, USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
+    ['MK', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Receive from a Peanut user']],
+    ['DE', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Receive from a Peanut user']],
+    ['MX', ['Bank transfer (MXN, USD, EUR, GBP)', 'Crypto', 'Receive from a Peanut user']],
     // Bridge takes no new customers here
-    ['KR', ['Crypto', 'Another Peanut user']],
+    ['KR', ['Crypto', 'Receive from a Peanut user']],
 ])('names the bank currencies wherever the server opens the bank feature: %s', (country, expected) => {
     renderWithIntl(ui(country))
     expect(optionsIn('Add money with')).toEqual(expected)
 })
 
-it('names a Peanut-to-Peanut top-up "Another Peanut user"', async () => {
+it('names a Peanut-to-Peanut top-up "Receive from a Peanut user", and keeps the sentence short', async () => {
     renderWithIntl(ui('JP'))
-    await choose('Add money with', 'Choose', 'Another Peanut user')
+    await choose('Add money with', 'Choose', 'Receive from a Peanut user')
     expect(screen.getByLabelText('Plan')).toHaveTextContent('peanut/')
+    const funding = screen.getByTestId('setup-funding-channel')
+    expect(funding).toHaveAccessibleName('Add money with: Receive from a Peanut user')
+    expect(funding).not.toHaveTextContent('Receive')
+})
+
+it('names a Peanut-to-Peanut payment "Pay a Peanut user", and keeps the sentence short', async () => {
+    mockSettled = false
+    mockIntentsSettled = false
+    renderWithIntl(ui('PT'))
+    await choose('Make a payment with', 'Choose', 'Pay a Peanut user')
+    const payment = screen.getByTestId('setup-payment-channel')
+    expect(payment).toHaveAccessibleName('Make a payment with: Pay a Peanut user')
+    expect(payment).not.toHaveTextContent('Pay a')
 })
 
 it('clears a choice the residence no longer offers and asks again', async () => {
@@ -209,7 +222,7 @@ it('offers only universal channels while the restriction lookup is unsettled', a
     mockIntentsSettled = false
     renderWithIntl(ui('PT'))
     await choose('Add money with', 'Choose', 'Crypto')
-    await choose('Make a payment with', 'Choose', 'Another Peanut user')
+    await choose('Make a payment with', 'Choose', 'Pay a Peanut user')
     fireEvent.click(continueButton())
     expect(mockNext).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
@@ -264,13 +277,13 @@ it.each(['GB', 'IN', 'PT'])('shows the one-line residence hint for %s', (country
 it('shows only the API currency for a USD-only residence', () => {
     mockCurrencies = ['USD']
     renderWithIntl(ui('CF'))
-    expect(optionsIn('Add money with')).toEqual(['Bank transfer (USD)', 'Crypto', 'Another Peanut user'])
+    expect(optionsIn('Add money with')).toEqual(['Bank transfer (USD)', 'Crypto', 'Receive from a Peanut user'])
 })
 
 it('does not name bank currencies after a failed intents read', () => {
     mockIntentsMissing = true
     renderWithIntl(ui('PT'))
-    expect(optionsIn('Add money with')).toEqual(['Bank transfer', 'Crypto', 'Another Peanut user'])
+    expect(optionsIn('Add money with')).toEqual(['Bank transfer', 'Crypto', 'Receive from a Peanut user'])
 })
 
 it('reports each picker opening, the channel picked, a dismissal and Continue, naming the host', async () => {
