@@ -21,7 +21,7 @@ describe('first QR payment terminal error acceptance', () => {
                     classifyScanOutcome({
                         hasLock: false,
                         settledError: error,
-                        failureReason: undefined,
+                        failureReason: null,
                         fetchStatus: 'idle',
                     })
                 ).toMatchObject({ kind: 'failed', reason: code })
@@ -30,7 +30,7 @@ describe('first QR payment terminal error acceptance', () => {
                 const outcome = classifyScanOutcome({
                     hasLock: true,
                     settledError: makeError(),
-                    failureReason: undefined,
+                    failureReason: null,
                     fetchStatus: 'idle',
                 })
                 expect(outcome.kind).not.toBe('failed')
