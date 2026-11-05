@@ -67,7 +67,7 @@ export default function ResidenceMenuItem() {
             <ProfileMenuItem
                 icon="globe"
                 label={t('residence.label')}
-                endText={countryName(residenceIso2) ?? undefined}
+                description={countryName(residenceIso2) ?? undefined}
                 badge={status}
                 onClick={() => setOpen(true)}
             />

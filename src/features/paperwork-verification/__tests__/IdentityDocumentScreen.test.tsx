@@ -111,7 +111,13 @@ describe('IdentityDocumentScreen: the list', () => {
     })
 
     it('records Other open, its Back to the list or a choice, and never a dismissal with a choice', () => {
-        render({ documentPlan: plan(['ES']), residence: 'ES', error: 'private-typed-value', tracked: true })
+        render({
+            documentPlan: plan(['DE', 'ES']),
+            residence: 'ES',
+            nationality: 'DE',
+            error: 'private-typed-value',
+            tracked: true,
+        })
         fireEvent.click(screen.getByTestId('verify-id-other'))
         fireEvent.click(screen.getByText('Back to the list'))
         fireEvent.click(screen.getByTestId('verify-id-other'))
@@ -127,7 +133,7 @@ describe('IdentityDocumentScreen: the list', () => {
     })
 
     it('records the Other drawer closed without a choice on the list it opened from', async () => {
-        render({ documentPlan: plan(['ES']), residence: 'ES', tracked: true })
+        render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', nationality: 'DE', tracked: true })
         fireEvent.click(screen.getByTestId('verify-id-other'))
         fireEvent.keyDown(document, { key: 'Escape' })
         await waitFor(() =>
@@ -258,6 +264,51 @@ describe('IdentityDocumentScreen: other documents', () => {
     })
 })
 
+describe('IdentityDocumentScreen: one extra document and the exit', () => {
+    it('lists a single extra document in the main list instead of behind "Other document"', () => {
+        const onContinue = render({ documentPlan: plan(['ES']), residence: 'ES' })
+        expect(screen.queryByTestId('verify-id-other')).toBeNull()
+        fireEvent.click(option('DRIVERS', 'ES')!)
+        expect(onContinue).toHaveBeenCalledWith({ type: 'DRIVERS', issuingCountry: 'ES' })
+    })
+
+    it('keeps "Other document" when more than one extra document is offered', () => {
+        render({ documentPlan: plan(['DE', 'ES']), residence: 'ES', nationality: 'DE' })
+        fireEvent.click(screen.getByTestId('verify-id-other'))
+        const drawer = within(screen.getByTestId('verify-id-other-drawer'))
+        expect(drawer.getByTestId('verify-id-option-DRIVERS-ES')).toBeInTheDocument()
+        expect(drawer.getByTestId('verify-id-option-DRIVERS-DE')).toBeInTheDocument()
+    })
+
+    it('asks before leaving and leaves only on Exit', () => {
+        const onExit = jest.fn()
+        renderWithIntl(
+            <IdentityDocumentScreen
+                plan={plan(['ES'])}
+                residence="ES"
+                busy={false}
+                error={null}
+                onBack={jest.fn()}
+                onExit={onExit}
+                onContinue={jest.fn()}
+            />
+        )
+        fireEvent.click(screen.getByTestId('verify-id-exit'))
+        const drawer = within(screen.getByTestId('verify-id-exit-drawer'))
+        expect(drawer.getByText('Exit for now?')).toBeInTheDocument()
+        fireEvent.click(drawer.getByTestId('verify-id-exit-stay'))
+        expect(onExit).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByTestId('verify-id-exit'))
+        fireEvent.click(within(screen.getByTestId('verify-id-exit-drawer')).getByTestId('verify-id-exit-confirm'))
+        expect(onExit).toHaveBeenCalledTimes(1)
+    })
+
+    it('has no exit when the flow gives none', () => {
+        render({ documentPlan: plan(['ES']), residence: 'ES' })
+        expect(screen.queryByTestId('verify-id-exit')).toBeNull()
+    })
+})
+
 describe('IdentityDocumentScreen: temporary protection', () => {
     const withProtection = (countries: string[], proofOfAddress = false) =>
         ({
@@ -317,7 +368,7 @@ describe('IdentityDocumentScreen: temporary protection', () => {
 
     it('is not offered when the API sends no temporary protection', () => {
         render({ documentPlan: plan(['PL', 'UA']), residence: 'PL' })
-        fireEvent.click(screen.getByTestId('verify-id-other'))
+        expect(screen.queryByTestId('verify-id-other')).toBeNull()
         expect(screen.queryByText('Temporary protection for Ukrainians')).toBeNull()
     })
 })
@@ -432,18 +483,16 @@ describe("IdentityDocumentScreen: a driver's licence the API refuses for a featu
 
     it('greys out a German licence for the card alone and keeps the German ID card', () => {
         const onContinue = render({ documentPlan: german({ ...NONE, card: true }), residence: 'DE' })
-        fireEvent.click(screen.getByTestId('verify-id-other'))
-        const drawer = within(screen.getByTestId('verify-id-other-drawer'))
-        expect(drawer.getByTestId('verify-id-refused-DRIVERS-DE')).toHaveAttribute('aria-disabled', 'true')
-        expect(drawer.queryByTestId('verify-id-option-DRIVERS-DE')).toBeNull()
+        expect(screen.queryByTestId('verify-id-other')).toBeNull()
+        expect(screen.getByTestId('verify-id-refused-DRIVERS-DE')).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.queryByTestId('verify-id-option-DRIVERS-DE')).toBeNull()
         fireEvent.click(option('ID_CARD', 'DE')!)
         expect(onContinue).toHaveBeenCalledWith({ type: 'ID_CARD', issuingCountry: 'DE' })
     })
 
     it('says a German licence closes the card when the bank is asked too', () => {
         const onContinue = render({ documentPlan: german({ ...NONE, card: true, bank: true }), residence: 'DE' })
-        fireEvent.click(screen.getByTestId('verify-id-other'))
-        const licence = within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-option-DRIVERS-DE')
+        const licence = screen.getByTestId('verify-id-option-DRIVERS-DE')
         expect(licence).toHaveTextContent('The Peanut card isn’t available with this document.')
         fireEvent.click(licence)
         expect(onContinue).not.toHaveBeenCalled()
@@ -460,10 +509,7 @@ describe("IdentityDocumentScreen: a driver's licence the API refuses for a featu
             }),
             residence: 'AR',
         })
-        fireEvent.click(screen.getByTestId('verify-id-other'))
-        expect(
-            within(screen.getByTestId('verify-id-other-drawer')).getByTestId('verify-id-refused-DRIVERS-AR')
-        ).toHaveAttribute('aria-disabled', 'true')
+        expect(screen.getByTestId('verify-id-refused-DRIVERS-AR')).toHaveAttribute('aria-disabled', 'true')
         expect(option('ID_CARD', 'AR')).toBeInTheDocument()
     })
 })

@@ -4033,6 +4033,8 @@
                 "issuedByLimited": "Emitido por {country}. {limits}",
                 "other": "Outro documento",
                 "otherHint": "Como uma carteira de habilitação",
+                "close": "Fechar",
+                "verifyNow": "Verificar agora",
                 "otherTitle": "Outros documentos",
                 "otherDescription": "Você também pode se verificar com um destes. Você vai tirar fotos dele e uma selfie.",
                 "otherNotAccepted": "Vistos, autorizações de trabalho e carteiras de estudante não servem para verificar sua identidade.",
@@ -4040,7 +4042,6 @@
                 "backToList": "Voltar à lista",
                 "noneFit": "Não tem nenhum destes?",
                 "changeResidence": "Alterar residência",
-                "stepDots": "Verificar identidade, passo 1 de 3",
                 "noneAccepted": "Ainda não conseguimos verificar documentos emitidos por {countries}.",
                 "closesAll": "Emitido por {country}. Não serve para o que você escolheu.",
                 "closes": {

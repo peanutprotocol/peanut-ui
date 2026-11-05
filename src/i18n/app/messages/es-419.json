@@ -4033,6 +4033,8 @@
                 "issuedByLimited": "Emitido en {country}. {limits}",
                 "other": "Otro documento",
                 "otherHint": "Como una licencia de conducir",
+                "close": "Cerrar",
+                "verifyNow": "Verificar ahora",
                 "otherTitle": "Otros documentos",
                 "otherDescription": "También puedes verificarte con uno de estos. Le tomarás fotos y te tomarás una selfie.",
                 "otherNotAccepted": "No se pueden usar visas, permisos de trabajo ni credenciales de estudiante para verificar tu identidad.",
@@ -4040,7 +4042,6 @@
                 "backToList": "Volver a la lista",
                 "noneFit": "¿No tienes ninguno de estos?",
                 "changeResidence": "Cambiar residencia",
-                "stepDots": "Verificar identidad, paso 1 de 3",
                 "noneAccepted": "Todavía no podemos verificar documentos emitidos en {countries}.",
                 "closesAll": "Emitido en {country}. No sirve para lo que elegiste.",
                 "closes": {

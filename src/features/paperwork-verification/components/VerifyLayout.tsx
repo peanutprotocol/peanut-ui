@@ -19,7 +19,7 @@ import { useKycControl } from '../analytics'
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 // The setup flow's panel: px-6, the CTA on one baseline, tighter on short phones.
 const PANEL =
-    'flex min-h-0 flex-1 flex-col justify-between gap-8 bg-white px-6 pt-10 pb-6 compact:gap-6 compact:pt-6 compact:pb-4 short:gap-4 short:pt-4 short:pb-3'
+    'flex min-h-0 flex-1 flex-col justify-between gap-8 bg-background-page px-6 pt-10 pb-6 compact:gap-6 compact:pt-6 compact:pb-4 short:gap-4 short:pt-4 short:pb-3'
 
 function BackButton({ onBack, screenId }: { onBack: () => void; screenId?: string }) {
     const t = useTranslations('kyc.paperworkVerification')
@@ -41,9 +41,9 @@ function BackButton({ onBack, screenId }: { onBack: () => void; screenId?: strin
 }
 
 /**
- * A question screen: back and "Step n of m" in a fixed top bar 16px under the
- * safe area, the content under it at the setup flow's full-screen offset, and
- * the footer on the setup CTA baseline.
+ * A question screen: back and "Step n of m" in a top bar that stays put over
+ * the scrolling content, the content under it at the setup flow's full-screen
+ * offset, and the footer on the setup CTA baseline.
  */
 export function VerifyQuestionLayout({
     progress,
@@ -60,10 +60,10 @@ export function VerifyQuestionLayout({
     useInsetColor(false)
     useVerifyShellHold()
     return (
-        <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
+        <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
             <div
                 data-verify-top-bar
-                className="fixed inset-x-0 top-[calc(var(--safe-top)_+_1rem)] z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-6 px-4"
+                className="sticky top-0 z-20 grid w-full shrink-0 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-6 bg-background-page px-4 pt-4 pb-5"
             >
                 <div className="size-10">{onBack && <BackButton onBack={onBack} />}</div>
                 {progress && (
@@ -82,7 +82,6 @@ export function VerifyQuestionLayout({
                 )}
                 <span />
             </div>
-            <div aria-hidden className="my-4 h-11 shrink-0" />
             <div className={PANEL}>
                 <div className="flex flex-col gap-6 compact:gap-4">{children}</div>
                 {footer}
@@ -113,7 +112,7 @@ export function VerifyHeroLayout({
     useInsetColor(true)
     useVerifyShellHold()
     return (
-        <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
+        <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
             {onBack && (
                 <div className="absolute top-4 z-20 px-4">
                     <BackButton onBack={onBack} screenId={screenId} />
@@ -160,7 +159,7 @@ export function VerifyCelebrationLayout({
         confettiPresets.success()
     }, [celebrate])
     return (
-        <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)}>
+        <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
             <div className="flex min-h-0 flex-1 flex-col justify-between gap-8 px-6 pt-4 pb-6">
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                     <PeanutMascot pose={pose} alt="" className="h-52 w-auto" />

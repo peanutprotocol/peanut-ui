@@ -4033,6 +4033,8 @@
                 "issuedByLimited": "Issued by {country}. {limits}",
                 "other": "Other document",
                 "otherHint": "Like a driver’s license",
+                "close": "Close",
+                "verifyNow": "Verify now",
                 "otherTitle": "Other documents",
                 "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
                 "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
@@ -4040,7 +4042,6 @@
                 "backToList": "Back to the list",
                 "noneFit": "Don’t have any of those?",
                 "changeResidence": "Change residence",
-                "stepDots": "Verify identity, step 1 of 3",
                 "noneAccepted": "We can’t verify documents issued by {countries} yet.",
                 "closesAll": "Issued by {country}. Can’t be used for what you picked.",
                 "closes": {

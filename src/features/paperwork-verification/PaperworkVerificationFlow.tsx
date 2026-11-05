@@ -814,7 +814,9 @@ function PaperworkVerificationSteps({
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}
+                progress={{ current: questionIds.length + 2, total: questionIds.length + 2 }}
                 onBack={() => void stepper.back()}
+                onExit={exit}
                 onContinue={(document) => void startIdentity(document)}
                 onChangeResidence={() => {
                     track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED, { step: 'id' })
