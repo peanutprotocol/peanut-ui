@@ -158,7 +158,7 @@ const YourCardScreen: FC<Props> = ({
 
             {onCompleteVerification && (
                 <Button
-                    variant="secondary"
+                    variant="primary"
                     onClick={onCompleteVerification}
                     disabled={verificationBusy}
                     data-testid="card-verification-continue"
