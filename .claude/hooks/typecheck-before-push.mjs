@@ -30,6 +30,25 @@ if (!existsSync(resolve(top, 'node_modules'))) {
     process.exit(0)
 }
 
+// Only pushes that change types pay for the typecheck: api's runs tsc twice with 6 GB each. The range is the
+// commits not yet on the upstream (or on origin/dev for a new branch); if git cannot tell, check anyway.
+const changed = (range) => {
+    try {
+        return execFileSync('git', ['-C', top, 'diff', '--name-only', range], {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+        })
+    } catch {
+        return null
+    }
+}
+const files = changed('@{upstream}...HEAD') ?? changed('origin/dev...HEAD')
+if (
+    files !== null &&
+    !files.split('\n').some((f) => /\.(ts|tsx|mts|cts)$|(^|\/)(tsconfig[^/]*\.json|package\.json)$/.test(f))
+)
+    process.exit(0)
+
 const run = spawnSync('nice', ['-n', '10', 'npm', 'run', '-s', 'typecheck'], {
     cwd: top,
     encoding: 'utf8',
