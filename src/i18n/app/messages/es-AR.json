@@ -1584,6 +1584,29 @@
                 "description": "Hubo un problema con tu verificación. Intentalo de nuevo o contactá a soporte."
             }
         },
+        "rejectActions": {
+            "retry_document": {
+                "description": "La foto de tu documento no pasó. Intentalo de nuevo con una foto nítida o usá otro documento."
+            },
+            "retry_selfie": {
+                "description": "Tu selfie no pasó. Sacate otra con buena luz y con toda la cara a la vista."
+            },
+            "check_details": {
+                "description": "Algunos de tus datos no coinciden con tu documento. Revisalos e intentalo de nuevo."
+            },
+            "try_later": {
+                "description": "No pudimos terminar la verificación ahora. Intentalo de nuevo en un rato."
+            },
+            "other_account": {
+                "description": "Este documento ya está vinculado a otra cuenta de Peanut. Iniciá sesión en esa cuenta o escribile a soporte y te ayudamos a resolverlo."
+            },
+            "contact_support": {
+                "description": "No pudimos terminar tu verificación en la app. Escribile a soporte y lo revisamos."
+            },
+            "not_available": {
+                "description": "Por ahora no podemos verificarte para Peanut, y volver a intentarlo no lo va a cambiar. Si creés que es un error, escribile a soporte."
+            }
+        },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Tocá abajo para continuar.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
@@ -1698,9 +1721,7 @@
                 "frozenChoice": "Continuá con el documento que elegiste.",
                 "frozenDocument": "Continuá con el documento que elegiste: {document} de {country}."
             },
-            "failed": {
-                "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."
-            },
+            "failed": {},
             "poa": {
                 "title": "Agregá un comprobante de domicilio",
                 "skipNote": "Podés omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."

@@ -8,6 +8,8 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
+import type { IdentityRejection } from '@/utils/identity-rejection.utils'
 import type {
     PaperworkVerificationClosedFeature,
     PaperworkVerificationFeature,
@@ -92,52 +94,111 @@ export function SavedScreen({
     )
 }
 
-/** The ID check failed or needs another try: Home, or a retry when Sumsub allows one. */
+/**
+ * The ID check failed: what the rejection reasons say and the action they call for (a retry while
+ * the check can still pass, the other account, or support), and Home.
+ */
 export function ReviewScreen({
+    rejection,
     onHome,
     onRetry,
+    onContactSupport,
+    onLogIn,
     busy = false,
     error,
     policyHold = false,
 }: {
+    rejection: IdentityRejection
     onHome: () => void
     onRetry?: () => void
+    onContactSupport?: () => void
+    onLogIn?: () => void
     busy?: boolean
     error?: string | null
     policyHold?: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const tRoot = useTranslations()
     const controls = useKycControl('id-failed')
     const home = () => {
         controls.track('home', 'tap')
         onHome()
     }
+    const logIn =
+        !onRetry && onLogIn && rejection.action === 'other_account' && rejection.ctaKey
+            ? primary(
+                  tRoot(rejection.ctaKey as never),
+                  () => {
+                      controls.track('log_in', 'tap')
+                      onLogIn()
+                  },
+                  'verify-review-log-in'
+              )
+            : null
+    const support =
+        !onRetry && onContactSupport && rejection.support
+            ? primary(
+                  tRoot('common.contactSupport'),
+                  () => {
+                      controls.track('support', 'tap')
+                      onContactSupport()
+                  },
+                  'verify-review-support',
+                  false,
+                  logIn ? 'secondary' : undefined
+              )
+            : null
     return (
         <VerifyCelebrationLayout
             pose="sad"
-            title={t('failed.title')}
-            description={t(policyHold ? 'policyHold.description' : 'failed.description')}
+            title={t(onRetry ? 'failed.title' : 'failed.terminalTitle')}
+            description={policyHold ? t('policyHold.description') : tRoot(rejection.descriptionKey as never)}
             footer={
                 <VerifyFooter
                     actions={
-                        onRetry
-                            ? primary(
-                                  t(policyHold ? 'policyHold.cta' : 'failed.retry'),
-                                  () => {
-                                      controls.track('retry', 'tap')
-                                      onRetry()
-                                  },
-                                  'verify-review-retry',
-                                  busy
-                              )
-                            : primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
+                        onRetry ? (
+                            primary(
+                                policyHold
+                                    ? t('policyHold.cta')
+                                    : tRoot((rejection.ctaKey ?? 'kyc.paperworkVerification.failed.retry') as never),
+                                () => {
+                                    controls.track('retry', 'tap')
+                                    onRetry()
+                                },
+                                'verify-review-retry',
+                                busy
+                            )
+                        ) : logIn || support ? (
+                            <>
+                                {logIn}
+                                {support}
+                            </>
+                        ) : (
+                            primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
+                        )
                     }
-                    secondary={onRetry ? primary(t('failed.cta'), home, 'verify-review-home') : undefined}
+                    secondary={
+                        onRetry || logIn || support
+                            ? primary(
+                                  t('failed.cta'),
+                                  home,
+                                  'verify-review-home',
+                                  false,
+                                  logIn ? 'secondary' : undefined
+                              )
+                            : undefined
+                    }
                 >
                     {error && <Callout priority="error">{error}</Callout>}
                 </VerifyFooter>
             }
-        />
+        >
+            {!policyHold && rejection.labels.length > 0 && (
+                <div className="w-full max-w-80 text-left">
+                    <RejectLabelsList rejectLabels={rejection.labels} />
+                </div>
+            )}
+        </VerifyCelebrationLayout>
     )
 }
 

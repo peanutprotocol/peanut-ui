@@ -3549,6 +3549,34 @@
                 "description": "Hubo un problema con tu verificación. Inténtalo de nuevo o contacta a soporte."
             }
         },
+        "rejectActions": {
+            "retry_document": {
+                "description": "La foto de tu documento no pasó. Inténtalo de nuevo con una foto nítida o usa otro documento."
+            },
+            "retry_selfie": {
+                "description": "Tu selfie no pasó. Tómate otra con buena luz y con toda la cara a la vista.",
+                "cta": "Tomar otra selfie"
+            },
+            "check_details": {
+                "description": "Algunos de tus datos no coinciden con tu documento. Revísalos e inténtalo de nuevo.",
+                "cta": "Revisar mis datos"
+            },
+            "try_later": {
+                "description": "No pudimos terminar la verificación ahora. Inténtalo de nuevo en un rato."
+            },
+            "other_account": {
+                "description": "Este documento ya está vinculado a otra cuenta de Peanut. Inicia sesión en esa cuenta o escríbele a soporte y te ayudamos a resolverlo.",
+                "cta": "Iniciar sesión en esa cuenta",
+                "supportMessage": "¡Hola! Mi verificación dice que mis documentos ya están en otra cuenta de Peanut. ¿Me ayudan a resolverlo?"
+            },
+            "contact_support": {
+                "description": "No pudimos terminar tu verificación en la app. Escríbele a soporte y lo revisamos.",
+                "supportMessage": "¡Hola! Mi verificación no pasó y no puedo intentarlo de nuevo en la app. ¿Pueden revisarlo?"
+            },
+            "not_available": {
+                "description": "Por ahora no podemos verificarte para Peanut, y volver a intentarlo no lo cambiará. Si crees que es un error, escríbele a soporte."
+            }
+        },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
         "errorInvalidResponse": "Respuesta inválida del servidor",
         "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Toca abajo para continuar.",
@@ -3935,7 +3963,7 @@
             },
             "failed": {
                 "title": "Necesitamos revisar tu documento otra vez",
-                "description": "Tu verificación necesita algo de ti. En el inicio verás qué hacer.",
+                "terminalTitle": "No pudimos verificar tu documento",
                 "cta": "Ir al inicio",
                 "retry": "Intentar de nuevo"
             },

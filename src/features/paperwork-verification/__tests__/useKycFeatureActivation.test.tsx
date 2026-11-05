@@ -192,6 +192,30 @@ it('identity conflicts remain blocked and navigate to verification', async () =>
     expect(mockPush).toHaveBeenCalledWith('/verify')
 })
 
+it('a rejected identity is sent to its status screen once, with nothing left waiting to re-activate', async () => {
+    const rejected = (status: string) =>
+        jest.mocked(useAuth).mockReturnValue({
+            user: {
+                user: { userId: 'a' },
+                identityVerification: { oneShot: true, status, canRetry: false, rejectLabels: ['DUPLICATE'] },
+            },
+            isFetchingUser: false,
+        } as ReturnType<typeof useAuth>)
+    rejected('failed')
+    jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' } as Reply)
+    const { result, rerender } = renderActivation(() => useKycFeatureActivation('card'))
+    await flush()
+    expect(result.current.allowed).toBe(false)
+    expect(mockPush).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledWith('/verify')
+    rerender()
+    rejected('verified')
+    rerender()
+    await flush()
+    expect(activateKycFeature).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledTimes(1)
+})
+
 it('identity change ignores a prior user response', async () => {
     const old = deferred()
     const current = deferred()

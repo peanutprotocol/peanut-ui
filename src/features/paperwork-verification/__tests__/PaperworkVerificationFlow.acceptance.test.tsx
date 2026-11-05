@@ -43,12 +43,13 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     getKycDocumentStatus: jest.fn(),
 }))
 let mockIdentityReason: string | undefined
+let mockIdentity: Record<string, unknown> = {}
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: 'user-a' } } }),
     useAuth: () => ({
         user: {
             user: { userId: 'user-a', username: 'tester' },
-            identityVerification: { reason: { code: mockIdentityReason } },
+            identityVerification: { reason: { code: mockIdentityReason }, ...mockIdentity },
         },
         fetchUser: jest.fn(),
     }),
@@ -179,6 +180,7 @@ const mockStartAction = jest.fn()
 
 beforeEach(() => {
     mockIdentityReason = undefined
+    mockIdentity = {}
     jest.clearAllMocks()
     setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     ;(useSumsubKycFlow as jest.Mock).mockReturnValue({
@@ -231,7 +233,9 @@ describe('canonical identity recovery acceptance', () => {
             })
             if (next === 'APPROVED') expect(await screen.findByTestId('verify-verified-payments')).toBeInTheDocument()
             else {
-                expect(await screen.findByText('We need another look at your ID')).toBeInTheDocument()
+                const title =
+                    next === 'ACTION_REQUIRED' ? 'We need another look at your ID' : 'We couldn’t verify your ID'
+                expect(await screen.findByText(title)).toBeInTheDocument()
                 expect(screen.queryByRole('button', { name: 'Try again' }) !== null).toBe(next === 'ACTION_REQUIRED')
             }
             expect(mockToken).not.toHaveBeenCalled()
@@ -281,11 +285,16 @@ describe('canonical identity recovery acceptance', () => {
         expect(screen.queryByTestId('verify-review-home')).not.toBeInTheDocument()
     })
 
-    it.each(['REJECTED'])('%s offers Home and cannot retry identity', async (status) => {
-        mockStatus.mockResolvedValue(status as never)
+    // The API takes a rejected attempt off the flow: questions unavailable, no plan flow.
+    it('REJECTED offers Home and cannot retry identity', async () => {
+        mockIdentity = { status: 'failed', canRetry: false, rejectLabels: ['DUPLICATE'], oneShot: true }
+        mockStatus.mockResolvedValue('REJECTED')
+        mockPlan.mockResolvedValue({ ...plan, available: false, flow: null })
+        mockQuestions.mockResolvedValue({ ...build(), available: false, attemptId: null })
         renderFlow()
         const home = await screen.findByRole('button', { name: /home/i })
         expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
+        expect(mockReplace).not.toHaveBeenCalled()
         fireEvent.click(home)
         expect(mockPush).toHaveBeenCalledWith('/home')
         expect(mockToken).not.toHaveBeenCalled()
