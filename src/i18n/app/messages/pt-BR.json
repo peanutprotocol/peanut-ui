@@ -202,7 +202,7 @@
             },
             "kyc": {
                 "title": "Desbloqueie <b>pagamentos com QR</b>",
-                "description": "Confirme sua identidade para pagar qualquer chave <b>Pix</b> e códigos QR do <b>Mercado Pago</b> e do <b>Pix</b>"
+                "description": "Confirme sua identidade para usar os <b>pagamentos QR</b> disponíveis para sua conta"
             },
             "closePrompt": "Fechar aviso",
             "closeTitled": "Fechar {title}",
@@ -481,7 +481,7 @@
                 "mxn": "Movimente pesos mexicanos entre seu banco e o Peanut.",
                 "sepa": "Guarde e movimente euros sem um banco local.",
                 "qrPay": "Escaneie e pague onde você mora.",
-                "pixSend": "Envie reais para qualquer chave Pix no Brasil.",
+                "pixSend": "Envie reais a chaves Pix se você não mora no Brasil.",
                 "bankAccount": "Adicione, guarde e saque dinheiro em outras moedas."
             },
             "detailsDrawer": {
@@ -1609,7 +1609,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloqueie pagamentos com QR",
-            "unlockDescription": "Confirme sua identidade para pagar uma chave Pix ou código QR. Leva cerca de um minuto.",
+            "unlockDescription": "Confirme sua identidade para usar os pagamentos QR disponíveis para sua conta. Leva cerca de um minuto.",
             "unlockCta": "Verificar identidade",
             "inProgressTitle": "Quase lá",
             "inProgressDescription": "Estamos confirmando sua identidade. Continue de onde parou e logo você estará pagando.",

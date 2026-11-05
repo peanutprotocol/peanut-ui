@@ -1532,7 +1532,7 @@ describe('MoneySettings', () => {
 
             const drawer = openBrlDrawer()
             // the hero opens on the send (Chip on ui#3506), not on moving reais by bank
-            expect(drawer.getByText('Send reais to any Pix key in Brazil.')).toBeInTheDocument()
+            expect(drawer.getByText('Send reais to Pix keys if you do not live in Brazil.')).toBeInTheDocument()
             expect(drawer.queryByText('Move reais between your bank and Peanut.')).not.toBeInTheDocument()
             expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                 'href',
