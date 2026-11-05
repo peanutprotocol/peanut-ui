@@ -151,7 +151,7 @@ export const CountryCombobox = ({
                     onClick={openList}
                     onBlur={closeList}
                     onKeyDown={onKeyDown}
-                    className="notranslate pr-10"
+                    className="notranslate pr-10 text-ellipsis"
                 />
                 {open && query ? (
                     <Button
