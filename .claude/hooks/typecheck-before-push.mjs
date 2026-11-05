@@ -15,6 +15,15 @@ if (!/\bgit\b[\s\S]*\bpush\b/.test(command)) process.exit(0)
 
 // Walk the command's segments in order, following each `cd`, to find every `git push` and the folder it runs in.
 const unquote = (s) => s.replace(/^["']|["']$/g, '')
+const GIT_VALUE_OPTIONS = new Set([
+    '-C',
+    '-c',
+    '--git-dir',
+    '--work-tree',
+    '--namespace',
+    '--config-env',
+    '--super-prefix',
+])
 const pushes = []
 let cwd = input.cwd
 for (const segment of command.split(/&&|\|\|?|;|\n/)) {
@@ -27,11 +36,10 @@ for (const segment of command.split(/&&|\|\|?|;|\n/)) {
     if (at === -1) continue
     let i = at + 1
     let dir = cwd
+    // Git's own options come before the subcommand; the ones in GIT_VALUE_OPTIONS take the next word.
     while (words[i]?.startsWith('-')) {
-        if (words[i] === '-C') {
-            dir = resolve(dir, unquote(words[i + 1] ?? ''))
-            i += 2
-        } else i += 1
+        if (words[i] === '-C') dir = resolve(dir, unquote(words[i + 1] ?? ''))
+        i += GIT_VALUE_OPTIONS.has(words[i]) ? 2 : 1
     }
     if (words[i] === 'push') pushes.push({ dir, args: words.slice(i + 1).map(unquote) })
 }
