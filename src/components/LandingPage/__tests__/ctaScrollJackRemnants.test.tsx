@@ -9,7 +9,6 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { render, screen } from '@testing-library/react'
 import { Hero } from '../hero'
-import { SendInSeconds } from '../sendInSeconds'
 import { landingStrings } from '../landingStrings'
 import { getTranslations } from '@/i18n'
 
@@ -38,7 +37,7 @@ describe('Hero CTA', () => {
     it('fades and parks the CTA while the footer is on screen', () => {
         render(<Hero strings={strings} buttonVisible={false} primaryCta={{ label: 'Sign up', href: '/setup' }} />)
 
-        const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
+        const holder = screen.getByRole('link', { name: 'Sign up' }).closest('[style*="--cta-x"]') as HTMLElement
         expect(holder.style.opacity).toBe('0')
         expect(holder.style.pointerEvents).toBe('none')
         expect(holder.style.getPropertyValue('--cta-x')).toBe('20px')
@@ -48,7 +47,7 @@ describe('Hero CTA', () => {
     it('rests the CTA in place while it is visible', () => {
         render(<Hero strings={strings} buttonVisible primaryCta={{ label: 'Sign up', href: '/setup' }} />)
 
-        const holder = screen.getByRole('link', { name: 'Sign up' }).parentElement as HTMLElement
+        const holder = screen.getByRole('link', { name: 'Sign up' }).closest('[style*="--cta-x"]') as HTMLElement
         expect(holder.style.opacity).toBe('1')
         expect(holder.style.getPropertyValue('--cta-x')).toBe('0px')
         expect(holder.style.getPropertyValue('--cta-y')).toBe('0px')
@@ -58,25 +57,6 @@ describe('Hero CTA', () => {
         render(<Hero strings={strings} buttonVisible customCta={<span>store pair</span>} />)
 
         expect(screen.getByText('store pair')).toBeInTheDocument()
-    })
-})
-
-describe('SendInSeconds fold', () => {
-    // The scroll-jack regression guard. Keep it free of fold-10 content assertions.
-    it('drops the scroll-jack target but keeps the section anchor', () => {
-        const { container } = render(<SendInSeconds locale="en" />)
-
-        expect(container.querySelector('#send-in-seconds')).toBeInTheDocument()
-        expect(container.querySelector('#sticky-button-target')).toBeNull()
-    })
-
-    it('links the CTA to /send as a single hugging DS button with the motion layer', () => {
-        const { container } = render(<SendInSeconds locale="en" />)
-
-        const cta = container.querySelector('a[href="/send"]')
-        expect(cta).toBeInTheDocument()
-        expect(cta).toHaveClass('btn', 'btn-secondary', 'w-fit', 'cta-motion')
-        expect(container.querySelectorAll('.cta-motion')).toHaveLength(1)
     })
 })
 

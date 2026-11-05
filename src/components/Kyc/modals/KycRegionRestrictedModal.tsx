@@ -3,6 +3,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { KycRegionRestrictedContent, useRegionRestrictedCta } from '../KycRegionRestrictedContent'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycRegionRestrictedModalProps {
     visible: boolean
@@ -18,6 +19,7 @@ interface KycRegionRestrictedModalProps {
  * quietly reintroduce either one.
  */
 export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrictedModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc.regionRestricted')
     const cta = useRegionRestrictedCta(onClose)
 
@@ -25,7 +27,10 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) {
+                    track('kyc_status', 'dismiss')
+                    onClose()
+                }
             }}
         >
             <DrawerContent>
@@ -44,7 +49,10 @@ export const KycRegionRestrictedModal = ({ visible, onClose }: KycRegionRestrict
                         variant="primary"
                         shadowSize="4"
                         className="mt-4 w-full justify-center"
-                        onClick={cta.onClick}
+                        onClick={() => {
+                            track('send', 'tap')
+                            cta.onClick()
+                        }}
                     >
                         {cta.label}
                     </Button>

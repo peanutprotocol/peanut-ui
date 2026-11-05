@@ -113,6 +113,7 @@
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "providerRejected": "Our payment partner couldn't accept this for your account. No money moved. Contact support.",
+        "mantecaAccountRejected": "Deposits and withdrawals in this country aren’t available for your account. You can still pay with QR. Contact support for help.",
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
@@ -173,6 +174,7 @@
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
         "supportUnread": "New support reply",
+        "accounts": "Accounts",
         "card": "Card",
         "exchangeRates": "Exchange rates",
         "scanQr": "Scan QR"
@@ -212,7 +214,7 @@
             "verifyTitle": "Verify.",
             "verifyBody": "One identity check, plus the cardholder terms.",
             "spendTitle": "Spend.",
-            "spendBody": "Approved? Add money and pay."
+            "spendBody": "Have $10 in your balance, apply, and pay."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -237,11 +239,11 @@
             },
             "q5": {
                 "question": "How do I get a card?",
-                "answer": "Sign in, complete verification, and accept the cardholder terms. Your application is subject to approval."
+                "answer": "Sign in, complete verification, have at least $10 in your Peanut balance, and accept the cardholder terms. Your application is subject to approval."
             },
             "q6": {
-                "question": "Do I need to deposit before applying?",
-                "answer": "No. You can apply before adding money. Add funds once your card is ready to make payments."
+                "question": "Do I need money in my balance to apply?",
+                "answer": "Yes. To apply for your first card, you need at least $10 in your Peanut balance. It is not a fee: the money stays yours to spend with the card."
             },
             "q7": {
                 "question": "Are there fees?",

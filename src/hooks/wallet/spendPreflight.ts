@@ -186,7 +186,7 @@ export interface CollateralSpendPreflightArgs<TClient extends { account?: unknow
     rebuildClient: () => Promise<TClient>
     /** Security-verification overlay toggle (optional — UI polish, not correctness). */
     setSecurityOverlay?: (open: boolean) => void
-    migrationTrigger: 'mixed-spend' | 'sign-spend'
+    migrationTrigger: 'mixed-spend' | 'sign-spend' | 'collateral-return'
 }
 
 /**

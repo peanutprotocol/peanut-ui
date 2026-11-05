@@ -87,7 +87,7 @@
         "prepareTransactionError": "Erro ao preparar a(s) transação(ões).",
         "switchNetworkError": "Erro ao trocar de rede.",
         "signDataError": "Erro ao assinar os dados na carteira.",
-        "gaslessDepositApiError": "Erro ao fazer o depósito sem gas pela API da Peanut.",
+        "gaslessDepositApiError": "Erro ao fazer o depósito sem gas pela API do Peanut.",
         "sendTransactionError": "Erro ao enviar a transação.",
         "transferAmountExceedsBalance": "Você não tem saldo suficiente para concluir a transação.",
         "chainMismatch": "Não foi possível trocar de rede. Tente mudar para a rede correta manualmente.",
@@ -113,6 +113,7 @@
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "providerRejected": "Nosso parceiro de pagamentos não pôde aceitar esta operação na sua conta. Nenhum dinheiro foi movimentado. Fale com o suporte.",
+        "mantecaAccountRejected": "Depósitos e saques neste país não estão disponíveis para sua conta. Você pode continuar pagando com QR. O suporte pode ajudar.",
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
@@ -134,7 +135,7 @@
         "downloadPeanut": "Baixar Peanut",
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
-            "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
+            "earlyDescription": "O Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",
             "maybeLater": "Baixo depois"
         },
         "sunset": {
@@ -170,16 +171,17 @@
         "pay": "Pagar",
         "cashout": "Saque",
         "claim": "Resgatar",
-        "peanutLogoAlt": "Logo da Peanut",
+        "peanutLogoAlt": "Logo do Peanut",
         "receipt": "Recibo",
         "supportUnread": "Nova resposta do suporte",
+        "accounts": "Contas",
         "card": "Cartão",
         "exchangeRates": "Câmbio",
         "scanQr": "Escanear QR"
     },
     "shhhhh": {
         "hero": {
-            "wordmark": "Cartão Peanut",
+            "wordmark": "Peanut Card",
             "tagline": "Seu dinheiro. Pronto para pagar.",
             "cta": "Pedir cartão",
             "disclaimer": "Verificação e aprovação obrigatórias. Sem mensalidade ou anuidade. Aplicam-se as tarifas e os limites dos termos do titular.",
@@ -212,7 +214,7 @@
             "verifyTitle": "Verifique.",
             "verifyBody": "Uma verificação de identidade, mais os termos do titular.",
             "spendTitle": "Pague.",
-            "spendBody": "Aprovado? Adicione saldo e pague."
+            "spendBody": "Tenha USD 10 no saldo, peça e pague."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -237,11 +239,11 @@
             },
             "q5": {
                 "question": "Como consigo um cartão?",
-                "answer": "Entre na sua conta, conclua a verificação e aceite os termos do titular. Sua solicitação está sujeita à aprovação."
+                "answer": "Entre na sua conta, conclua a verificação, tenha pelo menos USD 10 no seu saldo do Peanut e aceite os termos do titular. Sua solicitação está sujeita à aprovação."
             },
             "q6": {
-                "question": "Preciso depositar antes de pedir o cartão?",
-                "answer": "Não. Você pode pedir o cartão antes de adicionar dinheiro. Adicione saldo quando o cartão estiver pronto para pagar."
+                "question": "Preciso ter saldo para pedir o cartão?",
+                "answer": "Sim. Para pedir seu primeiro cartão, você precisa de pelo menos USD 10 no seu saldo do Peanut. Não é uma taxa: o dinheiro continua sendo seu para gastar com o cartão."
             },
             "q7": {
                 "question": "Há tarifas?",

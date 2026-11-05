@@ -28,13 +28,17 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     }),
 }))
 
-jest.mock('@/hooks/useUserByUsername', () => ({
-    useUserByUsername: () => ({
-        user: { userId: 'u1', username: 'alice', fullName: 'Alice', isVerified: false },
-        isLoading: false,
-        error: null,
-    }),
-}))
+jest.mock('@/lib/person/usePerson', () => {
+    const profile = { userId: 'u1', username: 'alice', fullName: 'Alice', isVerified: false }
+    return {
+        usePerson: () => ({
+            person: jest.requireActual('@/lib/person/person').personFrom(profile),
+            profile,
+            isLoading: false,
+            error: null,
+        }),
+    }
+})
 
 jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => ({ interactions: {} }),

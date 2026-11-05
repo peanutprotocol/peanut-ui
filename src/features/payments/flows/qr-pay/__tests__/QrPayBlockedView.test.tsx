@@ -57,7 +57,7 @@ describe('QrPayBlockedView — failed scan', () => {
         flow.gate.isTerminalFailure = true
         renderWithIntl(<QrPayBlockedView />)
 
-        expect(screen.getByText(en.qrPay.kyc.blockedDescription)).toBeInTheDocument()
+        expect(screen.getByText(en.kyc.terminalDescription)).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.qrPay.kyc.unlockCta })).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: en.qrPay.havingTrouble }))
         expect(mockSetSupportOpen).toHaveBeenCalledWith(true)

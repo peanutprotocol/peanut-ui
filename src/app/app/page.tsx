@@ -4,8 +4,7 @@
 
 import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { notFound, useRouter } from 'next/navigation'
-import posthog from 'posthog-js'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
@@ -23,12 +22,13 @@ import {
     playStoreUrlWithReferrer,
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
-import { isPwaSunsetOn, storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
-import { captureSignupAttribution } from '@/utils/signup-attribution'
+import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.utils'
+import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
 
-const FLAG_WAIT_MS = 4000
+// '/' sends no destination, so a new install opens to its normal first screen.
+const AD_ENTRY_DEST = '/'
 
 export default function SmartStoreRedirect() {
     const nativePlatform = useNativePlatform()
@@ -41,14 +41,12 @@ export default function SmartStoreRedirect() {
     const [mounted, setMounted] = useState(false)
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
-    const [marketingEntry, setMarketingEntry] = useState(false)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
         const parsed = parseDeferredPayload(search)
         const marketing = parseMarketingQrHandoff(new URLSearchParams(search))
         if (marketing && !isNativeBridge()) {
-            setMarketingEntry(true)
             if (marketing.analyticsAllowed && marketingQrAnalyticsAllowed()) {
                 try {
                     captureSignupAttribution()
@@ -74,6 +72,17 @@ export default function SmartStoreRedirect() {
                 }
             }
         } else if (parsed) setPayload(new URLSearchParams(search).toString())
+        else if (!isNativeBridge() && marketingQrAnalyticsAllowed() && hasMarketingTouch()) {
+            // Without a hand-off, an ad campaign in utm_* never reaches the installed app.
+            try {
+                if (captureSignupAttribution()) {
+                    setPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'android'))
+                    setIosPayload(buildDeferredPayload(AD_ENTRY_DEST, undefined, 'ios'))
+                }
+            } catch {
+                // The stores stay reachable without a hand-off.
+            }
+        }
         // A native-flavored web build can lack the bridge and still need the store page.
         if (!isNativeBridge()) return
         // Installed apps apply the QR's context immediately, then open its destination.
@@ -81,26 +90,6 @@ export default function SmartStoreRedirect() {
         router.replace(dest ?? '/home')
     }, [router])
     const inNativeApp = mounted && nativePlatform.isNativeBridge
-
-    // Wait for PostHog before returning 404. The timeout also handles blocked analytics.
-    const [flagsSettled, setFlagsSettled] = useState(false)
-    useEffect(() => {
-        if (isNativeBridge()) return
-        if (isPwaSunsetOn()) {
-            setFlagsSettled(true)
-            return
-        }
-        const unsubscribe = posthog.onFeatureFlags(() => setFlagsSettled(true))
-        const timeout = setTimeout(() => setFlagsSettled(true), FLAG_WAIT_MS)
-        return () => {
-            unsubscribe?.()
-            clearTimeout(timeout)
-        }
-    }, [])
-
-    const migrationOn = mounted && isPwaSunsetOn()
-    const settled = mounted && flagsSettled
-    const storeReady = (settled && migrationOn) || (mounted && marketingEntry)
 
     const targetStore: StoreKind | null = mounted ? storeForDevice(deviceType) : null
 
@@ -133,7 +122,7 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (inNativeApp || !settled || !migrationOn || !targetStore) return
+        if (inNativeApp || !targetStore) return
         // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
         if (payload && targetStore === 'android') countHandoff('android')
@@ -142,11 +131,9 @@ export default function SmartStoreRedirect() {
         // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [inNativeApp, settled, migrationOn, targetStore, payload, storeHref, countHandoff])
+    }, [inNativeApp, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
-
-    if (settled && !migrationOn && !marketingEntry) notFound()
 
     const stores: StoreKind[] = targetStore
         ? [targetStore, targetStore === 'ios' ? 'android' : 'ios']
@@ -158,14 +145,14 @@ export default function SmartStoreRedirect() {
             <section className="flex flex-1 flex-col justify-between p-6 pb-[calc(1.5rem_+_var(--safe-bottom))] md:w-1/2 md:justify-center md:gap-10">
                 <div className="mx-auto flex w-full max-w-md flex-col gap-3 md:text-center">
                     <h1 className="text-heading-m text-foreground-primary">{t('qr.title')}</h1>
-                    {storeReady && (
+                    {mounted && (
                         <p className="text-body-m text-foreground-secondary">
                             {redirecting ? t('smartLink.redirecting') : t('smartLink.pickStore')}
                         </p>
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {storeReady ? (
+                    {mounted ? (
                         stores.map((s, i) => (
                             <Button
                                 key={s}

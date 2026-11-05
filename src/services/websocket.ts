@@ -37,7 +37,6 @@ export type RainCardBalanceChangeReason =
     | 'transaction_updated'
     | 'transaction_completed'
     | 'contract_created'
-    | 'auto_balance_deposit'
 
 export interface RainCardBalanceChangedData {
     reason: RainCardBalanceChangeReason
@@ -174,7 +173,7 @@ export class PeanutWebSocket {
         }
 
         if (this.socket?.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify({ type: 'auth', token }))
+            this.socket.send(JSON.stringify({ type: 'auth', token, residenceFormat: 'compact' }))
         }
     }
 

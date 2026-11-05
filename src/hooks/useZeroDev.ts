@@ -15,6 +15,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    PasskeyServerError,
     withIOSPasskeyLoginRecovery,
     type PasskeyErrorCode,
 } from '@/utils/webauthn.utils'
@@ -231,7 +232,13 @@ export const useZeroDev = () => {
                 zeroDevFlowActions.setIsRegistering(false)
                 return
             }
-            const err = normalizeNativePasskeyError(e) as Error
+            // A /register/options error body throws the same decoder TypeError as
+            // login's; the verify-side wording differs, so only the server-request
+            // case is taken from the login normaliser.
+            const serverError = normalizePasskeyServerError(e)
+            const err = normalizeNativePasskeyError(
+                serverError instanceof PasskeyServerError ? serverError : e
+            ) as Error
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
@@ -299,7 +306,9 @@ export const useZeroDev = () => {
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that
             // tells us WHERE native logins hang.
-            if (isCeremonyGuardError(err)) {
+            if (code === 'ACCOUNT_DELETED') {
+                // Expected state, not a fault: the server minted no session, so local state stays as it was.
+            } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
                 // Platform/device outcomes never invalidate an existing session.
@@ -411,7 +420,8 @@ export const useZeroDev = () => {
                     })
                     zeroDevFlowActions.setIsSendingUserOp(false)
                     if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
-                    logoutUser()
+                    // this device's key is stale; the account's other sessions are fine
+                    logoutUser({ skipBackendCall: true })
                     throw createStaleSessionError(error)
                 }
 

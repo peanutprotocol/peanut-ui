@@ -8,17 +8,17 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { DOWNLOAD_PROMPT_SNOOZE_DAYS, MIGRATION_SURFACES, STORE_NAME } from '@/constants/migration.consts'
 import { openStore, storeForDevice, storeIcon } from '@/utils/migration.utils'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useAuth } from '@/context/authContext'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { isCapacitor } from '@/utils/capacitor'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { DOWNLOAD_PROMPT_FIXTURE, peekActiveFixture } from '@/dev/fixtures/active'
 
 const SNOOZE_MS = DOWNLOAD_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
 /**
  * Post-login "The Peanut app is here" prompt (TASK-20826), shown on the web
- * app while the pwa-sunset flag is on. The web app stays available, so the
+ * app. The web app stays available, so the
  * prompt has no deadline and "Maybe later" snoozes it.
  * Self-gating; reports visibility so home can suppress lower-priority modals.
  */
@@ -33,7 +33,6 @@ export default function MigrationDownloadModal({
     forceVisible?: boolean
 }) {
     const t = useTranslations('migration')
-    const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     const { user } = useAuth()
     const [visible, setVisible] = useState(false)
@@ -77,8 +76,9 @@ export default function MigrationDownloadModal({
             return
         }
         // every ineligible path clears state so an already-shown modal
-        // disappears if the flag flips off mid-session
-        if (!migrationOn || !userId || isCapacitor()) {
+        // disappears when the account logs out mid-session
+        const fixture = peekActiveFixture()
+        if (!userId || isCapacitor() || (fixture && fixture !== DOWNLOAD_PROMPT_FIXTURE)) {
             setVisible(false)
             return
         }
@@ -90,7 +90,7 @@ export default function MigrationDownloadModal({
         visibleFor.current = userId
         setVisible(true)
         posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
-    }, [migrationOn, userId, forceVisible, legalBlocking])
+    }, [userId, forceVisible, legalBlocking])
 
     // the committed visibility: the stored decision, only while it still
     // belongs to the current account and legal is not blocking it

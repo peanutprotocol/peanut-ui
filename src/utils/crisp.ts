@@ -68,6 +68,7 @@ export function supportSessionFields(userData: CrispUserData, supportTopic?: str
         ['account_stats', userData.accountStats || ''],
         ['card', userData.card || ''],
         ['linked_accounts', userData.linkedAccounts || ''],
+        ['same_email_accounts', userData.sameEmailAccounts || ''],
         ['app_context', userData.appContext || ''],
         ['segments', (userData.segments ?? []).join(' ')],
         /*

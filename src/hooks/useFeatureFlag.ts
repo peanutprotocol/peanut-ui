@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useReducer } from 'react'
 import posthog from 'posthog-js'
-import { isFeatureFlagEnabled, type FeatureFlagOptions } from '@/utils/featureFlag.utils'
+import { isFeatureFlagEnabled, type FeatureFlagKey, type FeatureFlagOptions } from '@/utils/featureFlag.utils'
 
 /**
  * Reactive read of PostHog feature flags. PostHog delivers flags async after
@@ -10,14 +10,14 @@ import { isFeatureFlagEnabled, type FeatureFlagOptions } from '@/utils/featureFl
  * checker recompute (a stable identity silently froze gated UI at
  * mount-time values — the 2026-07 chain-rollout review finding).
  */
-export function useFeatureFlags(): (flagKey: string, options?: FeatureFlagOptions) => boolean {
+export function useFeatureFlags(): (flagKey: FeatureFlagKey, options?: FeatureFlagOptions) => boolean {
     const [version, bump] = useReducer((n: number) => n + 1, 0)
     useEffect(() => {
         // returns an unsubscribe function
         return posthog.onFeatureFlags(() => bump())
     }, [])
     return useMemo(
-        () => (flagKey: string, options?: FeatureFlagOptions) => isFeatureFlagEnabled(flagKey, options),
+        () => (flagKey: FeatureFlagKey, options?: FeatureFlagOptions) => isFeatureFlagEnabled(flagKey, options),
         // `version` IS the reactivity trigger: a new checker identity per flag-load event.
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [version]

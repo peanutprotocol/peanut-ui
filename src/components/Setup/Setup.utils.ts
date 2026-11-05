@@ -36,19 +36,3 @@ export const isLikelyWebview = (): boolean => {
     const uaString = navigator.userAgent || navigator.vendor || (window as { opera?: string }).opera || ''
     return inAppSignatures.some((sig) => new RegExp(sig, 'i').test(uaString))
 }
-
-// checks if the device os version meets minimum requirements (android 9+, ios 16+)
-export const isDeviceOsSupported = (ua: string): boolean => {
-    if (!ua) return true // default to supported if ua is unavailable, passkey check is the main gatekeeper
-    const androidMatch = ua.match(/Android\s+(\d+)(?:\.(\d+))?(?:\.(\d+))?/i)
-    if (androidMatch) {
-        const majorVersion = parseInt(androidMatch[1], 10)
-        return majorVersion >= 9
-    }
-    const iosMatch = ua.match(/(?:CPU OS|iPhone OS|iPad; CPU OS)\s+(\d+)(?:_(\d+))?(?:_(\d+))?/i)
-    if (iosMatch) {
-        const majorVersion = parseInt(iosMatch[1], 10)
-        return majorVersion >= 16
-    }
-    return true // other os types are considered supported by this check
-}

@@ -67,7 +67,7 @@ const verificationSession = (
     externalActionId: 'action-accepted',
     isMultiLevel: false,
 })
-const bankSnapshot = (country = 'AR', status = 'enabled') => ({
+const bankSnapshot = (country: 'AR' | 'BR' = 'AR', status: 'enabled' | 'pending' = 'enabled') => ({
     capabilities: {
         rails: [
             {
@@ -81,6 +81,17 @@ const bankSnapshot = (country = 'AR', status = 'enabled') => ({
         ],
         nextActions: [],
         restrictions: [],
+        features: {
+            qr: { state: 'pending' },
+            card: { state: 'pending' },
+            bank: { state: 'pending', accounts: {} },
+            local: {
+                state: status === 'enabled' ? 'on' : 'pending',
+                accounts: {
+                    [country === 'AR' ? 'ARS' : 'BRL']: { state: status === 'enabled' ? 'on' : 'pending' },
+                },
+            },
+        },
     },
 })
 const mockGetSession = getVerificationSession as jest.MockedFunction<typeof getVerificationSession>
@@ -162,6 +173,18 @@ describe('CUIT accepted submission remains submitted until the requested bank is
             expect(mockInitiate).toHaveBeenCalledTimes(1)
         }
     )
+
+    it('READY with aggregate local and BRL on stays submitted without an ARS account', async () => {
+        const { result, onKycSuccess, onKycApproved } = await openSession('PROVIDER_PENDING')
+        mockGetSession.mockResolvedValue(verificationSession('READY'))
+        mockFetchUser.mockResolvedValue(bankSnapshot('BR'))
+        await tick(8000)
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(result.current.modalPhase).toBe('submitted')
+        expect(result.current.isModalOpen).toBe(true)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+    })
 
     it('READY requires a freshly usable AR bank and completes at most once', async () => {
         const { onKycSuccess, onKycApproved } = await openSession('PROVIDER_PENDING')

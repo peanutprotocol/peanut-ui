@@ -63,12 +63,12 @@ export interface paths {
                         accountType: "iban" | "us" | "evm-address" | "peanut-wallet" | "bridgeBankAccount" | "manteca" | "clabe" | "cbu" | "cvu" | "pix";
                         bridgeAccountIdentifier?: string;
                         chainId?: string;
-                        telegramHandle?: string;
-                        userId: string;
                         signupPreferences?: {
                             fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
                             paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
                         };
+                        telegramHandle?: string;
+                        userId: string;
                     };
                 };
             };
@@ -268,6 +268,47 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/avatars/art": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Avatar art urls
+         * @description Maps each avatar key to its art url on the badge art route. Empty when no art bucket is configured.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -521,6 +562,56 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/badges/art/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redirect to badge art
+         * @description Redirects to the badge art file in the configured bucket. Unknown names get 404.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    file: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect; the Location header holds the bucket url */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1101,6 +1192,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1113,6 +1205,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1125,6 +1218,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1137,6 +1231,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -1161,6 +1256,7 @@ export interface paths {
                 query: {
                     destinationCurrency: "eur" | "gbp" | "mxn" | "cop";
                     destinationAmount?: string;
+                    sourceAmount?: string;
                 };
                 header: {
                     Authorization: string;
@@ -1182,6 +1278,52 @@ export interface paths {
                             rate: string;
                             sourceAmount?: string;
                             updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bridge/offramp/rail-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rails a USD bank payout may use, and the fee for each */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            currency: "USD";
+                            minimumAfterFeeUsd: string;
+                            rails: {
+                                feeUsd: string;
+                                rail: "ach" | "ach_same_day" | "wire";
+                            }[];
                         };
                     };
                 };
@@ -1223,6 +1365,7 @@ export interface paths {
                     "application/json": {
                         amount: string;
                         chargeId?: string;
+                        idempotencyKey?: string;
                         recipientAddress?: string;
                         source: {
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
@@ -1280,6 +1423,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -1950,6 +2105,155 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/config/kill-switches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            brazilServicesPaused?: boolean;
+                            disableXchainSend?: boolean;
+                            disableXchainWithdraw?: boolean;
+                            disabledMantecaCurrencies?: string[];
+                            disabledPaymentProviders?: string[];
+                            enableFullMaintenance?: boolean;
+                            enableMaintenanceBanner?: boolean;
+                            kycVerificationDown?: boolean;
+                            maintenanceBannerPaths?: string[];
+                            pixBrazilOnrampMaintenance?: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/config/kyc-intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query: {
+                    residence: string;
+                    idCountry?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "idCountry": "PT",
+                         *       "intents": {
+                         *         "bank": {
+                         *           "available": true,
+                         *           "currencies": [
+                         *             "USD",
+                         *             "EUR",
+                         *             "GBP",
+                         *             "MXN"
+                         *           ]
+                         *         },
+                         *         "card": {
+                         *           "available": true
+                         *         },
+                         *         "local": {
+                         *           "available": false,
+                         *           "reason": "local_residence_unsupported"
+                         *         },
+                         *         "qr": {
+                         *           "available": true
+                         *         }
+                         *       },
+                         *       "residence": "PT"
+                         *     }
+                         */
+                        "application/json": {
+                            idCountry?: string;
+                            intents: {
+                                bank: {
+                                    available: boolean;
+                                    /** @enum {string} */
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                } & {
+                                    currencies: string[];
+                                };
+                                card: {
+                                    available: boolean;
+                                    /** @enum {string} */
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                };
+                                local: {
+                                    available: boolean;
+                                    /** @enum {string} */
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                };
+                                qr: {
+                                    available: boolean;
+                                    /** @enum {string} */
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                };
+                            };
+                            residence: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config/residence-restrictions": {
         parameters: {
             query?: never;
@@ -1973,9 +2277,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            bankingNewCustomersOnly: string[];
                             bankingOnly: string[];
                             cardOnly: string[];
                             full: string[];
+                            refusedIdIssuers: string[];
                         };
                     };
                 };
@@ -2168,6 +2474,130 @@ export interface paths {
                             error: string;
                             /** @enum {boolean} */
                             ok: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/cheats/bridge-kyc-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        customerId?: string;
+                        customerStatus?: "active" | "not_started" | "incomplete" | "under_review" | "awaiting_questionnaire" | "awaiting_ubo" | "paused" | "offboarded" | "rejected";
+                        endorsements?: {
+                            additionalRequirements?: string[];
+                            complete?: string[];
+                            issues?: string[];
+                            missing?: string[];
+                            name: string;
+                            pending?: string[];
+                            status: "approved" | "incomplete" | "rejected" | "revoked";
+                        }[];
+                        kycStatus: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
+                        rejectionReasons?: {
+                            developerReason?: string;
+                            reason: string;
+                        }[];
+                        tosAccepted?: boolean;
+                        userId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            customer: unknown;
+                            customerId: string;
+                            kycData: unknown;
+                            linkedCustomerId: boolean;
+                            /** @enum {boolean} */
+                            ok: true;
+                            rails: unknown;
+                            result: unknown;
+                            verification: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
                         };
                     };
                 };
@@ -3321,6 +3751,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dev/cheats/manteca-user-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        document?: "pep" | "fep";
+                        exchange?: "ARGENTINA" | "BRAZIL" | "CHILE" | "COLOMBIA" | "PANAMA" | "COSTA_RICA" | "GUATEMALA" | "MEXICO" | "PHILIPPINES" | "BOLIVIA";
+                        failedTask?: string;
+                        mantecaUserId?: string;
+                        rejectionReason?: string;
+                        state: "active" | "onboarding" | "inactive" | "task_failed" | "rejected" | "documents_requested" | "documents_rejected" | "documents_accepted";
+                        userId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            event: string;
+                            mantecaGeo: string;
+                            mantecaUserId: string;
+                            /** @enum {boolean} */
+                            ok: true;
+                            payload: unknown;
+                            rails: unknown;
+                            result: unknown;
+                            verification: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dev/cheats/mint-jwt": {
         parameters: {
             query?: never;
@@ -3457,6 +4000,115 @@ export interface paths {
                             error: string;
                             /** @enum {boolean} */
                             ok: false;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dev/cheats/rain-application-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        applicationReason?: string;
+                        applicationStatus: "pending" | "needsVerification" | "needsInformation" | "approved" | "denied" | "locked" | "canceled" | "exempt" | "manualReview" | "notStarted";
+                        ensureRail?: boolean;
+                        rainUserId?: string;
+                        userId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            ok: true;
+                            payload: unknown;
+                            rail: unknown;
+                            railCreated: boolean;
+                            rainUserId: string;
+                            statusChanged: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            /** @enum {boolean} */
+                            ok?: false;
                         };
                     };
                 };
@@ -3649,81 +4301,6 @@ export interface paths {
                             ok: true;
                             simulateResponse: unknown;
                             virtualAccountId: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            /** @enum {boolean} */
-                            ok: false;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                            /** @enum {boolean} */
-                            ok: false;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/dev/cheats/sweep-perk-to-kernel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** @description 6-decimal USDC base units; defaults to entire EOA balance */
-                        amount?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            eoaAddress: string;
-                            kernelAddress: string;
-                            /** @enum {boolean} */
-                            ok: true;
-                            txHash: string;
-                            usdcSwept: string;
                         };
                     };
                 };
@@ -3977,8 +4554,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            completed: boolean;
                             ms: number;
                             ok: boolean;
+                            reason?: string;
                         };
                     };
                 };
@@ -4342,8 +4921,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        harnessLabel?: string;
-                        scenario: "send-link-pending" | "send-link-claimed" | "request-pot-open" | "kyc-matrix" | "user-with-bank-accounts" | "withdraw-ready" | "manteca-qr-payment" | "multi-user-send" | "points-and-perks";
+                        /** @description false skips the harness-wallet top-up of a funded persona. Default true. */
+                        fund?: boolean;
+                        persona: "verified-ar" | "verified-ar-funded" | "verified-us" | "verified-us-funded" | "alice-ar-verified" | "bob-us-verified" | "carol-us-unverified" | "diana-us-kyc-recently-approved" | "eve-us-kyc-long-approved";
                     };
                 };
             };
@@ -4355,19 +4935,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: unknown;
-                            scenario: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
+                            jwt: string;
+                            persona: string;
+                            signerPk?: string;
+                            userId: string;
+                            username: string | null;
+                            walletAddr: string;
                         };
                     };
                 };
@@ -4532,8 +5105,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Synthesise a Sumsub webhook and run the status-processor
-         * @description Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.
+         * Synthesise a Sumsub webhook and run it through the real handler
+         * @description delivery 'processor' calls processSumsubKycUpdate with the input /sumsub/webhooks builds; delivery 'route' signs the payload and injects it into /sumsub/webhooks, then waits for its audit row. Contract: src/routes/dev/impersonators/README.md.
          */
         post: {
             parameters: {
@@ -4545,16 +5118,27 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description payload.applicantActionId */
+                        actionId?: string;
                         /** @description Sumsub applicant id */
                         applicantId: string;
+                        clientComment?: string;
+                        /** @description Event time: epoch ms, or a verbatim Sumsub "YYYY-MM-DD HH:mm:ss.SSS" string */
+                        createdAtMs?: number | string;
+                        delivery?: "processor" | "route";
+                        /** @description payload.externalApplicantActionId */
+                        externalActionId?: string;
                         /** @description Peanut user_id (applicant.externalUserId) */
                         externalUserId: string;
                         levelName?: string;
-                        /** @default GREEN */
+                        moderationComment?: string;
+                        rejectLabels?: string[];
                         reviewAnswer?: "GREEN" | "RED" | "ERROR";
-                        /** @description Sumsub reviewStatus (default: "completed") */
+                        reviewRejectType?: "RETRY" | "FINAL";
+                        /** @description Sumsub reviewStatus (default by webhookType) */
                         reviewStatus?: string;
-                        /** @description e.g. "applicantReviewed" */
+                        waitMs?: number;
+                        /** @description Sumsub event type (default "applicantReviewed") */
                         webhookType?: string;
                     };
                 };
@@ -4567,7 +5151,41 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            ackStatus?: number;
+                            applied?: boolean;
+                            auditError?: string | null;
+                            auditStatus?: string;
+                            delivery?: string;
                             ms: number;
+                            ok: boolean;
+                            payload?: unknown;
+                            settled?: boolean;
+                            webhookEventId?: string;
+                            webhookType?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            ok?: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                412: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                             ok: boolean;
                         };
                     };
@@ -4579,6 +5197,19 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                            ok: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ackStatus: number;
                             error: string;
                             ok: boolean;
                         };
@@ -5137,6 +5768,39 @@ export interface paths {
                 path: {
                     geo: string;
                 };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz/memory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -6121,8 +6785,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -6244,61 +6908,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/manteca/withdraw": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create withdraw order (offramp)
-         * @description Create a withdraw order to convert crypto to fiat via Manteca. Optionally use a pre-locked price from /withdraw/init.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        accountType?: "SAVINGS" | "CHECKING" | "DEBIT" | "PHONE" | "VISTA" | "RUT";
-                        /** @description Amount to withdraw in crypto asset */
-                        amount: string;
-                        bankCode?: string;
-                        currency?: "ARS" | "BRL" | "CLP" | "COP" | "PUSD" | "CRC" | "GTQ" | "MXN" | "PHP" | "BOB";
-                        /** @description Destination address to withdraw to */
-                        destinationAddress: string;
-                        /** @description Price lock code from /withdraw/init. If not provided, a new price lock is created. */
-                        priceLockCode?: string;
-                        /** @description Transaction hash of the withdrawal */
-                        txHash: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/manteca/withdraw/complete-with-signed-tx": {
         parameters: {
             query?: never;
@@ -6380,8 +6989,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -6512,6 +7121,127 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            emailUpdates: boolean;
+                            marketingPush: boolean;
+                            push: boolean;
+                            pushPermission: "granted" | "denied" | "dismissed" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        email?: boolean;
+                        emailUpdates?: boolean;
+                        expectedUserId?: string;
+                        marketingPush?: boolean;
+                        push?: boolean;
+                        pushPermission?: "granted" | "denied" | "dismissed";
+                    } | unknown | unknown | unknown | unknown | unknown;
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            email: boolean;
+                            emailUpdates: boolean;
+                            marketingPush: boolean;
+                            push: boolean;
+                            pushPermission: "granted" | "denied" | "dismissed" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6690,6 +7420,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-signup-analytics-state"?: "enabled" | "disabled" | "unknown";
                 };
                 path?: never;
                 cookie?: never;
@@ -7011,7 +7742,52 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            invitees: {
+                                /** @description The invitee's picked avatar, or null when they picked none or lost the badge behind it. */
+                                avatarKey: string | null;
+                                /** @description Estimated points contributed to the inviter (directPoints × the current-era multiplier). */
+                                contributedPoints: number;
+                                directPoints: number;
+                                /** @description The name to show: the invitee's full name, or their username when they hid their name. Null when neither exists. */
+                                fullName: string | null;
+                                hasInvitedOthers: boolean;
+                                /** Format: date-time */
+                                invitedAt: string;
+                                inviteeId: string;
+                                inviteesCount: number;
+                                kycStatus: string | null;
+                                kycVerified: boolean;
+                                /** @description USD earned from this invitee's transactions (Rewards v2). */
+                                lifetimeEarnedUsd: number;
+                                totalPoints: number;
+                                /** @description Null for an invitee who never finished signup. */
+                                username: string | null;
+                            }[];
+                            summary: {
+                                multiplier: number;
+                                pendingInvites: number;
+                                totalContributedPoints: number;
+                                totalDirectPoints: number;
+                                totalInvites: number;
+                                totalLifetimeEarnedUsd: number;
+                                totalPendingUsd?: number;
+                                verifiedInvites: number;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -7136,7 +7912,6 @@ export interface paths {
                             balance: null | {
                                 balanceDue: number;
                                 creditLimit: number;
-                                inTransitToCollateralCents: number;
                                 pendingCharges: number;
                                 postedCharges: number;
                                 spendingPower: number;
@@ -7159,6 +7934,7 @@ export interface paths {
                                 contractAddress?: string;
                                 coordinatorAddress?: string;
                                 hasApplication: boolean;
+                                issuanceRefusalReason?: string;
                                 railStatus?: string;
                                 rainUserId?: string;
                             };
@@ -7198,15 +7974,17 @@ export interface paths {
                     content: {
                         "application/json": {
                             message: string;
-                            rainUserId: string;
+                            rainUserId?: string;
                             /** @enum {string} */
                             status: "pending";
                         } | {
+                            externalActionId?: string;
                             missing: string[];
                             questionnaireComplete: boolean;
                             /** @enum {string} */
                             status: "incomplete";
                             sumsubAccessToken: string;
+                            sumsubLevel?: string;
                         } | {
                             missingDocTypes: string[];
                             /** @enum {string} */
@@ -7227,6 +8005,14 @@ export interface paths {
                             status: "country-confirmation-required";
                         } | {
                             message: string;
+                            /** @enum {string} */
+                            status: "pending-identity";
+                        } | {
+                            /** @enum {string} */
+                            status: "questions-required";
+                            step: string;
+                        } | {
+                            message: string;
                             rainUserId?: string;
                             status: string;
                         };
@@ -7239,78 +8025,40 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            code: "geo-blocked" | "pending-residence-blocked";
+                            code: "geo-blocked" | "pending-residence-blocked" | "provider-not-in-plan";
+                            message: string;
+                            reason?: string;
+                            /** @enum {string} */
+                            status: "error";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "application-outcome-unknown" | "paperwork_verification_required" | "CARD_APP_UPDATE_REQUIRED";
                             message: string;
                             /** @enum {string} */
                             status: "error";
                         };
                     };
                 };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/rain/cards/auto-balance/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        cardLimit?: number;
-                        serializedApproval: string;
-                    };
-                };
-            };
-            responses: {
                 /** @description Default Response */
-                200: {
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            ok: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
+                            /** @enum {string} */
+                            code: "occupation-not-accepted";
+                            message: string;
+                            /** @enum {string} */
+                            status: "error";
                         };
                     };
                 };
@@ -7447,6 +8195,409 @@ export interface paths {
                 };
                 /** @description Default Response */
                 502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            allowance: string;
+                            chainId: string;
+                            management: {
+                                migration: {
+                                    invalidateNonceFloor: number;
+                                    uninstall: {
+                                        deinitData: string;
+                                        validationId: string;
+                                    }[];
+                                } | null;
+                                reason: string | null;
+                                status: "required" | "migration_required" | "pending" | "ready" | "temporarily_unavailable";
+                                stop: {
+                                    cause: "card_locked" | "card_canceled" | "card_action_pending" | "paused";
+                                    state: "pending" | "confirmed" | "unavailable";
+                                } | null;
+                            };
+                            permission: {
+                                authorizationText: string;
+                                ceiling: string;
+                                scopeVersion: number;
+                                termsVersion: string;
+                            };
+                            sessionKeyAddress: string;
+                            spenderAddress: string;
+                            tokenAddress: string;
+                            walletAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enrollmentAllowed: boolean;
+                            fundingMode: "legacy" | "managed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        consent: {
+                            authorizationAccepted: boolean;
+                            authorizationText: string;
+                            termsVersion: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            enrollmentAllowed: boolean;
+                            fundingMode: "legacy" | "managed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        consent: {
+                            authorizationAccepted: boolean;
+                            authorizationText: string;
+                            termsVersion: string;
+                        };
+                        serializedPermission: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            allowance: string;
+                            chainId: string;
+                            management: {
+                                migration: {
+                                    invalidateNonceFloor: number;
+                                    uninstall: {
+                                        deinitData: string;
+                                        validationId: string;
+                                    }[];
+                                } | null;
+                                reason: string | null;
+                                status: "required" | "migration_required" | "pending" | "ready" | "temporarily_unavailable";
+                                stop: {
+                                    cause: "card_locked" | "card_canceled" | "card_action_pending" | "paused";
+                                    state: "pending" | "confirmed" | "unavailable";
+                                } | null;
+                            };
+                            permission: {
+                                authorizationText: string;
+                                ceiling: string;
+                                scopeVersion: number;
+                                termsVersion: string;
+                            };
+                            sessionKeyAddress: string;
+                            spenderAddress: string;
+                            tokenAddress: string;
+                            walletAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7645,7 +8796,6 @@ export interface paths {
                         "application/json": {
                             amountCents: string;
                             amountWei: string;
-                            autoBalanceEnabled: boolean;
                             collateralProxy: string;
                             dustWei: string;
                             hasRecoverableCard: boolean;
@@ -7774,6 +8924,7 @@ export interface paths {
                             applicationStatus?: string;
                             contractAddress?: string;
                             hasApplication: boolean;
+                            issuanceRefusalReason?: string;
                             rainUserId?: string;
                             status?: string;
                         };
@@ -8089,7 +9240,31 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -8188,6 +9363,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rain/cards/withdraw/status/{preparationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    preparationId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            chainId: string;
+                            expiresAt: number | null;
+                            preparationId: string;
+                            reason: "not_submitted" | "submission_held" | "confirming" | "verification_unavailable" | "needs_reconciliation" | "receipt_confirmed" | "reverted" | "rejected" | "not_executed" | "cancelled";
+                            state: "pending" | "completed" | "failed" | "cancelled";
+                            txHash: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rain/cards/withdraw/submit": {
         parameters: {
             query?: never;
@@ -8216,8 +9459,8 @@ export interface paths {
                         executorSignature: string;
                         expiresAt: number;
                         preparationId: string;
-                        recipientAddress: string;
                         preparedCoordinatorAddress?: string;
+                        recipientAddress: string;
                     };
                 };
             };
@@ -8326,7 +9569,6 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        autoBalanceEnabled?: boolean;
                         cardLimit?: number;
                         limits?: {
                             amount: number;
@@ -8412,7 +9654,99 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            fundingStop: {
+                                reason: string | null;
+                                state: "resumed" | "kept" | "none";
+                            } | null;
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -8454,8 +9788,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -8466,7 +9800,99 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            fundingStop: {
+                                reason: string | null;
+                                state: "pending" | "unavailable" | "not_applicable";
+                            };
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -8723,8 +10149,8 @@ export interface paths {
                             executorSignature: string;
                             expiresAt: number;
                             preparationId: string;
-                            recipientAddress: string;
                             preparedCoordinatorAddress?: string;
+                            recipientAddress: string;
                         };
                     };
                 };
@@ -8735,7 +10161,99 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            fundingStop: {
+                                reason: string | null;
+                                state: "pending" | "unavailable" | "not_applicable";
+                            };
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -9495,6 +11013,7 @@ export interface paths {
                     "application/json": {
                         bankInstructionsShared?: boolean;
                         chainId?: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -9510,6 +11029,7 @@ export interface paths {
                     } | {
                         bankInstructionsShared?: boolean;
                         chainId: string;
+                        idempotencyKey?: string;
                         recipientAddress: string;
                         reference?: string;
                         requestedAmount?: {
@@ -9545,6 +11065,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };
@@ -10647,39 +12179,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/test-error": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/tokens/price": {
         parameters: {
             query?: never;
@@ -10692,41 +12191,6 @@ export interface paths {
                 query: {
                     address: string;
                     chainId: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/tokens/wallet-portfolio": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query: {
-                    address: string;
                 };
                 header?: never;
                 path?: never;
@@ -10837,11 +12301,16 @@ export interface paths {
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
-                        offrampHandle?: string;
+                        localeSource?: "device" | "pick" | "browser";
+                        nationality?: string;
                         pushSubscriptionId?: string;
                         residenceCountry?: string;
                         secondResidenceCountry?: string;
                         showFullName?: boolean;
+                        signupPreferences?: {
+                            fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
+                            paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
+                        };
                         telegramUsername?: string;
                         userId: string;
                         username?: string;
@@ -10860,13 +12329,21 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code. */
+                /** @description Invalid input or a typed name change. PROFILE_NAME_READ_ONLY rejects the entire request before any profile fields are saved or email verification code is consumed. Blank or unchanged names are ignored. */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "code": "PROFILE_NAME_READ_ONLY",
+                         *       "error": "Your name was not saved. Names are managed through identity verification."
+                         *     }
+                         */
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "PROFILE_NAME_READ_ONLY";
                             error?: string;
                         };
                     };
@@ -10880,6 +12357,8 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             code: "STEP_UP_REQUIRED";
+                            error: string;
+                        } | {
                             error: string;
                         };
                     };
@@ -10898,8 +12377,12 @@ export interface paths {
                             code: "EMAIL_IN_USE";
                             error: string;
                         } | {
+                            code: "RESIDENCE_CHANGE_UNAVAILABLE" | "identity_submitted";
+                            error: string;
+                            userMessage: string;
+                        } | {
                             /** @enum {string} */
-                            code: "RESIDENCE_CHANGE_UNAVAILABLE";
+                            code: "SIGNUP_PREFERENCES_LOCKED";
                             error: string;
                         };
                     };
@@ -11095,6 +12578,7 @@ export interface paths {
                                 id: string;
                                 identifier: string | null;
                                 isActive: boolean;
+                                isPixRecipient: boolean;
                                 label: string | null;
                                 lastUsedAt: string | null;
                                 routingNumber: string | null;
@@ -11102,7 +12586,6 @@ export interface paths {
                                 type: string;
                                 updatedAt: string;
                                 userId: string | null;
-                                isPixRecipient: boolean;
                             };
                         };
                     };
@@ -11237,13 +12720,66 @@ export interface paths {
                     content: {
                         "application/json": {
                             capabilities: {
+                                features: {
+                                    bank: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    card: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    local: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    qr: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                };
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
+                                    refused?: {
+                                        provider: "bridge" | "manteca" | "rain";
+                                        reason: string;
+                                    }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
                                 }[];
@@ -11261,6 +12797,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -11278,10 +12816,15 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
+                                            refused?: {
+                                                provider: "bridge" | "manteca" | "rain";
+                                                reason: string;
+                                            }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
                                         };
@@ -11702,10 +13245,12 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
-                                cause?: "review-action" | "review-pending" | "review-closed" | "residence-restricted" | "not-open";
+                                cause?: "review-action" | "review-pending" | "not_started" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;
+                                /** Format: date-time */
+                                pendingSince?: string;
                                 railId: string;
                                 reason: "identity-required" | "support-required" | "not-offered";
                             }[];
@@ -11813,6 +13358,21 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                feature?: "bank" | "card" | "local";
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                levelKey?: string;
+                                purpose: string;
+                                refused?: {
+                                    provider: "bridge" | "manteca" | "rain";
+                                    reason: string;
+                                }[];
+                                requirementKey?: string;
+                                tosUrl?: string;
+                            };
                             outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
                                 issues: string[];
@@ -11820,16 +13380,6 @@ export interface paths {
                                 pending: string[];
                             };
                             verificationUrl?: string;
-                            nextAction?: {
-                                currency?: string;
-                                effectiveDate?: string;
-                                key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
-                                levelKey?: string;
-                                purpose: string;
-                                requirementKey?: string;
-                                tosUrl?: string;
-                            };
                         };
                     };
                 };
@@ -11853,6 +13403,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -11958,6 +13509,8 @@ export interface paths {
                             /** @enum {string} */
                             code: "STEP_UP_REQUIRED";
                             error: string;
+                        } | {
+                            error: string;
                         };
                     };
                 };
@@ -12015,6 +13568,8 @@ export interface paths {
                     cursor?: string;
                     limit?: number;
                     targetUsername?: string;
+                    from?: string;
+                    to?: string;
                 };
                 header?: never;
                 path?: never;
@@ -12123,7 +13678,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action. */
+        /** @description Open a non-destructive residence Applicant Action for legacy clients with a pending residence; otherwise reset IDENTITY only for an authorised document-replacement flow. */
         post: {
             parameters: {
                 query?: never;
@@ -12136,6 +13691,16 @@ export interface paths {
                     "application/json": {
                         /** @description Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs. */
                         regionIntent?: "LATAM" | "ROW" | "EU" | "NA";
+                        replacement?: {
+                            documents: {
+                                issuingCountry: string;
+                                key: string;
+                                type: string;
+                            }[];
+                            policyVersion: string;
+                            requestKey: string;
+                            routeId: string;
+                        };
                     };
                 };
             };
@@ -12148,9 +13713,23 @@ export interface paths {
                     content: {
                         "application/json": {
                             applicantId: string;
+                            /** Format: uuid */
+                            attemptId?: string;
                             levelName: string;
+                            reasonCode?: "document_policy_hold" | "id_expired" | "id_verification_failed" | "identity_verification_required" | "card_id_not_accepted";
                             /** @description The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level). */
                             regionIntent: string;
+                            sdkConfig?: {
+                                /** @enum {boolean} */
+                                autoSelectDocumentDefinitions: true;
+                                documentDefinitions: {
+                                    IDENTITY: {
+                                        country: string;
+                                        idDocType: string;
+                                    };
+                                };
+                            };
+                            status?: string;
                             token: string;
                         };
                     };
@@ -12184,7 +13763,13 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            code?: string;
+                            document?: {
+                                issuingCountry: string;
+                                type: string;
+                            };
                             error: string;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -12362,39 +13947,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/users/initiate-kyc": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/users/interaction-status": {
         parameters: {
             query?: never;
@@ -12428,6 +13980,1685 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc-intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        bank: boolean;
+                        card: boolean;
+                        local: boolean;
+                        qr: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "features": {
+                         *         "bank": {
+                         *           "state": "setting_up"
+                         *         },
+                         *         "card": {
+                         *           "state": "not_requested"
+                         *         },
+                         *         "local": {
+                         *           "state": "not_requested"
+                         *         },
+                         *         "qr": {
+                         *           "state": "on"
+                         *         }
+                         *       },
+                         *       "intents": {
+                         *         "bank": true,
+                         *         "card": false,
+                         *         "local": false,
+                         *         "qr": true
+                         *       },
+                         *       "setAt": "2026-01-01T00:00:00.000Z"
+                         *     }
+                         */
+                        "application/json": {
+                            features?: {
+                                bank: {
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                                card: {
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                                local: {
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                                qr: {
+                                    action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                                };
+                            };
+                            intents: {
+                                bank: boolean;
+                                card: boolean;
+                                local: boolean;
+                                qr: boolean;
+                            };
+                            setAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "questions_missing";
+                            feature: string;
+                            step: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/answers/{step}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: {
+                    feature?: "bank" | "card" | "local";
+                };
+                header?: never;
+                path: {
+                    step: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedUserId?: string;
+                        values: {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "next": "address"
+                         *     }
+                         */
+                        "application/json": {
+                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/attempts/{attemptId}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    attemptId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        document?: {
+                            issuingCountry: string;
+                            type: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "applicantId": "000000000000000000000001",
+                         *       "attemptId": "00000000-0000-4000-8000-000000000001",
+                         *       "levelName": "peanut-sleek-kyc",
+                         *       "sdkConfig": {
+                         *         "autoSelectDocumentDefinitions": true,
+                         *         "documentDefinitions": {
+                         *           "IDENTITY": {
+                         *             "country": "PRT",
+                         *             "idDocType": "PASSPORT"
+                         *           }
+                         *         }
+                         *       },
+                         *       "status": "COLLECTING",
+                         *       "token": "example-sumsub-access-token"
+                         *     }
+                         */
+                        "application/json": {
+                            applicantId: string | null;
+                            /** Format: uuid */
+                            attemptId: string;
+                            levelName: string;
+                            sdkConfig: {
+                                /** @enum {boolean} */
+                                autoSelectDocumentDefinitions?: true;
+                                documentDefinitions?: {
+                                    IDENTITY: {
+                                        country: string;
+                                        idDocType: string;
+                                    };
+                                };
+                            };
+                            status: string;
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error?: string;
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "document": {
+                         *         "country": "PT",
+                         *         "type": "PASSPORT"
+                         *       },
+                         *       "heldBySumsub": [
+                         *         "address"
+                         *       ],
+                         *       "idNationality": "PT",
+                         *       "name": {
+                         *         "first": "Mira",
+                         *         "last": "Vale"
+                         *       },
+                         *       "nationality": "PT",
+                         *       "stored": {
+                         *         "bankPurpose": "receive_salary",
+                         *         "cityOfBirth": "Lisboa",
+                         *         "countryOfBirth": "PT",
+                         *         "dateOfBirth": "1992-06-15"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            document: {
+                                country: string;
+                                type: string;
+                            } | null;
+                            heldBySumsub: string[];
+                            idNationality: string | null;
+                            name: {
+                                first: string | null;
+                                last: string | null;
+                            };
+                            nationality: string | null;
+                            stored: {
+                                actingAsIntermediary?: string;
+                                annualSalary?: string;
+                                bankMonthlyPayments?: string;
+                                bankPurpose?: string;
+                                cardPurpose?: string;
+                                cityOfBirth?: string;
+                                countryOfBirth?: string;
+                                dateOfBirth?: string;
+                                employmentStatus?: string;
+                                expectedMonthlyVolume?: string;
+                                isFatca?: string;
+                                isFep?: string;
+                                isPep?: string;
+                                maritalStatus?: string;
+                                occupation?: string;
+                                phone?: string;
+                                sex?: string;
+                                sourceOfFunds?: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "features": {
+                         *         "bank": {
+                         *           "accounts": {
+                         *             "EUR": {
+                         *               "since": "2026-01-01T00:00:00.000Z",
+                         *               "state": "setting_up"
+                         *             },
+                         *             "GBP": {
+                         *               "since": "2026-01-01T00:00:00.000Z",
+                         *               "state": "setting_up"
+                         *             },
+                         *             "MXN": {
+                         *               "since": "2026-01-01T00:00:00.000Z",
+                         *               "state": "setting_up"
+                         *             },
+                         *             "USD": {
+                         *               "since": "2026-01-01T00:00:00.000Z",
+                         *               "state": "setting_up"
+                         *             }
+                         *           },
+                         *           "since": "2026-01-01T00:00:00.000Z",
+                         *           "state": "setting_up"
+                         *         },
+                         *         "card": {
+                         *           "action": "activate",
+                         *           "state": "ready"
+                         *         },
+                         *         "local": {
+                         *           "accounts": {
+                         *             "ARS": {
+                         *               "reason": "local_residence_unsupported",
+                         *               "state": "refused"
+                         *             },
+                         *             "BRL": {
+                         *               "reason": "local_residence_unsupported",
+                         *               "state": "refused"
+                         *             }
+                         *           },
+                         *           "reason": "local_residence_unsupported",
+                         *           "state": "refused"
+                         *         },
+                         *         "qr": {
+                         *           "state": "on"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            features: {
+                                bank: {
+                                    accounts: {
+                                        [key: string]: {
+                                            action?: string;
+                                            message?: string;
+                                            reason?: string;
+                                            since?: string;
+                                            state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                        };
+                                    };
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                                card: {
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                                local: {
+                                    accounts: {
+                                        [key: string]: {
+                                            action?: string;
+                                            message?: string;
+                                            reason?: string;
+                                            since?: string;
+                                            state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                        };
+                                    };
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                                qr: {
+                                    action?: string;
+                                    message?: string;
+                                    reason?: string;
+                                    since?: string;
+                                    state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/features/{feature}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    feature: "qr" | "local" | "card" | "bank";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "state": "setting_up"
+                         *     }
+                         */
+                        "application/json": {
+                            action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                            state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "identity_not_approved" | "feature_not_open" | "questions_missing";
+                            step?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/identity/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "status": "IN_REVIEW"
+                         *     }
+                         */
+                        "application/json": {
+                            status: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "provider_unavailable";
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/paperwork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "products": [
+                         *         {
+                         *           "available": true,
+                         *           "product": "bridge.usd",
+                         *           "provider": "BRIDGE"
+                         *         },
+                         *         {
+                         *           "available": true,
+                         *           "product": "bridge.eur",
+                         *           "provider": "BRIDGE"
+                         *         },
+                         *         {
+                         *           "available": true,
+                         *           "product": "bridge.gbp",
+                         *           "provider": "BRIDGE"
+                         *         },
+                         *         {
+                         *           "available": true,
+                         *           "product": "bridge.mxn",
+                         *           "provider": "BRIDGE"
+                         *         },
+                         *         {
+                         *           "available": true,
+                         *           "product": "manteca.qr",
+                         *           "provider": "MANTECA"
+                         *         }
+                         *       ],
+                         *       "requirements": [
+                         *         {
+                         *           "collect": "before_identity",
+                         *           "item": "residential_address",
+                         *           "kind": "question",
+                         *           "products": [
+                         *             "bridge.usd",
+                         *             "bridge.eur",
+                         *             "bridge.gbp",
+                         *             "bridge.mxn"
+                         *           ],
+                         *           "requiredBy": [
+                         *             "BRIDGE"
+                         *           ],
+                         *           "rules": [
+                         *             "bridge.customer"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "collect": "before_identity",
+                         *           "item": "account_purpose",
+                         *           "kind": "question",
+                         *           "products": [
+                         *             "bridge.usd",
+                         *             "bridge.eur",
+                         *             "bridge.gbp",
+                         *             "bridge.mxn"
+                         *           ],
+                         *           "requiredBy": [
+                         *             "BRIDGE"
+                         *           ],
+                         *           "rules": [
+                         *             "bridge.eea"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "collect": "before_identity",
+                         *           "item": "country_of_birth",
+                         *           "kind": "question",
+                         *           "products": [
+                         *             "bridge.usd",
+                         *             "bridge.eur",
+                         *             "bridge.gbp",
+                         *             "bridge.mxn"
+                         *           ],
+                         *           "requiredBy": [
+                         *             "BRIDGE"
+                         *           ],
+                         *           "rules": [
+                         *             "bridge.eea"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "collect": "before_identity",
+                         *           "item": "nationality",
+                         *           "kind": "question",
+                         *           "products": [
+                         *             "bridge.usd",
+                         *             "bridge.eur",
+                         *             "bridge.gbp",
+                         *             "bridge.mxn",
+                         *             "manteca.qr"
+                         *           ],
+                         *           "requiredBy": [
+                         *             "BRIDGE",
+                         *             "MANTECA"
+                         *           ],
+                         *           "rules": [
+                         *             "bridge.eea-nationality",
+                         *             "peanut.nationality-for-id"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "collect": "before_identity",
+                         *           "item": "city_of_birth",
+                         *           "kind": "question",
+                         *           "products": [
+                         *             "bridge.usd",
+                         *             "bridge.eur",
+                         *             "bridge.gbp",
+                         *             "bridge.mxn"
+                         *           ],
+                         *           "requiredBy": [
+                         *             "BRIDGE"
+                         *           ],
+                         *           "rules": [
+                         *             "peanut.bridge-eea-city-of-birth"
+                         *           ]
+                         *         },
+                         *         {
+                         *           "collect": "when_asked",
+                         *           "item": "proof_of_address",
+                         *           "kind": "document",
+                         *           "products": [
+                         *             "bridge.usd",
+                         *             "bridge.eur",
+                         *             "bridge.gbp",
+                         *             "bridge.mxn"
+                         *           ],
+                         *           "requiredBy": [
+                         *             "BRIDGE"
+                         *           ],
+                         *           "rules": [
+                         *             "bridge.eea-database-check"
+                         *           ]
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            products: {
+                                available: boolean;
+                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr";
+                                provider: "BRIDGE" | "RAIN" | "MANTECA";
+                                reason?: string;
+                                rule?: string;
+                            }[];
+                            requirements: {
+                                collect: "before_identity" | "after_identity" | "when_asked";
+                                item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
+                                kind: "question" | "document";
+                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr")[];
+                                requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
+                                rules: string[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/places/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        country: string;
+                        query: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "places": [
+                         *         {
+                         *           "name": "Lisboa",
+                         *           "region": "Lisboa"
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            places: {
+                                name: string;
+                                region: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    restart?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "activeAttemptId": "00000000-0000-4000-8000-000000000001",
+                         *       "available": true,
+                         *       "documentRefusals": {},
+                         *       "documentTypeRefusals": {},
+                         *       "features": {
+                         *         "bank": true,
+                         *         "card": false,
+                         *         "local": false,
+                         *         "qr": true
+                         *       },
+                         *       "flow": "verify-once",
+                         *       "needs": [],
+                         *       "policyVersion": "code-2026-10-30-a1",
+                         *       "proofOfAddress": null,
+                         *       "proofOfAddressIdCountries": [],
+                         *       "proofOfAddressReason": null,
+                         *       "routes": [
+                         *         {
+                         *           "documents": [
+                         *             {
+                         *               "code": "IDENTITY",
+                         *               "countries": [
+                         *                 "PT"
+                         *               ],
+                         *               "key": "identity",
+                         *               "requiredBy": [
+                         *                 "SUMSUB",
+                         *                 "BRIDGE",
+                         *                 "MANTECA",
+                         *                 "RAIN"
+                         *               ],
+                         *               "types": [
+                         *                 "ID_CARD",
+                         *                 "PASSPORT"
+                         *               ]
+                         *             }
+                         *           ],
+                         *           "id": "eea"
+                         *         }
+                         *       ],
+                         *       "temporaryProtection": null
+                         *     }
+                         */
+                        "application/json": {
+                            activeAttemptId: string | null;
+                            available: boolean;
+                            documentRefusals: {
+                                [key: string]: ("qr" | "local" | "card" | "bank")[];
+                            };
+                            documentTypeRefusals: {
+                                [key: string]: {
+                                    [key: string]: ("qr" | "local" | "card" | "bank")[];
+                                };
+                            };
+                            features: {
+                                bank: boolean;
+                                card: boolean;
+                                local: boolean;
+                                qr: boolean;
+                            };
+                            flow: "verify-once" | null;
+                            needs: ("residence" | "features")[];
+                            policyVersion: string | null;
+                            proofOfAddress: "suggested" | null;
+                            proofOfAddressIdCountries: string[];
+                            proofOfAddressReason: "id_abroad" | "temporary_protection" | null;
+                            routes: {
+                                documents: {
+                                    /** @enum {string} */
+                                    code: "IDENTITY";
+                                    countries: string[];
+                                    key: string;
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
+                                }[];
+                                id: string;
+                            }[];
+                            temporaryProtection: {
+                                countries: string[];
+                                proofOfAddress: boolean;
+                                until: string;
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "attempts": [
+                         *         {
+                         *           "context": {
+                         *             "features": {
+                         *               "bank": true,
+                         *               "card": false,
+                         *               "local": false,
+                         *               "qr": true
+                         *             },
+                         *             "flow": "verify-once",
+                         *             "identityDocuments": [
+                         *               {
+                         *                 "code": "IDENTITY",
+                         *                 "countries": [
+                         *                   "PT"
+                         *                 ],
+                         *                 "key": "identity",
+                         *                 "requiredBy": [
+                         *                   "SUMSUB",
+                         *                   "BRIDGE",
+                         *                   "MANTECA",
+                         *                   "RAIN"
+                         *                 ],
+                         *                 "types": [
+                         *                   "ID_CARD",
+                         *                   "PASSPORT"
+                         *                 ]
+                         *               }
+                         *             ],
+                         *             "levelName": "peanut-sleek-kyc",
+                         *             "residenceCountry": "PT",
+                         *             "routeId": "eea"
+                         *           },
+                         *           "createdAt": "2026-01-01T00:00:00.000Z",
+                         *           "decisionSource": null,
+                         *           "id": "00000000-0000-4000-8000-000000000001",
+                         *           "kind": "IDENTITY",
+                         *           "policyVersion": "code-2026-10-30-a1",
+                         *           "provider": "SUMSUB",
+                         *           "reasonCode": null,
+                         *           "requirements": [
+                         *             {
+                         *               "code": "IDENTITY",
+                         *               "key": "identity",
+                         *               "kind": "CHECK",
+                         *               "requiredBy": [
+                         *                 "SUMSUB"
+                         *               ]
+                         *             },
+                         *             {
+                         *               "code": "LIVENESS",
+                         *               "key": "liveness",
+                         *               "kind": "CHECK",
+                         *               "requiredBy": [
+                         *                 "SUMSUB"
+                         *               ]
+                         *             }
+                         *           ],
+                         *           "reviewedAt": null,
+                         *           "revision": 2,
+                         *           "sourceAttemptId": null,
+                         *           "startedAt": "2026-01-01T00:00:00.000Z",
+                         *           "status": "IN_REVIEW",
+                         *           "submittedAt": "2026-01-01T00:00:00.000Z",
+                         *           "updatedAt": "2026-01-01T00:00:00.000Z",
+                         *           "verificationId": "00000000-0000-4000-8000-000000000002"
+                         *         }
+                         *       ],
+                         *       "geo": {
+                         *         "signup": {
+                         *           "device": {
+                         *             "languages": [
+                         *               "pt-PT",
+                         *               "en-GB"
+                         *             ],
+                         *             "locale": "pt-PT",
+                         *             "observedAt": "2026-01-01T00:00:00.000Z",
+                         *             "timeZone": "Europe/Lisbon"
+                         *           },
+                         *           "store": {
+                         *             "country": "PT",
+                         *             "observedAt": "2026-01-01T00:00:00.000Z",
+                         *             "source": "app-store"
+                         *           },
+                         *           "vercelIp": {
+                         *             "country": "PT",
+                         *             "observedAt": "2026-01-01T00:00:00.000Z"
+                         *           }
+                         *         }
+                         *       },
+                         *       "identity": {
+                         *         "applicantId": "000000000000000000000001",
+                         *         "canonicalStatus": "IN_REVIEW",
+                         *         "kycIntents": {
+                         *           "bank": true,
+                         *           "card": false,
+                         *           "local": false,
+                         *           "qr": true
+                         *         },
+                         *         "kycIntentsSetAt": "2026-01-01T00:00:00.000Z",
+                         *         "oneShot": true,
+                         *         "oneShotStartedAt": "2026-01-01T00:00:00.000Z",
+                         *         "status": "processing",
+                         *         "submittedAt": "2026-01-01T00:00:00.000Z",
+                         *         "verificationId": "00000000-0000-4000-8000-000000000002"
+                         *       },
+                         *       "providerAccounts": [],
+                         *       "residence": {
+                         *         "declared": {
+                         *           "country": "PT",
+                         *           "secondCountry": null,
+                         *           "status": "REVIEW_PENDING",
+                         *           "updatedAt": "2026-01-01T00:00:00.000Z"
+                         *         },
+                         *         "secondaryDeclaredCountry": null,
+                         *         "verified": null
+                         *       },
+                         *       "user": {
+                         *         "email": "mira.vale@example.com",
+                         *         "firstName": "Mira",
+                         *         "fullName": "Mira Vale",
+                         *         "lastName": "Vale"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            attempts: {
+                                context: {
+                                    features?: {
+                                        bank: boolean;
+                                        card: boolean;
+                                        local: boolean;
+                                        qr: boolean;
+                                    };
+                                    flow?: "verify-once" | "document-first";
+                                    identityDocuments?: {
+                                        /** @enum {string} */
+                                        code: "IDENTITY";
+                                        countries: string[];
+                                        key: string;
+                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                        types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
+                                    }[];
+                                    levelName?: string;
+                                    residenceCountry?: string;
+                                    routeId?: string;
+                                    supplementNeeds?: {
+                                        code: string;
+                                        key: string;
+                                        levelName: string;
+                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN")[];
+                                    }[];
+                                };
+                                /** Format: date-time */
+                                createdAt: string;
+                                decisionSource: "PROVIDER" | "POLICY" | "CANONICAL" | null;
+                                id: string;
+                                kind: "IDENTITY" | "SUPPLEMENTAL" | "ONBOARDING";
+                                policyVersion: string;
+                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN";
+                                reasonCode: string | null;
+                                requirements: ({
+                                    code: string;
+                                    document: {
+                                        issuingCountry: string;
+                                        type: string;
+                                    };
+                                    key: string;
+                                    /** @enum {string} */
+                                    kind: "DOCUMENT";
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                } | {
+                                    code: string;
+                                    key: string;
+                                    /** @enum {string} */
+                                    kind: "QUESTIONNAIRE";
+                                    questionnaireKey: string;
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                } | {
+                                    code: string;
+                                    key: string;
+                                    /** @enum {string} */
+                                    kind: "CHECK";
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                })[];
+                                reviewedAt: string | null;
+                                revision: number;
+                                sourceAttemptId: string | null;
+                                startedAt: string | null;
+                                status: "READY" | "COLLECTING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "SUPERSEDED";
+                                submittedAt: string | null;
+                                /** Format: date-time */
+                                updatedAt: string;
+                                verificationId: string;
+                            }[];
+                            geo: {
+                                signup: {
+                                    device?: {
+                                        languages: string[];
+                                        locale: string | null;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        timeZone: string | null;
+                                    };
+                                    ipProvider?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        /** @enum {string} */
+                                        provider: "ipapi";
+                                    };
+                                    store?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        source: "app-store" | "google-play";
+                                    };
+                                    vercelIp?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                    };
+                                };
+                            } | null;
+                            identity: {
+                                actionMessage?: string;
+                                applicantId: string | null;
+                                canRetry?: boolean;
+                                canonicalStatus: string;
+                                cardAgreements?: {
+                                    accepted: boolean;
+                                    current: boolean;
+                                    slug: "card-terms-us" | "card-terms-international";
+                                } | null;
+                                kycIntents?: {
+                                    bank: boolean;
+                                    card: boolean;
+                                    local: boolean;
+                                    qr: boolean;
+                                } | null;
+                                kycIntentsSetAt?: string | null;
+                                oneShot?: boolean;
+                                oneShotStartedAt?: string | null;
+                                reason?: {
+                                    code: string;
+                                    details?: string;
+                                    userMessage: string;
+                                };
+                                rejectLabels?: string[];
+                                reviewPending?: boolean;
+                                reviewedAt?: string;
+                                status: "not_started" | "processing" | "verified" | "action_required" | "failed";
+                                submittedAt?: string;
+                                verificationId: string;
+                            } | null;
+                            providerAccounts: {
+                                bridgeGeo: string | null;
+                                id: string;
+                                mantecaGeo: string | null;
+                                provider: string;
+                                status: string;
+                            }[];
+                            residence: {
+                                declared: {
+                                    country: string | null;
+                                    secondCountry: string | null;
+                                    status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
+                                    updatedAt: string | null;
+                                } | null;
+                                secondaryDeclaredCountry: string | null;
+                                verified: {
+                                    country: string;
+                                    status: "VERIFIED" | "CHANGE_REQUESTED";
+                                    updatedAt: string | null;
+                                } | null;
+                            };
+                            user: {
+                                email: string | null;
+                                firstName: string | null;
+                                fullName: string | null;
+                                lastName: string | null;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/proof-of-address/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    feature?: "bank" | "card" | "local";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "attemptId": "00000000-0000-4000-8000-000000000001",
+                         *       "available": true,
+                         *       "closed": [],
+                         *       "firstUnanswered": "address",
+                         *       "needs": [],
+                         *       "progress": {
+                         *         "done": 3,
+                         *         "total": 4
+                         *       },
+                         *       "residence": "PT",
+                         *       "steps": [
+                         *         {
+                         *           "answered": true,
+                         *           "features": [
+                         *             "bank"
+                         *           ],
+                         *           "fields": [
+                         *             {
+                         *               "key": "bankPurpose",
+                         *               "kind": "choice",
+                         *               "options": [
+                         *                 "charitable_donations",
+                         *                 "ecommerce_retail_payments",
+                         *                 "investment_purposes",
+                         *                 "operating_a_company",
+                         *                 "payments_to_friends_or_family_abroad",
+                         *                 "personal_or_living_expenses",
+                         *                 "protect_wealth",
+                         *                 "purchase_goods_and_services",
+                         *                 "receive_payment_for_freelancing",
+                         *                 "receive_salary"
+                         *               ],
+                         *               "required": true,
+                         *               "value": "receive_salary"
+                         *             }
+                         *           ],
+                         *           "id": "purpose"
+                         *         },
+                         *         {
+                         *           "answered": true,
+                         *           "features": [
+                         *             "bank",
+                         *             "base"
+                         *           ],
+                         *           "fields": [
+                         *             {
+                         *               "key": "countryOfBirth",
+                         *               "kind": "country",
+                         *               "required": true,
+                         *               "value": "PT"
+                         *             },
+                         *             {
+                         *               "countryField": "countryOfBirth",
+                         *               "key": "cityOfBirth",
+                         *               "kind": "place",
+                         *               "required": true,
+                         *               "value": "Lisboa"
+                         *             },
+                         *             {
+                         *               "key": "nationality",
+                         *               "kind": "country",
+                         *               "required": true,
+                         *               "value": "PT"
+                         *             }
+                         *           ],
+                         *           "id": "birth"
+                         *         },
+                         *         {
+                         *           "answered": false,
+                         *           "features": [
+                         *             "base"
+                         *           ],
+                         *           "fields": [
+                         *             {
+                         *               "key": "street",
+                         *               "kind": "text",
+                         *               "required": true,
+                         *               "value": null
+                         *             },
+                         *             {
+                         *               "key": "buildingNumber",
+                         *               "kind": "text",
+                         *               "required": false,
+                         *               "value": null
+                         *             },
+                         *             {
+                         *               "key": "town",
+                         *               "kind": "text",
+                         *               "required": true,
+                         *               "value": null
+                         *             },
+                         *             {
+                         *               "key": "state",
+                         *               "kind": "text",
+                         *               "required": false,
+                         *               "value": null
+                         *             },
+                         *             {
+                         *               "key": "postCode",
+                         *               "kind": "text",
+                         *               "required": true,
+                         *               "value": null
+                         *             },
+                         *             {
+                         *               "key": "country",
+                         *               "kind": "country",
+                         *               "locked": true,
+                         *               "required": true,
+                         *               "value": "PT"
+                         *             }
+                         *           ],
+                         *           "id": "address"
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            attemptId: string | null;
+                            available: boolean;
+                            closed: {
+                                feature: "qr" | "local" | "card" | "bank";
+                                reason: string;
+                            }[];
+                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            needs: ("residence" | "features")[];
+                            progress: {
+                                done: number;
+                                total: number;
+                            };
+                            residence: string | null;
+                            steps: {
+                                answered: boolean;
+                                features: string[];
+                                fields: {
+                                    checks?: string[];
+                                    countryField?: string;
+                                    everyStatus?: boolean;
+                                    format?: string | null;
+                                    key: string;
+                                    kind: string;
+                                    locked?: boolean;
+                                    options?: string[];
+                                    required: boolean;
+                                    value: string | null;
+                                }[];
+                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            errors?: {
+                                [key: string]: string;
+                            };
+                            step?: string | null;
+                            userMessage?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12521,6 +15752,7 @@ export interface paths {
                                 state: string;
                                 targetCountry: string;
                             };
+                            status?: "collecting" | "completed";
                             sumsubAccessToken?: string;
                             verificationUrl?: string;
                         };
@@ -12604,6 +15836,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/logout/all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/me": {
         parameters: {
             query?: never;
@@ -12617,6 +15884,7 @@ export interface paths {
                 header: {
                     Authorization: string;
                     "api-key"?: string;
+                    "x-residence-format"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -12631,13 +15899,66 @@ export interface paths {
                     content: {
                         "application/json": {
                             capabilities: {
+                                features: {
+                                    bank: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    card: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    local: {
+                                        accounts: {
+                                            [key: string]: {
+                                                action?: string;
+                                                message?: string;
+                                                reason?: string;
+                                                since?: string;
+                                                state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                            };
+                                        };
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                    qr: {
+                                        action?: string;
+                                        message?: string;
+                                        reason?: string;
+                                        since?: string;
+                                        state: "on" | "setting_up" | "action_required" | "refused" | "ready" | "pending";
+                                    };
+                                };
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
+                                    refused?: {
+                                        provider: "bridge" | "manteca" | "rain";
+                                        reason: string;
+                                    }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
                                 }[];
@@ -12655,6 +15976,8 @@ export interface paths {
                                         pay?: "enabled" | "pending" | "requires-info" | "blocked";
                                         withdraw?: "enabled" | "pending" | "requires-info" | "blocked";
                                     };
+                                    /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
+                                    pendingSince?: string;
                                     provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
@@ -12672,10 +15995,15 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
+                                            refused?: {
+                                                provider: "bridge" | "manteca" | "rain";
+                                                reason: string;
+                                            }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
                                         };
@@ -12692,22 +16020,78 @@ export interface paths {
                             depositAccounts: {
                                 enabled: boolean;
                             };
+                            geo?: {
+                                signup: {
+                                    device?: {
+                                        languages: string[];
+                                        locale: string | null;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        timeZone: string | null;
+                                    };
+                                    ipProvider?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        /** @enum {string} */
+                                        provider: "ipapi";
+                                    };
+                                    store?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        source: "app-store" | "google-play";
+                                    };
+                                    vercelIp?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                    };
+                                };
+                            } | null;
                             identityVerification: {
                                 actionMessage?: string;
                                 canRetry?: boolean;
+                                cardAgreements?: {
+                                    accepted: boolean;
+                                    current: boolean;
+                                    slug: "card-terms-us" | "card-terms-international";
+                                } | null;
+                                kycIntents?: {
+                                    bank: boolean;
+                                    card: boolean;
+                                    local: boolean;
+                                    qr: boolean;
+                                } | null;
+                                kycIntentsSetAt?: string | null;
+                                oneShot?: boolean;
+                                oneShotStartedAt?: string | null;
                                 reason?: {
                                     code: string;
                                     details?: string;
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
-                                reviewedAt?: string;
                                 reviewPending?: boolean;
+                                reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };
                             profileNameLocked: boolean;
                             residence: {
+                                declared: {
+                                    country: string | null;
+                                    secondCountry: string | null;
+                                    status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
+                                    updatedAt: string | null;
+                                } | null;
+                                secondaryDeclaredCountry: string | null;
+                                verified: {
+                                    country: string;
+                                    status: "VERIFIED" | "CHANGE_REQUESTED";
+                                    updatedAt: string | null;
+                                } | null;
+                            } | {
                                 declared: string | null;
                                 declaredSecond: string | null;
                                 kycReported: string | null;
@@ -12726,6 +16110,9 @@ export interface paths {
                                 fundingChannel: "bank" | "brlBank" | "arsBank" | "crypto" | "peanut";
                                 paymentChannel: "bank" | "card" | "qr" | "crypto" | "peanut";
                             } | null;
+                            supportLinkedAccounts: {
+                                relation: "holds_email" | "blocked_on_email";
+                            }[];
                         } & {
                             [key: string]: unknown;
                         };
@@ -12823,6 +16210,358 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/geo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "geo": {
+                         *         "signup": {
+                         *           "device": {
+                         *             "languages": [
+                         *               "pt-PT",
+                         *               "en-GB"
+                         *             ],
+                         *             "locale": "pt-PT",
+                         *             "observedAt": "2026-01-01T00:00:00.000Z",
+                         *             "timeZone": "Europe/Lisbon"
+                         *           },
+                         *           "store": {
+                         *             "country": "PT",
+                         *             "observedAt": "2026-01-01T00:00:00.000Z",
+                         *             "source": "app-store"
+                         *           },
+                         *           "vercelIp": {
+                         *             "country": "PT",
+                         *             "observedAt": "2026-01-01T00:00:00.000Z"
+                         *           }
+                         *         }
+                         *       },
+                         *       "residence": {
+                         *         "declared": {
+                         *           "country": "PT",
+                         *           "secondCountry": null,
+                         *           "status": "REVIEW_PENDING",
+                         *           "updatedAt": "2026-01-01T00:00:00.000Z"
+                         *         },
+                         *         "secondaryDeclaredCountry": null,
+                         *         "verified": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            geo: {
+                                signup: {
+                                    device?: {
+                                        languages: string[];
+                                        locale: string | null;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        timeZone: string | null;
+                                    };
+                                    ipProvider?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        /** @enum {string} */
+                                        provider: "ipapi";
+                                    };
+                                    store?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        source: "app-store" | "google-play";
+                                    };
+                                    vercelIp?: {
+                                        country: string;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                    };
+                                };
+                            } | null;
+                            residence: {
+                                declared: {
+                                    country: string | null;
+                                    secondCountry: string | null;
+                                    status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
+                                    updatedAt: string | null;
+                                } | null;
+                                secondaryDeclaredCountry: string | null;
+                                verified: {
+                                    country: string;
+                                    status: "VERIFIED" | "CHANGE_REQUESTED";
+                                    updatedAt: string | null;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        expectedUserId: string;
+                        signup: {
+                            device?: {
+                                languages: string[];
+                                locale: string | null;
+                                /** Format: date-time */
+                                observedAt: string;
+                                timeZone: string | null;
+                            };
+                            ipProvider?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                                /** @enum {string} */
+                                provider: "ipapi";
+                            };
+                            store?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                                source: "app-store" | "google-play";
+                            };
+                            vercelIp?: {
+                                country: string;
+                                /** Format: date-time */
+                                observedAt: string;
+                            };
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "accepted": true
+                         *     }
+                         */
+                        "application/json": {
+                            accepted: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/residence-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    beforeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "events": [
+                         *         {
+                         *           "after": {
+                         *             "approvedAt": null,
+                         *             "country": "PT",
+                         *             "status": "IN_REVIEW",
+                         *             "supersededAt": null
+                         *           },
+                         *           "before": {
+                         *             "approvedAt": null,
+                         *             "country": "PT",
+                         *             "status": "PENDING",
+                         *             "supersededAt": null
+                         *           },
+                         *           "eventType": "SOURCE_CHANGED",
+                         *           "id": "2",
+                         *           "occurredAt": "2026-01-01T00:00:00.000Z",
+                         *           "sourceId": "00000000-0000-4000-8000-000000000002",
+                         *           "sourceType": "user_kyc_verifications"
+                         *         },
+                         *         {
+                         *           "after": {
+                         *             "country": "PT",
+                         *             "secondCountry": null
+                         *           },
+                         *           "before": null,
+                         *           "eventType": "USER_CREATED",
+                         *           "id": "1",
+                         *           "occurredAt": "2026-01-01T00:00:00.000Z",
+                         *           "sourceId": "00000000-0000-4000-8000-000000000003",
+                         *           "sourceType": "users"
+                         *         }
+                         *       ],
+                         *       "nextBeforeId": null
+                         *     }
+                         */
+                        "application/json": {
+                            events: {
+                                after: unknown;
+                                before: unknown;
+                                eventType: string;
+                                id: string;
+                                /** Format: date-time */
+                                occurredAt: string;
+                                sourceId: string | null;
+                                sourceType: string;
+                            }[];
+                            nextBeforeId: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/signup-attribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        attribution: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            accepted: boolean;
+                            /** @enum {string} */
+                            reason: "attached" | "already_attached" | "expired" | "not_collecting" | "not_found" | "post_signup_touch";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -13005,6 +16744,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13018,6 +16758,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13031,6 +16772,7 @@ export interface paths {
                             code?: string;
                             error: string;
                             retryAfterSeconds?: number;
+                            userMessage?: string;
                         };
                     };
                 };
@@ -13612,6 +17354,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "branch": "innolope/kyc-document-first",
+                         *       "builtAt": "2026-01-01T00:00:00.000Z",
+                         *       "commit": "0123456789abcdef0123456789abcdef01234567",
+                         *       "contracts": {
+                         *         "kyc": 5
+                         *       },
+                         *       "migrationsHead": "20261030190000_dead_letter_historical_sumsub_webhooks"
+                         *     }
+                         */
+                        "application/json": {
+                            branch: string | null;
+                            builtAt: string | null;
+                            commit: string | null;
+                            contracts: {
+                                /** @enum {number} */
+                                kyc: 5;
+                            };
+                            migrationsHead: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/webhooks/onesignal": {
         parameters: {
             query?: never;
@@ -13690,141 +17487,6 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/bridge/offramp/rail-fees": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The rails a USD bank payout may use, and the fee for each */
-        get: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            currency: "USD";
-                            minimumAfterFeeUsd: string;
-                            rails: {
-                                feeUsd: string;
-                                rail: "ach" | "ach_same_day" | "wire";
-                            }[];
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/notifications/preferences": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            email: boolean;
-                            push: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        email: boolean;
-                        push: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            email: boolean;
-                            push: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
         post?: never;
         delete?: never;
         options?: never;

@@ -4,12 +4,12 @@ import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
 import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { servesAnonymousReceipt } from '@/components/TransactionDetails/transaction-predicates'
+import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState, type HistoryEntry } from '@/utils/history.utils'
 import { serverFetch } from '@/utils/api-fetch'
 import { isOwnBridgeAccountFlow } from '@/utils/provider.utils'
-import type { IUserProfile } from '@/interfaces/interfaces'
+import { normalizeUserProfile, type UserProfileWire } from '@/utils/residence-profile'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
 import { loadMessages } from '@/i18n/app/messages'
 import { buildReceiptPdfModel, type PdfTranslate } from './receipt-pdf-model'
@@ -71,12 +71,15 @@ async function ownerResidenceForBridge(entry: HistoryEntry, authorization: strin
     const partyIds = [entry.senderAccount?.userId, entry.recipientAccount?.userId].filter(Boolean)
     if (partyIds.length === 0) return null
     try {
-        const response = await serverFetch('/users/me', { headers: { Authorization: authorization } })
+        const response = await serverFetch('/users/me', {
+            headers: { Authorization: authorization, 'x-residence-format': 'compact' },
+        })
         if (!response.ok) return null
-        const me: IUserProfile | null = await response.json()
+        const payload: UserProfileWire | null = await response.json()
+        const me = payload ? normalizeUserProfile(payload) : null
         const requesterId = me?.user?.userId
         if (!requesterId || !partyIds.every((id) => id === requesterId)) return null
-        return me?.residence?.verified ?? null
+        return me?.residence?.verified?.country ?? null
     } catch (error) {
         captureException(error)
         return null
@@ -87,8 +90,8 @@ const notFound = () => new NextResponse('Not Found', { status: 404, headers: { '
 
 /**
  * GET /receipt/[entryId]/pdf — a downloadable, branded receipt document.
- * Existing public page kinds remain capability URLs; every other activity kind
- * requires owner/participant authentication enforced by the API.
+ * An entry the API marks as a public receipt is a capability URL; every other
+ * entry requires owner/participant authentication enforced by the API.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ entryId: string }> }) {
     const { entryId } = await params
@@ -100,7 +103,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Web can authenticate with its same-origin cookie; native explicitly
     // forwards the stored bearer through CapacitorHttp. The API remains the
-    // authority for participant access to non-public receipt kinds.
+    // authority for participant access to non-public receipts.
     const bearerHeader = request.headers.get('authorization')
     const cookieToken = request.cookies.get('jwt-token')?.value
     const authorization = bearerHeader ?? (cookieToken ? `Bearer ${cookieToken}` : undefined)
@@ -118,10 +121,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     try {
         const { transactionDetails } = mapTransactionDataForDrawer(entry)
-        // An anonymous request stays on the exact public-page whitelist. A
-        // bearer/cookie request may render a private kind only after the API's
-        // participant check returned the entry above.
-        const isPublicReceipt = servesAnonymousReceipt(transactionDetails)
+        // An anonymous request renders only an entry the API marked as a
+        // public receipt. A bearer/cookie request may render a private entry
+        // only after the API's participant check returned it above.
+        const isPublicReceipt = hasPublicReceipt(transactionDetails)
         if (!isPublicReceipt && !authorization) {
             return notFound()
         }

@@ -57,9 +57,9 @@ export default function RedirectQrSuccessPage() {
                     <QRCodeWrapper url={qrUrl} />
                 </div>
 
-                <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
+                <Card className="border-2 border-background-accent-yellow bg-background-accent-yellow/10 p-4">
                     <div className="flex gap-3">
-                        <Icon name="star" size={20} className="flex-shrink-0 text-action-secondary" />
+                        <Icon name="star" size={20} className="flex-shrink-0 text-background-accent-yellow" />
                         <div className="space-y-1">
                             <p className="text-label-l">{t('claimSuccess.putItAnywhere')}</p>
                             <p className="text-body-xs text-foreground-secondary">

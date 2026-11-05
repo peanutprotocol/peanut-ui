@@ -512,12 +512,13 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         expect(screen.getByTestId('amount-field')).toHaveAttribute('data-symbol', 'EUR')
     })
 
-    test('Continue hands the bank amount to the review, never as ?amount=', () => {
+    test('Continue hands the bank amount to the review, never as ?amount=', async () => {
         renderWithdraw({ step: 'amount' })
 
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90' } })
         fireEvent.click(screen.getByText('Continue'))
 
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalled())
         const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
         expect(pushed).toContain('destinationAmount=90')
         expect(pushed).not.toMatch(/[?&]amount=/)
@@ -552,6 +553,45 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         fireEvent.click(screen.getByText('Continue'))
 
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=5')
+    })
+
+    // Screen capture, 2026-11-03: Continue tapped while the typed amount was still
+    // on its way to the URL. The write landed after the push and discarded it.
+    test('Continue tapped before the typed EUR amount reaches the URL navigates once it has', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.875'
+        const params = { step: 'amount' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+        fireEvent.click(screen.getByText('Continue'))
+
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=5'))
+        const writes = mockOnUrlUpdate.mock.invocationCallOrder.filter((_, call) =>
+            mockOnUrlUpdate.mock.calls[call][0].queryString.includes('destinationAmount=5')
+        )
+        expect(writes.length).toBeGreaterThan(0)
+        expect(Math.max(...writes)).toBeLessThan(mockRouterPush.mock.invocationCallOrder[0])
+    })
+
+    test('Back tapped while that Continue still waits keeps the user off the review', async () => {
+        mockUseRealAmountInput = true
+        mockBankRate = '0.875'
+        const params = { step: 'amount' }
+        render(<NuqsTestingAdapter>{null}</NuqsTestingAdapter>).unmount()
+        setSearchParams(params)
+        render(withdrawTree(params, createQueryClient(), { hasMemory: true }))
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: '5' } })
+        fireEvent.click(screen.getByText('Continue'))
+        fireEvent.click(screen.getByTestId('nav-back'))
+        await act(() => new Promise((resolve) => setTimeout(resolve, 300)))
+
+        expect(mockOnUrlUpdate).toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     // Hugo, 2026-09-25: an amount typed in USD leads with USD on the review. It
@@ -678,13 +718,13 @@ describe('GROUP 2b: bank amount typed in its currency', () => {
         }
     )
 
-    test('a mid-typing "90." is handed on as 90', () => {
+    test('a mid-typing "90." is handed on as 90', async () => {
         renderWithdraw({ step: 'amount' })
 
         fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '90.' } })
         fireEvent.click(screen.getByText('Continue'))
 
-        expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/germany/bank?destinationAmount=90')
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany/bank?destinationAmount=90'))
     })
 
     test('waits for the rate before opening the field', () => {
@@ -816,8 +856,8 @@ describe('GROUP 3: Amount Validation', () => {
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(SOLANA_USDC)
             expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: SOLANA_ADDRESS })
             expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
-            // the pay screen's pickers keep to Solana for a Solana address
-            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'solana' })
+            // the pay screen's pickers keep to Solana for a Solana address, the chain it names
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'solana', chainId: 'solana' })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=25')
         })
 
@@ -990,7 +1030,12 @@ describe('GROUP 3: Amount Validation', () => {
 
             expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_USDC)
-            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm' })
+            // the requested pair travels with the scan, so the pay screen can hold to it
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({
+                addressFamily: 'evm',
+                chainId: '8453',
+                tokenAddress: BASE_USDC,
+            })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto&amount=10')
             expect(mockRouterReplace.mock.calls[0][0]).not.toContain(EVM_ADDRESS)
         })
@@ -1002,7 +1047,24 @@ describe('GROUP 3: Amount Validation', () => {
             renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'ETH', amount: '0.1' })))
 
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_ETH)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({
+                addressFamily: 'evm',
+                chainId: '8453',
+                tokenAddress: BASE_ETH,
+            })
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/crypto?method=crypto')
+        })
+
+        // `ethereum:<address>@8453` with no value or transfer asks for no asset:
+        // the chain is the request, and the token stays the user's pick.
+        test('a request that names only its network keeps the network and asks for no token', () => {
+            const id = stashScannedDestination(EVM_ADDRESS, '8453')!
+
+            renderWithdraw(entryParams(withdrawScanEntryUrl(id)))
+
+            expect(mockSetSelectedChainID).toHaveBeenCalledWith('8453')
+            expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_USDC)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith({ addressFamily: 'evm', chainId: '8453' })
         })
 
         // Several contracts can share a symbol: the request's exact contract is
@@ -1018,6 +1080,9 @@ describe('GROUP 3: Amount Validation', () => {
             renderWithdraw(entryParams(withdrawScanEntryUrl(id, { tokenSymbol: 'USDC', amount: '10' })))
 
             expect(mockSetSelectedTokenAddress).toHaveBeenCalledWith(BASE_BRIDGED_USDC)
+            expect(mockSetScannedRecipient).toHaveBeenCalledWith(
+                expect.objectContaining({ chainId: '8453', tokenAddress: BASE_BRIDGED_USDC })
+            )
         })
 
         // A request is paid in the token it asks for or not at all: a token the
@@ -1099,7 +1164,7 @@ describe('GROUP 3: Amount Validation', () => {
         expect(screen.getByText('Continue')).not.toBeDisabled()
     })
 
-    test('Full balance passes validation and continues with that amount', () => {
+    test('Full balance passes validation and continues with that amount', async () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
 
         renderWithdraw({ step: 'amount' })
@@ -1109,7 +1174,7 @@ describe('GROUP 3: Amount Validation', () => {
         expect(continueBtn).not.toBeDisabled()
 
         fireEvent.click(continueBtn)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/us?step=form&amount=100')
+        await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/us?step=form&amount=100'))
     })
 
     test('Full balance below the method minimum keeps Continue disabled', async () => {

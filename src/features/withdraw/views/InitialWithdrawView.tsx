@@ -7,20 +7,22 @@ import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components
 import NavHeader from '@/components/Global/NavHeader'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { type ITokenPriceData } from '@/interfaces/interfaces'
+import { type IToken } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useRouter } from 'next/navigation'
-import { useContext, useEffect, useMemo, useRef } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { addressFamilyForChainId } from '@/lib/validation/addressFamily'
+import { addressFamilyForChainId, TRON_ADDRESS_REGEX } from '@/lib/validation/addressFamily'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN } from '@/components/Global/TokenSelector/TokenSelector.consts'
 import { printableAddress } from '@/utils/general.utils'
 import { useTranslations } from 'next-intl'
-import { withdrawChainRecord } from '../chain-record'
+import { withdrawChainRecord, withdrawTokenRecord } from '../chain-record'
 import { useEnsRecipientForChain } from '../useEnsRecipientForChain'
 
 interface InitialWithdrawViewProps {
-    onContinue: (data: { token: ITokenPriceData; chain: ChainWithTokens; address: string }) => void
+    onContinue: (data: { token: IToken; chain: ChainWithTokens; address: string }) => void
     onBack?: () => void
     isProcessing?: boolean
     /** Reached via Send → Exchange or Wallet, so the copy says send, not withdraw. */
@@ -39,12 +41,14 @@ export default function InitialWithdrawView({
     const tNav = useTranslations('navigation')
     const router = useRouter()
     const {
-        selectedTokenData,
+        selectedTokenAddress,
         selectedChainID,
         supportedChainsAndTokens,
         setSelectedChainID,
         setSelectedTokenAddress,
     } = useContext(tokenSelectorContext)
+    // Continue needs the token in the destination chain's withdraw list, never a price
+    const selectedToken = withdrawTokenRecord(supportedChainsAndTokens, selectedChainID, selectedTokenAddress)
 
     const {
         isValidRecipient,
@@ -62,6 +66,12 @@ export default function InitialWithdrawView({
     const recipientAddressRef = useRef(recipient.address)
     recipientAddressRef.current = recipient.address
 
+    const { disableXchainWithdraw } = useKillSwitches()
+    // the Tron address that moved the selector to Tron and the token it picked, while it is still the recipient
+    const [tronPickedBy, setTronPickedBy] = useState<{ address: string; symbol: string }>()
+    // set just before that move, so the family change below keeps the address it came from
+    const keepRecipientOnFamilyChange = useRef(false)
+
     // Non-EVM destinations (Solana/Tron) drive the recipient input's address
     // family; changing family invalidates whatever address was typed.
     const addressFamily = useMemo(() => addressFamilyForChainId(selectedChainID), [selectedChainID])
@@ -69,6 +79,10 @@ export default function InitialWithdrawView({
     useEffect(() => {
         if (prevFamilyRef.current !== addressFamily) {
             prevFamilyRef.current = addressFamily
+            if (keepRecipientOnFamilyChange.current) {
+                keepRecipientOnFamilyChange.current = false
+                return
+            }
             setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
         }
@@ -95,9 +109,9 @@ export default function InitialWithdrawView({
     const handleContinue = () => {
         const selectedChainData = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
 
-        if (selectedTokenData && selectedChainData && recipient.address) {
+        if (selectedToken && selectedChainData && recipient.address) {
             onContinue({
-                token: selectedTokenData,
+                token: selectedToken,
                 chain: selectedChainData,
                 address: recipient.address,
             })
@@ -107,13 +121,41 @@ export default function InitialWithdrawView({
                 errorMessage: t('initial.detailsMissing'),
             })
             console.error('Token, chain, or address not selected/entered', {
-                hasToken: !!selectedTokenData,
+                hasToken: !!selectedToken,
                 hasChain: !!selectedChainData,
                 hasAddress: !!recipient.address,
                 selectedChainID,
             })
         }
     }
+
+    // A Tron address can only be paid on Tron, so on an EVM network it moves the
+    // selector to Tron instead of failing as an EVM address (TASK-24035). Tron
+    // only: the Solana check is a loose base58 length match that a mistyped EVM
+    // address could pass, so Solana still needs an explicit network pick.
+    const pickTronFromAddress = (update: GeneralRecipientUpdate): boolean => {
+        const address = update.recipient.address
+        if (update.isValid || update.isChanging || addressFamily !== 'evm' || disableXchainWithdraw) return false
+        if (!TRON_ADDRESS_REGEX.test(address)) return false
+        // a non-EVM chain id is its family name
+        // only a token Rhino delivers there, or the selector would move the pair off Tron again
+        const deliverable = supportedChainsAndTokens['tron']?.tokens.filter((t) =>
+            RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN['tron']?.includes(t.symbol.toUpperCase())
+        )
+        const token = deliverable?.find((t) => t.symbol === selectedToken?.symbol) ?? deliverable?.[0]
+        if (!token) return false
+        keepRecipientOnFamilyChange.current = true
+        setSelectedChainID('tron')
+        setSelectedTokenAddress(token.address)
+        setRecipient({ name: undefined, address })
+        setIsValidRecipient(true)
+        setInputChanging(false)
+        setError({ showError: false, errorMessage: '' })
+        setNetworkUnconfirmed(false)
+        setTronPickedBy({ address, symbol: token.symbol.toUpperCase() })
+        return true
+    }
+    const showTronPicked = tronPickedBy?.address === recipient.address && addressFamily === 'tron'
 
     const defaultOnBack = () => {
         router.push('/withdraw')
@@ -150,14 +192,26 @@ export default function InitialWithdrawView({
                         if (recipientAddressRef.current) setNetworkUnconfirmed(true)
                     }}
                     // a token tap keeps the default network, so only a network pick confirms it
-                    onNetworkSelect={() => setNetworkUnconfirmed(false)}
+                    onNetworkSelect={() => {
+                        setNetworkUnconfirmed(false)
+                        setTronPickedBy(undefined)
+                    }}
                     // guidance, not an error: the address is fine, the network is still the user's call
-                    networkHelper={networkUnconfirmed ? t('initial.confirmNetwork') : undefined}
+                    networkHelper={
+                        networkUnconfirmed
+                            ? t('initial.confirmNetwork')
+                            : showTronPicked
+                              ? t('initial.tronPickedByAddress', { token: tronPickedBy.symbol })
+                              : undefined
+                    }
                 />
 
                 {/* input + its field error form one column, 4px apart (form-field board 17788:19179) */}
                 <div className="flex flex-col gap-1">
                     <GeneralRecipientInput
+                        // a new address family remounts the input so it validates the kept
+                        // address for that family, not the last family's result
+                        key={addressFamily}
                         placeholder={
                             addressFamily === 'evm' ? t('initial.placeholderEns') : t('initial.placeholderAddress')
                         }
@@ -165,6 +219,7 @@ export default function InitialWithdrawView({
                         chainId={selectedChainID}
                         recipient={recipient}
                         onUpdate={(update: GeneralRecipientUpdate) => {
+                            if (pickTronFromAddress(update)) return
                             setRecipient(update.recipient)
                             setIsValidRecipient(update.isValid)
                             setError({
@@ -194,7 +249,7 @@ export default function InitialWithdrawView({
                     shadowSize="4"
                     onClick={handleContinue}
                     disabled={
-                        !selectedTokenData ||
+                        !selectedToken ||
                         !selectedChainID ||
                         !recipient.address ||
                         !isValidRecipient ||

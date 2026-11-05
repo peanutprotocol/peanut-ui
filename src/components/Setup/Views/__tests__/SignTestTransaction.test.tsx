@@ -1,8 +1,10 @@
+jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import en from '@/i18n/app/messages/en.json'
 import es from '@/i18n/app/messages/es-419.json'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
 import CompleteSignupStep from '../CompleteSignup'
@@ -58,6 +60,7 @@ jest.mock('@/context/authContext', () => ({
 }))
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({
         signupCompleted: mockSignupCompleted,
         fundingChannel: mockFundingChannel,
@@ -555,4 +558,23 @@ it('includes both selected methods in the account-completion request', async () 
         )
     )
     await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
+})
+
+it('reports the passkey explainer, its Got it and dismissal, Log out and Confirm on /setup/finish', async () => {
+    mockSendUserOp.mockReturnValue(new Promise(() => undefined))
+    renderWithIntl(onSignupScreen('sign-test-transaction', <SignTestTransaction showLogout />))
+    fireEvent.click(screen.getByRole('button', { name: 'Learn more about Passkeys' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Got it' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Learn more about Passkeys', hidden: true }))
+    fireEvent.keyDown(await screen.findByRole('dialog'), { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Log out', hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: en.setup.testTransaction.confirmAndFinish, hidden: true }))
+    expect(signupControls(posthog.capture as jest.Mock)).toEqual([
+        'passkey_info:open',
+        'passkey_info_got_it:tap',
+        'passkey_info:open',
+        'passkey_info:dismiss',
+        'log_out:tap',
+        'finish:tap',
+    ])
 })

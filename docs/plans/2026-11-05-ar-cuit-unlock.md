@@ -54,3 +54,9 @@ Tests use deterministic state matrices, faults, 8 concurrent callers/workers and
 The submitted/notification view is scoped to Argentina sessions, matching the new AR readiness notification. Brazil retains its existing preparing phase and SDK submit/complete semantics; five independent compatibility cases cover that boundary.
 
 Review follow-up: registered the submitted capture in the generated trusted catalogue. Shortened submitted and waiting copy across four locales, preserving the manual-review estimate and notification promise; the modal scores 138 words against its prior 147 baseline, now tightened to 138. The 22 capture-cost integration checks, including exact trusted-catalogue equality, pass.
+
+## Integration with dev
+
+The additive dev merge preserves document preselection, the shared verification header, supplement flows, completion notices, and all registered captures. Argentina single-level sessions keep the submitted view until READY and an explicit usable ARS account. Other countries keep dev's completion behavior. Submitted dismiss and privacy actions retain analytics.
+
+The independent acceptance author updated the AR fixture to include dev's FeatureReport contract while retaining legacy rails and every assertion. A new negative case rejects aggregate local readiness when only BRL is usable. The wordiness baseline now includes dev's completion notices: the merged progress modal measures 205 words, below dev's 214. Other budgets are unchanged. The bot-owned content pointer matches dev.

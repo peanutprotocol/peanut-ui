@@ -29,17 +29,12 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
             {requestPotContributors.map((contributor) => (
                 <div key={contributor.uuid} className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2">
-                        {contributor.isPeanutUser ? (
-                            <UserAvatar
-                                name={contributor.username ?? ''}
-                                avatarKey={contributor.avatarKey}
-                                size="xs"
-                                decorative
-                            />
+                        {contributor.isPeanutUser && contributor.person ? (
+                            <UserAvatar person={contributor.person} size="s" decorative />
                         ) : (
                             /* AvatarWithBadge derives the per-username colors
                                itself when none are passed */
-                            <AvatarWithBadge name={contributor.username ?? ''} size="xs" />
+                            <AvatarWithBadge name={contributor.username ?? ''} size="s" />
                         )}
                         <span className="truncate text-body-s text-foreground-primary">
                             {printableUserHandle(contributor.username ?? '')}

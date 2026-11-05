@@ -8,6 +8,7 @@ import {
     formatNumberForDisplay,
     generateInviteCodeLink,
     getContributorsFromCharge,
+    getInitialsFromName,
     getRedirectOrigin,
     getRedirectUrl,
     getRequestLink,
@@ -66,18 +67,19 @@ describe('General Utilities', () => {
             })
         })
 
+        // TASK-24355: invalid display data is unavailable, never a fabricated zero.
         describe('formatAmount', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {
-                    expect(formatAmount('')).toBe('0')
+                    expect(formatAmount('')).toBe('—')
                 })
 
                 it('should handle invalid string input', () => {
-                    expect(formatAmount('invalid')).toBe('0')
+                    expect(formatAmount('invalid')).toBe('—')
                 })
 
                 it('should handle NaN', () => {
-                    expect(formatAmount(NaN)).toBe('0')
+                    expect(formatAmount(NaN)).toBe('—')
                 })
             })
 
@@ -139,20 +141,20 @@ describe('General Utilities', () => {
         describe('formatExtendedNumber', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {
-                    expect(formatExtendedNumber('')).toBe('0')
+                    expect(formatExtendedNumber('')).toBe('—')
                 })
 
                 it('should handle invalid string input', () => {
-                    expect(formatExtendedNumber('invalid')).toBe('0')
+                    expect(formatExtendedNumber('invalid')).toBe('—')
                 })
 
                 it('should handle NaN', () => {
-                    expect(formatExtendedNumber(NaN)).toBe('0')
+                    expect(formatExtendedNumber(NaN)).toBe('—')
                 })
 
                 it('should handle undefined and null', () => {
-                    expect(formatExtendedNumber(undefined as any)).toBe('0')
-                    expect(formatExtendedNumber(null as any)).toBe('0')
+                    expect(formatExtendedNumber(undefined as any)).toBe('—')
+                    expect(formatExtendedNumber(null as any)).toBe('—')
                 })
             })
 
@@ -645,13 +647,13 @@ describe('General Utilities', () => {
             const payment = makePayment('SUCCESSFUL', 'alice')
             payment.payerAccount!.user!.avatarKey = 'basic.frog'
             const contributors = getContributorsFromCharge([makeCharge('c1', [payment])])
-            expect(contributors[0].avatarKey).toBe('basic.frog')
+            expect(contributors[0].person).toMatchObject({ username: 'alice', avatarKey: 'basic.frog' })
         })
 
         it('reports null for an anonymous on-chain contributor', () => {
             const contributors = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', null)])])
             expect(contributors[0].isPeanutUser).toBe(false)
-            expect(contributors[0].avatarKey).toBeNull()
+            expect(contributors[0].person).toBeNull()
         })
 
         // TASK-23856: $99.16 asked, Hugo paid $40.65, a second payer's $58.51
@@ -744,5 +746,41 @@ describe('General Utilities', () => {
             saveRedirectUrl()
             expect(getRedirectUrl()).toBe('/profile')
         })
+    })
+
+    describe('getInitialsFromName', () => {
+        it('takes the first letter of the first two words, or two letters of one word', () => {
+            expect(getInitialsFromName('ana maria lopez')).toBe('AM')
+            expect(getInitialsFromName('  konrad ')).toBe('KO')
+        })
+
+        // An invitee who never finished signup has no username and no name
+        // (TASK-24036): the invites screen must render, not crash.
+        it.each([null, undefined, '', '   '])('returns no initials for a missing name (%p)', (name) => {
+            expect(getInitialsFromName(name)).toBe('')
+        })
+    })
+})
+
+// TASK-24355: missing/invalid display data must never be formatted as a number.
+describe('numeric formatting boundaries', () => {
+    it('rejects nonfinite and partial raw token amounts without throwing', () => {
+        for (const value of [NaN, Infinity, -Infinity, '12garbage', '4,000', '9'.repeat(400)]) {
+            expect(formatTokenAmount(value)).toBeUndefined()
+        }
+        expect(formatTokenAmount('9'.repeat(400), 2, true)).toBe('')
+    })
+
+    it('can display whole-unit tokens at zero fraction digits', () => {
+        expect(formatTokenAmount(0, 0)).toBe('0')
+        expect(formatTokenAmount(10, 0)).toBe('10')
+        expect(formatTokenAmount(999.99, 0)).toBe('999')
+    })
+
+    it('returns unavailable for arithmetic overflow rather than emitting infinity', () => {
+        expect(formatTokenAmount(Number.MAX_VALUE, 2)).toBeUndefined()
+        expect(formatAmount(Infinity)).toBe('—')
+        expect(formatExtendedNumber(Infinity)).toBe('—')
+        expect(formatNumberForDisplay('9'.repeat(400))).toBe('—')
     })
 })

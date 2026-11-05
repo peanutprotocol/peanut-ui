@@ -3,16 +3,35 @@ import { useEffect } from 'react'
 import { fireEvent, screen, within, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import PaymentPlanStep from '../PaymentPlan'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { LOCAL_RESIDENCE_RESTRICTION_SETS } from '@/hooks/useResidenceRestrictionSets'
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
-let mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
+let mockSets = RESIDENCE_RESTRICTION_SETS
 let mockSettled = true
 jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
     ...jest.requireActual('@/hooks/useResidenceRestrictionSets'),
-    useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSets, settled: mockSettled }),
+    useResidenceRestrictionSetsWithStatus: () => ({ sets: mockSettled ? mockSets : null, settled: mockSettled }),
+}))
+let mockIntentsSettled = true
+let mockIntentsMissing = false
+let mockCurrencies: string[] | undefined
+jest.mock('@/hooks/useKycIntents', () => ({
+    useKycIntents: (country: string) => ({
+        intents:
+            mockIntentsSettled && !mockIntentsMissing
+                ? mockCurrencies && KYC_INTENTS_BY_COUNTRY[country]
+                    ? {
+                          ...KYC_INTENTS_BY_COUNTRY[country],
+                          bank: { ...KYC_INTENTS_BY_COUNTRY[country].bank, currencies: mockCurrencies },
+                      }
+                    : KYC_INTENTS_BY_COUNTRY[country]
+                : undefined,
+        settled: mockIntentsSettled,
+    }),
 }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 const mockNext = jest.fn()
@@ -21,6 +40,15 @@ jest.mock('@/hooks/useSetupFlow', () => ({
     useSetupFlow: () => ({ handleNext: mockNext, isLoading: mockIsLoading }),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+let mockUserId: string | null = 'user-1'
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: mockUserId ? { user: { userId: mockUserId } } : null }),
+}))
+// Never settles: the step must move on without waiting for the save.
+const mockUpdateUserById = jest.fn((_payload: Record<string, unknown>) => new Promise(() => undefined))
+jest.mock('@/app/actions/users', () => ({
+    updateUserById: (payload: Record<string, unknown>) => mockUpdateUserById(payload),
+}))
 
 function Fixture({ country }: { country: string }) {
     const c = useSetupFlowContext()
@@ -36,8 +64,8 @@ function Fixture({ country }: { country: string }) {
         </>
     )
 }
-const ui = (country: string) => (
-    <SetupFlowProvider masterScreenIds={['payment-plan']}>
+const ui = (country: string, onFinish?: () => Promise<void>) => (
+    <SetupFlowProvider masterScreenIds={['payment-plan']} onFinish={onFinish}>
         <Fixture country={country} />
     </SetupFlowProvider>
 )
@@ -55,10 +83,36 @@ function optionsIn(kind: 'Add money with' | 'Make a payment with', current = 'Ch
         .map((x) => x.getAttribute('aria-label'))
 }
 beforeEach(() => {
-    mockSets = LOCAL_RESIDENCE_RESTRICTION_SETS
+    mockSets = RESIDENCE_RESTRICTION_SETS
     mockSettled = true
+    mockIntentsSettled = true
+    mockIntentsMissing = false
+    mockCurrencies = undefined
     mockIsLoading = false
+    mockUserId = 'user-1'
     jest.clearAllMocks()
+})
+
+// Slava, 2026-10-29: sign-up saves its answers on each step's Next, in the background.
+it('saves the plan on the account on Continue without waiting for the save', async () => {
+    renderWithIntl(ui('PT'))
+    await choose('Add money with', 'Choose', 'Crypto')
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    expect(mockUpdateUserById).toHaveBeenCalledWith({
+        userId: 'user-1',
+        signupPreferences: { fundingChannel: 'crypto', paymentChannel: 'qr' },
+    })
+    expect(mockNext).toHaveBeenCalledTimes(1)
+})
+
+it('leaves the save to a host that finishes the flow itself, the verify prelude', async () => {
+    renderWithIntl(ui('PT', async () => undefined))
+    await choose('Add money with', 'Choose', 'Crypto')
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    expect(mockUpdateUserById).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledTimes(1)
 })
 
 it('starts both pickers on Choose and keeps Continue disabled until both are set', async () => {
@@ -70,7 +124,7 @@ it('starts both pickers on Choose and keeps Continue disabled until both are set
     expect(screen.getByLabelText('Plan')).toHaveTextContent('/')
     expect(continueButton()).toBeDisabled()
 
-    await choose('Add money with', 'Choose', 'Bank transfer')
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
     expect(continueButton()).toBeDisabled()
     fireEvent.click(continueButton())
     expect(mockNext).not.toHaveBeenCalled()
@@ -121,6 +175,18 @@ it.each([
     expect(funding).not.toHaveTextContent(/\(/)
 })
 
+// Slava, 2026-10-27: Brazil named its bank currencies, North Macedonia did not.
+it.each([
+    ['MK', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
+    ['DE', ['Bank transfer (USD, EUR, GBP, MXN)', 'Crypto', 'Another Peanut user']],
+    ['MX', ['Bank transfer (MXN, USD, EUR, GBP)', 'Crypto', 'Another Peanut user']],
+    // Bridge takes no new customers here
+    ['KR', ['Crypto', 'Another Peanut user']],
+])('names the bank currencies wherever the server opens the bank feature: %s', (country, expected) => {
+    renderWithIntl(ui(country))
+    expect(optionsIn('Add money with')).toEqual(expected)
+})
+
 it('names a Peanut-to-Peanut top-up "Another Peanut user"', async () => {
     renderWithIntl(ui('JP'))
     await choose('Add money with', 'Choose', 'Another Peanut user')
@@ -129,23 +195,37 @@ it('names a Peanut-to-Peanut top-up "Another Peanut user"', async () => {
 
 it('clears a choice the residence no longer offers and asks again', async () => {
     const view = renderWithIntl(ui('PT'))
-    await choose('Add money with', 'Choose', 'Bank transfer')
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
     await choose('Make a payment with', 'Choose', 'Peanut Card')
-    mockSets = { ...LOCAL_RESIDENCE_RESTRICTION_SETS, full: new Set(['PT']) }
-    view.rerender(ui('PT'))
-    await waitFor(() => expect(screen.getByLabelText('Plan')).toHaveTextContent('/'))
+    // Japan: the server closes the bank feature and keeps the card
+    view.rerender(ui('JP'))
+    await waitFor(() => expect(screen.getByLabelText('Plan')).toHaveTextContent(/^\/card$/))
     expect(screen.getByRole('button', { name: 'Add money with: Choose', hidden: true })).toBeInTheDocument()
     expect(continueButton()).toBeDisabled()
 })
 
 it('offers only universal channels while the restriction lookup is unsettled', async () => {
     mockSettled = false
+    mockIntentsSettled = false
     renderWithIntl(ui('PT'))
     await choose('Add money with', 'Choose', 'Crypto')
     await choose('Make a payment with', 'Choose', 'Another Peanut user')
     fireEvent.click(continueButton())
     expect(mockNext).toHaveBeenCalledTimes(1)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('crypto/peanut')
+})
+
+it('uses served intents while restriction lists are unknown', async () => {
+    mockSettled = false
+    renderWithIntl(ui('PT'))
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
+    await choose('Make a payment with', 'Choose', 'Peanut Card')
+    fireEvent.click(continueButton())
+    expect(mockNext).toHaveBeenCalledTimes(1)
+    expect(posthog.capture).not.toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED,
+        expect.anything()
+    )
 })
 
 it('reports a fully restricted resident continuing, and only them', async () => {
@@ -179,4 +259,44 @@ it.each(['GB', 'IN', 'PT'])('shows the one-line residence hint for %s', (country
     expect(
         screen.queryByText(/aren’t available in your country|isn’t available in your country/)
     ).not.toBeInTheDocument()
+})
+
+it('shows only the API currency for a USD-only residence', () => {
+    mockCurrencies = ['USD']
+    renderWithIntl(ui('CF'))
+    expect(optionsIn('Add money with')).toEqual(['Bank transfer (USD)', 'Crypto', 'Another Peanut user'])
+})
+
+it('does not name bank currencies after a failed intents read', () => {
+    mockIntentsMissing = true
+    renderWithIntl(ui('PT'))
+    expect(optionsIn('Add money with')).toEqual(['Bank transfer', 'Crypto', 'Another Peanut user'])
+})
+
+it('reports each picker opening, the channel picked, a dismissal and Continue, naming the host', async () => {
+    renderWithIntl(
+        onSignupScreen(
+            'payment-plan',
+            ui('PT', async () => undefined)
+        )
+    )
+    await choose('Add money with', 'Choose', 'Crypto')
+    fireEvent.click(screen.getByRole('button', { name: 'Make a payment with: Choose', hidden: true }))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    expect(signupControls(posthog.capture as jest.Mock)).toEqual([
+        'funding_channel:open',
+        'funding_channel:select:crypto',
+        'payment_channel:open',
+        'payment_channel:dismiss',
+        'payment_channel:open',
+        'payment_channel:select:qr',
+        'continue:tap',
+    ])
+    expect((posthog.capture as jest.Mock).mock.calls[0][1]).toEqual(
+        expect.objectContaining({ screen_id: 'payment-plan', setup_host: 'verify-prelude' })
+    )
 })

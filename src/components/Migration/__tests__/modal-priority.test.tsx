@@ -59,7 +59,6 @@ jest.mock('@/components/Migration/DownloadQR', () => ({ __esModule: true, defaul
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => false,
     isIOSNative: () => false,

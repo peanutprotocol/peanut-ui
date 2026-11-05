@@ -18,6 +18,7 @@ import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { reportEmailSaveFailure } from '@/features/setup/report-email-save-failure'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
@@ -31,18 +32,22 @@ export default function EmailStep() {
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
     const saveAttemptsRef = useRef(0)
+    const { track, trackOnce } = useSignupControl()
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (savingRef.current) return
+        track('continue', 'tap')
         setError(undefined)
         setEmailInUse(false)
         const value = email.trim()
         if (!isValidEmail(value)) {
             setError(t('invalid'))
+            track('email', 'error', 'invalid')
             return
         }
         if (!user?.user.userId) {
             setError(t('notReady'))
+            track('email', 'error', 'not_ready')
             return
         }
         savingRef.current = true
@@ -80,6 +85,7 @@ export default function EmailStep() {
                     }
                     setEmailInUse(duplicate)
                     setError(t(duplicate ? 'alreadyRegistered' : 'saveFailed'))
+                    track('email', 'error', duplicate ? 'already_registered' : 'save_failed')
                     // The email is required: never advance without a confirmed save.
                     return
                 }
@@ -117,6 +123,7 @@ export default function EmailStep() {
                     maxLength={254}
                     value={email}
                     onChange={(value) => {
+                        trackOnce('email', 'change')
                         setEmail(value)
                         setError(undefined)
                         setEmailInUse(false)

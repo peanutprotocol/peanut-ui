@@ -663,6 +663,31 @@ export function redactSentryTelemetry<T>(event: T): T {
  * Standard beforeSend handler for all Sentry configs
  */
 export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
+    // Numeric faults are aggregate diagnostics; discard automatically attached
+    // identity, request, breadcrumbs and arbitrary context before export.
+    if (event.fingerprint?.[0] === 'invalid_numeric') {
+        const source = event.tags?.numeric_source
+        const category = event.tags?.numeric_category
+        if (
+            !['money', 'rate', 'format', 'input', 'submission'].includes(String(source)) ||
+            !['missing', 'malformed', 'nonfinite', 'nonpositive', 'precision', 'unit', 'overflow'].includes(
+                String(category)
+            )
+        )
+            return null
+        return {
+            type: undefined,
+            event_id: event.event_id,
+            timestamp: event.timestamp,
+            platform: event.platform,
+            release: event.release,
+            environment: event.environment,
+            level: 'warning',
+            message: 'Invalid numeric value',
+            fingerprint: ['invalid_numeric', String(source), String(category)],
+            tags: { numeric_source: source, numeric_category: category },
+        }
+    }
     redactSentryTelemetry(event)
     if (isExpectedPasskeyDeviceEvent(event) || shouldIgnoreError(event)) {
         return null

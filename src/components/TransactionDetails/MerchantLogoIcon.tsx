@@ -2,22 +2,23 @@
 
 import Image from 'next/image'
 import { useState, type ReactNode } from 'react'
+import type { AvatarSize } from '@/components/Profile/avatar-size.consts'
 import { twMerge } from '@/utils/tw'
 
-// size-8 for the activity row, size-12 for the receipt header — the two slots
-// that otherwise draw the generic card badge. Literal classes so Tailwind's JIT
-// keeps them.
-const SIZES = {
-    sm: { box: 'size-8', px: 32 },
-    md: { box: 'size-12', px: 48 },
-} as const
+// The logo sits in a person slot, so it takes the avatar sizes: 32 in the
+// activity row, 96 in the payment details header. Literal classes so
+// Tailwind's JIT keeps them.
+const SIZES: Record<AvatarSize, { box: string; px: number }> = {
+    s: { box: 'size-8', px: 32 },
+    xl: { box: 'size-24', px: 96 },
+}
 
 interface MerchantLogoIconProps {
     src: string
     /** Shown when the logo URL fails to load, so a broken URL never renders a
      *  broken-image glyph. For a card-spend row this is the generic card badge. */
     fallback: ReactNode
-    size?: keyof typeof SIZES
+    size?: AvatarSize
 }
 
 /**
@@ -26,7 +27,7 @@ interface MerchantLogoIconProps {
  * uses object-cover so a rectangular logo fills the circle. Falls back to the
  * generic card badge on a load error.
  */
-export function MerchantLogoIcon({ src, fallback, size = 'sm' }: MerchantLogoIconProps) {
+export function MerchantLogoIcon({ src, fallback, size = 's' }: MerchantLogoIconProps) {
     const [failed, setFailed] = useState(false)
 
     if (failed) return <>{fallback}</>

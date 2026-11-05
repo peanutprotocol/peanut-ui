@@ -1,0 +1,8 @@
+# AI rule files are symlinks into the mono checkout, outside this repo.
+# A CLI upload rejects them as invalid symlinks, and the build never reads them.
+/.cursorrules
+/.windsurfrules
+/AGENTS.md
+/CLAUDE.md
+/WARP.md
+/.github/copilot-instructions.md

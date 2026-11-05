@@ -297,6 +297,7 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     // card explainer — outside (mobile-ui) but not stripped by native-build,
     // and linked from /profile, so it must resolve in-app
     'shhhhh',
+    'verify',
     'withdraw',
 ])
 

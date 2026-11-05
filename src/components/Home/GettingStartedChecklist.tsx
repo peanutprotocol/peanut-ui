@@ -39,18 +39,10 @@ interface ChecklistItem {
     needsAction?: boolean
     /** the row holds its place while its content is unknown (card eligibility loading) */
     pending?: boolean
+    /** done and still tappable: the ID check opens its status, which names any follow-up a feature asks for */
+    opensWhenDone?: boolean
     onTap?: () => void
 }
-
-/**
- * The Verify row starts the ID check itself, by what the residence allows
- * (Slava via Hugo, 2026-09-26: never the Accounts list): the shared start
- * modal for most people (`onStartIdentityCheck`), the card for a residence
- * where bank rails are closed but the card is not, and the QR ID check where
- * both are closed, since QR pay is open to every verified user
- * (`onStartQrIdentityCheck`).
- */
-const CARD_HREF = '/card'
 
 const FIRST_PAYMENT_BUBBLE = {
     card_qr: CONCEPT_ICONS.qrPay,
@@ -76,13 +68,14 @@ const FIRST_PAYMENT_HELD_CARD_NOTE_KEY = {
 const SubtitleSkeleton = () => (
     // the line box stays 20px, the text line's height, so the row does not jump
     <span aria-hidden className="flex h-5 items-center">
-        <span className="h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />
+        <span className="h-3 w-32 animate-pulse rounded bg-background-skeleton" />
     </span>
 )
 
 /**
- * The Home onboarding checklist (TASK-23054), under a small "Welcome to
- * Peanut" card with the progress bar. It shows every open row and only the
+ * The Home onboarding checklist (TASK-23054). Its top card holds the
+ * progress bar, under the "Welcome to Peanut" greeting while that lasts
+ * (useHomeWelcome). It shows every open row and only the
  * latest done one. Rows: Create account ✓ · Verify
  * identity · Add money · First payment. Home shows it until every row
  * is done; the rules for each row live in resolveOnboarding. The payment row
@@ -90,20 +83,23 @@ const SubtitleSkeleton = () => (
  *
  * Every open row stays tappable, in any order: money can arrive before the ID
  * check. Every row has the same ListItem border (Hugo, 2026-09-25): the next
- * step shows only by its order and its chevron.
+ * step shows only by its order and its chevron. The done ID check stays
+ * tappable too: its status (/verify) names any document a feature still asks
+ * for, such as the card's proof of address.
  */
 const GettingStartedChecklist = ({
     onboarding,
     showWelcome = true,
     onStartIdentityCheck,
-    onStartQrIdentityCheck,
 }: {
     onboarding: OnboardingState
     showWelcome?: boolean
-    /** opens the shared ID-check start (ActivationCTAs owns the flow and its modals) */
+    /**
+     * Starts the ID check. ActivationCTAs picks the start, by flow and then by
+     * residence, so the row itself never routes (Slava via Hugo, 2026-09-26:
+     * never the Accounts list).
+     */
     onStartIdentityCheck?: () => void
-    /** starts the QR ID check (ActivationCTAs owns the flow and its modals) */
-    onStartQrIdentityCheck?: () => void
 }) => {
     const t = useTranslations('home.gettingStarted')
     const tKyc = useTranslations('kyc')
@@ -150,23 +146,21 @@ const GettingStartedChecklist = ({
                 done: verify === 'done',
                 inReview: verify === 'in_review',
                 needsAction: verify === 'action_required',
+                opensWhenDone: true,
                 // a final decision has no step for the user (Home shows the
                 // support card instead of this list)
                 onTap:
                     verify === 'failed'
                         ? undefined
                         : tap('verify-identity', () => {
-                              if (verify === 'action_required' || verify === 'in_review') {
+                              if (verify === 'action_required' || verify === 'in_review' || verify === 'done') {
                                   // the check's own status: its fix (resubmit, or
-                                  // the email collision's way out), or "in review"
+                                  // the email collision's way out), "in review", or
+                                  // verified with what a feature still asks for (/verify)
                                   setIsStatusDrawerOpen(true)
-                              } else if (!restrictions.banking) {
-                                  onStartIdentityCheck?.()
-                              } else if (!restrictions.card) {
-                                  // bank rails are closed here; the card is the door
-                                  router.push(CARD_HREF)
                               } else {
-                                  onStartQrIdentityCheck?.()
+                                  // the start picks the flow, then the residence (ActivationCTAs)
+                                  onStartIdentityCheck?.()
                               }
                           }),
             },
@@ -219,9 +213,7 @@ const GettingStartedChecklist = ({
         firstPaymentDone,
         firstPaymentRoute,
         restrictions.banking,
-        restrictions.card,
         onStartIdentityCheck,
-        onStartQrIdentityCheck,
         router,
         setHomeDrawer,
         setIsQRScannerOpen,
@@ -247,49 +239,47 @@ const GettingStartedChecklist = ({
 
     return (
         <Section>
-            {/* one height at every width: a one-line subtitle (wide screens) gets the
-                same card as a two-line one; 320 may grow when the title wraps */}
-            {showWelcome && (
-                <Card
-                    position="solo"
-                    className="flex min-h-[90px] flex-col justify-center px-4 py-2"
-                    data-testid="onboarding-welcome"
-                >
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-col gap-0.5">
-                            {/* es writes "Bienvenid@", which screen readers read as "arroba":
-                            the visible title is hidden from them and a spoken form is read instead */}
-                            <span className="text-heading-card text-foreground-primary">
-                                <span aria-hidden>{t('welcomeTitle')}</span>
-                                <span className="sr-only">{t('welcomeTitleSpoken')}</span>
-                            </span>
-                            <span className="text-body-s text-foreground-secondary">
-                                {t('welcomeBody', { count: items.length })}
-                            </span>
+            {/* the welcome and the progress head the list, so the block reads as one group */}
+            <ListGroup className="bg-background-default">
+                <Card className="flex flex-col gap-3 p-4" data-testid="onboarding-progress">
+                    {showWelcome && (
+                        <div className="flex items-center justify-between gap-3" data-testid="onboarding-welcome">
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                                {/* es writes "Bienvenid@", which screen readers read as "arroba":
+                                the visible title is hidden from them and a spoken form is read instead */}
+                                <span className="text-heading-card text-foreground-primary">
+                                    <span aria-hidden>{t('welcomeTitle')}</span>
+                                    <span className="sr-only">{t('welcomeTitleSpoken')}</span>
+                                </span>
+                                <span className="text-body-s text-foreground-secondary">
+                                    {t('welcomeBody', { count: items.length - doneCount })}
+                                </span>
+                            </div>
+                            {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
+                            PeanutMascot shows a still frame under reduced motion */}
+                            <div className="relative size-16 shrink-0">
+                                <span
+                                    aria-hidden
+                                    className="absolute inset-1 rounded-full bg-background-badge-accent"
+                                />
+                                <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
+                            </div>
                         </div>
-                        {/* the waving mascot on a soft badge-accent circle (Hugo's pick, 2026-09-25);
-                        PeanutMascot shows a still frame under reduced motion */}
-                        <div className="relative size-[72px] shrink-0">
-                            <span aria-hidden className="absolute inset-1 rounded-full bg-background-badge-accent" />
-                            <PeanutMascot pose="waving-hello" alt="" className="relative size-full" />
-                        </div>
+                    )}
+                    <div className="flex flex-col gap-2">
+                        <span className="text-body-s text-foreground-secondary">
+                            {t('progress', { done: doneCount, total: items.length })}
+                        </span>
+                        <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
                     </div>
                 </Card>
-            )}
-            <div className="flex flex-col gap-1">
-                <span className="text-body-s text-foreground-secondary">
-                    {t('progress', { done: doneCount, total: items.length })}
-                </span>
-                <ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />
-            </div>
-            <ListGroup className="bg-background-default">
                 {visibleItems.map((item) => {
-                    const tappable = !item.done && !!item.onTap
+                    const tappable = (!item.done || !!item.opensWhenDone) && !!item.onTap
                     return (
                         <ListItem
                             key={item.id}
                             data-testid={`checklist-${item.id}`}
-                            leading={<IconBubble {...item.bubble} size="xs" />}
+                            leading={<IconBubble {...item.bubble} size="s" />}
                             title={item.label}
                             truncate
                             // one line in every state: done, open, in review and pending

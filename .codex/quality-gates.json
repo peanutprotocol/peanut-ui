@@ -85,6 +85,11 @@
                 "docs/plans/2026-10-12-screen-updates-filter.md"
             ],
             "cwd": "."
+        },
+        {
+            "name": "numeric-contracts",
+            "argv": ["node", "--test", "eslint-rules/finite-numbers.test.cjs", "scripts/screens/numeric-ui.test.mjs"],
+            "cwd": "."
         }
     ]
 }

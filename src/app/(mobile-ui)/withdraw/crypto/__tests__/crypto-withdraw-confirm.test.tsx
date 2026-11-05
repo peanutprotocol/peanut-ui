@@ -98,6 +98,7 @@ jest.mock('@/utils/withdraw.utils', () => ({
 }))
 
 jest.mock('@/utils/general.utils', () => ({
+    isStableCoin: (symbol: string) => ['USDC', 'USDT'].includes(symbol.toUpperCase()),
     isTxReverted: (receipt: { status?: string } | null) => receipt?.status === 'reverted',
     printableAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
     validateEnsName: (name: string | undefined) => name === 'alice.eth',
@@ -301,7 +302,8 @@ const chargeDetails = {
 
 const withdrawData = {
     address: RECIPIENT,
-    token: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', symbol: 'USDC', decimals: 6, price: 1 },
+    // the token record carries metadata only: a withdrawal never reads a price (TASK-23850)
+    token: { address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', symbol: 'USDC', decimals: 6 },
     chain: { chainId: 42161, name: 'Arbitrum' },
     amount: '50',
 }
@@ -408,6 +410,7 @@ import { chargesApi } from '@/services/charges'
 import { requestsApi } from '@/services/requests'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
+import { tokenSelectorContext } from '@/context/tokenSelector.context'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -435,7 +438,6 @@ beforeEach(() => {
         isFeeEstimationError: false,
     })
     chargeDetails.chainId = '42161'
-    withdrawData.token.price = 1
     mockIsWithdrawFeeDisproportionate.mockImplementation(() => false)
     mockWithdrawFlow.paymentError = null
     mockWithdrawFlow.scannedRecipient = null
@@ -704,7 +706,7 @@ describe('crypto withdraw preparation', () => {
                     recipientAddress: RECIPIENT,
                     recipientEnsName: 'alice.eth',
                     chainId: '42161',
-                    tokenAmount: '50.000000',
+                    tokenAmount: '50',
                     tokenAddress: withdrawData.token.address,
                     tokenDecimals: 6,
                     tokenType: 1,
@@ -724,7 +726,7 @@ describe('crypto withdraw preparation', () => {
         const bsc = (await getSupportedChainsAndTokens())['56']
         const usdc = bsc.tokens.find((t) => t.symbol === 'USDC')!
         const original = { token: withdrawData.token, chain: withdrawData.chain }
-        withdrawData.token = { address: usdc.address, symbol: usdc.symbol, decimals: usdc.decimals, price: 1 }
+        withdrawData.token = { address: usdc.address, symbol: usdc.symbol, decimals: usdc.decimals }
         withdrawData.chain = { chainId: 56, name: bsc.networkName }
         mockStepper.step = 'recipient'
         jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
@@ -741,8 +743,36 @@ describe('crypto withdraw preparation', () => {
                     tokenAddress: usdc.address,
                     tokenSymbol: 'USDC',
                     tokenDecimals: 18,
-                    tokenAmount: '50.000000000000000000',
+                    tokenAmount: '50',
                 },
+            })
+        } finally {
+            Object.assign(withdrawData, original)
+            mockStepper.step = 'review'
+        }
+    })
+
+    // TASK-23850: the app never prices ETH or BNB. Their charge carries "0" as
+    // the token amount, and the server books what was delivered at completion.
+    it.each([
+        ['ETH on Base', '8453', 'ETH'],
+        ['BNB on BNB Chain', '56', 'BNB'],
+    ])('sends "0" as the token amount for %s, never a price-based estimate', async (_case, chainId, symbol) => {
+        const original = { token: withdrawData.token, chain: withdrawData.chain }
+        withdrawData.token = { address: '0x0000000000000000000000000000000000000000', symbol, decimals: 18 }
+        withdrawData.chain = { chainId: Number(chainId), name: symbol }
+        mockStepper.step = 'recipient'
+        jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
+        jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
+        try {
+            render(<WithdrawCryptoPage />)
+            selectDestinationAndReview()
+            await waitFor(() => expect(chargesApi.create).toHaveBeenCalledTimes(1))
+            const [payload] = jest.mocked(chargesApi.create).mock.calls[0]
+            expect(payload).toMatchObject({
+                transactionType: 'WITHDRAW',
+                local_price: { amount: '50', currency: 'USD' },
+                requestProps: { chainId, tokenSymbol: symbol, tokenDecimals: 18, tokenAmount: '0' },
             })
         } finally {
             Object.assign(withdrawData, original)
@@ -1186,6 +1216,33 @@ describe('crypto withdraw — unmount keeps the flow selection (Chip review PR #
         expect(mockSetRecipient).toHaveBeenCalledWith({ address: '', name: '' })
         expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
     })
+
+    test('late wallet readiness keeps the typed recipient; unmount still resets with the latest callback', () => {
+        // resetTokenContextProvider changes identity when the wallet becomes
+        // ready (isConnected false → true) while the page stays mounted.
+        const resetBeforeReady = jest.fn()
+        const resetAfterReady = jest.fn()
+        const page = (reset: jest.Mock) => (
+            <tokenSelectorContext.Provider value={{ resetTokenContextProvider: reset } as never}>
+                <WithdrawCryptoPage />
+            </tokenSelectorContext.Provider>
+        )
+        const view = render(page(resetBeforeReady))
+        view.rerender(page(resetAfterReady))
+
+        expect(mockSetRecipient).not.toHaveBeenCalled()
+        expect(mockSetIsValidRecipient).not.toHaveBeenCalledWith(false)
+        // a scanned destination keeps its pay screen too
+        expect(mockSetScannedRecipient).not.toHaveBeenCalled()
+        expect(resetBeforeReady).not.toHaveBeenCalled()
+
+        view.unmount()
+        expect(resetAfterReady).toHaveBeenCalledTimes(1)
+        expect(resetBeforeReady).not.toHaveBeenCalled()
+        expect(mockSetRecipient).toHaveBeenCalledWith({ address: '', name: '' })
+        expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
+        expect(mockSetScannedRecipient).toHaveBeenCalledWith(null)
+    })
 })
 
 describe('crypto withdraw — URL amount validation (Chip review round 4)', () => {
@@ -1420,7 +1477,7 @@ describe('crypto withdraw — the spend is frozen with the charge', () => {
     })
 })
 
-describe('crypto withdraw retry — after a route error (cross-chain cap 429, TASK-22154)', () => {
+describe('crypto withdraw retry — after a route error (a 429 on the quote, TASK-22154)', () => {
     const prepareMaxWithdrawal = async () => {
         const { chargesApi } = jest.requireMock('@/services/charges')
         chargesApi.create.mockResolvedValue({ data: { id: CHARGE_UUID } })
@@ -1436,7 +1493,7 @@ describe('crypto withdraw retry — after a route error (cross-chain cap 429, TA
         view.rerender(<WithdrawCryptoPage />)
         return view
     }
-    // The cap answers the SDA provision with 429 while the route is being
+    // The API answers the SDA provision with 429 while the route is being
     // prepared, so the confirm view renders the error with no transactions
     // built. Retry must recompute the route, not fail on "not prepared".
     it('Retry recomputes the route instead of failing on the transactions the failed route never built', async () => {

@@ -1057,7 +1057,7 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
-    describe('counterparty avatarKey (TASK-22625)', () => {
+    describe('counterparty person (TASK-22625, TASK-23756)', () => {
         const detailsOf = (entry: HistoryEntry) => mapTransactionDataForDrawer(entry).transactionDetails
 
         it('carries the recipient pick on an outgoing send', () => {
@@ -1068,7 +1068,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('carries the sender pick on an incoming receive', () => {
@@ -1080,7 +1080,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBe('badge.OG.hat')
+            expect(result.peer?.avatarKey).toBe('badge.OG.hat')
         })
 
         it('carries the sender pick on a claimed send link', () => {
@@ -1092,7 +1092,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'SEND_LINK' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('is null when the counterparty is not a Peanut user', () => {
@@ -1103,10 +1103,10 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer).toBeNull()
         })
 
-        it('is null when the user has no pick', () => {
+        it('carries the person with a null key when the user has no pick', () => {
             const result = detailsOf(
                 baseEntry({
                     userRole: EHistoryUserRole.SENDER,
@@ -1114,7 +1114,8 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer?.username).toBe(aliceUser.username)
+            expect(result.peer?.avatarKey).toBeNull()
         })
 
         // The reaper rewrites the name to system copy ("Transaction did not
@@ -1129,7 +1130,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER', failReason: 'DIRECT_TRANSFER_timeout' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer).toBeNull()
         })
 
         // A bank send-link claimed by a Peanut user renders as a send to them,
@@ -1143,7 +1144,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'OFFRAMP', bridgeFlow: 'BANK_SEND_LINK_CLAIM' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('carries the initiator pick on a received bank withdraw', () => {
@@ -1155,7 +1156,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'OFFRAMP' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('drops the pick on a failed QR payment', () => {
@@ -1167,7 +1168,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'QR_PAY' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer).toBeNull()
         })
     })
 

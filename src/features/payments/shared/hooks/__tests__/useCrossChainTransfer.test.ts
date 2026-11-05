@@ -6,7 +6,7 @@
  *
  * Also: the bridge path (destination token outside USDC/USDT) must name its
  * charge on POST /rhino/bridge/quote and /rhino/bridge/commit — that is what
- * makes the API reserve a cap slot and bind the charge to its destination
+ * makes the API bind the charge to its destination
  * (peanut-api-ts #1497 gates the quote only when contextId is present).
  * claim-xchain has no charge and must NOT send one, or the gate refuses it
  * with 403.
@@ -46,7 +46,6 @@ jest.mock('@/utils/general.utils', () => ({
     getTokenSymbol: (address: string) => (address.startsWith('0xaf88') ? 'USDC' : 'ETH'),
 }))
 jest.mock('@/utils/peanut-claim.utils', () => ({ prepareRequestLinkFulfillmentTransaction: jest.fn() }))
-jest.mock('@/app/actions/tokens', () => ({ estimateTransactionCostUsd: jest.fn().mockResolvedValue(0) }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/interfaces/peanut-sdk-types', () => ({ EPeanutLinkType: { erc20: 1 } }))
 
@@ -374,7 +373,7 @@ describe('useCrossChainTransfer — bridge path names its charge', () => {
         })
     })
 
-    it('withdraw: the bridge quote carries context + contextId so the API can cap it', async () => {
+    it('withdraw: the bridge quote carries context + contextId so the API can bind it', async () => {
         const { result } = renderHook(() => useCrossChainTransfer())
 
         await act(async () => {
@@ -383,7 +382,6 @@ describe('useCrossChainTransfer — bridge path names its charge', () => {
                 destination: ETH_ON_BASE,
                 context: 'withdraw',
                 contextId: 'charge-1',
-                skipGasEstimate: true,
             })
         })
 
@@ -409,7 +407,6 @@ describe('useCrossChainTransfer — bridge path names its charge', () => {
                 destination: ETH_ON_BASE,
                 context: 'claim-xchain',
                 contextId: 'pubkey-1',
-                skipGasEstimate: true,
             })
         })
 

@@ -33,7 +33,6 @@ jest.mock('@/hooks/usePullToRefresh', () => ({
     useShouldPullToRefresh: () => () => true,
 }))
 jest.mock('@/hooks/useNativePlugins', () => ({ useNativePlugins: jest.fn() }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/hooks/useSafeBack', () => ({}))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false, enableDemoMode: jest.fn() }))
 

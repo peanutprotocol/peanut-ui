@@ -23,6 +23,7 @@ import {
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import {
+    installReferrerSignupAttribution,
     isContentAttributionPath,
     isLegacyAttributionPath,
     parseSignupAttribution,
@@ -37,6 +38,8 @@ import {
 // marker param distinguishing our payload from Play's organic referrer
 // (utm_source=google-play&utm_medium=organic)
 const MARKER = 'pnutdl'
+// Play's placeholder for a tag the store link did not set
+const PLAY_NOT_SET = '(not set)'
 const ATTRIBUTION_PARAM = 'at'
 // the web visitor's anonymous PostHog distinct id, so analysis can join the
 // app's events to the browser journey that led to the install
@@ -413,20 +416,22 @@ export async function copyIOSHandoff(payload: string): Promise<void> {
 // shared — parsing
 // ---------------------------------------------------------------------------
 
+function handoffParams(raw: string): URLSearchParams | null {
+    const qIndex = raw.indexOf('?')
+    try {
+        return new URLSearchParams(qIndex >= 0 ? raw.slice(qIndex + 1) : raw)
+    } catch {
+        return null
+    }
+}
+
 /**
  * parses a raw referrer string or a full hand-off url into a payload.
  * returns null unless the pnutdl marker is present.
  */
 export function parseDeferredPayload(raw: string): DeferredPayload | null {
-    const qIndex = raw.indexOf('?')
-    const qs = qIndex >= 0 ? raw.slice(qIndex + 1) : raw
-    let params: URLSearchParams
-    try {
-        params = new URLSearchParams(qs)
-    } catch {
-        return null
-    }
-    if (params.get(MARKER) !== '1') return null
+    const params = handoffParams(raw)
+    if (!params || params.get(MARKER) !== '1') return null
     const pick = (key: string) => params.get(key) || undefined
     const badgeCampaigns = badgeCampaignIdentitiesFromDeferredSearchParams(params)
     const attribution =
@@ -440,6 +445,31 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
         webDistinctId: webDistinctId && ANALYTICS_ID_PATTERN.test(webDistinctId) ? webDistinctId : undefined,
         dest: pick('dest'),
     }
+}
+
+/**
+ * the campaign of an unmarked Play referrer: a store link with
+ * `&referrer=utm_source%3D...` that skipped the website. null for Play's
+ * organic referrer and for tags that fail the attribution value rules. only
+ * the utm tags are read; invite, locale, badge campaigns and dest need the marker.
+ */
+export function parseReferrerCampaign(raw: string): SignupAttributionContext | null {
+    const params = handoffParams(raw)
+    if (!params || params.get(MARKER) === '1') return null
+    const tag = (key: string) => {
+        const value = params.get(key)?.trim()
+        return value && value.toLowerCase() !== PLAY_NOT_SET ? value : undefined
+    }
+    const campaign = {
+        utmSource: tag('utm_source'),
+        utmMedium: tag('utm_medium'),
+        utmCampaign: tag('utm_campaign'),
+        utmContent: tag('utm_content'),
+    }
+    if (campaign.utmSource?.toLowerCase() === 'google-play' && campaign.utmMedium?.toLowerCase() === 'organic') {
+        return null
+    }
+    return installReferrerSignupAttribution(campaign)
 }
 
 // ---------------------------------------------------------------------------
@@ -456,10 +486,10 @@ export interface RestoredContext {
 let restoreInFlight: Promise<RestoredContext | null> | null = null
 
 /**
- * Records the outcome of the one-shot restore. Only booleans, the channel and
- * the web visitor's random analytics id leave the device — never the invite
- * code, campaign tag or destination, which would put a user's inviter and
- * intended screen into analytics.
+ * Records the outcome of the one-shot restore. Only booleans, the channel, the
+ * web visitor's random analytics id and a store link's own utm tags leave the
+ * device — never the invite code, badge campaign or destination, which would
+ * put a user's inviter and intended screen into analytics.
  *
  * Swallows everything: this runs on the first-launch path, where a telemetry
  * failure must not cost the user their restored context.
@@ -566,6 +596,11 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const payload = raw ? parseDeferredPayload(raw) : null
+    const referrerCampaign = !payload && raw && channel === 'referrer' ? parseReferrerCampaign(raw) : null
+    if (referrerCampaign) {
+        await restoreReferrerCampaign(referrerCampaign)
+        return null
+    }
     if (!payload) {
         // an unconsumed one-shot is a transient android referrer failure that
         // the next launch retries — counting it would both duplicate the
@@ -638,6 +673,24 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     return restored
+}
+
+async function restoreReferrerCampaign(attribution: SignupAttributionContext): Promise<void> {
+    const stored = signupAnalyticsState() === 'enabled' ? restoreSignupAttribution(attribution) : null
+    if (stored) await persistSignupAttribution(stored)
+    const { utmSource, utmMedium, utmCampaign, utmContent } = attribution.firstTouch
+    captureRestore('referrer', DEFERRED_LINK_OUTCOMES.UTM_REFERRER, {
+        has_attribution: !!stored,
+        ...(utmSource ? { referrer_utm_source: utmSource } : {}),
+        ...(utmMedium ? { referrer_utm_medium: utmMedium } : {}),
+        ...(utmCampaign ? { referrer_utm_campaign: utmCampaign } : {}),
+        ...(utmContent ? { referrer_utm_content: utmContent } : {}),
+    })
+    if (stored && typeof posthog.register === 'function') {
+        try {
+            posthog.register(signupAttributionPosthogProperties(stored))
+        } catch {}
+    }
 }
 
 /**

@@ -13,14 +13,15 @@ import { isStaleKeyError } from '@/utils/walletCredential.utils'
  *
  * A stale session can't recover by retrying; the only exit is a clean re-auth.
  * Pass the API error/message here: when it's a stale-credential error it forces
- * logout and returns true so the caller can stop.
+ * logout on this device (the account's other sessions stay valid) and returns
+ * true so the caller can stop.
  */
 export const useStaleSessionGuard = () => {
     const { logoutUser } = useAuth()
     return useCallback(
         (error: unknown): boolean => {
             if (!isStaleKeyError(error)) return false
-            logoutUser()
+            logoutUser({ skipBackendCall: true })
             return true
         },
         [logoutUser]

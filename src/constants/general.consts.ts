@@ -1,4 +1,4 @@
-import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll } from 'viem/chains'
+import { mainnet, arbitrum, arbitrumSepolia, polygon, optimism, base, bsc, scroll, linea } from 'viem/chains'
 
 // Verified 2026-05-13 with curl from staging.peanut.me origin.
 // Commented entries are kept inline for visibility — re-enable when fixed.
@@ -67,6 +67,12 @@ export const rpcUrls: Record<number, string[]> = {
         // infuraUrl('scroll-mainnet'),
         'https://rpc.scroll.io', // Official Scroll RPC
     ].filter(Boolean) as string[],
+    // recover funds reads Linea balances (TASK-23850); verified 2026-10-28 with
+    // curl from staging.peanut.me origin (CORS *, chain id 59144)
+    [linea.id]: [
+        'https://rpc.linea.build', // Official Linea RPC
+        'https://linea-rpc.publicnode.com', // Public fallback
+    ].filter(Boolean) as string[],
 }
 
 export const PEANUT_API_URL = (
@@ -86,139 +92,17 @@ export const GIT_COMMIT_HASH = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH || 'unkno
 // Check if we're in production (not dev or using production URL)
 export const IS_PRODUCTION = !IS_DEV || BASE_URL === 'https://peanut.me'
 
-export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
-    {
-        name: 'Fantom',
-        chainId: '250',
-    },
-    {
-        name: 'Avalanche C-Chain',
-        chainId: '43114',
-    },
-    {
-        name: 'Cronos',
-        chainId: '25',
-    },
-    {
-        name: 'DFK Subnet',
-        chainId: '53935',
-    },
-    {
-        name: 'Ethereum',
-        chainId: '1',
-    },
-    {
-        name: 'SmartBCH',
-        chainId: '10000',
-    },
-    {
-        name: 'Polygon',
-        chainId: '137',
-    },
-    {
-        name: 'BNB Smart Chain (BEP20)',
-        chainId: '56',
-    },
-    {
-        name: 'Celo',
-        chainId: '42220',
-    },
-    {
-        name: 'XDAI',
-        chainId: '100',
-    },
-    {
-        name: 'Klaytn',
-        chainId: '8217',
-    },
-    {
-        name: 'Aurora',
-        chainId: '1313161554',
-    },
-    {
-        name: 'HECO',
-        chainId: '128',
-    },
-    {
-        name: 'Harmony',
-        chainId: '1666600000',
-    },
-    {
-        name: 'Boba',
-        chainId: '288',
-    },
-    {
-        name: 'OKEX',
-        chainId: '66',
-    },
-    {
-        name: 'Moonriver',
-        chainId: '1285',
-    },
-    {
-        name: 'Moonbeam',
-        chainId: '1284',
-    },
-    {
-        name: 'BitTorrent Chain',
-        chainId: '199',
-    },
-    {
-        name: 'Oasis',
-        chainId: '42262',
-    },
-    {
-        name: 'Velas',
-        chainId: '106',
-    },
-    {
-        name: 'Arbitrum',
-        chainId: '42161',
-    },
-    {
-        name: 'Optimistic',
-        chainId: '10',
-    },
-    {
-        name: 'Kucoin',
-        chainId: '321',
-    },
-    {
-        name: 'Base',
-        chainId: '8453',
-    },
-    {
-        name: 'Shibarium',
-        chainId: '109',
-    },
-    {
-        name: 'Mantle',
-        chainId: '5000',
-    },
-    {
-        name: 'Sui',
-        chainId: 'sui',
-    },
-    {
-        name: 'ZetaChain',
-        chainId: '7000',
-    },
-    {
-        name: 'Alephium',
-        chainId: 'alephium-0',
-    },
-    {
-        name: 'Scroll',
-        chainId: '534352',
-    },
-]
-
 export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
     '0x0000000000000000000000000000000000000000',
 ]
 
 export const STABLE_COINS = ['USDC', 'USDT', 'DAI', 'BUSD']
+
+// The tokens a payment request can be paid in (TASK-23850). Only USDC and USDT
+// have the deposit-address route; DAI and BUSD are stable but cannot be paid.
+// STABLE_COINS stays the display rule ($ amounts).
+export const REQUEST_TOKEN_SYMBOLS: readonly string[] = ['USDC', 'USDT']
 
 export const ROUTE_NOT_FOUND_ERROR =
     'No route found for this token pair. You can try with a different token pair, or contact support.'

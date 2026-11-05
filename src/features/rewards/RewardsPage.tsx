@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useNativePlatform } from '@/utils/native-platform'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -26,7 +28,9 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
-import { getTierBadge, getTierProgressPercent } from './utils'
+import { getTierBadge, getTierProgressPercent, inviteeDisplayName } from './utils'
+import { twMerge } from '@/utils/tw'
+import { personFrom } from '@/lib/person/person'
 
 const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
 const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
@@ -99,16 +103,26 @@ export function RewardsPage() {
                         cashStatus.data &&
                         (() => {
                             const rewards = cashStatus.data.rewards
-                            const pendingUsd = rewards?.pendingUsd ?? 0
+                            // Older APIs omit rewards entirely; a present object with a missing amount is unknown.
+                            const pendingUsd = rewards ? rewards.pendingUsd : 0
                             const lifetimeUsd = rewards?.lifetimeEarnedUsd ?? cashStatus.data.lifetimeEarned
 
                             return (
                                 <div className="flex flex-col items-center gap-1">
-                                    {pendingUsd > 0 ? (
+                                    {!Number.isFinite(pendingUsd) ? (
+                                        <h2 className="text-heading-l text-foreground-primary">
+                                            {formatFiniteDisplay(pendingUsd)}
+                                        </h2>
+                                    ) : pendingUsd > 0 ? (
                                         <>
                                             <p className="text-body-s text-foreground-secondary">{t('youHave')}</p>
                                             <h2 className="text-heading-l text-foreground-primary">
-                                                ${pendingUsd.toFixed(2)}
+                                                $
+                                                {formatFiniteDisplay(pendingUsd, 'en-US', {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                    useGrouping: false,
+                                                })}
                                             </h2>
                                             <p className="text-center text-body-s text-foreground-secondary">
                                                 {t('pendingCallout')}
@@ -120,7 +134,9 @@ export function RewardsPage() {
                                         </p>
                                     )}
                                     <p className="mt-2 text-center text-body-s text-foreground-secondary">
-                                        {t('lifetimeRewards', { amount: `$${lifetimeUsd.toFixed(2)}` })}
+                                        {t('lifetimeRewards', {
+                                            amount: `$${formatFiniteDisplay(lifetimeUsd, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`,
+                                        })}
                                     </p>
                                 </div>
                             )
@@ -157,7 +173,7 @@ export function RewardsPage() {
                             />
                             <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-slow"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-press transition-all duration-slow"
                                     style={{
                                         width: `${getTierProgressPercent(
                                             tierInfo.data.currentTier,
@@ -192,7 +208,7 @@ export function RewardsPage() {
                         <ol className="flex flex-col gap-2">
                             {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
                                 <li key={step} className="flex items-start gap-3 text-body-s">
-                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-label-m">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-background-accent-yellow text-label-m">
                                         {i + 1}
                                     </span>
                                     <span>{t(`howItWorks.${step}`)}</span>
@@ -267,17 +283,19 @@ export function RewardsPage() {
                         <div ref={inviteesRef}>
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
                                 const username = invite.username
-                                const fullName = invite.fullName
                                 const isVerified = invite.kycVerified
                                 const pointsEarned = invite.contributedPoints ?? 0
-                                // respect user's showFullName preference for avatar and display name
-                                const displayName = invite.showFullName && fullName ? fullName : username
+                                const displayName = inviteeDisplayName(invite)
                                 return (
                                     <Card
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
-                                        onClick={() => router.push(profileUrl(username))}
-                                        className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                        // An invitee who never finished signup has no profile to open.
+                                        onClick={username ? () => router.push(profileUrl(username)) : undefined}
+                                        className={twMerge(
+                                            username && 'cursor-pointer',
+                                            'focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                                        )}
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
@@ -288,17 +306,17 @@ export function RewardsPage() {
                                                     // invitee without one keeps the display
                                                     // name — an empty name reads as "not a
                                                     // user" and drops to a wallet icon.
-                                                    userName={username || displayName}
-                                                    avatarKey={invite.avatarKey}
+                                                    userName={username || displayName || undefined}
+                                                    person={personFrom(invite)}
                                                     isLinkTransaction={false}
                                                     transactionType={'send'}
-                                                    size="m"
+                                                    size="s"
                                                 />
                                             </div>
                                             <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                                 <VerifiedUserLabel
-                                                    name={displayName}
-                                                    username={username}
+                                                    name={displayName ?? ''}
+                                                    username={username ?? ''}
                                                     isVerified={isVerified}
                                                 />
                                             </div>

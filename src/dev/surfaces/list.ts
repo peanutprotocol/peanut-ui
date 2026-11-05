@@ -7,6 +7,8 @@
  * to force; the gallery prints the reason instead of a staged mock.
  */
 
+import { API_CONTRACT_STATES } from './api-contract-states'
+
 export type SurfaceMeta = {
     name: string
     path: string
@@ -27,7 +29,42 @@ export type SurfaceMeta = {
     shotClickTestId?: string
 }
 
+const apiRibbon = (id: string): SurfaceMeta => {
+    const state = API_CONTRACT_STATES[id]
+    return {
+        name: state.name,
+        path: 'Global/TestBuildRibbon.tsx',
+        captureState: [`API status: ${state.api.status}`, `route contract fault: ${state.api.contractError}`],
+        expectSelector: '[data-testid="test-build-ribbon"]',
+    }
+}
+
+// Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'api-ribbon-loading': apiRibbon('api-ribbon-loading'),
+    'api-ribbon-compatible': apiRibbon('api-ribbon-compatible'),
+    'api-ribbon-too-old': apiRibbon('api-ribbon-too-old'),
+    'api-ribbon-missing-version': apiRibbon('api-ribbon-missing-version'),
+    'api-ribbon-unavailable': apiRibbon('api-ribbon-unavailable'),
+    'api-ribbon-contract-error': apiRibbon('api-ribbon-contract-error'),
+    'numeric-request-amount-4000': {
+        name: 'Request amount — 4,000 USDC',
+        path: 'Global/AmountInput/index.tsx',
+        captureState: ['suggestedAmount=4000', 'realSlider=true'],
+        expectSelector: 'input[value="4000"]',
+    },
+    'numeric-request-rate-unavailable': {
+        name: 'Request amount — rate unavailable',
+        path: 'Global/AmountInput/index.tsx',
+        captureState: ['initialAmount=4000', 'secondaryRate=unavailable'],
+        expectSelector: 'button[disabled]',
+    },
+    'numeric-request-amount-invalid': {
+        name: 'Request amount — invalid input cleared',
+        path: 'Global/AmountInput/index.tsx',
+        captureState: ['initialAmount=invalid', 'realSlider=true'],
+        expectSelector: 'input[value=""]',
+    },
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '03-c-residence-congrats': {
         name: 'Payment plan',
@@ -47,6 +84,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotFixture: 'setup-payment-plan',
     },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
+    '03-b-residence-compare': {
+        name: 'Residence — two countries compared',
+        path: 'Setup/components/ResidenceCompare.tsx',
+    },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
@@ -60,6 +101,16 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
     '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
+    '08-b-loginrecoverydrawer': {
+        name: 'LoginRecoveryDrawer',
+        path: 'Setup/Views/LoginRecoveryDrawer.tsx',
+        captureState: ['platform=ios', 'signup=offered'],
+    },
+    '08-c-loginrecoverydrawer-web': {
+        name: 'LoginRecoveryDrawer — web, no sign-up',
+        path: 'Setup/Views/LoginRecoveryDrawer.tsx',
+        captureState: ['platform=web', 'signup=omitted'],
+    },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
     '11-a-earlyusermodal': {
@@ -99,6 +150,14 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'KycVerificationInProgressModal (tax ID submitted)',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
     },
+    '24-c-kyc-ready-ars-action': {
+        name: 'KYC complete — ARS needs one more step',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
+    '24-d-kyc-ready-bank-review': {
+        name: 'KYC complete — EUR under review',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
     '25-b-kycactionrequiredmodal': { name: 'KycActionRequiredModal', path: 'Kyc/modals/KycActionRequiredModal.tsx' },
     '26-b-kycfailedmodal': { name: 'KycFailedModal', path: 'Kyc/modals/KycFailedModal.tsx' },
     '27-b-kycprocessingmodal': { name: 'KycProcessingModal', path: 'Kyc/modals/KycProcessingModal.tsx' },
@@ -107,7 +166,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Kyc/modals/KycRegionRestrictedModal.tsx',
     },
     '29-b-kycstatusdrawer': { name: 'KycStatusDrawer (action-needed)', path: 'Kyc/KycStatusDrawer.tsx' },
-    '30-b-unlockmethodmodal': { name: 'UnlockMethodModal', path: 'IdentityVerification/UnlockMethodModal.tsx' },
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
@@ -125,7 +183,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal (early)',
         path: 'Migration/MigrationDownloadModal.tsx',
-        blocked: 'Opens itself off the sunset countdown and a stored dismissal — no visible prop.',
+        blocked:
+            'Opens itself for a signed-in web user unless snoozed — no visible prop. Captured through the download-prompt fixture.',
     },
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
@@ -184,8 +243,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '66-e-avatarpicker': { name: 'Avatar picker', path: 'Avatar/AvatarPicker.tsx' },
     '67-e-provideemailstep': { name: 'Provide email', path: 'Kyc/ProvideEmailStep.tsx' },
     '68-e-bridgetosstep': { name: 'Bridge terms', path: 'Kyc/BridgeTosStep.tsx' },
-    '69-e-kycprepchecklist-standard': { name: 'Verification checklist — standard', path: 'Kyc/KycPrepChecklist.tsx' },
-    '70-e-kycprepchecklist-extended': { name: 'Verification checklist — extended', path: 'Kyc/KycPrepChecklist.tsx' },
     '71-e-kycprepchecklist-hosted': { name: 'Verification checklist — hosted', path: 'Kyc/KycPrepChecklist.tsx' },
     '72-e-kycfailedcontent-terminal': { name: 'Verification — terminal failure', path: 'Kyc/KycFailedContent.tsx' },
     '73-e-rejectlabelslist': { name: 'Verification rejection reasons', path: 'Kyc/RejectLabelsList.tsx' },
@@ -299,6 +356,18 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
         captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=true'],
         expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '92-f-deposit-account-closed': {
+        name: 'Manteca deposit — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=deposit', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '93-f-withdraw-account-closed': {
+        name: 'Manteca withdrawal — account closed',
+        path: 'Common/MantecaAccountUnavailable.tsx',
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'kyc=false'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',

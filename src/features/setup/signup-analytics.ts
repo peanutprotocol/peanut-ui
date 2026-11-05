@@ -1,13 +1,16 @@
-import { type ScreenId } from '@/components/Setup/Setup.types'
+import type { ScreenId } from '@/components/Setup/Setup.types'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { type StoredRedirect } from '@/utils/general.utils'
+import type { StoredRedirect } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 
 export const SIGNUP_FLOW_VERSION = 1
 
 export type SignupEntryFlow = 'default' | 'add-money' | 'identity-verification' | 'card' | 'claim' | 'other'
-export type SignupAnalyticsScreenId = ScreenId | 'account-ready'
+export type SignupAnalyticsScreenId = ScreenId | 'account-ready' | 'setup-error' | 'unsupported-browser'
 export type SignupNavigationType = 'initial' | 'forward' | 'back' | 'jump'
+export type SignupControlAction = 'tap' | 'open' | 'dismiss' | 'select' | 'change' | 'error' | 'toggle'
+/** The verify prelude reuses the residence and payment plan screens for older accounts. */
+export type SetupHost = 'signup' | 'verify-prelude'
 
 const PEANUT_ORIGIN = 'https://peanut.me'
 
@@ -97,6 +100,33 @@ export function captureSignupStepViewed({
         step_index: stepIndex,
         total_steps: totalSteps,
         nav_type: navType,
+        ...signupAnalyticsContext(signupEntryFlow),
+    })
+}
+
+export function captureSignupControlUsed({
+    screenId,
+    control,
+    action,
+    value,
+    host,
+    signupEntryFlow,
+}: {
+    screenId: SignupAnalyticsScreenId
+    control: string
+    action: SignupControlAction
+    /** Low-cardinality only: an ISO code, a channel id, on/off or an error category. */
+    value?: string
+    host: SetupHost
+    signupEntryFlow: SignupEntryFlow
+}) {
+    posthog.capture(ANALYTICS_EVENTS.CONTROL_USED, {
+        flow: 'signup',
+        screen_id: screenId,
+        control,
+        action,
+        ...(value !== undefined && { value }),
+        setup_host: host,
         ...signupAnalyticsContext(signupEntryFlow),
     })
 }

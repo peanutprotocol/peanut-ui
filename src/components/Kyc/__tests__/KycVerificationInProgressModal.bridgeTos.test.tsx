@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * The last KYC step prompts for Bridge's terms. It must name the account
  * provider and link its terms, and its button must not read as acceptance
@@ -10,8 +11,8 @@ import { KycVerificationInProgressModal } from '../KycVerificationInProgressModa
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { residence: { verified: 'MX' } } }),
-    useOptionalAuth: () => ({ user: { residence: { verified: 'MX' } } }),
+    useAuth: () => ({ user: { residence: normalizeResidence({ verified: 'MX' }) } }),
+    useOptionalAuth: () => ({ user: { residence: normalizeResidence({ verified: 'MX' }) } }),
 }))
 
 const renderTosPhase = (props: { onAcceptTerms?: () => void; tosError?: string | null } = {}) =>

@@ -142,7 +142,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         leading={<Icon name="credit-card" size={24} />}
                         trailing={
                             loading ? (
-                                <span className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
+                                <span className="h-5 w-16 animate-pulse rounded bg-background-skeleton" />
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <span className="ph-no-capture text-body-m-semibold">{pin ?? '****'}</span>

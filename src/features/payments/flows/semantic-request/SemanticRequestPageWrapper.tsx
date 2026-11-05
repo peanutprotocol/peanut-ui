@@ -15,7 +15,7 @@
 import { SemanticRequestPage } from './SemanticRequestPage'
 import { chargesApi } from '@/services/charges'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
+import { EParseUrlError, parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -137,15 +137,15 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
 
     // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !parsedUrl) {
+        const description =
+            error?.message === EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED
+                ? t('errors.requestTokenNotAccepted', { symbol: error.token ?? '' })
+                : error?.message || t('errors.invalidPaymentUrlDescription')
         return (
             <PageStack>
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <EmptyState
-                        icon="link"
-                        title={t('errors.invalidPaymentUrlTitle')}
-                        description={error?.message || t('errors.invalidPaymentUrlDescription')}
-                    />
+                    <EmptyState icon="link" title={t('errors.invalidPaymentUrlTitle')} description={description} />
                 </div>
             </PageStack>
         )

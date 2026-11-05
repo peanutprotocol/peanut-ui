@@ -70,6 +70,11 @@ jest.mock('@/utils/deferred-link', () => ({
     applyDeferredPayload: jest.fn(() => ({ dest: null, locale: null })),
 }))
 
+const mockSendMarketingQrAppOpening = jest.fn()
+jest.mock('@/features/marketing-qr/appOpening', () => ({
+    sendMarketingQrAppOpening: (...args: unknown[]) => mockSendMarketingQrAppOpening(...args),
+}))
+
 const mockRestore = restoreDeferredContext as jest.MockedFunction<typeof restoreDeferredContext>
 const mockParseDeferredPayload = parseDeferredPayload as jest.MockedFunction<typeof parseDeferredPayload>
 const mockApplyDeferredPayload = applyDeferredPayload as jest.MockedFunction<typeof applyDeferredPayload>
@@ -109,6 +114,18 @@ describe('app-entry gateway', () => {
 
         await waitFor(() => expect(push).toHaveBeenCalledWith('/home'))
         expect(mockApplyDeferredPayload).not.toHaveBeenCalled()
+    })
+})
+
+describe('landing-page QR opened in the app', () => {
+    it('records the opening once and opens home', async () => {
+        launchUrl = 'https://peanut.me/home?mqr=home-hero-en&s=twitter&m=social&c=qr-test&o=current_url'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() => expect(push).toHaveBeenCalledWith(expect.stringMatching(/^\/home/)))
+        expect(mockSendMarketingQrAppOpening).toHaveBeenCalledTimes(1)
+        expect((mockSendMarketingQrAppOpening.mock.calls[0][0] as URL).href).toBe(launchUrl)
     })
 })
 

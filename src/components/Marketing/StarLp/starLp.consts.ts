@@ -7,7 +7,7 @@ export const BAND_GROUND_CLASS: Record<BandGround, string> = {
     pink: 'bg-background-brand text-foreground-primary',
     cream: 'bg-background-page text-foreground-primary',
     sky: 'bg-background-marketing-sky text-foreground-primary',
-    yellow: 'bg-yellow-500 text-foreground-primary',
+    yellow: 'bg-background-accent-yellow text-foreground-primary',
     black: 'bg-gray-950 text-foreground-inverse',
     white: 'bg-background-default text-foreground-primary',
 }
@@ -17,8 +17,8 @@ export const BAND_GROUND_KNOCKOUT_CLASS: Record<BandGround, string> = {
     pink: 'text-background-brand',
     cream: 'text-background-page',
     sky: 'text-background-marketing-sky',
-    yellow: 'text-yellow-500',
-    black: 'text-gray-950',
+    yellow: 'text-background-accent-yellow',
+    black: 'text-foreground-primary',
     white: 'text-background-default',
 }
 
@@ -41,6 +41,9 @@ export const KNERD_SIZE_CLASS: Record<KnerdSize, string> = {
     inline: 'text-heading-l',
     /** an amount beside UI in a strip: inline at 320, one step up from xs */
     amount: 'text-heading-l xs:text-headingSmall',
+    /** a one-word headline (the home's "ZERO"): with no second word to fit, it starts two
+        steps up so its thin outline still outranks the heavy Roboto lines under it on phones */
+    display: 'text-heading xs:text-headingMedium lg:text-headingLarge',
 }
 
 export const DISPLAY_LINE_CLASS: Record<DisplayLineSize, string> = {
@@ -56,24 +59,12 @@ export const SECTION_TITLE_CLASS: Record<SectionTitleSize, string> = {
     display: 'text-headingSmall md:text-headingMedium',
 }
 
-/** The six public feature landing pages. */
-export const STAR_LP_ROUTES = {
-    usEuAccounts: '/us-europe-accounts',
-    qrArgentina: '/qr-payments/argentina',
-    qrBrazil: '/qr-payments/brazil',
-    peanutCard: '/peanut-card',
-    requestLinks: '/request-links',
-    selfCustody: '/self-custody',
-} as const
+export { STAR_LP_ROUTES } from '@/constants/star-lp-routes.consts'
 
-/** CTA destinations while the PWA-sunset flag is off (on: /app for all). */
+/** The /peanut-card CTA's destinations; a guest's store hand-off carries /card as the deferred destination. */
 export const STAR_LP_HREF = {
-    signup: '/setup',
     cardGuest: `/setup?redirect_uri=${encodeURIComponent('/card')}`,
     cardSignedIn: '/card',
-    /** /us-europe-accounts: the bank-accounts list (held accounts plus every corridor offered). */
-    accountsGuest: `/setup?redirect_uri=${encodeURIComponent('/add-money?method=bank')}`,
-    accountsSignedIn: '/add-money?method=bank',
 } as const
 
 /** Scene springs, ported from peanutsplit motion.ts (stiffness / damping). */

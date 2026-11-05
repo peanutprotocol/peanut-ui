@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import {
     MAX_CASHOUT_LIMIT,
@@ -12,6 +14,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useReadsSelectedTokenPrice } from '@/hooks/useReadsSelectedTokenPrice'
 import { sendLinksApi } from '@/services/sendLinks'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
@@ -42,7 +45,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 
 // flow hook for the initial claim-link screen — logic moved verbatim from
 // Initial.view.tsx (TASK-21854 logic/ui separation). The view stays the
@@ -50,7 +53,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: string | undefined) => {
     const t = useTranslations('claim')
     const toFriendlyError = useFriendlyError()
-    const format = useFormatter()
+    const locale = useLocale()
     const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
     // all query params this hook reads, via nuqs (DS 10 ratchet) — read-only,
@@ -124,6 +127,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
         setHideTokenSelector,
     } = useClaimBankFlow()
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
+    // the claim gates on the selected token's data and re-routes when it refreshes
+    useReadsSelectedTokenPrice()
     const {
         selectedChainID,
         selectedTokenAddress,
@@ -353,7 +358,10 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
                         amountUsd: hasUsdAmount ? claimUsdAmount : null,
                     })
                     if (belowMin) {
-                        const amount = format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' })
+                        const amount = formatFiniteDisplay(belowMin.minUsd, locale, {
+                            style: 'currency',
+                            currency: 'USD',
+                        })
                         setErrorState({
                             showError: true,
                             errorMessage: claimToExternalWallet
@@ -459,7 +467,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             claimLinkData.createdAt,
             claimLinkData.senderAddress,
             tokenPrice,
-            format,
+            locale,
             claimToExternalWallet,
             isPeanutWallet,
             fetchBalance,
@@ -498,7 +506,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             if (tokenPrice) {
                 const cashoutUSDAmount =
                     Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
+                const usd = (amount: number) =>
+                    formatFiniteDisplay(amount, locale, { style: 'currency', currency: 'USD' })
                 // flow channel, NOT fieldError: this refusal comes from the
                 // submit handler on the claim-to-bank path, where the external-
                 // wallet input (fieldError's only render site) is not mounted —

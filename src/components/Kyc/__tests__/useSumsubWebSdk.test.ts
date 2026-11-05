@@ -36,6 +36,15 @@ const baseArgs = () => ({
 })
 
 describe('useSumsubWebSdk', () => {
+    it('preselects the saved document and skips the Sumsub document list', () => {
+        const documentConfig = {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'RESIDENCE_PERMIT' } },
+            autoSelectDocumentDefinitions: true as const,
+        }
+        const { result } = renderHookWithIntl(() => useSumsubWebSdk({ ...baseArgs(), documentConfig }))
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        expect(configure).toHaveBeenCalledWith(expect.objectContaining(documentConfig))
+    })
     beforeEach(() => {
         jest.clearAllMocks()
         installSdk()

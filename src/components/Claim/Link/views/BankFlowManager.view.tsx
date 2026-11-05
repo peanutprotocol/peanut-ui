@@ -3,7 +3,7 @@
 import { type IClaimScreenProps } from '../../Claim.consts'
 import { DynamicBankAccountForm, type IBankAccountDetails } from '@/components/AddWithdraw/DynamicBankAccountForm'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useCallback, useContext, useMemo, useState, useRef } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { createGuestClaimExternalAccount } from '@/app/actions/external-accounts'
 import { confirmOfframp, createOfframp, createOfframpForGuest } from '@/app/actions/offramp'
@@ -47,11 +47,14 @@ import { providerForRegionIntent } from '@/utils/regions.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
+import { gateRemedy, getKycModalVariant, getGateUserMessage, getGateReasonCode } from '@/utils/capability-gate'
 import { useTosGuard } from '@/hooks/useTosGuard'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { useModalsContext } from '@/context/ModalsContext'
+import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
+import { useWaitingOnProviderModal } from '@/hooks/useWaitingOnProviderModal'
+import { useGateActions } from '@/hooks/useGateActions'
 import { useTranslations } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import {
@@ -142,7 +145,8 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     )
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showKycModal, setShowKycModal] = useState(false)
-    const { setIsSupportModalOpen } = useModalsContext()
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
+    const pendingModal = useWaitingOnProviderModal(gate)
 
     // inline sumsub kyc flow for users who need verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -157,6 +161,12 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
+    const gateActions = useGateActions(sumsubFlow)
+
+    // close the kyc modal once the sdk opens; on an error it stays to show it
+    useEffect(() => {
+        if (sumsubFlow.showWrapper) setShowKycModal(false)
+    }, [sumsubFlow.showWrapper])
 
     /**
      * @name handleConfirmClaim
@@ -249,18 +259,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             // for logged-in users, check bank-rail readiness before proceeding
             const isGuestFlow = bankClaimType === BankClaimType.GuestBankClaim
             if (!isGuestFlow && gate.kind !== 'ready') {
-                // capabilities still loading OR provider doing internal review —
-                // silently return; the CTA that triggered this should be disabled
-                // too, but defend against double-click races. `waiting-on-provider`
-                // means there's no user action to take (Bridge KYC review,
-                // post_processing), so opening the KYC modal would falsely imply
-                // the user has something to do.
-                if (gate.kind === 'loading' || gate.kind === 'waiting-on-provider') return
-                if (gate.kind === 'accept-tos') {
-                    guardWithTos()
-                } else {
-                    setShowKycModal(true)
-                }
+                // capabilities still loading: silently return; the CTA that
+                // triggered this should be disabled too, but defend against
+                // double-click races.
+                if (gate.kind === 'loading') return
+                const remedy = gateRemedy(gate)
+                // provider review or a rail still provisioning: there's no user
+                // action to take, so the KYC modal would falsely imply one
+                if (remedy === 'wait') pendingModal.open()
+                else if (remedy === 'accept-tos') guardWithTos()
+                else if (remedy === 'provide-email') setShowProvideEmail(true)
+                else setShowKycModal(true)
                 return
             }
 
@@ -375,44 +384,45 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
     // Defined once and rendered by both the form and confirm steps: the direct
     // claim path refuses inside handleSuccess, and the modal has to exist where
     // that refusal happens or the submit is a silent no-op.
+    const verifyEntry = {
+        intent: bankRegionIntent(bankRailCountry ?? selectedCountry),
+        targetCountry: selectedCountry?.id,
+    }
     const kycModal = (
         <>
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
-                onVerify={async () => {
-                    if (gate.kind === 'restart-identity') {
-                        await sumsubFlow.handleRestartIdentity()
-                    } else if (gate.kind === 'fixable-rejection') {
-                        // Through the shared router: it sends a residence park to
-                        // the address step and everything else to resubmit as before.
-                        await sumsubFlow.handleFixableGate('BRIDGE', gate)
-                    } else {
-                        await sumsubFlow.handleInitiateKyc(
-                            bankRegionIntent(bankRailCountry ?? selectedCountry),
-                            undefined,
-                            gate.kind === 'needs-enrollment' || undefined,
-                            selectedCountry?.id
-                        )
-                    }
-                    // only close if sdk opened — if it errored, keep modal open to show error
-                    if (sumsubFlow.showWrapper) setShowKycModal(false)
-                }}
+                onVerify={() => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })}
+                verifyEntry={verifyEntry}
                 onContactSupport={() => {
                     setShowKycModal(false)
-                    setIsSupportModalOpen(true)
+                    gateActions.contactSupport(gate)
                 }}
                 isLoading={sumsubFlow.isLoading}
                 error={sumsubFlow.error}
                 variant={getKycModalVariant(gate.kind)}
                 providerMessage={getGateUserMessage(gate)}
                 reasonCode={getGateReasonCode(gate)}
+                nextAction={gate.kind === 'fixable-rejection' ? gate.nextAction : undefined}
+                pendingSince={gate.kind === 'waiting-on-provider' ? gate.pendingSince : undefined}
                 providerId={
                     providerForRegionIntent(bankRegionIntent(bankRailCountry ?? selectedCountry)) === 'bridge'
                         ? bridgeProviderId
                         : undefined
                 }
+            />
+            <ProvideEmailStep
+                visible={showProvideEmail}
+                onComplete={() => setShowProvideEmail(false)}
+                onSkip={() => setShowProvideEmail(false)}
+            />
+            <KycReverificationPendingModal
+                isOpen={pendingModal.isOpen}
+                onClose={pendingModal.close}
+                message={pendingModal.message}
+                onContactSupport={pendingModal.onContactSupport}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
         </>
