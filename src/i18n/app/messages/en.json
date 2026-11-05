@@ -108,7 +108,7 @@
             "spendChooser": {
                 "title": "Choose how to spend",
                 "description": "Both count as your first payment.",
-                "payWithCard": "Pay with card",
+                "payWithCard": "Pay with the card",
                 "scanQr": "Scan a QR code"
             }
         },

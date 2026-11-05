@@ -19,7 +19,7 @@
             },
             "spendChooser": {
                 "title": "Elegí cómo gastar",
-                "payWithCard": "Pagá con tarjeta",
+                "payWithCard": "Pagá con la tarjeta",
                 "scanQr": "Escaneá un código QR"
             }
         },

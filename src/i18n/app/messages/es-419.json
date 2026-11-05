@@ -108,7 +108,7 @@
             "spendChooser": {
                 "title": "Elige cómo gastar",
                 "description": "Ambas cuentan como tu primer pago.",
-                "payWithCard": "Paga con tarjeta",
+                "payWithCard": "Paga con la tarjeta",
                 "scanQr": "Escanea un código QR"
             }
         },
