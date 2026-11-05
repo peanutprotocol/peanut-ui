@@ -91,11 +91,9 @@ export function AveniaWithdrawReview({
                             value={display ? formatBankAmount(display.providerFeeBrl, 'BRL') : ''}
                             loading={isLoading}
                         />
-                        <DataRow label={tWithdraw('bank.arrives')} value={t('arrivesSoon')} />
                         <ProviderRow providerId="avenia-br" />
                     </DataRowGroup>
                 </Card>
-                <p className="text-body-xs text-foreground-secondary">{t('rateLocked')}</p>
 
                 {error && (
                     <Callout

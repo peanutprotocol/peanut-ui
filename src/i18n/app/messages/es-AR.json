@@ -1294,7 +1294,6 @@
             "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",
             "notACode": "Ingresá una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
-            "rateLocked": "El tipo de cambio queda fijo por 10 minutos cuando confirmás.",
             "quoteMoved": "La cotización cambió desde la revisión. Revisá los nuevos montos y confirmá de nuevo.",
             "unconfirmed": "Aún sin confirmar. Revisá el Historial en unos minutos antes de intentar de nuevo.",
             "errors": {
