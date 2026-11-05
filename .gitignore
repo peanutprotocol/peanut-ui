@@ -2,6 +2,10 @@
 
 # docs
 docs/PR.md
+# agent per-task plans, checklists and local gate configs; plans live in mono ops/plans
+docs/plans/
+docs/engineering/
+.codex/
 
 **.patch
 # pnpm patchedDependencies live in patches/ and must be committed
