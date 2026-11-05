@@ -53,6 +53,7 @@ const eventsNamed = (name: string) => capture.mock.calls.filter(([event]) => eve
 describe('SumsubNativeSdk analytics', () => {
     beforeEach(() => {
         capture.mockClear()
+        captureException.mockClear()
         handlers = {}
         launch.mockReset().mockReturnValue(new Promise(() => {}))
         installSdk()
@@ -165,6 +166,36 @@ describe('SumsubNativeSdk analytics', () => {
                 tags: expect.objectContaining({ sumsub_root_cause: 'java.net.SocketException' }),
                 extra: expect.objectContaining({ nativeError: errorDetail }),
             })
+        )
+    })
+
+    it('keeps the text of a failed native close out of PostHog and in Sentry', async () => {
+        const errorMsg = 'Phone +5491155550000 of applicant maria@example.com is not allowed'
+        launch.mockResolvedValue({ success: false, status: 'Failed', errorType: 'Unknown', errorMsg })
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props()} />)
+        })
+
+        await waitFor(() => expect(eventsNamed('kyc_sdk_init_failed')).toHaveLength(1))
+        const event = eventsNamed('kyc_sdk_init_failed')[0]
+        expect(event).toEqual({ reason: 'Unknown' })
+        expect(JSON.stringify(event)).not.toContain('maria@example.com')
+        expect(JSON.stringify(event)).not.toContain('5491155550000')
+        expect(captureException).toHaveBeenCalledWith(expect.objectContaining({ message: errorMsg }), expect.anything())
+    })
+
+    it('still reports the message of a failure raised outside the SDK', async () => {
+        launch.mockRejectedValue(new Error('Access token is required'))
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props()} />)
+        })
+
+        await waitFor(() =>
+            expect(eventsNamed('kyc_sdk_init_failed')).toEqual([
+                { reason: 'launch-rejected', message: 'Access token is required' },
+            ])
         )
     })
 })

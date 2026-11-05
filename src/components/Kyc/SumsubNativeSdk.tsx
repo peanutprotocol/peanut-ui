@@ -104,17 +104,28 @@ export const SumsubNativeSdk = ({
     useEffect(() => {
         if (!visible || !hasAccessToken) return
 
+        /**
+         * `nativeClose` marks a failed close reported by the SDK itself. Its
+         * text is SDK-authored and can quote applicant input or a token id, so
+         * PostHog gets only codes for it; Sentry keeps the full text.
+         */
         const reportFailure = (
             reason: string,
             detail: unknown,
-            kind: 'sdk-missing' | 'launch' = 'launch',
-            nativeError?: SNSMobileSDKErrorDetail | null
+            {
+                kind = 'launch',
+                nativeClose,
+            }: {
+                kind?: 'sdk-missing' | 'launch'
+                nativeClose?: { errorDetail?: SNSMobileSDKErrorDetail | null }
+            } = {}
         ) => {
             console.error('[sumsub] native sdk failure', reason, detail)
+            const nativeError = nativeClose?.errorDetail
             const nativeProperties = nativeErrorProperties(nativeError)
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
                 reason,
-                message: detail instanceof Error ? detail.message : String(detail),
+                ...(nativeClose ? {} : { message: detail instanceof Error ? detail.message : String(detail) }),
                 ...nativeProperties,
             })
             Sentry.captureException(detail instanceof Error ? detail : new Error(`[sumsub] native ${reason}`), {
@@ -135,7 +146,7 @@ export const SumsubNativeSdk = ({
 
         const sumsub = window.SNSMobileSDK
         if (!sumsub) {
-            reportFailure('sdk-unavailable', new Error('window.SNSMobileSDK is undefined'), 'sdk-missing')
+            reportFailure('sdk-unavailable', new Error('window.SNSMobileSDK is undefined'), { kind: 'sdk-missing' })
             return
         }
 
@@ -253,8 +264,9 @@ export const SumsubNativeSdk = ({
                             reportFailure(
                                 result.errorType || 'sdk-failed',
                                 new Error(result.errorMsg || result.status),
-                                'launch',
-                                result.errorDetail
+                                {
+                                    nativeClose: { errorDetail: result.errorDetail },
+                                }
                             )
                             return
                         }
