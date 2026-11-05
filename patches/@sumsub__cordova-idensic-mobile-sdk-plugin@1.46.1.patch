@@ -1,0 +1,231 @@
+diff --git a/dist/SNSMobileSDK.js b/dist/SNSMobileSDK.js
+index 56d6303a333ac545faf1db967aacef31ab096c6f..3e47b3e78925f802974fddb14eb5375bc2a5aadb 100644
+--- a/dist/SNSMobileSDK.js
++++ b/dist/SNSMobileSDK.js
+@@ -1 +1 @@
+-!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t(require("cordova/exec")):"function"==typeof define&&define.amd?define(["cordova/exec"],t):"object"==typeof exports?exports.SNSMobileSDK=t(require("cordova/exec")):e.SNSMobileSDK=t(e["cordova/exec"])}(self,e=>{return t={440:t=>{"use strict";t.exports=e},846:(e,t,n)=>{const r=n(440),o="SNSMobileSdkCordovaPlugin",i={onStatusChanged:null,onEvent:null};var s=null;function a(e){this.sdkConf=e,this.sdkConf.settings.appFrameworkName="cordova"}function c(){return this.debug=!1,this.handlers={},this.applicantConf={},this.preferredDocumentDefinitions={},this.autoCloseOnApprove=3,this.settings={},this}a.prototype.dismiss=function(){r(e=>{},e=>{},o,"dismiss",[])},a.prototype.sendEvent=function(e,t){var n=this.sdkConf.handlers[e];if(n){var s=i[e];if(s){var a=function(e,t){r(e=>{},e=>{},o,s,[{error:e,result:t}])};n(t).then(e=>{a(null,e)}).catch(e=>{a(e||new Error("rejected"),null)})}else n(t)}},a.prototype.getNewAccessToken=function(){var e=function(e){r(e=>{},e=>{},o,"setNewAccessToken",[e])};this.sdkConf.tokenExpirationHandler().then(t=>{e(t)}).catch(t=>{console.error(t instanceof Error?t.message:t),e(null)})},a.prototype.launch=function(){let e=this;return console.log("InSumSub",JSON.stringify(this.sdkConf)),new Promise((t,n)=>{s?n(new Error("Aborted since another instance is in use!")):e.sdkConf.accessToken?(s=e,r(e=>{s=null,console.log("Promise SumSub Result",JSON.stringify(e)),t(e)},e=>{s=null,console.log("Promise SumSub Error",JSON.stringify(e)),n(e)},o,"launchSNSMobileSDK",[e.sdkConf])):n(new Error("Access token is required"))})},c.prototype.withAccessToken=function(e,t){if(this.accessToken=e,!t||"function"!=typeof t)throw new Error('Invalid parameter, "expirationHandler" must be a function');return this.tokenExpirationHandler=t,this},c.prototype.withHandlers=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withHandlers" expects a hash');return Object.keys(i).forEach(t=>{var n=e[t];if(n){if("function"!=typeof n)throw new Error('Invalid handler, "'+t+'" must be a function');this.handlers[t]=n}}),this},c.prototype.withDebug=function(e){if("boolean"!=typeof e)throw new Error('Invalid parameter, "withDebug" expects a boolean');return this.debug=e,this},c.prototype.withAnalyticsEnabled=function(e){if("boolean"!=typeof e)throw new Error('Invalid parameter, "withAnalyticsEnabled" expects a boolean');return this.isAnalyticsEnabled=e,this},c.prototype.withLocale=function(e){if("string"!=typeof e)throw new Error('Invalid parameter, "locale" must be a string');return this.locale=e,this},c.prototype.withApplicantConf=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withApplicantConf" expects a hash');return this.applicantConf=e,this},c.prototype.withPreferredDocumentDefinitions=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withPreferredDocumentDefinitions" expects a hash');return this.preferredDocumentDefinitions=e,this},c.prototype.withSettings=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withSettings" expects a hash');return this.settings=e,this},c.prototype.withStrings=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withStrings" expects a hash');return this.strings=e,this},c.prototype.withTheme=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withTheme" expects a hash');return this.theme=e,this},c.prototype.withBaseUrl=function(e){if("string"!=typeof e)throw new Error('Invalid parameter, "baseUrl" must be a string');return this.apiUrl=e,this},c.prototype.withAutoCloseOnApprove=function(e){if("number"!=typeof e)throw new Error('Invalid parameter, "autoCloseOnApprove" expects a number');return this.autoCloseOnApprove=e,this},c.prototype.build=function(){var e={};return Object.keys(this.handlers).forEach(t=>{e[t]=!0}),new a({apiUrl:this.apiUrl,accessToken:this.accessToken,tokenExpirationHandler:this.tokenExpirationHandler,handlers:this.handlers,hasHandlers:e,locale:this.locale,applicantConf:this.applicantConf,preferredDocumentDefinitions:this.preferredDocumentDefinitions,settings:this.settings,theme:this.theme,strings:this.strings,isAnalyticsEnabled:this.isAnalyticsEnabled,autoCloseOnApprove:this.autoCloseOnApprove,debug:this.debug})},e.exports={init:function(e,t){return(new c).withAccessToken(e,t)},getNewAccessToken:function(){s&&s.getNewAccessToken()},sendEvent:function(e,t){s&&s.sendEvent(e,t)},reset:function(){s=null}}}},n={},function e(r){var o=n[r];if(void 0!==o)return o.exports;var i=n[r]={exports:{}};return t[r](i,i.exports,e),i.exports}(846);var t,n});
+\ No newline at end of file
++!function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t(require("cordova/exec")):"function"==typeof define&&define.amd?define(["cordova/exec"],t):"object"==typeof exports?exports.SNSMobileSDK=t(require("cordova/exec")):e.SNSMobileSDK=t(e["cordova/exec"])}(self,e=>{return t={440:t=>{"use strict";t.exports=e},846:(e,t,n)=>{const r=n(440),o="SNSMobileSdkCordovaPlugin",i={onStatusChanged:null,onEvent:null};var s=null;function a(e){this.sdkConf=e,this.sdkConf.settings.appFrameworkName="cordova"}function c(){return this.debug=!1,this.handlers={},this.applicantConf={},this.preferredDocumentDefinitions={},this.autoCloseOnApprove=3,this.settings={},this}a.prototype.dismiss=function(){r(e=>{},e=>{},o,"dismiss",[])},a.prototype.sendEvent=function(e,t){var n=this.sdkConf.handlers[e];if(n){var s=i[e];if(s){var a=function(e,t){r(e=>{},e=>{},o,s,[{error:e,result:t}])};n(t).then(e=>{a(null,e)}).catch(e=>{a(e||new Error("rejected"),null)})}else n(t)}},a.prototype.getNewAccessToken=function(){var e=function(e){r(e=>{},e=>{},o,"setNewAccessToken",[e])};this.sdkConf.tokenExpirationHandler().then(t=>{e(t)}).catch(t=>{console.error(t instanceof Error?t.message:t),e(null)})},a.prototype.launch=function(){let e=this;return new Promise((t,n)=>{s?n(new Error("Aborted since another instance is in use!")):e.sdkConf.accessToken?(s=e,r(e=>{s=null,console.log("Promise SumSub Result",JSON.stringify(e)),t(e)},e=>{s=null,console.log("Promise SumSub Error",JSON.stringify(e)),n(e)},o,"launchSNSMobileSDK",[e.sdkConf])):n(new Error("Access token is required"))})},c.prototype.withAccessToken=function(e,t){if(this.accessToken=e,!t||"function"!=typeof t)throw new Error('Invalid parameter, "expirationHandler" must be a function');return this.tokenExpirationHandler=t,this},c.prototype.withHandlers=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withHandlers" expects a hash');return Object.keys(i).forEach(t=>{var n=e[t];if(n){if("function"!=typeof n)throw new Error('Invalid handler, "'+t+'" must be a function');this.handlers[t]=n}}),this},c.prototype.withDebug=function(e){if("boolean"!=typeof e)throw new Error('Invalid parameter, "withDebug" expects a boolean');return this.debug=e,this},c.prototype.withAnalyticsEnabled=function(e){if("boolean"!=typeof e)throw new Error('Invalid parameter, "withAnalyticsEnabled" expects a boolean');return this.isAnalyticsEnabled=e,this},c.prototype.withLocale=function(e){if("string"!=typeof e)throw new Error('Invalid parameter, "locale" must be a string');return this.locale=e,this},c.prototype.withApplicantConf=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withApplicantConf" expects a hash');return this.applicantConf=e,this},c.prototype.withPreferredDocumentDefinitions=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withPreferredDocumentDefinitions" expects a hash');return this.preferredDocumentDefinitions=e,this},c.prototype.withSettings=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withSettings" expects a hash');return this.settings=e,this},c.prototype.withStrings=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withStrings" expects a hash');return this.strings=e,this},c.prototype.withTheme=function(e){if(!e||"object"!=typeof e)throw new Error('Invalid parameter, "withTheme" expects a hash');return this.theme=e,this},c.prototype.withBaseUrl=function(e){if("string"!=typeof e)throw new Error('Invalid parameter, "baseUrl" must be a string');return this.apiUrl=e,this},c.prototype.withAutoCloseOnApprove=function(e){if("number"!=typeof e)throw new Error('Invalid parameter, "autoCloseOnApprove" expects a number');return this.autoCloseOnApprove=e,this},c.prototype.build=function(){var e={};return Object.keys(this.handlers).forEach(t=>{e[t]=!0}),new a({apiUrl:this.apiUrl,accessToken:this.accessToken,tokenExpirationHandler:this.tokenExpirationHandler,handlers:this.handlers,hasHandlers:e,locale:this.locale,applicantConf:this.applicantConf,preferredDocumentDefinitions:this.preferredDocumentDefinitions,settings:this.settings,theme:this.theme,strings:this.strings,isAnalyticsEnabled:this.isAnalyticsEnabled,autoCloseOnApprove:this.autoCloseOnApprove,debug:this.debug})},e.exports={init:function(e,t){return(new c).withAccessToken(e,t)},getNewAccessToken:function(){s&&s.getNewAccessToken()},sendEvent:function(e,t){s&&s.sendEvent(e,t)},reset:function(){s=null}}}},n={},function e(r){var o=n[r];if(void 0!==o)return o.exports;var i=n[r]={exports:{}};return t[r](i,i.exports,e),i.exports}(846);var t,n});
+\ No newline at end of file
+diff --git a/src/android/src/main/java/com/sumsub/msdk/plugins/cordova/SNSMobileSdkCordovaPlugin.java b/src/android/src/main/java/com/sumsub/msdk/plugins/cordova/SNSMobileSdkCordovaPlugin.java
+index a8cacc5a04b23f882cbad73ff052a997ec29c4d8..f4b7339d2347cf215bde612a05ce1b8b1245bd00 100644
+--- a/src/android/src/main/java/com/sumsub/msdk/plugins/cordova/SNSMobileSdkCordovaPlugin.java
++++ b/src/android/src/main/java/com/sumsub/msdk/plugins/cordova/SNSMobileSdkCordovaPlugin.java
+@@ -19,13 +19,18 @@ import com.sumsub.sns.core.data.model.*;
+ import com.sumsub.sns.core.theme.SNSCustomizationFileFormat;
+ import com.sumsub.sns.core.SNSProoface;
+ 
++import com.sumsub.log.logger.Logger;
++
+ import org.apache.cordova.CallbackContext;
+ import org.apache.cordova.CordovaPlugin;
+ import org.json.JSONArray;
+ import org.json.JSONException;
+ import org.json.JSONObject;
+ 
++import java.lang.reflect.Field;
++import java.lang.reflect.Modifier;
+ import java.util.*;
++import java.util.concurrent.CopyOnWriteArrayList;
+ 
+ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+     private static final String LAUNCH_ACTION = "launchSNSMobileSDK";
+@@ -36,10 +41,140 @@ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+ 
+     private static volatile String newAccessToken = null;
+     private static SNSMobileSDK.SDK snsSdk;
++    private static final ErrorRecorder errorRecorder = new ErrorRecorder();
++
++    /*
++     * SDK 1.46.0 never calls SNSErrorHandler, and it hands its logs to
++     * withLogTree() only in debug mode. So an abnormal close reached JS as a bare
++     * message ("Verification step. Error building state") with the cause lost.
++     * This records the SDK's own error logs and returns the last one with a
++     * failed result. Attaching uses reflection on the SDK's internal logger list
++     * (its R8 rules keep com.sumsub names); if that changes, it logs and no-ops.
++     */
++    static final class ErrorRecorder implements Logger {
++        private static final int MAX_CAUSES = 6;
++        private static final int MAX_TEXT = 300;
++        private static final int MAX_RECENT = 3;
++
++        private final ArrayDeque<JSONObject> recent = new ArrayDeque<>();
++
++        synchronized void reset() {
++            recent.clear();
++        }
++
++        @SuppressWarnings("unchecked")
++        void attach() {
++            try {
++                Class<?> logs = Class.forName("com.sumsub.sns.internal.log.c");
++                for (Field holderField : logs.getDeclaredFields()) {
++                    if (!Modifier.isStatic(holderField.getModifiers())) continue;
++                    holderField.setAccessible(true);
++                    Object holder = holderField.get(null);
++                    if (!(holder instanceof Logger)) continue;
++                    for (Field listField : holder.getClass().getDeclaredFields()) {
++                        if (listField.getType() != CopyOnWriteArrayList.class) continue;
++                        listField.setAccessible(true);
++                        Object list = listField.get(holder);
++                        if (list == null) continue;
++                        ((CopyOnWriteArrayList<Object>) list).addIfAbsent(this);
++                        return;
++                    }
++                }
++                Log.w(TAG, "Sumsub logger list not found; SDK errors will not be reported");
++            } catch (Throwable t) {
++                Log.w(TAG, "Could not attach the Sumsub error recorder", t);
++            }
++        }
++
++        void record(String source, String message, Throwable error) {
++            try {
++                JSONObject detail = new JSONObject();
++                detail.put("source", truncate(source));
++                detail.put("message", truncate(message));
++                detail.put("recordedAt", System.currentTimeMillis());
++                JSONArray causes = new JSONArray();
++                StringBuilder chain = new StringBuilder();
++                Throwable cause = error;
++                for (int i = 0; cause != null && i < MAX_CAUSES; i++, cause = cause.getCause()) {
++                    causes.put(cause.getClass().getName());
++                    if (chain.length() > 0) chain.append(" <- ");
++                    chain.append(cause.getClass().getName());
++                    if (cause.getMessage() != null) chain.append(": ").append(cause.getMessage());
++                    if (cause instanceof SNSException.Api) {
++                        SNSException.Api api = (SNSException.Api) cause;
++                        detail.putOpt("httpCode", api.getCode());
++                        detail.putOpt("errorCode", api.getErrorCode());
++                        detail.putOpt("errorName", api.getErrorName());
++                        detail.putOpt("correlationId", api.getCorrelationId());
++                    }
++                }
++                detail.put("causes", causes);
++                detail.put("chain", truncate(chain.toString()));
++                synchronized (this) {
++                    if (recent.size() == MAX_RECENT) recent.removeFirst();
++                    recent.addLast(detail);
++                }
++            } catch (Throwable ignored) {
++            }
++        }
++
++        /** The newest recorded error, with up to two earlier ones under "earlier". */
++        JSONObject snapshot(Throwable fallback) {
++            List<JSONObject> entries;
++            synchronized (this) {
++                entries = new ArrayList<>(recent);
++            }
++            if (entries.isEmpty()) {
++                if (fallback == null) return null;
++                record("AbnormalTermination", null, fallback);
++                synchronized (this) {
++                    entries = new ArrayList<>(recent);
++                }
++                if (entries.isEmpty()) return null;
++            }
++            try {
++                long now = System.currentTimeMillis();
++                JSONObject newest = withAge(entries.get(entries.size() - 1), now);
++                JSONArray earlier = new JSONArray();
++                for (int i = entries.size() - 2; i >= 0; i--) earlier.put(withAge(entries.get(i), now));
++                if (earlier.length() > 0) newest.put("earlier", earlier);
++                return newest;
++            } catch (JSONException e) {
++                return null;
++            }
++        }
++
++        private static JSONObject withAge(JSONObject entry, long now) throws JSONException {
++            return new JSONObject(entry.toString()).put("ageMs", now - entry.optLong("recordedAt"));
++        }
++
++        private static String truncate(String text) {
++            if (text == null) return null;
++            return text.length() > MAX_TEXT ? text.substring(0, MAX_TEXT) : text;
++        }
++
++        @Override
++        public void e(String tag, String message, Throwable error) {
++            record(tag, message, error);
++        }
++
++        @Override
++        public void w(String tag, String message, Throwable error) {}
++
++        @Override
++        public void d(String tag, String message, Throwable error) {}
++
++        @Override
++        public void i(String tag, String message, Throwable error) {}
++
++        @Override
++        public void v(String tag, String message, Throwable error) {}
++    }
+ 
+     @Override
+     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+-        Log.d(TAG, "execute: " + action + " args: " + args);
++        // args carry the access token and applicant email/phone: never log them.
++        Log.d(TAG, "execute: " + action);
+         if (action.equals(LAUNCH_ACTION)) {
+             if (args.isNull(0)) {
+                 callbackContext.error("Error: SDK Config object must be provided");
+@@ -78,7 +213,7 @@ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+             cordova.getActivity().runOnUiThread(new Runnable() {
+                 @Override
+                 public void run() {
+-                    snsSdk.dismiss();
++                    if (snsSdk != null) snsSdk.dismiss();
+                 }
+             });
+             return true;
+@@ -130,7 +265,7 @@ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+             @Override
+             public void run() {
+                 try {
+-                    final SNSErrorHandler errorHandler = e -> Log.d(TAG, Log.getStackTraceString(e));
++                    final SNSErrorHandler errorHandler = e -> errorRecorder.record("SNSErrorHandler", null, e);
+ 
+                     final SNSStateChangedHandler stateChangedHandler = (oldState, newState) -> {
+                         final String newStatus = newState.getClass().getSimpleName();
+@@ -250,7 +385,7 @@ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+                                         return null;
+                                     }
+                                 }
+-                                Log.d(TAG, "SumSub: Received new token: " + newAccessToken + ' ' + Thread.currentThread().getName());
++                                Log.d(TAG, "SumSub: Received new token on " + Thread.currentThread().getName());
+                                 return newAccessToken;
+                             })
+                             .withDebug(isDebug)
+@@ -265,7 +400,10 @@ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+                             .withConf(new SNSInitConfig(email, phone, strings != null ? toMap(strings) : null))
+                             .withAutoCloseOnApprove(autoCloseOnApprove)
+                             .build();
++                    errorRecorder.reset();
++                    // launch() resets the SDK's logger list, so attach after it.
+                     snsSdk.launch();
++                    errorRecorder.attach();
+                 } catch (Exception e) {
+                     Log.e(TAG, "Exception: " + e);
+                     callbackContext.error("Error:" + e.getMessage());
+@@ -287,11 +425,14 @@ public class SNSMobileSdkCordovaPlugin extends CordovaPlugin {
+         } else if (snsCompletionResult instanceof SNSCompletionResult.AbnormalTermination) {
+             SNSCompletionResult.AbnormalTermination abnormalTermination = (SNSCompletionResult.AbnormalTermination) snsCompletionResult;
+             String message = abnormalTermination.getException() != null ? abnormalTermination.getException().getMessage() : null;
+-            if (snssdkState instanceof SNSSDKState.Failed) {
+-                callbackContext.success(getResult(false, snssdkState, message, snssdkState.getClass().getSimpleName()));
+-            } else {
+-                callbackContext.success(getResult(false, new SNSSDKState.Failed.Unknown(new Exception()), message, "Unknown"));
++            JSONObject result = snssdkState instanceof SNSSDKState.Failed
++                    ? getResult(false, snssdkState, message, snssdkState.getClass().getSimpleName())
++                    : getResult(false, new SNSSDKState.Failed.Unknown(new Exception()), message, "Unknown");
++            try {
++                result.putOpt("errorDetail", errorRecorder.snapshot(abnormalTermination.getException()));
++            } catch (JSONException ignored) {
+             }
++            callbackContext.success(result);
+         } else {
+             callbackContext.error("Unknown completion result: " + snsCompletionResult.getClass().getName());
+         }

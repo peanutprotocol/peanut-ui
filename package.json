@@ -268,7 +268,8 @@
         "patchedDependencies": {
             "@capgo/capacitor-passkey@8.2.2": "patches/@capgo__capacitor-passkey.patch",
             "@capacitor/clipboard": "patches/@capacitor__clipboard.patch",
-            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
+            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch",
+            "@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1": "patches/@sumsub__cordova-idensic-mobile-sdk-plugin@1.46.1.patch"
         }
     },
     "size-limit": [
