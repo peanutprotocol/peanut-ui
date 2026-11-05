@@ -1254,7 +1254,7 @@
         }
     },
     "history": {
-        "errorDescription": "Contactá a soporte.",
+        "errorDescription": "Revisá tu conexión e intentá de nuevo.",
         "empty": "Aún no hay transacciones"
     },
     "statements": {

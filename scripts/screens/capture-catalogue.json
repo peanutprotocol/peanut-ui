@@ -389,22 +389,12 @@
         "route": "/limits/manteca"
     },
     {
-        "id": "fixture-paperwork-verification-state-choice-missing",
+        "id": "fixture-paperwork-verification-us-address",
         "flow": "Home and shared states",
         "route": "/verify?step=address"
     },
     {
-        "id": "fixture-paperwork-verification-state-choice-selected",
-        "flow": "Home and shared states",
-        "route": "/verify?step=address"
-    },
-    {
-        "id": "fixture-paperwork-verification-state-select-missing",
-        "flow": "Home and shared states",
-        "route": "/verify?step=address"
-    },
-    {
-        "id": "fixture-paperwork-verification-state-select-selected",
+        "id": "fixture-paperwork-verification-us-address-filled",
         "flow": "Home and shared states",
         "route": "/verify?step=address"
     },
