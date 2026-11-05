@@ -1288,7 +1288,7 @@
         },
         "deposit": {
             "youGet": "Recibís ≈ {amount}",
-            "returnedBody": "El Pix volvió a la cuenta de origen. Pagá desde una cuenta con tu CPF."
+            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF."
         },
         "withdraw": {
             "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",
