@@ -16,6 +16,8 @@ export function BrazilPixWithdraw({
 }) {
     const { path, rail } = useAveniaPixPath()
     if (path === 'loading') return <Loading variant="mascot" />
+    // the Avenia kill switch: the same provider-outage screen as Manteca's
+    if (path === 'paused') return <MantecaTransfersMaintenanceView action="withdrawals" />
     if (path === 'avenia') return <AveniaWithdrawFlow rail={rail} />
     // a Manteca outage closes Manteca's withdrawals only
     if (mantecaUnavailable) return <MantecaTransfersMaintenanceView action="withdrawals" />

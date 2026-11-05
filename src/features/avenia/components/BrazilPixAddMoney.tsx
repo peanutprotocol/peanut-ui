@@ -16,6 +16,8 @@ export function BrazilPixAddMoney({
 }) {
     const { path, rail } = useAveniaPixPath()
     if (path === 'loading') return <Loading variant="mascot" />
+    // the Avenia kill switch: the same provider-outage screen as Manteca's
+    if (path === 'paused') return <MantecaTransfersMaintenanceView action="deposits" />
     if (path === 'avenia') return <AveniaAddMoneyFlow searchParams={searchParams} rail={rail} />
     // a Manteca outage closes Manteca's deposits only
     if (mantecaUnavailable) return <MantecaTransfersMaintenanceView action="deposits" />

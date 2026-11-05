@@ -12,10 +12,11 @@ import {
     pixKeyVerdict,
     toApiDecimal,
 } from '../avenia.utils'
+import { aveniaRouteState } from '../aveniaAvailability'
 import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
 import type { RailCapability } from '@/types/capabilities'
 
-const rail = (status: RailCapability['status']): RailCapability => ({
+const rail = (status: RailCapability['status'], extra: Partial<RailCapability> = {}): RailCapability => ({
     id: 'avenia.pix_br',
     provider: 'avenia',
     method: 'PIX_BR',
@@ -23,6 +24,15 @@ const rail = (status: RailCapability['status']): RailCapability => ({
     country: 'BR',
     currency: 'BRL',
     status,
+    ...extra,
+})
+// PR B's resolver: the rollout gate and the kill switch block the rail with no action to take
+const closedRail = rail('blocked', { reason: { code: 'avenia_not_available', userMessage: 'Not available yet.' } })
+const pausedRail = rail('blocked', { reason: { code: 'avenia_paused', userMessage: 'Paused.' } })
+// a failure on our side: the same code, with a contact-support action
+const supportRail = rail('blocked', {
+    reason: { code: 'avenia_not_available', userMessage: 'Not available yet.' },
+    blockingActions: ['contact-support:avenia-kyc'],
 })
 
 describe('brazilPixPath', () => {
@@ -47,6 +57,13 @@ describe('brazilPixPath', () => {
     it("offers Avenia's first use to a verified Brazilian resident", () => {
         expect(brazilPixPath(base)).toBe('avenia')
         expect(brazilPixPath({ ...base, verifiedResidence: 'br' })).toBe('avenia')
+    })
+
+    it("keeps Manteca behind Avenia's rollout gate, and pauses with its kill switch", () => {
+        expect(brazilPixPath({ ...base, aveniaRail: closedRail })).toBe('manteca')
+        expect(brazilPixPath({ ...base, aveniaRail: pausedRail })).toBe('paused')
+        // support lifts a failure on our side: the Avenia setup step shows it
+        expect(brazilPixPath({ ...base, aveniaRail: supportRail })).toBe('avenia')
     })
 
     it('keeps Manteca for anyone else, and after the API refused Avenia this session', () => {
@@ -136,11 +153,19 @@ describe('pixKeyVerdict', () => {
 })
 
 describe('aveniaWithdrawAmount', () => {
+    const none = { amountUsd: '', amountBrl: '', spendUsd: '' }
+
     it('sends reais when the user typed reais, else USD, never both', () => {
-        expect(aveniaWithdrawAmount({ amountUsd: '92.5', amountBrl: '503' })).toEqual({ amountBrl: '503' })
-        expect(aveniaWithdrawAmount({ amountUsd: '92.5', amountBrl: '' })).toEqual({ amountUsd: '92.5' })
-        expect(aveniaWithdrawAmount({ amountUsd: '', amountBrl: '' })).toBeNull()
-        expect(aveniaWithdrawAmount({ amountUsd: '0', amountBrl: '0.00' })).toBeNull()
+        expect(aveniaWithdrawAmount({ ...none, amountUsd: '92.5', amountBrl: '503' })).toEqual({ amountBrl: '503' })
+        expect(aveniaWithdrawAmount({ ...none, amountUsd: '92.5' })).toEqual({ amountUsd: '92.5' })
+        expect(aveniaWithdrawAmount(none)).toBeNull()
+        expect(aveniaWithdrawAmount({ ...none, amountUsd: '0', amountBrl: '0.00' })).toBeNull()
+    })
+
+    it('sends the balance as what leaves the wallet when the user tapped it', () => {
+        expect(aveniaWithdrawAmount({ ...none, spendUsd: '120.123456' })).toEqual({ spendUsd: '120.123456' })
+        expect(aveniaWithdrawAmount({ ...none, spendUsd: '120.1234567' })).toEqual({ spendUsd: '120.123456' })
+        expect(aveniaWithdrawAmount({ ...none, spendUsd: '0' })).toBeNull()
     })
 })
 
@@ -175,6 +200,9 @@ describe('aveniaWithdrawRefusalKey', () => {
         expect(aveniaWithdrawRefusalKey('AVENIA_TICKET_WINDOW_SHORT')).toBe('withdraw.errors.quoteExpired')
         expect(aveniaWithdrawRefusalKey('PIX_KEY_NOT_OWN')).toBe('withdraw.keyNotOwn')
         expect(aveniaWithdrawRefusalKey('PIX_KEY_BLOCKED')).toBe('withdraw.keyBlocked')
+        expect(aveniaWithdrawRefusalKey('PIX_KEY_NOT_FOUND')).toBe('pixKeyNotFound')
+        expect(aveniaWithdrawRefusalKey('AVENIA_QUOTE_CHANGED')).toBe('withdraw.errors.quoteChanged')
+        expect(aveniaWithdrawRefusalKey('PIX_MIN_AMOUNT')).toBe('minimum')
         expect(aveniaWithdrawRefusalKey('PROVIDER_REJECTED')).toBe('providerRejected')
         expect(aveniaWithdrawRefusalKey('PROVIDER_UNAVAILABLE')).toBe('unavailable')
         expect(aveniaWithdrawRefusalKey(undefined)).toBe('unavailable')
@@ -203,5 +231,19 @@ describe('signMatchesDisplay', () => {
         expect(signMatchesDisplay(display, { payAmount: '92.50431', payAmountUnits: '92504311' })).toBe(false)
         expect(signMatchesDisplay(display, { payAmount: '95', payAmountUnits: '92504310' })).toBe(false)
         expect(signMatchesDisplay(display, { payAmount: 'x', payAmountUnits: 'y' })).toBe(false)
+    })
+})
+
+describe('aveniaRouteState', () => {
+    it('reads the rollout gate and the kill switch off a blocked Avenia rail only', () => {
+        expect(aveniaRouteState(closedRail)).toBe('closed')
+        expect(aveniaRouteState(pausedRail)).toBe('paused')
+        expect(aveniaRouteState(supportRail)).toBe('open')
+        expect(aveniaRouteState(rail('blocked', { reason: { code: 'avenia_kyc_rejected', userMessage: '' } }))).toBe(
+            'open'
+        )
+        expect(aveniaRouteState(rail('enabled'))).toBe('open')
+        expect(aveniaRouteState({ ...closedRail, provider: 'manteca' })).toBe('open')
+        expect(aveniaRouteState(undefined)).toBe('open')
     })
 })

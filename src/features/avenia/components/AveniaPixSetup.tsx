@@ -12,12 +12,16 @@ import NavHeader from '@/components/Global/NavHeader'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { PROVIDERS } from '@/constants/providers.consts'
+import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { aveniaSetupState } from '@/features/avenia/avenia.utils'
 import { useAveniaKycStart } from '@/features/avenia/hooks/useAveniaKycStart'
 import type { RailCapability } from '@/types/capabilities'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 
 const AVENIA = PROVIDERS['avenia-br']
+/** Avenia's own verdict on the identity. Any other blocked rail is a failure on our side that support lifts. */
+const AVENIA_KYC_REJECTED_REASON = 'avenia_kyc_rejected'
 
 /**
  * Avenia's first use for a Brazilian resident: name Avenia and its terms,
@@ -37,7 +41,8 @@ export function AveniaPixSetup({
     const t = useTranslations('avenia.setup')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { openSupportWithMessage } = useModalsContext()
+    const { user } = useAuth()
     const state = aveniaSetupState(rail)
     const kyc = useAveniaKycStart({ railEnabled: state === 'ready' })
 
@@ -45,9 +50,18 @@ export function AveniaPixSetup({
         return (
             <MantecaAccountUnavailable
                 title={title}
-                description={t('rejected')}
+                description={t(rail?.reason?.code === AVENIA_KYC_REJECTED_REASON ? 'rejected' : 'notAvailable')}
                 onBack={onBack}
-                onSupport={() => setIsSupportModalOpen(true)}
+                // the rail's reason and id tell support which case this is (the contact-support action)
+                onSupport={() =>
+                    openSupportWithMessage(
+                        buildContactSupportMessage({
+                            reason: rail?.reason,
+                            railId: rail?.id,
+                            userId: user?.user?.userId,
+                        })
+                    )
+                }
             />
         )
     }

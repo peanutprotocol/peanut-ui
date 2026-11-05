@@ -26,6 +26,7 @@ import type {
 } from '@/types/capabilities'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { entryAction, isUnmappedEntry, reportEntry, VERIFY_ACTION } from '@/features/kyc-features/report'
+import { aveniaRouteState } from '@/features/avenia/aveniaAvailability'
 
 /**
  * A non-blocking advisory pre-empt riding on a `ready` gate. An ENABLED rail can
@@ -496,10 +497,10 @@ function dueBridgeHostedAction(state: CapabilityState, actionByKey: Map<string, 
  */
 function deriveGateFromRails(state: CapabilityState, op: RailOperation, scope: GateScope): GateState {
     const actionByKey = new Map(state.nextActions.map((action) => [action.key, action]))
-    const candidates: RailWithVerdict[] = filterRailsByScope(state.rails, scope).map((rail) => ({
-        rail,
-        verdict: railVerdict(rail, actionByKey),
-    }))
+    // An Avenia rail its rollout gate or kill switch closed is no verification state: the Brazil Pix flow shows it.
+    const candidates: RailWithVerdict[] = filterRailsByScope(state.rails, scope)
+        .filter((rail) => aveniaRouteState(rail) === 'open')
+        .map((rail) => ({ rail, verdict: railVerdict(rail, actionByKey) }))
 
     // 2. ready — per-op refinement wins over rail-level status.
     const readyRails = candidates.filter(({ rail }) => operationStatus(rail, op) === 'enabled')

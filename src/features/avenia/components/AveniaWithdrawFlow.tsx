@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
+import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -18,15 +19,16 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
+    AVENIA_MIN_WITHDRAWAL_BRL,
     AVENIA_WITHDRAW_STEPS,
     aveniaSetupState,
     aveniaWithdrawAmount,
-    aveniaWithdrawRefusalKey,
     completePixKey,
 } from '@/features/avenia/avenia.utils'
 import { AveniaPixKeyStep } from '@/features/avenia/components/AveniaPixKeyStep'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
 import { AveniaWithdrawReview } from '@/features/avenia/components/AveniaWithdrawReview'
+import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
 import { useAveniaWithdrawSubmit } from '@/features/avenia/hooks/useAveniaWithdrawSubmit'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
@@ -36,8 +38,8 @@ import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { aveniaApi } from '@/services/avenia'
-import { wireErrorCode } from '@/services/api-error'
 import type { RailCapability } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
@@ -45,12 +47,14 @@ import { formatBankAmount } from '@/utils/currency'
 /**
  * Withdraw by Pix for a Brazilian resident on Avenia: the own Pix key, the
  * amount, the review, then the signature. The key and the amount live in the
- * URL (`?destination=`, `?amount=` in USD or `?destinationAmount=` in reais),
- * so a refresh keeps the step; nothing is opened at Avenia before Confirm.
+ * URL (`?destination=`, `?amount=` in USD, `?destinationAmount=` in reais or
+ * `?spend=` for the whole balance), so a refresh keeps the step; nothing is
+ * opened at Avenia before Confirm.
  */
 export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined }) {
     const t = useTranslations('avenia.withdraw')
     const tShared = useTranslations('avenia')
+    const refusalMessage = useAveniaRefusalMessage()
     const tWithdraw = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -65,8 +69,10 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
     const [destination, setDestination] = useQueryState('destination', parseAsString.withDefault(''))
     const [amountUsd, setAmountUsd] = useWithdrawAmount()
     const [amountBrl, setAmountBrl] = useWithdrawDestinationAmount()
+    // "Use balance": the USDC that leaves the wallet, Rhino's fee included, so the whole balance can go
+    const [spendUsd, setSpendUsd] = useQueryState('spend', parseAsString.withDefault(''))
     const pixKey = completePixKey(destination)
-    const amount = aveniaWithdrawAmount({ amountUsd, amountBrl })
+    const amount = aveniaWithdrawAmount({ amountUsd, amountBrl, spendUsd })
     const submit = useAveniaWithdrawSubmit()
 
     const stepper = useFlowStepper({
@@ -105,12 +111,14 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
     const brl = useCurrency('BRL')
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
     const [typedUsd, setTypedUsd] = useState<string | undefined>(undefined)
-    const [enteredIn, setEnteredIn] = useState<'local' | 'usd'>(amountBrl ? 'local' : 'usd')
+    const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
+        amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'
+    )
     const seedBrl = useMemo(() => {
         if (amountBrl) return amountBrl
-        const usd = Number(amountUsd)
+        const usd = Number(spendUsd || amountUsd)
         return usd > 0 && brl.price ? (usd * brl.price.sell).toFixed(2) : undefined
-    }, [amountBrl, amountUsd, brl.price])
+    }, [amountBrl, amountUsd, spendUsd, brl.price])
 
     if (aveniaSetupState(rail) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} rail={rail} />
 
@@ -171,6 +179,13 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
             usdForBalance && Number(usdForBalance) > 0 && !isAmountWithinBalance(usdForBalance, spendableBalance)
                 ? tErrors('insufficientBalance')
                 : undefined
+        // the reais the field shows, typed or converted; the API checks the credited amount again
+        const belowMinimum = Number(typedBrl) > 0 && Number(typedBrl) < AVENIA_MIN_WITHDRAWAL_BRL
+        const amountError =
+            balanceError ??
+            (belowMinimum
+                ? tShared('deposit.minimum', { amount: formatBankAmount(AVENIA_MIN_WITHDRAWAL_BRL, 'BRL') })
+                : undefined)
         return (
             <PageStack>
                 <NavHeader title={title} onPrev={() => void stepper.goTo('pix-key')} />
@@ -179,14 +194,14 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
                     {brl.isLoading || !brl.price ? (
                         <Loading />
                     ) : (
-                        <Field error={balanceError}>
+                        <Field error={amountError}>
                             <AmountInput
                                 initialAmount={seedBrl}
                                 setPrimaryAmount={setTypedBrl}
                                 setSecondaryAmount={setTypedUsd}
                                 primaryDenomination={{ symbol: 'BRL', price: brl.price.sell, decimals: 2 }}
                                 secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
-                                onBalanceFilled={() => setEnteredIn('usd')}
+                                onBalanceFilled={() => setEnteredIn('balance')}
                                 onAmountTyped={(symbol) =>
                                     setEnteredIn(symbol.toUpperCase() === 'USD' ? 'usd' : 'local')
                                 }
@@ -202,21 +217,22 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
                     <Button
                         variant="primary"
                         className="w-full"
-                        disabled={!Number(typedUsd) || !!balanceError}
+                        disabled={!Number(typedUsd) || !!amountError}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
                                 amount_usd: typedUsd,
                                 method_type: 'avenia',
                                 country: 'brazil',
                             })
-                            // the API takes one amount: the one the user typed
-                            if (enteredIn === 'local' && typedBrl) {
-                                void setAmountBrl(typedBrl)
-                                void setAmountUsd(null)
-                            } else {
-                                void setAmountUsd(typedUsd ?? null)
-                                void setAmountBrl(null)
-                            }
+                            // the API takes one amount: the one the user typed, or the balance they tapped
+                            const balanceUsd =
+                                enteredIn === 'balance' && spendableBalance !== undefined
+                                    ? formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS)
+                                    : null
+                            const typedLocal = enteredIn === 'local' && typedBrl ? typedBrl : null
+                            void setSpendUsd(balanceUsd)
+                            void setAmountBrl(balanceUsd ? null : typedLocal)
+                            void setAmountUsd(balanceUsd || typedLocal ? null : (typedUsd ?? null))
                             void stepper.goTo('review')
                         }}
                     >
@@ -235,17 +251,12 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         ? // once Avenia's ticket is open, a second Confirm could pay twice: no retry here
           { message: submit.lockedAfterInit ? `${submit.error} ${t('errors.afterInit')}` : submit.error }
         : preview.error
-          ? { message: previewErrorMessage(preview.error), onRetry: () => void preview.refetch() }
+          ? { message: refusalMessage(preview.error), onRetry: () => void preview.refetch() }
           : fundsShort
             ? { message: tErrors('insufficientBalance') }
             : reconfirm
               ? { message: t('quoteMoved'), priority: 'attention' as const }
               : null
-
-    function previewErrorMessage(error: unknown): string {
-        const key = aveniaWithdrawRefusalKey(wireErrorCode(error))
-        return key === 'providerRejected' ? tErrors(key) : tShared(key)
-    }
 
     return (
         <AveniaWithdrawReview

@@ -25,8 +25,12 @@ export type AveniaWithdrawDisplay = Json<paths['/avenia/withdraw/preview']['post
 export type AveniaWithdrawInit = Json<paths['/avenia/withdraw/init']['post']['responses'][200]>
 export type AveniaWithdrawSign = AveniaWithdrawInit['sign']
 
-/** One amount, never both: reais to credit, or USDC to convert. */
-export type AveniaWithdrawRequest = { pixKey: string } & ({ amountBrl: string } | { amountUsd: string })
+/** One amount: reais to credit, USDC to convert, or USDC to leave the wallet with Rhino's fee (`spendUsd`, "Use balance"). */
+export type AveniaWithdrawRequest = { pixKey: string } & (
+    | { amountBrl: string }
+    | { amountUsd: string }
+    | { spendUsd: string }
+)
 
 async function call<T>(path: string, init: RequestInit, fallbackMessage: string): Promise<T> {
     const response = await apiFetch(path, init)

@@ -16,7 +16,8 @@ import {
     type AveniaWithdrawSign,
 } from '@/services/avenia'
 import { wireErrorCode } from '@/services/api-error'
-import { aveniaWithdrawRefusalKey, quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
+import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
+import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
@@ -64,7 +65,7 @@ export interface AveniaWithdrawSubmit {
  */
 export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
     const tShared = useTranslations('avenia')
-    const tErrors = useTranslations('errors')
+    const initError = useAveniaRefusalMessage()
     const toFriendlyError = useFriendlyError()
     const queryClient = useQueryClient()
     const { sendTransactions } = useWallet()
@@ -72,14 +73,6 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
     const [opened, setOpened] = useState<OpenedWithdrawal | null>(null)
     const [error, setError] = useState<string | null>(null)
     const busyRef = useRef(false)
-
-    const initError = useCallback(
-        (caught: unknown): string => {
-            const key = aveniaWithdrawRefusalKey(wireErrorCode(caught))
-            return key === 'providerRejected' ? tErrors(key) : tShared(key)
-        },
-        [tShared, tErrors]
-    )
 
     const sign = useCallback(
         async ({ intentId, sign: request }: OpenedWithdrawal) => {

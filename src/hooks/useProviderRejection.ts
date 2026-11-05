@@ -10,6 +10,7 @@ import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
 import { type BlockedCardKind, blockedCardCtaId } from '@/utils/home-carousel.utils'
 import { type OnboardingState, canAlreadyTransact as canTransactOn } from '@/utils/activation-step.utils'
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import { aveniaRouteState } from '@/features/avenia/aveniaAvailability'
 import { useMemo } from 'react'
 
 /** dismissal-key code for a final ID-check decision the API gave no reason code for */
@@ -54,7 +55,8 @@ export function useProviderRejection(onboarding: OnboardingState) {
     } = useMemo(() => {
         const rejectableRails = rails.filter((rail) => {
             const channel = channelOf(rail)
-            return channel === 'bank' || channel === 'qr-only'
+            // a rollout gate or kill switch is not a rejection (aveniaRouteState)
+            return (channel === 'bank' || channel === 'qr-only') && aveniaRouteState(rail) === 'open'
         })
         // Verdict-first via the shared railVerdict collapse (rail.resolved,
         // BE-derived; legacy fallback for older/cached responses).

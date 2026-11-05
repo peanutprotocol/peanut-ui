@@ -3,6 +3,7 @@ import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdra
 import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/services/avenia'
 import type { RailCapability } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
+import { aveniaRouteState } from '@/features/avenia/aveniaAvailability'
 
 /** The Avenia rail of a Brazilian resident: Pix deposits and withdrawals (no QR pay before reliance). */
 export const AVENIA_PIX_RAIL_ID = 'avenia.pix_br'
@@ -10,16 +11,20 @@ export const AVENIA_PIX_RAIL_ID = 'avenia.pix_br'
 /** R$0.75 fixed on R$10 is 7.5%, so Avenia deposits start at R$20 (plan H2). The eligibility route has the live value. */
 export const AVENIA_MIN_DEPOSIT_BRL = 20
 
-export type BrazilPixPath = 'loading' | 'avenia' | 'manteca'
+/** PR B refuses a withdrawal that credits less (`PIX_MIN_AMOUNT`, `AVENIA_MIN_WITHDRAWAL_BRL` in its rules). No route sends it. */
+export const AVENIA_MIN_WITHDRAWAL_BRL = 20
+
+export type BrazilPixPath = 'loading' | 'avenia' | 'paused' | 'manteca'
 
 /**
  * Which provider serves a Brazilian Pix deposit or withdrawal for this user.
  *
- * A user who holds the Avenia rail (in any state) uses Avenia. A verified
- * Brazilian resident without it is offered Avenia's first use; the API's
- * rollout gate answers on that step, and a refusal sends the user to the
- * Manteca flow for the rest of the session (`unavailable`). Everyone else
- * keeps the Manteca flow.
+ * A user who holds the Avenia rail uses Avenia, unless the rollout gate closes
+ * it (the Manteca flow, as for a refused first use) or the Avenia kill switch
+ * pauses it (`paused`). A verified Brazilian resident without the rail is
+ * offered Avenia's first use; the API's rollout gate answers on that step, and
+ * a refusal sends the user to the Manteca flow for the rest of the session
+ * (`unavailable`). Everyone else keeps the Manteca flow.
  */
 export function brazilPixPath({
     isLoading,
@@ -35,7 +40,11 @@ export function brazilPixPath({
     unavailable: boolean
 }): BrazilPixPath {
     if (isLoading) return 'loading'
-    if (aveniaRail) return 'avenia'
+    if (aveniaRail) {
+        const route = aveniaRouteState(aveniaRail)
+        if (route === 'paused') return 'paused'
+        return route === 'closed' ? 'manteca' : 'avenia'
+    }
     if (unavailable) return 'manteca'
     return identityVerified && verifiedResidence?.toUpperCase() === 'BR' ? 'avenia' : 'manteca'
 }
@@ -98,16 +107,24 @@ export function pixKeyVerdict(info: PixKeyInfo): PixKeyVerdict {
     return info.ownAccount ? 'own' : 'not-own'
 }
 
-/** One amount reaches the API: reais when the user typed reais, else USD. */
+/**
+ * One amount reaches the API: reais when the user typed reais, the balance
+ * when they tapped it (`spendUsd`: what leaves the wallet, Rhino's fee
+ * included, so the whole balance can go), else USD.
+ */
 export function aveniaWithdrawAmount({
     amountUsd,
     amountBrl,
+    spendUsd,
 }: {
     amountUsd: string
     amountBrl: string
-}): { amountBrl: string } | { amountUsd: string } | null {
+    spendUsd: string
+}): { amountBrl: string } | { spendUsd: string } | { amountUsd: string } | null {
     const brl = toApiDecimal(amountBrl, 2)
     if (brl) return { amountBrl: brl }
+    const spend = toApiDecimal(spendUsd, 6)
+    if (spend) return { spendUsd: spend }
     const usd = toApiDecimal(amountUsd, 6)
     return usd ? { amountUsd: usd } : null
 }
@@ -131,17 +148,24 @@ export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
 export const AVENIA_WITHDRAW_STEPS = ['pix-key', 'amount', 'review', 'success'] as const
 export type AveniaWithdrawStep = (typeof AVENIA_WITHDRAW_STEPS)[number]
 
-/** The `avenia` catalog key that explains a refused withdrawal preview or init, by wire code. */
-export function aveniaWithdrawRefusalKey(
-    code: string | undefined
-):
+/**
+ * What explains a refused withdrawal preview, init or new key, by wire code: an
+ * `avenia` catalog key, or `pixKeyNotFound` / `providerRejected` / `minimum`,
+ * which `useAveniaRefusalMessage` reads from the shared catalogs.
+ */
+export type AveniaWithdrawRefusal =
     | 'withdraw.errors.limitExceeded'
     | 'withdraw.errors.inProgress'
     | 'withdraw.errors.quoteExpired'
+    | 'withdraw.errors.quoteChanged'
     | 'withdraw.keyNotOwn'
     | 'withdraw.keyBlocked'
+    | 'pixKeyNotFound'
+    | 'minimum'
     | 'providerRejected'
-    | 'unavailable' {
+    | 'unavailable'
+
+export function aveniaWithdrawRefusalKey(code: string | undefined): AveniaWithdrawRefusal {
     switch (code) {
         case API_ERROR_CODES.AVENIA_LIMIT_EXCEEDED:
             return 'withdraw.errors.limitExceeded'
@@ -149,10 +173,16 @@ export function aveniaWithdrawRefusalKey(
             return 'withdraw.errors.inProgress'
         case API_ERROR_CODES.AVENIA_TICKET_WINDOW_SHORT:
             return 'withdraw.errors.quoteExpired'
+        case API_ERROR_CODES.AVENIA_QUOTE_CHANGED:
+            return 'withdraw.errors.quoteChanged'
         case API_ERROR_CODES.PIX_KEY_NOT_OWN:
             return 'withdraw.keyNotOwn'
         case API_ERROR_CODES.PIX_KEY_BLOCKED:
             return 'withdraw.keyBlocked'
+        case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
+            return 'pixKeyNotFound'
+        case API_ERROR_CODES.PIX_MIN_AMOUNT:
+            return 'minimum'
         case API_ERROR_CODES.PROVIDER_REJECTED:
             return 'providerRejected'
         default:

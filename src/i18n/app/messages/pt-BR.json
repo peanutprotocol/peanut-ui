@@ -2430,7 +2430,8 @@
             "checkingBody": "Conclua as etapas na página da Avenia. Esta tela avança quando a Avenia confirmar, normalmente em poucos minutos.",
             "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
             "settingUp": "A conta Pix está sendo configurada. Tente de novo em um minuto.",
-            "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo."
+            "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo.",
+            "notAvailable": "Não foi possível configurar o Pix para esta conta. Fale com o suporte para concluir."
         },
         "deposit": {
             "minimum": "O mínimo é {amount}.",
@@ -2461,7 +2462,8 @@
                 "limitExceeded": "Este saque passa do limite mensal do Pix.",
                 "inProgress": "Há saques por Pix demais ainda a caminho. Tente de novo mais tarde.",
                 "quoteExpired": "A cotação demorou demais. Tente de novo.",
-                "afterInit": "Confira o Histórico antes de tentar de novo."
+                "afterInit": "Confira o Histórico antes de tentar de novo.",
+                "quoteChanged": "O valor mudou durante a cotação. Tente de novo."
             }
         }
     },

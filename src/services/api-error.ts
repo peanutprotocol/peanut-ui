@@ -69,7 +69,7 @@ export const API_ERROR_CODES = {
     REQUEST_CLOSED: 'REQUEST_CLOSED',
     /** The provider is down or paused (Avenia's kill switch, an outage). Retry later. */
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
-    /** A Pix deposit below the provider's minimum. Sent with 400. */
+    /** A Pix deposit or withdrawal below the provider's minimum. Sent with 400. */
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     /** Avenia Pix is not open to this user: the rollout gate, or a residence outside Brazil. */
     AVENIA_NOT_AVAILABLE: 'AVENIA_NOT_AVAILABLE',
@@ -89,6 +89,10 @@ export const API_ERROR_CODES = {
     PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
     /** One Pix key lookup per second per user. */
     PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
+    /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
+    PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
+    /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
+    AVENIA_QUOTE_CHANGED: 'AVENIA_QUOTE_CHANGED',
     /** Another Pix withdrawal is still waiting for its signature. */
     WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
 } as const
