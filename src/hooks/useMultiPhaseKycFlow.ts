@@ -397,16 +397,19 @@ export const useMultiPhaseKycFlow = ({
         [submissionAttempt]
     )
 
+    const isArgentinaSingleLevelSession =
+        verificationSession?.targetCountry === 'AR' && !verificationSession.isMultiLevel && !isMultiLevel
+
     const handleSdkSubmitted = useCallback(
         (source: SumsubSubmissionSource = 'sdk_submitted') => {
             reportedRejectionRef.current = null
             captureSubmission(source)
-            if (source !== 'sdk_teardown' && verificationSession && !isMultiLevel) {
+            if (source !== 'sdk_teardown' && isArgentinaSingleLevelSession) {
                 originalHandleSdkComplete()
                 setModalPhase('submitted')
             }
         },
-        [captureSubmission, verificationSession, isMultiLevel, originalHandleSdkComplete]
+        [captureSubmission, isArgentinaSingleLevelSession, originalHandleSdkComplete]
     )
 
     // wrap handleSdkComplete to track real-time flow
@@ -531,8 +534,8 @@ export const useMultiPhaseKycFlow = ({
             return
         }
         if (!isVerificationProgressModalOpen) return
-        setModalPhase('submitted')
-        clearPreparingTimer()
+        setModalPhase(isArgentinaSingleLevelSession ? 'submitted' : 'preparing')
+        if (isArgentinaSingleLevelSession) clearPreparingTimer()
         if (sessionState !== 'READY') return
         const key = `${sessionId}:${sessionGeneration}`
         if (completedSessionRef.current === key) return
@@ -563,6 +566,7 @@ export const useMultiPhaseKycFlow = ({
         sessionGeneration,
         sessionState,
         sessionCountry,
+        isArgentinaSingleLevelSession,
         isVerificationProgressModalOpen,
         fetchUser,
         completeFlow,
