@@ -27,6 +27,11 @@ export const LINK_STATE_BUBBLES: Partial<Record<StatusType, { icon: IconName; co
 }
 
 interface TransactionAvatarBadgeProps {
+    /**
+     * The person slot's size. A bubble, flag or wallet in the slot takes the
+     * same size (the AvatarSize names are IconBubble sizes of the same px), so
+     * rows and headers stay aligned.
+     */
     size?: AvatarSize
     initials?: string
     userName?: string
@@ -69,7 +74,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     initials,
     userName,
     isLinkTransaction = false,
-    size = 'l',
+    size = 's',
     transactionType,
     countryCode,
     person,
@@ -85,8 +90,6 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
 
-    const bubbleSize = ({ xs: 'xs', s: 's', m: 'm', l: 'm', xl: 'l' } as const)[size]
-
     // Claim links and request links are the link rows: every one of them shows
     // the link's own state. A request always qualifies — with a link it is a
     // request link, without one it is the counterparty-less request row.
@@ -95,7 +98,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         ((transactionType === 'send' || transactionType === 'receive') && isLinkTransaction)
     const stateBubble = isLinkRow && status ? LINK_STATE_BUBBLES[status] : undefined
     if (stateBubble) {
-        return <IconBubble icon={stateBubble.icon} size={bubbleSize} color={stateBubble.color} />
+        return <IconBubble icon={stateBubble.icon} size={size} color={stateBubble.color} />
     }
 
     // An unfulfilled request has no counterparty — its display name is the
@@ -105,12 +108,12 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // This is now the fallback for a row whose status has no ruled bubble; a
     // statused row took the state branch above.
     if (transactionType === 'request' && !isLinkTransaction) {
-        return <IconBubble icon="arrow-down-left" size={bubbleSize} color="green" />
+        return <IconBubble icon="arrow-down-left" size={size} color="green" />
     }
 
     // a row that shows a product concept rather than a person or a flag takes
     // that concept's bubble, the same one the Send, Add and Withdraw lists use
-    const conceptBubble = (concept: Concept) => <IconBubble {...CONCEPT_ICONS[concept]} size={bubbleSize} />
+    const conceptBubble = (concept: Concept) => <IconBubble {...CONCEPT_ICONS[concept]} size={size} />
 
     // determine Icon, background, and colors based on type
     switch (transactionType) {

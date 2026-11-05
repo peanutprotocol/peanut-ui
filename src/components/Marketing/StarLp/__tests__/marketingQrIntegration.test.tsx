@@ -7,10 +7,7 @@ import { UsEuAppLink } from '../pages/UsEuAppLink'
 import { AppModalProvider } from '@/components/Migration/AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import type { MarketingQrContext } from '@/features/marketing-qr/contract'
-import { starLpQrUrl } from '../starLpQr.utils'
 
-let mockMigrationOn = true
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigrationOn }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'web' }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/deferred-link', () => ({ buildDeferredPayload: jest.fn() }))
@@ -44,16 +41,12 @@ jest.mock('react-qr-code', () => ({
     ),
 }))
 
-beforeEach(() => {
-    mockMigrationOn = true
-})
-
 it.each(['us-europe-accounts', 'qr-argentina', 'qr-brazil', 'request-links', 'self-custody'] as const)(
     'carries %s through the page, CTA, provider and modal into its registered QR',
     async (page: MarketingQrContext['page']) => {
         render(
             <StarLpPage marketingPage={page}>
-                <StarLpCta href="/setup" ground="cream" qrPlacement="hero">
+                <StarLpCta ground="cream" qrPlacement="hero">
                     Download app
                 </StarLpCta>
             </StarLpPage>
@@ -74,20 +67,13 @@ it.each([
     ['qr-brazil', 'hero-sticker'],
     ['qr-brazil', 'close-sticker'],
     ['qr-brazil', 'ways-in'],
-] as const)('registers inline %s/%s only when both rollout and app migration are enabled', (campaign, slot) => {
-    const { rerender } = render(<StarLpQrCode campaign={campaign} slot={slot} />)
+] as const)('registers inline %s/%s', (campaign, slot) => {
+    render(<StarLpQrCode campaign={campaign} slot={slot} />)
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
         `${window.location.origin}/home?mqr=${campaign}-${slot}-en`
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
-    mockMigrationOn = false
-    rerender(<StarLpQrCode campaign={campaign} slot={slot} />)
-    expect(screen.getByTestId('qr')).toHaveAttribute(
-        'data-value',
-        starLpQrUrl({ origin: window.location.origin, campaign, slot, migrationOn: false })
-    )
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
 })
 
 it.each(['en', 'es-419', 'es-ar', 'pt-br'])(
@@ -95,9 +81,7 @@ it.each(['en', 'es-419', 'es-ar', 'pt-br'])(
     async (locale) => {
         render(
             <AppModalProvider marketingPage="home" marketingLocale={locale}>
-                <UsEuAppLink href="/setup" surface={MIGRATION_SURFACES.LANDING_APP_FOLD}>
-                    account pair
-                </UsEuAppLink>
+                <UsEuAppLink surface={MIGRATION_SURFACES.LANDING_APP_FOLD}>account pair</UsEuAppLink>
             </AppModalProvider>
         )
         fireEvent.click(screen.getByText('account pair'))
@@ -124,18 +108,10 @@ it.each([
             qrContext={{ page: 'home', placement, locale }}
         />
     )
-    const { rerender } = render(sticker())
+    render(sticker())
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'data-value',
         `${window.location.origin}/home?mqr=home-${placement}-${locale}`
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
-    // sunset off: the legacy signup URL, tagged as the home sticker
-    mockMigrationOn = false
-    rerender(sticker())
-    expect(screen.getByTestId('qr')).toHaveAttribute(
-        'data-value',
-        starLpQrUrl({ origin: window.location.origin, campaign, slot: 'home-sticker', migrationOn: false })
-    )
-    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
 })

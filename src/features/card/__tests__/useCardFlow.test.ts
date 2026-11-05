@@ -140,8 +140,9 @@ jest.mock('@/hooks/useSumsubReloadResume', () => ({
     useSumsubReloadResume: jest.fn(),
 }))
 const mockStartAction = jest.fn()
+const mockBlockIfFinal = jest.fn(() => false)
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction }),
+    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction, blockIfFinal: mockBlockIfFinal }),
 }))
 
 const mockApplyForCard = rainApi.applyForCard as jest.Mock
@@ -262,6 +263,18 @@ describe('useCardFlow', () => {
         })
         expect(result.current.sumsubToken).toBe('tok-1')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
+    it('(H9) a final rejection shows the account review instead of the sumsub sdk', async () => {
+        mockBlockIfFinal.mockReturnValueOnce(true)
+        mockApplyForCard.mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 'tok-1' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockBlockIfFinal).toHaveBeenCalled()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
     it('asks the Smart Paperwork Verification card questions on questions-required, then applies again once they are saved', async () => {

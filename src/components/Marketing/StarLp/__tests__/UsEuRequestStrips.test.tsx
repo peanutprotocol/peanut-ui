@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react'
 import { UsEuRequestStrips } from '../pages/UsEuRequestStrips'
 
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => () => false }))
 
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'

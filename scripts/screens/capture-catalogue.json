@@ -278,6 +278,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-download-prompt",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-early-user",
         "flow": "Home and shared states",
         "route": "/home"
@@ -809,6 +814,18 @@
         "id": "24-b-kycverificationinprogressmodal",
         "flow": "Verification",
         "route": "/dev/surfaces?s=24-b-kycverificationinprogressmodal",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
+        "id": "24-c-kyc-ready-ars-action",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-c-kyc-ready-ars-action",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
+        "id": "24-d-kyc-ready-bank-review",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-d-kyc-ready-bank-review",
         "source": "Kyc/KycVerificationInProgressModal.tsx"
     },
     {

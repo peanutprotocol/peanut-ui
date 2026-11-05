@@ -3,9 +3,9 @@ import { createContext } from 'react'
 // The words that ask the user to contact support, in en / es / pt. Inside an
 // error Callout these words become the support link.
 const CONTACT_SUPPORT_PHRASES = [
-    String.raw`\b(?:contact|talk to|chat with|ask|reach|message|write to)\s+(?:our\s+)?support\b`,
-    String.raw`\b(?:contact[aá]r?|habla(?:r)? con|chatear con|escr[ií]bele a|escribirle a|escribe a|ped[ií] a)\s+(?:(?:a|al|con)\s+)?(?:nuestro\s+)?soporte\b`,
-    String.raw`\b(?:fal(?:e|ar)\s+com|contato\s+com|contat(?:e|ar)|pe[cç]a\s+ao)\s+(?:o\s+|nosso\s+)?suporte\b`,
+    String.raw`\b(?:contact|talk to|chat with|ask|reach|message|write to)\s+(?:our\s+)?support\b|\bmessage\s+us\b`,
+    String.raw`\b(?:contact[aá]r?|habla(?:r)? con|chatear con|escr[ií]bele a|escribirle a|escribe a|ped[ií] a)\s+(?:(?:a|al|con)\s+)?(?:nuestro\s+)?soporte\b|\bescr[ií]benos\b|\bescrib[ií]nos\b`,
+    String.raw`\b(?:fal(?:e|ar)\s+com|contato\s+com|contat(?:e|ar)|pe[cç]a\s+ao)\s+(?:o\s+|nosso\s+)?suporte\b|\bfale\s+com\s+a\s+gente\b`,
 ]
 
 export const CONTACT_SUPPORT_PHRASE = new RegExp(CONTACT_SUPPORT_PHRASES.join('|'), 'i')

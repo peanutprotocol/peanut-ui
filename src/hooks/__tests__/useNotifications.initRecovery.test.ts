@@ -30,7 +30,6 @@ jest.mock('@/services/notifications', () => ({
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsNative }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: () => undefined, updateUserPreferences: jest.fn() }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUserId ? { user: { userId: mockUserId } } : null }),
 }))

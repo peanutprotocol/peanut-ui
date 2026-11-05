@@ -188,7 +188,7 @@ if (
     startWebVitalsShim()
 
     // expose the instance like the official snippet does — console access for
-    // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
+    // QA (feature-flag overrides) and support
     // debugging; the npm bundle doesn't attach it by itself
     ;(window as Window & { posthog?: typeof posthog }).posthog = posthog
 

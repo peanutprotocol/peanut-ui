@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
@@ -13,7 +14,8 @@ import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import type { SumsubSubmissionSource } from '@/components/Kyc/sumsubSdk.types'
 import { type KycModalPhase, type IUserProfile } from '@/interfaces/interfaces'
-import { type UserCapabilities } from '@/types/capabilities'
+import { type FeatureReportEntry, type UserCapabilities } from '@/types/capabilities'
+import type { KycCompletionNotice } from '@/components/Kyc/KycVerificationInProgressModal'
 import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import posthog from 'posthog-js'
@@ -32,8 +34,9 @@ const PREPARING_TIMEOUT_MS = 30000
  *   - notOpened ← nothing set up yet (the realtime flow reads it as still provisioning)
  *   - allSettled ← it moves money
  *   - allBlocked ← it is refused
- *   - supplementKey / supplementInReview ← a provider waits on a supplement, in
- *     this entry or any feature's
+ *   - completionNotice ← setup ends with an outstanding user action or provider review
+ *   - supplementKey ← a provider asks for a proof-of-address supplement
+ *   - supplementInReview ← the requested account is reviewing its supplement
  */
 export function deriveCapabilityPhaseSignals(
     capabilities: UserCapabilities | undefined,
@@ -50,13 +53,38 @@ export function deriveCapabilityPhaseSignals(
           ? report.local
           : reportEntry(report, 'deposit', { channel: 'bank' })
     const entries = [entry, report.bank, report.local, report.card]
+    const noticeKind = (candidate: FeatureReportEntry): KycCompletionNotice['kind'] | null => {
+        const action = entryAction(candidate, nextActions)
+        if (
+            candidate.state === 'setting_up' &&
+            (action?.kind === 'wait' || candidate.reason === 'requirements_in_review')
+        )
+            return 'review'
+        if (
+            candidate.state === 'action_required' &&
+            action &&
+            !action.key.startsWith('supplement:') &&
+            ['questions', 'sumsub', 'bridge-hosted', 'rain-hosted', 'provide-email'].includes(action.kind)
+        )
+            return 'action'
+        return null
+    }
+    const kind = noticeKind(entry)
+    const accounts = country
+        ? Object.entries({ ...report.bank.accounts, ...report.local.accounts }).filter(
+              ([, account]) => account === entry
+          )
+        : Object.entries(entry === report.local ? report.local.accounts : report.bank.accounts)
+    const currencies = accounts.filter(([, account]) => noticeKind(account) === kind).map(([currency]) => currency)
+    const completionNotice: KycCompletionNotice | null = kind ? { kind, currencies } : null
     return {
         needsTos: entryAction(entry, nextActions)?.kind === 'accept-tos',
         anyPending: entry.state === 'setting_up' || entry.state === 'pending',
         allBlocked: entry.state === 'refused',
         allSettled: entry.state === 'on',
+        completionNotice,
         notOpened: entry.state === 'ready',
-        supplementInReview: entries.some((candidate) => candidate.reason === 'requirements_in_review'),
+        supplementInReview: entry.reason === 'requirements_in_review',
         // A provider parked until a supplement collects what it needs (today Bridge's proof of address).
         supplementKey: entries.map((candidate) => candidate.action).find((key) => !!key?.startsWith('supplement:')),
     }
@@ -152,12 +180,26 @@ export const useMultiPhaseKycFlow = ({
     const { fetchUser, user } = useAuth()
     const t = useTranslations('kyc')
     const acquisitionSource = user?.invitedBy ? 'referred' : 'organic'
+    const { isTerminalFailure } = useIdentityVerification()
+    const [showVerificationReview, setShowVerificationReview] = useState(false)
+    // A final decision is one no new document can change: support reviews the account first (H9).
+    const blockIfFinal = useCallback(() => {
+        if (!isTerminalFailure) return false
+        setShowVerificationReview(true)
+        return true
+    }, [isTerminalFailure])
+    const dismissVerificationReview = useCallback(() => setShowVerificationReview(false), [])
 
     // multi-phase modal state
     const [modalPhase, setModalPhase] = useState<KycModalPhase>('verifying')
     const [forceShowModal, setForceShowModal] = useState(false)
     const [preparingTimedOut, setPreparingTimedOut] = useState(false)
     const [preparingElapsed, setPreparingElapsed] = useState(0)
+    const [completionNotice, setCompletionNotice] = useState<KycCompletionNotice | null>(null)
+    const completionNoticeRef = useRef<KycCompletionNotice | null>(null)
+    const finishedRef = useRef(false)
+    const flowGenerationRef = useRef(0)
+    const completedSessionRef = useRef<string | null>(null)
     const preparingTimerRef = useRef<NodeJS.Timeout | null>(null)
     const preparingElapsedIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const isRealtimeFlowRef = useRef(false)
@@ -170,6 +212,7 @@ export const useMultiPhaseKycFlow = ({
     const lastIntentRef = useRef<KYCRegionIntent | undefined>(undefined)
     const [requestedIntent, setRequestedIntent] = useState<KYCRegionIntent | undefined>(regionIntent)
     const [requestedCountry, setRequestedCountry] = useState<string | undefined>()
+    const requestedCountryRef = useRef<string | undefined>(undefined)
 
     // Terminal status already reported for the CURRENT attempt. Cleared on each
     // submission, so a re-opened SDK cannot re-report the same rejection while a
@@ -196,7 +239,14 @@ export const useMultiPhaseKycFlow = ({
     // The old WebSocket-driven instant rail refresh is replaced by that 4s poll
     // (the old hook already had the same 4s poll as a fallback).
     const { capabilities } = useCapabilities()
-    const { allSettled, needsTos, allBlocked, supplementKey, supplementInReview } = useMemo(
+    const {
+        allSettled,
+        needsTos,
+        allBlocked,
+        supplementKey,
+        supplementInReview,
+        completionNotice: nextNotice,
+    } = useMemo(
         () => deriveCapabilityPhaseSignals(capabilities, requestedIntent, requestedCountry),
         [capabilities, requestedIntent, requestedCountry]
     )
@@ -216,6 +266,9 @@ export const useMultiPhaseKycFlow = ({
 
     // complete the flow — close everything, call original onKycSuccess
     const completeFlow = useCallback(() => {
+        if (finishedRef.current) return
+        finishedRef.current = true
+        flowGenerationRef.current += 1
         const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
             effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
@@ -228,11 +281,27 @@ export const useMultiPhaseKycFlow = ({
         setTosLink(null)
         setShowTosIframe(false)
         setTosError(null)
+        setIsLoadingTos(false)
         clearPreparingTimer()
         stopTracking()
         closeVerificationModalRef.current()
-        onKycSuccess?.()
-    }, [onKycSuccess, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
+        if (completionNoticeRef.current) onManualClose?.()
+        else onKycSuccess?.()
+    }, [onKycSuccess, onManualClose, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
+
+    const showCompletionNotice = useCallback(
+        (notice: KycCompletionNotice) => {
+            if (finishedRef.current) return
+            completionNoticeRef.current = notice
+            setCompletionNotice(notice)
+            clearPreparingTimer()
+            setPreparingTimedOut(false)
+            setShowTosIframe(false)
+            setModalPhase('complete')
+            setForceShowModal(true)
+        },
+        [clearPreparingTimer]
+    )
 
     const submittedSupplementsRef = useRef(new Set<string>())
     const [pendingSupplement, setPendingSupplement] = useState<string | null>(null)
@@ -244,6 +313,8 @@ export const useMultiPhaseKycFlow = ({
 
     // called when sumsub status transitions to APPROVED
     const handleSumsubApproved = useCallback(async () => {
+        if (finishedRef.current || completionNoticeRef.current) return
+        const generation = flowGenerationRef.current
         // Open the post-submission window BEFORE the first fetchUser() so the
         // capability poller is already armed if the BE hasn't reflected the
         // Sumsub→Bridge transition yet. Without this, fetchUser() reads the
@@ -263,7 +334,17 @@ export const useMultiPhaseKycFlow = ({
             setForceShowModal(true)
         }
 
-        const updatedUser = await fetchUser()
+        let updatedUser: IUserProfile | null
+        try {
+            updatedUser = await fetchUser()
+        } catch {
+            if (generation !== flowGenerationRef.current) return
+            setModalPhase('preparing')
+            setForceShowModal(true)
+            setPreparingTimedOut(true)
+            return
+        }
+        if (generation !== flowGenerationRef.current || completionNoticeRef.current) return
         // post-approval branching reads the FRESH capability block from this
         // fetchUser() result (not the reactive useCapabilities() snapshot,
         // which would be stale within this synchronous call).
@@ -274,16 +355,22 @@ export const useMultiPhaseKycFlow = ({
             allSettled,
             supplementKey: freshSupplementKey,
             supplementInReview: freshSupplementInReview,
+            completionNotice: freshNotice,
         } = deriveCapabilityPhaseSignals(
             updatedUser?.capabilities,
             lastIntentRef.current ?? regionIntent,
-            requestedCountry
+            requestedCountryRef.current
         )
 
         if (needsTos) {
             setModalPhase('bridge_tos')
             setForceShowModal(true)
             clearPreparingTimer()
+            return
+        }
+
+        if (freshNotice) {
+            showCompletionNotice(freshNotice)
             return
         }
 
@@ -323,7 +410,7 @@ export const useMultiPhaseKycFlow = ({
         askForSupplement,
         onKycApproved,
         regionIntent,
-        requestedCountry,
+        showCompletionNotice,
     ])
 
     const {
@@ -376,6 +463,11 @@ export const useMultiPhaseKycFlow = ({
     if (showWrapper !== attemptWrapperOpen) {
         setAttemptWrapperOpen(showWrapper)
         if (showWrapper) {
+            flowGenerationRef.current += 1
+            finishedRef.current = false
+            completionNoticeRef.current = null
+            completedSessionRef.current = null
+            setCompletionNotice(null)
             setSubmissionAttempt((attempt) => ({
                 id: attempt.id + 1,
                 intent: attempt.intent,
@@ -497,7 +589,13 @@ export const useMultiPhaseKycFlow = ({
             targetCountry?: string,
             corridor?: DepositCorridor
         ) => {
+            if (blockIfFinal()) return false
             const intent = overrideIntent ?? regionIntent
+            flowGenerationRef.current += 1
+            finishedRef.current = false
+            completionNoticeRef.current = null
+            completedSessionRef.current = null
+            setCompletionNotice(null)
             setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
             setRequestedIntent(intent)
@@ -507,19 +605,21 @@ export const useMultiPhaseKycFlow = ({
                 { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
             )
 
-            setRequestedCountry(targetCountry?.toUpperCase())
+            requestedCountryRef.current = targetCountry?.toUpperCase()
+            setRequestedCountry(requestedCountryRef.current)
             setModalPhase('verifying')
             setForceShowModal(false)
             setPreparingTimedOut(false)
             setTosLink(null)
             setShowTosIframe(false)
             setTosError(null)
+            setIsLoadingTos(false)
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
             return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
+        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, blockIfFinal]
     )
 
     useSumsubReloadResume(
@@ -541,7 +641,7 @@ export const useMultiPhaseKycFlow = ({
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {
-        if (modalPhase === 'preparing' && !preparingTimedOut) {
+        if (modalPhase === 'preparing' && (isVerificationProgressModalOpen || forceShowModal) && !preparingTimedOut) {
             clearPreparingTimer()
             preparingTimerRef.current = setTimeout(() => {
                 setPreparingTimedOut(true)
@@ -557,9 +657,8 @@ export const useMultiPhaseKycFlow = ({
                 setPreparingElapsed(0)
             }
         }
-    }, [modalPhase, preparingTimedOut, clearPreparingTimer])
+    }, [modalPhase, preparingTimedOut, clearPreparingTimer, isVerificationProgressModalOpen, forceShowModal])
 
-    const completedSessionRef = useRef<string | null>(null)
     const sessionId = verificationSession?.id
     const sessionGeneration = verificationSession?.generation
     const sessionState = verificationSession?.state
@@ -572,8 +671,8 @@ export const useMultiPhaseKycFlow = ({
             return
         }
         if (!isVerificationProgressModalOpen) return
-        setModalPhase('preparing')
-        if (sessionState !== 'READY') return
+        if (!completionNoticeRef.current) setModalPhase('preparing')
+        if (sessionState !== 'READY' && sessionState !== 'PROVIDER_PENDING') return
         const key = `${sessionId}:${sessionGeneration}`
         if (completedSessionRef.current === key) return
         let cancelled = false
@@ -583,7 +682,13 @@ export const useMultiPhaseKycFlow = ({
             try {
                 const refreshed = await fetchUser()
                 if (cancelled) return
-                if (deriveCapabilityPhaseSignals(refreshed?.capabilities, 'LATAM', sessionCountry).allSettled) {
+                const signals = deriveCapabilityPhaseSignals(refreshed?.capabilities, 'LATAM', sessionCountry)
+                if (signals.completionNotice) {
+                    completedSessionRef.current = key
+                    showCompletionNotice(signals.completionNotice)
+                    return
+                }
+                if (sessionState === 'READY' && signals.allSettled) {
                     completedSessionRef.current = key
                     completeFlow()
                     return
@@ -607,11 +712,17 @@ export const useMultiPhaseKycFlow = ({
         fetchUser,
         completeFlow,
         clearPreparingTimer,
+        showCompletionNotice,
     ])
 
     // phase transitions driven by rail tracking
     useEffect(() => {
         if (verificationSession) return
+        if (!isVerificationProgressModalOpen && !forceShowModal) return
+        if (nextNotice && (modalPhase === 'preparing' || modalPhase === 'bridge_tos')) {
+            showCompletionNotice(nextNotice)
+            return
+        }
         if (modalPhase === 'preparing') {
             if (supplementInReview && !supplementKey) {
                 clearPreparingTimer()
@@ -659,15 +770,21 @@ export const useMultiPhaseKycFlow = ({
         stopTracking,
         verificationSession,
         closeVerificationProgressModal,
+        nextNotice,
+        showCompletionNotice,
+        isVerificationProgressModalOpen,
+        forceShowModal,
     ])
 
     // handle "Accept Terms" click in bridge_tos phase
     const handleAcceptTerms = useCallback(async () => {
+        const generation = flowGenerationRef.current
         setIsLoadingTos(true)
         setTosError(null)
 
         try {
             const response = await getBridgeTosLink()
+            if (generation !== flowGenerationRef.current) return
 
             if (response.error || !response.data?.tosLink) {
                 setTosError(
@@ -680,16 +797,19 @@ export const useMultiPhaseKycFlow = ({
             setShowTosIframe(true)
             posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
         } catch (error) {
+            if (generation !== flowGenerationRef.current) return
             Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_open' } })
             setTosError('Something went wrong. You can accept terms later from your activity feed.')
         } finally {
-            setIsLoadingTos(false)
+            if (generation === flowGenerationRef.current) setIsLoadingTos(false)
         }
     }, [])
 
     // handle ToS iframe close
     const handleTosIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
+            if (finishedRef.current || completionNoticeRef.current) return
+            const generation = flowGenerationRef.current
             setShowTosIframe(false)
 
             // a manual exit stays on the bridge_tos phase (user can try again)
@@ -698,7 +818,9 @@ export const useMultiPhaseKycFlow = ({
             // show loading state while confirming + polling
             setModalPhase('preparing')
             try {
-                if (!(await resolveBridgeTosClose(fetchUser, source))) {
+                const accepted = await resolveBridgeTosClose(fetchUser, source)
+                if (generation !== flowGenerationRef.current || completionNoticeRef.current) return
+                if (!accepted) {
                     // The page closed by itself without a signature. The copy
                     // stays dismissal-shaped because this modal's error CTA
                     // closes the flow; the home ToS card owns the retry.
@@ -707,19 +829,20 @@ export const useMultiPhaseKycFlow = ({
                     return
                 }
                 const refreshed = await fetchUser()
-                if (
-                    deriveCapabilityPhaseSignals(
-                        refreshed?.capabilities,
-                        lastIntentRef.current ?? regionIntent,
-                        requestedCountry
-                    ).allSettled
+                if (generation !== flowGenerationRef.current || completionNoticeRef.current) return
+                const signals = deriveCapabilityPhaseSignals(
+                    refreshed?.capabilities,
+                    lastIntentRef.current ?? regionIntent,
+                    requestedCountry
                 )
-                    completeFlow()
+                if (signals.completionNotice) showCompletionNotice(signals.completionNotice)
+                else if (signals.allSettled) completeFlow()
                 else {
                     setModalPhase('preparing')
                     setForceShowModal(true)
                 }
             } catch (error) {
+                if (generation !== flowGenerationRef.current || completionNoticeRef.current) return
                 Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
                 // Don't leave the modal frozen on 'preparing' with no feedback
                 // if the confirm POST / rails poll throws — surface the
@@ -728,11 +851,16 @@ export const useMultiPhaseKycFlow = ({
                 setPreparingTimedOut(true)
             }
         },
-        [fetchUser, completeFlow, regionIntent, requestedCountry]
+        [fetchUser, completeFlow, regionIntent, requestedCountry, showCompletionNotice]
     )
 
     // handle modal close (Go to Home, etc.)
     const handleModalClose = useCallback(() => {
+        if (completionNoticeRef.current) {
+            completeFlow()
+            return
+        }
+        flowGenerationRef.current += 1
         const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
             effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_ABANDONED : ANALYTICS_EVENTS.KYC_ABANDONED,
@@ -743,7 +871,7 @@ export const useMultiPhaseKycFlow = ({
         clearPreparingTimer()
         stopTracking()
         closeVerificationProgressModal()
-    }, [clearPreparingTimer, stopTracking, closeVerificationProgressModal, regionIntent, modalPhase])
+    }, [clearPreparingTimer, stopTracking, closeVerificationProgressModal, regionIntent, modalPhase, completeFlow])
 
     // Deferring terms is a dismissal, never successful deposit readiness.
     const handleSkipTerms = handleModalClose
@@ -766,6 +894,7 @@ export const useMultiPhaseKycFlow = ({
     // cleanup on unmount
     useEffect(() => {
         return () => {
+            flowGenerationRef.current += 1
             clearPreparingTimer()
             stopTracking()
         }
@@ -786,6 +915,9 @@ export const useMultiPhaseKycFlow = ({
     return {
         // initiation
         handleInitiateKyc,
+        blockIfFinal,
+        showVerificationReview,
+        dismissVerificationReview,
         handleRestartIdentity,
         handleResidenceChange,
         handleSelfHealResubmit,
@@ -830,6 +962,7 @@ export const useMultiPhaseKycFlow = ({
         isLoadingTos,
         preparingTimedOut,
         preparingStage,
+        completionNotice,
 
         // ToS iframe
         tosLink,

@@ -10,7 +10,6 @@ import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import {
-    STAR_LP_HREF,
     STAR_LP_SKY_CLOUDS,
     STAR_LP_SKY_CLOUDS_CLASS,
     STAR_LP_TRUST_LINE,
@@ -20,7 +19,7 @@ import { fetchEurUsdRate } from '@/components/Marketing/StarLp/starLpFx'
 import { UsEuAccountPair } from './UsEuAccountPair'
 import { UsEuRequestStrips } from './UsEuRequestStrips'
 import { UsEuTimeline } from './UsEuTimeline'
-import { US_EU_PERSONA_CARDS, US_EU_REQUEST_HREF } from './usEuAccounts.consts'
+import { US_EU_PERSONA_CARDS } from './usEuAccounts.consts'
 
 // Payer rules, timing and cost from product/quick-ref.md and pricing.md
 // (deposit-account-open, bank-deposits-sepa, bank-deposits-ach).
@@ -76,14 +75,9 @@ export async function UsEuAccountsLanding() {
                 knerdJoin="and"
                 // The audience first (product/icps.md: lead with the source of earnings, then the labels).
                 subtitle="For freelancers and remote workers paid from the US or Europe."
-                art={<UsEuAccountPair />}
+                art={<UsEuAccountPair priority />}
                 cta={
-                    <StarLpCta
-                        qrPlacement="hero"
-                        href={STAR_LP_HREF.accountsGuest}
-                        signedInHref={STAR_LP_HREF.accountsSignedIn}
-                        ground="pink"
-                    >
+                    <StarLpCta qrPlacement="hero" ground="pink">
                         Open your accounts
                     </StarLpCta>
                 }
@@ -111,12 +105,7 @@ export async function UsEuAccountsLanding() {
                 <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
                     <div className="flex flex-col items-start gap-8 md:order-last">
                         <SectionTitle>Paid by someone on Peanut? Send a link.</SectionTitle>
-                        <StarLpCta
-                            qrPlacement="request-fold"
-                            href={US_EU_REQUEST_HREF.guest}
-                            signedInHref={US_EU_REQUEST_HREF.signedIn}
-                            ground="sky"
-                        >
+                        <StarLpCta qrPlacement="request-fold" ground="sky">
                             Get your link
                         </StarLpCta>
                     </div>
@@ -139,12 +128,7 @@ export async function UsEuAccountsLanding() {
                 decoration={<></>}
                 cta={
                     <CloseGloveCta>
-                        <StarLpCta
-                            qrPlacement="close"
-                            href={STAR_LP_HREF.accountsGuest}
-                            signedInHref={STAR_LP_HREF.accountsSignedIn}
-                            ground="pink"
-                        >
+                        <StarLpCta qrPlacement="close" ground="pink">
                             Open your accounts
                         </StarLpCta>
                     </CloseGloveCta>

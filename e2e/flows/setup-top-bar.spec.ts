@@ -14,6 +14,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
 type Box = { x: number; y: number }
 type Sample = { switchers: Box[]; back: Box | null; heroes: string[] }
@@ -65,21 +66,16 @@ const boardHero = ({ width, height }: { width: number; height: number }) =>
 for (const viewport of VIEWPORTS) {
     test(`the hero, the language switcher and the back button stay put between steps at ${viewport.width}x${viewport.height}`, async ({
         page,
+        baseURL,
     }) => {
         await page.setViewportSize(viewport)
-        // Headless Chromium has no platform authenticator; the setup gate would show the unsupported modal.
-        await page.addInitScript(() => {
-            const w = window as unknown as {
-                PublicKeyCredential: { isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean> }
-            }
-            w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
-            w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
-        })
         await page.route('**/*', (route) =>
             ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname)
                 ? route.continue()
                 : route.abort()
         )
+        // web signup is app-only; the support keep-web cookie reopens it in this browser
+        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
         await page.goto('/setup')
         const signUp = page.getByRole('button', { name: 'Sign up' })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
