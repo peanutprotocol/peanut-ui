@@ -180,6 +180,18 @@ function DecidedRejection({ status, onHome }: { status?: SumsubKycStatus; onHome
     return <ReviewScreen rejection={rejection} onHome={onHome} {...exits} />
 }
 
+/** A finally rejected identity's own screen, for entry points outside /verify (the card tab). */
+export function IdentityRejectedScreen({ onHome }: { onHome: () => void }) {
+    return (
+        <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
+            <DecidedRejection onHome={onHome} />
+        </PaperworkVerificationTrackingProvider>
+    )
+}
+
+/** Whether the profile alone says no attempt can pass: failed, and the API offers no retry. */
+export const isDecidedRejection = (identity: IdentityVerification | undefined) => decidedRejection(identity, undefined)
+
 /** A NOT_STARTED identity may have been submitted before Sumsub's webhook arrived: the server reads Sumsub then. */
 async function readIdentityStatus(): Promise<SumsubKycStatus | undefined> {
     const stored = await getKycDocumentStatus().catch(() => undefined)
@@ -335,7 +347,7 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     if (state.kind === 'rejected')
         return (
             <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
-                <DecidedRejection status={state.status} onHome={() => router.push('/home')} />
+                <DecidedRejection status={state.status} onHome={() => router.replace('/home')} />
             </PaperworkVerificationTrackingProvider>
         )
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
@@ -836,7 +848,7 @@ function PaperworkVerificationSteps({
     // Mounted from the first opening on: its restriction fetch only runs for a user who asks to move.
     const [residenceMounted, setResidenceMounted] = useState(false)
 
-    const goHome = () => router.push('/home')
+    const goHome = () => router.replace('/home')
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''

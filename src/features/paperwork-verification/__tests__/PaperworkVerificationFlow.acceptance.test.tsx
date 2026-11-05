@@ -296,7 +296,7 @@ describe('canonical identity recovery acceptance', () => {
         expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
         expect(mockReplace).not.toHaveBeenCalled()
         fireEvent.click(home)
-        expect(mockPush).toHaveBeenCalledWith('/home')
+        expect(mockReplace).toHaveBeenCalledWith('/home')
         expect(mockToken).not.toHaveBeenCalled()
     })
 

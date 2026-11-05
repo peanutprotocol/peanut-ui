@@ -566,7 +566,7 @@ describe('PaperworkVerificationFlow', () => {
         expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Get a secure review')
         await waitFor(() => expect(mockRefresh).toHaveBeenCalled())
         fireEvent.click(screen.getByTestId('verify-review-home'))
-        expect(mockPush).toHaveBeenCalledWith('/home')
+        expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
     describe("an ID Sumsub reads as another country's", () => {

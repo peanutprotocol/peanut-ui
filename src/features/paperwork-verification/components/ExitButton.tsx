@@ -17,7 +17,7 @@ export function ExitButton({ onClick }: { onClick: () => void }) {
             aria-label={t('documentList.close')}
             data-testid="verify-id-exit"
         >
-            <Icon name="cancel" size={16} />
+            <Icon name="cancel" size={20} />
         </Button>
     )
 }

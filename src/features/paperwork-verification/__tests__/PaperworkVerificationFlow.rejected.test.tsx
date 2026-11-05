@@ -139,7 +139,7 @@ describe('a rejected identity on /verify', () => {
     it('Go to Home is still offered', async () => {
         renderFlow()
         fireEvent.click(await screen.findByRole('button', { name: 'Go to Home' }))
-        expect(mockPush).toHaveBeenCalledWith('/home')
+        expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
     it('reads the API’s duplicate_account reason when the rejected attempt stays on the flow', async () => {
