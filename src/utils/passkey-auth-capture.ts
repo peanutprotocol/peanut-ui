@@ -7,6 +7,7 @@
 
 import * as Sentry from '@/utils/sentry-lazy'
 import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
+import { currentAndroidPasskeyScope, registerScopeChallenge } from './android-passkey-scope'
 
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
@@ -108,6 +109,8 @@ export function installPasskeyVerifyCapture(): void {
         // Bind the request to the ceremony active at ISSUE time: a verify whose
         // request predates the current ceremony's window must not enter its stash.
         const issuingCeremonyId = isVerify ? currentCeremonyId() : null
+        // Same rule for Android scopes: the challenge belongs to the flow that asked for it.
+        const issuingScope = passkeyPath?.endsWith('/options') ? currentAndroidPasskeyScope() : undefined
 
         let response: Response
         try {
@@ -159,6 +162,10 @@ export function installPasskeyVerifyCapture(): void {
                 } else if (passkeyPath.endsWith('/options')) {
                     failure = new PasskeyOptionsFailedError(passkeyPath, response.status)
                 }
+            }
+            if (response.ok && issuingScope) {
+                const body = await response.clone().json()
+                registerScopeChallenge(issuingScope, body?.challenge ?? body?.options?.challenge)
             }
             // The token is only STASHED here (keyed to the issuing ceremony);
             // guardPasskeyCeremony persists it when the owning ceremony resolves

@@ -884,7 +884,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
             } else if (isPasskeyCleanupPendingError(error)) {
-                // Blocking on purpose: the controller refuses every retry until a restart.
+                // Retryable: the next tap asks native again; tagged apart from busy so its rate stays visible.
                 void captureNetworkTriagedFailure(error, {
                     tags: {
                         ...criticalFlowTags('qr-pay'),
@@ -892,7 +892,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                         qr_pay_failure: 'passkey_cleanup_pending',
                     },
                 })
-                setErrorMessage(t('errors.passkeyRestart'))
+                setErrorMessage(t('errors.passkeyStillOpen'), 'signRetryable')
             } else if (isPasskeyBusyError(error)) {
                 // an earlier passkey prompt still owns the authenticator; nothing was signed.
                 // still reported, tagged apart, so the busy rate stays visible

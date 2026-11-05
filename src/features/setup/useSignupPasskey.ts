@@ -187,6 +187,10 @@ export function useSignupPasskey(username: string) {
                     setInlineError(t('passkey.notReady'))
                 } else if (error.name === 'CeremonyConflictError') {
                     setInlineError(t('passkey.interrupted'))
+                } else if (error.name === 'PasskeyRequestSettlingError') {
+                    setInlineError(t('passkey.settling'))
+                } else if (error.name === 'PasskeyCleanupPendingError') {
+                    setInlineError(t('passkey.stillOpen'))
                 } else {
                     setInlineError(t('passkey.deviceState'))
                 }

@@ -434,6 +434,8 @@ export const ANALYTICS_EVENTS = {
     // count is what says whether a 2–3 prompt report is our call sites, a retry,
     // or the native shim presenting extra sheets on its own.
     PASSKEY_NATIVE_DIAGNOSTIC: 'passkey_native_diagnostic',
+    // Android request lifecycle after a timeout: cancel acknowledgement, slot release, late native results.
+    PASSKEY_NATIVE_LIFECYCLE: 'passkey_native_lifecycle',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
 
