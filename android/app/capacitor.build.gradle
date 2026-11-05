@@ -31,7 +31,7 @@ dependencies {
     implementation project(':capacitor-native-settings')
 
 }
-apply from: "../../node_modules/.pnpm/@sumsub+cordova-idensic-mobile-sdk-plugin@1.46.1/node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin/src/android/build-extras.gradle"
+apply from: "../../node_modules/.pnpm/@sumsub+cordova-idensic-mobile-sdk-plugin@1.46.1_patch_hash=6f7eb30b0614c275eafc28daa2a_ac151c5c7e2e558ea3ac0e5825e7a40c/node_modules/@sumsub/cordova-idensic-mobile-sdk-plugin/src/android/build-extras.gradle"
 
 if (hasProperty('postBuildExtras')) {
   postBuildExtras()

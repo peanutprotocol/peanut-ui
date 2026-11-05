@@ -20,7 +20,8 @@ const render = (ui: ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+const captureException = jest.fn()
+jest.mock('@sentry/nextjs', () => ({ captureException: (...a: unknown[]) => captureException(...a) }))
 jest.mock('@/components/Global/Modal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/utils/capacitor', () => ({ isAndroidNativeBridge: () => false }))
 
@@ -127,6 +128,43 @@ describe('SumsubNativeSdk analytics', () => {
             expect(eventsNamed('kyc_sdk_closed')).toEqual([
                 { sdk: 'native', status: 'Failed', success: false, error_type: 'Network' },
             ])
+        )
+    })
+
+    it('reports the SDK error behind a failed close, with its text kept out of PostHog', async () => {
+        const errorDetail = {
+            source: 'SNSVerificationStepViewModel',
+            message: 'Verification step. Error building state',
+            causes: ['com.sumsub.sns.core.data.model.SNSException$Network', 'java.net.SocketException'],
+            chain: 'SNSException$Network: java.net.SocketException: Connection reset',
+            ageMs: 40,
+        }
+        launch.mockResolvedValue({
+            success: false,
+            status: 'Failed',
+            errorType: 'Unknown',
+            errorMsg: 'Verification step. Error building state',
+            errorDetail,
+        })
+
+        await act(async () => {
+            render(<SumsubNativeSdk visible {...props()} />)
+        })
+
+        await waitFor(() => expect(eventsNamed('kyc_sdk_init_failed')).toHaveLength(1))
+        expect(eventsNamed('kyc_sdk_init_failed')[0]).toMatchObject({
+            reason: 'Unknown',
+            error_source: 'SNSVerificationStepViewModel',
+            error_root_cause: 'java.net.SocketException',
+            error_age_ms: 40,
+        })
+        expect(JSON.stringify(eventsNamed('kyc_sdk_init_failed')[0])).not.toContain('Connection reset')
+        expect(captureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({
+                tags: expect.objectContaining({ sumsub_root_cause: 'java.net.SocketException' }),
+                extra: expect.objectContaining({ nativeError: errorDetail }),
+            })
         )
     })
 })

@@ -11,7 +11,7 @@ import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
-import { captureNativeSdkClosed, createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
+import { captureNativeSdkClosed, createSumsubSdkTracker, nativeErrorProperties } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -104,11 +104,18 @@ export const SumsubNativeSdk = ({
     useEffect(() => {
         if (!visible || !hasAccessToken) return
 
-        const reportFailure = (reason: string, detail: unknown, kind: 'sdk-missing' | 'launch' = 'launch') => {
+        const reportFailure = (
+            reason: string,
+            detail: unknown,
+            kind: 'sdk-missing' | 'launch' = 'launch',
+            nativeError?: SNSMobileSDKErrorDetail | null
+        ) => {
             console.error('[sumsub] native sdk failure', reason, detail)
+            const nativeProperties = nativeErrorProperties(nativeError)
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
                 reason,
                 message: detail instanceof Error ? detail.message : String(detail),
+                ...nativeProperties,
             })
             Sentry.captureException(detail instanceof Error ? detail : new Error(`[sumsub] native ${reason}`), {
                 tags: {
@@ -116,8 +123,11 @@ export const SumsubNativeSdk = ({
                     kyc_step: 'sdk_launch',
                     sumsub_sdk: 'native',
                     sumsub_failure: reason,
+                    ...(nativeProperties.error_root_cause
+                        ? { sumsub_root_cause: nativeProperties.error_root_cause }
+                        : {}),
                 },
-                extra: { detail },
+                extra: { detail, ...(nativeError ? { nativeError } : {}) },
             })
             setFailure(kind)
             onErrorRef.current?.(detail)
@@ -240,7 +250,12 @@ export const SumsubNativeSdk = ({
                         settled = true
                         clearActiveSumsubInstance(instance)
                         if (result?.success === false) {
-                            reportFailure(result.errorType || 'sdk-failed', new Error(result.errorMsg || result.status))
+                            reportFailure(
+                                result.errorType || 'sdk-failed',
+                                new Error(result.errorMsg || result.status),
+                                'launch',
+                                result.errorDetail
+                            )
                             return
                         }
                         handleExit(result?.status)

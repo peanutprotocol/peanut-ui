@@ -25,6 +25,9 @@ patchedDependencies:
   '@capgo/capacitor-passkey@8.2.2':
     hash: 09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf
     path: patches/@capgo__capacitor-passkey.patch
+  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1':
+    hash: 6f7eb30b0614c275eafc28daa2a1f0e1098d45da83480bfdcc592d5772a71a8f
+    path: patches/@sumsub__cordova-idensic-mobile-sdk-plugin@1.46.1.patch
   '@zerodev/webauthn-key':
     hash: dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28
     path: patches/@zerodev__webauthn-key.patch
@@ -143,7 +146,7 @@ importers:
         version: 8.3.7
       '@sumsub/cordova-idensic-mobile-sdk-plugin':
         specifier: 1.46.1
-        version: 1.46.1
+        version: 1.46.1(patch_hash=6f7eb30b0614c275eafc28daa2a1f0e1098d45da83480bfdcc592d5772a71a8f)
       '@tanstack/react-query':
         specifier: 5.8.4
         version: 5.8.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -11815,7 +11818,7 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1': {}
+  '@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1(patch_hash=6f7eb30b0614c275eafc28daa2a1f0e1098d45da83480bfdcc592d5772a71a8f)': {}
 
   '@swc/core-darwin-arm64@1.15.43':
     optional: true
