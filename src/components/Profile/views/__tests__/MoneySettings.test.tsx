@@ -485,7 +485,7 @@ describe('MoneySettings', () => {
 
             render('payments')
             expect(screen.getByText('QR payments')).toBeInTheDocument()
-            expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
+            expect(screen.getByText('Argentina')).toBeInTheDocument()
         })
     })
 
@@ -1196,7 +1196,7 @@ describe('MoneySettings', () => {
             operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
         }
 
-        it('a QR-pool user can pay by QR, and is offered the bank unlock', () => {
+        it('a Brazilian QR-pool user keeps QR availability and the bank unlock without Pix sending', () => {
             mockUser = {
                 residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: null }),
                 user: { userId: 'u1' },
@@ -1206,17 +1206,10 @@ describe('MoneySettings', () => {
             mockIdentity = { status: 'verified' }
             const { unmount } = render()
 
-            // the row leads with the Pix send they hold today (hugo, 2026-09-26)…
             const bankRow = screen.getByText('BRL')
-            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Active')).toBeInTheDocument()
-            // …and its drawer keeps the bank rail's Unlock, the way into the onboarding
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Set up')).toBeInTheDocument()
+            expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             fireEvent.click(bankRow)
-            const drawer = within(screen.getByRole('dialog'))
-            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-                'href',
-                '/withdraw/manteca?method=pix&country=brazil'
-            )
-            fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
             expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
             unmount()
 
@@ -1242,7 +1235,7 @@ describe('MoneySettings', () => {
             render()
 
             fireEvent.click(screen.getByText('BRL'))
-            fireEvent.click(within(screen.getByRole('dialog')).getByText('Add and withdraw Brazilian reais with Pix.'))
+            expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
             expect(screen.getByText('Complete your verification')).toBeInTheDocument()
             expect(
@@ -1472,13 +1465,9 @@ describe('MoneySettings', () => {
         })
     })
 
-    /**
-     * TASK-23054 (hugo): the Pix key row left Payments. Outside Brazil the BRL
-     * row is the Pix send (`withPixSend`); a Brazilian resident's BRL row stays
-     * their bank rail, and its drawer carries the send on the same capability.
-     */
-    describe('a Brazilian resident sends to a Pix key from the BRL drawer', () => {
-        const brazilianRail = (pay: 'enabled' | 'requires-info') => ({
+    /** November residence policy: generic QR capability never authorizes Pix sending for BR residents. */
+    describe('Pix sending follows residence while Brazilian bank options remain available', () => {
+        const brazilianRail = (pay: 'enabled' | 'requires-info' = 'enabled') => ({
             id: 'manteca.pix_br',
             provider: 'manteca',
             channel: 'bank',
@@ -1490,6 +1479,11 @@ describe('MoneySettings', () => {
             fireEvent.click(screen.getByText('BRL'))
             return within(screen.getByRole('dialog'))
         }
+        const assertNoPixSend = () => {
+            expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
+            expect(document.querySelector('a[href="/withdraw/manteca?method=pix&country=brazil"]')).toBeNull()
+            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        }
 
         beforeEach(() => {
             mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
@@ -1497,82 +1491,229 @@ describe('MoneySettings', () => {
             mockIdentity = { status: 'verified' }
         })
 
-        it('with the pay capability, the drawer links to Pix key sending and the row keeps its bank status', () => {
-            mockRails = [brazilianRail('enabled')]
+        it('a Brazilian resident with active generic pay capability retains the active bank drawer without Pix sending', () => {
+            mockRails = [brazilianRail()]
             render()
 
             const row = within(screen.getByText('BRL').closest('.border') as HTMLElement)
             expect(row.getByText('Active')).toBeInTheDocument()
-            expect(row.queryByText('Send to any Pix key')).not.toBeInTheDocument()
-
+            assertNoPixSend()
             const drawer = openBrlDrawer()
             expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
-            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-                'href',
-                '/withdraw/manteca?method=pix&country=brazil'
-            )
+            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+            assertNoPixSend()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        // hugo, 2026-09-26: Manteca lets any verified user send to a Pix key,
-        // so a rail still being set up does not hold the send back
-        it('with the pay capability and a bank rail in progress, the row is the Pix send and the drawer keeps Processing', () => {
+        it('a Brazilian resident with active pay and a pending bank rail keeps Pending and its processing action', () => {
             mockRails = [
                 {
-                    ...brazilianRail('enabled'),
+                    ...brazilianRail(),
                     status: 'pending',
                     operations: { pay: 'enabled', deposit: 'pending', withdraw: 'pending' },
                 },
             ]
             render()
-
             const row = within(screen.getByText('BRL').closest('.border') as HTMLElement)
-            expect(row.getByText('Active')).toBeInTheDocument()
-            expect(row.getByText('Send to any Pix key')).toBeInTheDocument()
-
-            const drawer = openBrlDrawer()
-            // the hero opens on the send (Chip on ui#3506), not on moving reais by bank
-            expect(drawer.getByText('Send reais to any Pix key in Brazil.')).toBeInTheDocument()
-            expect(drawer.queryByText('Move reais between your bank and Peanut.')).not.toBeInTheDocument()
-            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-                'href',
-                '/withdraw/manteca?method=pix&country=brazil'
-            )
-            const railRow = within(
-                drawer.getByText('Add and withdraw Brazilian reais with Pix.').closest('.border') as HTMLElement
-            )
-            expect(railRow.getByText('Pending')).toBeInTheDocument()
-            fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
+            expect(row.getByText('Pending')).toBeInTheDocument()
+            expect(row.queryByText('Active')).not.toBeInTheDocument()
+            assertNoPixSend()
+            fireEvent.click(screen.getByText('BRL'))
             expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+            assertNoPixSend()
         })
 
-        it('without it, the drawer offers no Pix send', () => {
-            mockRails = [brazilianRail('requires-info')]
-            render()
-
-            const drawer = openBrlDrawer()
-            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
-            expect(drawer.queryByText('Send to any Pix key')).not.toBeInTheDocument()
-            // a bank-led row keeps the bank hero
-            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
-        })
-
-        it('outside Brazil the row itself is the Pix send, and opens no drawer', () => {
-            mockUser = {
-                residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
-                user: { userId: 'u1' },
-            }
+        it('a Brazilian resident keeps a blocked bank rail actionable without a Pix-send escape', () => {
             mockRails = [
                 {
-                    ...brazilianRail('enabled'),
+                    ...brazilianRail(),
+                    status: 'blocked',
+                    operations: { pay: 'enabled', deposit: 'blocked', withdraw: 'blocked' },
+                    reason: { code: 'requirements_uncollectable', userMessage: 'Backend English prose' },
+                    resolved: {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'requirements_uncollectable',
+                            userMessage: 'Backend English prose',
+                            selfHealable: false,
+                            selfHealKind: 'contact-support',
+                        },
+                        nextAction: {
+                            key: 'contact-support',
+                            kind: 'contact-support',
+                            purpose: 'requirements_uncollectable',
+                        },
+                    },
+                },
+            ]
+            render()
+            const row = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+            expect(row.getByText('Action needed')).toBeInTheDocument()
+            expect(row.queryByText('Active')).not.toBeInTheDocument()
+            assertNoPixSend()
+            fireEvent.click(screen.getByText('BRL'))
+            fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+            assertNoPixSend()
+        })
+
+        it('without pay capability, the Brazilian bank drawer still offers no Pix send', () => {
+            mockRails = [brazilianRail('requires-info')]
+            render()
+            const drawer = openBrlDrawer()
+            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+            assertNoPixSend()
+        })
+
+        it.each([
+            { declared: 'PT', verified: 'BR' },
+            { declared: 'BR', verified: null },
+        ])('blocks Pix sending for declared $declared and verified $verified residence', (residence) => {
+            mockUser = { residence: normalizeResidence(residence), user: { userId: 'u1' } }
+            mockRails = [brazilianRail()]
+            render()
+            expect(
+                within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Active')
+            ).toBeInTheDocument()
+            const drawer = openBrlDrawer()
+            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+            assertNoPixSend()
+        })
+
+        it.each([
+            { declared: 'PT', verified: 'PT' },
+            { declared: 'BR', verified: 'PT' },
+            { declared: 'PT', verified: null },
+        ])('keeps the Pix-send row for declared $declared and verified $verified residence', (residence) => {
+            mockUser = { residence: normalizeResidence(residence), user: { userId: 'u1' } }
+            mockRails = [
+                {
+                    ...brazilianRail(),
                     operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
                 },
             ]
             render()
-
+            expect(
+                within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Send to any Pix key')
+            ).toBeInTheDocument()
             fireEvent.click(screen.getByText('BRL'))
             expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        })
+
+        it('removes the Pix CTA on a residence refresh while retaining the open active bank drawer', () => {
+            mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+            mockRails = [brazilianRail()]
+            const { rerender } = render()
+            const drawer = openBrlDrawer()
+            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+                'href',
+                '/withdraw/manteca?method=pix&country=brazil'
+            )
+            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+
+            mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'BR' }), user: { userId: 'u1' } }
+            rerender(
+                <QueryClientProvider client={new QueryClient()}>
+                    <MoneySettings view="bank" />
+                </QueryClientProvider>
+            )
+
+            const refreshedDrawer = within(screen.getByRole('dialog'))
+            expect(refreshedDrawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+            expect(refreshedDrawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+            expect(
+                within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Active')
+            ).toBeInTheDocument()
+            assertNoPixSend()
+        })
+
+        it.each([
+            { bankStatus: 'pending', label: 'Pending' },
+            { bankStatus: 'requires-info', label: 'Set up' },
+            { bankStatus: 'blocked', label: 'Action needed' },
+        ])(
+            'keeps the $label bank action in an open drawer after residence and bank refresh',
+            ({ bankStatus, label }) => {
+                mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+                mockRails = [brazilianRail()]
+                const { rerender } = render()
+                const drawer = openBrlDrawer()
+                expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+                    'href',
+                    '/withdraw/manteca?method=pix&country=brazil'
+                )
+                expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+
+                mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'BR' }), user: { userId: 'u1' } }
+                mockRails = [
+                    {
+                        ...brazilianRail(),
+                        // Match the established QR-pool fixture: the rail is enabled,
+                        // while unopened bank operations still require setup.
+                        status: bankStatus === 'requires-info' ? 'enabled' : bankStatus,
+                        operations: { pay: 'enabled', deposit: bankStatus, withdraw: bankStatus },
+                        ...(bankStatus === 'blocked'
+                            ? {
+                                  reason: { code: 'requirements_uncollectable', userMessage: 'Backend English prose' },
+                                  resolved: {
+                                      status: 'blocked',
+                                      blocking: {
+                                          code: 'requirements_uncollectable',
+                                          userMessage: 'Backend English prose',
+                                          selfHealable: false,
+                                          selfHealKind: 'contact-support',
+                                      },
+                                      nextAction: {
+                                          key: 'contact-support',
+                                          kind: 'contact-support',
+                                          purpose: 'requirements_uncollectable',
+                                      },
+                                  },
+                              }
+                            : {}),
+                    },
+                ]
+                rerender(
+                    <QueryClientProvider client={new QueryClient()}>
+                        <MoneySettings view="bank" />
+                    </QueryClientProvider>
+                )
+
+                const refreshedDrawer = within(screen.getByRole('dialog'))
+                expect(refreshedDrawer.getByText(label)).toBeInTheDocument()
+                expect(refreshedDrawer.queryByText('Active')).not.toBeInTheDocument()
+                expect(refreshedDrawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+                assertNoPixSend()
+                fireEvent.click(refreshedDrawer.getByText('Add and withdraw Brazilian reais with Pix.'))
+                if (bankStatus === 'pending') {
+                    expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+                } else if (bankStatus === 'requires-info') {
+                    expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
+                } else {
+                    fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+                    expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+                }
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+                assertNoPixSend()
+            }
+        )
+
+        // The drawer keeps the copy every user sees: the Pix pause is temporary (ui#3963 review).
+        it('keeps the Argentine QR offer active for a Brazilian resident', () => {
+            mockRails = [brazilianRail()]
+            render('payments')
+            const qrRow = screen.getByText('QR payments').closest('.border') as HTMLElement
+            expect(within(qrRow).getByText('Active')).toBeInTheDocument()
+            expect(qrRow.querySelector('img[src="/flags/ar.svg"]')).not.toBeNull()
+            expect(qrRow.querySelector('img[src="/flags/br.svg"]')).toBeNull()
+            expect(within(qrRow).getByText('Argentina')).toBeInTheDocument()
+            expect(within(qrRow).queryByText(/Brazil/)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByText('QR payments'))
+            const drawer = within(screen.getByRole('dialog'))
+            expect(drawer.getByText('Scan and pay where you live.')).toBeVisible()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
     })
 })

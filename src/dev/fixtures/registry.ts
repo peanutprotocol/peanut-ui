@@ -951,6 +951,12 @@ const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
 )
 
 /** A static Pix QR with no amount: the scan screen's own route. */
+const PIX_ELIGIBLE_RESIDENCE = {
+    verified: { country: 'PT', status: 'VERIFIED', updatedAt: null },
+    declared: null,
+    secondaryDeclaredCountry: null,
+}
+
 const PIX_QR_ROUTE =
     '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
 
@@ -1652,6 +1658,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'An open-amount QR whose live exchange rate failed: Retry remains reachable before currency is set.',
         waitFor: 'div.my-auto button',
         responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
             'POST /manteca/qr-payment/init': {
                 code: '',
                 type: 'PIX',
@@ -1672,6 +1679,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: 'MARIA DA SILVA',
@@ -1692,6 +1700,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: '12345678909',
@@ -1704,9 +1713,45 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     // The capabilities let the user pay, but the API refuses the scan for
     // identity (TASK-23747): the card starts the verification.
+    'qr-pay-payer-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A payer blocked by the payment provider: terminal guidance with support and another payment method.',
+        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'PAYER_BLOCKED', error: 'PAYER_BLOCKED', message: 'Payer blocked' },
+            },
+        },
+    },
+    'qr-pay-merchant-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A merchant blocked by the payment provider: ask for another QR or payment method.',
+        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'MERCHANT_BLOCKED', error: 'MERCHANT_BLOCKED', message: 'Merchant blocked' },
+            },
+        },
+    },
+    'qr-pay-brazil-resident': {
+        route: PIX_QR_ROUTE,
+        about: 'A Brazilian resident reaches a Pix deep link: the Brazil pause screen shows before init.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+            },
+        },
+    },
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,
         about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
+        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
         rejects: {
             'POST /manteca/qr-payment/init': {
                 status: 400,
@@ -1722,13 +1767,16 @@ export const FIXTURES: Record<string, Fixture> = {
     'qr-pay-identity-missing': {
         route: PIX_QR_ROUTE,
         about: "QR paused: the payment partner can't read the name and ID number on the user's ID. They upload it again.",
-        responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+        responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE, capabilities: QR_IDENTITY_MISSING_CAPABILITIES },
+        },
     },
     'qr-pay-identity-restart-pending': {
         route: PIX_QR_ROUTE,
         about: 'QR paused: the user started a new ID check and has not finished it. They continue it.',
         responses: {
             'GET /users/me': {
+                residence: PIX_ELIGIBLE_RESIDENCE,
                 capabilities: qrIdentityPausedCapabilities(
                     'identity_restart_pending',
                     'Finish your new ID check to pay by QR again.'
@@ -1741,6 +1789,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'QR paused: an account imported from Manteca has no ID on file. They upload it and take a selfie.',
         responses: {
             'GET /users/me': {
+                residence: PIX_ELIGIBLE_RESIDENCE,
                 capabilities: qrIdentityPausedCapabilities(
                     'identity_document_missing',
                     'We need an identity document and a selfie to complete your verification.'
@@ -2867,9 +2916,15 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: 'Accounts page, a Brazilian resident: BRL is their bank rail, and its drawer sends to a Pix key.',
+        about: 'Accounts page, a Brazilian resident: BRL keeps bank access without Pix-key sending.',
         responses: {
-            'GET /users/me': { residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null } },
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+            },
         },
     },
     'get-paid-empty': {

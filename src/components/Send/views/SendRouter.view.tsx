@@ -25,7 +25,7 @@ import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
+import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
 
 // Lazy — only needed for address/ENS recipients, and pulls the heavy
 // TokenSelector → wagmi config graph. Static-importing it bloats the common
@@ -44,7 +44,7 @@ export const SendRouterView = () => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const searchParams = useSearchParams()
-    const brazilPaused = useBrazilServicesPaused()
+    const pixPaused = useBrazilPixPaused()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
     // direct send to a specific user — supports both:
@@ -101,7 +101,7 @@ export const SendRouterView = () => {
                 router.push('/withdraw/crypto?method=crypto')
                 break
             case 'pix':
-                if (brazilPaused) return openBrazilPausedDrawer()
+                if (pixPaused) return openBrazilPausedDrawer()
                 // navigate to pix send flow
                 router.push('/withdraw/manteca?method=pix&country=brazil')
                 break

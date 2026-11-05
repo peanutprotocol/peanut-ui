@@ -50,7 +50,7 @@ export interface UnlockRow {
     /** the card row, and a BRL row that sends to a Pix key: navigate instead of opening a region modal */
     href?: string
     /** the explainer line under the title, as a key under profile.unlockPayments */
-    note?: 'qrPayNote' | 'pixSendNote'
+    note?: 'qrPayNote' | 'qrPayArgentinaNote' | 'pixSendNote'
     /** the bank account row: the currencies it can hold, named under the title */
     currencies?: readonly string[]
     /**
@@ -114,6 +114,7 @@ export interface BuildUnlockGroupsInput {
     /** the QR-pay gate's answer (`selectQrKycGate`), the one /qr-pay and Home read too */
     qrPay: QrKycState
     card: UnlockChip | 'get'
+    pixResidenceBlocked?: boolean
 }
 
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', concept: 'card' } as const
@@ -273,19 +274,16 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     // second. Anyone without it gets the LATAM offer chip, and the tap lands
     // on the same region intent the merged bank row uses.
     // The QR row keeps the Manteca offer chip when the user cannot pay yet.
-    // Brazil leads because Pix is the bigger corridor of the two.
-    // A banking restriction does not close it: QR pays through the pool rails,
-    // open to every verified user whatever their residence (hugo, 2026-09-26;
-    // audit C29). Only the QR answer decides it (`qrPayChip`).
+    // A Pix residence restriction leaves Mercado Pago QR available.
     const qrChip = qrPayChip(qrPay)
     const qrRow: UnlockRow = {
         id: 'qr-pay',
         labelKey: 'qrPay',
         concept: 'qrPay',
         chip: qrChip,
-        note: 'qrPayNote',
-        flags: ['BR', 'AR'],
-        limitRefs: ['BRL', 'ARS'],
+        note: input.pixResidenceBlocked ? 'qrPayArgentinaNote' : 'qrPayNote',
+        flags: input.pixResidenceBlocked ? ['AR'] : ['BR', 'AR'],
+        limitRefs: input.pixResidenceBlocked ? ['ARS'] : ['BRL', 'ARS'],
         ...(qrChip === 'active' ? {} : { regionPath: 'latam' as const }),
     }
     // The always-on layer and the spending methods. The bank rows are their
@@ -376,42 +374,18 @@ export function paymentMethodSections(rows: readonly UnlockRow[]): Record<Paymen
     return sections
 }
 
-/**
- * Where sending to a Pix key starts. Two doors open it, on the same QR-pay
- * answer: a closed BRL row itself (`withPixSend`), and the BRL row's details
- * drawer for a Brazilian resident (TASK-23054, hugo).
- */
 export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazil' })
 
-/**
- * The bank rows as Accounts lists them: a BRL row the user cannot move reais
- * through speaks for sending to a Pix key instead.
- *
- * Adding reais by Pix is for Brazilian residents (a CPF), and not for a
- * residence where bank transfers are restricted, but every verified user can
- * send to any Pix key (hugo, 2026-09-24, QA-12; 2026-09-26, audit C29) — the
- * one way BRL leaves Peanut. So wherever the row is closed, it carries the Pix
- * key send's status and tap target, with a note that says it is for sending.
- * Add money keeps the closed row: adding is the only thing that screen offers.
- *
- * A Brazilian resident's own rail that cannot move money yet (Unlock,
- * Processing, Attention) works the same way once they can pay (hugo,
- * 2026-09-26: Manteca lets any verified user send to any Pix key). The row
- * says Available for the send, and keeps the rail's status in `bankChip` for
- * its drawer, where the rail's own flow still opens. A working rail stays the
- * bank row; its drawer carries the send.
- *
- * Sending to a Pix key rides the QR-payment rail (the method=pix delegation in
- * /withdraw/manteca hands off to /qr-pay), so it reads Available only on the
- * answer /qr-pay itself gives (`selectQrKycGate`), through `qrPayChip`.
- */
+/** Pix sending and first-party BRL bank access have separate eligibility. */
 export function withPixSend(
     rows: readonly UnlockRow[],
     pixSend: {
         /** the QR-pay gate's answer: the one /qr-pay gives */
         qrPay: QrKycState
+        pixResidenceBlocked?: boolean
     }
 ): UnlockRow[] {
+    if (pixSend.pixResidenceBlocked) return [...rows]
     const chip = qrPayChip(pixSend.qrPay)
     return rows.map((row) => {
         if (row.labelKey !== 'brl' || row.chip === 'active' || row.chip === 'alwaysOn') return row

@@ -97,6 +97,31 @@ const variationPageIds = new Set([
 ])
 const definitions: Screen[] = [
     {
+        id: 'profile-brazil-bank-details',
+        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/accounts',
+        fixture: 'profile-accounts-br-resident',
+        clicks: [],
+        clickTestIds: ['bank-row-brl'],
+        // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
+        expectSelector: '[role="dialog"][data-state="open"] h2',
+    },
+    {
+        id: 'profile-brazil-qr-details',
+        name: 'Brazilian resident — Argentina QR payments remain available',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/payments',
+        fixture: 'profile-accounts-br-resident',
+        clicks: [],
+        clickTestIds: ['method-row-qr-pay'],
+        expectSelector: '[role="dialog"][data-state="open"] h2',
+    },
+    {
         id: 'qr-camera-permission',
         name: 'QR scanner — camera permission needed',
         flow: 'Payments',
@@ -106,6 +131,17 @@ const definitions: Screen[] = [
         fixture: 'profile-edit',
         clicks: [],
         camera: 'denied',
+    },
+    {
+        id: 'qr-scanner-brazil-resident',
+        name: 'QR scanner — Brazilian resident, Pix hidden',
+        flow: 'Payments',
+        kind: 'component',
+        defaultScreen: false,
+        route: '/dev/surfaces?s=54-d-qrbottomdrawer',
+        fixture: 'qr-pay-brazil-resident',
+        clicks: [],
+        camera: 'synthetic',
     },
     ...Object.entries(FIXTURES).map(([id, f]) => ({
         id: `fixture-${id}`,

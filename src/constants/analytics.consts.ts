@@ -250,6 +250,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
+    PIX_QR_INIT_RESULT: 'pix_qr_init_result',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
     QR_SENDER_REJECTED_SHOWN: 'qr_sender_rejected_shown',
