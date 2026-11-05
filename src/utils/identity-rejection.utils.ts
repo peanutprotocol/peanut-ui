@@ -15,7 +15,6 @@ import type { CapabilityReason, IdentityVerification } from '@/types/capabilitie
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 import { DUPLICATE_ACCOUNT_REASON_CODE, IMPORTED_IDENTITY_REJECTED_CODE } from '@/utils/capability-gate'
 
-const DUPLICATE_EMAIL_LABEL = 'DUPLICATE_EMAIL'
 const IDENTITY_REJECTED_CODE = 'identity_rejected'
 
 /** Catalog keys are read from the root namespace (`useTranslations()`). */
@@ -94,7 +93,8 @@ export function identityRejection({
 
     switch (action) {
         case 'other_account': {
-            const emailOnly = labels.includes(DUPLICATE_EMAIL_LABEL) && !labels.includes('DUPLICATE')
+            // The API names Sumsub's duplicate only with its DUPLICATE label; without it, the account shares an email.
+            const emailOnly = !labels.includes('DUPLICATE')
             return {
                 action,
                 descriptionKey: emailOnly
@@ -154,9 +154,11 @@ export function profileIdentityRejection(identity: IdentityVerification): Identi
 export function rejectionSupportMessage(
     support: NonNullable<IdentityRejection['support']>,
     message: string,
-    reason?: Partial<CapabilityReason> | null
+    reason?: Partial<CapabilityReason> | null,
+    userId?: string
 ): string {
     return buildContactSupportMessage({
         reason: { details: reason?.details, code: support.code, userMessage: message },
+        userId,
     })
 }

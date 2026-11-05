@@ -328,7 +328,8 @@ export default function ActivationCTAs({
                                     ? rejectionSupportMessage(
                                           support,
                                           tRoot(support.messageKey as never),
-                                          identity.reason
+                                          identity.reason,
+                                          user?.user?.userId
                                       )
                                     : buildContactSupportMessage({
                                           reason: identity.reason,

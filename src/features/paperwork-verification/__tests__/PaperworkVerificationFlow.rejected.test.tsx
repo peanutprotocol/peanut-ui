@@ -137,7 +137,7 @@ describe('a rejected identity on /verify', () => {
 
     it('reads the API’s duplicate_account reason when the rejected attempt stays on the flow', async () => {
         mockIdentity = rejected({
-            rejectLabels: undefined,
+            rejectLabels: ['DUPLICATE'],
             reason: { code: 'duplicate_account', userMessage: 'Your documents are on another account.' },
         })
         jest.mocked(getKycQuestions).mockResolvedValue(answered)

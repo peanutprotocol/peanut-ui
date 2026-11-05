@@ -15,12 +15,8 @@ import { DEPOSIT_RAILS } from '../rails'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
-import { supportCaseOf } from '@/utils/capability-gate'
-import {
-    buildContactSupportMessage,
-    buildSupportCaseMessage,
-    SUPPORT_CASE_MESSAGE_KEYS,
-} from '@/utils/contact-support.utils'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { identityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 
 /** the residence-gated corridors' own copy, keyed by corridor */
 const RESIDENCE_COPY = {
@@ -52,6 +48,7 @@ export function ClosedRowDrawer({
 }) {
     const { t } = useDepositAccountCopy()
     const tCommon = useTranslations('common')
+    const tRoot = useTranslations()
     const tAccounts = useTranslations('profile.unlockPayments')
     const tKyc = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
@@ -163,22 +160,28 @@ export function ClosedRowDrawer({
                     cta: { label: t('list.errorRetry'), act: onRetry },
                 }
             // the Home "Verification issue" card's words and its support prefill
+            // the Home "Verification issue" card's words: why it failed and the way on
             case 'identity-rejected': {
                 const reason = row.reason ?? identity.reason
-                const supportCase = supportCaseOf(reason?.code)
-                const supportCaseKey = supportCase ? reasonCodeKey(reason?.code) : undefined
+                const rejection = identityRejection({
+                    rejectLabels: identity.rejectLabels,
+                    reason,
+                    retryable: false,
+                })
+                const support = rejection.support
                 return {
                     title: tActivation('verificationIssue.title'),
-                    body: supportCaseKey ? tIdentity(supportCaseKey) : tActivation('verificationIssue.description'),
+                    body: tRoot(rejection.descriptionKey as never),
                     cta: {
                         label: tCommon('contactSupport'),
                         act: () =>
                             openSupportWithMessage(
-                                supportCase
-                                    ? buildSupportCaseMessage(
-                                          supportCase,
-                                          tKyc(SUPPORT_CASE_MESSAGE_KEYS[supportCase]),
-                                          reason
+                                support
+                                    ? rejectionSupportMessage(
+                                          support,
+                                          tRoot(support.messageKey as never),
+                                          reason,
+                                          user?.user?.userId
                                       )
                                     : buildContactSupportMessage({ reason, userId: user?.user?.userId })
                             ),

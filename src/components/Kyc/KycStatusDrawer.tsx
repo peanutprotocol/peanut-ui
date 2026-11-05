@@ -51,7 +51,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                   rejectionSupportMessage(
                       rejection.support,
                       tRoot(rejection.support.messageKey as never),
-                      identity.reason
+                      identity.reason,
+                      user?.user?.userId
                   )
               )
             : supportCase

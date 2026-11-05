@@ -816,7 +816,7 @@ describe('a rejected identity', () => {
         fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
         expect(onOpen).not.toHaveBeenCalled()
         expect(drawer().getByText(ISSUE.title)).toBeInTheDocument()
-        expect(drawer().getByText(ISSUE.description)).toBeInTheDocument()
+        expect(drawer().getByText(messages.kyc.rejectActions.contact_support.description)).toBeInTheDocument()
         expect(drawer().queryByText(LIST.notOfferedBody.replace('{currency}', 'EUR'))).not.toBeInTheDocument()
 
         contactSupport()

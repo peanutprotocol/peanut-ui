@@ -147,7 +147,12 @@ function useRejectionExits(rejection: IdentityRejection) {
             support && modals
                 ? () =>
                       modals.openSupportWithMessage(
-                          rejectionSupportMessage(support, tRoot(support.messageKey as never), reason)
+                          rejectionSupportMessage(
+                              support,
+                              tRoot(support.messageKey as never),
+                              reason,
+                              user?.user?.userId
+                          )
                       )
                 : undefined,
         onLogIn: rejection.action === 'other_account' && logoutUser ? () => void logoutUser() : undefined,
