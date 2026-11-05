@@ -190,6 +190,54 @@ describe('Landing — test-build web sign-up', () => {
     })
 })
 
+describe('Landing — deleted account', () => {
+    it('says the account was deleted, points to Sign up and stays out of Sentry', async () => {
+        mockLogin.mockRejectedValue(passkeyError('ACCOUNT_DELETED'))
+        renderWithIntl(<LandingStep />)
+
+        logIn()
+
+        expect(await screen.findByTestId('account-deleted')).toHaveTextContent(
+            'This account was deleted. Sign up to create a new one.'
+        )
+        expect(mockToastError).not.toHaveBeenCalled()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR,
+            expect.objectContaining({ error_code: 'ACCOUNT_DELETED', recovery_drawer: false })
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+        expect(mockNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears the message when Log in is tapped again', async () => {
+        mockLogin.mockRejectedValueOnce(passkeyError('ACCOUNT_DELETED')).mockResolvedValueOnce(undefined)
+        renderWithIntl(<LandingStep />)
+
+        logIn()
+        await screen.findByTestId('account-deleted')
+        logIn()
+
+        await waitFor(() => expect(screen.queryByTestId('account-deleted')).not.toBeInTheDocument())
+    })
+
+    it('shows the message above the store buttons on the web app-only layout', async () => {
+        mockNative = false
+        mockDeviceType = 'web'
+        mockLogin.mockRejectedValue(passkeyError('ACCOUNT_DELETED'))
+        renderWithIntl(<LandingStep />)
+
+        logIn()
+
+        const message = await screen.findByTestId('account-deleted')
+        expect(message.compareDocumentPosition(screen.getByTestId('store-buttons'))).toBe(
+            Node.DOCUMENT_POSITION_FOLLOWING
+        )
+    })
+})
+
 describe('Landing — control analytics', () => {
     const controls = () => signupControls(posthog.capture as jest.Mock)
 

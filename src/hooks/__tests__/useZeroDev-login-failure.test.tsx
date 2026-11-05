@@ -5,7 +5,11 @@ import { act, render, renderHook, waitFor } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { clearAuthState } from '@/utils/auth.utils'
 import { currentCeremonyId, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
-import { PasskeyVerifyRejectedError } from '@/utils/passkey-auth-capture'
+import {
+    PasskeyAccountDeletedError,
+    PasskeyOptionsFailedError,
+    PasskeyVerifyRejectedError,
+} from '@/utils/passkey-auth-capture'
 import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 import { AccountType } from '@/interfaces/interfaces'
 
@@ -366,6 +370,57 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             })
         )
     })
+
+    it('gives a deleted account its own code without clearing auth state or reporting to Sentry', async () => {
+        const thrown = await loginRejectingWith(new PasskeyAccountDeletedError())
+
+        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'ACCOUNT_DELETED' })
+        expect(getPasskeyErrorSetupKey(thrown)).toBe('passkey.accountDeleted')
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockCaptureException).not.toHaveBeenCalled()
+        expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
+    })
+
+    it('does not retry a deleted account on iOS', async () => {
+        passkeyTestGlobals.__passkeyTestIOSNative = true
+        passkeyTestGlobals.__capgoPasskeyShimInstalled = true
+
+        const thrown = await loginRejectingWith(new PasskeyAccountDeletedError())
+
+        expect(thrown.code).toBe('ACCOUNT_DELETED')
+        expect(mockToWebAuthnKey).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports a failed /login/options as a server failure and keeps auth state', async () => {
+        const thrown = await loginRejectingWith(new PasskeyOptionsFailedError('/passkeys/login/options', 500))
+
+        expect(thrown.code).toBe('NETWORK')
+        expect(getPasskeyErrorSetupKey(thrown)).toBe('passkey.serverUnreachable')
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.objectContaining({
+                name: 'PasskeyServerError',
+                cause: expect.objectContaining({ name: 'PasskeyOptionsFailedError', status: 500 }),
+            }),
+            expect.objectContaining({ tags: { error_type: 'passkey_server_failure' } })
+        )
+    })
+})
+
+it('normalises a failed /register/options to PasskeyServerError at signup', async () => {
+    mockToWebAuthnKey.mockRejectedValue(new PasskeyOptionsFailedError('/passkeys/register/options', 500))
+    const { result } = renderHook(() => useZeroDev())
+    let thrown: unknown
+    await act(async () => {
+        try {
+            await result.current.handleRegister('alice')
+        } catch (e) {
+            thrown = e
+        }
+    })
+
+    expect(thrown).toMatchObject({ name: 'PasskeyServerError', cause: expect.objectContaining({ status: 500 }) })
+    expect(clearAuthState).not.toHaveBeenCalled()
 })
 it('waits for fresh session hydration before publishing the verified wallet key and blocks a second ceremony', async () => {
     let resolveHydration!: (value: unknown) => void
