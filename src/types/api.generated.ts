@@ -972,6 +972,8 @@ export interface paths {
                         amountBrl?: string;
                         amountUsd?: string;
                         pixKey: string;
+                        /** @description USDC to leave the wallet, Rhino’s fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
                     };
                 };
             };
@@ -1175,6 +1177,8 @@ export interface paths {
                         amountBrl?: string;
                         amountUsd?: string;
                         pixKey: string;
+                        /** @description USDC to leave the wallet, Rhino’s fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
                     };
                 };
             };
@@ -1486,7 +1490,7 @@ export interface paths {
         put?: never;
         /**
          * Name another own Pix key for a refused withdrawal
-         * @description When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it.
+         * @description When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open with the rollout gate or the Avenia kill switch closed, since it only returns the user’s own money.
          */
         post: {
             parameters: {
