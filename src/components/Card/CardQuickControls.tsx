@@ -2,6 +2,7 @@
 
 import { type FC } from 'react'
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
@@ -20,12 +21,12 @@ function Control({
     testId: string
 }) {
     return (
-        <button
-            type="button"
+        <Button
+            variant="ghost"
             onClick={onClick}
             aria-pressed={active || undefined}
             data-testid={testId}
-            className="flex min-w-0 flex-1 flex-col items-center gap-2 rounded-sm py-2 text-center transition-opacity focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+            className="h-auto min-w-0 flex-1 flex-col gap-2 rounded-sm px-0 py-2 text-center"
         >
             <span
                 className={twMerge(
@@ -35,8 +36,8 @@ function Control({
             >
                 <Icon name={icon} size={20} />
             </span>
-            <span className="text-body-m-semibold text-foreground-primary">{label}</span>
-        </button>
+            <span className="text-body-m-semibold">{label}</span>
+        </Button>
     )
 }
 

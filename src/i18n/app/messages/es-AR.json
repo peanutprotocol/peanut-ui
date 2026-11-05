@@ -1041,7 +1041,7 @@
         },
         "lockModal": {
             "lockSuccessBody": "Volvé cuando quieras para descongelarla.",
-            "slideToLock": "Deslizá para congelar"
+            "slideToLock": "Deslizá y congelá"
         },
         "stop": {
             "pending": "Todavía se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",

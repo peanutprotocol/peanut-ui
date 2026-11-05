@@ -1908,7 +1908,7 @@
             "unlockSuccess": "Cartão descongelado",
             "unlockSuccessBody": "Seu cartão está ativo de novo.",
             "locking": "Congelando…",
-            "slideToLock": "Deslize para congelar",
+            "slideToLock": "Deslize e congele",
             "unlockCta": "Descongelar",
             "lockFailed": "Não foi possível congelar o cartão",
             "unlockFailed": "Não foi possível descongelar o cartão"
