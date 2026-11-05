@@ -31,6 +31,7 @@ export function HomeCardFold({ strings, locale }: HomeCardFoldProps) {
                         height={Sparkle.height}
                         alt=""
                         aria-hidden
+                        loading="lazy"
                         className="pointer-events-none w-9"
                     />
                     <SectionTitle>

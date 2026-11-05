@@ -13,17 +13,7 @@ import type { TillStickerProps } from './starLp.types'
  * the 4px drop is the link's, the shadow goes here (`group-active`). Hover
  * adds no motion (design.md § marketing components).
  */
-export function TillSticker({
-    mark,
-    markAlt,
-    label,
-    lang,
-    campaign,
-    slot,
-    className,
-    priority = false,
-    qrContext,
-}: TillStickerProps) {
+export function TillSticker({ mark, markAlt, label, lang, campaign, slot, className, qrContext }: TillStickerProps) {
     return (
         <div
             className={twMerge(
@@ -31,7 +21,7 @@ export function TillSticker({
                 className
             )}
         >
-            <Image src={mark} alt={markAlt} priority={priority} className="mx-auto size-8" />
+            <Image src={mark} alt={markAlt} className="mx-auto size-8" />
             <p lang={lang} className="font-roboto-flex-extrabold mt-1 text-body-xs uppercase">
                 {label}
             </p>

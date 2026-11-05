@@ -20,7 +20,14 @@ export function SelfCustodyClose() {
                     className="pointer-events-none absolute -top-6 -left-8 w-10 md:-top-8 md:-left-14 md:w-14"
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                    <img
+                        src={Sparkle.src}
+                        width={Sparkle.width}
+                        height={Sparkle.height}
+                        alt=""
+                        aria-hidden
+                        loading="lazy"
+                    />
                 </PopIn>
                 <KnerdTitle text={'Only\nyours'} size="hero" />
                 <PopIn
@@ -30,7 +37,14 @@ export function SelfCustodyClose() {
                 >
                     <Wiggle kind="wobble" delay={0.6}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                        <img
+                            src={Sparkle.src}
+                            width={Sparkle.width}
+                            height={Sparkle.height}
+                            alt=""
+                            aria-hidden
+                            loading="lazy"
+                        />
                     </Wiggle>
                 </PopIn>
             </h2>
