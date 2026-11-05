@@ -29,7 +29,8 @@ type Denomination = 'USD' | 'BRL'
  * Add money by Pix for a Brazilian resident on Avenia: the first-use setup
  * while the rail is not enabled, the amount in reais (R$20 minimum), then the
  * dynamic Pix code. Same URL contract as the Manteca flow it replaces for
- * these users (`?step=`, `?amount=`, `?currency=`).
+ * these users (`?step=`, `?amount=`, `?currency=`), plus `?intentId=` once
+ * the code exists.
  */
 export function AveniaAddMoneyFlow({
     searchParams,
@@ -51,8 +52,11 @@ export function AveniaAddMoneyFlow({
         step: parseAsStringEnum<AveniaDepositStep>(['inputAmount', 'showQR']),
         amount: parseAsString,
         currency: parseAsStringEnum<Denomination>(['USD', 'BRL']),
+        // the deposit the code belongs to: a reload shows its status, not a new amount form
+        intentId: parseAsString,
     })
     const step: AveniaDepositStep = urlState.step ?? 'inputAmount'
+    const intentId = urlState.intentId
     const ready = aveniaSetupState(rail) === 'ready'
 
     const currencyData = useCurrency('BRL')
@@ -75,10 +79,10 @@ export function AveniaAddMoneyFlow({
             ? tAvenia('minimum', { amount: formatBankAmount(minBrl, 'BRL') })
             : null
 
-    // A code lives only in this screen's memory: a refresh on the code step starts over.
+    // the code step belongs to one deposit; without its id there is nothing to show
     useEffect(() => {
-        if (step === 'showQR' && !deposit) void setUrlState({ step: 'inputAmount' })
-    }, [step, deposit, setUrlState])
+        if (step === 'showQR' && !intentId) void setUrlState({ step: 'inputAmount' })
+    }, [step, intentId, setUrlState])
 
     const handleSubmit = useCallback(async () => {
         if (isCreating) return
@@ -99,7 +103,7 @@ export function AveniaAddMoneyFlow({
                 country: 'brazil',
             })
             setDeposit(created)
-            void setUrlState({ step: 'showQR' })
+            void setUrlState({ step: 'showQR', intentId: created.intentId })
         } catch (caught) {
             const code = wireErrorCode(caught)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
@@ -126,6 +130,19 @@ export function AveniaAddMoneyFlow({
         }
     }, [isCreating, brlAmount, usdAmount, setUrlState, fetchUser, tAvenia, tShared, tErrors, minBrl])
 
+    if (step === 'showQR' && intentId) {
+        return (
+            <AveniaPixQrDeposit
+                intentId={intentId}
+                deposit={deposit?.intentId === intentId ? deposit : undefined}
+                // the code is made; back leaves the flow rather than offering a second code
+                onBack={onBack}
+                onDone={leaveToHome}
+                onComplete={() => void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
+            />
+        )
+    }
+
     if (!ready) return <AveniaPixSetup title={t('title')} onBack={onBack} rail={rail} />
 
     // the code is being made: title only, nothing has moved yet
@@ -134,18 +151,6 @@ export function AveniaAddMoneyFlow({
             <div className="my-auto flex min-h-inherit flex-col justify-center">
                 <ProcessingScreen title={t('processingDepositTitle')} />
             </div>
-        )
-    }
-
-    if (step === 'showQR' && deposit) {
-        return (
-            <AveniaPixQrDeposit
-                deposit={deposit}
-                // the code is made; back leaves the flow rather than offering a second code
-                onBack={onBack}
-                onDone={leaveToHome}
-                onComplete={() => void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
-            />
         )
     }
 

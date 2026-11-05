@@ -105,9 +105,14 @@ describe('aveniaDepositPhase', () => {
         expect(aveniaDepositPhase(status('COMPLETED', 'PAID'))).toBe('completed')
     })
 
-    it('reads a failed or cancelled deposit as returned to the payer', () => {
+    it('reads a failed deposit as returned to the payer', () => {
         expect(aveniaDepositPhase(status('FAILED', 'FAILED'))).toBe('returned')
-        expect(aveniaDepositPhase(status('CANCELLED', 'CANCELED'))).toBe('returned')
+        expect(aveniaDepositPhase(status('REFUNDED', 'FAILED'))).toBe('returned')
+    })
+
+    it('reads a code the API cancelled after its expiry as expired, not returned: nothing was paid', () => {
+        expect(aveniaDepositPhase(status('CANCELLED', 'CANCELED'))).toBe('expired')
+        expect(aveniaDepositPhase(status('CANCELLED', 'UNPAID'))).toBe('expired')
     })
 })
 

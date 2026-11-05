@@ -2518,7 +2518,7 @@
             "limitExceeded": "Este depósito passa do limite mensal do Pix.",
             "ownCpf": "De uma conta no seu CPF {cpf}",
             "returnedTitle": "Pix devolvido",
-            "returnedBody": "O Pix voltou para a conta de origem. Pague de uma conta no seu CPF {cpf}."
+            "returnedBody": "O Pix voltou para a conta de origem. Pague de uma conta no seu CPF."
         },
         "withdraw": {
             "keyIntro": "Digite uma chave Pix de uma conta no seu CPF.",

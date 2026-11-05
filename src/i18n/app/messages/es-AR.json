@@ -1287,7 +1287,7 @@
             "notAvailable": "No se pudo configurar Pix para esta cuenta. Contactá a soporte para terminarlo."
         },
         "deposit": {
-            "returnedBody": "El Pix volvió a la cuenta de origen. Pagá desde una cuenta con tu CPF {cpf}."
+            "returnedBody": "El Pix volvió a la cuenta de origen. Pagá desde una cuenta con tu CPF."
         },
         "withdraw": {
             "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",

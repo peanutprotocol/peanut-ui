@@ -10,7 +10,8 @@ const POLLING_INTERVAL_MS = 5000
 /**
  * Polls an Avenia Pix deposit until it ends. Read-only: Avenia's webhook and
  * the API's poller move the deposit; this mirrors it so the code screen can
- * move on. Fires `onComplete` once when the deposit completes.
+ * move on. Fires `onComplete` once when the deposit completes. `expiresAt` is
+ * the code's expiry, for a screen that lost the deposit itself (a reload).
  */
 export function useAveniaDepositStatus(intentId: string | undefined, onComplete: () => void) {
     const completedRef = useRef(false)
@@ -23,7 +24,7 @@ export function useAveniaDepositStatus(intentId: string | undefined, onComplete:
         gcTime: 0,
         refetchInterval: (query) => {
             const phase = aveniaDepositPhase(query.state.data)
-            return phase === 'completed' || phase === 'returned' ? false : POLLING_INTERVAL_MS
+            return phase === 'completed' || phase === 'returned' || phase === 'expired' ? false : POLLING_INTERVAL_MS
         },
     })
 
@@ -36,5 +37,5 @@ export function useAveniaDepositStatus(intentId: string | undefined, onComplete:
         }
     }, [phase, onComplete])
 
-    return { phase }
+    return { phase, expiresAt: data?.expiresAt ?? null }
 }

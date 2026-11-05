@@ -277,6 +277,7 @@ function AveniaPixDepositSurface() {
     return (
         <AppPageSurface>
             <AveniaPixQrDeposit
+                intentId="demo-avenia-deposit"
                 deposit={{
                     intentId: 'demo-avenia-deposit',
                     brCode: DEMO_AVENIA_BR_CODE,

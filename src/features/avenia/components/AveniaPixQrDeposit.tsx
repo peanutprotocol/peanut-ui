@@ -19,17 +19,22 @@ import type { AveniaDeposit } from '@/services/avenia'
 import { formatBankAmount } from '@/utils/currency'
 
 /**
- * The dynamic Pix code of an Avenia deposit: the amount in reais, the time the
- * code has left, and who the payer must be (an account under the user's own
- * CPF: Avenia returns any other Pix).
+ * The dynamic Pix code of an Avenia deposit (`?intentId=`): the amount in
+ * reais, the time the code has left, and who the payer must be (an account
+ * under the user's own CPF: Avenia returns any other Pix). The deposit's
+ * status moves the screen on, also after a reload, when the code itself is
+ * gone with the screen's memory.
  */
 export function AveniaPixQrDeposit({
+    intentId,
     deposit,
     onBack,
     onDone,
     onComplete,
 }: {
-    deposit: AveniaDeposit
+    intentId: string
+    /** POST /avenia/deposit's answer; undefined after a reload. */
+    deposit: AveniaDeposit | undefined
     onBack: () => void
     /** Leaves the flow: the deposit is paid, or there is nothing left to pay. */
     onDone: () => void
@@ -39,10 +44,12 @@ export function AveniaPixQrDeposit({
     const tAvenia = useTranslations('avenia.deposit')
     const tCommon = useTranslations('common')
     const { user } = useAuth()
-    const { phase } = useAveniaDepositStatus(deposit.intentId, onComplete)
+    const { phase, expiresAt: statusExpiresAt } = useAveniaDepositStatus(intentId, onComplete)
 
-    const expiresAtMs = useMemo(() => (deposit.expiresAt ? Date.parse(deposit.expiresAt) : null), [deposit.expiresAt])
-    const { timeLeft, isExpired } = useExpiryCountdown(expiresAtMs, phase === 'pending')
+    const expiresAt = deposit?.expiresAt ?? statusExpiresAt
+    const expiresAtMs = useMemo(() => (expiresAt ? Date.parse(expiresAt) : null), [expiresAt])
+    const countdown = useExpiryCountdown(expiresAtMs, phase === 'pending')
+    const isExpired = phase === 'expired' || countdown.isExpired
 
     if (phase === 'completed') {
         return (
@@ -75,11 +82,7 @@ export function AveniaPixQrDeposit({
                 <NavHeader title={t('title')} onPrev={onDone} />
                 <PageStack.Center className="items-center text-center">
                     <IconBubble icon="alert" size="l" color="red" />
-                    <TitleBlock
-                        align="center"
-                        title={tAvenia('returnedTitle')}
-                        description={tAvenia('returnedBody', { cpf: deposit.payerCpfMasked })}
-                    />
+                    <TitleBlock align="center" title={tAvenia('returnedTitle')} description={tAvenia('returnedBody')} />
                     <Button variant="primary" className="w-full" onClick={onBack}>
                         {t('pix.goBack')}
                     </Button>
@@ -88,29 +91,43 @@ export function AveniaPixQrDeposit({
         )
     }
 
+    // after a reload, while the code can still be paid: title only, the status moves the screen on
+    if (!deposit && !isExpired) {
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <ProcessingScreen title={t('processingDepositTitle')} />
+            </PageStack>
+        )
+    }
+
     return (
         <PageStack>
             <NavHeader title={t('title')} onPrev={onBack} />
             <PageStack.Center>
-                <div className="text-center">
-                    <p className="text-heading-s text-foreground-primary">
-                        {formatBankAmount(deposit.amountBrl, 'BRL')}
-                    </p>
-                    {timeLeft && (
-                        <p className="text-body-s text-foreground-secondary">
-                            {t('pix.expiresIn', { time: timeLeft })}
-                        </p>
-                    )}
-                </div>
+                {deposit && (
+                    <>
+                        <div className="text-center">
+                            <p className="text-heading-s text-foreground-primary">
+                                {formatBankAmount(deposit.amountBrl, 'BRL')}
+                            </p>
+                            {countdown.timeLeft && (
+                                <p className="text-body-s text-foreground-secondary">
+                                    {t('pix.expiresIn', { time: countdown.timeLeft })}
+                                </p>
+                            )}
+                        </div>
 
-                <QRCodeWrapper
-                    url={deposit.brCode}
-                    isBlurred={isExpired}
-                    disabled={isExpired}
-                    className="mx-auto max-w-[280px]"
-                />
+                        <QRCodeWrapper
+                            url={deposit.brCode}
+                            isBlurred={isExpired}
+                            disabled={isExpired}
+                            className="mx-auto max-w-[280px]"
+                        />
+                    </>
+                )}
 
-                {isExpired ? (
+                {isExpired || !deposit ? (
                     <div className="flex flex-col gap-3 text-center">
                         <p className="text-body-s text-foreground-secondary">{t('pix.qrExpired')}</p>
                         <Button variant="primary" className="w-full" onClick={onBack}>
@@ -118,18 +135,22 @@ export function AveniaPixQrDeposit({
                         </Button>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-3">
-                        <p className="text-center text-body-s text-foreground-secondary">{t('pix.scanWithBankApp')}</p>
-                        <CopyToClipboard textToCopy={deposit.brCode} type="button" className="w-full" />
-                    </div>
-                )}
+                    <>
+                        <div className="flex flex-col gap-3">
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {t('pix.scanWithBankApp')}
+                            </p>
+                            <CopyToClipboard textToCopy={deposit.brCode} type="button" className="w-full" />
+                        </div>
 
-                <div className="flex items-center gap-2">
-                    {user?.user?.fullName && <AvatarWithBadge name={user.user.fullName} size="s" />}
-                    <p className="text-body-s text-foreground-secondary">
-                        {tAvenia('ownCpf', { cpf: deposit.payerCpfMasked })}
-                    </p>
-                </div>
+                        <div className="flex items-center gap-2">
+                            {user?.user?.fullName && <AvatarWithBadge name={user.user.fullName} size="s" />}
+                            <p className="text-body-s text-foreground-secondary">
+                                {tAvenia('ownCpf', { cpf: deposit.payerCpfMasked })}
+                            </p>
+                        </div>
+                    </>
+                )}
 
                 <ProviderFinePrint providerId="avenia-br" />
             </PageStack.Center>

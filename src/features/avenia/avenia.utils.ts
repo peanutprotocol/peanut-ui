@@ -60,10 +60,10 @@ export function aveniaSetupState(rail: RailCapability | undefined): AveniaSetupS
     return 'verify'
 }
 
-export type AveniaDepositPhase = 'pending' | 'processing' | 'completed' | 'returned'
+export type AveniaDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
 
-// Intent statuses after which nothing more happens to the deposit.
-const RETURNED_STATUSES = ['FAILED', 'CANCELLED', 'REFUNDED']
+// Intent statuses after which the Pix went back to the payer.
+const RETURNED_STATUSES = ['FAILED', 'REFUNDED']
 // Ticket statuses that mean the Pix reached Avenia: the money has left the user's bank.
 const PAID_TICKET_STATUSES = ['PROCESSING', 'ON-HOLD', 'PAID', 'PARTIAL-FAILED']
 
@@ -71,11 +71,13 @@ const PAID_TICKET_STATUSES = ['PROCESSING', 'ON-HOLD', 'PAID', 'PARTIAL-FAILED']
  * The deposit screen's phase from GET /avenia/deposit/:intentId. A deposit
  * completes when Rhino's bridge to the wallet is joined to it, so a PAID
  * ticket still reads `processing`. FAILED means Avenia sent the Pix back to
- * the payer (a third-party account, a blocked bank).
+ * the payer (a third-party account, a blocked bank). CANCELLED is a code that
+ * lapsed unpaid: the API's poller cancels it after its expiry, and no money moved.
  */
 export function aveniaDepositPhase(status: AveniaDepositStatus | undefined): AveniaDepositPhase {
     if (!status) return 'pending'
     if (status.status === 'COMPLETED') return 'completed'
+    if (status.status === 'CANCELLED') return 'expired'
     if (RETURNED_STATUSES.includes(status.status)) return 'returned'
     if (status.ticketStatus && PAID_TICKET_STATUSES.includes(status.ticketStatus)) return 'processing'
     return 'pending'
