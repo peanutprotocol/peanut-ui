@@ -274,6 +274,8 @@ function TypedFields({
                 enterKeyHint="next"
                 maxLength={100}
                 placeholder={field.required ? undefined : t('optional')}
+                // at large text sizes "Optional" ends in … in a narrow field rather than a hard cut
+                className={field.required ? undefined : 'text-ellipsis'}
                 data-testid={`verify-input-${field.key}`}
                 {...extra}
             />
@@ -341,15 +343,31 @@ function TypedFields({
                             country,
                             (f) => {
                                 const code = f.value ?? values[f.key] ?? residence ?? ''
+                                // never edited here, so a long country name wraps instead of being cut at large text sizes
                                 return (
-                                    <BaseInput
+                                    <div
                                         id={`${idPrefix}-${f.key}`}
-                                        value={code ? localizedCountryName(locale, code, code) : ''}
-                                        readOnly
-                                        disabled={f.locked}
-                                        leftContent={code ? <Flag country={code} /> : undefined}
+                                        role="textbox"
+                                        aria-readonly="true"
+                                        aria-disabled={f.locked || undefined}
+                                        aria-label={t('labels.country')}
                                         data-testid="verify-input-country"
-                                    />
+                                        className={twMerge(
+                                            'input relative flex h-auto min-h-12 items-center py-[calc(0.75rem-1px)] break-words',
+                                            !!code && 'pl-10',
+                                            f.locked &&
+                                                'border-border-subtle bg-background-disabled text-foreground-secondary'
+                                        )}
+                                    >
+                                        {code && (
+                                            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
+                                                <Flag country={code} />
+                                            </span>
+                                        )}
+                                        <span className="min-w-0">
+                                            {code ? localizedCountryName(locale, code, code) : ''}
+                                        </span>
+                                    </div>
                                 )
                             },
                             country.locked && onChangeResidence ? (
