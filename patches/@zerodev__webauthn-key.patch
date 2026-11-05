@@ -1,8 +1,37 @@
 diff --git a/_cjs/toWebAuthnKey.js b/_cjs/toWebAuthnKey.js
-index 69e1ad488631b4b23d260f4d4beaa0a41200aeb1..c21decd7c2338f04401ec38025988f7e36da4c12 100644
+index 69e1ad4..9cf8155 100644
 --- a/_cjs/toWebAuthnKey.js
 +++ b/_cjs/toWebAuthnKey.js
-@@ -83,7 +83,8 @@ const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl,
+@@ -16,7 +16,7 @@ const encodeWebAuthnPubKey = (pubKey) => {
+     ]);
+ };
+ exports.encodeWebAuthnPubKey = encodeWebAuthnPubKey;
+-const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl, mode = WebAuthnMode.Register, credentials = "include", passkeyServerHeaders = {} }) => {
++const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl, mode = WebAuthnMode.Register, credentials = "include", passkeyServerHeaders = {}, immediateSignal, immediateDeadline }) => {
+     if (webAuthnKey) {
+         return webAuthnKey;
+     }
+@@ -30,11 +30,17 @@ const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl,
+                 ...passkeyServerHeaders
+             },
+             body: JSON.stringify({ rpID }),
+-            credentials
++            credentials,
++            ...(immediateSignal && { signal: immediateSignal })
+         });
+         const loginOptions = await loginOptionsResponse.json();
+         const { startAuthentication } = await Promise.resolve().then(() => require("@simplewebauthn/browser"));
+-        const loginCred = await startAuthentication(loginOptions);
++        if (immediateSignal && (immediateSignal.aborted || Date.now() >= (immediateDeadline ?? 0))) {
++            throw new DOMException("Immediate login expired", "AbortError");
++        }
++        const loginCred = await startAuthentication(immediateSignal
++            ? { ...loginOptions, peanutImmediateLoginDeadline: immediateDeadline }
++            : loginOptions);
+         authenticatorId = loginCred.id;
+         const loginVerifyResponse = await fetch(`${passkeyServerUrl}/login/verify`, {
+             method: "POST",
+@@ -83,7 +89,8 @@ const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl,
          if (!registerVerifyResult.verified) {
              throw new Error("Registration not verified");
          }
@@ -13,10 +42,40 @@ index 69e1ad488631b4b23d260f4d4beaa0a41200aeb1..c21decd7c2338f04401ec38025988f7e
      if (!pubKey) {
          throw new Error("No public key returned from registration credential");
 diff --git a/_esm/toWebAuthnKey.js b/_esm/toWebAuthnKey.js
-index 98cf2cde07636c040865d7c351b34340e14d8310..8b49b9046aced1959489d766b6e0f6574fe4a27d 100644
+index 98cf2cd..3dbbc11 100644
 --- a/_esm/toWebAuthnKey.js
 +++ b/_esm/toWebAuthnKey.js
-@@ -87,7 +87,8 @@ export const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeySer
+@@ -12,7 +12,7 @@ export const encodeWebAuthnPubKey = (pubKey) => {
+         pad(pubKey.authenticatorIdHash, { size: 32 })
+     ]);
+ };
+-export const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl, mode = WebAuthnMode.Register, credentials = "include", passkeyServerHeaders = {} }) => {
++export const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl, mode = WebAuthnMode.Register, credentials = "include", passkeyServerHeaders = {}, immediateSignal, immediateDeadline }) => {
+     if (webAuthnKey) {
+         return webAuthnKey;
+     }
+@@ -27,12 +27,18 @@ export const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeySer
+                 ...passkeyServerHeaders
+             },
+             body: JSON.stringify({ rpID }),
+-            credentials
++            credentials,
++            ...(immediateSignal && { signal: immediateSignal })
+         });
+         const loginOptions = await loginOptionsResponse.json();
+         // Start authentication (login)
+         const { startAuthentication } = await import("@simplewebauthn/browser");
+-        const loginCred = await startAuthentication(loginOptions);
++        if (immediateSignal && (immediateSignal.aborted || Date.now() >= (immediateDeadline ?? 0))) {
++            throw new DOMException("Immediate login expired", "AbortError");
++        }
++        const loginCred = await startAuthentication(immediateSignal
++            ? { ...loginOptions, peanutImmediateLoginDeadline: immediateDeadline }
++            : loginOptions);
+         authenticatorId = loginCred.id;
+         // Verify authentication
+         const loginVerifyResponse = await fetch(`${passkeyServerUrl}/login/verify`, {
+@@ -87,7 +93,8 @@ export const toWebAuthnKey = async ({ webAuthnKey, rpID, passkeyName, passkeySer
              throw new Error("Registration not verified");
          }
          // Import the key
@@ -26,17 +85,82 @@ index 98cf2cde07636c040865d7c351b34340e14d8310..8b49b9046aced1959489d766b6e0f657
      }
      if (!pubKey) {
          throw new Error("No public key returned from registration credential");
+diff --git a/_types/toWebAuthnKey.d.ts b/_types/toWebAuthnKey.d.ts
+index f64b46a..b10b826 100644
+--- a/_types/toWebAuthnKey.d.ts
++++ b/_types/toWebAuthnKey.d.ts
+@@ -16,6 +16,8 @@ interface BaseParams {
+     mode?: WebAuthnMode;
+     credentials?: RequestCredentials;
+     passkeyServerHeaders?: Record<string, string>;
++    immediateSignal?: AbortSignal;
++    immediateDeadline?: number;
+     useRN?: boolean;
+ }
+ export interface ParamsWithKey extends BaseParams {
+@@ -32,6 +34,6 @@ export interface ParamsWithoutKey extends BaseParams {
+ }
+ export type WebAuthnAccountParams = ParamsWithKey | ParamsWithoutKey;
+ export declare const encodeWebAuthnPubKey: (pubKey: WebAuthnKey) => `0x${string}`;
+-export declare const toWebAuthnKey: ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl, mode, credentials, passkeyServerHeaders }: WebAuthnAccountParams) => Promise<WebAuthnKey>;
++export declare const toWebAuthnKey: ({ webAuthnKey, rpID, passkeyName, passkeyServerUrl, mode, credentials, passkeyServerHeaders, immediateSignal, immediateDeadline }: WebAuthnAccountParams) => Promise<WebAuthnKey>;
+ export {};
+ //# sourceMappingURL=toWebAuthnKey.d.ts.map
+\ No newline at end of file
 diff --git a/toWebAuthnKey.ts b/toWebAuthnKey.ts
-index b6d3cb24e74b913e5c19da817255d789219a8c00..1d1a3346fd47d8036b13a9d2a4c632a2c769e891 100644
+index b6d3cb2..4e3cc0d 100644
 --- a/toWebAuthnKey.ts
 +++ b/toWebAuthnKey.ts
-@@ -163,7 +163,8 @@ export const toWebAuthnKey = async ({
+@@ -32,6 +32,8 @@ interface BaseParams {
+     mode?: WebAuthnMode
+     credentials?: RequestCredentials
+     passkeyServerHeaders?: Record<string, string>
++    immediateSignal?: AbortSignal
++    immediateDeadline?: number
+     useRN?: boolean
+ }
+
+@@ -66,7 +68,9 @@ export const toWebAuthnKey = async ({
+     passkeyServerUrl,
+     mode = WebAuthnMode.Register,
+     credentials = "include",
+-    passkeyServerHeaders = {}
++    passkeyServerHeaders = {},
++    immediateSignal,
++    immediateDeadline
+ }: WebAuthnAccountParams): Promise<WebAuthnKey> => {
+     if (webAuthnKey) {
+         return webAuthnKey
+@@ -84,14 +88,20 @@ export const toWebAuthnKey = async ({
+                     ...passkeyServerHeaders
+                 },
+                 body: JSON.stringify({ rpID }),
+-                credentials
++                credentials,
++                ...(immediateSignal && { signal: immediateSignal })
+             }
+         )
+         const loginOptions = await loginOptionsResponse.json()
+
+         // Start authentication (login)
+         const { startAuthentication } = await import("@simplewebauthn/browser")
+-        const loginCred = await startAuthentication(loginOptions)
++        if (immediateSignal && (immediateSignal.aborted || Date.now() >= (immediateDeadline ?? 0))) {
++            throw new DOMException("Immediate login expired", "AbortError")
++        }
++        const loginCred = await startAuthentication(
++            immediateSignal ? { ...loginOptions, peanutImmediateLoginDeadline: immediateDeadline } : loginOptions
++        )
+
+         authenticatorId = loginCred.id
+
+@@ -163,7 +173,8 @@ export const toWebAuthnKey = async ({
          }
- 
+
          // Import the key
 -        pubKey = registerCred.response.publicKey
 +        // iOS native (ASAuthorization via Capacitor shim) cannot expose the credential public key; fall back to the server-provided one.
 +        pubKey = registerCred.response.publicKey ?? registerVerifyResult.pubkey
      }
- 
+
      if (!pubKey) {
