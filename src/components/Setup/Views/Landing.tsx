@@ -25,6 +25,9 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { checkAndroidLandingPasskey, supportsIOSImmediateLogin } from '@/utils/landing-passkeys'
+
+const PASSKEY_CHECK_TIMEOUT_MS = 5_000
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
@@ -53,6 +56,55 @@ const LandingStep = () => {
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
+
+    const { isHydrated, isNativeBridge, isIOSNative, isAndroidNativeBridge } = nativePlatform
+    const [nativeLogin, setNativeLogin] = useState<'hidden' | 'full' | 'link'>('hidden')
+    const loginHandler = useRef(handleLoginClick)
+    const iosPreparation = useRef<AbortController | null>(null)
+
+    useEffect(() => {
+        loginHandler.current = handleLoginClick
+    }, [handleLoginClick])
+
+    useEffect(() => {
+        if (!isHydrated || !nativePlatform.isCapacitor) return
+        const check = new AbortController()
+        const { signal } = check
+        const deadline = Date.now() + PASSKEY_CHECK_TIMEOUT_MS
+        const timer = setTimeout(() => {
+            check.abort()
+            setNativeLogin('link')
+        }, PASSKEY_CHECK_TIMEOUT_MS)
+
+        if (isAndroidNativeBridge) {
+            void checkAndroidLandingPasskey(signal)
+                .then((result) => {
+                    if (signal.aborted || Date.now() >= deadline) return
+                    if (result !== 'available' && result !== 'unavailable') return
+                    clearTimeout(timer)
+                    setNativeLogin(result === 'available' ? 'full' : 'hidden')
+                })
+                .catch(() => {})
+        } else if (isIOSNative && isNativeBridge) {
+            iosPreparation.current = check
+            void supportsIOSImmediateLogin()
+                .then(async (supported) => {
+                    if (supported && !signal.aborted && Date.now() < deadline) {
+                        await loginHandler.current({ immediateSignal: signal, immediateDeadline: deadline })
+                    }
+                })
+                .catch(() => {
+                    // iOS can report both a silent miss and a dismissed picker as cancellation.
+                    // Let the fallback appear without a toast from an automatic attempt.
+                })
+        }
+
+        return () => {
+            clearTimeout(timer)
+            check.abort()
+            if (iosPreparation.current === check) iosPreparation.current = null
+        }
+    }, [isHydrated, nativePlatform.isCapacitor, isAndroidNativeBridge, isIOSNative, isNativeBridge])
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -165,11 +217,20 @@ const LandingStep = () => {
     )
 
     const recoveryLink = (
-        <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
+        <SetupDocLink
+            kind="account-recovery"
+            href="/en/help/account-recovery"
+            className={LINK_BUTTON_CLASSES}
+            onBeforeOpen={() => iosPreparation.current?.abort()}
+        >
             <Icon name="info" size={16} className="shrink-0" />
             {t('landing.recoverWallet')}
         </SetupDocLink>
     )
+
+    const nativeLanding =
+        nativePlatform.isCapacitor || (!isHydrated && process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true')
+    const loginAction = nativeLanding ? nativeLogin : 'full'
 
     const accountDeletedCallout = isAccountDeleted && (
         <Callout priority="error" data-testid="account-deleted">
@@ -240,16 +301,24 @@ const LandingStep = () => {
                         </>
                     }
                     secondary={
-                        <Button
-                            loading={isLoggingIn}
-                            shadowSize="4"
-                            className="w-full"
-                            disabled={isLoggingIn}
-                            variant="secondary"
-                            onClick={onLoginClick}
-                        >
-                            {t('logIn')}
-                        </Button>
+                        loginAction === 'full' ? (
+                            <Button
+                                loading={isLoggingIn}
+                                shadowSize="4"
+                                className="w-full"
+                                disabled={isLoggingIn}
+                                variant="secondary"
+                                onClick={onLoginClick}
+                            >
+                                {t('logIn')}
+                            </Button>
+                        ) : loginAction === 'link' ? (
+                            <div className="pt-2">
+                                <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                                    {t('logIn')}
+                                </LinkButton>
+                            </div>
+                        ) : null
                     }
                 />
             </div>

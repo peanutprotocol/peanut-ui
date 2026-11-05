@@ -23,10 +23,10 @@ patchedDependencies:
     hash: 9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993a8202a65a915f85
     path: patches/@capacitor__clipboard.patch
   '@capgo/capacitor-passkey@8.2.2':
-    hash: 09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf
+    hash: 875a814c1323c5a9e9a0afdc525756b9a4690fca2f3e96e0e3111a985a189f24
     path: patches/@capgo__capacitor-passkey.patch
   '@zerodev/webauthn-key':
-    hash: dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28
+    hash: 3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22
     path: patches/@zerodev__webauthn-key.patch
 
 importers:
@@ -95,7 +95,7 @@ importers:
         version: 8.6.0(@capacitor/core@8.2.0)
       '@capgo/capacitor-passkey':
         specifier: ^8.2.2
-        version: 8.2.2(patch_hash=09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf)(@capacitor/core@8.2.0)
+        version: 8.2.2(patch_hash=875a814c1323c5a9e9a0afdc525756b9a4690fca2f3e96e0e3111a985a189f24)(@capacitor/core@8.2.0)
       '@capgo/capacitor-updater':
         specifier: 8.51.23
         version: 8.51.23(@capacitor/core@8.2.0)
@@ -155,16 +155,16 @@ importers:
         version: 5.4.9(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/passkey-validator':
         specifier: ^5.6.0
-        version: 5.6.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+        version: 5.6.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/permissions':
         specifier: 5.5.0
-        version: 5.5.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+        version: 5.5.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/sdk':
         specifier: 5.5.7
         version: 5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       '@zerodev/webauthn-key':
         specifier: ^5.5.0
-        version: 5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+        version: 5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       canvas-confetti:
         specifier: ^1.9.3
         version: 1.9.4
@@ -8934,7 +8934,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
-  '@capgo/capacitor-passkey@8.2.2(patch_hash=09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf)(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-passkey@8.2.2(patch_hash=875a814c1323c5a9e9a0afdc525756b9a4690fca2f3e96e0e3111a985a189f24)(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 
@@ -13019,19 +13019,19 @@ snapshots:
       '@zerodev/sdk': 5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       viem: 2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
-  '@zerodev/passkey-validator@5.6.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@zerodev/passkey-validator@5.6.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@noble/curves': 1.9.7
       '@simplewebauthn/browser': 8.3.7
       '@zerodev/sdk': 5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
-      '@zerodev/webauthn-key': 5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@zerodev/webauthn-key': 5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       viem: 2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
-  '@zerodev/permissions@5.5.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@zerodev/permissions@5.5.0(@zerodev/sdk@5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(@zerodev/webauthn-key@5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)))(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@simplewebauthn/browser': 9.0.1
       '@zerodev/sdk': 5.5.7(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
-      '@zerodev/webauthn-key': 5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
+      '@zerodev/webauthn-key': 5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))
       merkletreejs: 0.3.11
       viem: 2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
@@ -13040,7 +13040,7 @@ snapshots:
       semver: 7.7.3
       viem: 2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6)
 
-  '@zerodev/webauthn-key@5.5.0(patch_hash=dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
+  '@zerodev/webauthn-key@5.5.0(patch_hash=3f804e69010dc492b5ee9e0508aa8a01e194083ce82a879e343844203486ec22)(viem@2.55.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@4.3.6))':
     dependencies:
       '@noble/curves': 1.9.7
       '@simplewebauthn/browser': 8.3.7

@@ -252,7 +252,10 @@ export const useZeroDev = () => {
     }
 
     // login function
-    const handleLogin = async () => {
+    const handleLogin = async ({
+        immediateSignal,
+        immediateDeadline,
+    }: { immediateSignal?: AbortSignal; immediateDeadline?: number } = {}) => {
         if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const { code, message } = classifyPasskeyError(new CeremonyConflictError())
             throw new PasskeyError(message, code)
@@ -276,18 +279,20 @@ export const useZeroDev = () => {
             // app kill. Each automatic recovery gets a fresh bounded ceremony
             // window; a late result is discarded and its verify token is not
             // captured after that attempt's window closes.
-            const webAuthnKey = await withCeremonyPurpose('login', () =>
-                withIOSPasskeyLoginRecovery(() =>
-                    guardPasskeyCeremony(() =>
-                        toWebAuthnKey({
-                            passkeyName: '[]',
-                            passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                            mode: WebAuthnMode.Login,
-                            passkeyServerHeaders,
-                            rpID: rpId,
-                        })
-                    )
+            const attempt = () =>
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: '[]',
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Login,
+                        passkeyServerHeaders,
+                        rpID: rpId,
+                        immediateSignal,
+                        immediateDeadline,
+                    })
                 )
+            const webAuthnKey = await withCeremonyPurpose(immediateSignal ? 'login_auto' : 'login', () =>
+                immediateSignal ? attempt() : withIOSPasskeyLoginRecovery(attempt)
             )
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
@@ -308,6 +313,8 @@ export const useZeroDev = () => {
             // tells us WHERE native logins hang.
             if (code === 'ACCOUNT_DELETED') {
                 // Expected state, not a fault: the server minted no session, so local state stays as it was.
+            } else if (immediateSignal && err instanceof Error && err.name === 'AbortError') {
+                // Preparation expired before the automatic request could open its picker.
             } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
@@ -325,7 +332,7 @@ export const useZeroDev = () => {
                     },
                 })
             } else if (code !== 'LOGIN_CANCELED') {
-                await clearAuthState(user?.user.userId)
+                if (!immediateSignal) await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })
             }
             throw new PasskeyError(message, code)

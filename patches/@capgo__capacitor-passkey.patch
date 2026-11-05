@@ -377,10 +377,56 @@ new file mode 100644
 +        return lastLateCallbackMs;
 +    }
 +}
+diff --git a/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift b/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
+index be067b3..27d4d58 100644
+--- a/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
++++ b/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
+@@ -191,7 +191,8 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+             "autoShim": config.getBoolean("autoShim", true),
+             "domains": normalizeConfiguredDomains(configuredDomains, origin: origin),
+             "origin": origin ?? NSNull(),
+-            "platform": "ios"
++            "platform": "ios",
++            "immediateLogin": true
+         ])
+     }
+
+@@ -263,7 +264,21 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+             let controller = ASAuthorizationController(authorizationRequests: [request])
+             controller.delegate = self
+             controller.presentationContextProvider = self
+-            controller.performRequests()
++            if operation == .assertion, let deadline = call.getDouble("immediateLoginDeadline") {
++                guard Date().timeIntervalSince1970 * 1_000 < deadline else {
++                    self.clearPendingRequest()
++                    self.reject(call, name: "AbortError", message: "Immediate login expired.")
++                    return
++                }
++                if #available(iOS 16.0, *) {
++                    controller.performRequests(options: .preferImmediatelyAvailableCredentials)
++                } else {
++                    self.clearPendingRequest()
++                    self.reject(call, name: "NotSupportedError", message: "Immediate passkey login requires iOS 16.")
++                }
++            } else {
++                controller.performRequests()
++            }
+         }
+     }
+
 diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
 --- a/dist/esm/definitions.d.ts
 +++ b/dist/esm/definitions.d.ts
-@@ -232,6 +232,8 @@ export interface PasskeyPublicKeyCredentialCreationOptionsJSON {
+@@ -79,6 +79,8 @@ export interface PasskeyRuntimeConfiguration {
+      * Current runtime platform.
+      */
+     platform: 'ios' | 'android' | 'web';
++    /** Whether the native implementation supports immediate passkey login. */
++    immediateLogin?: boolean;
+ }
+ /**
+  * JSON-safe representation of a public key credential descriptor.
+@@ -232,6 +234,8 @@ export interface PasskeyPublicKeyCredentialCreationOptionsJSON {
   * @since 1.0.0
   */
  export interface CreateCredentialOptions {
@@ -389,7 +435,7 @@ diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
      /**
       * JSON-safe registration request.
       */
-@@ -286,6 +288,8 @@ export interface PasskeyPublicKeyCredentialRequestOptionsJSON {
+@@ -286,6 +290,8 @@ export interface PasskeyPublicKeyCredentialRequestOptionsJSON {
   * @since 1.0.0
   */
  export interface GetCredentialOptions {
@@ -398,7 +444,7 @@ diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
      /**
       * JSON-safe authentication request.
       */
-@@ -455,6 +459,22 @@ export interface PasskeySupportResult {
+@@ -455,6 +461,22 @@ export interface PasskeySupportResult {
   * @since 1.0.0
   */
  export interface CapacitorPasskeyPlugin {
@@ -438,7 +484,7 @@ diff --git a/dist/esm/index.js b/dist/esm/index.js
      },
      async getCredential(options) {
 -        return NativeCapacitorPasskey.getCredential(createNativeRequest(options));
-+        return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { requestId: options.requestId }));
++        return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { requestId: options.requestId, immediateLoginDeadline: options.immediateLoginDeadline }));
 +    },
 +    async cancelRequest(options) {
 +        return NativeCapacitorPasskey.cancelRequest(options);
@@ -448,3 +494,57 @@ diff --git a/dist/esm/index.js b/dist/esm/index.js
      },
      async getPluginVersion() {
          return NativeCapacitorPasskey.getPluginVersion();
+diff --git a/dist/esm/shim.js b/dist/esm/shim.js
+index 5cf20db..9fb09d0 100644
+--- a/dist/esm/shim.js
++++ b/dist/esm/shim.js
+@@ -40,6 +40,7 @@ export function installWebAuthnShim({ root = globalThis, plugin, options }) {
+             }
+             const response = (await plugin.getCredential({
+                 mediation: request.mediation,
++                immediateLoginDeadline: request.publicKey.peanutImmediateLoginDeadline,
+                 origin: currentConfig.origin,
+                 publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
+             }));
+diff --git a/dist/plugin.cjs.js b/dist/plugin.cjs.js
+index 1112644..8e9a2d4 100644
+--- a/dist/plugin.cjs.js
++++ b/dist/plugin.cjs.js
+@@ -483,6 +483,7 @@ function installWebAuthnShim({ root = globalThis, plugin, options }) {
+             }
+             const response = (await plugin.getCredential({
+                 mediation: request.mediation,
++                immediateLoginDeadline: request.publicKey.peanutImmediateLoginDeadline,
+                 origin: currentConfig.origin,
+                 publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
+             }));
+@@ -615,7 +616,7 @@ const CapacitorPasskey = {
+         return configurationPromise;
+     },
+     async getCredential(options) {
+-        return NativeCapacitorPasskey.getCredential(createNativeRequest(options));
++        return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { immediateLoginDeadline: options.immediateLoginDeadline }));
+     },
+     async getPluginVersion() {
+         return NativeCapacitorPasskey.getPluginVersion();
+diff --git a/dist/plugin.js b/dist/plugin.js
+index 26aa422..586322c 100644
+--- a/dist/plugin.js
++++ b/dist/plugin.js
+@@ -482,6 +482,7 @@ var capacitorPasskey = (function (exports, core) {
+                 }
+                 const response = (await plugin.getCredential({
+                     mediation: request.mediation,
++                    immediateLoginDeadline: request.publicKey.peanutImmediateLoginDeadline,
+                     origin: currentConfig.origin,
+                     publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
+                 }));
+@@ -614,7 +615,7 @@ var capacitorPasskey = (function (exports, core) {
+             return configurationPromise;
+         },
+         async getCredential(options) {
+-            return NativeCapacitorPasskey.getCredential(createNativeRequest(options));
++            return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { immediateLoginDeadline: options.immediateLoginDeadline }));
+         },
+         async getPluginVersion() {
+             return NativeCapacitorPasskey.getPluginVersion();
