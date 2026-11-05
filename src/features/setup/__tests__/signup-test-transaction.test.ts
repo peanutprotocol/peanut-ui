@@ -1,6 +1,7 @@
 import { getUserOperationHash, type UserOperation } from 'viem/account-abstraction'
 import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import posthog from 'posthog-js'
+import { captureMessage } from '@sentry/nextjs'
 import { passkeyFixture, signPasskeyUserOp, sortedClientData } from '@/test-utils/passkey-signature'
 import type { SubmissionBudget } from '@/utils/userop-submission'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -231,6 +232,26 @@ describe('retryDeferredSignupTestTransaction', () => {
             outcome: 'mined',
             retries: 1,
         })
+    })
+
+    it('records a reverted confirmation as reverted, not mined', async () => {
+        await deferAfterTwoTimeouts()
+        const reverted = { ...mined, success: false }
+        const later = bundler({ waitForReceipt: jest.fn(async () => reverted) })
+        await expect(retryDeferredSignupTestTransaction(USER, later, { sleep: noSleep })).resolves.toBe('reverted')
+        expect(readSignupTestTransaction(USER)).toBeNull()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_TEST_TX_DEFERRED_RESOLVED, {
+            outcome: 'reverted',
+            retries: 1,
+        })
+        expect(posthog.capture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_TEST_TX_DEFERRED_RESOLVED,
+            expect.objectContaining({ outcome: 'mined' })
+        )
+        expect(captureMessage).toHaveBeenCalledWith(
+            'Deferred signup confirmation reverted on chain',
+            expect.objectContaining({ tags: { error_type: 'signup_deferred_reverted' } })
+        )
     })
 
     it('keeps the marker through a still-stalled bundler, then gives up after the retry limit', async () => {

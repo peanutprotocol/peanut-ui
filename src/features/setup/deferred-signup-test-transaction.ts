@@ -24,7 +24,13 @@ export const DEFERRED_SIGNUP_TEST_TX_SUBMISSION: SubmissionBudget = {
     totalMs: 45_000,
 }
 
-export type DeferredSignupTestTxOutcome = 'mined' | 'pending' | 'expired' | 'signature_rejected' | 'gave_up'
+export type DeferredSignupTestTxOutcome =
+    | 'mined'
+    | 'reverted'
+    | 'pending'
+    | 'expired'
+    | 'signature_rejected'
+    | 'gave_up'
 
 export interface DeferredSignupTestTxBundler {
     send: (record: SignupTestTransaction) => Promise<`0x${string}`>
@@ -59,7 +65,7 @@ export async function retryDeferredSignupTestTransaction(
     }
 
     try {
-        await submitSignedUserOperation(
+        const outcome = await submitSignedUserOperation(
             record.userOpHash,
             {
                 send: () => bundler.send(record),
@@ -70,6 +76,15 @@ export async function retryDeferredSignupTestTransaction(
             },
             budget
         )
+        if (!outcome.success) {
+            // Included but reverted: the nonce is spent, so resending cannot help, and a new signature needs a prompt.
+            captureMessage('Deferred signup confirmation reverted on chain', {
+                level: 'warning',
+                tags: { error_type: 'signup_deferred_reverted' },
+                extra: { sender: record.sender, userOpHash: outcome.userOpHash },
+            })
+            return settle('reverted')
+        }
         return settle('mined')
     } catch (error) {
         const kind = userOpFailureKind(error)
