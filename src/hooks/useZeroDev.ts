@@ -255,7 +255,8 @@ export const useZeroDev = () => {
     const handleLogin = async ({
         immediateSignal,
         immediateDeadline,
-    }: { immediateSignal?: AbortSignal; immediateDeadline?: number } = {}) => {
+        cancelSignal,
+    }: { immediateSignal?: AbortSignal; immediateDeadline?: number; cancelSignal?: AbortSignal } = {}) => {
         if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const { code, message } = classifyPasskeyError(new CeremonyConflictError())
             throw new PasskeyError(message, code)
@@ -280,16 +281,18 @@ export const useZeroDev = () => {
             // window; a late result is discarded and its verify token is not
             // captured after that attempt's window closes.
             const attempt = () =>
-                guardPasskeyCeremony(() =>
-                    toWebAuthnKey({
-                        passkeyName: '[]',
-                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                        mode: WebAuthnMode.Login,
-                        passkeyServerHeaders,
-                        rpID: rpId,
-                        immediateSignal,
-                        immediateDeadline,
-                    })
+                guardPasskeyCeremony(
+                    () =>
+                        toWebAuthnKey({
+                            passkeyName: '[]',
+                            passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                            mode: WebAuthnMode.Login,
+                            passkeyServerHeaders,
+                            rpID: rpId,
+                            immediateSignal,
+                            immediateDeadline,
+                        }),
+                    { cancel: cancelSignal }
                 )
             const webAuthnKey = await withCeremonyPurpose(immediateSignal ? 'login_auto' : 'login', () =>
                 immediateSignal ? attempt() : withIOSPasskeyLoginRecovery(attempt)
@@ -313,8 +316,12 @@ export const useZeroDev = () => {
             // tells us WHERE native logins hang.
             if (code === 'ACCOUNT_DELETED') {
                 // Expected state, not a fault: the server minted no session, so local state stays as it was.
-            } else if (immediateSignal && err instanceof Error && err.name === 'AbortError') {
-                // Preparation expired before the automatic request could open its picker.
+            } else if (
+                immediateSignal &&
+                err instanceof Error &&
+                (err.name === 'AbortError' || err.name === 'CeremonyCancelledError')
+            ) {
+                // Preparation expired before the picker opened, or the user chose another way in.
             } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {

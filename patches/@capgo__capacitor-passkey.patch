@@ -1,4 +1,5 @@
 diff --git a/android/src/main/AndroidManifest.xml b/android/src/main/AndroidManifest.xml
+index a2f47b6057db70071e9080281db29d78ac165e66..e7d8602055f431b83aae9cb88202ebc85d5b53d0 100644
 --- a/android/src/main/AndroidManifest.xml
 +++ b/android/src/main/AndroidManifest.xml
 @@ -1,2 +1,5 @@
@@ -8,6 +9,7 @@ diff --git a/android/src/main/AndroidManifest.xml b/android/src/main/AndroidMani
 +    </queries>
  </manifest>
 diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
+index ca44127d6a5acd970e53e3f2623677d28468fdc6..a4082535ae8ffe9db8a7b2c625e91e00ac333eed 100644
 --- a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
 +++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
 @@ -5,7 +5,7 @@ import androidx.credentials.webauthn.PublicKeyCredentialRequestOptions;
@@ -20,6 +22,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java b/and
      public String getPluginVersion() {
          return PLUGIN_VERSION;
 diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
+index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea7199ad4cdbf 100644
 --- a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 @@ -2,6 +2,9 @@ package app.capgo.passkey;
@@ -279,6 +282,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
  
 diff --git a/android/src/main/java/app/capgo/passkey/RequestCoordinator.java b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
 new file mode 100644
+index 0000000000000000000000000000000000000000..4c78e9bcb79905d5c5e68a2b83895487996e9e46
 --- /dev/null
 +++ b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
 @@ -0,0 +1,95 @@
@@ -377,44 +381,8 @@ new file mode 100644
 +        return lastLateCallbackMs;
 +    }
 +}
-diff --git a/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift b/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
-index be067b3..27d4d58 100644
---- a/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
-+++ b/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
-@@ -191,7 +191,8 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
-             "autoShim": config.getBoolean("autoShim", true),
-             "domains": normalizeConfiguredDomains(configuredDomains, origin: origin),
-             "origin": origin ?? NSNull(),
--            "platform": "ios"
-+            "platform": "ios",
-+            "immediateLogin": true
-         ])
-     }
-
-@@ -263,7 +264,21 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
-             let controller = ASAuthorizationController(authorizationRequests: [request])
-             controller.delegate = self
-             controller.presentationContextProvider = self
--            controller.performRequests()
-+            if operation == .assertion, let deadline = call.getDouble("immediateLoginDeadline") {
-+                guard Date().timeIntervalSince1970 * 1_000 < deadline else {
-+                    self.clearPendingRequest()
-+                    self.reject(call, name: "AbortError", message: "Immediate login expired.")
-+                    return
-+                }
-+                if #available(iOS 16.0, *) {
-+                    controller.performRequests(options: .preferImmediatelyAvailableCredentials)
-+                } else {
-+                    self.clearPendingRequest()
-+                    self.reject(call, name: "NotSupportedError", message: "Immediate passkey login requires iOS 16.")
-+                }
-+            } else {
-+                controller.performRequests()
-+            }
-         }
-     }
-
 diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
+index 221b5ef8fe2ab1476efafc1d4553e06fa13665c8..8bc226d1d8a0763630a7ee6f2c6b0b9f1e97fb1e 100644
 --- a/dist/esm/definitions.d.ts
 +++ b/dist/esm/definitions.d.ts
 @@ -79,6 +79,8 @@ export interface PasskeyRuntimeConfiguration {
@@ -468,6 +436,7 @@ diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
       * Install a browser-style WebAuthn shim on top of the native plugin.
       *
 diff --git a/dist/esm/index.js b/dist/esm/index.js
+index 90eece502f583ab9b35baf5a9276e207021d10d4..28a80daf6efa182e8e7d4177d38f345b254c8115 100644
 --- a/dist/esm/index.js
 +++ b/dist/esm/index.js
 @@ -58,7 +58,7 @@ const CapacitorPasskey = {
@@ -495,7 +464,7 @@ diff --git a/dist/esm/index.js b/dist/esm/index.js
      async getPluginVersion() {
          return NativeCapacitorPasskey.getPluginVersion();
 diff --git a/dist/esm/shim.js b/dist/esm/shim.js
-index 5cf20db..9fb09d0 100644
+index 5cf20db91a9dfb86449a8546542555f529ff02b7..9fb09d046d576cc6eee9309fa0486b1dad89917b 100644
 --- a/dist/esm/shim.js
 +++ b/dist/esm/shim.js
 @@ -40,6 +40,7 @@ export function installWebAuthnShim({ root = globalThis, plugin, options }) {
@@ -507,7 +476,7 @@ index 5cf20db..9fb09d0 100644
                  publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
              }));
 diff --git a/dist/plugin.cjs.js b/dist/plugin.cjs.js
-index 1112644..8e9a2d4 100644
+index 11126446e3523c1cfffc22cabbcd5fa81c92497a..8e9a2d4376e21e2632f0126572780c97cc68cc5c 100644
 --- a/dist/plugin.cjs.js
 +++ b/dist/plugin.cjs.js
 @@ -483,6 +483,7 @@ function installWebAuthnShim({ root = globalThis, plugin, options }) {
@@ -528,7 +497,7 @@ index 1112644..8e9a2d4 100644
      async getPluginVersion() {
          return NativeCapacitorPasskey.getPluginVersion();
 diff --git a/dist/plugin.js b/dist/plugin.js
-index 26aa422..586322c 100644
+index 26aa42205b932a6608f70056036cf22e208a2e6d..586322ca42889ed7a6d78695b3e31f239a9b202f 100644
 --- a/dist/plugin.js
 +++ b/dist/plugin.js
 @@ -482,6 +482,7 @@ var capacitorPasskey = (function (exports, core) {
@@ -548,3 +517,105 @@ index 26aa422..586322c 100644
          },
          async getPluginVersion() {
              return NativeCapacitorPasskey.getPluginVersion();
+diff --git a/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift b/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
+index be067b3aebf82976faa45a067ecaafbe46579958..82c9d9d0e612fd1f682ad232734bb48da94c9f8b 100644
+--- a/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
++++ b/ios/Sources/CapacitorPasskeyPlugin/CapacitorPasskeyPlugin.swift
+@@ -127,6 +127,7 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+     public let pluginMethods: [CAPPluginMethod] = [
+         CAPPluginMethod(name: "createCredential", returnType: CAPPluginReturnPromise),
+         CAPPluginMethod(name: "getCredential", returnType: CAPPluginReturnPromise),
++        CAPPluginMethod(name: "cancelRequest", returnType: CAPPluginReturnPromise),
+         CAPPluginMethod(name: "getConfiguration", returnType: CAPPluginReturnPromise),
+         CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
+         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
+@@ -135,6 +136,7 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+     private let implementation = CapacitorPasskey()
+     private var pendingCall: CAPPluginCall?
+     private var pendingOperation: PasskeyOperation?
++    private var pendingController: ASAuthorizationController?
+ 
+     @objc func createCredential(_ call: CAPPluginCall) {
+         guard pendingCall == nil else {
+@@ -174,6 +176,23 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+         }
+     }
+ 
++    /// Ends a pending assertion so a new request can start. Only assertions: a registration is never
++    /// cancelled from JS. The cancelled controller's own callback is ignored once the slot is free.
++    @objc func cancelRequest(_ call: CAPPluginCall) {
++        DispatchQueue.main.async {
++            guard let pending = self.pendingCall, self.pendingOperation == .assertion, let controller = self.pendingController else {
++                call.resolve(["cancelled": false])
++                return
++            }
++            self.clearPendingRequest()
++            if #available(iOS 16.0, *) {
++                controller.cancel()
++            }
++            self.reject(pending, name: "AbortError", message: "Passkey request cancelled.")
++            call.resolve(["cancelled": true])
++        }
++    }
++
+     @objc func isSupported(_ call: CAPPluginCall) {
+         call.resolve([
+             "available": true,
+@@ -191,7 +210,8 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+             "autoShim": config.getBoolean("autoShim", true),
+             "domains": normalizeConfiguredDomains(configuredDomains, origin: origin),
+             "origin": origin ?? NSNull(),
+-            "platform": "ios"
++            "platform": "ios",
++            "immediateLogin": true
+         ])
+     }
+ 
+@@ -202,6 +222,7 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+     }
+ 
+     public func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
++        guard controller === pendingController else { return }
+         guard let call = pendingCall, let operation = pendingOperation else {
+             clearPendingRequest()
+             return
+@@ -230,6 +251,7 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+     }
+ 
+     public func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
++        guard controller === pendingController else { return }
+         guard let call = pendingCall else {
+             clearPendingRequest()
+             return
+@@ -263,7 +285,22 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+             let controller = ASAuthorizationController(authorizationRequests: [request])
+             controller.delegate = self
+             controller.presentationContextProvider = self
+-            controller.performRequests()
++            self.pendingController = controller
++            if operation == .assertion, let deadline = call.getDouble("immediateLoginDeadline") {
++                guard Date().timeIntervalSince1970 * 1_000 < deadline else {
++                    self.clearPendingRequest()
++                    self.reject(call, name: "AbortError", message: "Immediate login expired.")
++                    return
++                }
++                if #available(iOS 16.0, *) {
++                    controller.performRequests(options: .preferImmediatelyAvailableCredentials)
++                } else {
++                    self.clearPendingRequest()
++                    self.reject(call, name: "NotSupportedError", message: "Immediate passkey login requires iOS 16.")
++                }
++            } else {
++                controller.performRequests()
++            }
+         }
+     }
+ 
+@@ -375,6 +412,7 @@ public class CapacitorPasskeyPlugin: CAPPlugin,
+     private func clearPendingRequest() {
+         pendingCall = nil
+         pendingOperation = nil
++        pendingController = nil
+     }
+ 
+     private func reject(_ call: CAPPluginCall, error: PasskeyPluginError) {

@@ -25,7 +25,11 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
-import { checkAndroidLandingPasskey, supportsIOSImmediateLogin } from '@/utils/landing-passkeys'
+import {
+    cancelIOSImmediateLogin,
+    checkAndroidLandingPasskey,
+    supportsIOSImmediateLogin,
+} from '@/utils/landing-passkeys'
 
 const PASSKEY_CHECK_TIMEOUT_MS = 5_000
 
@@ -61,6 +65,11 @@ const LandingStep = () => {
     const [nativeLogin, setNativeLogin] = useState<'hidden' | 'full' | 'link'>('hidden')
     const loginHandler = useRef(handleLoginClick)
     const iosPreparation = useRef<AbortController | null>(null)
+    // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
+    // there; Log in and Sign up stay usable and retire it first when tapped.
+    const autoLogin = useRef<{ cancel: AbortController; done: Promise<void> } | null>(null)
+    const [autoLoginPending, setAutoLoginPending] = useState(false)
+    const fallbackBusy = useRef(false)
 
     useEffect(() => {
         loginHandler.current = handleLoginClick
@@ -89,8 +98,21 @@ const LandingStep = () => {
             iosPreparation.current = check
             void supportsIOSImmediateLogin()
                 .then(async (supported) => {
-                    if (supported && !signal.aborted && Date.now() < deadline) {
-                        await loginHandler.current({ immediateSignal: signal, immediateDeadline: deadline })
+                    if (!supported || signal.aborted || Date.now() >= deadline) return
+                    const cancel = new AbortController()
+                    const done = loginHandler
+                        .current({ immediateSignal: signal, immediateDeadline: deadline, cancelSignal: cancel.signal })
+                        .then(
+                            () => {},
+                            () => {}
+                        )
+                    const attempt = { cancel, done }
+                    autoLogin.current = attempt
+                    setAutoLoginPending(true)
+                    await done
+                    if (autoLogin.current === attempt) {
+                        autoLogin.current = null
+                        setAutoLoginPending(false)
                     }
                 })
                 .catch(() => {
@@ -162,9 +184,36 @@ const LandingStep = () => {
         }
     }
 
+    // Retire the automatic attempt (its late result is discarded) and free the native slot before the manual path starts.
+    const retireAutoLogin = async () => {
+        const attempt = autoLogin.current
+        if (!attempt) return
+        attempt.cancel.abort()
+        await cancelIOSImmediateLogin()
+        await attempt.done
+        if (autoLogin.current === attempt) {
+            autoLogin.current = null
+            setAutoLoginPending(false)
+        }
+    }
+
+    const afterAutoLogin = (next: () => unknown) => {
+        if (!autoLogin.current && !fallbackBusy.current) {
+            next()
+            return
+        }
+        if (fallbackBusy.current) return
+        fallbackBusy.current = true
+        void retireAutoLogin()
+            .then(next)
+            .finally(() => {
+                fallbackBusy.current = false
+            })
+    }
+
     const onLoginClick = () => {
         track('log_in', 'tap')
-        void login()
+        afterAutoLogin(login)
     }
 
     const signUp = () => {
@@ -174,7 +223,7 @@ const LandingStep = () => {
 
     const onSignUpClick = () => {
         track('sign_up', 'tap')
-        signUp()
+        afterAutoLogin(signUp)
     }
 
     const recover = (action: RecoveryAction) => {
@@ -227,6 +276,8 @@ const LandingStep = () => {
             {t('landing.recoverWallet')}
         </SetupDocLink>
     )
+
+    const manualLoginInFlight = isLoggingIn && !autoLoginPending
 
     const nativeLanding =
         nativePlatform.isCapacitor || (!isHydrated && process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true')
@@ -293,7 +344,7 @@ const LandingStep = () => {
                                 // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
                                 // pend minutes — Sign Up must stay an escape hatch there, and a
                                 // mid-ceremony register fails cleanly as CeremonyConflictError.
-                                disabled={isLoggingIn && nativePlatform.isCapacitor}
+                                disabled={isLoggingIn && nativePlatform.isCapacitor && !autoLoginPending}
                                 onClick={onSignUpClick}
                             >
                                 {t('landing.signUp')}
@@ -303,10 +354,10 @@ const LandingStep = () => {
                     secondary={
                         loginAction === 'full' ? (
                             <Button
-                                loading={isLoggingIn}
+                                loading={manualLoginInFlight}
                                 shadowSize="4"
                                 className="w-full"
-                                disabled={isLoggingIn}
+                                disabled={manualLoginInFlight}
                                 variant="secondary"
                                 onClick={onLoginClick}
                             >
@@ -314,7 +365,7 @@ const LandingStep = () => {
                             </Button>
                         ) : loginAction === 'link' ? (
                             <div className="pt-2">
-                                <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                                <LinkButton onClick={onLoginClick} disabled={manualLoginInFlight}>
                                     {t('logIn')}
                                 </LinkButton>
                             </div>

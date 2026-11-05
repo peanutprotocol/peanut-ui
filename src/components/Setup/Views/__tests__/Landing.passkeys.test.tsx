@@ -8,6 +8,8 @@ const mockNext = jest.fn()
 const mockToastError = jest.fn()
 const mockAndroidCheck = jest.fn()
 const mockIOSCapability = jest.fn()
+const mockCancelIOS = jest.fn()
+let mockIsLoggingIn = false
 let mockNative = {
     isCapacitor: true,
     isHydrated: true,
@@ -18,13 +20,14 @@ let mockNative = {
 }
 
 jest.mock('@/hooks/useLogin', () => ({
-    useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }),
+    useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: mockIsLoggingIn }),
 }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/utils/native-platform', () => ({ useNativePlatform: () => mockNative }))
 jest.mock('@/utils/landing-passkeys', () => ({
     checkAndroidLandingPasskey: (signal: AbortSignal) => mockAndroidCheck(signal),
     supportsIOSImmediateLogin: () => mockIOSCapability(),
+    cancelIOSImmediateLogin: () => mockCancelIOS(),
 }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -160,6 +163,8 @@ beforeEach(() => {
     mockAndroidCheck.mockImplementation(() => new Promise(() => {}))
     mockIOSCapability.mockImplementation(() => new Promise(() => {}))
     mockLogin.mockResolvedValue(undefined)
+    mockCancelIOS.mockResolvedValue(undefined)
+    mockIsLoggingIn = false
 })
 afterEach(() => {
     cleanup()
@@ -280,6 +285,7 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockLogin).toHaveBeenCalledWith({
             immediateSignal: expect.any(AbortSignal),
             immediateDeadline: mountedAt + 5000,
+            cancelSignal: expect.any(AbortSignal),
         })
         const signal = mockLogin.mock.calls[0][0].immediateSignal as AbortSignal
         view.rerender(<Landing />)
@@ -289,6 +295,88 @@ describe('native landing passkey availability acceptance', () => {
         view.unmount()
         expect(signal.aborted).toBe(true)
         expect(mockAndroidCheck).not.toHaveBeenCalled()
+    })
+
+    // A native request still pending at the deadline must not hold the fallback for the 60 s ceremony bound.
+    function pendingAutoLogin() {
+        ios()
+        mockIOSCapability.mockResolvedValue(true)
+        mockLogin.mockImplementationOnce(
+            ({ cancelSignal }: { cancelSignal: AbortSignal }) =>
+                new Promise<void>((_, reject) => {
+                    cancelSignal.addEventListener('abort', () => {
+                        mockIsLoggingIn = false
+                        reject(new Error('CeremonyCancelledError'))
+                    })
+                })
+        )
+    }
+
+    it('keeps Log in and Sign up usable while the iOS automatic login is still pending after the deadline', async () => {
+        pendingAutoLogin()
+        const view = render(<Landing />)
+        await flush()
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        mockIsLoggingIn = true
+        view.rerender(<Landing />)
+        await advance(5000)
+        expect(login()).toHaveAttribute('data-control', 'link')
+        expect(login()).toBeEnabled()
+        expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
+    })
+
+    it('Log in retires the pending automatic login and frees the native slot before the manual login starts', async () => {
+        pendingAutoLogin()
+        const view = render(<Landing />)
+        await flush()
+        const { cancelSignal } = mockLogin.mock.calls[0][0] as { cancelSignal: AbortSignal }
+        mockIsLoggingIn = true
+        view.rerender(<Landing />)
+        await advance(5000)
+        const cancelled = deferred<void>()
+        mockCancelIOS.mockReturnValueOnce(cancelled.promise)
+        fireEvent.click(login()!)
+        await flush()
+        expect(cancelSignal.aborted).toBe(true)
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+        // the manual request waits until the native slot is free
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        await act(async () => cancelled.resolve())
+        await flush()
+        expect(mockLogin).toHaveBeenCalledTimes(2)
+        expect(mockLogin).toHaveBeenLastCalledWith()
+        // a second tap while the manual login runs does not start another one
+        mockIsLoggingIn = true
+        view.rerender(<Landing />)
+        expect(login()).toBeDisabled()
+    })
+
+    it('Sign up retires the pending automatic login before leaving the landing', async () => {
+        pendingAutoLogin()
+        const view = render(<Landing />)
+        await flush()
+        const { cancelSignal } = mockLogin.mock.calls[0][0] as { cancelSignal: AbortSignal }
+        mockIsLoggingIn = true
+        view.rerender(<Landing />)
+        await advance(5000)
+        fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
+        await flush()
+        await flush()
+        expect(cancelSignal.aborted).toBe(true)
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+        expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+    })
+
+    it('a manual login in flight still disables Log in when no automatic attempt is pending', async () => {
+        ios()
+        mockIOSCapability.mockResolvedValue(false)
+        mockIsLoggingIn = true
+        render(<Landing />)
+        await flush()
+        await advance(5000)
+        expect(login()).toBeDisabled()
+        expect(mockCancelIOS).not.toHaveBeenCalled()
     })
 
     it('keeps an ambiguous iOS rejection quiet and exposes manual fallback at the original deadline', async () => {
