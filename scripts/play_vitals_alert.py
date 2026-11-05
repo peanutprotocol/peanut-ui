@@ -142,9 +142,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     snapshot = play_vitals_report.collect(datetime.now(timezone.utc))
     try:
-        credentials = json.loads(os.environ["PLAY_SERVICE_ACCOUNT_JSON"])
+        credentials = json.loads(os.environ["PLAY_VITALS_SERVICE_ACCOUNT_JSON"])
     except (KeyError, ValueError, TypeError):
-        raise RuntimeError("PLAY_SERVICE_ACCOUNT_JSON is invalid") from None
+        raise RuntimeError("PLAY_VITALS_SERVICE_ACCOUNT_JSON is invalid") from None
     artifact, state = assess(snapshot, load_state(args.state, credentials))
     if not args.dry_run:
         save_json(args.output, artifact)
