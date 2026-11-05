@@ -1,4 +1,5 @@
 import { parseFiniteNumber } from '@/lib/money'
+import type { LedgerEntry } from '@/features/attention/types'
 import { reportInvalidNumeric } from '@/lib/numeric-telemetry'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
 import { toInviteCode } from '@/utils/invite-code.utils'
@@ -414,6 +415,8 @@ export interface RecentMethod {
     path: string
 }
 
+export type AttentionLedgerEntry = LedgerEntry
+
 export type UserPreferences = {
     balanceHidden?: boolean
     /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
@@ -425,9 +428,8 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    /** Home CTAs the user has dismissed, with the ISO timestamp of each dismissal.
-     *  A dismissal is permanent, except the allow-list in RECURRING_CAROUSEL_CTAS
-     *  (home-carousel.utils.ts). Legacy shape was `string[]`; both are accepted on read. */
+    /** Pre-manager Home carousel closes, with the ISO timestamp of each. Read once into the
+     *  attention ledger (features/attention/ledger.ts). Legacy shape was `string[]`; both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
     /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
      *  string. DISPLAY-only seed so a cold start paints the previous number instead
@@ -446,6 +448,8 @@ export type UserPreferences = {
     /** App loads by this user on this device. The Home push fallback waits
      *  for the third one. */
     sessionCount?: number
+    /** the pre-manager closes above were copied into `attention` (and synced) once */
+    attentionLegacyPersisted?: boolean
     /** App-review nudge budget (see utils/app-review.ts). `moments` counts
      *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
      *  past OS review requests, oldest first. */
@@ -464,6 +468,8 @@ export type UserPreferences = {
      *  rather than hiding it forever, and a genuinely new cap block is never
      *  suppressed by a stale local flag. */
     capNudgeSubmittedAt?: string
+    /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
+    attention?: Partial<Record<string, AttentionLedgerEntry>>
 }
 
 export const updateUserPreferences = (
@@ -479,8 +485,7 @@ export const updateUserPreferences = (
             ...currentPrefs,
             ...partialPrefs,
         }
-        saveToLocalStorage(`${userId}:user-preferences`, newPrefs)
-        return newPrefs
+        return saveToLocalStorage(`${userId}:user-preferences`, newPrefs) ? newPrefs : undefined
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)

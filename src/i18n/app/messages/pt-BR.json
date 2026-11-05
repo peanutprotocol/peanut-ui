@@ -137,14 +137,19 @@
             "welcomeTitleSpoken": "Boas-vindas ao Peanut!"
         },
         "fundingSetup": {
+            "updateTitle": "Atualização dos pagamentos com cartão",
+            "updateIntro": "Estamos mudando como os pagamentos com cartão são processados. A partir de agora, seu cartão pagará diretamente com seu saldo Peanut.",
+            "updateReturn": "Depois que a atualização for confirmada, {amount} do seu cartão voltarão para sua carteira.",
+            "updateApprove": "Aprove a atualização com sua passkey.",
             "title": "Termine de configurar o cartão",
             "description": "Um toque com sua passkey para começar a usar seu cartão.",
-            "descriptionMigration": "Primeiro é preciso atualizar a permissão do seu cartão. Confirme duas vezes com sua passkey: uma para atualizar e outra para a nova permissão.",
             "descriptionPending": "Autorização enviada, mas ainda não confirmada. Verifique o status em instantes. Não autorize duas vezes.",
-            "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto. Vamos pedir de novo na próxima vez que você abrir o Início.",
-            "descriptionReturn": "Quando a configuração for confirmada, {amount} do saldo do cartão volta para sua carteira. Pode exigir mais de uma confirmação com sua passkey.",
+            "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto. Vamos pedir de novo mais tarde.",
+            "descriptionUpdateError": "Não conseguimos terminar a atualização. Tente de novo ou pule por enquanto. Vamos pedir de novo mais tarde.",
             "descriptionReadyReturn": "Seu cartão está pronto. Mova {amount} do saldo do cartão para sua carteira agora ou depois, pela tela do cartão.",
             "descriptionReturnRetry": "Seu cartão está pronto, mas a transferência do saldo do cartão não terminou. Tente de novo agora ou depois, pela tela do cartão.",
+            "descriptionUpdateReadyReturn": "A atualização foi concluída. Mova {amount} do saldo do cartão para sua carteira agora ou depois, pela tela do cartão.",
+            "descriptionUpdateReturnRetry": "A atualização foi concluída, mas a transferência do saldo do cartão não terminou. Tente de novo agora ou depois, pela tela do cartão.",
             "descriptionWithdrawalInFlight": "Um saque do cartão ainda está sendo confirmado. Verifique de novo em instantes ou pule por enquanto.",
             "descriptionReturnPending": "A transferência do saldo do cartão para sua carteira ainda não foi confirmada. Verifique de novo em instantes ou pule por enquanto.",
             "descriptionReturnWait": "O saldo do cartão não pode ser movido agora. Tente mais tarde ou pule por enquanto.",
@@ -182,7 +187,8 @@
             "notifications": {
                 "title": "Fique por dentro!",
                 "description": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
-                "blockedToast": "Seu navegador bloqueou as notificações. Ative nas configurações do site e recarregue."
+                "blockedToast": "Seu navegador bloqueou as notificações. Ative nas configurações do site e recarregue.",
+                "nativeBlockedToast": "Ative as notificações para o Peanut nas configurações do dispositivo."
             },
             "qrPay": {
                 "title": "Pague com <b>códigos QR</b>",
@@ -194,10 +200,11 @@
             },
             "bugBounty": {
                 "title": "Ajude a gente a melhorar e <b>ganhe $5!</b>",
-                "description": "Seja o primeiro a relatar um bug. Ganhe uma recompensa!"
+                "description": "Seja o primeiro a relatar um bug. Ganhe uma recompensa!",
+                "supportPrefill": "Encontrei um erro: "
             },
             "userInterview": {
-                "title": "Ajude a construir Peanut",
+                "title": "Ajude a construir o Peanut",
                 "description": "Você é um dos nossos usuários mais ativos. Agende um papo de 15 min com a equipe."
             },
             "kyc": {
@@ -219,11 +226,53 @@
                 },
                 "qrPay": {
                     "description": "Tenha a melhor taxa de câmbio, pague como um <b>local</b> e ganhe <b>pontos</b>."
+                },
+                "rewards": {
+                    "title": "Você tem pontos esperando",
+                    "description": "Abra Pontos para ver o que você ganhou."
                 }
             },
             "card": {
                 "title": "Peça o <b>Peanut Card</b>",
                 "description": "Gaste seu saldo <b>onde a Visa é aceita</b>."
+            },
+            "virtualAccount": {
+                "title": "Abra sua conta bancária",
+                "description": "Obtenha dados de conta para receber transferências no seu saldo."
+            },
+            "nextPayment": {
+                "title": "Pague com o Peanut de novo",
+                "descriptionQrOrCard": "Seu saldo está pronto. Pague com um código QR ou com seu Peanut Card.",
+                "descriptionQr": "Seu saldo está pronto. Escaneie um código QR para pagar.",
+                "descriptionCard": "Seu saldo está pronto. Pague com seu Peanut Card."
+            },
+            "shareBankDetails": {
+                "title": "Compartilhe seus dados bancários",
+                "description": "Passe os dados da sua conta para um empregador ou cliente e receba aqui."
+            },
+            "requestMoney": {
+                "title": "Peça dinheiro",
+                "description": "Esperando um pagamento ou dividindo uma conta? Envie um pedido."
+            },
+            "sendMoney": {
+                "title": "Envie dinheiro para um amigo",
+                "description": "Pague qualquer pessoa em segundos, direto do seu saldo."
+            },
+            "backupPasskey": {
+                "title": "Faça backup da sua passkey",
+                "description": "Ative a sincronização da sua passkey para que sua conta acompanhe você em um celular novo se perder este."
+            },
+            "addEmail": {
+                "title": "Adicione seu e-mail",
+                "description": "Receba comprovantes e alertas da conta por e-mail."
+            },
+            "rewards": {
+                "title": "Você tem recompensas esperando",
+                "description": "Abra Pontos para ver o que você ganhou."
+            },
+            "completeProfile": {
+                "title": "Complete seu perfil",
+                "description": "Adicione seu nome para que seus amigos reconheçam você quando você pagar a eles."
             }
         },
         "pendingTasks": {
@@ -269,6 +318,17 @@
             "shareBankDetails": "Compartilhar dados bancários",
             "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários no seu nome."
         },
+        "postVerification": {
+            "title": "Verificação concluída!",
+            "claim": {
+                "description": "Verificamos sua identidade. Agora você pode resgatar o dinheiro direto na sua conta bancária.",
+                "cta": "Resgatar no banco"
+            },
+            "request": {
+                "description": "Verificamos sua identidade. Agora você pode enviar o dinheiro que seu amigo pediu!",
+                "cta": "Enviar!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Desembarcou na Argentina",
@@ -286,6 +346,9 @@
                 "cta": "Ver cartão"
             },
             "notNow": "Agora não"
+        },
+        "attention": {
+            "label": "Próximos passos"
         }
     },
     "profile": {

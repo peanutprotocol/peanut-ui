@@ -31,6 +31,9 @@ const parseKycResumeState = (value: unknown): KycResumeState | null => {
 
 const kycResumeParser = parseAsJson<KycResumeState>(parseKycResumeState)
 
+// several flows can be mounted on one page (Home hosts more than one): only the first replays a persisted state
+const resuming = new Set<string>()
+
 /**
  * stores an open Sumsub flow in the URL while installed PWAs remain reachable.
  * android can evict the app after the camera or gallery opens. A cold return
@@ -48,8 +51,12 @@ export function useSumsubReloadResume(
         if (didResumeRef.current) return
         didResumeRef.current = true
         if (!enabled || !persisted || openState) return
+        const key = JSON.stringify(persisted)
+        if (resuming.has(key)) return
+        resuming.add(key)
         void (async () => {
             const reopened = await onResume(persisted).catch(() => false)
+            resuming.delete(key)
             if (!reopened) void setPersisted(null)
         })()
         // eslint-disable-next-line react-hooks/exhaustive-deps

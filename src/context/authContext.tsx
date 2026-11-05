@@ -55,6 +55,7 @@ import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { clearAccountQueries } from '@/utils/account-query-cache'
+import { flushLedgerSync } from '@/features/attention/ledgerSync'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -480,6 +481,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 reportPushIdentityFailure('Push identity logout failed or timed out', 'push_identity_logout', error)
             })
             try {
+                // a pending attention-ledger write still needs this user's token; never wait on it long
+                await Promise.race([
+                    flushLedgerSync(user?.user.userId).catch(() => {}),
+                    new Promise((resolve) => setTimeout(resolve, 3000)),
+                ])
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
                  * /users/logout revokes this device's session, /users/logout/all
@@ -525,7 +531,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsLoggingOut(false)
             }
         },
-        [clearLocalAuthState, fetchUser, toast, tErrors]
+        [clearLocalAuthState, fetchUser, toast, tErrors, user?.user.userId]
     )
 
     return (

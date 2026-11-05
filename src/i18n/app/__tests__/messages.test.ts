@@ -290,7 +290,7 @@ describe('card partner review reason copy', () => {
 })
 
 describe('Argentine Spanish inherits unchanged funding copy', () => {
-    it.each(['card.funding.body', 'home.fundingSetup.descriptionReturn'])(
+    it.each(['card.funding.body', 'home.fundingSetup.descriptionUpdateReadyReturn'])(
         '%s stays out of the delta catalog and resolves to Latin American Spanish',
         async (key) => {
             expect(leafPaths(esAR)).not.toContain(key)

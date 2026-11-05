@@ -236,6 +236,13 @@ export const ANALYTICS_EVENTS = {
     MODAL_SHOWN: 'modal_shown',
     MODAL_DISMISSED: 'modal_dismissed',
     MODAL_CTA_CLICKED: 'modal_cta_clicked',
+    /** the attention manager's choice (features/attention); `shadow: true` while it owns no surface */
+    ATTENTION_DECIDED: 'attention_decided',
+    ATTENTION_SHOWN: 'attention_shown',
+    ATTENTION_ACTED: 'attention_acted',
+    ATTENTION_DISMISSED: 'attention_dismissed',
+    ATTENTION_SNOOZED: 'attention_snoozed',
+    ATTENTION_CRASHED: 'attention_crashed',
 
     // ── Arrival prompt (TASK-23251): props country, prompt ──
     ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',
@@ -545,6 +552,7 @@ export const MODAL_TYPES = {
     NOTIFICATIONS: 'notifications',
     EARLY_USER: 'early_user',
     POST_SIGNUP: 'post_signup',
+    POST_VERIFICATION_ACTION: 'post_verification_action',
     BALANCE_WARNING: 'balance_warning',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',

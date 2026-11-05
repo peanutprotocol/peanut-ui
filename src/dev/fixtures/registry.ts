@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
 import { DOWNLOAD_PROMPT_FIXTURE } from './active'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
@@ -1991,7 +1992,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'card-funding-migration': {
         route: '/home',
-        about: 'Managed cardholder with a legacy grant to retire: the same prompt, saying there are two confirmations.',
+        about: 'Managed cardholder with a legacy grant to retire: the card payments update prompt.',
         responses: {
             'GET /rain/cards': CARD_HOLDER_OVERVIEW,
             'GET /rain/cards/funding/access': cardAccess('managed', true),
@@ -2002,11 +2003,11 @@ export const FIXTURES: Record<string, Fixture> = {
         },
         waitFor: '[data-testid="card-funding-consent"]',
     },
-    // Card balance from before goes back to the wallet before the old grant is
-    // retired: the same prompt names the amount and every confirmation.
+    // Card balance from before goes back to the wallet once the update is
+    // confirmed: the update prompt names the amount.
     'card-funding-return': {
         route: '/home',
-        about: 'Existing cardholder with card balance and a legacy grant: the same prompt names the amount and more than one confirmation.',
+        about: 'Existing cardholder with card balance and a legacy grant: the card payments update prompt names the amount.',
         responses: {
             'GET /rain/cards': {
                 ...CARD_HOLDER_OVERVIEW,
@@ -2706,7 +2707,17 @@ export const FIXTURES: Record<string, Fixture> = {
     'early-user': {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
-        responses: { 'GET /users/me': { showEarlyUserModal: true } },
+        responses: {
+            'GET /users/me': { showEarlyUserModal: true },
+            // the announcement waits for a quiet third session; the server's policy lets a capture's first one open it
+            'GET /users/me/attention': {
+                catalogueVersion: ATTENTION_POLICY.catalogueVersion,
+                settings: ATTENTION_POLICY.settings,
+                catalogue: ATTENTION_POLICY.catalogue.map((row) =>
+                    row.id === 'early-user' ? { ...row, tier: 1, rank: 0, policy: { interrupt: 'always' } } : row
+                ),
+            },
+        },
     },
 
     // Arrival prompt (TASK-23251). The app must resolve a country first (the

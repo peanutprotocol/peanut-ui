@@ -137,14 +137,19 @@
             "welcomeTitleSpoken": "¡Te damos la bienvenida a Peanut!"
         },
         "fundingSetup": {
+            "updateTitle": "Actualización de pagos con tarjeta",
+            "updateIntro": "Estamos cambiando cómo se procesan los pagos con tarjeta. A partir de ahora, tu tarjeta pagará directamente desde tu saldo de Peanut.",
+            "updateReturn": "Una vez que se confirme la actualización, {amount} de tu tarjeta volverán a tu billetera.",
+            "updateApprove": "Aprueba la actualización con tu passkey.",
             "title": "Termina de configurar la tarjeta",
             "description": "Un toque con tu passkey para empezar a usar tu tarjeta.",
-            "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirma dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisa el estado en un momento. No autorices dos veces.",
-            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
-            "descriptionReturn": "Cuando se confirme la configuración, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
+            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
+            "descriptionUpdateError": "No pudimos terminar la actualización. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
             "descriptionReadyReturn": "Tu tarjeta está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionReturnRetry": "Tu tarjeta está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
+            "descriptionUpdateReadyReturn": "La actualización está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
+            "descriptionUpdateReturnRetry": "La actualización está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionWithdrawalInFlight": "Un retiro de la tarjeta aún se está confirmando. Revisa de nuevo en un momento u omítelo por ahora.",
             "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisa de nuevo en un momento u omítelo por ahora.",
             "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intenta más tarde u omítelo por ahora.",
@@ -182,7 +187,8 @@
             "notifications": {
                 "title": "¡Mantente al tanto!",
                 "description": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
-                "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga."
+                "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga.",
+                "nativeBlockedToast": "Activa las notificaciones de Peanut en la configuración de tu dispositivo."
             },
             "qrPay": {
                 "title": "Paga con <b>códigos QR</b>",
@@ -194,7 +200,8 @@
             },
             "bugBounty": {
                 "title": "Ayúdanos a mejorar y <b>¡gana $5!</b>",
-                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!"
+                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!",
+                "supportPrefill": "Encontré un error: "
             },
             "userInterview": {
                 "title": "Ayúdanos a construir Peanut",
@@ -219,11 +226,53 @@
                 },
                 "qrPay": {
                     "description": "Obtén el mejor tipo de cambio, paga como un <b>local</b> y gana <b>puntos</b>."
+                },
+                "rewards": {
+                    "title": "Tienes puntos esperando",
+                    "description": "Abre Puntos para ver lo que has ganado."
                 }
             },
             "card": {
                 "title": "Consigue la <b>Peanut Card</b>",
                 "description": "Gasta tu saldo <b>donde acepten Visa</b>."
+            },
+            "virtualAccount": {
+                "title": "Abre tu cuenta bancaria",
+                "description": "Obtén datos de cuenta para recibir transferencias en tu saldo."
+            },
+            "nextPayment": {
+                "title": "Paga con Peanut otra vez",
+                "descriptionQrOrCard": "Tu saldo está listo. Paga con un código QR o con tu Peanut Card.",
+                "descriptionQr": "Tu saldo está listo. Escanea un código QR para pagar.",
+                "descriptionCard": "Tu saldo está listo. Paga con tu Peanut Card."
+            },
+            "shareBankDetails": {
+                "title": "Comparte tus datos bancarios",
+                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar aquí."
+            },
+            "requestMoney": {
+                "title": "Pide dinero",
+                "description": "¿Esperas un pago o divides un gasto? Envía una solicitud."
+            },
+            "sendMoney": {
+                "title": "Envía dinero a un amigo",
+                "description": "Paga a quien quieras en segundos, directo desde tu saldo."
+            },
+            "backupPasskey": {
+                "title": "Respalda tu passkey",
+                "description": "Activa la sincronización de tu passkey para que tu cuenta te acompañe en un teléfono nuevo si pierdes este."
+            },
+            "addEmail": {
+                "title": "Agrega tu correo",
+                "description": "Recibe comprobantes y alertas de tu cuenta por correo."
+            },
+            "rewards": {
+                "title": "Tienes recompensas esperando",
+                "description": "Abre Puntos para ver lo que has ganado."
+            },
+            "completeProfile": {
+                "title": "Completa tu perfil",
+                "description": "Agrega tu nombre para que tus amigos te reconozcan cuando les pagues."
             }
         },
         "pendingTasks": {
@@ -269,6 +318,17 @@
             "shareBankDetails": "Compartir datos bancarios",
             "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
         },
+        "postVerification": {
+            "title": "¡Verificación completa!",
+            "claim": {
+                "description": "Verificamos tu identidad. Ya puedes reclamar el dinero directamente en tu cuenta bancaria.",
+                "cta": "Reclamar a mi banco"
+            },
+            "request": {
+                "description": "Verificamos tu identidad. Ya puedes enviar el dinero que te pidió tu amigo.",
+                "cta": "¡Enviar!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Aterrizaste en Argentina",
@@ -286,6 +346,9 @@
                 "cta": "Ver tarjeta"
             },
             "notNow": "Ahora no"
+        },
+        "attention": {
+            "label": "Próximos pasos"
         }
     },
     "profile": {

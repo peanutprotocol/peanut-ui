@@ -11,6 +11,7 @@ describe('resolveKillSwitches', () => {
                 'maintenanceBannerPaths',
                 'disabledPaymentProviders',
                 'disabledMantecaCurrencies',
+                'disabledAttentionAsks',
                 'disableXchainWithdraw',
                 'disableXchainSend',
                 'pixBrazilOnrampMaintenance',
@@ -21,6 +22,7 @@ describe('resolveKillSwitches', () => {
         expect(DEFAULT_KILL_SWITCHES).toEqual(
             expect.objectContaining({ kycVerificationDown: false, brazilServicesPaused: false })
         )
+        expect(DEFAULT_KILL_SWITCHES.disabledAttentionAsks).toEqual([])
     })
 
     const pauseKeys: (keyof KillSwitches)[] = ['kycVerificationDown', 'brazilServicesPaused']

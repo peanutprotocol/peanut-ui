@@ -29,7 +29,7 @@ let memoryCache: { countryCode: string | null; timestamp: number } | null = null
 const hasFreshMemoryCache = (): boolean => !!memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION
 const freshMemoryCountry = (): string | null => (hasFreshMemoryCache() ? memoryCache!.countryCode : null)
 
-export const useGeoLocation = () => {
+export const useGeoLocation = ({ enabled = true }: { enabled?: boolean } = {}) => {
     const initialCountry = useHydrationSnapshot(freshMemoryCountry, () => null)
     const hasInitialCountry = useHydrationSnapshot(hasFreshMemoryCache, () => false)
     const [countryCode, setCountryCode] = useState<string | null>(initialCountry)
@@ -37,6 +37,7 @@ export const useGeoLocation = () => {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        if (!enabled) return undefined
         const controller = new AbortController()
         let timedOut = false
         const timeout = setTimeout(() => {
@@ -96,7 +97,7 @@ export const useGeoLocation = () => {
             clearTimeout(timeout)
             controller.abort()
         }
-    }, [])
+    }, [enabled])
 
     return { countryCode, isLoading, error }
 }
