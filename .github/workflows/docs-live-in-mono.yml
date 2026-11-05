@@ -2,7 +2,8 @@ name: Docs live in mono
 
 # Documentation about this code lives in mono (peanutprotocol/mono, engineering/ and ops/), so there is
 # one source (mono CONTRIBUTING: "Docs live in mono"). This fails a PR that adds a Markdown file here.
-# Allowed: a README.md of 20 lines or fewer that points to mono, and files under paths that tools own.
+# Allowed: a README.md of 20 lines or fewer that links to mono, and files under paths that tools own.
+# A renamed or moved .md counts as new, so a doc cannot slip in by moving out of an exempt path.
 # A PR write-up goes in the PR body.
 
 on:
@@ -31,8 +32,8 @@ jobs:
                     case "$f" in
                       .github/*|ios/*|android/*|public/*|src/content/*|node_modules/*) continue ;;
                     esac
-                    if [ "$(basename "$f")" = README.md ] && [ "$(wc -l < "$f")" -le 20 ]; then continue; fi
+                    if [ "$(basename "$f")" = README.md ] && [ "$(awk 'END { print NR }' "$f")" -le 20 ] && grep -q 'github.com/peanutprotocol/mono' "$f"; then continue; fi
                     echo "::error file=$f::New docs go in mono (engineering/, ops/ or product/), not in this repo. Link to them from a code comment; put a PR write-up in the PR body."
                     bad=1
-                  done < <(git diff --name-only --diff-filter=A "$BASE"...HEAD -- '*.md' '*.mdx')
+                  done < <(git diff --name-only --find-renames --diff-filter=AR "$BASE"...HEAD -- '*.md' '*.mdx')
                   exit $bad
