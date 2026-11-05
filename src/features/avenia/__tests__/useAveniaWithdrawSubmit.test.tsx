@@ -104,7 +104,7 @@ describe('useAveniaWithdrawSubmit', () => {
             BigInt('0x6aeb17ea29f84d1e9b0c3a5d7e2f1c08'),
         ])
         expect(mockReportFunding).toHaveBeenCalledWith('w1', MINED)
-        expect(result.current.phase).toBe('sent')
+        expect(result.current.phase).toBe('funded')
         expect(result.current.opened).toEqual({ intentId: 'w1', display })
     })
 
@@ -204,7 +204,7 @@ describe('useAveniaWithdrawSubmit', () => {
         expect(mockSendTransactions).toHaveBeenCalledTimes(1)
         expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 93_100_000n })
         expect(mockInit).toHaveBeenCalledTimes(1)
-        expect(result.current.phase).toBe('sent')
+        expect(result.current.phase).toBe('funded')
     })
 
     it('asks again when the opened quote pays fewer reais, and signs at once when it is better', async () => {
@@ -221,7 +221,7 @@ describe('useAveniaWithdrawSubmit', () => {
         await act(async () => {
             await second.result.current.submit(REQUEST, display)
         })
-        expect(second.result.current.phase).toBe('sent')
+        expect(second.result.current.phase).toBe('funded')
     })
 
     it("refuses to sign once Rhino's quote has expired", async () => {

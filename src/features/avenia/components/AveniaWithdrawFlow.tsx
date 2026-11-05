@@ -10,6 +10,7 @@ import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Field } from '@/components/0_Bruddle/Field'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import AmountInput from '@/components/Global/AmountInput'
@@ -23,8 +24,10 @@ import {
     AVENIA_WITHDRAW_STEPS,
     aveniaSetupState,
     aveniaWithdrawAmount,
+    aveniaWithdrawOutcome,
     completePixKey,
 } from '@/features/avenia/avenia.utils'
+import { aveniaNewKeyUrl } from '@/features/avenia/aveniaRecovery'
 import { AveniaPixKeyStep } from '@/features/avenia/components/AveniaPixKeyStep'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
 import { AveniaWithdrawReview } from '@/features/avenia/components/AveniaWithdrawReview'
@@ -80,13 +83,13 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         guards: {
             amount: { ok: !!pixKey, fallback: 'pix-key' },
             review: { ok: !!pixKey && !!amount, fallback: pixKey ? 'amount' : 'pix-key' },
-            success: { ok: submit.phase === 'sent' || submit.phase === 'unconfirmed' },
+            success: { ok: submit.phase === 'funded' || submit.phase === 'unconfirmed' },
         },
     })
     const step = stepper.step
     const { goTo } = stepper
-    // the deposit was sent: the success step is the only way on
-    const isSent = submit.phase === 'sent' || submit.phase === 'unconfirmed'
+    // the deposit was sent: the last step is the only way on
+    const isSent = submit.phase === 'funded' || submit.phase === 'unconfirmed'
     useEffect(() => {
         if (isSent && step !== 'success') void goTo('success')
     }, [isSent, step, goTo])
@@ -101,11 +104,8 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         staleTime: 30_000,
     })
 
-    // A send whose receipt never resolved is settled by the withdrawal's own history entry.
-    const unconfirmed = submit.phase === 'unconfirmed'
-    const entry = useHistoryEntry(submit.opened?.intentId, 'OFFRAMP', { enabled: unconfirmed })
-    const settled = entry.data?.status === 'COMPLETED'
-    const didNotGoThrough = unconfirmed && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(entry.data?.status ?? '')
+    // Once the deposit is sent, the withdrawal's own history entry says whether Avenia paid the Pix.
+    const entry = useHistoryEntry(submit.opened?.intentId, 'OFFRAMP', { enabled: isSent })
 
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const brl = useCurrency('BRL')
@@ -123,36 +123,50 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
     if (aveniaSetupState(rail) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} rail={rail} />
 
     if (step === 'success' && submit.opened && isSent) {
-        const { display } = submit.opened
+        const { intentId, display } = submit.opened
         const to = [display.bankName, display.holderName].filter(Boolean).join(' · ')
-        const confirmed = submit.phase === 'sent' || settled
+        const outcome = aveniaWithdrawOutcome(submit.phase === 'funded' ? 'funded' : 'unconfirmed', entry.data)
+        const failed = outcome === 'not-sent' || outcome === 'refunded'
+        const description = {
+            arrived: to ? t('arrivedTo', { destination: to }) : t('arrived'),
+            'on-its-way': to ? t('sentTo', { destination: to }) : t('sent'),
+            unconfirmed: t('unconfirmed'),
+            'needs-key': tShared('recovery.notice'),
+            refunded: t('refunded'),
+            'not-sent': t('notSent'),
+        }[outcome]
         return (
             <PageStack>
-                {confirmed && <SoundPlayer sound="success" />}
+                {outcome === 'arrived' && <SoundPlayer sound="success" />}
                 <NavHeader title={title} hideBackBtn />
                 <PageStack.Center className="items-center text-center">
-                    {/* a receipt that never came is a wait, not a success, until the history entry settles it */}
+                    {/* a funded deposit is a wait, not a success, until Avenia's payout completes the entry */}
                     <IconBubble
-                        icon={confirmed ? 'check' : didNotGoThrough ? 'alert' : 'clock'}
+                        icon={outcome === 'arrived' ? 'check' : failed || outcome === 'needs-key' ? 'alert' : 'clock'}
                         size="l"
-                        color={confirmed ? 'green' : didNotGoThrough ? 'red' : 'yellow'}
+                        color={outcome === 'arrived' ? 'green' : failed ? 'red' : 'yellow'}
                     />
                     <TitleBlock
                         align="center"
                         title={formatBankAmount(display.amountBrl, 'BRL')}
-                        description={
-                            didNotGoThrough
-                                ? t('notSent')
-                                : !confirmed
-                                  ? t('unconfirmed')
-                                  : to
-                                    ? t('sentTo', { destination: to })
-                                    : t('sent')
-                        }
+                        description={description}
                     />
-                    <Button variant="primary" className="w-full" onClick={leaveToHome}>
-                        {tCommon('done')}
-                    </Button>
+                    {outcome === 'needs-key' ? (
+                        <>
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => router.push(aveniaNewKeyUrl(intentId))}
+                            >
+                                {tShared('recovery.addKey')}
+                            </Button>
+                            <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
+                        </>
+                    ) : (
+                        <Button variant="primary" className="w-full" onClick={leaveToHome}>
+                            {tCommon('done')}
+                        </Button>
+                    )}
                     <ProviderFinePrint providerId="avenia-br" />
                 </PageStack.Center>
             </PageStack>

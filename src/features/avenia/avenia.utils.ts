@@ -4,6 +4,8 @@ import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/s
 import type { RailCapability } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
 import { aveniaRouteState } from '@/features/avenia/aveniaAvailability'
+import { awaitsNewPixKey } from '@/features/avenia/aveniaRecovery'
+import type { HistoryEntry } from '@/utils/history.utils'
 
 /** The Avenia rail of a Brazilian resident: Pix deposits and withdrawals (no QR pay before reliance). */
 export const AVENIA_PIX_RAIL_ID = 'avenia.pix_br'
@@ -226,4 +228,24 @@ export function quoteMovedAgainstUser(
     } catch {
         return true
     }
+}
+
+/**
+ * What the last step of a withdrawal says, from its history entry. A mined
+ * deposit only funds the withdrawal: Avenia pays the Pix after it, so the
+ * step says "on its way" until the entry completes, and asks for another key
+ * when the bank refused the payout. An unconfirmed deposit that ended failed
+ * or cancelled never reached Rhino, so nothing left the wallet.
+ */
+export type AveniaWithdrawOutcome = 'on-its-way' | 'unconfirmed' | 'arrived' | 'needs-key' | 'refunded' | 'not-sent'
+
+export function aveniaWithdrawOutcome(
+    phase: 'funded' | 'unconfirmed',
+    entry: Pick<HistoryEntry, 'status' | 'extraData'> | undefined
+): AveniaWithdrawOutcome {
+    if (entry?.status === 'COMPLETED') return 'arrived'
+    if (awaitsNewPixKey(entry?.extraData)) return 'needs-key'
+    if (entry?.status === 'REFUNDED') return 'refunded'
+    if (phase === 'unconfirmed' && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(entry?.status ?? '')) return 'not-sent'
+    return phase === 'funded' ? 'on-its-way' : 'unconfirmed'
 }

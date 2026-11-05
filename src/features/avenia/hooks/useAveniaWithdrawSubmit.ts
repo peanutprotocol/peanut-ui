@@ -25,9 +25,11 @@ import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
 
 /**
  * `reconfirm`: the opened quote is worse than the reviewed one and waits for a second Confirm.
+ * `funded`: the deposit that funds the withdrawal is mined. Avenia has not paid the Pix yet:
+ * the withdrawal's history entry says when it does.
  * `unconfirmed`: the deposit was sent but its receipt never arrived, so the app cannot say it landed.
  */
-export type AveniaWithdrawPhase = 'idle' | 'starting' | 'reconfirm' | 'signing' | 'sent' | 'unconfirmed'
+export type AveniaWithdrawPhase = 'idle' | 'starting' | 'reconfirm' | 'signing' | 'funded' | 'unconfirmed'
 
 interface OpenedWithdrawal {
     intentId: string
@@ -117,7 +119,7 @@ export function useAveniaWithdrawSubmit(): AveniaWithdrawSubmit {
                 setPhase('unconfirmed')
                 return
             }
-            setPhase('sent')
+            setPhase('funded')
             // Optional for the money (Avenia's webhook moves it either way); it names the
             // funding transaction on the receipt sooner. Only a mined hash can be checked.
             aveniaApi.reportFunding(intentId, minedHash).catch((caught) => {

@@ -2,6 +2,7 @@ import {
     aveniaDepositPhase,
     aveniaSetupState,
     aveniaWithdrawAmount,
+    aveniaWithdrawOutcome,
     aveniaWithdrawRefusalKey,
     quoteMovedAgainstUser,
     signMatchesDisplay,
@@ -267,5 +268,38 @@ describe('awaitsNewPixKey', () => {
 
     it('opens the new-key screen with the withdrawal in the URL', () => {
         expect(aveniaNewKeyUrl('0b9e3c1d-7a2f')).toBe('/withdraw/new-pix-key?intentId=0b9e3c1d-7a2f')
+    })
+})
+
+describe('aveniaWithdrawOutcome', () => {
+    const entry = (status: string, state?: 'awaiting-key' | 'in-progress' | 'done') => ({
+        status: status as never,
+        extraData: {
+            kind: 'OFFRAMP',
+            provider: 'AVENIA',
+            aveniaRecovery: state
+                ? { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_ACCOUNT_CLOSED' }
+                : null,
+        },
+    })
+
+    it('says "on its way" after the funding deposit until Avenia pays the Pix', () => {
+        expect(aveniaWithdrawOutcome('funded', undefined)).toBe('on-its-way')
+        expect(aveniaWithdrawOutcome('funded', entry('PENDING'))).toBe('on-its-way')
+        expect(aveniaWithdrawOutcome('funded', entry('COMPLETED'))).toBe('arrived')
+    })
+
+    it('asks for another key when the bank refused the payout, and says when the money came back', () => {
+        expect(aveniaWithdrawOutcome('funded', entry('PENDING', 'awaiting-key'))).toBe('needs-key')
+        expect(aveniaWithdrawOutcome('funded', entry('PENDING', 'in-progress'))).toBe('on-its-way')
+        expect(aveniaWithdrawOutcome('funded', entry('REFUNDED', 'done'))).toBe('refunded')
+    })
+
+    it('calls an unconfirmed deposit not sent only once the entry ends unfunded', () => {
+        expect(aveniaWithdrawOutcome('unconfirmed', undefined)).toBe('unconfirmed')
+        expect(aveniaWithdrawOutcome('unconfirmed', entry('CANCELLED'))).toBe('not-sent')
+        expect(aveniaWithdrawOutcome('unconfirmed', entry('COMPLETED'))).toBe('arrived')
+        // a mined deposit never reads as not sent: its money moved
+        expect(aveniaWithdrawOutcome('funded', entry('FAILED'))).toBe('on-its-way')
     })
 })
