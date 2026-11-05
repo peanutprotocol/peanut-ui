@@ -96,6 +96,28 @@ const variationPageIds = new Set([
 ])
 const definitions: Screen[] = [
     {
+        id: 'profile-brazil-bank-details',
+        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/accounts',
+        fixture: 'profile-accounts-br-resident',
+        clicks: ['text=BRL'],
+        expectSelector: '[role="dialog"]',
+    },
+    {
+        id: 'profile-brazil-qr-details',
+        name: 'Brazilian resident — Argentina QR payments remain available',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/payments',
+        fixture: 'profile-accounts-br-resident',
+        clicks: ['img[src*="ar.svg"]'],
+        expectSelector: '[role="dialog"]',
+    },
+    {
         id: 'qr-camera-permission',
         name: 'QR scanner — camera permission needed',
         flow: 'Payments',

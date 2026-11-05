@@ -1471,6 +1471,16 @@
         "source": "Card/ApplicationStatusScreen.tsx"
     },
     {
+        "id": "profile-brazil-bank-details",
+        "flow": "Payments",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "profile-brazil-qr-details",
+        "flow": "Payments",
+        "route": "/profile/payments"
+    },
+    {
         "id": "qr-camera-permission",
         "flow": "Payments",
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"

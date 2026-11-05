@@ -1,6 +1,8 @@
 'use client'
 
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { useAuth } from '@/context/authContext'
+import { isPixQrResidenceBlocked } from '@/utils/pix-qr-eligibility'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -108,7 +110,9 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const onBack = useSafeBack(view === 'bank' ? '/profile/payments' : '/profile', { replace: true })
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
-    const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
+    const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
+    const { user } = useAuth()
+    const pixResidenceBlocked = isPixQrResidenceBlocked(user?.residence)
     const {
         capabilities,
         rails,
@@ -160,15 +164,24 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 // every verified user holds pay by QR even though they cannot
                 // deposit or withdraw.
                 qrPay,
+                pixResidenceBlocked,
                 card: cardChip,
             }),
-        [qrPay, cardChip]
+        [qrPay, cardChip, pixResidenceBlocked]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
-    const accountBankRows = useMemo(() => withPixSend(bankRows, { qrPay }), [bankRows, qrPay])
+    const accountBankRows = useMemo(
+        () => withPixSend(bankRows, { qrPay, pixResidenceBlocked }),
+        [bankRows, qrPay, pixResidenceBlocked]
+    )
+    const detailsRow =
+        selectedDetailsRow?.labelKey === 'brl' || selectedDetailsRow?.labelKey === 'qrPay'
+            ? ([...accountBankRows, ...(spendGroup?.rows ?? [])].find((row) => row.id === selectedDetailsRow.id) ??
+              selectedDetailsRow)
+            : selectedDetailsRow
     const methodSections = useMemo(
         () =>
             paymentMethodSections([
@@ -427,10 +440,17 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
     // A BRL row that opens this drawer is a bank rail, not the Pix send
     // `withPixSend` makes of it outside Brazil (that row navigates instead).
-    // Its holder may still send to a Pix key, on the same capability.
-    const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow
+    const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow && !pixResidenceBlocked
+    const detailDescription = detailsRow ? t(`details.${detailsRow.labelKey}`) : ''
     // the user's own BRL rail behind a row that leads with the Pix key send
-    const detailsBankRail = detailsRow?.bankChip ? { ...detailsRow, chip: detailsRow.bankChip } : null
+    const detailsBankRail = detailsRow?.bankChip
+        ? { ...detailsRow, chip: detailsRow.bankChip }
+        : detailsRow?.labelKey === 'brl' &&
+            pixResidenceBlocked &&
+            detailsRow.chip !== 'active' &&
+            detailsRow.chip !== 'alwaysOn'
+          ? detailsRow
+          : null
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -693,9 +713,13 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                                     {/* A send-led BRL row opens on the send; its bank rail
                                         and that rail's status stay below. */}
                                     <DrawerDescription>
-                                        {detailsRow.bankChip
-                                            ? t('valueProp.pixSend')
-                                            : t(`valueProp.${detailsRow.labelKey}`)}
+                                        {detailsRow.labelKey === 'qrPay'
+                                            ? pixResidenceBlocked
+                                                ? t('qrPayArgentinaNote')
+                                                : t('qrPayNote')
+                                            : detailsRow.bankChip
+                                              ? t('valueProp.pixSend')
+                                              : t(`valueProp.${detailsRow.labelKey}`)}
                                     </DrawerDescription>
                                 </DrawerHeader>
                             </div>
@@ -710,7 +734,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                                         // bank rail keeps its status here, and its flow.
                                         <ListItem
                                             leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-                                            title={t(`details.${detailsRow.labelKey}`)}
+                                            title={detailDescription}
                                             trailing={rowStatusBadge(detailsBankRail, t)}
                                             chevron={isRowTappable(detailsBankRail, isKycDegraded)}
                                             onClick={() => {
@@ -721,7 +745,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                                     ) : (
                                         <ListItem
                                             leading={<IconBubble icon="check" size="s" color="green" />}
-                                            title={t(`details.${detailsRow.labelKey}`)}
+                                            title={detailDescription}
                                         />
                                     )}
                                 </ListGroup>

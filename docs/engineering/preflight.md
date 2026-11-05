@@ -185,3 +185,11 @@ Server ownership checks remain the final race boundary; mocked client tests do n
 - Invariants: expected provider refusals are typed terminal 4xx with a reason and alternative. Auth, rate-limit and 5xx responses never become user blocks. Residence restrictions cannot replace funded pending/unknown truth. Host labels stay bounded; no QR payload, key, path or tax value reaches telemetry.
 - Counterexamples: provider 503 mentioning PAYER_BLOCKED stays 502; Brazilian nationality alone is not Brazilian residence; alphabetic passports remain identity evidence despite invalid letters-only tax answers. Elapsed time does not prove payment failure.
 - Regressions: spec acceptance, init side-effect assertions, existing idempotency tests, funding replay ordering, ledger birth/late settlement tests. Disposable refusal/digit guard removal fails acceptance. Hosted CI, live/device/provider outcomes remain separate evidence.
+
+## Pix entry points must agree with residence, 2026-11-05
+
+- Evidence: current-head review found a Brazilian resident could still enter Pix-key sending from the BRL profile row or drawer. A generic QR capability includes Mercado Pago and cannot establish Pix eligibility.
+- Search: `rg -n 'withPixSend|PIX_SEND_HREF|canPayQrNow|detailsRow|pixResidenceBlocked' src/components/Profile src/utils/unlock-payments.utils.ts`. Inspect row promotion, drawer actions and refreshed bank state together.
+- Invariants: blocked residence removes Pix entry points while preserving first-party BRL bank status and recovery actions. An open drawer must use current rows after residence or capability refresh. The QR offer keeps Argentina and its limits.
+- Counterexamples: a Portuguese resident keeps Pix sending; a Brazilian resident keeps BRL bank access and Mercado Pago QR. Pending, setup and support-required bank states remain actionable after refresh.
+- Regression: independent profile acceptance first failed nine cases; three additional refresh cases failed before the drawer repair. Profile/helper tests pass 151 cases. Removing only the profile Pix guards in a disposable copy fails 11 cases. No load test applies to this presentation change; funding and reconciliation are unchanged.

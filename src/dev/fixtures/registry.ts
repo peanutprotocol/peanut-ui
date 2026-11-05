@@ -2825,9 +2825,15 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: 'Accounts page, a Brazilian resident: BRL is their bank rail, and its drawer sends to a Pix key.',
+        about: 'Accounts page, a Brazilian resident: BRL keeps bank access without Pix-key sending.',
         responses: {
-            'GET /users/me': { residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null } },
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+            },
         },
     },
     'get-paid-empty': {

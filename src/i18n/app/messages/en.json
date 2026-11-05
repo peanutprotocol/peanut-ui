@@ -468,7 +468,7 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
+                "qrPay": "Scan to pay.",
                 "bankAccount": "Add and withdraw money by bank transfer"
             },
             "valueProp": {
@@ -481,7 +481,7 @@
                 "mxn": "Move Mexican pesos between your bank and Peanut.",
                 "sepa": "Hold and move euros without a local bank.",
                 "qrPay": "Scan and pay where you live.",
-                "pixSend": "Send reais to Pix keys if you do not live in Brazil.",
+                "pixSend": "For residents outside Brazil.",
                 "bankAccount": "Add, hold and withdraw money in other currencies."
             },
             "detailsDrawer": {
@@ -495,7 +495,8 @@
                 "active": "Ready to use",
                 "notActive": "Not active yet",
                 "unavailable": "Unavailable"
-            }
+            },
+            "qrPayArgentinaNote": "Argentina"
         },
         "backup": {
             "title": "Backup",
