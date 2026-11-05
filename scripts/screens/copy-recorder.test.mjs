@@ -36,6 +36,34 @@ test('paintedText drops a line pushed below a clipped box and characters under a
     assert.equal(geometry.paintedText(line('Truncated!', 0, 0), clamp, [ellipsis]), 'Truncate\u0000')
 })
 
+test('paintedText keeps glyphs whose ascent and descent overhang a tight line box', () => {
+    assert.equal(geometry.paintedText(line('ab', 0, 0, 10, 20), rect(0, 3, 100, 17)), 'ab')
+    assert.equal(geometry.paintedText(line('ab', 0, 0, 10, 20), rect(0, 0, 100, 8)), '\u0000')
+})
+
+test('paintedText reads rect edges through getters, as DOMRect exposes them', () => {
+    class Box {
+        #edges
+        constructor(...edges) {
+            this.#edges = edges
+        }
+        get left() {
+            return this.#edges[0]
+        }
+        get top() {
+            return this.#edges[1]
+        }
+        get right() {
+            return this.#edges[2]
+        }
+        get bottom() {
+            return this.#edges[3]
+        }
+    }
+    const characters = [{ text: 'a', rects: [new Box(0, 0, 10, 20)] }]
+    assert.equal(geometry.paintedText(characters, rect(0, 3, 100, 17)), 'a')
+})
+
 test('paintedText hides characters with no painted box', () => {
     assert.equal(geometry.paintedText([{ text: 'x', rects: [rect(5, 5, 5, 25)] }], viewport), '\u0000')
     assert.equal(geometry.paintedText([{ text: 'x', rects: [] }], viewport), '\u0000')
@@ -85,6 +113,7 @@ const page = `<!doctype html>
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
 </style>
 <h1>Visible heading</h1>
+<button style="display: inline-flex"><span style="display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1">Tight label</span></button>
 <input placeholder="Search contacts" style="width: 300px">
 <input placeholder="A placeholder far too long for its tiny input box" style="width: 60px">
 <div style="height: 20px; overflow: hidden"><p style="margin: 0">Shown line</p><p style="margin: 0">Clipped away entirely</p></div>
@@ -101,6 +130,7 @@ const page = `<!doctype html>
 
 const messages = {
     visible: 'Visible heading',
+    tight: 'Tight label',
     search: 'Search contacts',
     longPlaceholder: 'A placeholder far too long for its tiny input box',
     shownLine: 'Shown line',
@@ -135,7 +165,7 @@ test('collectCopyEvidence credits only copy painted inside the viewport', async 
         assert.equal(evidence.recorded, true)
         assert.deepEqual(
             shownCopyKeys(evidence),
-            ['clampStart', 'escaped', 'fixed', 'search', 'shownLine', 'visible'].map((key) => `app.${key}`)
+            ['clampStart', 'escaped', 'fixed', 'search', 'shownLine', 'tight', 'visible'].map((key) => `app.${key}`)
         )
 
         // The ellipsis covers characters that still lie inside the box; none of those may count.

@@ -61,12 +61,17 @@ export function copyGeometry() {
         const common = intersect(rect, area)
         return common.right - common.left > TOLERANCE && common.bottom - common.top > TOLERANCE
     }
+    // A glyph's box spans the font's full ascent and descent, which tight line-heights clip without cutting ink.
+    const glyphInside = (rect, region) => {
+        const band = (rect.bottom - rect.top) / 4
+        return inside({ left: rect.left, right: rect.right, top: rect.top + band, bottom: rect.bottom - band }, region)
+    }
     // A character counts only when every box it paints lies inside the region and outside every exclusion.
     const painted = (rects, region, exclusions) => {
         const boxes = rects.filter(hasArea)
         return (
             boxes.length > 0 &&
-            boxes.every((rect) => inside(rect, region)) &&
+            boxes.every((rect) => glyphInside(rect, region)) &&
             !boxes.some((rect) => exclusions.some((area) => overlaps(rect, area)))
         )
     }
