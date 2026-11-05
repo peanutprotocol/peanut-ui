@@ -163,13 +163,35 @@ it('fences a late options response after the ceremony deadline before any native
     const operation = options.promise.then(() => plugin.getCredential({})).finally(scope.finish)
     const result = operation.catch((error: Error) => error)
     scope.expire()
-    expect(() => beginAndroidPasskeyScope()).toThrow(expect.objectContaining({ name: 'PasskeyRequestSettlingError' }))
     options.resolve({})
     await expect(result).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
     expect(rawGet).not.toHaveBeenCalled()
     const next = beginAndroidPasskeyScope()!
     await expect(plugin.getCredential({})).resolves.toBe('credential')
     next.finish()
+})
+
+it('a call that waited out an abandoned request does not reach native once its own flow expired', async () => {
+    mockCall.mockImplementation((method: string) =>
+        method === 'cancelRequest' ? new Promise(() => {}) : Promise.resolve({ pluginVersion: '8.2.2-peanut.2' })
+    )
+    const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
+        await import('../android-passkey-control')
+    const { beginAndroidPasskeyScope } = await import('../android-passkey-scope')
+    const plugin = pluginFixture()
+    const rawGet = plugin.getCredential.mockReturnValue(new Promise(() => {}))
+    installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+    await jest.advanceTimersByTimeAsync(0)
+    const abandoned = plugin.getCredential({}).catch((error: Error) => error)
+    cancelActiveAndroidPasskeyRequest()
+    await expect(abandoned).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+    const scope = beginAndroidPasskeyScope()!
+    const waiting = plugin.getCredential({}).catch((error: Error) => error)
+    scope.expire()
+    await jest.advanceTimersByTimeAsync(2000)
+    await expect(waiting).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+    expect(rawGet).toHaveBeenCalledTimes(1)
+    scope.finish()
 })
 
 it('an older ceremony deadline cannot cancel a newer native request', async () => {

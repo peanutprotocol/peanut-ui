@@ -1,4 +1,4 @@
-import { currentAndroidPasskeyScope, enableAndroidPasskeyScopes } from './android-passkey-scope'
+import { currentAndroidPasskeyScope, enableAndroidPasskeyScopes, scopeForChallenge } from './android-passkey-scope'
 import type { CapacitorPasskeyPlugin } from '@capgo/capacitor-passkey'
 import posthog from 'posthog-js'
 import { addBreadcrumb } from './sentry-lazy'
@@ -133,16 +133,17 @@ export function installAndroidPasskeyControl(plugin: CapacitorPasskeyPlugin): vo
     for (const method of ['getCredential', 'createCredential'] as const) {
         const invoke = plugin[method].bind(plugin)
         const wrapped = (options: Parameters<typeof invoke>[0]) => {
-            const scope = currentAndroidPasskeyScope()
-            if (scope?.expired)
-                return Promise.reject(
-                    Object.assign(new Error('Passkey flow has expired'), { name: 'CeremonyTimeoutError' })
-                )
+            const challenge = (options as { publicKey?: { challenge?: unknown } } | undefined)?.publicKey?.challenge
+            const scope = scopeForChallenge(challenge) ?? currentAndroidPasskeyScope()
+            const expired = () => Object.assign(new Error('Passkey flow has expired'), { name: 'CeremonyTimeoutError' })
+            if (scope?.expired) return Promise.reject(expired())
             const started = Date.now()
             const operation = method === 'getCredential' ? 'get' : 'create'
             let invoked = false
             return controller
                 .run<Awaited<ReturnType<typeof invoke>>>((requestId, { contended }) => {
+                    // The flow may have expired while this call waited for an abandoned request's grace.
+                    if (scope?.expired) throw expired()
                     invoked = true
                     if (scope) scope.cancel = () => controller.cancelRequest(requestId)
                     // The pinned plugin patch forwards this control ID outside WebAuthn JSON.

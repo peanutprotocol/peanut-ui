@@ -257,8 +257,8 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
             androidScope?.finish()
             throw error
         }
-        // Keep the scope after a UI timeout until the SDK continuation terminates.
-        // An options response arriving late cannot open another native prompt.
+        // Keep the scope after a UI timeout until the SDK continuation terminates or the next
+        // ceremony retires it. An options response arriving late cannot open another native prompt.
         const scopedOperation = operation.finally(() => androidScope?.finish())
         const result = await raceCeremonyTimeout(
             scopedOperation,
