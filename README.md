@@ -11,7 +11,7 @@ Run the app from the [mono](https://github.com/peanutprotocol/mono) repository r
 ./scripts/dev     # API :5050, UI :3050, Nutcracker :3060
 ```
 
-Then open [http://localhost:3050](http://localhost:3050). Full setup: [GETTING-STARTED.md](https://github.com/peanutprotocol/mono/blob/main/GETTING-STARTED.md#6-running-the-app-locally).
+Then open [http://localhost:3050](http://localhost:3050). Full setup: [GETTING-STARTED.md](https://github.com/peanutprotocol/mono/blob/main/GETTING-STARTED.md#running-the-app-locally).
 
 ## Docs
 
