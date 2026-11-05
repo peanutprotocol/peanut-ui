@@ -2966,6 +2966,7 @@
             "descriptionByDate": "Prazo: {deadline}. As transferências bancárias continuam funcionando até lá. Conclua pelo Início."
         },
         "progress": {
+            "submittedDescription": "Estamos analisando sua identificação fiscal para habilitar as transferências bancárias. Você pode fechar esta tela. Avisaremos quando estiverem prontas.",
             "verifyingTitle": "Verificando a identificação",
             "verifyingDescription": "As verificações costumam ser rápidas. Se um revisor precisar analisar, de 1 a 3 dias úteis. Você pode esperar aqui ou fechar isto e enviaremos uma notificação.",
             "preparingTimedOutTitle": "Está demorando mais do que o esperado",

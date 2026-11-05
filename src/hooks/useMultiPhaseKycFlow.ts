@@ -320,6 +320,7 @@ export const useMultiPhaseKycFlow = ({
         isMultiLevel,
         verificationSession,
         showCorrection,
+        taxIdCorrection,
         correctVerificationData,
         dismissCorrection,
     } = useSumsubKycFlow({ onKycSuccess: handleSumsubApproved, onManualClose, regionIntent })
@@ -400,8 +401,12 @@ export const useMultiPhaseKycFlow = ({
         (source: SumsubSubmissionSource = 'sdk_submitted') => {
             reportedRejectionRef.current = null
             captureSubmission(source)
+            if (source !== 'sdk_teardown' && verificationSession && !isMultiLevel) {
+                originalHandleSdkComplete()
+                setModalPhase('submitted')
+            }
         },
-        [captureSubmission]
+        [captureSubmission, verificationSession, isMultiLevel, originalHandleSdkComplete]
     )
 
     // wrap handleSdkComplete to track real-time flow
@@ -520,12 +525,14 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (!sessionId) return
         if (sessionState === 'CORRECTION_REQUIRED' || sessionState === 'BLOCKED') {
+            setModalPhase('verifying')
             setForceShowModal(false)
             clearPreparingTimer()
             return
         }
         if (!isVerificationProgressModalOpen) return
-        setModalPhase('preparing')
+        setModalPhase('submitted')
+        clearPreparingTimer()
         if (sessionState !== 'READY') return
         const key = `${sessionId}:${sessionGeneration}`
         if (completedSessionRef.current === key) return
@@ -722,6 +729,7 @@ export const useMultiPhaseKycFlow = ({
 
         verificationSession,
         showCorrection,
+        taxIdCorrection,
         correctVerificationData,
         dismissCorrection,
         // SDK wrapper

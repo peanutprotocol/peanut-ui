@@ -6,6 +6,7 @@
 export type SumsubSubmissionSource = 'sdk_submitted' | 'sdk_teardown'
 
 export interface SumsubSdkProps {
+    validationError?: string
     sessionKey?: string
     visible: boolean
     accessToken: string | null

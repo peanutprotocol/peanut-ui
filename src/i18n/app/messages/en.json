@@ -2966,6 +2966,7 @@
             "descriptionByDate": "Due {deadline}. Bank transfers keep working until then. Complete it from Home."
         },
         "progress": {
+            "submittedDescription": "We are reviewing your tax ID to enable bank transfers. You can close this screen. We will notify you when they are ready.",
             "verifyingTitle": "Checking ID",
             "verifyingDescription": "Checks usually come back fast. If a reviewer has to look at it, 1 to 3 business days. You can wait here, or close this and we will send you a notification.",
             "preparingTimedOutTitle": "Taking longer than expected",

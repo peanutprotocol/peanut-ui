@@ -95,6 +95,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'KycVerificationInProgressModal (verifying)',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
     },
+    '24-c-kyctaxidsubmitted': {
+        name: 'KycVerificationInProgressModal (tax ID submitted)',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
     '25-b-kycactionrequiredmodal': { name: 'KycActionRequiredModal', path: 'Kyc/modals/KycActionRequiredModal.tsx' },
     '26-b-kycfailedmodal': { name: 'KycFailedModal', path: 'Kyc/modals/KycFailedModal.tsx' },
     '27-b-kycprocessingmodal': { name: 'KycProcessingModal', path: 'Kyc/modals/KycProcessingModal.tsx' },

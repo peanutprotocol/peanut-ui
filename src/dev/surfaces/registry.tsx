@@ -469,6 +469,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['24-b-kycverificationinprogressmodal'],
         render: () => <KycVerificationInProgressModal isOpen onClose={noop} />,
     },
+    '24-c-kyctaxidsubmitted': {
+        ...SURFACE_META['24-c-kyctaxidsubmitted'],
+        render: () => <KycVerificationInProgressModal isOpen onClose={noop} phase="submitted" />,
+    },
     '25-b-kycactionrequiredmodal': {
         ...SURFACE_META['25-b-kycactionrequiredmodal'],
         render: () => (

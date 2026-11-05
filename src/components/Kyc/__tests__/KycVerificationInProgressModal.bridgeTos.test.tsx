@@ -62,3 +62,19 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
         expect(screen.queryByRole('link', { name: 'Bridge user terms' })).not.toBeInTheDocument()
     })
 })
+
+describe('KycVerificationInProgressModal — submitted tax ID', () => {
+    it('shows a dismissible notification promise without an indefinite spinner', () => {
+        const onClose = jest.fn()
+        const view = render(
+            <IntlWrapper>
+                <KycVerificationInProgressModal isOpen onClose={onClose} phase="submitted" />
+            </IntlWrapper>
+        )
+        expect(screen.getByText('Submitted')).toBeInTheDocument()
+        expect(screen.getByText(/reviewing your tax ID/)).toBeInTheDocument()
+        expect(view.baseElement.querySelector('.animate-spin')).toBeNull()
+        screen.getByRole('button', { name: /notify/i }).click()
+        expect(onClose).toHaveBeenCalledTimes(1)
+    })
+})

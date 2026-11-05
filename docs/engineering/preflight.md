@@ -100,3 +100,12 @@ A queued online task reproduced the same sequence without an SDK event: React ha
 - Regression: `android-passkey-control.test.ts`, `android-passkey-scope.test.ts`, independent controller acceptance tests, signup/login hook regressions, and the native coordinator sequence tests. The disposable native cancellation-marking mutation fails the acceptance assertions.
 - Counterexample: a terminal native response can safely release its own request slot; a stale callback cannot release a newer one. An enabled Play Services package is not proof of an available credential provider.
 - Evidence boundary: TASK-23424 reports Chrome success on China-market devices; code checks and native library compilation do not establish a regional root cause or device recovery.
+
+
+## Argentina tax-ID unlock (2026-11-05)
+
+- Trigger: accepted Manteca action stayed behind a preparing spinner; legacy status POSTs consumed initiation allowance and returned 429. Provider/rail partial writes and notification races could strand bank readiness.
+- Invariants: pending is dismissible and never success; only current-account rail promotion is READY. Keep notification debt in the enable transaction and retry independently through READY. Read-only legacy reentry must not mint, rotate, submit or take provider locks.
+- Preflight: search `rg -n 'initiateSumsubKyc|setModalPhase|taxIdCorrection|providerState|notifyArgentinaBankReady|arPendingAlert' src`; inspect every caller and cleanup. A genuine credential request still consumes the limiter; an ordinary non-session identity flow retains its existing phases.
+- Regressions: spec-only submitted/correction lifetime tests and API pending reentry matrix; account-ID readiness repair; channel-failure and READY notification recovery. Stale-alert real PostgreSQL checks cover 8 concurrent workers, strict 10-minute boundary, expired claims, episode reset and 101-row batch draining. Disposable deduplication mutant fails 5 of 6 SQL checks.
+- Verification boundaries: local focused tests use Node 20.20.2; full repository suites/typecheck remain hosted CI. No live provider notification, native-device acceptance or deployment was performed. User-provided replay identifiers and rejected-ID counts were not independently replayed.

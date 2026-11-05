@@ -423,3 +423,23 @@ describe('SumsubKycWrapper', () => {
         })
     })
 })
+
+describe('tax-ID validation alongside the correction form', () => {
+    it.each([false, true])('shows the correction error inside the secure form on native=%s', async (native) => {
+        onCapacitor = native
+        installSdk()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="fixture-token"
+                validationError="Correct your CUIT to continue."
+                onClose={jest.fn()}
+                onComplete={jest.fn()}
+                onRefreshToken={async () => 'fixture-token'}
+            />
+        )
+        expect(await screen.findByRole('alert')).toHaveTextContent('Correct your CUIT to continue.')
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
+    })
+})

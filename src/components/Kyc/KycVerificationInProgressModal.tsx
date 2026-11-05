@@ -56,6 +56,21 @@ export const KycVerificationInProgressModal = ({
         router.push('/home')
     }
 
+    if (phase === 'submitted') {
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={onClose}
+                tone="attention"
+                icon={'clock' as IconName}
+                title={t('submitted')}
+                description={t('progress.submittedDescription')}
+                ctas={[{ text: t('progress.closeAndNotify'), onClick: handleGoHome, variant: 'primary' }]}
+                footer={<PeanutDoesntStoreAnyPersonalInformation />}
+            />
+        )
+    }
+
     if (phase === 'verifying') {
         // Dismissible on purpose (no preventClose): waiting is optional. The
         // decision arrives as a notification either way, so closing costs

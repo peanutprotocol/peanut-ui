@@ -18,6 +18,7 @@ import type { SumsubSdkProps, SumsubHelpModalVariant } from './sumsubSdk.types'
 export const SumsubWebSdkModal = ({
     visible,
     sessionKey,
+    validationError,
     accessToken,
     email,
     onClose,
@@ -96,6 +97,11 @@ export const SumsubWebSdkModal = ({
                                 <Icon name="cancel" size={24} />
                             </button>
                         </div>
+                        {validationError && (
+                            <p role="alert" className="px-4 py-2 text-sm text-foreground-primary">
+                                {validationError}
+                            </p>
+                        )}
                         <div className="relative w-full flex-1">
                             {/* sits behind the SDK iframe — covered once it paints */}
                             <div className="absolute inset-0 flex items-center justify-center">
