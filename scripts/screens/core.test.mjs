@@ -168,6 +168,20 @@ test('different harness, fixtures or environment requires recapture', () => {
         assert.throws(() => compare(capture([screen('home')]), r, dir), /environments differ/)
     }
 })
+test('runner host kernel and Node patch do not split a comparison; the renderer does', () => {
+    const runner = (host, node, chromium = '145.0.7632.6') =>
+        `linux-x64-${host};node=${node};chromium=${chromium};dpr=1;locale=en;device=ios;browser=iPhone 15 Pro;safe-area=59,0,34,0;UTC;light;reduced-motion`
+    const azure = { ...capture([screen('home')]), environment: runner('7.0.0-1017-azure', 'v22.23.4') }
+    const aws = { ...capture([screen('home')]), environment: runner('7.0.0-1014-aws', 'v22.23.3') }
+    assert.equal(compare(azure, aws, dir).screens[0].status, 'unchanged')
+    for (const environment of [
+        runner('7.0.0-1014-aws', 'v22.23.4', '146.0.7700.1'),
+        runner('7.0.0-1014-aws', 'v22.23.4').replace('dpr=1', 'dpr=2'),
+        runner('7.0.0-1014-aws', 'v22.23.4').replace('linux-x64', 'linux-arm64'),
+        runner('7.0.0-1014-aws', 'v22.23.4').replace(';light', ';dark'),
+    ])
+        assert.throws(() => compare(azure, { ...aws, environment }, dir), /environments differ/)
+})
 test('captures from different locales cannot be compared', () => {
     const portuguese = { ...capture([screen('home')]), locale: 'pt-BR', profile: 'pt-BR-393x852' }
     assert.throws(() => compare(capture([screen('home')]), portuguese, dir), /environments differ/)

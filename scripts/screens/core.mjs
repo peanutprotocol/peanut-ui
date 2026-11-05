@@ -228,18 +228,24 @@ export function validateJourneys(input) {
             screens.every((screen) => screen.status === 'passed'),
     }
 }
+// Hosted runners mix Azure and AWS hosts and roll kernels and Node patches mid-day; neither changes Chromium's pixels.
+export function renderEnvironment(environment) {
+    const [host = '', ...rest] = String(environment).split(';')
+    return [host.split('-').slice(0, 2).join('-'), ...rest.filter((part) => !part.startsWith('node='))].join(';')
+}
 export function sameEnvironment(a, b, beforeHarness) {
     const base = validateBeforeHarness(beforeHarness, a.commit)
     return (
+        renderEnvironment(a.environment) === renderEnvironment(b.environment) &&
         [
             ...(base ? [] : ['harness', 'fixtures', 'adapter']),
-            'environment',
             'profile',
             'locale',
             'publicBase',
             'width',
             'height',
-        ].every((k) => a[k] === b[k]) && JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
+        ].every((k) => a[k] === b[k]) &&
+        JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
     )
 }
 export function verifyAsset(dir, name, { variableDimensions = false, width = 393, height = 852 } = {}) {

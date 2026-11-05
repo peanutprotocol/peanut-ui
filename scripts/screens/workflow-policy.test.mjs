@@ -15,7 +15,18 @@ test('main updates capture both full catalogues and retain the original push bou
     assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)
     assert.match(screenLibrary, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     assert.match(screenLibrary, /node scripts\/screens\/capture-revisions\.mjs >> "\$GITHUB_OUTPUT"/)
-    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 3)
+    const fullCatalogue = /'refs\/heads\/main' && '--full-catalogue'/g
+    const after = screenLibrary.slice(
+        screenLibrary.indexOf('    capture_after:'),
+        screenLibrary.indexOf('    capture_before:')
+    )
+    const before = screenLibrary.slice(
+        screenLibrary.indexOf('    capture_before:'),
+        screenLibrary.indexOf('\n    gallery:')
+    )
+    assert.equal((after.match(fullCatalogue) ?? []).length, 1)
+    // The previous main lacks the states a release adds, so its gaps must not fail the run.
+    assert.equal((before.match(fullCatalogue) ?? []).length, 0)
     assert.match(publisher, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     for (const field of ['before', 'after'])
         assert.match(
