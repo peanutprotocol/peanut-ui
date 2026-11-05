@@ -56,8 +56,8 @@ export function HomePersonaFold({ strings }: HomePersonaFoldProps) {
                                 <Image
                                     src={avatarSrc(persona.avatar)!}
                                     alt=""
-                                    width={176}
-                                    height={176}
+                                    width={288}
+                                    height={288}
                                     unoptimized
                                     className="size-12 object-contain md:size-16"
                                 />
