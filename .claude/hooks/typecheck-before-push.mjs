@@ -24,12 +24,16 @@ const GIT_VALUE_OPTIONS = new Set([
     '--config-env',
     '--super-prefix',
 ])
+// The folder a push runs in must be certain. `a || b` runs b only when a fails, a `cd` into a missing folder
+// fails, and --git-dir/--work-tree name a repository elsewhere: any of these leaves the push to CI.
 const pushes = []
 let cwd = input.cwd
+let uncertain = /\|\|/.test(command)
 for (const segment of command.split(/&&|\|\|?|;|\n/)) {
     const words = segment.trim().match(/"[^"]*"|'[^']*'|\S+/g) ?? []
     if (words[0] === 'cd') {
         if (words[1]) cwd = resolve(cwd, unquote(words[1]))
+        if (!existsSync(cwd)) uncertain = true
         continue
     }
     const at = words.indexOf('git')
@@ -38,6 +42,7 @@ for (const segment of command.split(/&&|\|\|?|;|\n/)) {
     let dir = cwd
     // Git's own options come before the subcommand; the ones in GIT_VALUE_OPTIONS take the next word.
     while (words[i]?.startsWith('-')) {
+        if (/^--(git-dir|work-tree)\b/.test(words[i])) uncertain = true
         if (words[i] === '-C') dir = resolve(dir, unquote(words[i + 1] ?? ''))
         i += GIT_VALUE_OPTIONS.has(words[i]) ? 2 : 1
     }
@@ -58,6 +63,10 @@ const skip = (why) => console.error(`typecheck-before-push: ${why}; CI still run
 const TYPED = /\.(ts|tsx|mts|cts)$|(^|\/)(tsconfig[^/]*\.json|package\.json)$/
 const VALUE_FLAGS = new Set(['-o', '--push-option', '--repo', '--receive-pack', '--exec'])
 
+if (pushes.length > 0 && uncertain) {
+    skip('cannot tell for sure which checkout this push runs in, so it was not typechecked here')
+    process.exit(0)
+}
 for (const { dir, args } of pushes) {
     const flags = args.filter((a) => a.startsWith('-'))
     if (flags.some((f) => /^(--delete|-d|--tags)$/.test(f))) continue
