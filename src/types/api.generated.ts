@@ -7316,7 +7316,21 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            extraData?: {
+                                aveniaRecovery?: {
+                                    failureCode: string | null;
+                                    reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
+                                    state: "awaiting-key" | "in-progress" | "done";
+                                } | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
                 };
             };
         };
