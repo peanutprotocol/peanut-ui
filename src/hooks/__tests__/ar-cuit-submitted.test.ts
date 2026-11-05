@@ -1,3 +1,10 @@
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    findKycDocumentPlan: jest.fn(async () => ({ available: false, flow: null })),
+    getKycDocumentStatus: jest.fn(async () => 'NOT_STARTED'),
+    findKycReplacementPlan: jest.fn(async () => null),
+    resumeKycDocumentAttempt: jest.fn(),
+}))
+
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 import { act } from '@testing-library/react'
