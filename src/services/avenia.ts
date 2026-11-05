@@ -24,6 +24,9 @@ export type PixKeyInfo = Json<paths['/avenia/pix-key-info']['get']['responses'][
 export type AveniaWithdrawDisplay = Json<paths['/avenia/withdraw/preview']['post']['responses'][200]>
 export type AveniaWithdrawInit = Json<paths['/avenia/withdraw/init']['post']['responses'][200]>
 export type AveniaWithdrawSign = AveniaWithdrawInit['sign']
+export type AveniaRecoveryKeyAccepted = Json<
+    paths['/avenia/withdraw/{intentId}/recovery-key']['post']['responses'][200]
+>
 
 /** One amount: reais to credit, USDC to convert, or USDC to leave the wallet with Rhino's fee (`spendUsd`, "Use balance"). */
 export type AveniaWithdrawRequest = { pixKey: string } & (
@@ -70,6 +73,18 @@ export const aveniaApi = {
 
     initWithdrawal: (request: AveniaWithdrawRequest) =>
         call<AveniaWithdrawInit>('/avenia/withdraw/init', post(request), 'Could not start the withdrawal'),
+
+    /**
+     * Another own Pix key for a withdrawal whose payout the bank refused for its key or account.
+     * The API's recovery queue then pays the waiting money there. 409: the withdrawal is not
+     * waiting for a key (any more).
+     */
+    setRecoveryKey: (intentId: string, pixKey: string) =>
+        call<AveniaRecoveryKeyAccepted>(
+            `/avenia/withdraw/${encodeURIComponent(intentId)}/recovery-key`,
+            post({ pixKey }),
+            'Could not save the Pix key'
+        ),
 
     /** The mined transaction that funds the withdrawal. Optional for the money: Avenia's webhook moves it either way. */
     reportFunding: (intentId: string, txHash: string) =>

@@ -2465,6 +2465,16 @@
                 "afterInit": "Check History before trying again.",
                 "quoteChanged": "The amount changed while it was quoted. Try again."
             }
+        },
+        "recovery": {
+            "intro": "The bank refused the payout to the previous key. The money is waiting with Avenia. Enter a Pix key of another account under your CPF.",
+            "notice": "The bank refused this payout. The money waits for another Pix key under your CPF.",
+            "addKey": "Add Pix key",
+            "savedTitle": "Pix key saved",
+            "savedTo": "The money will be sent to {destination}.",
+            "saved": "The money will be sent to the new key.",
+            "notWaitingTitle": "No new key needed",
+            "notWaiting": "This withdrawal is no longer waiting for a new Pix key."
         }
     },
     "transaction": {

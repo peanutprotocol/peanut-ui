@@ -1230,6 +1230,9 @@
                 "afterInit": "Revisá el Historial antes de intentar de nuevo.",
                 "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo."
             }
+        },
+        "recovery": {
+            "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresá una clave Pix de otra cuenta con tu CPF."
         }
     },
     "transaction": {

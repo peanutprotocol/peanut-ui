@@ -1810,6 +1810,21 @@
         "route": "/withdraw/manteca?method=bank-transfer&country=brazil&destination=09579927189&destinationAmount=503&step=review"
     },
     {
+        "id": "fixture-avenia-new-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189"
+    },
+    {
+        "id": "fixture-avenia-new-key-not-waiting",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal"
+    },
+    {
+        "id": "fixture-avenia-receipt-new-key",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-avenia-refused-withdrawal"
+    },
+    {
         "id": "fixture-withdraw-bank-form",
         "flow": "Withdraw",
         "route": "/withdraw/spain?step=form"

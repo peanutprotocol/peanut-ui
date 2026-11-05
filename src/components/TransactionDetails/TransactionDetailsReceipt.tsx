@@ -20,6 +20,7 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
+import { AveniaNewKeyNotice } from '@/features/avenia/components/AveniaNewKeyNotice'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -276,6 +277,10 @@ export const TransactionDetailsReceipt = ({
                         onOpenChange={setIsModalOpen}
                     />
                 )}
+
+            {/* A refused Pix payout waits for another own key: the one notice that
+                asks the user to act on THIS receipt, so it comes first. */}
+            {!isPublic && <AveniaNewKeyNotice transaction={transaction} />}
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

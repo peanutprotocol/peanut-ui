@@ -2465,6 +2465,16 @@
                 "afterInit": "Confira o Histórico antes de tentar de novo.",
                 "quoteChanged": "O valor mudou durante a cotação. Tente de novo."
             }
+        },
+        "recovery": {
+            "intro": "O banco recusou o pagamento para a chave anterior. O dinheiro está aguardando na Avenia. Digite uma chave Pix de outra conta no seu CPF.",
+            "notice": "O banco recusou este pagamento. O dinheiro aguarda outra chave Pix no seu CPF.",
+            "addKey": "Adicionar chave Pix",
+            "savedTitle": "Chave Pix salva",
+            "savedTo": "O dinheiro será enviado para {destination}.",
+            "saved": "O dinheiro será enviado para a nova chave.",
+            "notWaitingTitle": "Nenhuma chave nova necessária",
+            "notWaiting": "Este saque não está mais aguardando uma nova chave Pix."
         }
     },
     "transaction": {

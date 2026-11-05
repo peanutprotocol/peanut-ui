@@ -1,7 +1,7 @@
 /**
  * Brazil Pix on Avenia for Brazilian residents: the first-use step, the
- * deposit amount's minimum, the own-key rule on the withdrawal key and the
- * review's rows. UI state only: every API answer comes from a fixture
+ * deposit amount's minimum, the own-key rule on the withdrawal key, the
+ * review's rows, and the new key for a payout the bank refused. UI state only: every API answer comes from a fixture
  * (`?__fixture=avenia-*`, src/dev/fixtures/registry.ts), so nothing here
  * reaches Avenia, Rhino or a chain. Backend truth (tickets, the Rhino join,
  * the payout) belongs to the API's integration tests and Nutcracker.
@@ -13,6 +13,7 @@ import { dismissModals } from '../utils/dismiss-modals'
 test.use({ viewport: { width: 375, height: 667 } })
 
 const WITHDRAW = '/withdraw/manteca?method=bank-transfer&country=brazil'
+const NEW_KEY = '/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal'
 
 async function open(page: Page, url: string) {
     await page.goto(url, { waitUntil: 'domcontentloaded' })
@@ -77,5 +78,34 @@ test.describe('Avenia Pix', () => {
         await expect(page.getByText('$92.50')).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
         await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible()
+    })
+
+    test("a refused payout's receipt asks for another key and opens the new-key screen", async ({ page }) => {
+        await open(page, '/history?tx=fixture-avenia-refused-withdrawal&__fixture=avenia-receipt-new-key')
+        const notice = page.getByTestId('avenia-new-key-notice')
+        await expect(notice).toBeVisible({ timeout: 60_000 })
+        await expect(notice).toContainText('The bank refused this payout.')
+        await notice.getByRole('button', { name: 'Add Pix key' }).click()
+        await expect(page).toHaveURL(/\/withdraw\/new-pix-key\?intentId=fixture-avenia-refused-withdrawal/)
+    })
+
+    test('a new own key for a refused payout is saved and says where the money goes', async ({ page }) => {
+        await open(page, `${NEW_KEY}&destination=09579927189&__fixture=avenia-new-key`)
+        await expect(page.getByText('The bank refused the payout to the previous key.')).toBeVisible({
+            timeout: 60_000,
+        })
+        await expect(page.getByTestId('avenia-pix-key-holder')).toContainText('Own account')
+        await page.getByRole('button', { name: 'Continue' }).click()
+        await expect(page.getByText('Pix key saved')).toBeVisible()
+        await expect(page.getByText('The money will be sent to Banco Inter · Ana Souza.')).toBeVisible()
+    })
+
+    test('the new-key link of a withdrawal that no longer waits shows its current state', async ({ page }) => {
+        await open(page, `${NEW_KEY}&__fixture=avenia-new-key-not-waiting`)
+        const state = page.getByTestId('avenia-new-key-not-waiting')
+        await expect(state).toBeVisible({ timeout: 60_000 })
+        await expect(state).toContainText('This withdrawal is no longer waiting for a new Pix key.')
+        await expect(state).toContainText('Completed')
+        await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
     })
 })

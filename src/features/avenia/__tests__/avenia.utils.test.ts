@@ -13,6 +13,7 @@ import {
     toApiDecimal,
 } from '../avenia.utils'
 import { aveniaRouteState } from '../aveniaAvailability'
+import { awaitsNewPixKey, aveniaNewKeyUrl } from '../aveniaRecovery'
 import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -245,5 +246,18 @@ describe('aveniaRouteState', () => {
         expect(aveniaRouteState(rail('enabled'))).toBe('open')
         expect(aveniaRouteState({ ...closedRail, provider: 'manteca' })).toBe('open')
         expect(aveniaRouteState(undefined)).toBe('open')
+    })
+})
+
+describe('awaitsNewPixKey', () => {
+    it('reads the recovery state of the history entry', () => {
+        expect(awaitsNewPixKey({ aveniaRecoveryPlaceholder: { state: 'awaiting-key' } })).toBe(true)
+        expect(awaitsNewPixKey({ aveniaRecoveryPlaceholder: { state: 'in-progress' } })).toBe(false)
+        expect(awaitsNewPixKey({ aveniaRecoveryPlaceholder: null })).toBe(false)
+        expect(awaitsNewPixKey(undefined)).toBe(false)
+    })
+
+    it('opens the new-key screen with the withdrawal in the URL', () => {
+        expect(aveniaNewKeyUrl('0b9e3c1d-7a2f')).toBe('/withdraw/new-pix-key?intentId=0b9e3c1d-7a2f')
     })
 })

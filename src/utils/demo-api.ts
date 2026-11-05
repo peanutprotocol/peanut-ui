@@ -948,6 +948,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/avenia/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    { method: 'POST', pattern: '/avenia/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
 
     // points / perks / rewards
     {

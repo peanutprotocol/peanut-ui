@@ -96,13 +96,14 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toEqual({ name: 'DEMO RECIPIENT', legalIdMasked: null })
     })
 
-    // The Avenia Pix screens read these on open; the screen-capture harness runs strict, so an
+    // The Avenia Pix screens call these; the screen-capture harness runs strict, so an
     // unmapped route would fail the avenia-* fixtures on the dev Screen library run.
     it.each([
         ['GET', '/avenia/deposit/eligibility', { minAmountBrl: '20', blockedBanks: [] }],
         ['GET', '/avenia/deposit/demo-avenia-deposit', { status: 'AWAITING_USER_ACTION', ticketStatus: 'UNPAID' }],
         ['GET', '/avenia/pix-key-info?key=12345678909', { ownAccount: true, blocked: false }],
         ['POST', '/avenia/withdraw/preview', { provider: 'Avenia', ownAccount: true }],
+        ['POST', '/avenia/withdraw/demo-avenia-withdraw/recovery-key', { accepted: true }],
     ])('answers %s %s in strict capture mode', async (method, path, expected) => {
         const res = await demoRespond(path, { method }, { offline: true, strict: true })
         expect(res.status).toBe(200)

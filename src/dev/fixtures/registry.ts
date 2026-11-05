@@ -253,6 +253,39 @@ const aveniaResponses = (railStatus: 'enabled' | 'requires-info', overrides: Rec
 const AVENIA_OWN_KEY = '09579927189'
 const AVENIA_OTHER_KEY = '+5511987654321'
 const AVENIA_WITHDRAW_ROUTE = '/withdraw/manteca?method=bank-transfer&country=brazil'
+const AVENIA_OWN_KEY_INFO = {
+    holderName: 'Ana Souza',
+    holderTaxIdMasked: '095.***.***-89',
+    bankName: 'Banco Inter',
+    ispb: '00416968',
+    ownAccount: true,
+    blocked: false,
+}
+
+/** An Avenia Pix withdrawal whose payout the bank refused; `awaitingKey` while the money waits for another own key. */
+const AVENIA_REFUSED_WITHDRAWAL_ID = 'fixture-avenia-refused-withdrawal'
+const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
+    uuid: AVENIA_REFUSED_WITHDRAWAL_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-05T10:00:00.000Z'),
+    amount: '92.50431',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    // the new key paid it, once it is no longer waiting
+    status: awaitingKey ? 'PROCESSING' : 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
+    currency: { amount: '503.00', code: 'BRL' },
+    extraData: {
+        kind: 'OFFRAMP',
+        provider: 'AVENIA',
+        usdAmount: '92.50431',
+        aveniaRecoveryPlaceholder: awaitingKey ? { state: 'awaiting-key' } : { state: 'done' },
+    },
+})
+const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
 
 const PIX_FAVORITE = {
     id: 'fixture-pix-favorite-1',
@@ -1649,6 +1682,32 @@ export const FIXTURES: Record<string, Fixture> = {
                 provider: 'Avenia',
             },
         }),
+    },
+    'avenia-new-key': {
+        route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
+        about: 'A refused Pix payout: the money waits with Avenia, and another own key resolves to its holder.',
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
+            'GET /avenia/pix-key-info': AVENIA_OWN_KEY_INFO,
+        }),
+    },
+    'avenia-new-key-not-waiting': {
+        route: AVENIA_NEW_KEY_ROUTE,
+        about: 'The new-key link of a withdrawal that no longer waits for a key: its current state instead.',
+        waitFor: '[data-testid="avenia-new-key-not-waiting"]',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(false),
+        }),
+    },
+    'avenia-receipt-new-key': {
+        route: `/history?tx=${AVENIA_REFUSED_WITHDRAWAL_ID}`,
+        about: 'The receipt of a refused Pix payout asks for another own key.',
+        waitFor: '[data-testid="avenia-new-key-notice"]',
+        responses: {
+            'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false },
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
+        },
     },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {

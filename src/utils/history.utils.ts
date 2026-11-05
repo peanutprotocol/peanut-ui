@@ -103,6 +103,8 @@ export type HistoryStatus = `${EHistoryStatus}`
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
+    /** PLACEHOLDER until PR B names it: an Avenia withdrawal's recovery (read through `awaitsNewPixKey`). */
+    aveniaRecoveryPlaceholder?: { state?: string } | null
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.

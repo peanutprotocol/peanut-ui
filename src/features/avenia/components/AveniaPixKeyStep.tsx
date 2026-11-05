@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -12,24 +13,35 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { completePixKey, maskedTaxIdKind } from '@/features/avenia/avenia.utils'
 import { usePixKeyLookup, type PixKeyLookup } from '@/features/avenia/hooks/usePixKeyLookup'
+import type { PixKeyInfo } from '@/services/avenia'
 import { isPixEmvcoQr, normalizePixInput } from '@/utils/withdraw.utils'
 
 /**
- * The Pix key of a withdrawal. A complete key is resolved to its holder and
- * bank before Continue; Avenia pays only an account under the user's own CPF,
- * so anyone else's key shows as such and cannot continue.
+ * The Pix key of a withdrawal, or the new key for a refused payout. A complete
+ * key is resolved to its holder and bank before Continue; Avenia pays only an
+ * account under the user's own CPF, so anyone else's key shows as such and
+ * cannot continue.
  */
 export function AveniaPixKeyStep({
     title,
     initialKey,
+    intro,
     onBack,
     onContinue,
+    isSubmitting = false,
+    refusal,
 }: {
     title: string
     initialKey: string
+    /** The line above the field; the withdrawal's own by default. */
+    intro?: string
     onBack: () => void
-    /** The normalized key, once it resolved to the user's own account. */
-    onContinue: (key: string) => void
+    /** The normalized key and its holder, once it resolved to the user's own account. */
+    onContinue: (key: string, info: PixKeyInfo) => void
+    /** Continue waits for the caller's answer. */
+    isSubmitting?: boolean
+    /** What the caller's submit refused: under the field when it names this key, else above Continue. */
+    refusal?: { message: string; key: string | null } | null
 }) {
     const t = useTranslations('avenia.withdraw')
     const tWithdraw = useTranslations('withdraw')
@@ -42,7 +54,9 @@ export function AveniaPixKeyStep({
     // an answer for a key the user has since changed says nothing about this one
     const current = result && key && result.key === key && !isChanging ? result : null
     const isOwn = current?.status === 'found' && current.verdict === 'own'
-    const error = isPixEmvcoQr(value.trim()) ? t('notACode') : keyError(current)
+    // a refusal for a key the user has since changed says nothing about this one
+    const refusedKey = refusal?.key && refusal.key === key ? refusal.message : undefined
+    const error = isPixEmvcoQr(value.trim()) ? t('notACode') : (keyError(current) ?? refusedKey)
 
     function keyError(lookupResult: PixKeyLookup | null): string | undefined {
         if (!lookupResult) return undefined
@@ -57,7 +71,7 @@ export function AveniaPixKeyStep({
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <p className="text-body-s text-foreground-secondary">{t('keyIntro')}</p>
+                <p className="text-body-s text-foreground-secondary">{intro ?? t('keyIntro')}</p>
                 <Field label={tWithdraw('pixKey.placeholder')} error={error}>
                     <ValidatedInput
                         value={value}
@@ -104,11 +118,13 @@ export function AveniaPixKeyStep({
                 )}
             </div>
             <PageStack.Footer>
+                {refusal && !refusal.key && <Callout priority="error">{refusal.message}</Callout>}
                 <Button
                     variant="primary"
                     className="w-full"
-                    disabled={!isOwn || !key}
-                    onClick={() => key && onContinue(key)}
+                    loading={isSubmitting}
+                    disabled={!isOwn || !key || isSubmitting || !!refusedKey}
+                    onClick={() => key && current?.status === 'found' && onContinue(key, current.info)}
                 >
                     {tCommon('continue')}
                 </Button>
