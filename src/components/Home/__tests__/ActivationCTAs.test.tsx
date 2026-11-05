@@ -35,7 +35,10 @@ let mockRails: Array<{
         nextAction?: { key: string; kind: 'sumsub'; purpose: string; levelKey: string }
     }
 }> = []
-let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
+let mockUser: {
+    user?: { isActivated?: boolean; userId?: string }
+    signupPreferences?: { fundingChannel: string; paymentChannel: string } | null
+} | null = null
 let mockHasCardAccess: boolean | undefined = false
 let mockDisableCardPromotion = false
 jest.mock('@/hooks/useFeatureFlag', () => ({
@@ -88,8 +91,14 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 // interrupt cards, so the checklist itself is a marker (own suite covers it).
 jest.mock('@/components/Home/GettingStartedChecklist', () => ({
     __esModule: true,
-    default: ({ onStartIdentityCheck }: { onStartIdentityCheck?: () => void }) => (
-        <div>
+    default: ({
+        onStartIdentityCheck,
+        signupPaymentChannel,
+    }: {
+        onStartIdentityCheck?: () => void
+        signupPaymentChannel?: string | null
+    }) => (
+        <div data-signup-payment-channel={signupPaymentChannel ?? 'none'}>
             getting-started-checklist
             {/* not buttons: the slot suites assert the checklist brings no big-card button */}
             <span onClick={onStartIdentityCheck}>start-identity-check</span>
@@ -295,6 +304,13 @@ describe('ActivationCTAs — an ID check that ended on a final decision', () => 
         )
         expect(mockInitiateKyc).not.toHaveBeenCalled()
         expect(mockRestartIdentity).not.toHaveBeenCalled()
+    })
+
+    it('once the manager picks the list over the hidden card, draws the list', () => {
+        render(<ActivationCTAs onboarding={FAILED} showBlockedCard={false} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
     })
 
     it('can be hidden under its own key', () => {
@@ -612,8 +628,26 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:provider_rejected')
     })
 
+    it('a hidden region card leaves the list too', () => {
+        mockRegionRestricted = true
+        render(<ActivationCTAs onboarding={NEW_USER} showBlockedCard={false} onHideBlockedCard={jest.fn()} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+    })
+
     it('the checklist itself shows no blocked-card Hide', () => {
         render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={jest.fn()} />)
         expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+    })
+})
+
+describe('ActivationCTAs — the checklist learns how the user said they would pay', () => {
+    it.each([
+        [{ fundingChannel: 'bank', paymentChannel: 'card' }, 'card'],
+        [null, 'none'],
+    ])('signup preferences %j reach the list as %s', (signupPreferences, expected) => {
+        mockUser = { user: { isActivated: false, userId: 'u1' }, signupPreferences }
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.getByText('getting-started-checklist')).toHaveAttribute('data-signup-payment-channel', expected)
     })
 })

@@ -37,6 +37,8 @@ import { paperworkVerificationFeaturePath } from '@/features/paperwork-verificat
 interface ActivationCTAsProps {
     onboarding: OnboardingState
     showWelcome?: boolean
+    /** false draws the checklist even while a door is shut: the attention manager picked the list over the card */
+    showBlockedCard?: boolean
     /** hides a blocked card by its dismissal key (Home owns the stored choice) */
     onHideBlockedCard?: (ctaId: string) => void
 }
@@ -56,7 +58,12 @@ interface StepConfig {
  * outranks everything; a provider rejection replaces the checklist for a
  * verified user with no other way to move money.
  */
-export default function ActivationCTAs({ onboarding, showWelcome = true, onHideBlockedCard }: ActivationCTAsProps) {
+export default function ActivationCTAs({
+    onboarding,
+    showWelcome = true,
+    showBlockedCard = true,
+    onHideBlockedCard,
+}: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
@@ -244,18 +251,19 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         primaryRejectionCode,
     ])
 
-    if (onboarding.step === 'completed' && !step) return null
+    if (onboarding.step === 'completed' && (!step || !showBlockedCard)) return null
 
     // A fully restricted residence (no bank rails, no card) still gets the
     // list: QR pay is open to every verified user wherever they live (Hugo,
     // 2026-09-26), so its Verify row starts the QR ID check.
-    if (!step)
+    if (!step || !showBlockedCard)
         return (
             <>
                 <GettingStartedChecklist
                     onboarding={onboarding}
                     showWelcome={showWelcome}
                     onStartIdentityCheck={() => void startIdentityCheck()}
+                    signupPaymentChannel={user?.signupPreferences?.paymentChannel}
                 />
                 <InitiateKycModal
                     cooldownActive={!!kycFlow.errorCooldown}
