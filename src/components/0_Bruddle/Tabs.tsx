@@ -4,56 +4,13 @@ import { Content, List, Root, Trigger } from '@radix-ui/react-tabs'
 import { type ReactNode } from 'react'
 import { twMerge } from '@/utils/tw'
 import { CARD_SURFACE } from './Card'
-import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
 
 /**
  * The ONE tab component for product and marketing. One look, no variants
- * (TASK-22707 — it absorbed the old `SegmentedControl`).
- *
- * The look is the app's own bottom navigation standing still (kush, 2026-09-21,
- * superseding the type-only "Weight" ruling): a bordered pill track carrying a
- * bordered chip, in polarity B — WHITE track, PAGE-TINT chip. The resting
- * surface is shared with `Global/BottomNav` through `PillSurface`, so the two
- * can never drift. Everything that makes the nav a nav — the `shadow-4` plane,
- * the spring, the sliding thumb, the 68x52 icon slot — is nav-only and stays
- * there. This row is static: no shadow, no slide, no spring.
- *
- * FLUSH, not inset (kush: "there should be no padding between the active pill
- * and the main container"). The track has NO padding, and the chip is NOT the
- * trigger's own border box — it is a `::before` pinned at `-inset-px`, the
- * model `BottomNav` uses for its thumb (`absolute -top-px -bottom-px`). That
- * draws the chip 1px outside the trigger on all four sides, so its border lands
- * ON TOP of the track's border and the two read as one complete outline instead
- * of a chip floating in a box. 1px, not 2px, because the track's border is 1px.
- *
- * The border therefore lives on a WRAPPER, not on the scrolling List: a scroll
- * container clips at its PADDING box, so it can never let a child paint over
- * its own border — with border and scroll on one element the chip's overhang
- * was trimmed away and the two curves read as a crescent gap at the rounded
- * ends. The List sits inside that wrapper and takes a 1px gutter (`-m-px
- * p-px`): its padding ring lands exactly over the track's border, so the chip's
- * overhang renders INSIDE the scrollport — over the border line — instead of
- * being clipped. And because padding is inside the scroll box, the gutter adds
- * zero scrollable overflow, which is what keeps the phantom-1px-scroll fix
- * (`scrollWidth === clientWidth` at rest) alive with the weld restored.
- *
- * Why a pseudo-element and not a negative margin: a negative margin would make
- * every trigger overlap its neighbour by 2px and would spend a point of the
- * `offScaleSpacing` ratchet. The chip is decoration that must escape the flow
- * box, which is what an out-of-flow box is for. The label then needs `z-10` to
- * sit above it — same reason `BottomNav` lifts its icons.
- *
- * The two fills are 1.09:1 apart (background-default vs background-page), so
- * the FILL CANNOT CARRY SELECTION on its own. The chip's 1px `border-default`
- * outline does that (18.09:1 on white, 16.60:1 on the tint), with the label
- * colour as the second channel and the label WEIGHT as the third (kush,
- * 2026-09-21): active steps 500 -> 600. That question was open while the row
- * shipped on border plus colour alone; the ruling took the weight because at a
- * 1.09:1 fill it costs nothing — the type token already exists and the glyph
- * metrics are identical at 16px. Never let a future change drop the chip border
- * and lean on fill.
- *
- * Radix headless base, semantic tokens only.
+ * (TASK-22707). Since PR 3619 that look is the receipt tabs: a page-tint strip,
+ * the active tab a bordered `background-tab-active` box, joined flush to a
+ * white bordered panel. Selection is carried by the border, the fill and the
+ * label weight together. Radix headless base, semantic tokens only.
  */
 
 interface TabDef {
@@ -124,79 +81,21 @@ interface TabsProps {
 }
 
 // the full DS ring (design.md law 8 — focus is ruled, never pink). radix
-// Content has tabIndex=0, so panels get the same ring instead of an invisible
-// focus stop. BottomNav's ring omits `z-10` and `outline-solid`; that
-// divergence is left alone here and tracked as a follow-up.
+// Content has tabIndex=0, so panels get the same ring.
 const focusRing =
     'focus-visible:z-10 focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-action-focus'
 
-// Triggers scroll inside the track (see the List comment), so an outer ring
-// would be cut by the clip box. The trigger's ring draws INSIDE its box
-// instead — same 3px, same color, inset geometry. A ruled deviation from the
-// outer-ring recipe (kush, 2026-09-21), taken over losing the stationary
-// track. Panels keep the outer ring: they are not inside a scroll box.
+// triggers sit inside a scroll box, so their ring is drawn inset to avoid the clip
 const triggerRing = `${focusRing} focus-visible:outline-offset-[-3px]`
 
-// The List is the scroll box INSIDE the track wrapper (kush, 2026-09-21: when
-// a row overflows, "only internal items should scroll" — with the old outer
-// scroll wrapper the whole bordered pill scrolled, and a rounded end sliding
-// out of view read as a broken, cut-off box). The border, radius and fill sit
-// on the wrapper and never move; the chips slide inside the List and clip
-// against its own `rounded-full` curve, which coincides with the track's.
-//
-// `-m-px p-px` is the weld gutter: it pulls the List's box 1px outward on all
-// sides so its PADDING ring sits exactly over the track's 1px border. A scroll
-// container clips at its padding box, so the chip's 1px overhang renders inside
-// that padding — on the border line — instead of being trimmed. Padding is
-// inside the scroll box, so this adds no scrollable overflow.
-//
-// `overflow-y-hidden` is written out because `overflow-x: auto` forces a
-// `visible` y to `auto` on its own, and the chip's 1px vertical overhang then
-// made that y axis scrollable — the row scrolled on both axes with nothing to
-// scroll. (`clip` cannot pair with `auto`; it would compute back to `hidden`.)
-//
-// `isolate` is the lid on this row's z-indices. Every `z-10` inside it is
-// INTERNAL — the label lifting above the chip `::before`, the focus ring
-// lifting above the neighbouring trigger — and none is meant to compete with
-// page chrome. Without a stacking context of its own they escaped into the
-// nearest one and tied with whatever else sat at `z-10` there, and a tie is
-// settled by DOM order: in `TokenSelector` the row comes after the sticky
-// `z-10` search field, so it won and painted the chips straight over the
-// field's placeholder as soon as the token list scrolled under it. Isolating
-// the List contains all of them, and because the List is itself unpositioned
-// it stays under any positioned page chrome. The fix belongs here, not on the
-// one caller: raising that caller to `z-20` would leave the primitive able to
-// climb over the next piece of chrome it meets.
-const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hidden rounded-full -m-px p-px'
+// `isolate` keeps the active tab's z-10 inside the row (TokenSelector's sticky search sits at z-10)
+const listBox = 'isolate flex items-stretch overflow-x-auto overflow-y-hidden'
 
-// the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
-// The transparent resting border keeps the chip's geometry identical in both
-// states, so switching tabs never shifts anything. Everything here is
-// size-independent; the size-varying properties live in SIZES.
-//
-// `min-w-max` is the floor that keeps a chip at its label width. `stretch`
-// adds `flex-1`, and twMerge drops `shrink-0` in its favour, so the chips were
-// squeezed under their labels (TASK-23130: at 360px `⬡ ARB` got 66px of the
-// 81px it needs). A squeezed row never overflows, so `scrollWidth` read no
-// overflow and the token selector's trim never dropped a tab. With the floor,
-// an overflowing row really overflows and the trim sees it.
+// the transparent resting border keeps geometry identical in both states, so switching never shifts anything
 const trigger =
-    'relative flex min-w-max shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
+    'relative flex min-w-max shrink-0 items-center justify-center whitespace-nowrap border border-transparent text-foreground-secondary transition-colors duration-instant data-[state=active]:z-10 data-[state=active]:border-border-default data-[state=active]:bg-background-tab-active data-[state=active]:text-foreground-primary disabled:cursor-not-allowed disabled:opacity-40'
 
-/**
- * `lg` deliberately lands on BottomNav's own 52px / px-6, so a large tab row
- * and the nav read as one family. Heights are min-h-*, which the spacing
- * ratchet does not govern; the padding and gap steps are all on the documented
- * scale (3 / 4 / 6 and 1 / 2).
- *
- * Each size carries a PAIR of type tokens, not one token plus a weight class.
- * `text-body-m` is 500 and `text-body-m-semibold` is 600 at the same 1rem/1.25rem
- * metrics, so the step is a token swap with no reflow — and the `ds-lint`
- * `fontWeightOnTypeToken` ratchet stays at zero here, which stacking a raw
- * `font-semibold` on a type token would not. The two selectors are mutually
- * exclusive: radix gives a trigger `data-state="active"` or `"inactive"` and
- * never neither, so every trigger resolves exactly one of the pair.
- */
+/** each size swaps a type-token pair (500 → 600), so the weight step never reflows */
 const SIZES = {
     sm: {
         row: 'min-h-9 px-3 data-[state=inactive]:text-body-s data-[state=active]:text-body-s-semibold',
@@ -214,8 +113,6 @@ const SIZES = {
 
 type TabsSize = keyof typeof SIZES
 
-const chip = 'before:absolute before:-inset-px before:rounded-full before:border before:border-transparent'
-
 export const Tabs = ({
     tabs,
     'aria-label': ariaLabel,
@@ -225,77 +122,51 @@ export const Tabs = ({
     fullWidth,
     size = 'md',
 }: TabsProps) => {
-    // no tab carries a panel → render the trigger row alone. A bordered empty
-    // panel under a value toggle is the reason this branch exists.
+    // no tab carries a panel → render the trigger row alone, with no empty panel under a value toggle
     const hasPanels = tabs.some((tab) => tab.content !== undefined)
 
     return (
-        // radix ignores defaultValue when value is set but warns on both — pass
-        // exactly one
+        // radix ignores defaultValue when value is set but warns on both — pass exactly one
         <Root
             value={value}
             onValueChange={onValueChange}
             defaultValue={value === undefined ? tabs[0]?.value : undefined}
             className={fullWidth ? 'w-full' : undefined}
         >
-            {/* the stationary track: border, radius and fill only. It is NOT a
-                scroll container, so the chips inside may paint over its border.
-                default: it hugs its content, capped at the row — past the cap
-                the chips scroll inside it. fullWidth: the box is the row,
-                fixed; overflowing chips scroll the same way, because the
-                triggers are `shrink-0` and the List's `scrollWidth` sees them
-                directly. */}
-            <div className={twMerge(PILL_TRACK_INVERTED, fullWidth ? 'w-full' : 'w-max max-w-full')}>
-                <List
-                    aria-label={ariaLabel}
-                    className={twMerge(
-                        // gap-0 and no padding of its own: the chips meet the
-                        // track edge. The 1px it does carry is the weld gutter.
-                        listBox,
-                        // Content-sized tabs spread across a full-width track.
-                        //
-                        // `between` and not `around`/`evenly`: it is what
-                        // BottomNav does, and it is the only one that keeps the
-                        // FIRST and LAST chip against the track's rounded ends,
-                        // where the flush weld lives. Any other value insets
-                        // them and the end chip floats inside the pill instead
-                        // of completing its outline.
-                        fullWidth === 'track' && 'justify-between'
-                    )}
-                >
-                    {tabs.map((tab) => (
-                        <Trigger
-                            key={tab.value}
-                            value={tab.value}
-                            disabled={tab.disabled}
-                            className={twMerge(
-                                trigger,
-                                SIZES[size].row,
-                                chip,
-                                PILL_TINT_SELECTED_CHIP,
-                                triggerRing,
-                                fullWidth === 'stretch' && 'flex-1'
-                            )}
-                        >
-                            {/* above the chip, the way BottomNav lifts its icons */}
-                            <span className={twMerge('relative z-10 flex items-center', SIZES[size].gap)}>
-                                {tab.label}
-                            </span>
-                        </Trigger>
-                    ))}
-                </List>
-            </div>
+            <List
+                aria-label={ariaLabel}
+                className={twMerge(
+                    listBox,
+                    'bg-background-page',
+                    fullWidth ? 'w-full' : 'w-max max-w-full',
+                    fullWidth === 'track' && 'justify-between'
+                )}
+            >
+                {tabs.map((tab) => (
+                    <Trigger
+                        key={tab.value}
+                        value={tab.value}
+                        disabled={tab.disabled}
+                        className={twMerge(
+                            trigger,
+                            hasPanels ? 'rounded-t-sm' : 'rounded-sm',
+                            SIZES[size].row,
+                            triggerRing,
+                            fullWidth === 'stretch' && 'flex-1'
+                        )}
+                    >
+                        <span className={twMerge('flex items-center', SIZES[size].gap)}>{tab.label}</span>
+                    </Trigger>
+                ))}
+            </List>
             {hasPanels &&
                 tabs.map((tab) => (
                     <Content
                         key={tab.value}
                         value={tab.value}
                         forceMount={forceMount || undefined}
-                        // data-[state=inactive]:hidden is what hides a forceMount panel:
-                        // radix computes its own hidden attribute from `forceMount ||
-                        // isSelected`, so with forceMount on it never sets it and every
-                        // panel would render stacked
-                        className={twMerge(`mt-4 ${CARD_SURFACE} p-4 data-[state=inactive]:hidden`, focusRing)}
+                        // radix never sets `hidden` on a forceMount panel, so inactive ones hide by state
+                        className={twMerge(`-mt-px ${CARD_SURFACE} p-4 data-[state=inactive]:hidden`, focusRing)}
                     >
                         {tab.content}
                     </Content>
