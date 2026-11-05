@@ -248,10 +248,10 @@ describe('AvatarPicker', () => {
             </NextIntlClientProvider>
         )
 
-        const visibleCards = tiles().filter((el) => el.textContent?.includes('Carta'))
+        const visibleCards = tiles().filter((el) => el.textContent?.includes('Tarjeta'))
         expect(visibleCards).toHaveLength(2)
-        expect(visibleCards.some((el) => el.textContent?.includes('Carta alfa'))).toBe(true)
-        expect(visibleCards.some((el) => el.textContent?.includes('Carta del primer swipe'))).toBe(true)
+        expect(visibleCards.some((el) => el.textContent?.includes('Tarjeta alfa'))).toBe(true)
+        expect(visibleCards.some((el) => el.textContent?.includes('Tarjeta del primer swipe'))).toBe(true)
     })
 
     it('deals an earned avatar, tagged, to a user who holds a badge — and none to one who does not', () => {
