@@ -121,19 +121,24 @@ const definitions: Screen[] = [
             /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
                 ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
                 : undefined,
-        expectSelector: id.startsWith('paperwork-verification-state-')
-            ? '[data-testid="verify-input-state"]'
-            : id.startsWith('paperwork-verification-closed-')
-              ? '[data-testid="verify-closed-features"]'
-              : id === 'paperwork-verification-outage'
-                ? '[data-testid="verify-outage"]'
-                : id === 'paperwork-verification-policy-hold'
-                  ? '[data-testid="verify-review-retry"]'
-                  : id === 'paperwork-verification-rejected'
-                    ? '[data-testid="verify-review-home"]'
-                    : id === 'paperwork-verification-restart-foreign'
-                      ? '[data-testid="verify-id"]'
-                      : undefined,
+        expectSelector:
+            id === 'card-verification-open'
+                ? '[data-testid="card-verification-continue"]'
+                : id === 'card-verification-checking' || id === 'card-verification-unavailable'
+                  ? '[data-testid="your-card-screen"]'
+                  : id.startsWith('paperwork-verification-state-')
+                    ? '[data-testid="verify-input-state"]'
+                    : id.startsWith('paperwork-verification-closed-')
+                      ? '[data-testid="verify-closed-features"]'
+                      : id === 'paperwork-verification-outage'
+                        ? '[data-testid="verify-outage"]'
+                        : id === 'paperwork-verification-policy-hold'
+                          ? '[data-testid="verify-review-retry"]'
+                          : id === 'paperwork-verification-rejected'
+                            ? '[data-testid="verify-review-home"]'
+                            : id === 'paperwork-verification-restart-foreign'
+                              ? '[data-testid="verify-id"]'
+                              : undefined,
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({

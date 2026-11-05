@@ -153,11 +153,16 @@ const YourCardScreen: FC<Props> = ({
     )
 
     return (
-        <PageStack gap="6">
+        <PageStack gap="6" data-testid="your-card-screen">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
             {onCompleteVerification && (
-                <Button variant="secondary" onClick={onCompleteVerification} disabled={verificationBusy}>
+                <Button
+                    variant="secondary"
+                    onClick={onCompleteVerification}
+                    disabled={verificationBusy}
+                    data-testid="card-verification-continue"
+                >
                     {t('completeVerification')}
                 </Button>
             )}
