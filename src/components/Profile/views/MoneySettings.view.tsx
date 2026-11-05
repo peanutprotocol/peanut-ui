@@ -132,7 +132,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const depositAccounts = useDepositAccounts({ enabled: depositAccountsEnabled })
-    const accountCorridors = virtualAccountRows(depositAccounts, depositAccountsEnabled)
+    const accountCorridors = virtualAccountRows(depositAccounts, depositAccountsEnabled, isIdentityFinallyRejected)
 
     // ── list model ──────────────────────────────────────────────────────────
 

@@ -7,8 +7,8 @@ import type { ClaimableCorridor, DepositAccountView, DepositCorridor, Unavailabl
 /**
  * The backend's corridor answers with the feature report's refusals laid over
  * them. An account the report refuses with no way out is never offered, nor a
- * verification that cannot open it; its row says it is not available. One the
- * user holds stays readable.
+ * verification that cannot open it; its row says it is not available, unless
+ * the backend already named a rejected identity. One the user holds stays readable.
  */
 export function closeRefusedCorridors(
     report: FeatureReport | undefined,
@@ -34,6 +34,8 @@ export function closeRefusedCorridors(
         if (entry.state !== 'refused' || entry.action || isHeld(accounts[corridor])) continue
         const rail = DEPOSIT_RAILS[corridor]
         nextClaimable[corridor] = undefined
+        // the backend's identity answer leads to support; a residence closure would hide it
+        if (unavailable[corridor]?.cause === 'identity-rejected') continue
         nextUnavailable[corridor] = {
             railId: railIdFor(corridor),
             method: corridor,

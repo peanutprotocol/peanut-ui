@@ -9,6 +9,10 @@ import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDra
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useAuth } from '@/context/authContext'
+import { useModalsContextOptional } from '@/context/ModalsContext'
+import { RETRY_ACTIONS } from '@/constants/sumsub-reject-actions.consts'
+import type { IdentityVerification } from '@/types/capabilities'
+import { identityRejection, rejectionSupportMessage, type IdentityRejection } from '@/utils/identity-rejection.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { verifiedFollowUps } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
@@ -127,6 +131,67 @@ const shapeOf = ({ questions, plan, status }: Loaded) =>
 
 const RETRY: SaveOutcome = { ok: false, error: 'retry', formError: 'retry' }
 
+/** A decision on the identity: no attempt can pass it, so /verify ends on why, whatever flow the server keeps. */
+const decidedRejection = (identity: IdentityVerification | undefined, status: SumsubKycStatus | undefined) =>
+    status === 'REJECTED' || (identity?.status === 'failed' && identity.canRetry !== true)
+
+/** Support and, for a duplicate, the other account: the ways on from a rejection. */
+function useRejectionExits(rejection: IdentityRejection) {
+    const tRoot = useTranslations()
+    const modals = useModalsContextOptional()
+    const { user, logoutUser } = useAuth()
+    const support = rejection.support
+    const reason = user?.identityVerification?.reason
+    return {
+        onContactSupport:
+            support && modals
+                ? () =>
+                      modals.openSupportWithMessage(
+                          rejectionSupportMessage(
+                              support,
+                              tRoot(support.messageKey as never),
+                              reason,
+                              user?.user?.userId
+                          )
+                      )
+                : undefined,
+        onLogIn: rejection.action === 'other_account' && logoutUser ? () => void logoutUser() : undefined,
+    }
+}
+
+/** A rejected identity the server no longer keeps on this flow: its reason and the way on. */
+function DecidedRejection({ status, onHome }: { status?: SumsubKycStatus; onHome: () => void }) {
+    const { user } = useAuth()
+    const identity = user?.identityVerification
+    const rejection = useMemo(
+        () => identityRejection({ rejectLabels: identity?.rejectLabels, reason: identity?.reason, retryable: false }),
+        [identity?.rejectLabels, identity?.reason]
+    )
+    const exits = useRejectionExits(rejection)
+    useEffect(() => {
+        trackPaperworkVerification(
+            { flow: 'paperwork_verification', residence: null },
+            ANALYTICS_EVENTS.KYC_PV_REVIEW_VIEWED,
+            { status: status ?? null, action: rejection.action }
+        )
+        // Once per visit.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return <ReviewScreen rejection={rejection} onHome={onHome} {...exits} />
+}
+
+/** A finally rejected identity's own screen, for entry points outside /verify (the card tab). */
+export function IdentityRejectedScreen({ onHome }: { onHome: () => void }) {
+    return (
+        <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
+            <DecidedRejection onHome={onHome} />
+        </PaperworkVerificationTrackingProvider>
+    )
+}
+
+/** Whether the profile alone says no attempt can pass: failed, and the API offers no retry. */
+export const isDecidedRejection = (identity: IdentityVerification | undefined) => decidedRejection(identity, undefined)
+
 /** A NOT_STARTED identity may have been submitted before Sumsub's webhook arrived: the server reads Sumsub then. */
 async function readIdentityStatus(): Promise<SumsubKycStatus | undefined> {
     const stored = await getKycDocumentStatus().catch(() => undefined)
@@ -165,9 +230,13 @@ export function PaperworkVerificationFlow() {
 function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     const router = useRouter()
     const queryClient = useQueryClient()
+    const { user } = useAuth()
+    const identityRef = useRef(user?.identityVerification)
+    identityRef.current = user?.identityVerification
     const [state, setState] = useState<
         | { kind: 'loading' }
         | { kind: 'failed' }
+        | { kind: 'rejected'; status?: SumsubKycStatus }
         | { kind: 'setup'; needs: KycPlanNeed[] }
         | ({ kind: 'ready'; fresh?: Loaded } & Loaded)
     >(() => {
@@ -204,6 +273,16 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             ])
             if (!current()) return
             const questions = questionsRead.status === 'fulfilled' ? questionsRead.value : null
+            const onFlow =
+                questions !== HANDED_BACK &&
+                !!questions?.available &&
+                planRead.status === 'fulfilled' &&
+                planRead.value?.flow === PAPERWORK_VERIFICATION_FLOW
+            const statusValue = statusRead.status === 'fulfilled' ? statusRead.value : undefined
+            if (!onFlow && decidedRejection(identityRef.current, statusValue)) {
+                setState({ kind: 'rejected', status: statusValue })
+                return
+            }
             // A hand-back is definitive, even when the plan or status read beside it failed.
             if (questions === HANDED_BACK) {
                 routerRef.current.replace('/home')
@@ -263,6 +342,12 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
                 ) : (
                     <LoadFailed onRetry={() => void load()} onHome={() => router.push('/home')} />
                 )}
+            </PaperworkVerificationTrackingProvider>
+        )
+    if (state.kind === 'rejected')
+        return (
+            <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
+                <DecidedRejection status={state.status} onHome={() => router.replace('/home')} />
             </PaperworkVerificationTrackingProvider>
         )
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
@@ -334,6 +419,18 @@ function PaperworkVerificationSteps({
         failed &&
         (user?.identityVerification?.reason?.code === 'document_policy_hold' ||
             user?.identityVerification?.rejectLabels?.includes('DOCUMENT_POLICY_HOLD') === true)
+    const identityVerification = user?.identityVerification
+    const retryable = !!status && RETRYABLE_STATUSES.has(status) && identityVerification?.rejectType !== 'FINAL'
+    const rejection = useMemo(
+        () =>
+            identityRejection({
+                rejectLabels: identityVerification?.rejectLabels,
+                reason: identityVerification?.reason,
+                retryable,
+            }),
+        [identityVerification?.rejectLabels, identityVerification?.reason, retryable]
+    )
+    const rejectionExits = useRejectionExits(rejection)
     const fetchUserRef = useRef(fetchUser)
     fetchUserRef.current = fetchUser
     useEffect(() => {
@@ -751,7 +848,7 @@ function PaperworkVerificationSteps({
     // Mounted from the first opening on: its restriction fetch only runs for a user who asks to move.
     const [residenceMounted, setResidenceMounted] = useState(false)
 
-    const goHome = () => router.push('/home')
+    const goHome = () => router.replace('/home')
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''
@@ -814,7 +911,9 @@ function PaperworkVerificationSteps({
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}
+                progress={{ current: questionIds.length + 2, total: questionIds.length + 2 }}
                 onBack={() => void stepper.back()}
+                onExit={exit}
                 onContinue={(document) => void startIdentity(document)}
                 onChangeResidence={() => {
                     track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED, { step: 'id' })
@@ -826,12 +925,14 @@ function PaperworkVerificationSteps({
     } else if (step === 'review') {
         screen = failed ? (
             <ReviewScreen
+                rejection={rejection}
+                {...rejectionExits}
                 onHome={goHome}
                 policyHold={policyHold}
                 onRetry={
                     policyHold
                         ? () => router.push(paperworkVerificationRestartPath())
-                        : status && RETRYABLE_STATUSES.has(status)
+                        : retryable && RETRY_ACTIONS.has(rejection.action)
                           ? () => {
                                 track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
                                 void startIdentity()

@@ -112,19 +112,29 @@ describe('Phase 8: Home anchor selection', () => {
 
     test('the first live anchor by rank is blocked-card, ahead of checklist and install-app', () => {
         const d = run({ ...WEB_INSTALL, blockedCardId: BLOCKED })
-        expect(d.trace.verdicts.checklist).toBe('ineligible')
+        // the API judges the list without the blocked card; rank alone puts the card first
+        expect(d.trace.verdicts.checklist).toBe('show')
         expect(d.zone).toEqual({ id: 'blocked-card', mode: 'ask' })
     })
 
-    test('dismissing a still-blocked card releases the zone', () => {
+    test('hiding a still-blocked card hands Home to the to-do list', () => {
         const d = run(
             { ...WEB_INSTALL, blockedCardId: BLOCKED },
             {},
             { 'blocked-card': { dismissedAt: new Date(NOW).toISOString(), version: BLOCKED } }
         )
-        expect(d.zone).toBeNull()
+        expect(d.zone).toEqual({ id: 'checklist', mode: 'ask' })
         // install-app is tier 1 (Slava, 2026-10-12): the most critical ask may open over the list
         expect(d.interrupt).toBe('install-app')
+    })
+
+    test('a hidden blocked card with a new reason takes Home back from the list', () => {
+        const d = run(
+            { ...WEB_INSTALL, blockedCardId: 'blocked-card:verification-issue:duplicate_account' },
+            {},
+            { 'blocked-card': { dismissedAt: new Date(NOW).toISOString(), version: BLOCKED } }
+        )
+        expect(d.zone).toEqual({ id: 'blocked-card', mode: 'ask' })
     })
 
     test.each<AskId>(['checklist', 'blocked-card'])('a T1 zone pick keeps %s as its underlay', (anchor) => {

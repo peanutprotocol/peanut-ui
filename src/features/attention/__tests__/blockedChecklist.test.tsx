@@ -6,39 +6,17 @@
  * manager's zone lifecycle, not any one card's UI. Every "handle" item of the
  * phase-3 failure list that lives in the orchestration has a test here.
  */
-/**
- * Phase 3 orchestration contract: the Home zone renders one card, chosen by
- * the manager, with rotation.
- *
- * The real cards are stubbed (`../zoneSurfaces`) so these tests pin the
- * manager's zone lifecycle, not any one card's UI. Every "handle" item of the
- * phase-3 failure list that lives in the orchestration has a test here.
- */
-/**
- * Phase 3 orchestration contract: the Home zone renders one card, chosen by
- * the manager, with rotation.
- *
- * The real cards are stubbed (`../zoneSurfaces`) so these tests pin the
- * manager's zone lifecycle, not any one card's UI. Every "handle" item of the
- * phase-3 failure list that lives in the orchestration has a test here.
- */
-/**
- * Phase 3 orchestration contract: the Home zone renders one card, chosen by
- * the manager, with rotation.
- *
- * The real cards are stubbed (`../zoneSurfaces`) so these tests pin the
- * manager's zone lifecycle, not any one card's UI. Every "handle" item of the
- * phase-3 failure list that lives in the orchestration has a test here.
- */
 import React, { StrictMode, useLayoutEffect } from 'react'
 import { act, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import type { AskId, JourneyState } from '../types'
+import { asServerAttention, type ServerAttention } from '../serverAttention'
 
 const mockCapture = jest.fn()
+let mockServerAttention: ServerAttention | undefined
 jest.mock('../serverAttention', () => ({
     ...jest.requireActual('../serverAttention'),
-    useServerAttention: () => undefined,
+    useServerAttention: () => mockServerAttention,
 }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
 
@@ -258,6 +236,7 @@ beforeEach(() => {
     mockLife.mounts = {}
     mockLife.unmounts = {}
     mockState = state()
+    mockServerAttention = undefined
     latest = undefined
     updateUserPreferences('user-a', { sessionCount: 3 })
 })
@@ -273,26 +252,68 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => ({ onboarding: mockState.onboarding }) }))
 jest.mock('@/features/home/useHomeWelcome', () => ({ useHomeWelcome: () => false }))
-// ActivationCTAs displays the same blocked-card branch for both ask IDs (source-traced).
+// ActivationCTAs draws the blocked card or the to-do list as the surface asks (its own suite covers both).
 jest.mock('@/components/Home/ActivationCTAs', () => ({
     __esModule: true,
-    default: ({ onHideBlockedCard }: { onHideBlockedCard?: () => void }) => (
-        <div>blocked reason{onHideBlockedCard && <button onClick={onHideBlockedCard}>Hide</button>}</div>
-    ),
+    default: ({ showBlockedCard, onHideBlockedCard }: { showBlockedCard?: boolean; onHideBlockedCard?: () => void }) =>
+        showBlockedCard ? (
+            <div>blocked reason{onHideBlockedCard && <button onClick={onHideBlockedCard}>Hide</button>}</div>
+        ) : (
+            <div>to-do list</div>
+        ),
 }))
-test('hiding a blocked card must not expose a permanent checklist dismissal', async () => {
-    mockState = state({ ...BEFORE_ACTIVATION, blockedCardId: 'blocked-card:verification-issue:provider_rejected' })
+
+const VERIFICATION_ISSUE = 'blocked-card:verification-issue:identity_failed'
+
+/** the API ranks both anchors and judges the list on onboarding alone: it holds no blocked-card facts */
+const serverRanking = () =>
+    asServerAttention({
+        version: 1,
+        nextAsk: 'checklist',
+        ranking: [
+            { id: 'blocked-card', tier: 2, rank: 2 },
+            { id: 'checklist', tier: 2, rank: 3 },
+        ],
+        verdicts: { checklist: 'show' },
+    })
+
+test.each([
+    ['the local ranking', () => undefined],
+    ['the server ranking', serverRanking],
+])('hiding a blocked card shows the to-do list under %s, never the same card again', async (_, server) => {
+    mockServerAttention = server()
+    mockState = state({ ...BEFORE_ACTIVATION, blockedCardId: VERIFICATION_ISSUE })
     mockZoneSurfaces = { ...allStubs(), 'blocked-card': ChecklistSurface, checklist: ChecklistSurface }
     const view = await mount()
     expect(latest?.decision.zone?.id).toBe('blocked-card')
+    expect(screen.getByText('blocked reason')).toBeInTheDocument()
+
     await click('Hide')
-    expect(latest?.decision.zone?.id).not.toBe('checklist')
-    expect(screen.queryByText('Hide')).not.toBeInTheDocument()
-    mockState = state({ ...BEFORE_ACTIVATION, blockedCardId: null })
+    expect(latest?.decision.zone?.id).toBe('checklist')
+    expect(screen.getByText('to-do list')).toBeInTheDocument()
+    expect(screen.queryByText('blocked reason')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
+    expect(readLedger('user-a')['blocked-card']?.version).toBe(VERIFICATION_ISSUE)
+    // the list itself was never dismissed: it stays once the door opens
+    expect(readLedger('user-a').checklist?.dismissedAt).toBeUndefined()
+
+    // the hidden card stays hidden across a reload of the same facts
     await rerender(view)
     expect(latest?.decision.zone?.id).toBe('checklist')
-    expect(screen.queryByText('Hide')).not.toBeInTheDocument()
-    expect(readLedger('user-a').checklist?.dismissedAt).toBeUndefined()
+    expect(screen.getByText('to-do list')).toBeInTheDocument()
+})
+
+test('a hidden blocked card comes back over the list when its reason changes', async () => {
+    mockServerAttention = serverRanking()
+    mockState = state({ ...BEFORE_ACTIVATION, blockedCardId: VERIFICATION_ISSUE })
+    mockZoneSurfaces = { ...allStubs(), 'blocked-card': ChecklistSurface, checklist: ChecklistSurface }
+    const view = await mount()
+    await click('Hide')
+    expect(screen.getByText('to-do list')).toBeInTheDocument()
+    mockState = state({ ...BEFORE_ACTIVATION, blockedCardId: 'blocked-card:verification-issue:duplicate_account' })
+    await rerender(view)
+    expect(latest?.decision.zone?.id).toBe('blocked-card')
+    expect(screen.getByText('blocked reason')).toBeInTheDocument()
 })
 
 test.each(['dismiss', 'snooze'] as const)(

@@ -157,6 +157,30 @@ describe('useDepositAccounts', () => {
             expect(result.current.unavailable.SEPA_EU?.reason).toBe('identity-required')
         })
 
+        it("keeps the backend's identity-rejected answer under a refusal with no action", async () => {
+            mockProductRefusals = bangladesh
+            fetchDepositAccounts.mockResolvedValue({
+                accounts: [],
+                claimable: [{ ...CLAIMABLE_USD_PREVIEW, railId: 'bridge.ach_us', method: 'ACH_US' }],
+                unavailable: [
+                    {
+                        ...identityRequired('bridge.ach_us', 'ACH_US', 'USD'),
+                        reason: 'support-required',
+                        cause: 'identity-rejected',
+                    },
+                ],
+            })
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeUndefined()
+            expect(result.current.unavailable.ACH_US).toMatchObject({
+                reason: 'support-required',
+                cause: 'identity-rejected',
+            })
+        })
+
         it('waits for capabilities before listing the reported corridor answers', async () => {
             mockCapabilitiesLoading = true
             mockProductRefusals = bangladesh

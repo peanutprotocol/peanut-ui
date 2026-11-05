@@ -88,7 +88,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         kind: 'modal',
         name: 'First-payment chooser',
         copy: '"Choose how to spend" — "Both count as your first payment." Card → /card, QR → scanner',
-        cta: { label: 'Pay with card / Scan a QR code', dest: '/card | QR scanner' },
+        cta: { label: 'Pay with the card / Scan a QR code', dest: '/card | QR scanner' },
         condition:
             'Opened by the first-payment row when both the card and a QR rail are open (selectFirstPaymentRoute = card_qr)',
         sourceFile: 'src/components/Home/FirstPaymentChooser.tsx',

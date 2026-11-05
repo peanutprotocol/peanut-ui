@@ -2878,7 +2878,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-provider-asks': {
         route: '/profile/accounts',
-        about: 'A verified user whose payment partner asks for one more thing for EUR ("Action needed"), has answered for USD ("Under review"), and still has COP waiting on the ID ("Verify ID").',
+        about: 'A verified user whose payment partner asks for one more thing for EUR ("Action needed"), has answered for USD ("Under review"), and still has COP waiting on the ID ("Verify").',
         responses: PROVIDER_ASK_RESPONSE,
     },
     'profile-accounts-residence-restricted': {

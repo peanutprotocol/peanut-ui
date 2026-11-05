@@ -24,13 +24,18 @@ const NEW_USER: OnboardingState = {
 }
 
 const mockStartIdentityCheck = jest.fn()
-const render = (onboarding: Partial<OnboardingState> = {}, showWelcome = true) =>
+const render = (
+    onboarding: Partial<OnboardingState> = {},
+    showWelcome = true,
+    signupPaymentChannel?: 'card' | 'qr' | 'bank' | null
+) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
             <GettingStartedChecklist
                 onboarding={{ ...NEW_USER, ...onboarding }}
                 showWelcome={showWelcome}
                 onStartIdentityCheck={mockStartIdentityCheck}
+                signupPaymentChannel={signupPaymentChannel}
             />
         </NuqsTestingAdapter>,
         { wrapper: IntlWrapper }
@@ -61,6 +66,12 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
+}))
+
+// icons are SVG components; here each one names itself
+jest.mock('@/components/Global/Icons/Icon', () => ({
+    ...jest.requireActual('@/components/Global/Icons/Icon'),
+    Icon: ({ name }: { name: string }) => <span data-icon={name} />,
 }))
 
 // the mascot is a lottie animation; here it is a marker
@@ -242,6 +253,24 @@ describe('GettingStartedChecklist', () => {
             expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
             fireEvent.click(screen.getByText('First payment'))
             expect(mockPush).toHaveBeenCalledWith('/card')
+        })
+
+        const firstPaymentIcon = () =>
+            screen.getByTestId('checklist-first-payment').querySelector('[data-icon]')?.getAttribute('data-icon')
+
+        it.each([
+            ['card_qr', 'card', 'credit-card'],
+            ['card_qr', 'qr', 'qr-code'],
+            // an account made before the signup question
+            ['card_qr', null, 'qr-code'],
+            ['card_qr', undefined, 'qr-code'],
+            ['card', null, 'credit-card'],
+            ['qr', 'card', 'qr-code'],
+            ['pending', 'card', 'credit-card'],
+            ['pending', null, 'qr-code'],
+        ] as const)('route %s with signup choice %s draws %s', (firstPaymentRoute, channel, icon) => {
+            render({ firstPaymentRoute }, true, channel)
+            expect(firstPaymentIcon()).toBe(icon)
         })
 
         it('none: no payment row — 3 of 3 done once verified and funded, one done row shown', () => {

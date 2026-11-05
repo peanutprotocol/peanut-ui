@@ -1,5 +1,17 @@
-import { checklist, nextPayment, postVerificationAction } from '../registry'
-import type { JourneyState } from '../types'
+import { decide } from '../decide'
+import { ASKS, checklist, nextPayment, postVerificationAction } from '../registry'
+import type { JourneyState, Ledger, Session } from '../types'
+
+const HOME_SESSION: Session = {
+    count: 3,
+    route: 'home',
+    interruptsThisSession: [],
+    openInterrupt: null,
+    busy: false,
+    gateUp: false,
+    settleDeadlinePassed: false,
+    slots: [],
+}
 
 /** Spec-derived fixtures: capability absence is deliberately distinct from proven access. */
 function journey(): JourneyState {
@@ -66,7 +78,7 @@ function journey(): JourneyState {
 describe('attention surfaces: accepted behavior', () => {
     describe('blocked checklist', () => {
         it.each(['verify', 'add_money', 'first_payment'] as const)(
-            'suppresses an incomplete %s checklist until the blocker is removed',
+            'the blocked card covers an incomplete %s checklist until it is hidden or removed',
             (step) => {
                 const state = journey()
                 state.activated = false
@@ -78,7 +90,11 @@ describe('attention surfaces: accepted behavior', () => {
                     step,
                 }
                 state.blockedCardId = 'blocked-card-for-acceptance'
-                expect(checklist.eligible(state)).toBe('ineligible')
+                expect(decide(state, ASKS, {}, HOME_SESSION).zone).toEqual({ id: 'blocked-card', mode: 'ask' })
+                const hidden: Ledger = {
+                    'blocked-card': { dismissedAt: new Date(state.now).toISOString(), version: state.blockedCardId },
+                }
+                expect(decide(state, ASKS, hidden, HOME_SESSION).zone).toEqual({ id: 'checklist', mode: 'ask' })
 
                 state.blockedCardId = null
                 expect(checklist.eligible(state)).toBe('show')

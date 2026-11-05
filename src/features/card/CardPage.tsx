@@ -1,4 +1,5 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { type FC, useCallback, useEffect, useState } from 'react'
 import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useTranslations } from 'next-intl'
@@ -19,6 +20,7 @@ import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
+import { IdentityRejectedScreen, isDecidedRejection } from '@/features/paperwork-verification/PaperworkVerificationFlow'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
@@ -89,6 +91,7 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+    const router = useRouter()
     const cardVerification = useCardVerificationContinuation(
         user?.user?.userId,
         state === 'active' ? overview?.pendingVerification : undefined,
@@ -137,6 +140,10 @@ export const CardPage: FC = () => {
     }
 
     const renderState = () => {
+        // A finally rejected identity cannot apply: its reason and the way on, as /verify shows them.
+        if (state !== 'active' && isDecidedRejection(user?.identityVerification)) {
+            return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
+        }
         // Highest priority: show the issuance spinner between "terms accepted"
         // and the overview refetch landing. Keeps the UX from flipping back
         // to Add Card for a split second while the API call is in flight.
