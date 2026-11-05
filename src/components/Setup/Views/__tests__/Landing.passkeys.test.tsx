@@ -368,6 +368,35 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockLogin).toHaveBeenCalledTimes(1)
     })
 
+    it('frees the native slot when the automatic attempt times out, so the next Log in is not refused', async () => {
+        ios()
+        mockIOSCapability.mockResolvedValue(true)
+        // The native callback never arrives; the ceremony guard gives up at its 60 s bound.
+        mockLogin.mockImplementationOnce(
+            () =>
+                new Promise<void>((_, reject) => {
+                    setTimeout(() => {
+                        mockIsLoggingIn = false
+                        reject(new Error('CeremonyTimeoutError'))
+                    }, 60_000)
+                })
+        )
+        const view = render(<Landing />)
+        await flush()
+        mockIsLoggingIn = true
+        view.rerender(<Landing />)
+        await advance(5000)
+        expect(mockCancelIOS).not.toHaveBeenCalled()
+        await advance(55_000)
+        await flush()
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+        view.rerender(<Landing />)
+        fireEvent.click(login()!)
+        expect(mockLogin).toHaveBeenCalledTimes(2)
+        expect(mockLogin).toHaveBeenLastCalledWith()
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+    })
+
     it('a manual login in flight still disables Log in when no automatic attempt is pending', async () => {
         ios()
         mockIOSCapability.mockResolvedValue(false)

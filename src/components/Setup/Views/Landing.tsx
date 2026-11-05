@@ -110,6 +110,10 @@ const LandingStep = () => {
                     autoLogin.current = attempt
                     setAutoLoginPending(true)
                     await done
+                    if (autoLogin.current !== attempt) return
+                    // A ceremony that timed out can leave the native assertion open; free it so the
+                    // next manual login is not refused as already in progress. A no-op after success.
+                    await cancelIOSImmediateLogin()
                     if (autoLogin.current === attempt) {
                         autoLogin.current = null
                         setAutoLoginPending(false)
@@ -188,13 +192,12 @@ const LandingStep = () => {
     const retireAutoLogin = async () => {
         const attempt = autoLogin.current
         if (!attempt) return
+        // Taken over here, so the attempt's own completion path does not cancel a second time.
+        autoLogin.current = null
         attempt.cancel.abort()
         await cancelIOSImmediateLogin()
         await attempt.done
-        if (autoLogin.current === attempt) {
-            autoLogin.current = null
-            setAutoLoginPending(false)
-        }
+        setAutoLoginPending(false)
     }
 
     const afterAutoLogin = (next: () => unknown) => {
