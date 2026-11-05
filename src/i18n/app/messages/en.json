@@ -3150,8 +3150,9 @@
             "descriptionByDate": "Due {deadline}. Bank transfers keep working until then. Complete it from Home."
         },
         "progress": {
+            "submittedDescription": "We're reviewing your tax ID. You can close this; we'll notify you when bank transfers are ready.",
             "verifyingTitle": "Checking ID",
-            "verifyingDescription": "Checks usually come back fast. If a reviewer has to look at it, 1 to 3 business days. You can wait here, or close this and we will send you a notification.",
+            "verifyingDescription": "Most checks finish quickly. Manual reviews take 1–3 business days. You can close this; we'll notify you.",
             "preparingTimedOutTitle": "Taking longer than expected",
             "preparingTimedOutDescription": "You can continue and we'll notify you when it's ready.",
             "preparingTitle": "Setting up account",
@@ -3166,7 +3167,7 @@
             "accountReadyReviewGeneric": "Your bank accounts are still under review. We’ll let you know when they’re ready.",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
-            "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
+            "verifyingStillGoing": "This check needs a closer look. You can close this; we'll notify you when there's a decision.",
             "closeAndNotify": "Close and notify me"
         },
         "wrapper": {

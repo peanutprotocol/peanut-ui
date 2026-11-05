@@ -150,6 +150,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'KycVerificationInProgressModal (verifying)',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
     },
+    '24-c-kyctaxidsubmitted': {
+        name: 'KycVerificationInProgressModal (tax ID submitted)',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
     '24-c-kyc-ready-ars-action': {
         name: 'KYC complete — ARS needs one more step',
         path: 'Kyc/KycVerificationInProgressModal.tsx',

@@ -3150,8 +3150,9 @@
             "descriptionByDate": "Prazo: {deadline}. As transferências bancárias continuam funcionando até lá. Conclua pelo Início."
         },
         "progress": {
+            "submittedDescription": "Estamos analisando seu número fiscal. Você pode fechar esta tela; avisaremos quando as transferências estiverem disponíveis.",
             "verifyingTitle": "Verificando a identificação",
-            "verifyingDescription": "As verificações costumam ser rápidas. Se um revisor precisar analisar, de 1 a 3 dias úteis. Você pode esperar aqui ou fechar isto e enviaremos uma notificação.",
+            "verifyingDescription": "A maioria das verificações é rápida. Análises manuais levam de 1 a 3 dias úteis. Você pode fechar esta tela; avisaremos.",
             "preparingTimedOutTitle": "Está demorando mais do que o esperado",
             "preparingTimedOutDescription": "Você pode continuar e avisaremos quando estiver tudo pronto.",
             "preparingTitle": "Configurando a conta",
@@ -3166,7 +3167,7 @@
             "accountReadyReviewGeneric": "Suas contas bancárias ainda estão em análise. Avisaremos quando estiverem prontas.",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
-            "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",
+            "verifyingStillGoing": "Esta verificação precisa de uma análise mais detalhada. Você pode fechar esta tela; avisaremos quando houver uma decisão.",
             "closeAndNotify": "Fechar e me avisar"
         },
         "wrapper": {

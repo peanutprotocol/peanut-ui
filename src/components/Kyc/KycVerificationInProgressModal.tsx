@@ -33,6 +33,7 @@ interface KycVerificationInProgressModalProps {
 const PHASE_SCREEN: Record<KycModalPhase, string> = {
     preparing: 'account-setup',
     verifying: 'id-checking',
+    submitted: 'id-checking',
     bridge_tos: 'tos',
     supplement: 'poa',
     complete: 'id-confirmed',
@@ -80,6 +81,21 @@ export const KycVerificationInProgressModal = ({
         track('home', 'tap')
         onClose()
         router.push('/home')
+    }
+
+    if (phase === 'submitted') {
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={handleClose}
+                tone="attention"
+                icon={'clock' as IconName}
+                title={t('submitted')}
+                description={t('progress.submittedDescription')}
+                ctas={[{ text: t('progress.closeAndNotify'), onClick: handleGoHome, variant: 'primary' }]}
+                footer={<PeanutDoesntStoreAnyPersonalInformation onOpen={() => track('privacy_help', 'tap')} />}
+            />
+        )
     }
 
     if (phase === 'verifying') {

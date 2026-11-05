@@ -443,6 +443,7 @@ export const useMultiPhaseKycFlow = ({
         documentAttemptId,
         verificationSession,
         showCorrection,
+        taxIdCorrection,
         correctVerificationData,
         dismissCorrection,
     } = useSumsubKycFlow({
@@ -528,12 +529,19 @@ export const useMultiPhaseKycFlow = ({
         [submissionAttempt]
     )
 
+    const isArgentinaSingleLevelSession =
+        verificationSession?.targetCountry === 'AR' && !verificationSession.isMultiLevel && !isMultiLevel
+
     const handleSdkSubmitted = useCallback(
         (source: SumsubSubmissionSource = 'sdk_submitted') => {
             reportedRejectionRef.current = null
             captureSubmission(source)
+            if (source !== 'sdk_teardown' && isArgentinaSingleLevelSession) {
+                originalHandleSdkComplete()
+                setModalPhase('submitted')
+            }
         },
-        [captureSubmission]
+        [captureSubmission, isArgentinaSingleLevelSession, originalHandleSdkComplete]
     )
 
     // wrap handleSdkComplete to track real-time flow
@@ -674,13 +682,20 @@ export const useMultiPhaseKycFlow = ({
     useEffect(() => {
         if (!sessionId) return
         if (sessionState === 'CORRECTION_REQUIRED' || sessionState === 'BLOCKED') {
+            setModalPhase('verifying')
             setForceShowModal(false)
             clearPreparingTimer()
             return
         }
         if (!isVerificationProgressModalOpen) return
-        if (!completionNoticeRef.current) setModalPhase('preparing')
-        if (sessionState !== 'READY' && sessionState !== 'PROVIDER_PENDING') return
+        if (isArgentinaSingleLevelSession) {
+            setModalPhase('submitted')
+            clearPreparingTimer()
+            if (sessionState !== 'READY') return
+        } else {
+            if (!completionNoticeRef.current) setModalPhase('preparing')
+            if (sessionState !== 'READY' && sessionState !== 'PROVIDER_PENDING') return
+        }
         const key = `${sessionId}:${sessionGeneration}`
         if (completedSessionRef.current === key) return
         let cancelled = false
@@ -691,12 +706,17 @@ export const useMultiPhaseKycFlow = ({
                 const refreshed = await fetchUser()
                 if (cancelled) return
                 const signals = deriveCapabilityPhaseSignals(refreshed?.capabilities, 'LATAM', sessionCountry)
-                if (signals.completionNotice) {
+                if (!isArgentinaSingleLevelSession && signals.completionNotice) {
                     completedSessionRef.current = key
                     showCompletionNotice(signals.completionNotice)
                     return
                 }
-                if (sessionState === 'READY' && signals.allSettled) {
+                if (
+                    sessionState === 'READY' &&
+                    (isArgentinaSingleLevelSession
+                        ? refreshed?.capabilities?.features?.local.accounts.ARS?.state === 'on'
+                        : signals.allSettled)
+                ) {
                     completedSessionRef.current = key
                     completeFlow()
                     return
@@ -716,6 +736,7 @@ export const useMultiPhaseKycFlow = ({
         sessionGeneration,
         sessionState,
         sessionCountry,
+        isArgentinaSingleLevelSession,
         isVerificationProgressModalOpen,
         fetchUser,
         completeFlow,
@@ -946,6 +967,7 @@ export const useMultiPhaseKycFlow = ({
         documentAttemptId,
         verificationSession,
         showCorrection,
+        taxIdCorrection,
         correctVerificationData,
         dismissCorrection,
         // SDK wrapper

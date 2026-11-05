@@ -823,6 +823,12 @@
         "source": "Kyc/KycVerificationInProgressModal.tsx"
     },
     {
+        "id": "24-c-kyctaxidsubmitted",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-c-kyctaxidsubmitted",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
         "id": "24-c-kyc-ready-ars-action",
         "flow": "Verification",
         "route": "/dev/surfaces?s=24-c-kyc-ready-ars-action",

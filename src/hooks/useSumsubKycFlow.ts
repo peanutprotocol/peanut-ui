@@ -143,6 +143,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const sessionId = verificationSession?.id
     const sessionGeneration = verificationSession?.generation
     const [showCorrection, setShowCorrection] = useState(false)
+    const [taxIdCorrection, setTaxIdCorrection] = useState(false)
     const [documentConfig, setDocumentConfig] = useState<KycAttemptSession['sdkConfig']>()
     const documentAttemptRef = useRef<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
@@ -164,6 +165,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             verificationSessionRef.current = session
             setVerificationSession(session)
             if (session.state === 'CORRECTION_REQUIRED') {
+                setTaxIdCorrection(session.reasonCode === 'INVALID_TAX_ID')
                 setShowWrapper(false)
                 setIsVerificationProgressModalOpen(false)
                 setShowCorrection(true)
@@ -459,6 +461,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 normalizedTargetCountry && isMantecaSupportedCountryCode(normalizedTargetCountry)
                     ? normalizedTargetCountry
                     : undefined
+            if (!correctSession) setTaxIdCorrection(false)
             userInitiatedRef.current = true
             initiatingRef.current = true
             selfHealProviderRef.current = null
@@ -564,6 +567,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 } else {
                     verificationSessionRef.current = null
                     setVerificationSession(null)
+                    setTaxIdCorrection(false)
                 }
 
                 // A refusal no retry can change — no resolvable country for this
@@ -904,6 +908,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
             setVerificationSession(null)
+            setTaxIdCorrection(false)
             setShowCorrection(false)
             setIsLoading(true)
             setError(null)
@@ -1006,6 +1011,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
             setVerificationSession(null)
+            setTaxIdCorrection(false)
             setShowCorrection(false)
             setIsLoading(true)
             setError(null)
@@ -1056,6 +1062,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
             setVerificationSession(null)
+            setTaxIdCorrection(false)
             setShowCorrection(false)
             setIsLoading(true)
             setError(null)
@@ -1115,6 +1122,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
             setVerificationSession(null)
+            setTaxIdCorrection(false)
             setShowCorrection(false)
             setIsTerminalError(false)
             setIsVerificationProgressModalOpen(false)
@@ -1272,6 +1280,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         isMultiLevel,
         verificationSession,
         showCorrection,
+        taxIdCorrection,
         correctVerificationData,
         dismissCorrection,
     }
