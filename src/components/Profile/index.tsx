@@ -5,7 +5,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
-import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
@@ -95,23 +94,7 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background-page">
-            <NavHeader
-                hideLabel
-                onPrev={onBack}
-                rightElement={
-                    // Log Out already has its own button at the bottom of this
-                    // screen (below) — a second one up here was redundant. Edit
-                    // profile earns the top-right slot instead: it's the one
-                    // action worth reaching without scrolling.
-                    <Button
-                        variant="ghost"
-                        href="/profile/edit"
-                        icon="edit"
-                        aria-label={t('menu.personalDetails')}
-                        className={NAV_CIRCLE_BUTTON_CLASSES}
-                    />
-                }
-            />
+            <NavHeader hideLabel onPrev={onBack} />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
                     copy-username icon it used to lean on was removed
