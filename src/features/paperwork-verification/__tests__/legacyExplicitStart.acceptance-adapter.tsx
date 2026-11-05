@@ -75,7 +75,9 @@ export function createLegacySdkHarness({ request }: { request: typeof mockReques
     const wrap = (feature = false) => (
         <IntlWrapper>
             <QueryClientProvider client={query}>
-                <NuqsTestingAdapter>{feature ? <AddFeatureFlow feature="card" onExit={() => {}} /> : <SumsubKycFlow />}</NuqsTestingAdapter>
+                <NuqsTestingAdapter>
+                    {feature ? <AddFeatureFlow feature="card" onExit={() => {}} /> : <SumsubKycFlow />}
+                </NuqsTestingAdapter>
             </QueryClientProvider>
         </IntlWrapper>
     )

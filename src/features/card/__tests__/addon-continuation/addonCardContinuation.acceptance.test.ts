@@ -167,19 +167,22 @@ describe('issued-card continuation uses the real card surface and callbacks', ()
         [409, { code: 'verification_task_changed' }],
         [503, { code: 'verification_task_unavailable' }],
         [400, { error: 'Malformed input' }],
-    ] as Array<[number, unknown]>)('HTTP %i leaves issued-card management intact and opens no SDK', async (status, body) => {
-        const mounted = await mount()
-        const pending = mounted.deferNextResume()
-        await mounted.tap(cta(mounted)!)
-        await mounted.settle()
-        await pending.reply(status, body)
-        await mounted.settle()
-        cardPresent(mounted)
-        expect(mounted.sdk.sessions).toEqual([])
-        expect(resumes(mounted)).toHaveLength(1)
-        const control = mounted.existingCardControl()
-        expect((control as HTMLButtonElement).disabled).not.toBe(true)
-    })
+    ] as Array<[number, unknown]>)(
+        'HTTP %i leaves issued-card management intact and opens no SDK',
+        async (status, body) => {
+            const mounted = await mount()
+            const pending = mounted.deferNextResume()
+            await mounted.tap(cta(mounted)!)
+            await mounted.settle()
+            await pending.reply(status, body)
+            await mounted.settle()
+            cardPresent(mounted)
+            expect(mounted.sdk.sessions).toEqual([])
+            expect(resumes(mounted)).toHaveLength(1)
+            const control = mounted.existingCardControl()
+            expect((control as HTMLButtonElement).disabled).not.toBe(true)
+        }
+    )
     test('network failure preserves the issued card and permits a later explicit retry', async () => {
         const mounted = await mount()
         const pending = mounted.deferNextResume()
@@ -212,23 +215,27 @@ describe('issued-card continuation uses the real card surface and callbacks', ()
         [503, { code: 'verification_task_unavailable' }],
         [200, { token: '' }],
         [200, {}],
-    ] as Array<[number, unknown]>)('refresh failure %i cannot supply a token or create another SDK session', async (status, body) => {
-        const mounted = await mount()
-        const id = await start(mounted)
-        const pending = mounted.deferNextResume()
-        const outcome = mounted.sdk.refresh(id).then(
-            (value) => ({ value }),
-            (error) => ({ error })
-        )
-        await mounted.settle()
-        exactResume(mounted, 1)
-        await pending.reply(status, body)
-        const result = await outcome
-        await mounted.settle()
-        if ('value' in result) expect(typeof result.value === 'string' && result.value.trim().length > 0).toBe(false)
-        expect(mounted.sdk.sessions).toHaveLength(1)
-        expect(activeSessions(mounted).length).toBeLessThanOrEqual(1)
-    })
+    ] as Array<[number, unknown]>)(
+        'refresh failure %i cannot supply a token or create another SDK session',
+        async (status, body) => {
+            const mounted = await mount()
+            const id = await start(mounted)
+            const pending = mounted.deferNextResume()
+            const outcome = mounted.sdk.refresh(id).then(
+                (value) => ({ value }),
+                (error) => ({ error })
+            )
+            await mounted.settle()
+            exactResume(mounted, 1)
+            await pending.reply(status, body)
+            const result = await outcome
+            await mounted.settle()
+            if ('value' in result)
+                expect(typeof result.value === 'string' && result.value.trim().length > 0).toBe(false)
+            expect(mounted.sdk.sessions).toHaveLength(1)
+            expect(activeSessions(mounted).length).toBeLessThanOrEqual(1)
+        }
+    )
 })
 
 type Change = 'account' | 'sign-out' | 'generation' | 'scope' | 'action-removed' | 'route'

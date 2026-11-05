@@ -285,8 +285,13 @@ export function createVerificationOpeningHarness({
         mockContext = context
         // `show` supplies a freshly displayed response. Hydrate the real query
         // cache before remounting that visit, just as a completed prefetch does.
-        if (view && context.screen === 'verification-entry' && context.userId &&
-            previous.userId === context.userId && previous.entryScope !== context.entryScope) {
+        if (
+            view &&
+            context.screen === 'verification-entry' &&
+            context.userId &&
+            previous.userId === context.userId &&
+            previous.entryScope !== context.entryScope
+        ) {
             query.setQueryData([...PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, context.userId], build())
             query.setQueryData([...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, context.userId], plan)
             query.setQueryData([...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, context.userId], 'NOT_STARTED')

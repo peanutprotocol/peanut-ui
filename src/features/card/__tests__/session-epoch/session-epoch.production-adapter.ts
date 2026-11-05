@@ -12,18 +12,24 @@ const overviewFor = (identity: Identity) => {
 
 export const verificationAdapter: VerificationAdapter = {
     mountIssuedCard: async (identity) => {
-        const view = await mountCardContinuation({ session: { userId: identity.owner }, overview: overviewFor(identity) })
+        const view = await mountCardContinuation({
+            session: { userId: identity.owner },
+            overview: overviewFor(identity),
+        })
         const phases: Phase[] = []
         const refreshTokens: string[] = []
         await view.settle()
-        const capturedRequests = (): Receipt[] => view.requests.filter((request) => request.kind === 'resume').map((request, index) => ({
-            phase: phases[index] ?? phases[phases.length - 1],
-            identity: {
-                owner: request.headers['x-kyc-entry-user'],
-                scope: request.headers['x-kyc-entry-scope'],
-                generation: (request.body as { generation: string }).generation,
-            },
-        }))
+        const capturedRequests = (): Receipt[] =>
+            view.requests
+                .filter((request) => request.kind === 'resume')
+                .map((request, index) => ({
+                    phase: phases[index] ?? phases[phases.length - 1],
+                    identity: {
+                        owner: request.headers['x-kyc-entry-user'],
+                        scope: request.headers['x-kyc-entry-scope'],
+                        generation: (request.body as { generation: string }).generation,
+                    },
+                }))
         const setIdentity = async (next: Identity) => {
             await view.setSession({ userId: next.owner })
             await view.publishOverview(overviewFor(next))
@@ -39,16 +45,21 @@ export const verificationAdapter: VerificationAdapter = {
                 phases.push('refresh')
                 const sdk = view.sdk.sessions.findLast((session) => session.mounted)
                 if (!sdk) throw new Error('No mounted SDK session')
-                void view.sdk.refresh(sdk.id).then((token) => {
-                    refreshTokens.push(token as string)
-                }, () => undefined)
+                void view.sdk.refresh(sdk.id).then(
+                    (token) => {
+                        refreshTokens.push(token as string)
+                    },
+                    () => undefined
+                )
                 await view.settle()
             },
             deferNext: () => {
                 const pending = view.deferNextResume()
                 return { deliver: async (token) => pending.reply(200, { token }) }
             },
-            clearAuthenticationKeepingRenderedAccount: async () => { await actClearAuthentication() },
+            clearAuthenticationKeepingRenderedAccount: async () => {
+                await actClearAuthentication()
+            },
             signIn: setIdentity,
             changeAuthenticatedAccount: setIdentity,
             flush: view.settle,
@@ -56,8 +67,14 @@ export const verificationAdapter: VerificationAdapter = {
                 requests: capturedRequests(),
                 sdkOpenTokens: view.sdk.sessions.map((session) => session.token),
                 sdkRefreshTokens: refreshTokens,
-                issuanceCalls: view.forbiddenCalls.filter((call) => call.kind === 'issuance' || call.kind === 'create-card').length + view.requests.filter((request) => request.kind === 'issuance' || request.kind === 'create-card').length,
-                applicationCalls: view.forbiddenCalls.filter((call) => call.kind === 'apply').length + view.requests.filter((request) => request.kind === 'apply').length,
+                issuanceCalls:
+                    view.forbiddenCalls.filter((call) => call.kind === 'issuance' || call.kind === 'create-card')
+                        .length +
+                    view.requests.filter((request) => request.kind === 'issuance' || request.kind === 'create-card')
+                        .length,
+                applicationCalls:
+                    view.forbiddenCalls.filter((call) => call.kind === 'apply').length +
+                    view.requests.filter((request) => request.kind === 'apply').length,
                 pendingActionVisible: !!within(view.root).queryByText(/^complete verification$/i),
                 blockingOverlayVisible: !!view.root.querySelector('[role="alertdialog"]'),
             }),

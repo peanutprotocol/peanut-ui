@@ -93,7 +93,12 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
 
     const args: Parameters<typeof fetchWithSentry> = [
         `${PEANUT_API_URL}${path}`,
-        { ...fetchOptions, headers, ...(beforeDispatch && { beforeDispatch }), ...(preferNativeTransport && { preferNativeTransport }) },
+        {
+            ...fetchOptions,
+            headers,
+            ...(beforeDispatch && { beforeDispatch }),
+            ...(preferNativeTransport && { preferNativeTransport }),
+        },
     ]
     if (timeoutMs !== undefined) args[2] = timeoutMs
 

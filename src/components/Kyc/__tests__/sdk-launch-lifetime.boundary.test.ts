@@ -13,7 +13,10 @@ test('a retired SDK launch cannot refresh or complete its replacement', async ()
             const builder = {
                 withConf: () => builder,
                 withOptions: () => builder,
-                on: (name: string, callback: () => void) => { launch.events[name] = callback; return builder },
+                on: (name: string, callback: () => void) => {
+                    launch.events[name] = callback
+                    return builder
+                },
                 build: () => ({ launch: jest.fn(), destroy: jest.fn() }),
             }
             return builder
@@ -23,16 +26,33 @@ test('a retired SDK launch cannot refresh or complete its replacement', async ()
     const refreshB = jest.fn().mockResolvedValue('token-b')
     const completeA = jest.fn()
     const completeB = jest.fn()
-    const initial = { visible: true, sessionKey: 'a', accessToken: 'token-a', onRefreshToken: refreshA, onComplete: completeA }
-    const { result, rerender, unmount } = renderHookWithIntl((props: typeof initial) => useSumsubWebSdk(props), { initialProps: initial })
+    const initial = {
+        visible: true,
+        sessionKey: 'a',
+        accessToken: 'token-a',
+        onRefreshToken: refreshA,
+        onComplete: completeA,
+    }
+    const { result, rerender, unmount } = renderHookWithIntl((props: typeof initial) => useSumsubWebSdk(props), {
+        initialProps: initial,
+    })
     try {
         act(() => result.current.setSdkContainer(document.createElement('div')))
         const old = launches[0]
         expect(old).toBeDefined()
         rerender({ ...initial, visible: false })
-        rerender({ visible: true, sessionKey: 'b', accessToken: 'token-b', onRefreshToken: refreshB, onComplete: completeB })
+        rerender({
+            visible: true,
+            sessionKey: 'b',
+            accessToken: 'token-b',
+            onRefreshToken: refreshB,
+            onComplete: completeB,
+        })
         expect(launches).toHaveLength(2)
-        const oldResult = await old.refresh().then(value => ({ value }), error => ({ error }))
+        const oldResult = await old.refresh().then(
+            (value) => ({ value }),
+            (error) => ({ error })
+        )
         act(() => old.events.onApplicantSubmitted())
         expect(JSON.stringify(oldResult)).not.toContain('token-b')
         expect(refreshB).not.toHaveBeenCalled()

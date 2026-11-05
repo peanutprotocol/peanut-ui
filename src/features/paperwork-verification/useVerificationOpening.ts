@@ -20,7 +20,9 @@ export async function recordVerificationOpened(
     await serverFetch('/users/kyc/opened', {
         method: 'POST',
         headers: { 'x-kyc-entry-user': userId, 'x-kyc-entry-scope': scope } satisfies Opening['parameters']['header'],
-        body: JSON.stringify((feature ? { feature } : {}) satisfies NonNullable<Opening['requestBody']>['content']['application/json']),
+        body: JSON.stringify(
+            (feature ? { feature } : {}) satisfies NonNullable<Opening['requestBody']>['content']['application/json']
+        ),
         signal,
         beforeDispatch: fence.current,
         timeoutMs: 10_000,

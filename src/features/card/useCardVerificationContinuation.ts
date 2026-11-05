@@ -79,9 +79,18 @@ export function useCardVerificationContinuation(
     }, [key, authEpoch])
 
     const start = useCallback(async () => {
-        if (!canStart || !key || !owner || !action || inFlight.current || currentSession.current || context.current.key !== key ||
+        if (
+            !canStart ||
+            !key ||
+            !owner ||
+            !action ||
+            inFlight.current ||
+            currentSession.current ||
+            context.current.key !== key ||
             context.current.revision !== renderedRevision ||
-            getClearEpoch() !== context.current.authEpoch) return
+            getClearEpoch() !== context.current.authEpoch
+        )
+            return
         const controller = new AbortController()
         const revision = context.current.revision
         const capturedAuthEpoch = getClearEpoch()
@@ -95,26 +104,48 @@ export function useCardVerificationContinuation(
                 action.generation,
                 controller.signal
             )
-            if (!alive.current || controller.signal.aborted || context.current.key !== key ||
-                context.current.revision !== revision || getClearEpoch() !== capturedAuthEpoch) return
+            if (
+                !alive.current ||
+                controller.signal.aborted ||
+                context.current.key !== key ||
+                context.current.revision !== revision ||
+                getClearEpoch() !== capturedAuthEpoch
+            )
+                return
             const next = { key, owner, action, token, revision, authEpoch: capturedAuthEpoch }
             currentSession.current = next
             setSession(next)
         } catch {
-            if (alive.current && !controller.signal.aborted && context.current.key === key &&
-                context.current.revision === revision && getClearEpoch() === capturedAuthEpoch) setErrorKey(renderKey)
+            if (
+                alive.current &&
+                !controller.signal.aborted &&
+                context.current.key === key &&
+                context.current.revision === revision &&
+                getClearEpoch() === capturedAuthEpoch
+            )
+                setErrorKey(renderKey)
         } finally {
             if (inFlight.current === controller) inFlight.current = null
             if (alive.current && context.current.key === key && context.current.revision === revision) setBusyKey(null)
         }
     }, [canStart, key, owner, action, renderedRevision, renderKey])
 
-    const active = session?.key === key && session.revision === context.current.revision &&
-        session.authEpoch === getClearEpoch() && currentSession.current === session ? session : null
+    const active =
+        session?.key === key &&
+        session.revision === context.current.revision &&
+        session.authEpoch === getClearEpoch() &&
+        currentSession.current === session
+            ? session
+            : null
     const refresh = useCallback(async () => {
         const captured = active
-        if (!captured || currentSession.current !== captured || context.current.key !== captured.key ||
-            context.current.revision !== captured.revision || getClearEpoch() !== captured.authEpoch)
+        if (
+            !captured ||
+            currentSession.current !== captured ||
+            context.current.key !== captured.key ||
+            context.current.revision !== captured.revision ||
+            getClearEpoch() !== captured.authEpoch
+        )
             throw new Error('Card verification changed')
         const controller = new AbortController()
         inFlight.current?.abort()
@@ -142,8 +173,14 @@ export function useCardVerificationContinuation(
     }, [active])
 
     const finish = useCallback(() => {
-        if (!active || currentSession.current !== active || context.current.key !== active.key ||
-            context.current.revision !== active.revision || getClearEpoch() !== active.authEpoch) return
+        if (
+            !active ||
+            currentSession.current !== active ||
+            context.current.key !== active.key ||
+            context.current.revision !== active.revision ||
+            getClearEpoch() !== active.authEpoch
+        )
+            return
         inFlight.current?.abort()
         inFlight.current = null
         currentSession.current = null

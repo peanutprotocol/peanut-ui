@@ -19621,6 +19621,9 @@
 					"200": {
 						"content": {
 							"application/json": {
+								"example": {
+									"token": "synthetic-sumsub-sdk-token"
+								},
 								"schema": {
 									"properties": {
 										"token": {

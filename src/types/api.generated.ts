@@ -10926,6 +10926,11 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "token": "synthetic-sumsub-sdk-token"
+                         *     }
+                         */
                         "application/json": {
                             token: string;
                         };

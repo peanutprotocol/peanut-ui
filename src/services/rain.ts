@@ -647,8 +647,13 @@ export const rainApi = {
         const fence = captureSessionFence(owner, () => !signal.aborted)
         const response = await apiFetch('/rain/verification/resume', {
             method: 'POST',
-            headers: { 'x-kyc-entry-user': owner, 'x-kyc-entry-scope': scope } satisfies paths['/rain/verification/resume']['post']['parameters']['header'],
-            body: JSON.stringify({ generation } satisfies paths['/rain/verification/resume']['post']['requestBody']['content']['application/json']),
+            headers: {
+                'x-kyc-entry-user': owner,
+                'x-kyc-entry-scope': scope,
+            } satisfies paths['/rain/verification/resume']['post']['parameters']['header'],
+            body: JSON.stringify({
+                generation,
+            } satisfies paths['/rain/verification/resume']['post']['requestBody']['content']['application/json']),
             signal,
             beforeDispatch: fence.current,
             cache: 'no-store',

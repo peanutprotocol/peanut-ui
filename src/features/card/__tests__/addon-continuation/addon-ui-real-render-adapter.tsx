@@ -73,7 +73,9 @@ function response(status: number, body: unknown): Response {
 export const mountCardContinuation = async ({
     session: initialSession,
     overview: initialOverview,
-}: MountOptions): Promise<MountedCardContinuation & { setOverviewResponse: (overview: CardOverviewFixture) => void }> => {
+}: MountOptions): Promise<
+    MountedCardContinuation & { setOverviewResponse: (overview: CardOverviewFixture) => void }
+> => {
     const originalFetch = global.fetch
     const originalWebSocket = global.WebSocket
     global.fetch = jest.fn(async () => {
@@ -205,7 +207,9 @@ export const mountCardContinuation = async ({
                                 <LoadingStateContextProvider>
                                     <ModalsProvider>
                                         <RainCooldownProvider>
-                                            <NuqsTestingAdapter><CardPage /></NuqsTestingAdapter>
+                                            <NuqsTestingAdapter>
+                                                <CardPage />
+                                            </NuqsTestingAdapter>
                                         </RainCooldownProvider>
                                     </ModalsProvider>
                                 </LoadingStateContextProvider>
@@ -230,13 +234,16 @@ export const mountCardContinuation = async ({
             await Promise.resolve()
         })
         if (currentSession?.userId) {
-            await waitFor(() => {
-                for (const key of ['card-info', 'rain-card-overview']) {
-                    const state = query.getQueryState([key, currentSession?.userId])
-                    if (!state || state.fetchStatus === 'fetching' || state.status === 'pending')
-                        throw new Error(`Waiting for ${key}`)
-                }
-            }, { timeout: 3000 })
+            await waitFor(
+                () => {
+                    for (const key of ['card-info', 'rain-card-overview']) {
+                        const state = query.getQueryState([key, currentSession?.userId])
+                        if (!state || state.fetchStatus === 'fetching' || state.status === 'pending')
+                            throw new Error(`Waiting for ${key}`)
+                    }
+                },
+                { timeout: 3000 }
+            )
         }
     }
     return {

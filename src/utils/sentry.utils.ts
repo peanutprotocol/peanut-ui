@@ -729,8 +729,15 @@ export const fetchWithSentry = async (
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
     const connectivityGeneration = getConnectivityGeneration()
-    const { preferNativeTransport, silentTimeout, redactTelemetry, callerReportsFailures, idempotent, beforeDispatch, ...options } =
-        optionsWithTransport
+    const {
+        preferNativeTransport,
+        silentTimeout,
+        redactTelemetry,
+        callerReportsFailures,
+        idempotent,
+        beforeDispatch,
+        ...options
+    } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
     /*
