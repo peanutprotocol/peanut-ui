@@ -1,5 +1,15 @@
 # Peanut UI engineering checklist
 
+## Post-KYC region setup (L8)
+
+- Identity approval, completion of the setup screen and permission to use a bank account are separate. Known user actions and explicit provider reviews end preparing; only a usable requested account can invoke the money-flow success callback.
+- Missing capability reports or action descriptors remain unknown. Ordinary provisioning retains bounded timeout recovery. Country/intent scope applies to review signals as well as usable accounts.
+- Clear preparation timers on completion. Late refresh/terms responses after dismissal, unmount or another attempt cannot reopen the modal or complete a newer flow. Repeated Continue is idempotent.
+- Completion copy names the outstanding currency and distinguishes a user step from provider review. Existing terms and proof-of-address collection remain available; no provider policy or schema change.
+- Verify spec-derived hook tests, timer/fault and legacy-session regressions, four-locale component copy, registered Screen Library states, affected lint/format and required hosted CI. Keep deployment and device/provider evidence separate.
+
+Undecided: None for L8. No hook installation, runtime trust or provider configuration changes are included.
+
 ## Android signup passkey compatibility
 
 - Check original signed client-data layout before native registration returns to the SDK and submits server verification. Standard create uses challenge-property byte 26; the deployed validator expects byte 23 for get.

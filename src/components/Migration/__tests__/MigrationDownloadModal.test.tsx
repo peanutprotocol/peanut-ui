@@ -34,7 +34,7 @@ function renderWhenPicked(patch: Parameters<typeof run>[0], ledger: Ledger = {})
 }
 
 describe('MigrationDownloadModal under the attention manager', () => {
-    it('renders nothing while the pwa-sunset flag is off', () => {
+    it('renders nothing where the prompt is off (another dev fixture is running)', () => {
         renderWhenPicked({ migration: { on: false } })
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
@@ -70,5 +70,29 @@ describe('MigrationDownloadModal under the attention manager', () => {
         first.unmount()
         renderWhenPicked({}, ledger)
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+})
+
+describe('downloadPromptAllowedByFixture', () => {
+    const allowedUnder = (fixture: string | null) => {
+        window.sessionStorage.clear()
+        window.history.replaceState({}, '', fixture ? `/home?__fixture=${fixture}` : '/home')
+        let allowed: boolean | undefined
+        jest.isolateModules(() => {
+            jest.doMock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
+            allowed = require('@/dev/fixtures/active').downloadPromptAllowedByFixture()
+        })
+        return allowed
+    }
+    afterEach(() => window.history.replaceState({}, '', '/'))
+
+    it('hides the prompt under another fixture, so it does not cover the drawer the fixture shows', () => {
+        expect(allowedUnder('early-user')).toBe(false)
+    })
+    it('shows the prompt under its own capture fixture', () => {
+        expect(allowedUnder('download-prompt')).toBe(true)
+    })
+    it('shows the prompt with no fixture', () => {
+        expect(allowedUnder(null)).toBe(true)
     })
 })

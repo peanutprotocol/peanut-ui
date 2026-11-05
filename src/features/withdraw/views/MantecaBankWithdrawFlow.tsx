@@ -11,7 +11,7 @@ import {
     submitSignedSpend,
 } from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import Image from 'next/image'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -1336,16 +1336,14 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="p-4">
                         <div className="space-x-3 flex items-center">
-                            <div className="relative h-12 w-12">
-                                <Image
-                                    src={getFlagUrl(countryFlagCode)}
-                                    alt={t('manteca.flagAlt')}
-                                    width={48}
-                                    height={48}
-                                    className="h-12 w-12 rounded-full object-cover"
-                                />
-                                <IconBubble {...CONCEPT_ICONS.bank} size="xs" className="absolute -right-1 -bottom-1" />
-                            </div>
+                            {/* a confirm card shows its counterparty at 32, one leading
+                                element: the flag, with the bank bubble if it fails to
+                                load (same as WithdrawBankReviewView) */}
+                            <AvatarWithBadge
+                                size="s"
+                                logo={getFlagUrl(countryFlagCode)}
+                                fallback={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+                            />
                             <div>
                                 <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
                                     <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}

@@ -4,8 +4,6 @@
  * manager ships. The manager writes only its own `attention` field.
  */
 jest.mock('../ledgerSync', () => ({ scheduleLedgerSync: jest.fn() }))
-let mockSunsetOn = false
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockSunsetOn }))
 
 import { ledgerActions, legacyEntries, persistLegacyLedger, readLedger } from '../ledger'
 import { scheduleLedgerSync } from '../ledgerSync'
@@ -19,7 +17,6 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 beforeEach(() => {
     window.localStorage.clear()
-    mockSunsetOn = false
     ;(scheduleLedgerSync as jest.Mock).mockClear()
 })
 
@@ -39,8 +36,7 @@ describe('legacyEntries', () => {
         expect(entries['legal-reconsent']?.snoozedUntil).toBe('2026-10-20T00:00:00.000Z')
         expect(entries['install-app']?.snoozedUntil).toBe('2026-10-04T00:00:00.000Z')
         expect(entries['balance-backup']?.snoozedUntil).toBe('2026-10-22T00:00:00.000Z')
-        // flag off: the old push prompt closed forever
-        expect(entries['push-home-fallback']).toEqual({ dismissedAt: closedAt, updatedAt: closedAt })
+        expect(entries['push-home-fallback']).toEqual({ snoozedUntil: '2026-10-15T00:00:00.000Z', updatedAt: closedAt })
         expect(entries['blocked-card']).toEqual({
             dismissedAt: closedAt,
             version: 'blocked-card:verification-issue:provider_rejected',
@@ -48,17 +44,8 @@ describe('legacyEntries', () => {
         })
     })
 
-    test('with the sunset flag on, a closed push prompt is a 14-day snooze', () => {
-        mockSunsetOn = true
-        const entries = legacyEntries(USER, { notifModalClosedAt: '2026-10-01T00:00:00.000Z' })
-        expect(entries['push-home-fallback']).toEqual({
-            snoozedUntil: '2026-10-15T00:00:00.000Z',
-            updatedAt: '2026-10-01T00:00:00.000Z',
-        })
-    })
-
     test('the legacy boolean push flag counts as closed', () => {
-        expect(legacyEntries(USER, { notifModalClosed: true })['push-home-fallback']?.dismissedAt).toBeDefined()
+        expect(legacyEntries(USER, { notifModalClosed: true })['push-home-fallback']?.snoozedUntil).toBeDefined()
     })
 
     test('a corrupt re-consent snooze is ignored', () => {
@@ -237,7 +224,6 @@ describe('pre-manager closes', () => {
     })
 
     test('a stored show does not lift the legacy push snooze', () => {
-        mockSunsetOn = true
         const closedAt = new Date(Date.now() - DAY_MS).toISOString()
         updateUserPreferences(USER, { notifModalClosedAt: closedAt })
         ledgerActions.shown(USER, 'push-home-fallback', Date.now() - 30 * DAY_MS, 'interrupt', 3)

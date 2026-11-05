@@ -73,7 +73,6 @@ jest.mock('@/features/kill-switches/useKillSwitches', () => ({
         maintenanceBannerPaths: [],
     }),
 }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/hooks/useNotifications', () => ({
     useNotifications: () => ({
         oneSignalInitialized: true,

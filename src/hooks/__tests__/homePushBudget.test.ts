@@ -3,8 +3,8 @@ import { act, render, renderHook, screen, waitFor } from '@testing-library/react
 
 // pins the pre-prompt rules: which money moment may ask (TASK-23251), and the
 // Home fallback's dismissal logic (TASK-21145 / PR #2591) — legacy
-// `notifModalClosed` bool, `notifModalClosedAt` timestamp, and the
-// flag-conditional 14-day snooze.
+// `notifModalClosed` bool, `notifModalClosedAt` timestamp, and the 14-day
+// snooze.
 //
 // the hook keeps its state in a module-level store (init runs once per page),
 // so tests share one module instance; resetPushPromptForTests() starts a fresh
@@ -46,8 +46,6 @@ jest.mock('@/utils/general.utils', () => ({
         mockUpdateUserPreferences(userId, partial),
 }))
 
-const mockIsPwaSunsetOn = jest.fn(() => false)
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
 let mockInterruptOpen = false
 jest.mock('@/features/attention/interruptState', () => ({ isAttentionInterruptOpen: () => mockInterruptOpen }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
@@ -61,7 +59,6 @@ jest.mock('@/features/attention/AttentionProvider', () => ({
     useAttention: () => ({ holdPushPrompt: jest.fn(), state: { userId: mockUserId } }),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 // renders the copy keys, so a test can read which promise the prompt makes
 jest.mock('@/components/Global/ActionModal', () => ({

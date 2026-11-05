@@ -6,7 +6,6 @@ import { AskShell } from '@/features/attention/AskShell'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
@@ -29,9 +28,6 @@ export default function SetupNotificationsModal() {
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState(false)
     const tCommon = useTranslations('common')
-    // migration-era copy ("Get money alerts") only ships when the pwa-sunset
-    // flag is on — flag off keeps today's prompt byte-for-byte (TASK-20771)
-    const migrationOn = useMigrationFlag()
     const {
         showPermissionModal,
         promptTrigger,
@@ -94,7 +90,6 @@ export default function SetupNotificationsModal() {
             onClose={handleCloseNotifsSetupModal}
             isRequestingPermission={isRequestingPermission || saving}
             error={saveError ? tCommon('somethingWentWrong') : undefined}
-            migrationOn={migrationOn}
         />
     )
 }
@@ -106,7 +101,6 @@ export function SetupNotificationsPrompt({
     onAllow,
     onClose,
     isRequestingPermission = false,
-    migrationOn = false,
     presentation = 'modal',
     error,
 }: {
@@ -115,7 +109,6 @@ export function SetupNotificationsPrompt({
     onAllow: (event?: React.MouseEvent) => void
     onClose: (event?: React.MouseEvent) => void
     isRequestingPermission?: boolean
-    migrationOn?: boolean
     presentation?: InterruptPresentation
     error?: string
 }) {
@@ -127,12 +120,8 @@ export function SetupNotificationsPrompt({
                 presentation={presentation}
                 visible={visible}
                 onClose={onClose}
-                title={momentCopy ? t(momentCopy.title) : t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
-                description={
-                    momentCopy
-                        ? t(momentCopy.description)
-                        : t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')
-                }
+                title={momentCopy ? t(momentCopy.title) : t('migrationSetupTitle')}
+                description={momentCopy ? t(momentCopy.description) : t('migrationSetupDescription')}
                 body={
                     <>
                         <PeanutMascotScene scene="paper-planes" className="h-40 max-w-48" />

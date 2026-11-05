@@ -58,11 +58,12 @@ jest.mock('@/context/authContext', () => ({
         user: {
             user: { username: 'test' },
             capabilities: mockCapabilities,
-            identityVerification: { status: 'verified' },
+            identityVerification: mockIdentity,
         },
     }),
 }))
 let mockCapabilities: unknown = undefined
+let mockIdentity: Record<string, unknown> = { status: 'verified' }
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: mockCapabilities }) }))
 jest.mock('@/hooks/useSumsubReloadResume', () => ({ useSumsubReloadResume: jest.fn() }))
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))
@@ -948,5 +949,41 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
         expect(result.current.tosError).toBeNull()
         expect(mockConfirm).not.toHaveBeenCalled()
         expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+})
+
+describe('useMultiPhaseKycFlow — a final rejection (H9)', () => {
+    afterEach(() => {
+        mockIdentity = { status: 'verified' }
+    })
+
+    it('asks the user to contact support instead of starting a verification', async () => {
+        mockIdentity = { status: 'failed', canRetry: false }
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+
+        let opened: unknown
+        await act(async () => {
+            opened = await result.current.handleInitiateKyc('ROW')
+        })
+
+        expect(opened).toBe(false)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(result.current.showVerificationReview).toBe(true)
+        act(() => result.current.dismissVerificationReview())
+        expect(result.current.showVerificationReview).toBe(false)
+    })
+
+    it('a check that broke on our side still starts the verification', async () => {
+        mockIdentity = { status: 'failed', canRetry: true }
+        mockInitiate.mockResolvedValue({ error: 'unavailable' } as never)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+
+        expect(mockInitiate).toHaveBeenCalled()
+        expect(result.current.showVerificationReview).toBe(false)
+        expect(result.current.blockIfFinal()).toBe(false)
     })
 })

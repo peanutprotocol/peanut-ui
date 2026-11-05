@@ -10,7 +10,6 @@ let cardFoldDisabled = false
 jest.mock('@/hooks/useFeatureFlag', () => ({
     useFeatureFlags: () => () => cardFoldDisabled,
 }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 // No AuthProvider mock: the home renders with none above it, as these folds must survive.
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => () => false }))
 jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowed: () => false }))
@@ -38,7 +37,7 @@ function renderHome(locale: Locale = 'en') {
             strings={landingStrings(getTranslations(locale))}
             contentHrefs={EN_LANDING_CONTENT_HREFS}
             faqItems={FAQ_ITEMS}
-            closeCta={{ label: 'Sign up', href: '/setup' }}
+            closeCta={{ label: 'Sign up' }}
         />
     )
 }
@@ -113,11 +112,11 @@ describe('HomeFolds', () => {
         expect(schemas[0].mainEntity).toHaveLength(FAQ_ITEMS.length)
     })
 
-    it('repeats the hero CTA in the close', () => {
+    it('repeats the hero CTA label in the close, leading to the app', () => {
         const { container } = renderHome()
         const close = container.querySelector('#home-close a')
         expect(close).toHaveTextContent('Sign up')
-        expect(close).toHaveAttribute('href', '/setup')
+        expect(close).toHaveAttribute('href', '/app')
     })
 
     it('keeps every art link (out of the tab order) hidden from assistive tech', () => {
@@ -166,6 +165,6 @@ describe('HomeFolds', () => {
         expect(controlColumn.querySelectorAll('a')).toHaveLength(2)
         // The account art still opens the app; the new text link adds the feature explainer.
         const accountHrefs = Array.from(container.querySelectorAll('#home-get-paid a'), (a) => a.getAttribute('href'))
-        expect(accountHrefs).toContain('/setup?redirect_uri=%2Fadd-money%3Fmethod%3Dbank')
+        expect(accountHrefs).toContain('/app')
     })
 })

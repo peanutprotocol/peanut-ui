@@ -84,8 +84,6 @@ jest.mock('@/hooks/useNotifications', () => ({
     }),
 }))
 
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
-
 jest.mock('@/hooks/useZeroDevFlow', () => ({ useZeroDevFlow: () => ({ isKernelClientReady: true }) }))
 const mockGrant = jest.fn<Promise<{ ok: boolean; overviewFresh?: boolean }>, []>()
 let mockLastError: GrantSessionKeyError | null = null

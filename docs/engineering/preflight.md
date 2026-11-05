@@ -177,7 +177,6 @@ Server ownership checks remain the final race boundary; mocked client tests do n
 - Diagnostic check: inspect `executeSql`, `initMigrationsTable`, `listAppliedMigrations`, `main` and `appendToDebugLogFile` in locked Wrangler 4.40.2. A thrown JSON ledger query leaves console level at error while some API error handlers use log. Preserve non-debug private-log messages through sanitization; never dump debug HTTP records or raw credentials. The original remote error remains unknown.
 - Regression: publish-failures.test.mjs, deploy-operation.test.mjs and workflow-policy.test.mjs cover exact closed/current captures, invalid/open failures, bounded redacted stdout/stderr/private logs, status, budgets and skip propagation. A harmless counterexample is a dev push with current captures: publisher provenance still verifies it. Additive migration replay is separately checked in local SQLite; it cannot establish remote D1 state.
 
-
 ## Attention catalogue and partial facts (2026-11-03)
 
 - Trigger: a truncated live catalogue silently mixes server and bundled policy; unavailable spend history becomes “no previous spend”; server-only onboarding unknown hides a locally known checklist. Review of UI PR3667/API PR1838 reproduced all three.
@@ -186,3 +185,10 @@ Server ownership checks remain the final race boundary; mocked client tests do n
 - Counterexample: a successful full-history read with no spend may legitimately recommend payment; a known local card path can resolve server-only unknowns. Neither permits treating failed history as empty.
 - Regression: catalogue.acceptance.test.ts reproduces malformed/truncated policy, local checklist fallback, independent QR-success/spend-failure and bounded private-data-free explanations. Independent ledger/engine tests cover long versions and device restrictions. Provider/push tests cover account changes and failed preference saves; announcement tests preserve overlay yield/resume without another budget debit.
 - Evidence boundary: local mocked checks cannot prove live push delivery, passkey approval, provider behavior or deployed rules. Required hosted CI remains the merge boundary.
+
+# Post-KYC setup completion (L8, 2026-11-05)
+
+- Trigger: an approved identity has an ARS questions action or an explicit provider-review wait. Treating every unavailable account as active provisioning produced a 30-second timeout for a state that needs a person or provider.
+- Search: `rg -n 'allSettled|requirements_in_review|setModalPhase|onKycSuccess' src/hooks/useMultiPhaseKycFlow.ts`. Inspect the fresh, reactive, no-SDK and legacy-session branches and the money-form callers.
+- Counterexample: a plain `setting_up` account without a wait action is still provisioning; a missing feature report is unknown. Neither can complete as a usable rail. A review in another country cannot authorize the requested account.
+- Regression evidence: `useMultiPhaseKycFlow.regionReadiness.test.ts` covers action/review completion, failed refresh, delayed responses, country isolation and idempotent callbacks. Explicit provider waits finish the setup UI without invoking money callbacks. Source inspection and failing regressions also found unrelated supplement review and late terms confirmation crossing the completion boundary.

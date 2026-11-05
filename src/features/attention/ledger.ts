@@ -1,7 +1,6 @@
 import { getUserPreferences, updateUserPreferences, type UserPreferences } from '@/utils/general.utils'
 import { normalizeVersion } from './version'
 import { DOWNLOAD_PROMPT_SNOOZE_DAYS, NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
-import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { scheduleLedgerSync } from './ledgerSync'
 import type { AskId, Ledger, LedgerEntry, Surface } from './types'
 
@@ -99,10 +98,10 @@ export function legacyEntries(userId: string, prefs: UserPreferences | undefined
           ? new Date(0).toISOString()
           : undefined
     if (pushClosedAt) {
-        // flag off: the old prompt closed forever; flag on: a snooze
-        out['push-home-fallback'] = isPwaSunsetOn()
-            ? { snoozedUntil: addDays(pushClosedAt, NOTIF_PROMPT_SNOOZE_DAYS), updatedAt: pushClosedAt }
-            : { dismissedAt: pushClosedAt, updatedAt: pushClosedAt }
+        out['push-home-fallback'] = {
+            snoozedUntil: addDays(pushClosedAt, NOTIF_PROMPT_SNOOZE_DAYS),
+            updatedAt: pushClosedAt,
+        }
     }
     const hidden = prefs?.dismissedCarouselCTAs
     const hiddenIds = Array.isArray(hidden) ? hidden : Object.keys(hidden ?? {})

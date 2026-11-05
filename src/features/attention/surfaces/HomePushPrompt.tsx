@@ -7,13 +7,11 @@ import { notificationsApi } from '@/services/notifications'
 import { useAttention } from '../AttentionProvider'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useNotifications, markPushPromptShownThisSession } from '@/hooks/useNotifications'
 import type { AskSurfaceProps } from '../types'
 
 /** The context-free Home push ask, for users no money moment has reached. */
 export default function HomePushPrompt({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
-    const migrationOn = useMigrationFlag()
     const { holdPushPrompt, state } = useAttention()
     const captureSession = useSessionFence()
     const [saving, setSaving] = useState(false)
@@ -78,7 +76,6 @@ export default function HomePushPrompt({ onActed, onSnoozed, presentation }: Ask
             }}
             isRequestingPermission={isRequestingPermission || saving}
             error={saveError ? tCommon('somethingWentWrong') : undefined}
-            migrationOn={migrationOn}
         />
     )
 }

@@ -119,17 +119,15 @@ export default function TitleBlockPage() {
                     description="A screen hero: size s, centered, and the title is an <h1> so the page keeps one real heading. The block only sets the type token — the element stays the caller's choice."
                     code={`<TitleBlock
     title={<h1>{t('onListTitle')}</h1>}
-    description={
-        data.position === null ? t('onListBodyPending') : t('onListBody', { position: data.position.toLocaleString() })
-    }
+    description={t('onListBody')}
     align="center"
     size="s"
 />`}
                 >
                     <div className="flex flex-col gap-6">
                         <TitleBlock
-                            title={<h1>You are on the list</h1>}
-                            description="You are number 1,284. We will tell you when your card is ready to order."
+                            title={<h1>You're on the waiting list</h1>}
+                            description="We'll tell you as soon as you can order it."
                             align="center"
                             size="s"
                         />

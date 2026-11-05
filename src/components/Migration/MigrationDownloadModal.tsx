@@ -9,9 +9,9 @@ import type { AskSurfaceProps } from '@/features/attention/types'
 
 /**
  * Post-login "The Peanut app is here" prompt (TASK-20826), shown on the web
- * app while the pwa-sunset flag is on. Whether it shows is the attention
- * manager's call (the `install-app` ask); the web app stays available, so the
- * prompt has no deadline and "Maybe later" snoozes it through the manager.
+ * app. Whether it shows is the attention manager's call (the `install-app`
+ * ask); the web app stays available, so the prompt has no deadline and
+ * "Maybe later" snoozes it through the manager.
  */
 export default function MigrationDownloadModal({ onSnoozed, onAction, presentation }: AskSurfaceProps) {
     const t = useTranslations('migration')

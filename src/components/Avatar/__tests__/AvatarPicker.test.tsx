@@ -233,11 +233,11 @@ describe('AvatarPicker', () => {
         }
     )
 
-    it('gives simultaneously visible wink artworks distinct Spanish names', () => {
-        mockBadgeParam = 'BETA_TESTER'
-        mockUser.user.avatarKey = 'badge.CARD_FIRST_SWIPE.wink'
+    it('gives simultaneously visible same-slug artworks distinct Spanish names', () => {
+        mockBadgeParam = 'CARD_ALPHA'
+        mockUser.user.avatarKey = 'badge.CARD_FIRST_SWIPE.card'
         mockUser.user.badges = [
-            { code: 'BETA_TESTER', name: 'Beta Tester' },
+            { code: 'CARD_ALPHA', name: 'Card Alpha' },
             { code: 'CARD_FIRST_SWIPE', name: 'First Swipe' },
         ]
         ;(Math.random as jest.Mock).mockReturnValue(0.99)
@@ -248,10 +248,10 @@ describe('AvatarPicker', () => {
             </NextIntlClientProvider>
         )
 
-        const visibleWinks = tiles().filter((el) => el.textContent?.includes('Guiño'))
-        expect(visibleWinks).toHaveLength(2)
-        expect(visibleWinks.some((el) => el.textContent?.includes('Guiño beta'))).toBe(true)
-        expect(visibleWinks.some((el) => el.textContent?.includes('Guiño del primer swipe'))).toBe(true)
+        const visibleCards = tiles().filter((el) => el.textContent?.includes('Tarjeta'))
+        expect(visibleCards).toHaveLength(2)
+        expect(visibleCards.some((el) => el.textContent?.includes('Tarjeta alfa'))).toBe(true)
+        expect(visibleCards.some((el) => el.textContent?.includes('Tarjeta del primer swipe'))).toBe(true)
     })
 
     it('deals an earned avatar, tagged, to a user who holds a badge — and none to one who does not', () => {
@@ -300,7 +300,7 @@ describe('AvatarPicker', () => {
         ]
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
-        expect(tile(/Coin/)).toHaveTextContent('OG')
+        expect(tile(/OG Link/)).toHaveTextContent('OG')
     })
 
     it('deals again when a cold-load deep link resolves its user', () => {
@@ -321,7 +321,7 @@ describe('AvatarPicker', () => {
         rerender(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         // no tap needed: the hand is dealt again the moment the user lands
-        expect(tile(/Coin/)).toHaveTextContent('OG')
+        expect(tile(/OG Link/)).toHaveTextContent('OG')
         expect(tiles()[0]).toHaveTextContent('Just S')
     })
 
@@ -517,23 +517,25 @@ describe('AvatarPicker', () => {
     })
 
     it('restores the saved badge to the hand when a save fails after a roll', async () => {
-        mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
+        mockUser.user.avatarKey = 'badge.OFFRAMP_USER.bolt'
+        mockUser.user.badges = [...mockUser.user.badges, { code: 'OFFRAMP_USER', name: 'Offramp User' }]
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 
         fireEvent.click(tile(A))
         fireEvent.click(die())
-        expect(screen.queryByRole('radio', { name: /Shell/ })).not.toBeInTheDocument()
+        expect(screen.queryByRole('radio', { name: /Offramp Bolt/ })).not.toBeInTheDocument()
 
         await server.settle(0, { error: 'Could not save' })
 
-        await waitFor(() => expect(tile(/Shell/)).toHaveAttribute('aria-checked', 'true'))
+        await waitFor(() => expect(tile(/Offramp Bolt/)).toHaveAttribute('aria-checked', 'true'))
         expect(tiles()).toHaveLength(8)
         expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }))
     })
 
     it('keeps the dealt hand when a save succeeds after a roll', async () => {
-        mockUser.user.avatarKey = 'badge.BUG_WHISPERER.shell'
+        mockUser.user.avatarKey = 'badge.OFFRAMP_USER.bolt'
+        mockUser.user.badges = [...mockUser.user.badges, { code: 'OFFRAMP_USER', name: 'Offramp User' }]
         const server = fakeServer()
         renderWithIntl(<AvatarPicker open onOpenChange={jest.fn()} />)
 

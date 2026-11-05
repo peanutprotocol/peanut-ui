@@ -49,8 +49,6 @@ jest.mock('@/utils/general.utils', () => ({
         mockUpdateUserPreferences(userId, partial),
 }))
 
-const mockIsPwaSunsetOn = jest.fn(() => false)
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
 let mockInterruptOpen = false
 jest.mock('@/features/attention/interruptState', () => ({ isAttentionInterruptOpen: () => mockInterruptOpen }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
@@ -60,7 +58,6 @@ jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 // renders the copy keys, so a test can read which promise the prompt makes
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -129,7 +126,6 @@ describe('useNotifications dismissal / snooze logic', () => {
         resetLedgerMemoryForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
-        mockIsPwaSunsetOn.mockReturnValue(false)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')
@@ -223,7 +219,6 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         mockPrefs = undefined
         mockUserId = 'user-1'
         mockInterruptOpen = false
-        mockIsPwaSunsetOn.mockReturnValue(true)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')

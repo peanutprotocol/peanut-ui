@@ -219,6 +219,7 @@ export function useCardFlow() {
     })
     const startFlowAction = kycFlow.handleStartAction
     const restartIdentity = kycFlow.handleRestartIdentity
+    const blockIfFinal = kycFlow.blockIfFinal
 
     // Proof-of-address self-heal — a dedicated, deliberately tiny flow. The
     // multi-phase KYC machinery (useMultiPhaseKycFlow) is bank-onboarding
@@ -380,6 +381,7 @@ export function useCardFlow() {
             // MAIN level — Sumsub asks only for the missing step. Same
             // wrapper handles both action and main-level tokens.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
+                if (blockIfFinal()) return
                 setSumsubToken(res.sumsubAccessToken)
                 posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                 return
@@ -448,7 +450,7 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo, startFlowAction, setPlanRefusal, fetchUser]
+        [invalidateOverview, refetchCardInfo, startFlowAction, setPlanRefusal, fetchUser, blockIfFinal]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).
@@ -492,6 +494,7 @@ export function useCardFlow() {
                 // screen via the default overview-invalidate arm.
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setPendingCountryConfirmation(null)
+                    if (blockIfFinal()) return
                     setSumsubToken(res.sumsubAccessToken)
                     posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                     return
@@ -505,7 +508,7 @@ export function useCardFlow() {
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, userId, connectedAddress, t, activation.activate]
+        [advanceFromApplyResponse, userId, connectedAddress, t, activation.activate, blockIfFinal]
     )
 
     // Returns the response only when the application went through to a state
@@ -554,6 +557,7 @@ export function useCardFlow() {
                     }
                     posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                     if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                        if (blockIfFinal()) return undefined
                         setSumsubToken(res.sumsubAccessToken)
                         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                         return undefined
@@ -587,6 +591,7 @@ export function useCardFlow() {
             router,
             activation.activate,
             user?.identityVerification?.oneShot,
+            blockIfFinal,
         ]
     )
 
@@ -818,6 +823,7 @@ export function useCardFlow() {
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if (!sameIdentity(identityRef.current, startedFor)) return false
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
+            if (blockIfFinal()) return false
             setSumsubToken(res.sumsubAccessToken)
             posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
             return true

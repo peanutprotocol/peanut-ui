@@ -533,6 +533,9 @@ export const DEFERRED_LINK_OUTCOMES = {
     RESTORED: 'restored',
     NO_HANDOFF: 'no_handoff',
     MARKER_MISSING: 'marker_missing',
+    // An unmarked Play referrer carrying an ad campaign's utm tags: a store
+    // link that skipped the website. Only the campaign is restored.
+    UTM_REFERRER: 'utm_referrer',
     CLIPBOARD_UNAVAILABLE: 'clipboard_unavailable',
 } as const
 

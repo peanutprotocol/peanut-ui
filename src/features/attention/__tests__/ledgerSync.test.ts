@@ -3,7 +3,6 @@
  * user profile) merge per ask by `updatedAt`, and every local write is synced
  * back through one debounced `updateUserById` call.
  */
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@sentry/nextjs', () => ({ addBreadcrumb: jest.fn(), captureException: jest.fn() }))
 

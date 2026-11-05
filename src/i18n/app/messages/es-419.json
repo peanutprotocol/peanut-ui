@@ -945,7 +945,9 @@
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
             "signUp": "Regístrate",
-            "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?"
+            "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?",
+            "testBuild": "Versión de prueba",
+            "testSignUp": "Regístrate en la web"
         },
         "loginRecovery": {
             "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",
@@ -1076,6 +1078,8 @@
             "deviceState": "Hubo un problema con la passkey en este dispositivo. Reinicia la app e inténtalo de nuevo.",
             "interrupted": "Algo interrumpió la solicitud de la passkey. Inténtalo de nuevo.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
+            "accountDeleted": "Esta cuenta fue eliminada. Regístrate para crear una nueva.",
+            "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elige otro nombre de usuario para crear una nueva.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
             "learnMore": "Aprende más sobre las passkeys",
             "help": {
@@ -1987,13 +1991,18 @@
         },
         "physical": {
             "navTitle": "Tarjeta física",
-            "onListTitle": "¡Estás en la lista!",
-            "onListBody": "Eres el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "comingSoonTitle": "¡Próximamente!",
-            "comingSoonBody": "Únete a nuestra lista de espera y sé de los primeros en tenerla.",
+            "onListTitle": "Estás en la lista de espera",
+            "onListBody": "Te avisamos apenas puedas pedirla.",
+            "comingSoonTitle": "La tarjeta física está en camino",
+            "comingSoonBody": "Todavía no puedes pedirla. Así va a funcionar:",
             "joinCta": "Unirme a la lista de espera",
             "joinFailed": "No se pudo unir a la lista de espera",
-            "onListBodyPending": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse."
+            "stepJoin": "Únete hoy a la lista de espera",
+            "stepNotify": "Te avisamos cuando se pueda pedir",
+            "stepShip": "Pídela y te la enviamos",
+            "notAvailableBadge": "Aún no disponible",
+            "positionBadge": "Eres el #{position} en la lista",
+            "onListBadge": "Estás en la lista"
         },
         "yourCard": {
             "navTitle": "Tarjeta",
@@ -2197,7 +2206,6 @@
             "exchangeRate": "Tipo de cambio",
             "providerFees": "Comisiones del proveedor",
             "providerFeesInfo": "Manteca y la blockchain cobran una pequeña comisión por cada transacción. Esa comisión ya está incluida en el monto que ves.",
-            "flagAlt": "bandera",
             "shareTitle": "Datos de la transferencia bancaria",
             "shareDetails": "Compartir datos",
             "shareAmount": "Monto: {currency} {amount}",
@@ -2362,7 +2370,6 @@
             "selectBank": "Selecciona el banco",
             "redirecting": "Redirigiendo...",
             "exchangeRate": "Tipo de cambio",
-            "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
             "enterAccountDetails": "Ingresa los datos del banco o billetera",
             "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}",
@@ -3102,8 +3109,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "¿Activar las notificaciones?",
-        "setupDescription": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
         "migrationSetupTitle": "Recibe alertas de dinero",
         "migrationSetupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
         "enable": "Activar notificaciones",
@@ -3140,8 +3145,8 @@
         "resubmitVerification": "Volver a enviar la verificación",
         "retryVerification": "Reintentar la verificación",
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Envía los datos solicitados para continuar.",
-        "terminalDescription": "Tu verificación no se puede reintentar. Contacta a soporte para recibir ayuda.",
-        "failedTitleTerminal": "La verificación no se completó",
+        "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escríbenos y te ayudaremos a partir de ahí. Tus fondos siguen en tu cuenta.",
+        "failedTitleTerminal": "Tu cuenta necesita una revisión",
         "failedTitleRetry": "Intentémoslo de nuevo",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Puedes intentarlo otra vez.",
         "actionRequiredTitle": "Un paso más",
@@ -3210,6 +3215,11 @@
             "preparingConfiguringDescription": "Configurando tus regiones...",
             "preparingSlowTitle": "Ya casi",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
+            "accountReadyTitle": "Tu cuenta está lista",
+            "accountReadyAction": "{currencies} {count, plural, one {necesita} other {necesitan}} un paso más.",
+            "accountReadyReview": "{currencies} {count, plural, one {sigue} other {siguen}} en revisión. Te avisaremos cuando esté listo.",
+            "accountReadyActionGeneric": "Tus cuentas bancarias necesitan un paso más.",
+            "accountReadyReviewGeneric": "Tus cuentas bancarias siguen en revisión. Te avisaremos cuando estén listas.",
             "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse.",
             "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Puedes cerrar esto y te avisaremos cuando haya una decisión.",
@@ -4279,10 +4289,10 @@
             "descriptionNoRewards": "Comparte tu enlace para que tus amigos se unan a ti en Peanut."
         },
         "confirmInviteModal": {
-            "title": "¿Crear tu billetera de Peanut?",
-            "description": "Crea una billetera para que esta referencia quede vinculada a tu cuenta. Si usas {method}, continuarás sin registrarte.",
-            "joinCta": "Crear billetera",
-            "continueWithMethod": "Continuar con {method}"
+            "title": "{username} te invitó a Peanut",
+            "description": "Regístrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usas Peanut. También puedes reclamarlo en {method} sin una cuenta.",
+            "joinCta": "Regístrate y reclama",
+            "claimWithoutSignup": "Reclamar sin registrarte"
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",
@@ -4791,84 +4801,52 @@
         "initialName": "Solo {letter}",
         "badge": {
             "ARBIVERSE_DEVCONNECT_BA_2025": {
-                "crystal": "Cristal de Arbiverse",
-                "hex": "Hexágono de Arbiverse",
-                "cheer": "Celebración de Arbiverse"
+                "hex": "Hexágono de Arbiverse"
             },
             "BETA_TESTER": {
-                "flask": "Matraz de beta",
-                "bubble": "Burbuja de beta",
-                "wink": "Guiño beta"
+                "flask": "Matraz de beta"
             },
             "BUG_WHISPERER": {
-                "beetle": "Escarabajo de bugs",
-                "shell": "Concha de bugs",
-                "peek": "Mirada de bugs"
+                "beetle": "Escarabajo de bugs"
             },
             "CARD_ALPHA": {
-                "card": "Carta alfa",
-                "swipe": "Deslizada alfa",
-                "tape": "Cinta alfa"
+                "card": "Tarjeta alfa"
             },
             "CARD_FIRST_SWIPE": {
-                "card": "Carta del primer swipe",
-                "chip": "Chip del primer swipe",
-                "wink": "Guiño del primer swipe"
+                "card": "Tarjeta del primer swipe"
             },
             "CARD_SPENT_1K": {
-                "stack": "Pila del gastador",
-                "note": "Nota del gastador",
-                "cheer": "Celebración del gastador"
+                "stack": "Pila del gastador"
             },
             "DEVCONNECT_BA_2025": {
-                "sun": "Sol de Devconnect",
-                "rise": "Amanecer de Devconnect",
-                "wink": "Guiño de Devconnect"
+                "sun": "Sol de Devconnect"
             },
             "ETHFLORIPA_HUB": {
-                "eth": "ETH de EthFloripa",
-                "island": "Isla de EthFloripa",
-                "palm": "Palmera de EthFloripa"
+                "eth": "ETH de EthFloripa"
             },
             "EVENT_ALUMNI": {
-                "cap": "Gorra de alumni",
-                "board": "Pizarra de alumni",
-                "wink": "Guiño de alumni"
+                "cap": "Gorra de alumni"
             },
             "IRL_NOMADS": {
-                "pack": "Mochila nómada",
-                "roll": "Rollo nómada",
-                "pocket": "Bolsillo nómada"
+                "pack": "Mochila nómada"
             },
             "NAIJA": {
-                "flag": "Bandera de Naija",
-                "wave": "Ola de Naija",
-                "wink": "Guiño de Naija"
+                "flag": "Bandera de Naija"
             },
             "NITA": {
-                "letter": "Carta de NITA",
-                "sparkle": "Destello de NITA",
-                "wink": "Guiño de NITA"
+                "letter": "Carta de NITA"
             },
             "OFFRAMP_USER": {
-                "bolt": "Rayo de offramp",
-                "spark": "Destello de offramp",
-                "wink": "Guiño de offramp"
+                "bolt": "Rayo de offramp"
             },
             "OG_2025_10_12": {
-                "coin": "Moneda OG",
-                "link": "Enlace OG",
-                "shades": "Gafas OG"
+                "link": "Enlace OG"
             },
             "SHHHHH": {
-                "lips": "Labios secretos",
-                "shush": "Shhh secreto",
-                "wink": "Guiño secreto"
+                "shush": "Shhh secreto"
             },
             "WAITLIST_SKIP": {
-                "key": "Llave de la lista",
-                "keyhole": "Cerradura de la lista",
-                "wink": "Guiño de la lista"
+                "key": "Llave de la lista"
             }
         },
         "cast": {

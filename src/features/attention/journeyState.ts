@@ -18,7 +18,6 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -38,6 +37,7 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import { pointsApi } from '@/services/points'
 import type { HistoryEntry } from '@/utils/history.utils'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { downloadPromptAllowedByFixture } from '@/dev/fixtures/active'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { verifyRowStatus } from '@/utils/activation-step.utils'
 import { showVerifyCTA } from '@/utils/home-carousel.utils'
@@ -364,7 +364,7 @@ export function useJourneyState(): JourneyState {
     )
     const { cardInfo, isEligible: isCardEligible, isLoading: cardInfoLoading, error: cardInfoError } = useCardInfo()
     const { balance } = useWallet()
-    const migrationOn = useMigrationFlag()
+    const migrationOn = useHydrationSnapshot(downloadPromptAllowedByFixture, () => false)
     const {
         oneSignalInitialized,
         isPermissionGranted,

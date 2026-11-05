@@ -200,6 +200,7 @@ export interface JourneyState {
     postAuthRedirect: boolean
     postAuthRedirectDestination: string | null
     balance: { loaded: boolean; usd: number }
+    /** the web download prompt may show here: off under any dev fixture but its own */
     migration: { on: boolean }
     push: {
         ready: boolean
