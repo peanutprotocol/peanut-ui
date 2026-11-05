@@ -19,6 +19,7 @@ import { useKycControl } from '@/features/paperwork-verification/analytics'
 export const SumsubWebSdkModal = ({
     visible,
     sessionKey,
+    validationError,
     accessToken,
     documentConfig,
     email,
@@ -89,6 +90,11 @@ export const SumsubWebSdkModal = ({
                             }}
                             onClose={handleCloseButton}
                         />
+                        {validationError && (
+                            <p role="alert" className="px-4 py-2 text-body-s text-foreground-primary">
+                                {validationError}
+                            </p>
+                        )}
                         <div className="relative w-full flex-1">
                             {/* sits behind the SDK iframe — covered once it paints */}
                             <div className="absolute inset-0 flex items-center justify-center">

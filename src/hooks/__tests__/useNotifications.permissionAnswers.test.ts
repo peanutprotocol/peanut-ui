@@ -25,7 +25,8 @@ const mockAdapter = {
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+// OneSignal starts only for a signed-in user
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-a' } } }) }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))
 jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => false }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))

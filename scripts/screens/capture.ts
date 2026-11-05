@@ -26,6 +26,7 @@ import {
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
+import { waitForFixtureReady } from './fixture-readiness.mjs'
 
 async function main() {
     const arg = (name: string, fallback = '') =>
@@ -462,6 +463,7 @@ async function main() {
                         `${error.message}\nIn flight: ${[...inFlight.values()].join(', ') || 'none'}\nUnmapped: ${[...unknown].join(', ') || 'none'}`
                     )
                 })
+                await waitForFixtureReady(page, screen.waitFor)
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {

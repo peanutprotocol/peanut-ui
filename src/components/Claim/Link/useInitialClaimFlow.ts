@@ -21,7 +21,7 @@ import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { apiFetch } from '@/utils/api-fetch'
 import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import { NATIVE_TOKEN_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
+import { NATIVE_TOKEN_ADDRESS, checkTokenSupportsXChain, getTokenSymbol } from '@/utils/token.utils'
 import * as Sentry from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -38,7 +38,8 @@ import { type ClaimXChainPreview } from '../Claim.consts'
 import { previewSdaTransfer } from '@/services/rhino-sda'
 import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
-import { getTokenSymbol, getChainName } from '@/utils/general.utils'
+import { getChainName } from '@/utils/general.utils'
+import { loadChainRegistry } from '@/utils/chain-registry'
 import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -358,6 +359,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
                         amountUsd: hasUsdAmount ? claimUsdAmount : null,
                     })
                     if (belowMin) {
+                        // The network name comes from viem's chain registry, loaded on first use.
+                        if (claimToExternalWallet) await loadChainRegistry().catch(() => undefined)
                         const amount = formatFiniteDisplay(belowMin.minUsd, locale, {
                             style: 'currency',
                             currency: 'USD',

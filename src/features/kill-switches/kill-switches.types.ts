@@ -25,4 +25,6 @@ export interface KillSwitches {
     brazilServicesPaused: boolean
     /** Identity verification is down: every KYC entry point shows "temporarily down" instead of its CTA. */
     kycVerificationDown: boolean
+    /** Attention asks that never show (AskId values, or '*' for all of them); an open one closes. */
+    disabledAttentionAsks: string[]
 }

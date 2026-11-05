@@ -75,7 +75,7 @@ export async function UsEuAccountsLanding() {
                 knerdJoin="and"
                 // The audience first (product/icps.md: lead with the source of earnings, then the labels).
                 subtitle="For freelancers and remote workers paid from the US or Europe."
-                art={<UsEuAccountPair />}
+                art={<UsEuAccountPair priority />}
                 cta={
                     <StarLpCta qrPlacement="hero" ground="pink">
                         Open your accounts

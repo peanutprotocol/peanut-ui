@@ -137,14 +137,19 @@
             "welcomeTitleSpoken": "Welcome to Peanut!"
         },
         "fundingSetup": {
+            "updateTitle": "Card payments update",
+            "updateIntro": "We’re changing how the card payments are processed. From now on, your card will pay directly from your Peanut balance.",
+            "updateReturn": "Once the update is confirmed, {amount} on your card will return to your wallet.",
+            "updateApprove": "Approve the update with your passkey.",
             "title": "Finish setting up the card",
             "description": "One passkey tap to start using your card.",
-            "descriptionMigration": "Your card permission needs an update first. Confirm twice with your passkey: once to update, once for the new permission.",
             "descriptionPending": "Approval sent but not confirmed yet. Check the status shortly. Do not approve twice.",
-            "descriptionError": "We couldn't finish setting up your card. Try again, or skip for now. We'll ask again next time you open Home.",
-            "descriptionReturn": "When setup is confirmed, {amount} of card balance moves back to your wallet. This may take more than one passkey confirmation.",
+            "descriptionError": "We couldn't finish setting up your card. Try again, or skip for now. We'll ask again later.",
+            "descriptionUpdateError": "We couldn't finish the update. Try again, or skip for now. We'll ask again later.",
             "descriptionReadyReturn": "Your card is set up. Move {amount} of card balance to your wallet now, or later from the card screen.",
             "descriptionReturnRetry": "Your card is set up, but moving your card balance didn't finish. Try again now, or later from the card screen.",
+            "descriptionUpdateReadyReturn": "The update is done. Move {amount} of card balance to your wallet now, or later from the card screen.",
+            "descriptionUpdateReturnRetry": "The update is done, but moving your card balance didn't finish. Try again now, or later from the card screen.",
             "descriptionWithdrawalInFlight": "A card withdrawal is still confirming. Check again shortly, or skip for now.",
             "descriptionReturnPending": "Moving your card balance is not confirmed yet. Check again shortly, or skip for now.",
             "descriptionReturnWait": "Your card balance cannot move right now. Try later, or skip for now.",
@@ -182,7 +187,8 @@
             "notifications": {
                 "title": "Stay in the loop!",
                 "description": "Turn on notifications and get alerts for all your wallet activity.",
-                "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload."
+                "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload.",
+                "nativeBlockedToast": "Turn on notifications for Peanut in your device settings."
             },
             "qrPay": {
                 "title": "Pay with <b>QR code payments</b>",
@@ -194,7 +200,8 @@
             },
             "bugBounty": {
                 "title": "Help us improve and <b>get $5!</b>",
-                "description": "Be the first to report a bug. Get rewarded!"
+                "description": "Be the first to report a bug. Get rewarded!",
+                "supportPrefill": "I found a bug: "
             },
             "userInterview": {
                 "title": "Help shape Peanut",
@@ -219,11 +226,53 @@
                 },
                 "qrPay": {
                     "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>points</b>."
+                },
+                "rewards": {
+                    "title": "You have points waiting",
+                    "description": "Open Points to see what you have earned."
                 }
             },
             "card": {
                 "title": "Get the <b>Peanut Card</b>",
                 "description": "Spend your balance <b>anywhere Visa works</b>."
+            },
+            "virtualAccount": {
+                "title": "Open your bank account",
+                "description": "Get account details to receive bank transfers in your balance."
+            },
+            "nextPayment": {
+                "title": "Pay with Peanut again",
+                "descriptionQrOrCard": "Your balance is ready. Pay with a QR code or your Peanut card.",
+                "descriptionQr": "Your balance is ready. Scan a QR code to pay.",
+                "descriptionCard": "Your balance is ready. Pay with your Peanut card."
+            },
+            "shareBankDetails": {
+                "title": "Share your bank details",
+                "description": "Give your account details to an employer or client to get paid here."
+            },
+            "requestMoney": {
+                "title": "Request money",
+                "description": "Expecting a payment or splitting a cost? Send a request."
+            },
+            "sendMoney": {
+                "title": "Send money to a friend",
+                "description": "Pay anyone in seconds, straight from your balance."
+            },
+            "backupPasskey": {
+                "title": "Back up your passkey",
+                "description": "Turn on passkey sync so your account follows you to a new phone if you lose this one."
+            },
+            "addEmail": {
+                "title": "Add your email",
+                "description": "Get receipts and account alerts by email."
+            },
+            "rewards": {
+                "title": "You have rewards waiting",
+                "description": "Open Points to see what you have earned."
+            },
+            "completeProfile": {
+                "title": "Complete your profile",
+                "description": "Add your name so friends recognize you when you pay them."
             }
         },
         "pendingTasks": {
@@ -269,6 +318,17 @@
             "shareBankDetails": "Share bank details",
             "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
         },
+        "postVerification": {
+            "title": "Verification complete!",
+            "claim": {
+                "description": "Your identity has been successfully verified. You can now claim money directly to your bank account.",
+                "cta": "Claim to bank"
+            },
+            "request": {
+                "description": "Your identity has been successfully verified. You can now send the money your friend requested!",
+                "cta": "Send it!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Just landed in Argentina",
@@ -286,6 +346,9 @@
                 "cta": "View card"
             },
             "notNow": "Not now"
+        },
+        "attention": {
+            "label": "Next steps"
         }
     },
     "profile": {
@@ -495,7 +558,8 @@
                 "active": "Ready to use",
                 "notActive": "Not active yet",
                 "unavailable": "Unavailable"
-            }
+            },
+            "qrPayArgentinaNote": "Argentina"
         },
         "backup": {
             "title": "Backup",
@@ -1014,6 +1078,8 @@
             "notReady": "The app is still getting ready for passkeys. Wait a moment and try again.",
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
+            "settling": "The last passkey prompt is still closing. Wait a few seconds and try again.",
+            "stillOpen": "The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "accountDeleted": "This account was deleted. Sign up to create a new one.",
             "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
@@ -1084,6 +1150,7 @@
         },
         "testTransaction": {
             "confirmTitle": "One last step",
+            "finishLater": "Confirm later",
             "confirmAndFinish": "Confirm & finish",
             "retryAccountSetup": "Retry account setup",
             "errors": {
@@ -1092,7 +1159,9 @@
                 "userNotLoaded": "User data not loaded. Please refresh the page.",
                 "setupFailed": "Failed to complete account setup. Please try again by clicking the button below.",
                 "supportNeeded": "We're having trouble setting up your account. Our team has been notified. Please contact support for help.",
-                "passkeyProviderUnsupported": "The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device."
+                "passkeyProviderUnsupported": "The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device.",
+                "networkBusy": "The network is busy, so we couldn’t confirm the account yet. Try again in a moment.",
+                "confirmAgain": "That confirmation expired. Tap the button and confirm with the passkey again."
             }
         },
         "finish": {
@@ -1681,7 +1750,7 @@
             "signFailed": "We couldn't confirm this payment. You weren't charged. Please try again.",
             "preparationFailed": "Something went wrong. You weren't charged. Please try again.",
             "passkeyBusy": "Another confirmation is already open. Close it, then tap Pay again. You weren't charged.",
-            "passkeyRestart": "The last confirmation didn't finish closing. Restart the app, then tap Pay again. You weren't charged.",
+            "passkeyStillOpen": "The last confirmation is still open. Close any passkey window, then tap Pay again. If it keeps happening, close and reopen the app. You weren't charged.",
             "accountStateChanged": "Transaction failed due to account state change. Please try again. If the problem persists, contact support.",
             "sessionExpired": "Payment session expired. Please scan the QR code again.",
             "restartScan": "We couldn't start this payment. Please scan the QR code again.",
@@ -1696,7 +1765,9 @@
             "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
             "minTransferAmount": "Transfer amount must be at least ${amount}",
             "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
-            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again."
+            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again.",
+            "payerBlocked": "The payment provider has blocked your payer account for this payment. Use another payment method or contact support.",
+            "merchantBlocked": "The payment provider has blocked this merchant. Use another payment method or ask for a different merchant QR."
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -1943,9 +2014,11 @@
         },
         "yourCard": {
             "navTitle": "Card",
+            "completeVerification": "Complete verification",
             "addToGoogleWallet": "Add to Google Wallet",
             "addedToGoogleWallet": "Added to Google Wallet",
             "addToAppleWallet": "Add to Apple Wallet",
+            "addedToAppleWallet": "Added to Apple Wallet",
             "walletAddSuccess": "Card added to wallet",
             "walletAddFailed": "Couldn't add the card to your wallet. Please try again.",
             "cardNumberCopied": "Card number copied",
@@ -1954,7 +2027,7 @@
             "autoRenewTitle": "Card auto renews soon",
             "autoRenewBody": "Your card will automatically renew in {days, plural, one {# day} other {# days}}, expiration date will change.",
             "dismiss": "Dismiss",
-            "cardFundsCollateral": "You have {amount} in your card balance. You can move it to your Peanut wallet.",
+            "cardFundsCollateral": "Your card balance is {amount}. You can move it to your Peanut wallet.",
             "moveToWallet": "Move card balance to wallet",
             "movingToWallet": "Moving…",
             "moveFailed": "Couldn't finish moving your card balance. Check your balance, then try again.",
@@ -2768,9 +2841,8 @@
     },
     "history": {
         "title": "Activity",
-        "transactions": "Transactions",
-        "errorTitle": "Error loading transactions!",
-        "errorDescription": "Please contact support.",
+        "errorTitle": "Couldn’t load activity",
+        "errorDescription": "Check your connection and try again.",
         "empty": "No transactions yet",
         "loadingMore": "Loading more...",
         "today": "Today",
@@ -3203,8 +3275,9 @@
             "descriptionByDate": "Due {deadline}. Bank transfers keep working until then. Complete it from Home."
         },
         "progress": {
+            "submittedDescription": "We're reviewing your tax ID. You can close this; we'll notify you when bank transfers are ready.",
             "verifyingTitle": "Checking ID",
-            "verifyingDescription": "Checks usually come back fast. If a reviewer has to look at it, 1 to 3 business days. You can wait here, or close this and we will send you a notification.",
+            "verifyingDescription": "Most checks finish quickly. Manual reviews take 1–3 business days. You can close this; we'll notify you.",
             "preparingTimedOutTitle": "Taking longer than expected",
             "preparingTimedOutDescription": "You can continue and we'll notify you when it's ready.",
             "preparingTitle": "Setting up account",
@@ -3212,9 +3285,14 @@
             "preparingConfiguringDescription": "Configuring your regions...",
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
+            "accountReadyTitle": "Your account is ready",
+            "accountReadyAction": "{currencies} {count, plural, one {needs} other {need}} one more step.",
+            "accountReadyReview": "{currencies} {count, plural, one {is} other {are}} still under review. We’ll let you know when it’s ready.",
+            "accountReadyActionGeneric": "Your bank accounts need one more step.",
+            "accountReadyReviewGeneric": "Your bank accounts are still under review. We’ll let you know when they’re ready.",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
-            "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",
+            "verifyingStillGoing": "This check needs a closer look. You can close this; we'll notify you when there's a decision.",
             "closeAndNotify": "Close and notify me"
         },
         "wrapper": {
@@ -4340,14 +4418,14 @@
             "cancelCta": "Cancel & Return Funds"
         },
         "balanceWarningModal": {
-            "title": "High Balance",
+            "title": "High balance",
             "congrats": "You're rich! Congrats on having a high balance.",
             "goodToKnow": "Good to know",
             "selfCustody": "With Peanut, you're the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
             "passkey": "Your biometric passkey is your key to full control and security. If it's lost, it can't be recovered because only you ever have access.",
             "learnMore": "Learn how to keep your passkey secure on <link>{platform}</link>.",
             "yourDevice": "your device",
-            "slideToContinue": "Slide to Continue"
+            "slideToContinue": "Slide to continue"
         },
         "guestLoginModal": {
             "title": "Sign in with Peanut Wallet",
@@ -4657,7 +4735,8 @@
         "passkeyDeviceLocked": "Unlock the device, then try again.",
         "passkeyBiometryRequired": "Use Face ID or Touch ID to verify the passkey, then try again.",
         "passkeyVerificationIncomplete": "Passkey verification wasn’t completed. Try again when ready.",
-        "passkeyRestartRequired": "The last passkey request didn’t finish closing. Restart the app, then try again."
+        "passkeySettling": "The last passkey prompt is still closing. Wait a few seconds and try again.",
+        "passkeyStillOpen": "The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app."
     },
     "appLock": {
         "title": "Welcome back!",

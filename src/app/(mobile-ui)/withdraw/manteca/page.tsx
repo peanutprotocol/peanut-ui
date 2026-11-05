@@ -6,6 +6,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
 import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
+import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
@@ -15,6 +16,7 @@ export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
     const { disabledMantecaCurrencies } = useKillSwitches()
     const brazilPaused = useBrazilServicesPaused()
+    const pixPaused = useBrazilPixPaused()
     // Before the Pix delegation below: the pause stops Pix sends and BRL withdrawals alike.
     if (brazilPaused && searchParams.get('country') === 'brazil') return <BrazilPausedScreen />
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
@@ -25,6 +27,7 @@ export default function MantecaWithdrawFlow() {
     // through. All Brazil-PIX entry points funnel here, so this is the single
     // chokepoint that flips the endpoint without touching the AR / bank paths.
     if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
+        if (pixPaused) return <BrazilPausedScreen />
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }
     // Manteca provider outage — block the offramp only for currencies still

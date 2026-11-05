@@ -1,118 +1,98 @@
 /** @jest-environment jsdom */
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
-
-/**
- * MigrationDownloadModal — the web "The Peanut app is here" prompt.
- *
- * Gating contract: flag ON + logged-in web user + snooze expired. Flag OFF
- * must render nothing. The web app stays available, so there is no deadline.
- */
+jest.mock('@/features/attention/ledgerSync', () => ({ scheduleLedgerSync: jest.fn() }))
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { DOWNLOAD_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
-
-const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
-
-// the day the old date-based web shutdown went live by mistake: the prompt
-// must still show, with no deadline in its copy
-const DAY_MS = 24 * 60 * 60 * 1000
-const FROZEN_NOW = new Date('2026-10-09T12:00:00Z').getTime()
-
-let mockIsCapacitor = false
-jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => mockIsCapacitor,
-    // mobile-release's mascot picker calls this at module scope
-    isAndroidNative: () => false,
-    openExternalUrl: jest.fn(),
-}))
-
-jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1' } } }),
-}))
-
-const mockGetPrefs = jest.fn()
-const mockUpdatePrefs = jest.fn()
-jest.mock('@/utils/general.utils', () => ({
-    getUserPreferences: (...args: unknown[]) => mockGetPrefs(...args),
-    updateUserPreferences: (...args: unknown[]) => mockUpdatePrefs(...args),
-}))
-
-jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-
-let mockFixture: string | null = null
-jest.mock('@/dev/fixtures/active', () => ({
-    ...jest.requireActual('@/dev/fixtures/active'),
-    peekActiveFixture: () => mockFixture,
-}))
-
 import MigrationDownloadModal from '../MigrationDownloadModal'
+import { run } from '@/features/attention/__tests__/legacy-manager.fixture'
+import type { Ledger } from '@/features/attention/types'
+import { ledgerActions, readLedger, resetLedgerMemoryForTests } from '@/features/attention/ledger'
 
-let nowSpy: jest.SpyInstance<number, []>
+// The manager owns visibility and snooze. These scenarios follow the accepted
+// Attention policy in PR #3667, rather than the former self-opening component.
+const now = Date.parse('2026-10-12T12:00:00Z')
+const web = { isNative: false, migration: { on: true }, now } as const
+const props = () => ({
+    askId: 'install-app' as const,
+    presentation: 'modal' as const,
+    onActed: jest.fn(),
+    onDismissed: jest.fn(),
+    onSnoozed: jest.fn(),
+})
 beforeEach(() => {
-    jest.clearAllMocks()
-    mockIsCapacitor = false
-    mockFixture = null
-    mockGetPrefs.mockReturnValue(undefined)
-    nowSpy = jest.spyOn(Date, 'now').mockReturnValue(FROZEN_NOW)
+    window.localStorage.clear()
+    resetLedgerMemoryForTests()
 })
-afterEach(() => {
-    nowSpy.mockRestore()
-})
+function renderWhenPicked(patch: Parameters<typeof run>[0], ledger: Ledger = {}) {
+    const pick = run({ ...web, ...patch }, {}, ledger).interrupt
+    const surface = props()
+    const view = render(pick === 'install-app' ? <MigrationDownloadModal {...surface} /> : <></>, {
+        wrapper: IntlWrapper,
+    })
+    return { ...view, surface, pick }
+}
 
-describe('MigrationDownloadModal', () => {
+describe('MigrationDownloadModal under the attention manager', () => {
+    it('renders nothing where the prompt is off (another dev fixture is running)', () => {
+        renderWhenPicked({ migration: { on: false } })
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
     it('shows for a logged-in web user', () => {
-        render(<MigrationDownloadModal />)
+        renderWhenPicked({})
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
-
-    it('stays hidden under a fixture, so it does not cover the drawer the fixture shows', () => {
-        mockFixture = 'early-user'
-        render(<MigrationDownloadModal />)
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    })
-
-    it('shows under its own capture fixture', () => {
-        mockFixture = 'download-prompt'
-        render(<MigrationDownloadModal />)
-        expect(screen.getByRole('dialog')).toBeInTheDocument()
-    })
-
     it('stays hidden inside the native app', () => {
-        mockIsCapacitor = true
-        render(<MigrationDownloadModal />)
+        renderWhenPicked({ isNative: true })
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
-
-    it('stays hidden while a recent snooze is active, reappears after it expires', () => {
-        mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: new Date(FROZEN_NOW).toISOString() })
-        const { unmount } = render(<MigrationDownloadModal />)
+    it('stays hidden while a recent snooze is active, and reappears after it expires', () => {
+        const until = new Date(now + 86400000).toISOString()
+        const first = renderWhenPicked({}, { 'install-app': { snoozedUntil: until } })
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        unmount()
-
-        const justExpired = new Date(FROZEN_NOW - (DOWNLOAD_PROMPT_SNOOZE_DAYS + 1) * DAY_MS).toISOString()
-        mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: justExpired })
-        render(<MigrationDownloadModal />)
+        first.unmount()
+        renderWhenPicked({}, { 'install-app': { snoozedUntil: new Date(now - 1).toISOString() } })
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
-
     it('shows the app copy with no deadline', () => {
-        render(<MigrationDownloadModal />)
+        renderWhenPicked({})
         expect(screen.getByText('The Peanut app is here!')).toBeInTheDocument()
         expect(screen.queryByText(/\bdays?\b/i)).not.toBeInTheDocument()
     })
-
-    it('remind-me-later snoozes and reports visibility', async () => {
-        const onVisibilityChange = jest.fn()
-        render(<MigrationDownloadModal onVisibilityChange={onVisibilityChange} />)
-        expect(onVisibilityChange).toHaveBeenLastCalledWith(true)
-
+    it('remind-me-later reports a snooze to the manager and the snoozed prompt is hidden', () => {
+        const surface = props()
+        surface.onSnoozed.mockImplementation(() => ledgerActions.snoozed('user-a', 'install-app', now + 3 * 86400000))
+        const first = render(<MigrationDownloadModal {...surface} />, { wrapper: IntlWrapper })
         fireEvent.click(screen.getByRole('button', { name: /later/i }))
-        // headlessui keeps the closing dialog mounted through its leave transition
-        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-        expect(mockUpdatePrefs).toHaveBeenCalledWith('user-1', {
-            migrationPromptSnoozedAt: expect.any(String),
+        expect(surface.onSnoozed).toHaveBeenCalledTimes(1)
+        const ledger = readLedger('user-a')
+        expect(ledger['install-app']?.snoozedUntil).toBe(new Date(now + 3 * 86400000).toISOString())
+        first.unmount()
+        renderWhenPicked({}, ledger)
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+})
+
+describe('downloadPromptAllowedByFixture', () => {
+    const allowedUnder = (fixture: string | null) => {
+        window.sessionStorage.clear()
+        window.history.replaceState({}, '', fixture ? `/home?__fixture=${fixture}` : '/home')
+        let allowed: boolean | undefined
+        jest.isolateModules(() => {
+            jest.doMock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
+            allowed = require('@/dev/fixtures/active').downloadPromptAllowedByFixture()
         })
-        expect(onVisibilityChange).toHaveBeenLastCalledWith(false)
+        return allowed
+    }
+    afterEach(() => window.history.replaceState({}, '', '/'))
+
+    it('hides the prompt under another fixture, so it does not cover the drawer the fixture shows', () => {
+        expect(allowedUnder('early-user')).toBe(false)
+    })
+    it('shows the prompt under its own capture fixture', () => {
+        expect(allowedUnder('download-prompt')).toBe(true)
+    })
+    it('shows the prompt with no fixture', () => {
+        expect(allowedUnder(null)).toBe(true)
     })
 })

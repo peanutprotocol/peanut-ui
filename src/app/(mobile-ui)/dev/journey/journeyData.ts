@@ -134,7 +134,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Unlock QR code payments"',
         cta: { label: 'tap', dest: '/profile/accounts' },
         condition: '!hasKycApproval && !inFlight && card not eligible',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
+        sourceFile: 'src/features/attention/registry.ts',
         states: ['no-access'],
     },
     {
@@ -144,7 +144,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Pay with QR code payments"',
         cta: { label: 'tap', dest: 'QR scanner overlay' },
         condition: 'hasKycApproval && !hasMadeQrPayment',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
+        sourceFile: 'src/features/attention/registry.ts',
         states: ['kycd-no-card'],
     },
     {
@@ -154,7 +154,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Invite friends. Earn rewards"',
         cta: { label: 'tap', dest: '/rewards' },
         condition: '!latam && activated && !hasSentInvites',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
+        sourceFile: 'src/features/attention/registry.ts',
         states: ['card-active-unfunded', 'funded-no-spend', 'spent'],
     },
     {
@@ -164,7 +164,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Earn rewards on QR payments"',
         cta: { label: 'tap', dest: '/rewards' },
         condition: 'latam && activated && !hasSentInvites',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
+        sourceFile: 'src/features/attention/registry.ts',
         states: ['card-active-unfunded', 'funded-no-spend', 'spent'],
     },
     {
@@ -174,7 +174,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Help us improve and get $5!"',
         cta: { label: 'tap', dest: 'Crisp' },
         condition: 'activated && !SupportSurvivor badge',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
+        sourceFile: 'src/features/attention/registry.ts',
         states: ['card-active-unfunded', 'funded-no-spend', 'spent'],
     },
     {
@@ -184,7 +184,7 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         copy: '"Stay in the loop!"',
         cta: { label: 'tap', dest: 'push permission prompt' },
         condition: 'Native app without push permissions',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
+        sourceFile: 'src/features/attention/registry.ts',
         states: ['card-active-unfunded', 'funded-no-spend', 'spent'],
     },
     // ---------- 🏠 modals & celebrations ----------

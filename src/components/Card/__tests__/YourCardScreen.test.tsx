@@ -147,7 +147,7 @@ describe('YourCardScreen — collateral note', () => {
         render(<YourCardScreen overview={overview(10_000)} card={CARD} />)
         expect(screen.getByTestId('card-collateral')).toBeInTheDocument()
         expect(
-            screen.getByText('You have $100.00 in your card balance. You can move it to your Peanut wallet.')
+            screen.getByText('Your card balance is $100.00. You can move it to your Peanut wallet.')
         ).toBeInTheDocument()
         expect(screen.queryByText(/collateral|cannot use|available for card payments/i)).not.toBeInTheDocument()
     })

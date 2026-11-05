@@ -1,0 +1,2 @@
+/* Localized Info.plist values. The App Store lists a language only when the app bundle has an .lproj folder for it. */
+"CFBundleDisplayName" = "Peanut";

@@ -2,6 +2,10 @@
 
 # docs
 docs/PR.md
+# agent per-task plans, checklists and local gate configs; plans live in mono ops/plans
+docs/plans/
+docs/engineering/
+.codex/
 
 **.patch
 # pnpm patchedDependencies live in patches/ and must be committed
@@ -90,7 +94,10 @@ public/flags/
 
 # mobile — android/ is tracked (native app source code)
 # build artifacts are handled by android/.gitignore
-.claude/
+# Personal Claude Code state stays local; the team settings and their hooks are shared.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
 
 # AI tool worktrees
 .claude/worktrees/

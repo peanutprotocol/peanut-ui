@@ -171,6 +171,7 @@ export function useSumsubWebSdk({
 
         // declared outside try so cleanup can access it
         let iframeObserver: MutationObserver | null = null
+        let launchActive = true
 
         try {
             // track sdk init time so we can ignore stale onApplicantStatusChanged events
@@ -181,6 +182,7 @@ export function useSumsubWebSdk({
             const tracker = createSumsubSdkTracker('web')
 
             const handleSubmitted = () => {
+                if (!launchActive) return
                 console.log('[sumsub] onApplicantSubmitted fired')
                 const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
@@ -206,6 +208,7 @@ export function useSumsubWebSdk({
             // submission swallowed the retry's own REJECTED. Only the SDK's
             // duplicate twin event is collapsed.
             const handleResubmitted = () => {
+                if (!launchActive) return
                 console.log('[sumsub] onApplicantResubmitted fired')
                 hasSubmittedRef.current = true
                 if (isMultiLevelRef.current) {
@@ -223,6 +226,7 @@ export function useSumsubWebSdk({
             // signal and the close button would keep warning about
             // abandonment after a successful action submission.
             const handleActionSubmitted = () => {
+                if (!launchActive) return
                 console.log('[sumsub] action submitted fired')
                 const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
@@ -236,6 +240,7 @@ export function useSumsubWebSdk({
             // emits onApplicantActionSubmitted, which handleActionSubmitted
             // closes. See evaluateSumsubStatusEvent for the early-guard rules.
             const handleStatusEvent = (eventName: string) => (payload: SumsubStatusEventPayload) => {
+                if (!launchActive) return
                 console.log(`[sumsub] ${eventName} fired`, payload)
                 const evaluation = evaluateSumsubStatusEvent({
                     payload,
@@ -252,11 +257,13 @@ export function useSumsubWebSdk({
                 })
                 if (evaluation.autoClose) stableOnComplete()
             }
-            const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) =>
-                tracker.step(eventType, payload?.idDocSetType)
+            const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) => {
+                if (launchActive) tracker.step(eventType, payload?.idDocSetType)
+            }
             const handleStepInitiated = handleStep('StepInitiated')
             const trackStepCompleted = handleStep('StepCompleted')
             const handleStepCompleted = (payload?: { idDocSetType?: unknown }) => {
+                if (!launchActive) return
                 trackStepCompleted(payload)
                 if (payload?.idDocSetType === 'IDENTITY') onIdentityStepCompletedRef.current?.()
             }
@@ -264,7 +271,12 @@ export function useSumsubWebSdk({
             const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
 
             const sdk = window.snsWebSdk
-                .init(accessTokenRef.current!, stableOnRefreshToken)
+                .init(accessTokenRef.current!, async () => {
+                    if (!launchActive) throw new Error('Verification session changed')
+                    const token = await stableOnRefreshToken()
+                    if (!launchActive) throw new Error('Verification session changed')
+                    return token
+                })
                 .withConf({
                     lang: sumsubLocaleRef.current,
                     theme: 'light',
@@ -291,6 +303,7 @@ export function useSumsubWebSdk({
                 .on('idCheck.onStepInitiated', handleStepInitiated)
                 .on('idCheck.onStepCompleted', handleStepCompleted)
                 .on('onError', (error: unknown) => {
+                    if (!launchActive) return
                     Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_error' } })
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
@@ -325,6 +338,7 @@ export function useSumsubWebSdk({
                 existingIframe.allow = 'camera; microphone; fullscreen'
             }
         } catch (error) {
+            launchActive = false
             Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_init' } })
             console.error('[sumsub] failed to initialize sdk', error)
             // surface the error UI — without this the modal stays blank
@@ -336,6 +350,7 @@ export function useSumsubWebSdk({
         }
 
         return () => {
+            launchActive = false
             iframeObserver?.disconnect()
             if (sdkInstanceRef.current) {
                 try {

@@ -17,13 +17,15 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import {
-    HOME_FALLBACK_MIN_SESSION,
     PUSH_PROMPT_TRIGGERS,
     type PermissionRequestTrigger,
     type PushPromptTrigger,
 } from '@/constants/push-prompt.consts'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
+import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
+import { ledgerActions } from '@/features/attention/ledger'
+import { countSession } from '@/features/attention/sessionCount'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
@@ -58,6 +60,8 @@ interface NotificationsState {
     /** the moment that opened the pre-prompt; kept after it closes so the
      *  closing modal keeps its copy */
     promptTrigger: PushPromptTrigger | null
+    /** a money moment asked this session: the manager's Home ask stands down */
+    promptShownThisSession: boolean
     isRequestingPermission: boolean
 }
 
@@ -68,6 +72,7 @@ const INITIAL_STATE: NotificationsState = {
     oneSignalInitialized: false,
     showPermissionModal: false,
     promptTrigger: null,
+    promptShownThisSession: false,
     isRequestingPermission: false,
 }
 
@@ -95,11 +100,19 @@ export const getNotificationPermissionSnapshot = (): NotificationPermissionState
 const getServerSnapshot = () => INITIAL_STATE
 
 let currentExternalId: string | null | undefined
+let heldContextualPromptUser: string | null = null
+
+export function holdContextualPrompt(hold: boolean) {
+    heldContextualPromptUser = hold ? (currentExternalId ?? null) : null
+}
 let disableExternalIdLogin = false
 // A session is one app load. One pre-prompt per session at most, and the
 // session count gates the Home fallback.
 let promptShownThisSession = false
-const countedSessions = new Set<string>()
+export function markPushPromptShownThisSession(trigger?: PushPromptTrigger): void {
+    promptShownThisSession = true
+    setState({ promptShownThisSession: true, ...(trigger ? { promptTrigger: trigger } : {}) })
+}
 const startupPreferenceReads = new Map<string, ReturnType<typeof notificationsApi.getPreferences>>()
 const startupPermissionReported = new Set<string>()
 // moments that came before OneSignal init or the user id (a cold deep link
@@ -217,31 +230,20 @@ function isPushUnanswered({ permission, optedIn }: PushStatus): boolean {
 // hide the pre-prompt once push is answered
 async function evaluateVisibility() {
     if (!state.sdkReady || !state.oneSignalInitialized) return
+    const userId = currentExternalId
     const status = await readPushStatus()
-    if (!status) return
+    if (!status || currentExternalId !== userId) return
     setState({ isPushOptedIn: status.optedIn })
-    if (!isPushUnanswered(status)) setState({ showPermissionModal: false })
+    if (!isPushUnanswered(status) && (!heldContextualPromptUser || heldContextualPromptUser !== currentExternalId))
+        setState({ showPermissionModal: false })
 }
 
 const isWithinSnooze = (closedAt: string) => Date.now() - new Date(closedAt).getTime() < NOTIF_PROMPT_SNOOZE_MS
 
+// The context-free Home ask is the attention manager's (features/attention,
+// the `push-home-fallback` ask); this store only knows the money moments.
 function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
-    const userPreferences = getUserPreferences(userId)
-    if (trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK) {
-        const closedAt = userPreferences?.notifPromptClosedAt?.[trigger]
-        return !!closedAt && isWithinSnooze(closedAt)
-    }
-    if ((userPreferences?.sessionCount ?? 0) < HOME_FALLBACK_MIN_SESSION) return true
-    // The Home fallback snoozes on the last "Not now" of any pre-prompt.
-    // Migration window (TASK-20771): "Not now" snoozes instead of dismissing
-    // forever. Legacy `notifModalClosed: true` (no timestamp) converts to a
-    // snooze starting now, same trick as getDismissedCTAs. Where web signup is
-    // open (previews, local), the old closed-forever behavior stays.
-    let closedAt = userPreferences?.notifModalClosedAt
-    if (!closedAt && userPreferences?.notifModalClosed) {
-        closedAt = new Date().toISOString()
-        updateUserPreferences(userId, { notifModalClosedAt: closedAt })
-    }
+    const closedAt = getUserPreferences(userId)?.notifPromptClosedAt?.[trigger]
     return !!closedAt && isWithinSnooze(closedAt)
 }
 
@@ -254,16 +256,25 @@ function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
 export async function offerPushPrompt(trigger: PushPromptTrigger): Promise<void> {
     const userId = currentExternalId
     if (promptShownThisSession) return
+    // never over a manager surface (the legal modal, a blocking card setup): the moment passes
+    if (isAttentionInterruptOpen()) return
     if (!state.oneSignalInitialized || !userId) {
         if (!pendingPromptTriggers.includes(trigger)) pendingPromptTriggers.push(trigger)
         return
     }
     const status = await readPushStatus()
     // re-checked after the await: two moments can land in the same tick
-    if (!status || promptShownThisSession || !isPushUnanswered(status)) return
+    if (
+        !status ||
+        currentExternalId !== userId ||
+        promptShownThisSession ||
+        !isPushUnanswered(status) ||
+        isAttentionInterruptOpen()
+    )
+        return
     if (isPromptSnoozed(trigger, userId)) return
-    promptShownThisSession = true
-    setState({ showPermissionModal: true, promptTrigger: trigger })
+    markPushPromptShownThisSession()
+    setState({ showPermissionModal: true, promptTrigger: trigger, promptShownThisSession: true })
     posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
 
@@ -371,7 +382,8 @@ async function initializeNotifications() {
             // notification once per record (TASK-22209).
             void syncExternalIdLink()
             posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIBED)
-            setState({ showPermissionModal: false })
+            if (!heldContextualPromptUser || heldContextualPromptUser !== currentExternalId)
+                setState({ showPermissionModal: false })
         })
 
         // Notification tap → PostHog. OneSignal delivers push clicks to its own
@@ -430,14 +442,10 @@ function isOriginBoundRefusalOffProduction(e: unknown): boolean {
     return environment === 'preview' || environment === 'development'
 }
 
-function countSession(userId: string) {
-    if (countedSessions.has(userId)) return
-    countedSessions.add(userId)
-    updateUserPreferences(userId, { sessionCount: (getUserPreferences(userId)?.sessionCount ?? 0) + 1 })
-}
-
 function setExternalId(externalId: string | null) {
     if (currentExternalId === externalId) return
+    heldContextualPromptUser = null
+    setState({ showPermissionModal: false, promptTrigger: null })
     currentExternalId = externalId
     if (externalId) countSession(externalId)
     syncExternalIdLink()
@@ -564,13 +572,13 @@ async function requestPermission(
     }
 }
 
-// Snoozes the moment that asked. The legacy fields snooze the Home fallback;
-// `notifModalClosed` is kept so bundles predating notifModalClosedAt stay closed.
+// Snoozes the moment that asked. `notifModalClosedAt` is still written: the
+// manager's ledger reads it as the Home ask's legacy snooze, so a money-moment
+// "Not now" keeps silencing the Home ask the way it did before.
 function recordPromptClosed(trigger: PushPromptTrigger | null) {
     const userId = currentExternalId ?? undefined
     const closedAt = new Date().toISOString()
     updateUserPreferences(userId, {
-        notifModalClosed: true,
         notifModalClosedAt: closedAt,
         ...(trigger && {
             notifPromptClosedAt: { ...getUserPreferences(userId)?.notifPromptClosedAt, [trigger]: closedAt },
@@ -583,6 +591,9 @@ function closePermissionModal() {
     const trigger = activePromptTrigger()
     setState({ showPermissionModal: false })
     recordPromptClosed(trigger)
+    // a money-moment "Not now" also snoozes the Home ask, in the ledger the manager reads
+    if (currentExternalId && trigger && trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK)
+        ledgerActions.snoozed(currentExternalId, 'push-home-fallback', Date.now() + NOTIF_PROMPT_SNOOZE_MS)
     posthog.capture(ANALYTICS_EVENTS.MODAL_DISMISSED, { modal_type: MODAL_TYPES.NOTIFICATIONS, trigger })
 }
 
@@ -597,11 +608,12 @@ async function afterPermissionAttempt() {
 
 export function resetPushPromptForTests() {
     promptShownThisSession = false
+    heldContextualPromptUser = null
     pendingPromptTriggers = []
     permissionRequestTrigger = null
     permissionRequestsInFlight = 0
     reportedPermission = null
-    setState({ showPermissionModal: false, promptTrigger: null })
+    setState({ showPermissionModal: false, promptTrigger: null, promptShownThisSession: false })
 }
 
 export function useNotifications() {
@@ -610,9 +622,10 @@ export function useNotifications() {
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
+    // logged-out visitors of public pages never load the push SDK
     useEffect(() => {
-        ensureInitialized()
-    }, [])
+        if (externalId) ensureInitialized()
+    }, [externalId])
 
     useEffect(() => {
         if (appLocked || isFetchingUser || userFetchError || isLoggingOut) return
@@ -631,6 +644,9 @@ export function useNotifications() {
     return {
         showPermissionModal: snapshot.showPermissionModal,
         promptTrigger: snapshot.promptTrigger,
+        promptShownThisSession: snapshot.promptShownThisSession,
+        contextualPromptShownThisSession:
+            snapshot.promptShownThisSession && snapshot.promptTrigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK,
         requestPermission,
         closePermissionModal,
         afterPermissionAttempt,

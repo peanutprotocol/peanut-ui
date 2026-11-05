@@ -274,6 +274,8 @@ function TypedFields({
                 enterKeyHint="next"
                 maxLength={100}
                 placeholder={field.required ? undefined : t('optional')}
+                // at large text sizes "Optional" ends in … in a narrow field rather than a hard cut
+                className={field.required ? undefined : 'text-ellipsis'}
                 data-testid={`verify-input-${field.key}`}
                 {...extra}
             />
@@ -319,7 +321,7 @@ function TypedFields({
         <div className="flex flex-col gap-4 compact:gap-3">
             {address && (
                 <>
-                    <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+                    <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3">
                         {fieldFor(byKey.get('street'), (f) => input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.street }))}
                         {fieldFor(byKey.get('buildingNumber'), (f) =>
                             input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.buildingNumber })
@@ -341,15 +343,27 @@ function TypedFields({
                             country,
                             (f) => {
                                 const code = f.value ?? values[f.key] ?? residence ?? ''
+                                // shown, never edited here: plain text under its label, so a long country name wraps at large text sizes
                                 return (
-                                    <BaseInput
+                                    <div
                                         id={`${idPrefix}-${f.key}`}
-                                        value={code ? localizedCountryName(locale, code, code) : ''}
-                                        readOnly
-                                        disabled={f.locked}
-                                        leftContent={code ? <Flag country={code} /> : undefined}
                                         data-testid="verify-input-country"
-                                    />
+                                        className={twMerge(
+                                            'input relative flex h-auto min-h-12 items-center py-3 break-words',
+                                            !!code && 'pl-10',
+                                            f.locked &&
+                                                'border-border-subtle bg-background-disabled text-foreground-secondary'
+                                        )}
+                                    >
+                                        {code && (
+                                            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
+                                                <Flag country={code} />
+                                            </span>
+                                        )}
+                                        <span className="min-w-0">
+                                            {code ? localizedCountryName(locale, code, code) : ''}
+                                        </span>
+                                    </div>
                                 )
                             },
                             country.locked && onChangeResidence ? (

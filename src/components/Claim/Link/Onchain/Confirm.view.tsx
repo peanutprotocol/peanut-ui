@@ -15,6 +15,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatTokenAmount, isStableCoin, getChainName } from '@/utils/general.utils'
+import { loadChainRegistry } from '@/utils/chain-registry'
 import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -144,6 +145,8 @@ export const ConfirmClaimLinkView = ({
                     amountUsd: hasUsdAmount ? claimUsdAmount : null,
                 })
                 if (belowMin) {
+                    // The network name comes from viem's chain registry, loaded on first use.
+                    await loadChainRegistry().catch(() => undefined)
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.belowNetworkMinimum', {

@@ -293,16 +293,30 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         }
     )
 
-    it('preserves auth and gives restart guidance when native cleanup is unconfirmed', async () => {
+    it('preserves auth and gives still-open guidance when native cleanup is unconfirmed', async () => {
         const thrown = await loginRejectingWith(
             Object.assign(new Error('Cleanup unconfirmed.'), { name: 'PasskeyCleanupPendingError' })
         )
-        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_STATE' })
+        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_STILL_OPEN' })
         expect(clearAuthState).not.toHaveBeenCalled()
         expect(mockSetIsLoggingIn).toHaveBeenCalledWith(false)
         expect(mockCaptureException).toHaveBeenCalledWith(
             expect.any(Error),
             expect.objectContaining({ tags: { error_type: 'login_cleanup_pending' } })
+        )
+    })
+
+    it('preserves auth and asks for a short wait when the previous request is still closing', async () => {
+        const thrown = await loginRejectingWith(
+            Object.assign(new Error('The previous passkey request is still closing'), {
+                name: 'PasskeyRequestSettlingError',
+            })
+        )
+        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_SETTLING' })
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockCaptureException).toHaveBeenCalledWith(
+            expect.any(Error),
+            expect.objectContaining({ tags: { error_type: 'login_request_settling' } })
         )
     })
 

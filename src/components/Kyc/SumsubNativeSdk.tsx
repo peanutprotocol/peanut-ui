@@ -168,7 +168,12 @@ export const SumsubNativeSdk = ({
 
         try {
             let builder = sumsub
-                .init(accessTokenRef.current!, () => onRefreshTokenRef.current())
+                .init(accessTokenRef.current!, async () => {
+                    if (cancelled) throw new Error('Verification session changed')
+                    const token = await onRefreshTokenRef.current()
+                    if (cancelled) throw new Error('Verification session changed')
+                    return token
+                })
                 .withHandlers({
                     onStatusChanged: (event) => {
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true

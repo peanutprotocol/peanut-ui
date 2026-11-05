@@ -49,7 +49,8 @@ import {
 } from '@/services/rhino-bridge'
 import { chainIdToRhinoName } from '@/constants/rhino.consts'
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
-import { areEvmAddressesEqual, getTokenSymbol } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { getTokenSymbol } from '@/utils/token.utils'
 import { encodeRhinoDepositWithId } from '@/utils/rhino-deposit.utils'
 
 /** Tokens Rhino's SDA primitive accepts as `tokenOut`. Anything else routes

@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
 import { DOWNLOAD_PROMPT_FIXTURE } from './active'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
@@ -1033,6 +1034,12 @@ const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
 )
 
 /** A static Pix QR with no amount: the scan screen's own route. */
+const PIX_ELIGIBLE_RESIDENCE = {
+    verified: { country: 'PT', status: 'VERIFIED', updatedAt: null },
+    declared: null,
+    secondaryDeclaredCountry: null,
+}
+
 const PIX_QR_ROUTE =
     '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
 
@@ -1141,6 +1148,36 @@ const REVIEW_CAUSE_RESPONSE = {
             withheldCorridor('ACH_US', 'US', 'USD', 'not-offered', 'review-pending'),
             withheldCorridor('SPEI_MX', 'MX', 'MXN', 'support-required', 'review-closed'),
             withheldCorridor('FASTER_PAYMENTS_GB', 'GB', 'GBP', 'not-offered', 'not-open'),
+        ],
+    },
+}
+
+/**
+ * A verified user whose payment partner asks for one more thing for EUR: the
+ * rail's gate reads `fixable-rejection` while the backend still offers the
+ * corridor. USD is the same review once the user has answered (the backend
+ * says `endorsement-pending`), and COP still waits on the identity.
+ */
+const PROVIDER_ASK_RESPONSE = {
+    'GET /users/me': {
+        capabilities: {
+            ...REVIEW_CAUSE_CAPABILITIES,
+            rails: REVIEW_CAUSE_CAPABILITIES.rails.slice(0, 2),
+        },
+        depositAccounts: { enabled: true },
+        residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [CLAIMABLE_EUR, { ...CLAIMABLE_USD_PREVIEW, blockedBy: 'endorsement-pending' }],
+        unavailable: [
+            {
+                railId: 'bridge.bank_transfer_co',
+                method: 'BANK_TRANSFER_CO',
+                country: 'COL',
+                currency: 'COP',
+                reason: 'identity-required',
+            },
         ],
     },
 }
@@ -1789,6 +1826,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'An open-amount QR whose live exchange rate failed: Retry remains reachable before currency is set.',
         waitFor: 'div.my-auto button',
         responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
             'POST /manteca/qr-payment/init': {
                 code: '',
                 type: 'PIX',
@@ -1809,6 +1847,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: 'MARIA DA SILVA',
@@ -1829,6 +1868,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: '12345678909',
@@ -1841,9 +1881,45 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     // The capabilities let the user pay, but the API refuses the scan for
     // identity (TASK-23747): the card starts the verification.
+    'qr-pay-payer-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A payer blocked by the payment provider: terminal guidance with support and another payment method.',
+        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'PAYER_BLOCKED', error: 'PAYER_BLOCKED', message: 'Payer blocked' },
+            },
+        },
+    },
+    'qr-pay-merchant-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A merchant blocked by the payment provider: ask for another QR or payment method.',
+        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'MERCHANT_BLOCKED', error: 'MERCHANT_BLOCKED', message: 'Merchant blocked' },
+            },
+        },
+    },
+    'qr-pay-brazil-resident': {
+        route: PIX_QR_ROUTE,
+        about: 'A Brazilian resident reaches a Pix deep link: the Brazil pause screen shows before init.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+            },
+        },
+    },
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,
         about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
+        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
         rejects: {
             'POST /manteca/qr-payment/init': {
                 status: 400,
@@ -1859,13 +1935,16 @@ export const FIXTURES: Record<string, Fixture> = {
     'qr-pay-identity-missing': {
         route: PIX_QR_ROUTE,
         about: "QR paused: the payment partner can't read the name and ID number on the user's ID. They upload it again.",
-        responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+        responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE, capabilities: QR_IDENTITY_MISSING_CAPABILITIES },
+        },
     },
     'qr-pay-identity-restart-pending': {
         route: PIX_QR_ROUTE,
         about: 'QR paused: the user started a new ID check and has not finished it. They continue it.',
         responses: {
             'GET /users/me': {
+                residence: PIX_ELIGIBLE_RESIDENCE,
                 capabilities: qrIdentityPausedCapabilities(
                     'identity_restart_pending',
                     'Finish your new ID check to pay by QR again.'
@@ -1878,6 +1957,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'QR paused: an account imported from Manteca has no ID on file. They upload it and take a selfie.',
         responses: {
             'GET /users/me': {
+                residence: PIX_ELIGIBLE_RESIDENCE,
                 capabilities: qrIdentityPausedCapabilities(
                     'identity_document_missing',
                     'We need an identity document and a selfie to complete your verification.'
@@ -1985,6 +2065,51 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /rain/cards/funding': cardFunding('ready'),
         },
     },
+    'card-verification-open': {
+        route: '/card',
+        about: 'Existing cardholder can complete a pending card verification while card controls remain available.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                pendingVerification: {
+                    kind: 'card_addon',
+                    generation: 'capture-generation',
+                    entryScope: 'a'.repeat(64),
+                },
+                verificationContext: { status: 'open', generation: 'capture-generation', entryScope: 'a'.repeat(64) },
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-checking': {
+        route: '/card',
+        about: 'Existing cardholder while a previously opened card verification is being checked.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                verificationContext: {
+                    status: 'checking',
+                    generation: 'capture-generation',
+                    entryScope: 'a'.repeat(64),
+                },
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-unavailable': {
+        route: '/card',
+        about: 'Existing cardholder when the optional card verification status cannot be read.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, verificationContext: { status: 'unavailable' } },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
     'card-holder-collateral': {
         route: '/card',
         about: 'Managed holder with the permission ready and card balance left from before: the collateral note offers Move card balance to wallet.',
@@ -2084,7 +2209,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'card-funding-migration': {
         route: '/home',
-        about: 'Managed cardholder with a legacy grant to retire: the same prompt, saying there are two confirmations.',
+        about: 'Managed cardholder with a legacy grant to retire: the card payments update prompt.',
         responses: {
             'GET /rain/cards': CARD_HOLDER_OVERVIEW,
             'GET /rain/cards/funding/access': cardAccess('managed', true),
@@ -2095,11 +2220,11 @@ export const FIXTURES: Record<string, Fixture> = {
         },
         waitFor: '[data-testid="card-funding-consent"]',
     },
-    // Card balance from before goes back to the wallet before the old grant is
-    // retired: the same prompt names the amount and every confirmation.
+    // Card balance from before goes back to the wallet once the update is
+    // confirmed: the update prompt names the amount.
     'card-funding-return': {
         route: '/home',
-        about: 'Existing cardholder with card balance and a legacy grant: the same prompt names the amount and more than one confirmation.',
+        about: 'Existing cardholder with card balance and a legacy grant: the card payments update prompt names the amount.',
         responses: {
             'GET /rain/cards': {
                 ...CARD_HOLDER_OVERVIEW,
@@ -2799,7 +2924,17 @@ export const FIXTURES: Record<string, Fixture> = {
     'early-user': {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
-        responses: { 'GET /users/me': { showEarlyUserModal: true } },
+        responses: {
+            'GET /users/me': { showEarlyUserModal: true },
+            // the announcement waits for a quiet third session; the server's policy lets a capture's first one open it
+            'GET /users/me/attention': {
+                catalogueVersion: ATTENTION_POLICY.catalogueVersion,
+                settings: ATTENTION_POLICY.settings,
+                catalogue: ATTENTION_POLICY.catalogue.map((row) =>
+                    row.id === 'early-user' ? { ...row, tier: 1, rank: 0, policy: { interrupt: 'always' } } : row
+                ),
+            },
+        },
     },
 
     // Arrival prompt (TASK-23251). The app must resolve a country first (the
@@ -2909,6 +3044,11 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A verified user whose own review holds EUR (action), USD (under review) and MXN (support); GBP is not open yet. No residence on file, and nothing asks for one.',
         responses: REVIEW_CAUSE_RESPONSE,
     },
+    'profile-accounts-provider-asks': {
+        route: '/profile/accounts',
+        about: 'A verified user whose payment partner asks for one more thing for EUR ("Action needed"), has answered for USD ("Under review"), and still has COP waiting on the ID ("Verify ID").',
+        responses: PROVIDER_ASK_RESPONSE,
+    },
     'profile-accounts-residence-restricted': {
         route: '/profile/accounts',
         about: 'A resident of a country barred from banking: every account says so, with no support and no "or not yet".',
@@ -2944,9 +3084,15 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: 'Accounts page, a Brazilian resident: BRL is their bank rail, and its drawer sends to a Pix key.',
+        about: 'Accounts page, a Brazilian resident: BRL keeps bank access without Pix-key sending.',
         responses: {
-            'GET /users/me': { residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null } },
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+            },
         },
     },
     'get-paid-empty': {

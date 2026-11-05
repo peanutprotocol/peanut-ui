@@ -127,19 +127,22 @@ const caughtError = (e: unknown): SumsubActionError =>
     e instanceof Error ? { error: e.message } : { error: 'An unexpected error occurred', code: 'unexpected' }
 
 // initiate kyc flow (using sumsub) and get websdk access token
-export const initiateSumsubKyc = async (params?: {
-    /**
-     * The deposit corridor the user is verifying for (a rail method code, e.g.
-     * `BANK_TRANSFER_CO`). The backend reads the level, the rails and the
-     * endorsement from its corridor table; `regionIntent` is the older form.
-     */
-    corridor?: string
-    regionIntent?: KYCRegionIntent
-    levelName?: string
-    crossRegion?: boolean
-    targetCountry?: string
-    correctSession?: boolean
-}): Promise<{
+export const initiateSumsubKyc = async (
+    params?: {
+        /**
+         * The deposit corridor the user is verifying for (a rail method code, e.g.
+         * `BANK_TRANSFER_CO`). The backend reads the level, the rails and the
+         * endorsement from its corridor table; `regionIntent` is the older form.
+         */
+        corridor?: string
+        regionIntent?: KYCRegionIntent
+        levelName?: string
+        crossRegion?: boolean
+        targetCountry?: string
+        correctSession?: boolean
+    },
+    entryUserId?: string
+): Promise<{
     data?: InitiateSumsubKycResponse
     error?: string
     code?: SumsubActionErrorCode
@@ -159,7 +162,11 @@ export const initiateSumsubKyc = async (params?: {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
             // lets the API refuse today's start to a user it put on Smart Paperwork Verification
-            headers: { 'x-residence-format': 'compact', ...kycClientHeaders() },
+            headers: {
+                'x-residence-format': 'compact',
+                ...kycClientHeaders(),
+                ...(entryUserId ? { 'x-kyc-entry-start': '1', 'x-kyc-entry-user': entryUserId } : {}),
+            },
             body: JSON.stringify(body),
         })
 
