@@ -5,6 +5,15 @@ import { isHeld } from './resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from './types'
 
 /**
+ * The backend's answer for a rejected identity, which leads to support: `identity-rejected`,
+ * or `support-required` with no cause from an API that predates that cause. A residence
+ * closure laid over it would hide the way out.
+ */
+function namesIdentity(withheld: UnavailableCorridor | undefined): boolean {
+    return withheld?.cause === 'identity-rejected' || (withheld?.reason === 'support-required' && !withheld.cause)
+}
+
+/**
  * The backend's corridor answers with the feature report's refusals laid over
  * them. An account the report refuses with no way out is never offered, nor a
  * verification that cannot open it; its row says it is not available, unless
@@ -34,8 +43,7 @@ export function closeRefusedCorridors(
         if (entry.state !== 'refused' || entry.action || isHeld(accounts[corridor])) continue
         const rail = DEPOSIT_RAILS[corridor]
         nextClaimable[corridor] = undefined
-        // the backend's identity answer leads to support; a residence closure would hide it
-        if (unavailable[corridor]?.cause === 'identity-rejected') continue
+        if (namesIdentity(unavailable[corridor])) continue
         nextUnavailable[corridor] = {
             railId: railIdFor(corridor),
             method: corridor,
