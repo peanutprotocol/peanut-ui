@@ -8,6 +8,7 @@ import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
+import { answerRpc, isChainRpc, isRhinoTokenConfigs } from './rpc'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
 import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
@@ -285,7 +286,7 @@ async function main() {
                         const request = route.request(),
                             url = new URL(request.url())
                         if (url.origin === base.origin && url.pathname === '/crisp-proxy')
-                            return route.fulfill({
+                            return await route.fulfill({
                                 status: 200,
                                 contentType: 'text/html',
                                 body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
@@ -295,7 +296,7 @@ async function main() {
                             const range = request.headers().range
                             const match = range?.match(/^bytes=(\d+)-(\d*)$/)
                             if (!match) {
-                                return route.fulfill({
+                                return await route.fulfill({
                                     status: 200,
                                     headers: {
                                         'accept-ranges': 'bytes',
@@ -308,11 +309,11 @@ async function main() {
                             const start = Number(match[1])
                             const end = Math.min(match[2] ? Number(match[2]) : media.length - 1, media.length - 1)
                             if (start > end || start >= media.length)
-                                return route.fulfill({
+                                return await route.fulfill({
                                     status: 416,
                                     headers: { 'content-range': `bytes */${media.length}` },
                                 })
-                            return route.fulfill({
+                            return await route.fulfill({
                                 status: 206,
                                 headers: {
                                     'accept-ranges': 'bytes',
@@ -321,6 +322,30 @@ async function main() {
                                     'content-type': 'video/quicktime',
                                 },
                                 body: media.subarray(start, end + 1),
+                            })
+                        }
+                        if (isRhinoTokenConfigs(url.href))
+                            return await route.fulfill({
+                                status: 200,
+                                headers: { 'access-control-allow-origin': '*' },
+                                contentType: 'application/json',
+                                body: '{}',
+                            })
+                        if (isChainRpc(url.href)) {
+                            const cors = {
+                                'access-control-allow-origin': '*',
+                                'access-control-allow-headers': '*',
+                                'access-control-allow-methods': 'POST, OPTIONS',
+                            }
+                            if (request.method() === 'OPTIONS')
+                                return await route.fulfill({ status: 204, headers: cors })
+                            const rpc = answerRpc(url.href, screen.fixture, request.postData() ?? '')
+                            for (const call of rpc.unmapped) unknown.add(call)
+                            return await route.fulfill({
+                                status: 200,
+                                headers: cors,
+                                contentType: 'application/json',
+                                body: rpc.body,
                             })
                         }
                         // All API transports, including local same-origin test API, use synthetic answers.
@@ -355,7 +380,7 @@ async function main() {
                         if (isRemoteOptimizedImage(url.href, base.origin)) {
                             // Next's same-origin optimizer otherwise reaches the public internet on behalf of
                             // remote image URLs. Keep capture independent of third-party CDN latency/failures.
-                            return route.fulfill({
+                            return await route.fulfill({
                                 status: 200,
                                 contentType: 'image/svg+xml',
                                 headers: { 'cache-control': 'public, max-age=31536000, immutable' },
@@ -378,25 +403,29 @@ async function main() {
                                     maxRedirects: 0,
                                     maxRetries: 2,
                                 })
-                                if (!response.ok()) return route.fulfill({ response })
+                                if (!response.ok()) return await route.fulfill({ response })
                                 bytes = await sharp(await response.body(), { animated: false })
                                     .png()
                                     .toBuffer()
                                 stillImages.set(url.href, bytes)
                             }
-                            return route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
+                            return await route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
                         }
                         // The receipt pdf route reads the entry server side, past the synthetic API, so a
                         // fixture never resolves there; the request-pot kind held networkidle open for good.
                         if (url.origin === base.origin && /^\/receipt\/[^/]+\/pdf$/.test(url.pathname))
-                            return route.fulfill({ status: 404, headers: { 'cache-control': 'no-store' }, body: '' })
+                            return await route.fulfill({
+                                status: 404,
+                                headers: { 'cache-control': 'no-store' },
+                                body: '',
+                            })
                         if (url.origin === base.origin) {
                             const cacheable =
                                 request.method() === 'GET' &&
                                 url.pathname.startsWith('/_next/static/') &&
                                 !request.headers()['range']
                             const cached = cacheable ? staticResponses.get(url.href) : undefined
-                            if (cached) return route.fulfill(cached)
+                            if (cached) return await route.fulfill(cached)
                             const response = await route.fetch({ url: upstream(url), maxRedirects: 0, maxRetries: 2 })
                             if (cacheable && response.ok()) {
                                 const headers = { ...response.headers() }
@@ -405,11 +434,11 @@ async function main() {
                                 delete headers['transfer-encoding']
                                 const entry = { status: response.status(), headers, body: await response.body() }
                                 staticResponses.set(url.href, entry)
-                                return route.fulfill(entry)
+                                return await route.fulfill(entry)
                             }
-                            return route.fulfill({ response })
+                            return await route.fulfill({ response })
                         }
-                        return route.abort()
+                        return await route.abort()
                     } catch {
                         if (!page.isClosed()) transportFailures.add(new URL(route.request().url()).pathname)
                         await route.abort().catch(() => undefined)
@@ -539,6 +568,12 @@ async function main() {
                         )
                     },
                     screen.expectsLoading ?? false,
+                    { timeout: 15000 }
+                )
+                // A hero shows frame 0 until its animation loads, then jumps to the reduced-motion still.
+                await page.waitForFunction(
+                    () => !document.querySelector('[data-onboarding-animation][data-lottie-ready="false"]'),
+                    undefined,
                     { timeout: 15000 }
                 )
                 if (new URL(page.url()).pathname !== url.pathname)
