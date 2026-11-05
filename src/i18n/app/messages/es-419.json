@@ -1899,19 +1899,19 @@
             "failed": "No se pudo cancelar la tarjeta"
         },
         "lockModal": {
-            "lockTitle": "¿Bloquear la tarjeta?",
-            "lockBody": "La tarjeta no servirá para ninguna transacción hasta que la desbloquees.",
-            "lockSuccess": "Tarjeta bloqueada",
-            "lockSuccessBody": "Vuelve cuando quieras para desbloquearla.",
-            "unlockTitle": "¿Desbloquear la tarjeta?",
+            "lockTitle": "¿Congelar la tarjeta?",
+            "lockBody": "La tarjeta no servirá para ningún pago hasta que la descongeles.",
+            "lockSuccess": "Tarjeta congelada",
+            "lockSuccessBody": "Vuelve cuando quieras para descongelarla.",
+            "unlockTitle": "¿Descongelar la tarjeta?",
             "unlockBody": "Tu tarjeta volverá a funcionar para cualquier transacción.",
-            "unlockSuccess": "Tarjeta desbloqueada",
+            "unlockSuccess": "Tarjeta descongelada",
             "unlockSuccessBody": "Tu tarjeta está activa otra vez.",
-            "locking": "Bloqueando…",
-            "slideToLock": "Desliza y bloquea",
-            "unlockCta": "Desbloquear",
-            "lockFailed": "No se pudo bloquear la tarjeta",
-            "unlockFailed": "No se pudo desbloquear la tarjeta"
+            "locking": "Congelando…",
+            "slideToLock": "Desliza para congelar",
+            "unlockCta": "Descongelar",
+            "lockFailed": "No se pudo congelar la tarjeta",
+            "unlockFailed": "No se pudo descongelar la tarjeta"
         },
         "stop": {
             "pending": "Aún se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",
@@ -1920,7 +1920,7 @@
             "checkStatus": "Revisar estado",
             "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contacta a soporte.",
             "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contacta a soporte si no se resuelve.",
-            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta desbloquear de nuevo."
+            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta descongelar de nuevo."
         },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
@@ -2041,12 +2041,12 @@
             "payAsCreditTitle": "Paga como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elige crédito — tu Peanut Card corre en la red de crédito.",
             "managementTitle": "Gestión de la tarjeta",
-            "pin": "Pin",
+            "pin": "PIN",
             "spendingLimit": "Límite de gasto",
             "physicalCard": "Tarjeta física",
             "redZone": "Zona roja",
-            "lockCard": "Bloquear tarjeta",
-            "unlockCard": "Desbloquear tarjeta",
+            "lockCard": "Congelar",
+            "unlockCard": "Descongelar",
             "cancelCard": "Cancelar tarjeta"
         },
         "funding": {

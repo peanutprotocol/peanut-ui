@@ -22,6 +22,8 @@ import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import LockCardModal from '@/components/Card/LockCardModal'
+import CardQuickControls from '@/components/Card/CardQuickControls'
+import { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditDrawer'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useCardReveal } from '@/hooks/useCardReveal'
@@ -34,7 +36,13 @@ import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { RAIN_CARD_FUNDING_QUERY_KEY } from '@/hooks/useCardStopConfirmation'
 import type { CollateralReturnFailure } from '@/hooks/wallet/cardCollateralReturn'
 import { cardBalanceDueCents, isRainBalanceKnown } from '@/utils/balance.utils'
-import { rainApi, type RainCardFunding, type RainCardOverview, type RainCardSummary } from '@/services/rain'
+import {
+    rainApi,
+    type RainCardFunding,
+    type RainCardLimit,
+    type RainCardOverview,
+    type RainCardSummary,
+} from '@/services/rain'
 import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 
 type CardAction = 'lock' | 'unlock' | 'cancel'
@@ -126,6 +134,13 @@ const YourCardScreen: FC<Props> = ({
     ) : null
 
     const isLocked = card.status === 'LOCKED'
+    // the limits page's own query: the row shows what that page will open on
+    const { data: limits } = useQuery<RainCardLimit[]>({
+        queryKey: [CARD_LIMITS_QUERY_KEY, card.id],
+        queryFn: () => rainApi.getCardLimits(card.id),
+        staleTime: 10_000,
+    })
+    const perTransactionLimit = limits?.find((l) => l.frequency === 'perAuthorization')?.amount
     const closeAction = () => setAction(null)
     const showAutoRenew = !autoRenewDismissed && shouldShowAutoRenewBanner(card.expiryMonth, card.expiryYear)
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
@@ -197,6 +212,17 @@ const YourCardScreen: FC<Props> = ({
                 <ProviderFinePrint providerId="third-national" label="cardProvider" />
             </div>
 
+            <CardQuickControls
+                isFrozen={isLocked}
+                onPin={() => router.push('/card/pin')}
+                onFreeze={() => {
+                    posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
+                        mode: isLocked ? 'unlock' : 'lock',
+                    })
+                    setAction(isLocked ? 'unlock' : 'lock')
+                }}
+            />
+
             {/* Card payments come from the wallet; older collateral cannot pay them.
                 The note and its action leave only once a refreshed read shows none. */}
             {collateralCents > 0 && (
@@ -246,27 +272,17 @@ const YourCardScreen: FC<Props> = ({
             <Section title={t('managementTitle')}>
                 <ListGroup>
                     <ListItem
-                        title={t('pin')}
-                        leading={<Icon name="more-horizontal" size={24} />}
-                        chevron
-                        onClick={() => router.push('/card/pin')}
-                    />
-                    <ListItem
                         title={t('spendingLimit')}
                         leading={<Icon name="meter" size={24} />}
+                        trailing={
+                            perTransactionLimit != null ? (
+                                <span className="text-body-m text-foreground-secondary">
+                                    {`$${formatFiniteDisplay(perTransactionLimit / 100, 'en-US', { minimumFractionDigits: 0 })}`}
+                                </span>
+                            ) : undefined
+                        }
                         chevron
                         onClick={() => router.push('/card/limit')}
-                    />
-                    <ListItem
-                        title={isLocked ? t('unlockCard') : t('lockCard')}
-                        leading={<Icon name="lock" size={24} />}
-                        chevron
-                        onClick={() => {
-                            posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
-                                mode: isLocked ? 'unlock' : 'lock',
-                            })
-                            setAction(isLocked ? 'unlock' : 'lock')
-                        }}
                     />
                     <ListItem
                         title={t('physicalCard')}

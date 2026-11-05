@@ -1899,19 +1899,19 @@
             "failed": "Failed to cancel card"
         },
         "lockModal": {
-            "lockTitle": "Lock card?",
-            "lockBody": "Card will not work for any transactions until you unlock it.",
-            "lockSuccess": "Card locked",
-            "lockSuccessBody": "Come back at any time to unlock it.",
-            "unlockTitle": "Unlock card?",
+            "lockTitle": "Freeze card?",
+            "lockBody": "Your card won't work for any payments until you unfreeze it.",
+            "lockSuccess": "Card frozen",
+            "lockSuccessBody": "Come back any time to unfreeze it.",
+            "unlockTitle": "Unfreeze card?",
             "unlockBody": "Your card will work again for any transactions.",
-            "unlockSuccess": "Card unlocked",
+            "unlockSuccess": "Card unfrozen",
             "unlockSuccessBody": "Your card is active again.",
-            "locking": "Locking…",
-            "slideToLock": "Slide to Lock",
-            "unlockCta": "Unlock",
-            "lockFailed": "Failed to lock card",
-            "unlockFailed": "Failed to unlock card"
+            "locking": "Freezing…",
+            "slideToLock": "Slide to freeze",
+            "unlockCta": "Unfreeze",
+            "lockFailed": "Failed to freeze card",
+            "unlockFailed": "Failed to unfreeze card"
         },
         "stop": {
             "pending": "Stopping payments from your wallet is still in progress. This can take a few minutes.",
@@ -1920,7 +1920,7 @@
             "checkStatus": "Check status",
             "unavailable": "We couldn't confirm that payments from your wallet have stopped. Please contact support.",
             "unlockKept": "Your card is active, but payments from your wallet stay stopped for now. Contact support if this doesn't clear.",
-            "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unlock again."
+            "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unfreeze again."
         },
         "errors": {
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
@@ -2041,12 +2041,12 @@
             "payAsCreditTitle": "Pay as credit",
             "payAsCreditBody": "When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network.",
             "managementTitle": "Card management",
-            "pin": "Pin",
+            "pin": "PIN",
             "spendingLimit": "Spending limit",
             "physicalCard": "Physical card",
             "redZone": "Red zone",
-            "lockCard": "Lock card",
-            "unlockCard": "Unlock card",
+            "lockCard": "Freeze",
+            "unlockCard": "Unfreeze",
             "cancelCard": "Cancel card"
         },
         "funding": {

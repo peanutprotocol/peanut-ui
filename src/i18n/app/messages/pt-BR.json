@@ -1899,19 +1899,19 @@
             "failed": "Não foi possível cancelar o cartão"
         },
         "lockModal": {
-            "lockTitle": "Bloquear o cartão?",
-            "lockBody": "O cartão não vai funcionar em nenhuma transação até você desbloquear.",
-            "lockSuccess": "Cartão bloqueado",
-            "lockSuccessBody": "Volte quando quiser para desbloquear.",
-            "unlockTitle": "Desbloquear o cartão?",
+            "lockTitle": "Congelar o cartão?",
+            "lockBody": "O cartão não vai funcionar em nenhum pagamento até você descongelar.",
+            "lockSuccess": "Cartão congelado",
+            "lockSuccessBody": "Volte quando quiser para descongelar.",
+            "unlockTitle": "Descongelar o cartão?",
             "unlockBody": "Seu cartão vai voltar a funcionar em qualquer transação.",
-            "unlockSuccess": "Cartão desbloqueado",
+            "unlockSuccess": "Cartão descongelado",
             "unlockSuccessBody": "Seu cartão está ativo de novo.",
-            "locking": "Bloqueando…",
-            "slideToLock": "Deslize e bloqueie",
-            "unlockCta": "Desbloquear",
-            "lockFailed": "Não foi possível bloquear o cartão",
-            "unlockFailed": "Não foi possível desbloquear o cartão"
+            "locking": "Congelando…",
+            "slideToLock": "Deslize para congelar",
+            "unlockCta": "Descongelar",
+            "lockFailed": "Não foi possível congelar o cartão",
+            "unlockFailed": "Não foi possível descongelar o cartão"
         },
         "stop": {
             "pending": "Ainda estamos interrompendo os pagamentos da sua carteira. Pode levar alguns minutos.",
@@ -1920,7 +1920,7 @@
             "checkStatus": "Verificar status",
             "unavailable": "Não conseguimos confirmar que os pagamentos da sua carteira foram interrompidos. Fale com o suporte.",
             "unlockKept": "Seu cartão está ativo, mas os pagamentos da sua carteira continuam interrompidos por enquanto. Fale com o suporte se não se resolver.",
-            "unlockUnknown": "Seu cartão está ativo, mas não conseguimos confirmar que os pagamentos da sua carteira foram retomados. Tente desbloquear de novo."
+            "unlockUnknown": "Seu cartão está ativo, mas não conseguimos confirmar que os pagamentos da sua carteira foram retomados. Tente descongelar de novo."
         },
         "errors": {
             "balanceReturnFailed": "Não conseguimos devolver o saldo do seu cartão. Tente de novo ou fale com o suporte.",
@@ -2041,12 +2041,12 @@
             "payAsCreditTitle": "Pague como crédito",
             "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu Peanut Card roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
-            "pin": "Pin",
+            "pin": "PIN",
             "spendingLimit": "Limite de gasto",
             "physicalCard": "Cartão físico",
             "redZone": "Zona vermelha",
-            "lockCard": "Bloquear cartão",
-            "unlockCard": "Desbloquear cartão",
+            "lockCard": "Congelar",
+            "unlockCard": "Descongelar",
             "cancelCard": "Cancelar cartão"
         },
         "funding": {

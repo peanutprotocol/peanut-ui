@@ -57,6 +57,8 @@ import {
     Plus,
     Power,
     QrCode,
+    RectangleEllipsis,
+    Snowflake,
     RefreshCw,
     Search,
     Share,
@@ -106,6 +108,8 @@ export type IconName =
     | 'plus-circle'
     | 'minus-circle'
     | 'meter'
+    | 'pin-field'
+    | 'snowflake'
     | 'cancel'
     | 'ban'
     | 'dice'
@@ -333,6 +337,8 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'plus-circle': (props) => <LucideWrapper Icon={CirclePlus} {...props} />,
     'minus-circle': (props) => <LucideWrapper Icon={CircleMinus} {...props} />,
     meter: (props) => <LucideWrapper Icon={Gauge} {...props} />,
+    'pin-field': (props) => <LucideWrapper Icon={RectangleEllipsis} {...props} />,
+    snowflake: (props) => <LucideWrapper Icon={Snowflake} {...props} />,
     // custom icons (unchanged)
     'txn-off': TxnOffIcon,
     docs: DocsIcon,
