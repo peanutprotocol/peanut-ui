@@ -1,4 +1,5 @@
 import { captureException } from '@sentry/nextjs'
+import { pixQrHost } from '@/utils/pix-qr-host'
 
 export function qrTelemetry(data: string) {
     const qrKind = data.startsWith('000201')
@@ -20,7 +21,7 @@ export function qrTelemetry(data: string) {
                 : data.length < 1024
                   ? '256-1023'
                   : '1024+'
-    return { qrKind, qrLengthBucket }
+    return { qrKind, qrLengthBucket, ...(qrKind === 'pix' ? { pix_qr_host: pixQrHost(data) } : {}) }
 }
 
 export function reportQrScanError(data: string): void {

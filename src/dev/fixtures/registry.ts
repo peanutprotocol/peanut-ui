@@ -1673,6 +1673,39 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     // The capabilities let the user pay, but the API refuses the scan for
     // identity (TASK-23747): the card starts the verification.
+    'qr-pay-payer-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A payer blocked by the payment provider: terminal guidance with support and another payment method.',
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'PAYER_BLOCKED', error: 'PAYER_BLOCKED', message: 'Payer blocked' },
+            },
+        },
+    },
+    'qr-pay-merchant-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A merchant blocked by the payment provider: ask for another QR or payment method.',
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'MERCHANT_BLOCKED', error: 'MERCHANT_BLOCKED', message: 'Merchant blocked' },
+            },
+        },
+    },
+    'qr-pay-brazil-resident': {
+        route: PIX_QR_ROUTE,
+        about: 'A Brazilian resident reaches a Pix deep link: another payment method is offered before init.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+            },
+        },
+    },
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,
         about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',

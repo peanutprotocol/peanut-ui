@@ -1696,7 +1696,10 @@
             "maxTransferAmount": "Transfer amount exceeds maximum limit of ${amount}",
             "minTransferAmount": "Transfer amount must be at least ${amount}",
             "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
-            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again."
+            "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again.",
+            "payerBlocked": "The payment provider has blocked your payer account for this payment. Use another payment method or contact support.",
+            "merchantBlocked": "The payment provider has blocked this merchant. Use another payment method or ask for a different merchant QR.",
+            "pixResidenceNotSupported": "Pix QR payments are not available for residents of Brazil. Use another payment method."
         },
         "claim": {
             "navTitle": "Claim QR Code",

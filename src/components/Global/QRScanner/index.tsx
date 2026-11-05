@@ -21,6 +21,8 @@ import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.ut
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
 import { reportQrScanError } from './utils'
+import { useOptionalAuth } from '@/context/authContext'
+import { isPixQrResidenceBlocked } from '@/utils/pix-qr-eligibility'
 
 // ============================================================================
 // Configuration
@@ -190,6 +192,7 @@ function ScanRegionOverlay({
 }) {
     const t = useTranslations('global')
     const isShortViewport = useIsShortViewport()
+    const pixBlocked = isPixQrResidenceBlocked(useOptionalAuth()?.user?.residence)
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -212,7 +215,7 @@ function ScanRegionOverlay({
                 {!isShortViewport && (
                     <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
                         <div className="grid grid-cols-2 gap-2">
-                            {PAYMENT_METHODS.map((method) => (
+                            {PAYMENT_METHODS.filter((method) => !pixBlocked || method.name !== 'PIX').map((method) => (
                                 <PaymentMethodBadge
                                     key={method.name ?? 'evm'}
                                     src={method.src}

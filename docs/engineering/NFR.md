@@ -106,3 +106,15 @@ Undecided: None for this change. Live deployment is outside this change.
 - Verification: independent spec tests, deterministic exact-unit/conversion oracles (seed24355), four-locale real-component failure/recovery tests, no-side-effect submission regressions, mutation challenges and lint-rule tests. Every registered Screen Library capture checks visible text, input values and slider attributes before its screenshot. The numeric rule and capture tests run in required test workflow alongside existing suites.
 
 Undecided: production alert thresholds and release/rollout ownership remain operational decisions. No live payment, deployment or production alert change is part of this PR.
+
+## QR payment refusals (2026-11-05)
+
+- Typed terminal provider refusals stop retries; upstream outages remain server errors.
+- Canonical residence determines Pix QR eligibility; nationality and document issuer remain distinct.
+- Invalid tax answers fail before writes. Old stored answers must not displace usable identity evidence.
+- Existing init/funding claims preserve idempotency. Pending after funding remains durable and reconciled; timeouts are unknown outcomes.
+- Host telemetry uses bounded labels; never export QR content, keys, identity data or URL paths.
+- Additive error codes support mixed client/API versions; no schema migration.
+- Validation: targeted acceptance tests, changed-file format/lint, GitHub required CI. Preserve hooks/branch gates; full local CI suites are intentionally not duplicated.
+
+Undecided: provider settlement remedy for the reported basspago cases, a provider-confirmed cancellation threshold, and independent live/device acceptance. This task does not install or activate hooks.

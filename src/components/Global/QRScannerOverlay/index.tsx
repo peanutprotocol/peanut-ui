@@ -12,6 +12,7 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import QRScanner from '@/components/Global/QRScanner'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components/Global/DirectSendQR/utils'
 import { useAuth } from '@/context/authContext'
+import { isPixQrResidenceBlocked } from '@/utils/pix-qr-eligibility'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
@@ -225,6 +226,7 @@ export default function QRScannerOverlay() {
     const searchParams = useSearchParams()
     const toast = useToast()
     const { user } = useAuth()
+    const tQr = useTranslations('qrPay')
     // A signed-in scan of an EVM destination is the user's own payout, so it
     // goes into the crypto withdrawal. A guest keeps the payment page.
     const isLoggedIn = !!user?.user?.userId
@@ -278,6 +280,14 @@ export default function QRScannerOverlay() {
         }
 
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
+
+        if (
+            (recognized === EQrType.PIX || recognized === EQrType.PIX_KEY) &&
+            isPixQrResidenceBlocked(user?.residence)
+        ) {
+            toast.error(tQr('errors.pixResidenceNotSupported'))
+            return { success: true }
+        }
         if (!recognized) {
             // Pasted text is often prose with an address embedded ("...0xabc... is
             // the Arbitrum address..."). Pull a valid EVM address out and re-process

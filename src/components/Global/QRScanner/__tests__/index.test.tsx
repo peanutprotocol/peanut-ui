@@ -19,6 +19,8 @@ import { isAndroidNative } from '@/utils/capacitor'
 import { captureException } from '@sentry/nextjs'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 
+let mockResidence: { verified?: { country: string }; declared?: { country: string } } | undefined
+jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => ({ user: { residence: mockResidence } }) }))
 const mockToastError = jest.fn()
 
 jest.mock('@capacitor/clipboard', () => ({ Clipboard: { read: jest.fn() } }))
@@ -87,6 +89,7 @@ const renderScanner = (onScan = jest.fn().mockResolvedValue({ success: true })) 
 }
 
 beforeEach(() => {
+    mockResidence = undefined
     jest.clearAllMocks()
     resetBackHandlersForTests()
     cameraState.error = null
@@ -254,7 +257,7 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     expect(mockCaptureException).toHaveBeenCalledWith(
         expect.any(Error),
         expect.objectContaining({
-            extra: { qrLengthBucket: '64-255', qrKind: 'pix' },
+            extra: { qrLengthBucket: '64-255', qrKind: 'pix', pix_qr_host: 'unknown' },
         })
     )
 })
@@ -307,4 +310,18 @@ it('paste actions hang below the scan square', async () => {
     // one XL section gap below the square, positioned off the square not the viewport
     expect(anchored!.className).toContain('mt-6')
     expect(anchored!.className).toContain('absolute')
+})
+
+describe('Pix offer before scan', () => {
+    it('hides Pix for a Brazilian resident before a scan', () => {
+        mockResidence = { verified: { country: 'BR' }, declared: { country: 'PT' } }
+        renderScanner()
+        expect(screen.queryByAltText('PIX')).not.toBeInTheDocument()
+        expect(screen.getByAltText('Mercado Pago')).toBeInTheDocument()
+    })
+    it('retains Pix for verified foreign residence while a Brazilian move is pending', () => {
+        mockResidence = { verified: { country: 'PT' }, declared: { country: 'BR' } }
+        renderScanner()
+        expect(screen.getByAltText('PIX')).toBeInTheDocument()
+    })
 })

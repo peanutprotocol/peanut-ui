@@ -106,6 +106,17 @@ const definitions: Screen[] = [
         clicks: [],
         camera: 'denied',
     },
+    {
+        id: 'qr-scanner-brazil-resident',
+        name: 'QR scanner — Brazilian resident, Pix hidden',
+        flow: 'Payments',
+        kind: 'component',
+        defaultScreen: false,
+        route: '/dev/surfaces?s=54-d-qrbottomdrawer',
+        fixture: 'qr-pay-brazil-resident',
+        clicks: [],
+        camera: 'synthetic',
+    },
     ...Object.entries(FIXTURES).map(([id, f]) => ({
         id: `fixture-${id}`,
         name: f.about,

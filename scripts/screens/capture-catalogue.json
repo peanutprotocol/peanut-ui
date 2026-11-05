@@ -1476,6 +1476,11 @@
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
     },
     {
+        "id": "qr-scanner-brazil-resident",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
+    },
+    {
         "id": "fixture-qr-pay-rate-unavailable",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
@@ -1489,6 +1494,21 @@
         "id": "fixture-qr-pay-pix-key-cpf",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-payer-blocked",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-merchant-blocked",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-brazil-resident",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
     },
     {
         "id": "fixture-history-request-paid-external",

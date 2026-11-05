@@ -886,7 +886,10 @@
             "completeFailed": "No se pudo completar el pago. Escaneá el código QR de nuevo. Si el problema persiste, contactá a soporte",
             "authError": "No pudimos verificar tu sesión. Intentalo de nuevo.",
             "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisá tu actividad antes de volver a intentarlo. Si el estado no está claro, contactá a soporte.",
-            "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo."
+            "paymentCancelled": "El proveedor canceló este pago antes de enviar la plata. Escaneá un nuevo código QR para volver a intentarlo.",
+            "payerBlocked": "El proveedor de pagos bloqueó tu cuenta para este pago. Usá otro método de pago o contactá a soporte.",
+            "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usá otro método de pago o pedí otro QR al comercio.",
+            "pixResidenceNotSupported": "Los pagos QR Pix no están disponibles para residentes de Brasil. Usá otro método de pago."
         },
         "claim": {
             "inviteQrDescription": "Compartilo donde sea. Los puntos siguen llegando por la actividad de tus amigos y sus amigos.",

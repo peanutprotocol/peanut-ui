@@ -44,8 +44,12 @@ jest.mock('next/navigation', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mp.png', PIX: '/pix.png' }))
+let mockResidence: { verified?: { country: string }; declared?: { country: string } } | undefined
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'u1', username: 'tester' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { userId: 'u1', username: 'tester' }, residence: mockResidence },
+        fetchUser: jest.fn(),
+    }),
 }))
 const mockUseWallet = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => mockUseWallet() }))
@@ -299,7 +303,7 @@ function renderFlow(
     options: { strict?: boolean; page?: boolean } = {}
 ) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
-    const tree = (
+    const tree = () => (
         <IntlWrapper>
             <QueryClientProvider client={queryClient}>
                 <LoadingStateContextProvider>
@@ -314,7 +318,9 @@ function renderFlow(
             </QueryClientProvider>
         </IntlWrapper>
     )
-    return render(options.strict ? <React.StrictMode>{tree}</React.StrictMode> : tree)
+    const renderTree = () => (options.strict ? <React.StrictMode>{tree()}</React.StrictMode> : tree())
+    const rendered = render(renderTree())
+    return { ...rendered, refresh: () => rendered.rerender(renderTree()) }
 }
 
 async function waitForLockedForm() {
@@ -346,6 +352,7 @@ function expectNoSuccessReported() {
 }
 
 beforeEach(() => {
+    mockResidence = undefined
     jest.clearAllMocks()
     surface = null
     fakeClient = makeFakeClient()
@@ -949,4 +956,89 @@ describe('honest Pay failure copy', () => {
             tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_cleanup_pending' }),
         })
     })
+})
+
+const PIX_PAYLOAD =
+    '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+describe('residence before a new Pix payment', () => {
+    test.each(['PIX', 'MERCADO_PAGO'])(
+        'refuses the actual Pix payload before init even with type %s',
+        async (qrType) => {
+            mockResidence = { verified: { country: 'BR' } }
+            renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'blocked', qrType })
+            await act(async () => {})
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+            expect(surface?.errorInitiatingPayment).toBe(en.qrPay.errors.pixResidenceNotSupported)
+            expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        }
+    )
+    test('hydrated residence cannot sign an already quoted new Pix payment', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ type: 'PIX' }))
+        const view = renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'hydrate', qrType: 'PIX' })
+        await waitForLockedForm()
+        await waitForWarmup()
+        mockResidence = { verified: { country: 'BR' } }
+        view.refresh()
+        await pay()
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+    })
+    test('a submitted payment with an unknown outcome is not replaced by residence refusal', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ type: 'PIX' }))
+        let rejectRequest!: (error: Error) => void
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockImplementation(
+            () =>
+                new Promise((_, reject) => {
+                    rejectRequest = reject
+                })
+        )
+        const view = renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'unknown', qrType: 'PIX' })
+        await waitForLockedForm()
+        await waitForWarmup()
+        let payment!: Promise<void>
+        await act(async () => {
+            payment = surface!.payQR()
+        })
+        await waitFor(() => expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1))
+        mockResidence = { verified: { country: 'BR' } }
+        view.refresh()
+        await act(async () => {
+            rejectRequest(Object.assign(new Error('timed out'), { name: 'ConnectionTimeoutError' }))
+            await payment
+        })
+        expect(surface?.errorInitiatingPayment).toBeNull()
+        expect(surface?.errorMessage).toBe(en.qrPay.errors.paymentStatusUnknown)
+        expect(surface?.view).toBe('FORM')
+        expect(stageOutline().slice(-1)).toEqual([['attempt_finished', 'unknown']])
+    })
+    test('payer rejection after amount entry exposes support and blocks signing', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow()
+        await waitFor(() => expect(surface?.paymentLock).not.toBeNull())
+        await act(async () => {
+            surface!.handleCurrencyAmountChange('5000')
+        })
+        mockMantecaApi.initiateQrPayment.mockRejectedValueOnce(
+            Object.assign(new Error('PAYER_BLOCKED'), { code: 'PAYER_BLOCKED', status: 422 })
+        )
+        await pay()
+        expect(surface?.view).toBe('INIT_ERROR')
+        expect(surface?.initErrorNeedsSupport).toBe(true)
+        expect(surface?.errorInitiatingPayment).toBe(en.qrPay.errors.payerBlocked)
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+    })
+})
+
+test('a refused fixed Pix init reports its bounded host without spending retries', async () => {
+    const tlv = (tag: string, value: string) => `${tag}${String(value.length).padStart(2, '0')}${value}`
+    const qrCode =
+        tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('25', 'basspago.com/private-payment-token'))
+    mockMantecaApi.initiateQrPayment.mockRejectedValue(
+        Object.assign(new Error('PAYER_BLOCKED'), { code: 'PAYER_BLOCKED', status: 422 })
+    )
+    renderFlow({ qrCode, timestamp: 'host', qrType: 'PIX' })
+    await waitFor(() => expect(surface?.view).toBe('INIT_ERROR'))
+    expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    expect(mockCapture).toHaveBeenCalledWith('pix_qr_init_result', { pix_qr_host: 'basspago', outcome: 'refused' })
+    expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private-payment-token')
 })

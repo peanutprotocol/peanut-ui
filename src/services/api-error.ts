@@ -45,6 +45,9 @@ export const API_ERROR_CODES = {
      *  verified, so a KYC prompt is a dead end: support corrects the id on
      *  file. Deterministic, never retried. */
     MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
+    PAYER_BLOCKED: 'PAYER_BLOCKED',
+    MERCHANT_BLOCKED: 'MERCHANT_BLOCKED',
+    PIX_RESIDENCE_NOT_SUPPORTED: 'PIX_RESIDENCE_NOT_SUPPORTED',
     MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
     /** The provider refused a Manteca deposit or withdrawal for a reason of the
      *  user's account (a document it still needs, a bank account it does not
