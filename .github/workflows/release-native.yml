@@ -49,8 +49,40 @@ concurrency:
     queue: max
 
 jobs:
-    resolve:
+    # Every OTA completion starts this workflow. A failed OTA is a release only when it
+    # attested native incompatibility for its commit; any other failure (a superseded
+    # main push, a broken build) has nothing to build and ends here, without an alert.
+    # Before 2026-10-20 such a run failed at `resolve` and paged #🔥-notifs.
+    gate:
         if: ${{ github.run_attempt == 1 && ((github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt == 1 && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')) }}
+        runs-on: ubuntu-latest
+        permissions:
+            actions: read
+        outputs:
+            build: ${{ steps.decide.outputs.build }}
+        steps:
+            - name: Decide whether there is a release to build
+              id: decide
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  OTA_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+                  OTA_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+              run: |
+                  if [ "$GITHUB_EVENT_NAME" != workflow_run ] || [ "$OTA_CONCLUSION" = success ]; then
+                      echo "build=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+                  count="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$OTA_RUN_ID/artifacts?name=ota-native-incompatible-$OTA_RUN_ID" --jq .total_count)"
+                  if [ "$count" -gt 0 ]; then
+                      echo "build=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "build=false" >> "$GITHUB_OUTPUT"
+                      echo "OTA run $OTA_RUN_ID failed without native-incompatible evidence: nothing to build."
+                  fi
+
+    resolve:
+        needs: gate
+        if: ${{ needs.gate.outputs.build == 'true' }}
         runs-on: ubuntu-latest
         environment: Production
         permissions:
@@ -59,6 +91,7 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
             sha: ${{ steps.guard.outputs.sha }}
+            superseded: ${{ steps.current.outputs.superseded }}
         steps:
             # The app tree in every job must be the exact main commit selected here.
             # In a workflow_run, GITHUB_SHA is the main tip when the OTA finished,
@@ -122,17 +155,21 @@ jobs:
 
             # Stop when main moved by more than the src/content pointer: a later
             # main-push OTA starts the next release. A content publish starts no
-            # release, so stopping on one would drop this release for good.
+            # release, so stopping on one would drop this release for good. A stop
+            # here is expected, so it records `superseded` and does not alert.
             - name: Guard current main
+              id: current
               env:
                   SOURCE_SHA: ${{ steps.guard.outputs.sha }}
               run: |
                   if ! node scripts/release-source-guard.mjs "$SOURCE_SHA" "$GITHUB_SHA"; then
+                      echo "superseded=true" >> "$GITHUB_OUTPUT"
                       echo "::error::main advanced between OTA and native workflow start ($SOURCE_SHA -> $GITHUB_SHA)" >&2
                       exit 1
                   fi
                   MAIN_TIP="$(git ls-remote origin refs/heads/main | cut -f1)"
                   if ! node scripts/release-source-guard.mjs "$SOURCE_SHA" "$MAIN_TIP"; then
+                      echo "superseded=true" >> "$GITHUB_OUTPUT"
                       echo "::error::main advanced after the OTA handoff (${SOURCE_SHA:0:7} -> ${MAIN_TIP:0:7}); a later main-push OTA must start the next release" >&2
                       exit 1
                   fi
@@ -265,8 +302,8 @@ jobs:
     # was told. A skipped resolve (an OTA that failed for a reason other than
     # the native preflight) is not a failure of this workflow.
     alert:
-        needs: [resolve, ios, android, publish, tag]
-        if: ${{ always() && contains(needs.*.result, 'failure') }}
+        needs: [gate, resolve, ios, android, publish, tag]
+        if: ${{ always() && contains(needs.*.result, 'failure') && needs.resolve.outputs.superseded != 'true' }}
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v7
