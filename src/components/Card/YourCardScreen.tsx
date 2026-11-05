@@ -17,6 +17,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
+import AppleWalletRow from '@/components/Card/AppleWalletRow'
 import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
@@ -88,9 +89,15 @@ const YourCardScreen: FC<Props> = ({
     const walletPlatform = useWalletPlatform()
     const walletLabel =
         walletPlatform === 'android' ? t('addToGoogleWallet') : walletPlatform === 'ios' ? t('addToAppleWallet') : null
+    const walletAddedLabel =
+        walletPlatform === 'android'
+            ? t('addedToGoogleWallet')
+            : walletPlatform === 'ios'
+              ? t('addedToAppleWallet')
+              : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
-    const { nativeAvailable, alreadyInWallet, isAdding, addToWallet } = usePushProvisioning({
+    const { nativeAvailable, alreadyInWallet, isChecking, isAdding, addToWallet } = usePushProvisioning({
         id: card.id,
         last4: card.last4,
     })
@@ -110,6 +117,13 @@ const YourCardScreen: FC<Props> = ({
             toast.error(t('walletAddFailed'))
         }
     }, [isAdding, addToWallet, triggerHaptic, toast, t])
+
+    // The official button replaces the manual row only where it starts the native add.
+    const walletButton = !nativeAvailable ? null : walletPlatform === 'android' ? (
+        <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+    ) : walletPlatform === 'ios' ? (
+        <AppleWalletRow isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+    ) : null
 
     const isLocked = card.status === 'LOCKED'
     const closeAction = () => setAction(null)
@@ -183,15 +197,6 @@ const YourCardScreen: FC<Props> = ({
                 <ProviderFinePrint providerId="third-national" label="cardProvider" />
             </div>
 
-            {walletPlatform === 'android' &&
-                (alreadyInWallet ? (
-                    <p role="status" className="text-center text-body-m text-foreground-secondary">
-                        {t('addedToGoogleWallet')}
-                    </p>
-                ) : nativeAvailable ? (
-                    <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
-                ) : null)}
-
             {/* Card payments come from the wallet; older collateral cannot pay them.
                 The note and its action leave only once a refreshed read shows none. */}
             {collateralCents > 0 && (
@@ -238,77 +243,74 @@ const YourCardScreen: FC<Props> = ({
                 </Callout>
             )}
 
+            <Section title={t('managementTitle')}>
+                <ListGroup>
+                    <ListItem
+                        title={t('pin')}
+                        leading={<Icon name="more-horizontal" size={24} />}
+                        chevron
+                        onClick={() => router.push('/card/pin')}
+                    />
+                    <ListItem
+                        title={t('spendingLimit')}
+                        leading={<Icon name="meter" size={24} />}
+                        chevron
+                        onClick={() => router.push('/card/limit')}
+                    />
+                    <ListItem
+                        title={isLocked ? t('unlockCard') : t('lockCard')}
+                        leading={<Icon name="lock" size={24} />}
+                        chevron
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
+                                mode: isLocked ? 'unlock' : 'lock',
+                            })
+                            setAction(isLocked ? 'unlock' : 'lock')
+                        }}
+                    />
+                    <ListItem
+                        title={t('physicalCard')}
+                        leading={<Icon name="credit-card" size={24} />}
+                        chevron
+                        onClick={() => router.push('/card/physical')}
+                    />
+                    {/* manual steps until the platform flag and native SDK show the wallet control below */}
+                    {walletLabel && !isChecking && !alreadyInWallet && !walletButton && (
+                        <ListItem
+                            title={walletLabel}
+                            leading={<Icon name="wallet" size={24} />}
+                            chevron
+                            onClick={() => router.push('/card/add-to-wallet')}
+                        />
+                    )}
+                </ListGroup>
+            </Section>
+
+            {alreadyInWallet && walletAddedLabel ? (
+                <p role="status" className="text-center text-body-m text-foreground-secondary">
+                    {walletAddedLabel}
+                </p>
+            ) : (
+                walletButton
+            )}
+
             <Callout priority="info" title={t('payAsCreditTitle')}>
                 {t('payAsCreditBody')}
             </Callout>
 
-            <div className="flex flex-col gap-4">
-                <Section title={t('managementTitle')}>
-                    <ListGroup>
-                        <ListItem
-                            title={t('pin')}
-                            leading={<Icon name="more-horizontal" size={24} />}
-                            chevron
-                            onClick={() => router.push('/card/pin')}
-                        />
-                        <ListItem
-                            title={t('spendingLimit')}
-                            leading={<Icon name="meter" size={24} />}
-                            chevron
-                            onClick={() => router.push('/card/limit')}
-                        />
-                        <ListItem
-                            title={t('physicalCard')}
-                            leading={<Icon name="credit-card" size={24} />}
-                            chevron
-                            onClick={() => router.push('/card/physical')}
-                        />
-                        {walletLabel &&
-                            !(walletPlatform === 'android' && (nativeAvailable || alreadyInWallet)) &&
-                            // use native provisioning when it is available
-                            (nativeAvailable ? (
-                                <ListItem
-                                    title={walletLabel}
-                                    leading={<Icon name="wallet" size={24} />}
-                                    disabled={isAdding}
-                                    onClick={() => void handleAddToWallet()}
-                                />
-                            ) : (
-                                <ListItem
-                                    title={walletLabel}
-                                    leading={<Icon name="wallet" size={24} />}
-                                    chevron
-                                    onClick={() => router.push('/card/add-to-wallet')}
-                                />
-                            ))}
-                    </ListGroup>
-                </Section>
-
-                <Section title={t('redZone')}>
-                    <ListGroup>
-                        <ListItem
-                            title={isLocked ? t('unlockCard') : t('lockCard')}
-                            leading={<Icon name="lock" size={24} />}
-                            chevron
-                            onClick={() => {
-                                posthog.capture(ANALYTICS_EVENTS.CARD_LOCK_OPENED, {
-                                    mode: isLocked ? 'unlock' : 'lock',
-                                })
-                                setAction(isLocked ? 'unlock' : 'lock')
-                            }}
-                        />
-                        <ListItem
-                            title={t('cancelCard')}
-                            leading={<Icon name="trash" size={24} />}
-                            chevron
-                            onClick={() => {
-                                posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_OPENED)
-                                setAction('cancel')
-                            }}
-                        />
-                    </ListGroup>
-                </Section>
-            </div>
+            <Section title={t('redZone')}>
+                <ListGroup>
+                    <ListItem
+                        title={t('cancelCard')}
+                        leading={<Icon name="trash" size={24} />}
+                        chevron
+                        onClick={() => {
+                            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_OPENED)
+                            setAction('cancel')
+                        }}
+                    />
+                </ListGroup>
+            </Section>
 
             <LockCardModal
                 cardId={card.id}

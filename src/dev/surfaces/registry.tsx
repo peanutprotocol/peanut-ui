@@ -47,6 +47,9 @@ import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
+import AppleWalletRow from '@/components/Card/AppleWalletRow'
+import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -668,6 +671,50 @@ export const SURFACES: Record<string, Surface> = {
     '34-c-lockcardmodal': {
         ...SURFACE_META['34-c-lockcardmodal'],
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
+    },
+    '35-c-googlewalletbutton': {
+        ...SURFACE_META['35-c-googlewalletbutton'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-googlewalletbutton-adding': {
+        ...SURFACE_META['35-c-googlewalletbutton-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow': {
+        ...SURFACE_META['35-c-applewalletrow'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow-adding': {
+        ...SURFACE_META['35-c-applewalletrow-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
     },
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],

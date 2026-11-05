@@ -1952,6 +1952,7 @@
             "addToGoogleWallet": "Agregar a la Billetera de Google",
             "addedToGoogleWallet": "Agregada a la Billetera de Google",
             "addToAppleWallet": "Agregar a Apple Wallet",
+            "addedToAppleWallet": "Agregada a Apple Wallet",
             "walletAddSuccess": "Tarjeta agregada a la billetera",
             "walletAddFailed": "No pudimos agregar la tarjeta a tu billetera. Intenta de nuevo.",
             "cardNumberCopied": "Número de tarjeta copiado",

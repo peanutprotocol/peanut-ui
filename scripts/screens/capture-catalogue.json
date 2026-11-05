@@ -1432,6 +1432,30 @@
         "source": "Card/LockCardModal.tsx"
     },
     {
+        "id": "35-c-googlewalletbutton",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-googlewalletbutton",
+        "source": "Card/GoogleWalletButton.tsx"
+    },
+    {
+        "id": "35-c-googlewalletbutton-adding",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-googlewalletbutton-adding",
+        "source": "Card/GoogleWalletButton.tsx"
+    },
+    {
+        "id": "35-c-applewalletrow",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-applewalletrow",
+        "source": "Card/AppleWalletRow.tsx"
+    },
+    {
+        "id": "35-c-applewalletrow-adding",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-applewalletrow-adding",
+        "source": "Card/AppleWalletRow.tsx"
+    },
+    {
         "id": "57-d-raincooldownintromodal",
         "flow": "Card",
         "route": "/home",

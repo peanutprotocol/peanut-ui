@@ -17,7 +17,7 @@ Google-supplied Add to Google Wallet SVG artwork with only the pill removed. `Go
 
 Each file is the archive file minus its two `<rect>` elements (pill fill and outline). Icon and text paths, viewBox and internal spacing are unchanged.
 
-The one-line (primary) button is Google's choice for light backgrounds. It renders 48px high and needs its full drawn width at that height (Google's side padding included). Where the pill is narrower, the button falls back to the two-line (condensed) badge at 56px, as Google's guidelines direct. Keep at least 8dp clear space around the button. Only show it when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.
+The one-line (primary) button is Google's choice for light backgrounds. It renders 48px high and needs its full drawn width at that height (Google's side padding included). Where the pill is narrower, the button falls back to the two-line (condensed) badge at 56px, as Google's guidelines direct. Pressing never moves the button (it has no shadow to drop into); the pill fill turns `#333333`, Google's fill under Material's 10% pressed state layer, and the artwork is untouched. Keep at least 8dp clear space around the button. Only show it when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.
 
 ## Google Pay logo (`google-pay-logo.svg`)
 

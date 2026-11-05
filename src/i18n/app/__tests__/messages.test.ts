@@ -42,6 +42,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Claim: 'nav verb vs. transaction-type noun (Reclamar / Reclamo)',
     Receive: 'action verb vs. transaction-type noun (Recibir / Recepción)',
     Join: 'standalone CTA vs. sentence fragment completed by a team name',
+    'Open Wallet App': 'iPhone app (Carteira) vs. Android app (Carteira do Google) in pt-BR',
     Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
