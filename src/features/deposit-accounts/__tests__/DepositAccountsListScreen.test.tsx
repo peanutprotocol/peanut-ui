@@ -530,7 +530,7 @@ describe('an account the user could open', () => {
         expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
     })
 
-    it.each([['needs-identity'], ['fixable-rejection'], ['restart-identity']] as const)(
+    it.each([['needs-identity'], ['restart-identity']] as const)(
         'names verification and leads to it when the gate reads %s',
         (kind) => {
             const onOpen = jest.fn()
@@ -545,6 +545,53 @@ describe('an account the user could open', () => {
             expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
         }
     )
+
+    // a verified user whose provider asks for one more thing is never sent back to "Verify ID"
+    it('names the provider ask, not the identity, when the gate reads fixable-rejection', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
+            onOpen,
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
+    })
+
+    it('keeps asking for the provider ask while the backend says the review waits on the user', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
+            claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-required') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeUnderReview)).not.toBeInTheDocument()
+    })
+
+    it('keeps an actionable gate ahead of the provider-review badge, as the tap destination does', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
+            claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-pending') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeUnderReview)).not.toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+    })
+
+    it('says Verify ID where the backend withholds the corridor until the identity is verified', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            unavailable: { SEPA_EU: withheld('SEPA_EU', 'identity-required') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeVerifyId)).toBeInTheDocument()
+    })
 
     /*
      * At the account limit the tap explains the limit and offers support (the
@@ -576,9 +623,21 @@ describe('an account the user could open', () => {
             },
         })
 
-        expect(inRow(container, 'BANK_TRANSFER_CO').getByText('Pending')).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText(LIST.badgeUnderReview)).toBeInTheDocument()
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
     })
+
+    it.each([['pending'], ['waiting-on-provider']] as const)(
+        'says Under review for a provider review in progress when the gate reads %s',
+        (kind) => {
+            const { container } = list(false, {
+                gates: allGates({ kind, userMessage: null } as GateState),
+                claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-pending') },
+            })
+
+            expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeUnderReview)).toBeInTheDocument()
+        }
+    )
 
     it('points at support where the backend says only a person can open it', () => {
         const onOpen = jest.fn()

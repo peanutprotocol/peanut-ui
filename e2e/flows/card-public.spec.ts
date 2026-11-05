@@ -108,25 +108,26 @@ test('an existing holder without the funding permission gets the centered Home p
     await shot(page, 'funding-needed-ticked')
 })
 
-test('a legacy holder is told there are two confirmations', async ({ page }) => {
+test('a legacy holder is told it is a card payments update, never to finish setting up', async ({ page }) => {
     await asReturningHomeVisitor(page)
     await page.goto('/home?__fixture=card-funding-migration')
-    await expect(page.getByText(/confirm twice with your passkey/i)).toBeVisible()
+    await expect(page.getByText('Card payments update', { exact: true })).toBeVisible()
+    await expect(page.getByText('Approve the update with your passkey.')).toBeVisible()
+    await expect(page.getByText('Finish setting up the card')).toHaveCount(0)
     await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
     await shot(page, 'funding-migration')
 })
 
 // A fixture cannot sign, so the retirement → grant → confirmed ready → return order
 // is covered by useRainFunding.test.tsx; this pins what the person reads before Continue.
-test('card balance moving back after setup is named in the same prompt, without promising one tap', async ({
+test('card balance moving back after the update is named in the same prompt, without promising one tap', async ({
     page,
 }) => {
     await asReturningHomeVisitor(page)
     await page.goto('/home?__fixture=card-funding-return')
+    await expect(page.getByText('Card payments update', { exact: true })).toBeVisible()
     await expect(
-        page.getByText(
-            'When setup is confirmed, $25.00 of card balance moves back to your wallet. This may take more than one passkey confirmation.'
-        )
+        page.getByText('Once the update is confirmed, $25.00 on your card will return to your wallet.')
     ).toBeVisible()
     await expect(page.getByText('One passkey tap to start using your card.')).toHaveCount(0)
     await expect(page.getByRole('checkbox')).toHaveCount(1)

@@ -4,17 +4,26 @@ import { SCREENS } from '../../screens/catalogue'
 const response = (id: string, key: string): any => FIXTURES[id].responses?.[key]
 
 describe('KYC review screen captures', () => {
-    it.each(['choice', 'select'])('registers missing and selected US state %s pickers with every USPS code', (kind) => {
-        for (const state of ['missing', 'selected']) {
-            const id = `paperwork-verification-state-${kind}-${state}`
-            const questions = response(id, 'GET /users/kyc/questions')
-            const field = questions.steps[0].fields.find((item: any) => item.key === 'state')
-            expect(questions.residence).toBe('US')
-            expect(field).toMatchObject({ kind, required: true, value: state === 'missing' ? null : 'CA' })
-            expect(new Set(field.options).size).toBe(56)
-            expect(field.options).toEqual(expect.arrayContaining(['NY', 'CA', 'DC', 'PR', 'GU', 'VI', 'AS', 'MP']))
-            expect(SCREENS.find((screen) => screen.fixture === id)?.route).toBe('/verify?step=address')
-        }
+    it.each([
+        ['paperwork-verification-us-address', null],
+        ['paperwork-verification-us-address-filled', 'CA'],
+    ])('captures %s as the whole address step the API sends, state picker included', (id, state) => {
+        const questions = response(id, 'GET /users/kyc/questions')
+        const fields = questions.steps[0].fields
+        const field = fields.find((item: any) => item.key === 'state')
+        expect(questions.residence).toBe('US')
+        expect(fields.map((item: any) => item.key)).toEqual([
+            'street',
+            'buildingNumber',
+            'town',
+            'state',
+            'postCode',
+            'country',
+        ])
+        expect(field).toMatchObject({ kind: 'choice', required: true, value: state })
+        expect(new Set(field.options).size).toBe(56)
+        expect(field.options).toEqual(expect.arrayContaining(['NY', 'CA', 'DC', 'PR', 'GU', 'VI', 'AS', 'MP']))
+        expect(SCREENS.find((screen) => screen.fixture === id)?.route).toBe('/verify?step=address')
     })
 
     it.each([

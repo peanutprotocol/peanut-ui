@@ -184,7 +184,7 @@ function countWeightStacksByRegex(text) {
  *
  * Invalid syntax uses the legacy regex fallback. Unsupported CVA and analysis
  * limits throw with a diagnostic instead of returning a misleading count.
- * See ds-lint-contract.md for conservative policies and cardinality limits.
+ * See https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md for conservative policies and cardinality limits.
  */
 function countWeightStacks(text, filename = 'file.tsx') {
     const sites = weightStackSites(text, filename, {
@@ -352,7 +352,12 @@ function countOffFocusColorCss(text) {
 // seen, so the count is a floor, not a census.
 const BARE_LIST_LEADING_RE = /\bleading=\{\s*\(?\s*<(?:Icon|Image|img)\b/g
 
+// The ratchet measures shipped source, not test fixtures or helpers.
+const isProductionSource = (path) =>
+    /\.(tsx|ts)$/.test(path) && !/\.test\.(tsx|ts)$/.test(path) && !/(^|[\\/])__tests__[\\/]/.test(path)
+
 module.exports = {
+    isProductionSource,
     SPACING_STEPS,
     NUMERIC_SPACING_RE,
     ARBITRARY_SPACING_RE,

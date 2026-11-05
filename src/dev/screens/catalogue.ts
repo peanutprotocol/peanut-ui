@@ -17,6 +17,7 @@ export type Screen = {
     entryRoute?: string
     actions?: PageCapture['actions']
     expectSelector?: string
+    waitFor?: string
     routePattern?: string
     fixture: string
     clicks: string[]
@@ -96,6 +97,31 @@ const variationPageIds = new Set([
 ])
 const definitions: Screen[] = [
     {
+        id: 'profile-brazil-bank-details',
+        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/accounts',
+        fixture: 'profile-accounts-br-resident',
+        clicks: [],
+        clickTestIds: ['bank-row-brl'],
+        // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
+        expectSelector: '[role="dialog"][data-state="open"] h2',
+    },
+    {
+        id: 'profile-brazil-qr-details',
+        name: 'Brazilian resident — Argentina QR payments remain available',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/payments',
+        fixture: 'profile-accounts-br-resident',
+        clicks: [],
+        clickTestIds: ['method-row-qr-pay'],
+        expectSelector: '[role="dialog"][data-state="open"] h2',
+    },
+    {
         id: 'qr-camera-permission',
         name: 'QR scanner — camera permission needed',
         flow: 'Payments',
@@ -106,6 +132,17 @@ const definitions: Screen[] = [
         clicks: [],
         camera: 'denied',
     },
+    {
+        id: 'qr-scanner-brazil-resident',
+        name: 'QR scanner — Brazilian resident, Pix hidden',
+        flow: 'Payments',
+        kind: 'component',
+        defaultScreen: false,
+        route: '/dev/surfaces?s=54-d-qrbottomdrawer',
+        fixture: 'qr-pay-brazil-resident',
+        clicks: [],
+        camera: 'synthetic',
+    },
     ...Object.entries(FIXTURES).map(([id, f]) => ({
         id: `fixture-${id}`,
         name: f.about,
@@ -115,25 +152,31 @@ const definitions: Screen[] = [
         route: f.landsOn ?? f.route,
         entryRoute: f.landsOn ? f.route : undefined,
         fixture: id,
+        waitFor: f.waitFor,
         clicks: [],
         actions:
             // ready shows the consent screen and on passes through; the other states answer the tap
             /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
                 ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
                 : undefined,
-        expectSelector: id.startsWith('paperwork-verification-state-')
-            ? '[data-testid="verify-input-state"]'
-            : id.startsWith('paperwork-verification-closed-')
-              ? '[data-testid="verify-closed-features"]'
-              : id === 'paperwork-verification-outage'
-                ? '[data-testid="verify-outage"]'
-                : id === 'paperwork-verification-policy-hold'
-                  ? '[data-testid="verify-review-retry"]'
-                  : id === 'paperwork-verification-rejected'
-                    ? '[data-testid="verify-review-home"]'
-                    : id === 'paperwork-verification-restart-foreign'
-                      ? '[data-testid="verify-id"]'
-                      : undefined,
+        expectSelector:
+            id === 'card-verification-open'
+                ? '[data-testid="card-verification-continue"]'
+                : id === 'card-verification-checking' || id === 'card-verification-unavailable'
+                  ? '[data-testid="your-card-screen"]'
+                  : id.startsWith('paperwork-verification-us-address')
+                    ? '[data-testid="verify-input-state"]'
+                    : id.startsWith('paperwork-verification-closed-')
+                      ? '[data-testid="verify-closed-features"]'
+                      : id === 'paperwork-verification-outage'
+                        ? '[data-testid="verify-outage"]'
+                        : id === 'paperwork-verification-policy-hold'
+                          ? '[data-testid="verify-review-retry"]'
+                          : id === 'paperwork-verification-rejected'
+                            ? '[data-testid="verify-review-home"]'
+                            : id === 'paperwork-verification-restart-foreign'
+                              ? '[data-testid="verify-id"]'
+                              : undefined,
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({
@@ -198,6 +241,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '07-d-notification-settings': { journey: 'Account setup', step: 54 },
     '07-b-advantage-control': { journey: 'Account setup', step: 55 },
     '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
+    '05-b-signtesttransaction-network-busy': { journey: 'Account setup', step: 61 },
     '07-e-setup-celebration': { journey: 'Account setup', step: 65 },
     '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },

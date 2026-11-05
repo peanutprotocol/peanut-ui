@@ -42,7 +42,11 @@ jest.mock('@sentry/nextjs', () => ({
 
 type Rtl = typeof import('@testing-library/react/pure')
 let cleanup: (() => void) | undefined
-beforeEach(() => jest.spyOn(console, 'warn').mockImplementation(() => {}))
+let loaded: ReturnType<typeof load>
+beforeEach(() => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {})
+    loaded = load()
+})
 afterEach(() => {
     cleanup?.()
     jest.restoreAllMocks()
@@ -67,7 +71,7 @@ const goOnline = () => window.dispatchEvent(new Event('online'))
 
 describe('useNotifications init recovery', () => {
     it('recovers a transient native failure on the next online edge, linking and listening once', async () => {
-        const { renderHook, act, waitFor, useNotifications, captureException } = load()
+        const { renderHook, act, waitFor, useNotifications, captureException } = loaded
         mockAdapter.init.mockRejectedValueOnce(new Error('bridge unavailable')).mockResolvedValue(undefined)
 
         const view = renderHook(() => useNotifications())
@@ -89,7 +93,7 @@ describe('useNotifications init recovery', () => {
     })
 
     it('links only the account that is current when init finally succeeds', async () => {
-        const { renderHook, act, waitFor, useNotifications } = load()
+        const { renderHook, act, waitFor, useNotifications } = loaded
         mockAdapter.init.mockRejectedValueOnce(new Error('bridge unavailable')).mockResolvedValue(undefined)
 
         const view = renderHook(() => useNotifications())
@@ -104,7 +108,7 @@ describe('useNotifications init recovery', () => {
     })
 
     it('reports a permanent failure once and never retries it, across remounts', async () => {
-        const { renderHook, act, waitFor, useNotifications, captureException, OneSignalConfigError } = load()
+        const { renderHook, act, waitFor, useNotifications, captureException, OneSignalConfigError } = loaded
         mockAdapter.init.mockRejectedValue(new OneSignalConfigError('OneSignal configuration missing: X is required'))
 
         const first = renderHook(() => useNotifications())
@@ -121,7 +125,7 @@ describe('useNotifications init recovery', () => {
     })
 
     it('stops after three attempts and reports the final failure once', async () => {
-        const { renderHook, act, waitFor, useNotifications, captureException } = load()
+        const { renderHook, act, waitFor, useNotifications, captureException } = loaded
         mockAdapter.init.mockRejectedValue(new Error('bridge unavailable'))
 
         renderHook(() => useNotifications())
@@ -136,7 +140,8 @@ describe('useNotifications init recovery', () => {
     // The v16 web SDK latches "already initialized" before its config fetch, so
     // a second init in the same document can only fail.
     it('does not retry a web SDK failure', async () => {
-        const { renderHook, act, waitFor, useNotifications, captureException } = load({ native: false })
+        const { renderHook, act, waitFor, useNotifications, captureException } = loaded
+        mockIsNative = false
         mockAdapter.init.mockRejectedValue(new Error('Timeout'))
 
         const first = renderHook(() => useNotifications())

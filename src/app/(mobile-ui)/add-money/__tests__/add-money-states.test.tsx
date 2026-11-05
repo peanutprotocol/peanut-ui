@@ -317,6 +317,7 @@ jest.mock('@/constants/manteca.consts', () => ({
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
+    ...jest.requireActual('@/constants/analytics.consts'),
     ANALYTICS_EVENTS: {
         DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
         DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
@@ -333,7 +334,6 @@ jest.mock('@/constants/query.consts', () => ({
 // General utils
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v?.toString() ?? '0'),
-    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
     saveRedirectUrl: jest.fn(),
     getRedirectUrl: jest.fn(() => null),
     getStoredRedirect: jest.fn(() => null),
@@ -349,6 +349,10 @@ jest.mock('@/utils/general.utils', () => ({
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
     ),
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
 }))
 
 jest.mock('@/utils/currency', () => ({

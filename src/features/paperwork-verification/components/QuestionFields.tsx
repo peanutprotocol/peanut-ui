@@ -319,7 +319,7 @@ function TypedFields({
         <div className="flex flex-col gap-4 compact:gap-3">
             {address && (
                 <>
-                    <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-3">
+                    <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3">
                         {fieldFor(byKey.get('street'), (f) => input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.street }))}
                         {fieldFor(byKey.get('buildingNumber'), (f) =>
                             input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.buildingNumber })

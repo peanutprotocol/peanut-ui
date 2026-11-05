@@ -85,7 +85,7 @@ async function readChainBalances(
 ): Promise<HeldToken[]> {
     const chainId = chain.id.toString()
     const tokens = recoverableTokensForChain(chainId, rhinoTokens)
-    const client = getPublicClient(chain.id as ChainId)
+    const client = await getPublicClient(chain.id as ChainId)
     const [nativeBalance, tokenResults] = await Promise.all([
         client.getBalance({ address: owner }),
         client.multicall({

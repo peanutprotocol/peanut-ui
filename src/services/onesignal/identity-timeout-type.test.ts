@@ -45,6 +45,28 @@ describe('push identity timeouts', () => {
         const error = await outcome
         expect(error).toBeInstanceOf(sync.PushIdentityTimeoutError)
         expect((error as Error).message).toBe('Push identity logout timed out')
+        expect(error).toMatchObject({ stage: 'logout' })
+    })
+
+    it('names init as the stalled stage when the SDK never finishes starting', async () => {
+        mockAdapter.init.mockImplementation(() => new Promise<void>(() => {}))
+        jest.useFakeTimers()
+        const outcome = identity.syncNotificationIdentity('account-A').catch((error: unknown) => error)
+        await jest.advanceTimersByTimeAsync(3_000)
+        const error = await outcome
+        expect(error).toBeInstanceOf(sync.PushIdentityTimeoutError)
+        expect(error).toMatchObject({ stage: 'init' })
+        expect(mockAdapter.login).not.toHaveBeenCalled()
+    })
+
+    it('names login as the stalled stage once the SDK has started', async () => {
+        mockAdapter.login.mockImplementation(() => new Promise<void>(() => {}))
+        jest.useFakeTimers()
+        const outcome = identity.syncNotificationIdentity('account-A').catch((error: unknown) => error)
+        await jest.advanceTimersByTimeAsync(3_000)
+        const error = await outcome
+        expect(error).toBeInstanceOf(sync.PushIdentityTimeoutError)
+        expect(error).toMatchObject({ stage: 'login' })
     })
 
     it('rejects a hung login verification with a PushIdentityTimeoutError', async () => {
@@ -64,5 +86,6 @@ describe('push identity timeouts', () => {
         const error = await outcome
         expect(error).toBeInstanceOf(sync.PushIdentityTimeoutError)
         expect((error as Error).message).toBe('Push identity authentication verification timed out')
+        expect(error).toMatchObject({ stage: 'verification' })
     })
 })

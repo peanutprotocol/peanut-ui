@@ -1,8 +1,11 @@
 const path = require('path')
 const os = require('os')
 const { execSync } = require('child_process')
+// openAnalyzer: false writes the reports to .next/analyze without opening a browser tab.
 const withBundleAnalyzer =
-    process.env.ANALYZE === 'true' ? require('@next/bundle-analyzer')({ enabled: true }) : (config) => config
+    process.env.ANALYZE === 'true'
+        ? require('@next/bundle-analyzer')({ enabled: true, openAnalyzer: false })
+        : (config) => config
 
 const redirectsConfig = require('./redirects.json')
 const { buildNoindexHeaderRules } = require('./src/constants/seo-route-policy')

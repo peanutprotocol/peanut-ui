@@ -12,12 +12,17 @@ const mockPermission = jest.fn<Promise<string>, []>()
 const mockAfterPermission = jest.fn<Promise<void>, []>()
 const mockSave = jest.fn()
 const mockClose = jest.fn()
+const mockHold = jest.fn()
 const mockToast = jest.fn()
 let mockUserId = 'user-a'
-jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: mockUserId } } }),
+    useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }),
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToast }) }))
 jest.mock('@/utils/general.utils', () => ({ updateUserPreferences: jest.fn() }))
 jest.mock('@/hooks/useNotifications', () => ({
+    holdContextualPrompt: (...args: unknown[]) => mockHold(...args),
     useNotifications: () => ({
         showPermissionModal: true,
         promptTrigger: null,
@@ -76,7 +81,22 @@ it.each(['changed', 'cleared', 'unmounted'] as const)(
     }
 )
 
-it('rechecks identity after post-permission reconciliation before saving', async () => {
+it('does not reconcile after the account changes while a preference save is pending', async () => {
+    let finish!: (value: { push: boolean }) => void
+    mockSave.mockReturnValueOnce(
+        new Promise((resolve) => {
+            finish = resolve
+        })
+    )
+    renderWithIntl(<SetupNotificationsModal />)
+    fireEvent.click(screen.getByRole('button', { name: 'allow notifications' }))
+    await waitFor(() => expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ push: true }), 'user-a'))
+    expect(mockAfterPermission).not.toHaveBeenCalled()
+    setAuthToken(jwt('user-b'))
+    await act(async () => finish({ push: true }))
+    expect(mockAfterPermission).not.toHaveBeenCalled()
+})
+it('does not publish success or write again after an account change during reconciliation', async () => {
     let finish!: () => void
     mockAfterPermission.mockReturnValueOnce(
         new Promise((resolve) => {
@@ -86,9 +106,13 @@ it('rechecks identity after post-permission reconciliation before saving', async
     renderWithIntl(<SetupNotificationsModal />)
     fireEvent.click(screen.getByRole('button', { name: 'allow notifications' }))
     await waitFor(() => expect(mockAfterPermission).toHaveBeenCalledTimes(1))
+    expect(mockSave).toHaveBeenCalledTimes(1)
+    expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ push: true }), 'user-a')
     setAuthToken(jwt('user-b'))
     await act(async () => finish())
-    expect(mockSave).not.toHaveBeenCalled()
+    expect(mockSave).toHaveBeenCalledTimes(1)
+    expect(mockClose).not.toHaveBeenCalled()
+    expect(mockHold).not.toHaveBeenCalledWith(false)
 })
 
 it('R18 duplicate taps during hydration ask permission and save only once', async () => {

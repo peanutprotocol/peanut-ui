@@ -20,6 +20,7 @@ import React from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
@@ -46,6 +47,9 @@ import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
+import AppleWalletRow from '@/components/Card/AppleWalletRow'
+import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -177,6 +181,19 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
     step: 'first_payment',
 }
 const noop = () => {}
+
+/** The final step after repeated network failures: retry copy and the "confirm later" link. */
+function NetworkBusyConfirmation() {
+    const t = useTranslations('setup')
+    return (
+        <SetupConfirmationView
+            merged
+            onConfirm={noop}
+            error={t('testTransaction.errors.networkBusy')}
+            secondary={<LinkButton onClick={noop}>{t('testTransaction.finishLater')}</LinkButton>}
+        />
+    )
+}
 
 /** The residence step's comparison, as its Next opens it when the nationality differs. */
 function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
@@ -431,6 +448,14 @@ export const SURFACES: Record<string, Surface> = {
             </SetupScreen>
         ),
     },
+    '05-b-signtesttransaction-network-busy': {
+        ...SURFACE_META['05-b-signtesttransaction-network-busy'],
+        render: () => (
+            <SetupScreen screenId="advantage-control">
+                <NetworkBusyConfirmation />
+            </SetupScreen>
+        ),
+    },
     '06-b-invite': {
         ...SURFACE_META['06-b-invite'],
         render: () => <SetupScreen screenId="invite" />,
@@ -521,7 +546,15 @@ export const SURFACES: Record<string, Surface> = {
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
         shotFixture: 'early-user',
-        render: () => <EarlyUserDrawer />,
+        render: () => (
+            <EarlyUserDrawer
+                presentation="drawer"
+                askId="early-user"
+                onActed={noop}
+                onDismissed={noop}
+                onSnoozed={noop}
+            />
+        ),
     },
     '12-a-eastereggmodal': {
         name: 'EasterEggDrawer',
@@ -575,6 +608,10 @@ export const SURFACES: Record<string, Surface> = {
     '24-b-kycverificationinprogressmodal': {
         ...SURFACE_META['24-b-kycverificationinprogressmodal'],
         render: () => <KycVerificationInProgressModal isOpen onClose={noop} />,
+    },
+    '24-c-kyctaxidsubmitted': {
+        ...SURFACE_META['24-c-kyctaxidsubmitted'],
+        render: () => <KycVerificationInProgressModal isOpen onClose={noop} phase="submitted" />,
     },
     '24-c-kyc-ready-ars-action': {
         ...SURFACE_META['24-c-kyc-ready-ars-action'],
@@ -647,6 +684,50 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['34-c-lockcardmodal'],
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
     },
+    '35-c-googlewalletbutton': {
+        ...SURFACE_META['35-c-googlewalletbutton'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-googlewalletbutton-adding': {
+        ...SURFACE_META['35-c-googlewalletbutton-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow': {
+        ...SURFACE_META['35-c-applewalletrow'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow-adding': {
+        ...SURFACE_META['35-c-applewalletrow-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],
         render: () => (
@@ -695,7 +776,15 @@ export const SURFACES: Record<string, Surface> = {
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVisible />,
+        render: () => (
+            <MigrationDownloadModal
+                presentation="modal"
+                askId="install-app"
+                onActed={noop}
+                onDismissed={noop}
+                onSnoozed={noop}
+            />
+        ),
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],

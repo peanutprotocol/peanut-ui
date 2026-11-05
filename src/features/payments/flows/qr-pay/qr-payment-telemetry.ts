@@ -1,4 +1,5 @@
 import posthog from 'posthog-js'
+import { boundedPixQrHost, type PixQrHost } from '@/utils/pix-qr-host'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 /**
@@ -89,6 +90,7 @@ function monotonicNow(): number {
 
 export function createQrPaymentAttemptTelemetry(context: {
     qrType: QrPaymentStageQrType | undefined
+    pixQrHost?: PixQrHost
 }): QrPaymentAttemptTelemetry {
     const attemptId = newAttemptId()
     const startedAt = monotonicNow()
@@ -112,6 +114,7 @@ export function createQrPaymentAttemptTelemetry(context: {
                 stage: name,
                 elapsed_ms: elapsed,
                 ...(context.qrType ? { qr_type: context.qrType } : {}),
+                ...(context.qrType === 'PIX' ? { pix_qr_host: boundedPixQrHost(context.pixQrHost) } : {}),
                 ...(strategy ? { strategy } : {}),
                 ...(detail?.outcome ? { outcome: detail.outcome } : {}),
                 ...(detail?.preparation ? { preparation: detail.preparation } : {}),
@@ -123,4 +126,12 @@ export function createQrPaymentAttemptTelemetry(context: {
     }
 
     return { attemptId, stage }
+}
+
+export function trackPixQrInitResult(host: PixQrHost, outcome: 'ready' | 'refused' | 'unavailable'): void {
+    try {
+        posthog.capture(ANALYTICS_EVENTS.PIX_QR_INIT_RESULT, { pix_qr_host: boundedPixQrHost(host), outcome })
+    } catch {
+        // Telemetry must not change the init result.
+    }
 }

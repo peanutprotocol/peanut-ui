@@ -55,6 +55,7 @@ import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { clearAccountQueries } from '@/utils/account-query-cache'
+import { flushLedgerSync } from '@/features/attention/ledgerSync'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -270,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (previousUserId && previousUserId !== profile.user.userId) clearAccountQueries(queryClient)
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
             void resumeNotificationIdentity(profile.user.userId).catch((error) => {
-                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
+                void reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return profile
@@ -299,7 +300,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (result.error) throw result.error
                 return result.data?.user?.userId ?? null
             }).catch((error) => {
-                reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
+                void reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
             })
         }
         const unsubscribe = onNotificationIdentityLoginAvailable(reconcile)
@@ -366,7 +367,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         })
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
             void resumeNotificationIdentity(userId).catch((error) => {
-                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
+                void reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return outcome
@@ -477,9 +478,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             beginIntentionalLogout()
             // Start before any auth await; SDK events cannot relink the old user.
             const pushLogout = logoutNotificationIdentity().catch((error) => {
-                reportPushIdentityFailure('Push identity logout failed or timed out', 'push_identity_logout', error)
+                void reportPushIdentityFailure(
+                    'Push identity logout failed or timed out',
+                    'push_identity_logout',
+                    error
+                )
             })
             try {
+                // a pending attention-ledger write still needs this user's token; never wait on it long
+                await Promise.race([
+                    flushLedgerSync(user?.user.userId).catch(() => {}),
+                    new Promise((resolve) => setTimeout(resolve, 3000)),
+                ])
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
                  * /users/logout revokes this device's session, /users/logout/all
@@ -525,7 +535,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsLoggingOut(false)
             }
         },
-        [clearLocalAuthState, fetchUser, toast, tErrors]
+        [clearLocalAuthState, fetchUser, toast, tErrors, user?.user.userId]
     )
 
     return (

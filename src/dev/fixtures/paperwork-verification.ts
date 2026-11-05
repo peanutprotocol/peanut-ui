@@ -83,7 +83,7 @@ const address = (residence: string, cardFeature: boolean) => ({
         { key: 'buildingNumber', kind: 'text', required: false, value: null },
         { key: 'town', kind: 'text', required: true, value: null },
         residence === 'US'
-            ? { key: 'state', kind: 'select', required: true, options: USPS_CODES, value: null }
+            ? { key: 'state', kind: 'choice', required: true, options: USPS_CODES, value: null }
             : { key: 'state', kind: 'text', required: cardFeature, value: null },
         { key: 'postCode', kind: 'text', required: true, value: null },
         { key: 'country', kind: 'country', required: true, locked: true, value: residence },
@@ -341,29 +341,36 @@ const asking = (residence: string, steps: unknown[]) => ({
 
 export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
     ...Object.fromEntries(
-        ['choice', 'select'].flatMap((kind) =>
-            ['missing', 'selected'].map((state) => [
-                `paperwork-verification-state-${kind}-${state}`,
-                {
-                    route: '/verify?step=address',
-                    about: `US state ${kind} picker: ${state}, with every USPS state and territory code.`,
-                    responses: asking('US', [
-                        {
-                            ...address('US', false),
-                            fields: [
-                                {
-                                    key: 'state',
-                                    kind,
-                                    required: true,
-                                    options: USPS_CODES,
-                                    value: state === 'missing' ? null : 'CA',
-                                },
-                            ],
-                        },
-                    ]),
-                } satisfies Fixture,
-            ])
-        )
+        (
+            [
+                ['us-address', {}],
+                [
+                    'us-address-filled',
+                    {
+                        street: 'Valencia Street',
+                        buildingNumber: '1450',
+                        town: 'San Francisco',
+                        state: 'CA',
+                        postCode: '94110',
+                    },
+                ],
+            ] as Array<[string, Record<string, string>]>
+        ).map(([name, values]) => [
+            `paperwork-verification-${name}`,
+            {
+                route: '/verify?step=address',
+                about: `The US address screen${'state' in values ? ', filled in' : ''}: every field, with the state picked from every USPS state and territory code.`,
+                responses: asking('US', [
+                    (({ fields, ...step }) => ({
+                        ...step,
+                        fields: fields.map((field) => ({
+                            ...field,
+                            value: values[field.key] ?? field.value,
+                        })),
+                    }))(address('US', false)),
+                ]),
+            } satisfies Fixture,
+        ])
     ),
     ...Object.fromEntries(
         [

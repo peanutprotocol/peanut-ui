@@ -38,7 +38,7 @@ for (const contract of contracts) {
         assert.equal(job['timeout-minutes'], contract.deadline)
         assert.ok(job['continue-on-error'] === undefined || job['continue-on-error'] === false)
         const step = buildStep(job)
-        assert.equal(step.env?.NODE_OPTIONS, '--max-old-space-size=4096')
+        assert.equal(step.env?.NODE_OPTIONS, '--max-old-space-size=6144')
         assertFailurePropagation(step)
         const effectiveEnv = { ...workflow.env, ...job.env, ...step.env }
         assert.equal(effectiveEnv.NEXT_PUBLIC_VERCEL_ENV, contract.environment)
@@ -48,7 +48,7 @@ for (const contract of contracts) {
 
     test(`${contract.id} heap setting reaches a Node grandchild without allocating a large heap`, () => {
         const step = buildStep(workflow.jobs[contract.id])
-        assert.equal(step.env?.NODE_OPTIONS, '--max-old-space-size=4096')
+        assert.equal(step.env?.NODE_OPTIONS, '--max-old-space-size=6144')
         const probe = `
             const { spawnSync } = require('node:child_process');
             const code = "console.log(JSON.stringify({options:process.env.NODE_OPTIONS,heap:require('node:v8').getHeapStatistics().heap_size_limit}))";
@@ -66,9 +66,9 @@ for (const contract of contracts) {
         assert.equal(result.error, undefined)
         assert.equal(result.status, 0, result.stderr)
         const observed = JSON.parse(result.stdout)
-        assert.equal(observed.options, '--max-old-space-size=4096')
+        assert.equal(observed.options, '--max-old-space-size=6144')
         // V8 adds young-generation space to the configured old-space budget.
-        assert.ok(observed.heap >= 4096 * 1024 ** 2 && observed.heap < 4352 * 1024 ** 2)
+        assert.ok(observed.heap >= 6144 * 1024 ** 2 && observed.heap < 6400 * 1024 ** 2)
     })
 }
 

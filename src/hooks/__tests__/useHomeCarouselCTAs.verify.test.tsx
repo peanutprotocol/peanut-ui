@@ -1,174 +1,124 @@
 /** @jest-environment jsdom */
-jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
-
-/**
- * The carousel's "Unlock QR code payments" slide reads the shared QR-pay gate
- * (TASK-23054). A region-refused user who hides the region card lands on the
- * carousel, and must not be asked to verify for something they can never do.
- */
-import React from 'react'
+import { renderHook } from '@testing-library/react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
+import { showVerifyCTA, blockedCardCtaId } from '@/utils/home-carousel.utils'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
+import { cardOfferFacts } from '@/features/attention/journeyState'
+import { cardOffer } from '@/features/attention/registry'
+import { run } from '@/features/attention/__tests__/legacy-manager.fixture'
 import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
-import { renderHook, waitFor } from '@testing-library/react'
-import { IntlWrapper } from '@/test-utils/intl'
-import { useHomeCarouselCTAs } from '@/hooks/useHomeCarouselCTAs'
-import { blockedCardCtaId, hideHomeCta } from '@/utils/home-carousel.utils'
+import type { JourneyState } from '@/features/attention/types'
 
-// Every mocked value is stable across renders: the hook's effects and
-// callbacks depend on their identity, and fresh objects would loop.
-let mockRegionRestricted = false
-let mockIdentityStatus: IdentityVerificationStatus = 'not_started'
-let mockRails: Array<Record<string, unknown>> = []
-const mockNoActions: never[] = []
-const mockChannelOf = (rail: { channel: string }) => rail.channel
-const mockBankRails = () => []
-const mockCanDo = () => false
-jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted, status: mockIdentityStatus }),
-}))
+// The carousel was replaced by manager asks. Keep the original QR and card
+// cases against the actual QR gate, card navigation gate, and manager verdicts.
+let mockRails: RailCapability[] = []
+let mockRestricted = false
+let mockInfo = { geoProhibited: false }
+jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ cardInfo: mockInfo }) }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({
-        capabilities: mockUser.capabilities,
-        rails: mockRails,
-        nextActions: mockNoActions,
-        channelOf: mockChannelOf,
-        bankRails: mockBankRails,
-        canDo: mockCanDo,
-    }),
+    useCapabilities: () => ({ rails: mockRails, channelOf: (rail: RailCapability) => rail.channel }),
 }))
-const mockUser = {
-    user: { userId: 'u1', badges: [] },
-    invitesSent: [],
-    identityVerification: { status: 'not_started' as IdentityVerificationStatus },
-    capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'not_started' } }),
-}
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
-const mockNotifications = {
-    requestPermission: jest.fn(),
-    afterPermissionAttempt: jest.fn(),
-    isPermissionGranted: true,
-    isPushOptedIn: true,
-    oneSignalInitialized: false,
-}
-jest.mock('@/hooks/useNotifications', () => ({ useNotifications: () => mockNotifications }))
-const mockToast = { error: jest.fn(), success: jest.fn() }
-jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => mockToast }))
-const mockRouter = { push: jest.fn() }
-jest.mock('next/navigation', () => ({ useRouter: () => mockRouter }))
-const mockModals = { openSupportWithMessage: jest.fn(), setIsGetAppModalOpen: jest.fn(), setIsQRScannerOpen: jest.fn() }
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => mockModals }))
-const mockDevice = { deviceType: 'web' }
-jest.mock('@/hooks/useGetDeviceType', () => ({
-    DeviceType: { WEB: 'web', ANDROID: 'android', IOS: 'ios' },
-    useDeviceType: () => mockDevice,
-}))
-const mockGeo = { countryCode: 'US' }
-jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: () => mockGeo }))
-const mockCardIneligible = { isEligible: false, cardInfo: { isEligible: false, geoProhibited: true } }
-let mockCardInfo = mockCardIneligible
-jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => mockCardInfo }))
-const mockNotActivated = { isActivated: false }
-let mockActivation = mockNotActivated
-jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => mockActivation }))
-// useCardSurfaceAccess runs for real: the card offer must follow the nav's gate
-const mockUnrestricted = { banking: false, card: false }
-let mockRestrictions = mockUnrestricted
-jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
-const mockHistory = { data: { entries: [] } }
-jest.mock('@/hooks/useTransactionHistory', () => ({ useTransactionHistory: () => mockHistory }))
-const mockFlag = () => false
-jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockFlag }))
-jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => false,
-    isIOSNative: () => false,
-    openExternalUrl: jest.fn(),
-}))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => ({ card: mockRestricted }) }))
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isTerminalFailure: false }) }))
 
-const ids = () => {
-    mockUser.identityVerification = { status: mockIdentityStatus }
-    mockUser.capabilities = withFeatureReport(
-        { rails: mockRails as unknown as RailCapability[], nextActions: mockNoActions },
+function verifyOffered(identityStatus: IdentityVerificationStatus, regionRestricted = false) {
+    const capabilities = withFeatureReport(
+        { rails: mockRails, nextActions: [] },
         {
             identity: {
-                status: mockRegionRestricted ? 'failed' : mockIdentityStatus,
-                ...(mockRegionRestricted ? { reason: { code: 'identity_region_restricted' } } : {}),
+                status: regionRestricted ? 'failed' : identityStatus,
+                ...(regionRestricted ? { reason: { code: 'identity_region_restricted' } } : {}),
             },
         }
     )
-    const { result } = renderHook(() => useHomeCarouselCTAs(), {
-        wrapper: ({ children }: { children: React.ReactNode }) => <IntlWrapper>{children}</IntlWrapper>,
+    const gate = selectQrKycGate({ isLoading: false, features: capabilities.features, nextActions: [] })
+    return showVerifyCTA({
+        qrGateState: gate.kycGateState,
+        isIdentityVerified: identityStatus === 'verified',
+        isInFlight: mockRails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info'),
+        isCardEligible: false,
     })
-    return result
 }
-
+function managerAfterDismissal(verifyOpensQr: boolean, blockedId: string) {
+    const result = run(
+        { blockedCardId: blockedId, qr: { canPayNow: false, hasMadeQrPayment: false, verifyOpensQr } },
+        {},
+        {
+            'blocked-card': { dismissedAt: new Date(0).toISOString(), version: blockedId },
+        }
+    )
+    return result.trace.verdicts['verify-for-qr']
+}
+function cardOfferVerdict() {
+    const access = renderHook(() => useCardSurfaceAccess()).result.current
+    return cardOffer.eligible({
+        userId: 'u1',
+        userLoaded: true,
+        activated: true,
+        cardOffer: cardOfferFacts({
+            loading: false,
+            cardInfo: mockInfo,
+            error: null,
+            showCardSurface: access.showCardSurface,
+            hasCardRelationship: access.hasCardRelationship,
+            promotionDisabled: false,
+        }),
+    } as JourneyState)
+}
 beforeEach(() => {
-    localStorage.clear()
-    mockRegionRestricted = false
-    mockIdentityStatus = 'not_started'
     mockRails = []
-    mockCardInfo = mockCardIneligible
-    mockActivation = mockNotActivated
-    mockRestrictions = mockUnrestricted
+    mockRestricted = false
+    mockInfo = { geoProhibited: false }
 })
 
-describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () => {
-    it('an unverified user who can verify gets the slide', async () => {
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs.map((cta) => cta.id)).toContain('kyc-prompt'))
+describe('Home manager verify ask follows the QR-pay gate', () => {
+    it('an unverified user who can verify gets the ask', () => {
+        expect(verifyOffered('not_started')).toBe(true)
     })
-
-    it('region refused → hide the region card → the carousel has no kyc-prompt', async () => {
-        mockRegionRestricted = true
-        mockIdentityStatus = 'failed'
-        hideHomeCta('u1', blockedCardCtaId('region-restricted', 'identity_region_restricted'))
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
-        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    it('region refused, then dismissed blocked card, has no verification ask', () => {
+        const id = blockedCardCtaId('region-restricted', 'identity_region_restricted')
+        expect(managerAfterDismissal(verifyOffered('failed', true), id)).toBe('ineligible')
     })
-
-    it('a blocked QR provider → no kyc-prompt', async () => {
-        mockRails = [{ id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', status: 'blocked' }]
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
-        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    it('a blocked QR provider has no verification ask', () => {
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                method: 'PIX_BR',
+                channel: 'bank',
+                country: 'BR',
+                currency: 'BRL',
+                status: 'blocked',
+            },
+        ]
+        expect(verifyOffered('not_started')).toBe(false)
     })
-
-    it('home-provider-rejection: a verified user hides the rejection card → no "Confirm your ID" slide', async () => {
-        // the fixture's shape: Sumsub-verified, one blocked bank rail, no Manteca pool rail
-        mockIdentityStatus = 'verified'
-        mockRails = [{ id: 'bridge.ach_us', provider: 'bridge', channel: 'bank', status: 'blocked' }]
-        hideHomeCta('u1', blockedCardCtaId('verification-issue', 'provider_rejected'))
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
-        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    it('a verified user who dismissed a provider rejection has no verification ask', () => {
+        mockRails = [
+            {
+                id: 'bridge.ach_us',
+                provider: 'bridge',
+                method: 'ACH_US',
+                channel: 'bank',
+                country: 'US',
+                currency: 'USD',
+                status: 'blocked',
+            },
+        ]
+        const id = blockedCardCtaId('verification-issue', 'provider_rejected')
+        expect(managerAfterDismissal(verifyOffered('verified'), id)).toBe('ineligible')
     })
-
-    it('a verified identity is never asked to verify, even with no rail at all', async () => {
-        mockIdentityStatus = 'verified'
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
-        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    it('a verified identity is never asked again even with no rail', () => {
+        expect(verifyOffered('verified')).toBe(false)
     })
 })
-
-describe('useHomeCarouselCTAs — the card offer follows the nav', () => {
-    beforeEach(() => {
-        mockActivation = { isActivated: true }
-        mockCardInfo = { isEligible: true, cardInfo: { isEligible: true, geoProhibited: false } }
+describe('Home manager card offer follows the navigation gate', () => {
+    it('an activated user whose card is visible gets the offer', () => {
+        expect(cardOfferVerdict()).toBe('show')
     })
-
-    it('an activated user the nav shows the card to gets the card offer', async () => {
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs.map((cta) => cta.id)).toContain('card-offer'))
-    })
-
-    it('a residence restriction hides the card offer even when the card country is not prohibited', async () => {
-        // e.g. a pending move to a card-restricted residence: /users/me restricts
-        // the card, /card/info still answers for the current residence
-        mockRestrictions = { banking: false, card: true }
-        const result = ids()
-        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
-        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('card-offer')
+    it('a residence restriction hides the offer even if the card country is not prohibited', () => {
+        mockRestricted = true
+        expect(cardOfferVerdict()).toBe('ineligible')
     })
 })

@@ -1,56 +1,28 @@
 # Peanut UI
 
-[![Tests](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/peanutprotocol/peanut-ui/actions/workflows/tests.yml)
-[![CodeQL](https://github.com/peanutprotocol/peanut-ui/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/peanutprotocol/peanut-ui/security/code-scanning)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![i18n](https://img.shields.io/badge/i18n-5_locales-blue)](https://peanut.me)
-[![PWA Ready](https://img.shields.io/badge/PWA-ready-5A0FC8?logo=pwa)](https://peanut.me)
+The Peanut wallet app: the Next.js web app at [peanut.me](https://peanut.me) ([staging.peanut.me](https://staging.peanut.me)) and the Capacitor native apps for Android and iOS.
 
-Live at: [peanut.me](https://peanut.me) | [staging.peanut.me](https://staging.peanut.me)
+## Run it
 
-## Getting Started
-
-**Local dev and QA: start from mono root, not here.**
+Run the app from the [mono](https://github.com/peanutprotocol/mono) repository root, not from here:
 
 ```bash
-cd ..                       # mono root
-./scripts/dev               # brings up API :5050 + UI :3050 + Nutcracker :3060
+./scripts/setup   # once
+./scripts/dev     # API :5050, UI :3050, Nutcracker :3060
 ```
 
-Then open [http://localhost:3050](http://localhost:3050). See [`mono/GETTING-STARTED.md`](../GETTING-STARTED.md) → "Running the app locally" for the full cheat sheet, log paths, and in-browser `peanutDebug.*` helpers.
+Then open [http://localhost:3050](http://localhost:3050). Full setup: [GETTING-STARTED.md](https://github.com/peanutprotocol/mono/blob/main/GETTING-STARTED.md#running-the-app-locally).
 
-Ask in Peanut [Discord](https://discord.gg/B99T9mQqBv) #dev channel if you have any questions.
+## Docs
 
-### pnpm dev (escape hatch)
+This repository keeps no docs. They live in mono:
 
-Running `pnpm dev` in this subrepo directly bypasses the sandbox env overrides (`PEANUT_API_URL`, chain IDs, bundler URLs, `NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK`, Infura disable) injected by `mono/engineering/qa/lib/servers.sh`. By default the UI will talk to staging — rarely what you want for local QA.
+- [Working rules](https://github.com/peanutprotocol/mono/blob/main/CONTRIBUTING.md)
+- [UI engineering docs](https://github.com/peanutprotocol/mono/blob/main/engineering/ui/README.md)
+- [Native app docs](https://github.com/peanutprotocol/mono/blob/main/engineering/native/README.md)
+- [Design system](https://github.com/peanutprotocol/mono/blob/main/design/design.md)
+- [Releases](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md)
 
-```bash
-git submodule update --init --recursive
-pnpm install
-cp .env.example .env         # edit as needed
-pnpm dev                     # listens on :3000
-# pnpm run dev:https         # HTTPS dev server (secure-context features)
-```
+## Archived apps
 
-## Releases
-
-Production releases, hotfixes, OTA updates, store builds and native build commands: [mono `ops/releases.md`](https://github.com/peanutprotocol/mono/blob/main/ops/releases.md). It is the only release doc. Each release's run is a row in the Notion Releases table.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for coding standards, design system reference, and development rules.
-
-## Archived Branches
-
-This repo previously hosted two other apps under the `peanut.to` domain. Both are now deprecated in favor of `peanut.me` (this branch). Their final states are preserved as tags:
-
-| Tag | Was | Last commit | Notes |
-|-----|-----|-------------|-------|
-| `archive/peanut-to` | `main` → `peanut.to` | Nov 2025 | Link-based send/claim app, cashout, SDK pages |
-| `archive/legacy-peanut-to` | `legacy` → `legacy.peanut.to` | Mar 2025 | Batch send, raffles, leaderboard |
-
-To browse the old code: `git checkout archive/peanut-to`
+This repository once hosted two apps on `peanut.to`. Their final states are tags: `archive/peanut-to` (link-based send and claim, until Nov 2025) and `archive/legacy-peanut-to` (`legacy.peanut.to`, until Mar 2025).

@@ -92,6 +92,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Final passkey confirmation',
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
+    '05-b-signtesttransaction-network-busy': {
+        name: 'Final passkey confirmation — network busy, confirm later',
+        path: 'Setup/Views/SignTestTransaction.tsx',
+    },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '06-b-invite': { name: 'Invited by a friend', path: 'Setup/Views/Invite.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
@@ -146,6 +150,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'KycVerificationInProgressModal (verifying)',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
     },
+    '24-c-kyctaxidsubmitted': {
+        name: 'KycVerificationInProgressModal (tax ID submitted)',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
     '24-c-kyc-ready-ars-action': {
         name: 'KYC complete — ARS needs one more step',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
@@ -165,6 +173,28 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
+    '35-c-googlewalletbutton': {
+        name: 'Add to Google Wallet button (native Android only)',
+        path: 'Card/GoogleWalletButton.tsx',
+        expectSelector: 'button[aria-busy="false"]',
+    },
+    '35-c-googlewalletbutton-adding': {
+        name: 'Add to Google Wallet button — adding (held pressed)',
+        path: 'Card/GoogleWalletButton.tsx',
+        captureState: ['isAdding=true'],
+        expectSelector: 'button[aria-busy="true"]',
+    },
+    '35-c-applewalletrow': {
+        name: 'Add to Apple Wallet row (native iOS only)',
+        path: 'Card/AppleWalletRow.tsx',
+        expectSelector: '[role="button"]:not([aria-disabled])',
+    },
+    '35-c-applewalletrow-adding': {
+        name: 'Add to Apple Wallet row — adding (disabled)',
+        path: 'Card/AppleWalletRow.tsx',
+        captureState: ['isAdding=true'],
+        expectSelector: '[role="button"][aria-disabled="true"]',
+    },
     '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
     '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },

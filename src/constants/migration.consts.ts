@@ -38,6 +38,9 @@ export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
+/** Peanut's App Store id: the store links and Safari's Smart App Banner share it. */
+export const IOS_APP_STORE_ID = '6786373552'
+
 /**
  * Write-a-review deep links for the user-initiated "Rate Peanut" row in Profile
  * → About. A prompt built out of these would breach guideline 5.6.1 (that ask is
@@ -46,7 +49,7 @@ export const KEEP_WEB_COOKIE_DAYS = 90
  * release valve for a user whose OS quota silently swallowed the sheet.
  */
 export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
+    ios: `https://apps.apple.com/us/app/id${IOS_APP_STORE_ID}?action=write-review`,
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
@@ -56,7 +59,7 @@ export const REVIEW_URL = {
  * counts a campaign only when both are present, so without the provider
  * token the link stays plain.
  */
-const IOS_STORE_URL = 'https://apps.apple.com/us/app/id6786373552'
+const IOS_STORE_URL = `https://apps.apple.com/us/app/id${IOS_APP_STORE_ID}`
 const APP_STORE_PROVIDER_TOKEN = process.env.NEXT_PUBLIC_APP_STORE_PROVIDER_TOKEN
 
 export const STORE_URL = {

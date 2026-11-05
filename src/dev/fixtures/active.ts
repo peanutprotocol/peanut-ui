@@ -102,3 +102,9 @@ export function peekActiveFixture(): string | null {
     if (fromUrl === 'off' || fromUrl === '') return null
     return fromUrl ?? stored()
 }
+
+/** Whether the web download prompt may show: no fixture, or its own. */
+export function downloadPromptAllowedByFixture(): boolean {
+    const fixture = peekActiveFixture()
+    return !fixture || fixture === DOWNLOAD_PROMPT_FIXTURE
+}

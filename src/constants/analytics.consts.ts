@@ -45,6 +45,8 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_TEST_TX_STARTED: 'signup_test_tx_started',
     SIGNUP_TEST_TX_SIGNED: 'signup_test_tx_signed',
     SIGNUP_TEST_TX_FAILED: 'signup_test_tx_failed',
+    SIGNUP_TEST_TX_DEFERRED: 'signup_test_tx_deferred',
+    SIGNUP_TEST_TX_DEFERRED_RESOLVED: 'signup_test_tx_deferred_resolved',
     SIGNUP_ACCOUNT_READY_CTA_CLICKED: 'signup_account_ready_cta_clicked',
     SIGNUP_COMPLETED: 'signup_completed',
 
@@ -234,6 +236,13 @@ export const ANALYTICS_EVENTS = {
     MODAL_SHOWN: 'modal_shown',
     MODAL_DISMISSED: 'modal_dismissed',
     MODAL_CTA_CLICKED: 'modal_cta_clicked',
+    /** the attention manager's choice (features/attention); `shadow: true` while it owns no surface */
+    ATTENTION_DECIDED: 'attention_decided',
+    ATTENTION_SHOWN: 'attention_shown',
+    ATTENTION_ACTED: 'attention_acted',
+    ATTENTION_DISMISSED: 'attention_dismissed',
+    ATTENTION_SNOOZED: 'attention_snoozed',
+    ATTENTION_CRASHED: 'attention_crashed',
 
     // ── Arrival prompt (TASK-23251): props country, prompt ──
     ARRIVAL_PROMPT_SHOWN: 'arrival_prompt_shown',
@@ -241,6 +250,7 @@ export const ANALYTICS_EVENTS = {
 
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
+    PIX_QR_INIT_RESULT: 'pix_qr_init_result',
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
     QR_SENDER_REJECTED_SHOWN: 'qr_sender_rejected_shown',
@@ -434,6 +444,8 @@ export const ANALYTICS_EVENTS = {
     // count is what says whether a 2–3 prompt report is our call sites, a retry,
     // or the native shim presenting extra sheets on its own.
     PASSKEY_NATIVE_DIAGNOSTIC: 'passkey_native_diagnostic',
+    // Android request lifecycle after a timeout: cancel acknowledgement, slot release, late native results.
+    PASSKEY_NATIVE_LIFECYCLE: 'passkey_native_lifecycle',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
 
@@ -541,6 +553,7 @@ export const MODAL_TYPES = {
     NOTIFICATIONS: 'notifications',
     EARLY_USER: 'early_user',
     POST_SIGNUP: 'post_signup',
+    POST_VERIFICATION_ACTION: 'post_verification_action',
     BALANCE_WARNING: 'balance_warning',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',

@@ -31,7 +31,7 @@
             "reason": "mascot name (Peanut Man), a proper noun"
         },
         "card.addToWallet.appleWallet": {
-            "locales": ["es-419", "es-AR", "pt-BR"],
+            "locales": ["es-419", "es-AR"],
             "reason": "Apple Wallet is a product name"
         },
         "card.addToWallet.googleWallet": {

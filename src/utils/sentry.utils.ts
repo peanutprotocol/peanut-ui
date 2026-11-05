@@ -675,6 +675,8 @@ const reportNonOkResponse = async (
 }
 
 export type FetchWithSentryOptions = RequestInit & {
+    /** Optional caller-owned guard checked immediately before each network dispatch. */
+    beforeDispatch?: () => boolean
     /** Report only status/method and static errors for sensitive requests. */
     redactTelemetry?: boolean
     preferNativeTransport?: boolean
@@ -727,8 +729,15 @@ export const fetchWithSentry = async (
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
     const connectivityGeneration = getConnectivityGeneration()
-    const { preferNativeTransport, silentTimeout, redactTelemetry, callerReportsFailures, idempotent, ...options } =
-        optionsWithTransport
+    const {
+        preferNativeTransport,
+        silentTimeout,
+        redactTelemetry,
+        callerReportsFailures,
+        idempotent,
+        beforeDispatch,
+        ...options
+    } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
     /*
@@ -743,6 +752,10 @@ export const fetchWithSentry = async (
      */
     const callerSignal = options.signal ?? undefined
     if (callerSignal?.aborted) throw cancelError(callerSignal)
+    const ensureCurrent = () => {
+        if (beforeDispatch && !beforeDispatch())
+            throw Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+    }
     /*
      * The OS HTTP client (CapacitorHttp) cannot cancel its request, so a native
      * leg stops waiting on a cancel instead: the caller is released at once and
@@ -750,7 +763,9 @@ export const fetchWithSentry = async (
      * still reaches the server; SocketQueryRefresh keeps that to one per event.
      */
     const nativeLeg = (legMs: number): Promise<Response> => {
-        const request = nativeHttpRequest(url, options, legMs)
+        const request = beforeDispatch
+            ? nativeHttpRequest(url, options, legMs, beforeDispatch)
+            : nativeHttpRequest(url, options, legMs)
         if (!callerSignal) return request
         return new Promise<Response>((resolve, reject) => {
             const onCancel = () => reject(cancelError(callerSignal))
@@ -838,6 +853,7 @@ export const fetchWithSentry = async (
              * the timeout the pool already earned is the honest outcome.
              */
             if (callerSignal?.aborted) throw cancelError(callerSignal)
+            ensureCurrent()
             const legMs = legTimeoutMs()
             if (legMs < minLegMs) {
                 throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
@@ -897,6 +913,7 @@ export const fetchWithSentry = async (
         return response
     } catch (error: unknown) {
         if (callerSignal?.aborted) throw error
+        ensureCurrent()
         // WebView fetch rejected. On native, retry once over the OS HTTP client
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only

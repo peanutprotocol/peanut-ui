@@ -13,8 +13,6 @@ import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { type ReactNode, useState, useEffect, useRef } from 'react'
-import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
@@ -34,14 +32,43 @@ import type en from '@/i18n/app/messages/en.json'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { confettiPresets } from '@/utils/confetti'
-import { isAa24Error } from '@/utils/walletCredential.utils'
-import { classifyPasskeyError, getPasskeySetupKey } from '@/utils/webauthn.utils'
+import { getPasskeySetupKey } from '@/utils/webauthn.utils'
 import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
+import { useSignupTestTransaction } from '@/features/setup/useSignupTestTransaction'
+import { classifySignupTestTxFailure, type SignupTestTxFailure } from '@/features/setup/signup-test-tx-failure'
+import { SignupTestTxError } from '@/features/setup/signup-test-tx-error'
+import { passkeyFailureReason } from '@/utils/passkey-failure-reporting'
+import {
+    canDeferSignupTestTransaction,
+    clearSignupTestTransaction,
+    readSignupTestTransaction,
+    updateSignupTestTransaction,
+} from '@/features/setup/signup-test-transaction'
+import { clearSignupProgress } from '@/features/setup/signup-progress'
 
 /** A `setup` catalog key: the finish screen's own errors or the shared passkey copy. */
 type FinishErrorKey =
     | `testTransaction.errors.${keyof typeof en.setup.testTransaction.errors}`
     | ReturnType<typeof getPasskeySetupKey>
+
+function failureErrorKey({ mode, errorCode }: SignupTestTxFailure): FinishErrorKey {
+    switch (mode) {
+        case 'signature_invalid':
+            return 'testTransaction.errors.passkeyProviderUnsupported'
+        case 'bundler_transient':
+            return 'testTransaction.errors.networkBusy'
+        case 'needs_new_signature':
+            return 'testTransaction.errors.confirmAgain'
+        case 'passkey':
+            return !errorCode || errorCode === 'LOGIN_ERROR' ? 'passkey.interrupted' : getPasskeySetupKey(errorCode)
+        case 'unknown':
+            return 'testTransaction.errors.supportNeeded'
+        default: {
+            const unhandled: never = mode
+            return unhandled
+        }
+    }
+}
 
 export function SetupConfirmationView({
     onConfirm,
@@ -58,7 +85,7 @@ export function SetupConfirmationView({
     buttonText?: string
     showTitle?: boolean
     merged?: boolean
-    /** the tertiary link under the primary (log out on the finish route) */
+    /** the tertiary link under the primary (finish without the confirmation, log out on the finish route) */
     secondary?: ReactNode
 }) {
     const t = useTranslations('setup')
@@ -87,7 +114,7 @@ export function SetupConfirmationView({
                     description={t('steps.advantage-control.description')}
                 />
                 {error && <Callout priority="error">{error}</Callout>}
-                <SetupFooter actions={button} />
+                <SetupFooter actions={button} secondary={secondary} />
             </div>
         )
     }
@@ -128,7 +155,8 @@ const SignTestTransaction = ({
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const tProfile = useTranslations('profile')
-    const { address, handleSendUserOpEncoded } = useZeroDev()
+    const { address } = useZeroDev()
+    const { sendTestTransaction } = useSignupTestTransaction()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
     const { track } = useSignupControl()
@@ -145,6 +173,8 @@ const SignTestTransaction = ({
     const [errorKey, setErrorKey] = useState<FinishErrorKey | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
+    const [canDefer, setCanDefer] = useState(false)
+    const deferredRef = useRef(false)
     const creatingAccountRef = useRef(false)
     /*
      * handleRedirect CONSUMES the stored post-auth route, so it must fire once.
@@ -183,6 +213,7 @@ const SignTestTransaction = ({
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,
             ...signupAnalyticsContext(signupEntryFlow),
+            test_tx: deferredRef.current ? 'deferred' : 'confirmed',
             funding_methods: fundingChannel
                 ? [fundingChannel === 'crypto' || fundingChannel === 'peanut' ? fundingChannel : 'bank']
                 : [],
@@ -194,6 +225,11 @@ const SignTestTransaction = ({
                   }
                 : {}),
         })
+        if (user) {
+            clearSignupProgress(user.user.userId)
+            // A deferred confirmation stays on the device for the retry after sign-in.
+            if (!deferredRef.current) clearSignupTestTransaction(user.user.userId)
+        }
         // The attachment clears its retry marker only after acknowledgement.
         // Keep failed deliveries user-bound and durable through completion so
         // the authenticated recovery path can retry after an app restart.
@@ -278,7 +314,7 @@ const SignTestTransaction = ({
         }
     }, [accountExists, handleRedirect, onComplete])
 
-    const handleTestTransaction = async () => {
+    const handleTestTransaction = async ({ defer = false }: { defer?: boolean } = {}) => {
         if (redirectingRef.current) return
         const attemptStartedAt = Date.now()
 
@@ -292,53 +328,43 @@ const SignTestTransaction = ({
             setErrorKey('testTransaction.errors.userNotLoaded')
             return
         }
+        const userId = user.user.userId
 
-        console.log('[SignTestTransaction] Starting test transaction flow', {
-            address,
-            accountExists,
-            userId: user.user.userId,
-            testTransactionCompleted,
-        })
         setIsSigning(true)
         setErrorKey(null)
+        setCanDefer(false)
         setSetupLoading(true)
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
+        if (!defer) posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
 
         try {
-            // if test transaction already completed, skip signing and go straight to account creation
-            if (!testTransactionCompleted) {
-                // create a 0 amount erc20 transfer transaction to test passkey signing
-                console.log('[SignTestTransaction] Encoding test transaction data')
-                const txData = encodeFunctionData({
-                    abi: erc20Abi,
-                    functionName: 'transfer',
-                    args: [address as Address, 0n], // transfer 0 tokens to self
-                }) as Hex
-
-                const params = [
-                    {
-                        to: PEANUT_WALLET_TOKEN as Hex,
-                        value: 0n,
-                        data: txData,
-                    },
-                ]
-
-                // attempt to sign and send the test transaction
-                console.log('[SignTestTransaction] Requesting user to sign transaction')
-                const result = await handleSendUserOpEncoded(params, PEANUT_WALLET_CHAIN.id.toString())
-                console.log('[SignTestTransaction] Transaction signed successfully', {
-                    userOpHash: result.userOpHash,
+            if (defer) {
+                const record = readSignupTestTransaction(userId)
+                // Re-checked at the tap: a stale button must not skip a signature the validator rejected.
+                if (!canDeferSignupTestTransaction(record)) {
+                    setIsSigning(false)
+                    setSetupLoading(false)
+                    return
+                }
+                updateSignupTestTransaction(userId, { deferred: true })
+                deferredRef.current = true
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_DEFERRED, {
+                    transient_failures: record?.transientFailures,
+                    signature_check: record?.signatureCheck,
                 })
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_SIGNED)
                 setTestTransactionCompleted(true)
-            } else {
-                console.log('[SignTestTransaction] Test transaction already completed, retrying account creation')
+            } else if (!testTransactionCompleted) {
+                const result = await sendTestTransaction()
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_SIGNED, {
+                    reused_signature: result.reusedSignature,
+                    sends: result.sends,
+                    recovered: result.recovered,
+                })
+                setTestTransactionCompleted(true)
             }
 
             // A retry must also confirm the current choices: a prior request may
             // have committed before the user returned and changed their plan.
             if (onComplete || !accountExists || (creatingAccountRef.current && fundingChannel && paymentChannel)) {
-                console.log('[SignTestTransaction] Finalizing account setup')
                 creatingAccountRef.current = true
                 const success = await finalizeAccountSetup(
                     address,
@@ -356,57 +382,65 @@ const SignTestTransaction = ({
 
                 // addAccount() already fetched and verified user data.
                 await completeSignup()
-            } else {
-                if (creatingAccountRef.current) {
-                    // A prior ambiguous request can commit after both immediate
-                    // profile reconciliations fail. Retry consumes that signup
-                    // marker and presents the same success state as the direct
-                    // response instead of leaving the button loading forever.
-                    console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
-                    await completeSignup()
-                } else {
-                    // Login flow: the account-exists effect owns navigation.
-                    console.log('[SignTestTransaction] Account exists, redirecting to the app')
-                    // keep loading state active until redirect completes
-                }
+            } else if (creatingAccountRef.current) {
+                // A prior ambiguous request can commit after both immediate
+                // profile reconciliations fail. Retry consumes that signup
+                // marker and presents the same success state as the direct
+                // response instead of leaving the button loading forever.
+                await completeSignup()
             }
+            // Otherwise the login flow's account-exists effect owns navigation; loading stays on until it redirects.
         } catch (e) {
-            console.error('[SignTestTransaction] Test transaction failed:', e)
+            /*
+             * console.info, not error: captureConsoleIntegration turned an error log into an
+             * "unhandled" event without this step's tags, and Sentry's dedupe then dropped
+             * the tagged capture below as its duplicate.
+             */
+            console.info('[SignTestTransaction] Test transaction failed:', e)
 
             // Browser capability probes must not delay recovery from a failed signature.
             void capturePasskeyDebugInfo('test-transaction-failed').catch((debugError) => {
                 console.warn('[SignTestTransaction] Diagnostics failed:', debugError)
             })
 
-            // capture the error with additional context
-            Sentry.captureException(e, {
-                extra: {
-                    address,
-                    accountExists,
-                    testTransactionCompleted,
-                    errorMessage: (e as Error).message,
-                    errorName: (e as Error).name,
-                },
-            })
-
-            // viem wraps a signer or bundler rejection in UserOperationExecutionError with the
-            // real failure in `cause`; the login path's stale-session wrapper does the same.
-            const rootCause = e instanceof Error && e.cause instanceof Error ? e.cause : (e as Error)
-            const isAa24 = isAa24Error(rootCause)
+            // Read before classifying, which renames shim errors in place: the signing hook decided on the original.
+            const reportedBySigningHook =
+                e instanceof SignupTestTxError && e.phase === 'sign' && passkeyFailureReason(e.cause) !== undefined
             // classify first: it renames the capgo shim's plain `Error('User cancelled the selector')`
             // to NotAllowedError in place, so read error_name after it
-            const errorCode = isAa24 ? undefined : classifyPasskeyError(rootCause).code
+            const failure = classifySignupTestTxFailure(e)
+            const record = readSignupTestTransaction(userId)
+            if (!reportedBySigningHook) {
+                Sentry.captureException(e, {
+                    tags: { feature: 'signup-test-transaction', failure_mode: failure.mode },
+                    extra: {
+                        address,
+                        accountExists,
+                        testTransactionCompleted,
+                        phase: failure.phase,
+                        submissionKind: failure.submissionKind,
+                        errorMessage: failure.rootCause.message,
+                        errorName: failure.rootCause.name,
+                    },
+                })
+            }
             const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
+            const deferrable = failure.mode === 'bundler_transient' && canDeferSignupTestTransaction(record)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {
-                error_name: rootCause.name,
-                error_code: errorCode,
-                is_aa24: isAa24,
+                error_name: failure.rootCause.name,
+                error_code: failure.errorCode,
+                is_aa24: failure.mode === 'signature_invalid',
+                failure_mode: failure.mode,
+                phase: failure.phase,
+                submission_kind: failure.submissionKind,
+                transient_failures: record?.transientFailures,
+                signature_check: record?.signatureCheck,
+                deferral_offered: deferrable,
                 backup_eligible: assertion?.backupEligible,
                 challenge_offset: assertion?.challengeOffset,
             })
-            if (isAa24) setErrorKey('testTransaction.errors.passkeyProviderUnsupported')
-            else if (errorCode && errorCode !== 'LOGIN_ERROR') setErrorKey(getPasskeySetupKey(errorCode))
-            else setErrorKey('testTransaction.errors.supportNeeded')
+            setErrorKey(failureErrorKey(failure))
+            setCanDefer(deferrable)
             setIsSigning(false)
             setSetupLoading(false)
         }
@@ -424,23 +458,38 @@ const SignTestTransaction = ({
 
     return (
         <SetupConfirmationView
-            onConfirm={handleTestTransaction}
+            onConfirm={() => void handleTestTransaction()}
             isLoading={isLoading}
             error={displayError}
             buttonText={getButtonText()}
             merged={merged}
             showTitle={!!onComplete}
             secondary={
-                showLogout && (
-                    <LinkButton
-                        onClick={() => {
-                            track('log_out', 'tap')
-                            void logoutUser()
-                        }}
-                        disabled={isLoggingOut}
-                    >
-                        {tProfile('logOut')}
-                    </LinkButton>
+                (canDefer || showLogout) && (
+                    <>
+                        {canDefer && (
+                            <LinkButton
+                                onClick={() => {
+                                    track('finish_later', 'tap')
+                                    void handleTestTransaction({ defer: true })
+                                }}
+                                disabled={isLoading}
+                            >
+                                {t('testTransaction.finishLater')}
+                            </LinkButton>
+                        )}
+                        {showLogout && (
+                            <LinkButton
+                                onClick={() => {
+                                    track('log_out', 'tap')
+                                    void logoutUser()
+                                }}
+                                disabled={isLoggingOut}
+                            >
+                                {tProfile('logOut')}
+                            </LinkButton>
+                        )}
+                    </>
                 )
             }
         />

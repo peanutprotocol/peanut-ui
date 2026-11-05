@@ -84,6 +84,20 @@ export function offersVerification(gate: GateState | undefined): boolean {
 }
 
 /**
+ * Gate kinds where the user has no usable identity: the only ones a row may
+ * say "Verify ID" for. `fixable-rejection` is a verified user with one more
+ * thing the provider asked for, so its row names the ask, not the identity.
+ */
+const NEEDS_IDENTITY: ReadonlySet<GateState['kind']> = new Set<GateState['kind']>([
+    'needs-identity',
+    'restart-identity',
+])
+
+export function needsIdentity(gate: GateState | undefined): boolean {
+    return !!gate && NEEDS_IDENTITY.has(gate.kind)
+}
+
+/**
  * Gate kinds that only say "this user holds no working rail here yet".
  *
  * Two corridors are offered before the user has a rail: the tap asks the
