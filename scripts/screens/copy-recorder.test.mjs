@@ -82,8 +82,22 @@ test('clip-path and clip regions follow inset, polygon and rect values', () => {
     assert.equal(geometry.clipPathRegion(box, 'none'), null)
     assert.deepEqual(geometry.clipPathRegion(box, 'inset(10px 20px)'), rect(20, 10, 180, 90))
     assert.deepEqual(geometry.clipPathRegion(box, 'inset(0px 50% 0px 0px round 8px)'), rect(0, 0, 100, 100))
-    assert.deepEqual(geometry.clipPathRegion(box, 'polygon(0% 0%, 50% 0%, 50% 100%)'), rect(0, 0, 100, 100))
-    assert.deepEqual(geometry.clipPathRegion(box, 'circle(50% at 50% 50%)'), box)
+    assert.deepEqual(geometry.clipPathRegion(box, 'polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%)'), rect(0, 0, 100, 100))
+    assert.deepEqual(geometry.clipPathRegion(box, 'inset(10px) border-box'), rect(10, 10, 190, 90))
+    assert.deepEqual(geometry.clipPathRegion(box, 'padding-box'), box)
+    for (const shape of [
+        'polygon(0% 0%, 100% 0%, 0% 100%)',
+        'polygon(0% 0%, 100% 0%, 100% 100%, 50% 50%)',
+        'circle(50% at 50% 50%)',
+        'ellipse(40% 50%)',
+        'path("M0 0 L10 10")',
+        'url("#mask")',
+        'inset(calc(10% + 2px))',
+    ]) {
+        const region = geometry.clipPathRegion(box, shape)
+        assert.equal(geometry.inside(rect(90, 40, 110, 60), region), false, shape)
+        assert.equal(geometry.paintedText(line('ab', 0, 0), region), '\u0000', shape)
+    }
     assert.deepEqual(geometry.clipRectRegion(box, 'rect(0px, 0px, 0px, 0px)'), rect(0, 0, 0, 0))
     assert.deepEqual(
         geometry.clipRectRegion(box, 'rect(auto, 50px, auto, auto)'),
@@ -126,6 +140,8 @@ const page = `<!doctype html>
 <div style="position: relative; height: 0; overflow: hidden"><div style="position: absolute; top: 0">Hidden absolute copy</div></div>
 <div style="height: 0; overflow: hidden"><div style="position: absolute; top: 450px">Escaped absolute copy</div></div>
 <div style="clip-path: inset(0 0 100% 0)">Clip path copy</div>
+<div style="clip-path: polygon(0 0, 100% 0, 0 100%)">Triangle clip copy</div>
+<div style="clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%)">Square clip copy</div>
 <p style="margin-top: 2000px">Below the fold</p>`
 
 const messages = {
@@ -147,6 +163,8 @@ const messages = {
     hiddenAbsolute: 'Hidden absolute copy',
     escaped: 'Escaped absolute copy',
     clipPath: 'Clip path copy',
+    triangle: 'Triangle clip copy',
+    square: 'Square clip copy',
     belowFold: 'Below the fold',
 }
 
@@ -165,7 +183,9 @@ test('collectCopyEvidence credits only copy painted inside the viewport', async 
         assert.equal(evidence.recorded, true)
         assert.deepEqual(
             shownCopyKeys(evidence),
-            ['clampStart', 'escaped', 'fixed', 'search', 'shownLine', 'tight', 'visible'].map((key) => `app.${key}`)
+            ['clampStart', 'escaped', 'fixed', 'search', 'shownLine', 'square', 'tight', 'visible'].map(
+                (key) => `app.${key}`
+            )
         )
 
         // The ellipsis covers characters that still lie inside the box; none of those may count.

@@ -102,36 +102,44 @@ export function copyGeometry() {
             bottom: y ? box.bottom - borders.bottom : Infinity,
         }
     }
-    /** clip-path inset() and polygon() bounds; other shapes clip to the border box. */
+    const nowhere = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity }
+    /**
+     * The rectangle a clip-path keeps: inset() and axis-aligned rectangular polygons exactly. Any other shape
+     * (a triangle, circle, ellipse, path or url) hides everything under it, so hidden copy can never count.
+     */
     const clipPathRegion = (box, value) => {
         if (!value || value === 'none') return null
+        const shape = value.replace(/\s*\b(?:border|padding|content|margin|fill|stroke|view)-box\b\s*/g, '').trim()
+        if (!shape) return box
         const width = box.right - box.left
         const height = box.bottom - box.top
-        const inset = /^inset\(([^)]*?)(?:\s+round\s[^)]*)?\)$/.exec(value)
+        const inset = /^inset\(([^)]*?)(?:\s+round\s[^)]*)?\)$/.exec(shape)
         if (inset) {
-            const parts = inset[1].trim().split(/\s+/)
-            const [top, right = top, bottom = top, left = right] = parts
+            const [top, right = top, bottom = top, left = right] = inset[1].trim().split(/\s+/)
             const t = px(top, height)
             const r = px(right, width)
             const b = px(bottom, height)
             const l = px(left, width)
-            if ([t, r, b, l].some((n) => n === null)) return box
+            if ([t, r, b, l].some((n) => n === null)) return nowhere
             return { left: box.left + l, top: box.top + t, right: box.right - r, bottom: box.bottom - b }
         }
-        const polygon = /^polygon\((?:(?:nonzero|evenodd)\s*,\s*)?([^)]*)\)$/.exec(value)
-        if (polygon) {
-            const points = polygon[1].split(',').map((point) => point.trim().split(/\s+/))
-            const xs = points.map(([x]) => px(x ?? '', width))
-            const ys = points.map(([, y]) => px(y ?? '', height))
-            if (!points.length || [...xs, ...ys].some((n) => n === null)) return box
-            return {
-                left: box.left + Math.min(...xs),
-                top: box.top + Math.min(...ys),
-                right: box.left + Math.max(...xs),
-                bottom: box.top + Math.max(...ys),
-            }
+        const polygon = /^polygon\((?:(?:nonzero|evenodd)\s*,\s*)?([^)]*)\)$/.exec(shape)
+        if (!polygon) return nowhere
+        const points = polygon[1].split(',').map((point) => point.trim().split(/\s+/))
+        const xs = points.map(([x]) => px(x ?? '', width))
+        const ys = points.map(([, y]) => px(y ?? '', height))
+        if ([...xs, ...ys].some((n) => n === null)) return nowhere
+        const region = {
+            left: box.left + Math.min(...xs),
+            top: box.top + Math.min(...ys),
+            right: box.left + Math.max(...xs),
+            bottom: box.top + Math.max(...ys),
         }
-        return box
+        const corners = new Set(xs.map((x, i) => `${x},${ys[i]}`))
+        const xEdges = new Set(xs)
+        const yEdges = new Set(ys)
+        const rectangular = corners.size === 4 && xEdges.size === 2 && yEdges.size === 2
+        return rectangular ? region : nowhere
     }
     /** The legacy clip property on an absolutely positioned element; auto edges leave that side unclipped. */
     const clipRectRegion = (box, value) => {
