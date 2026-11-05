@@ -16,7 +16,7 @@ import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
 import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
-import { COPY_RECORDER_MARKER, collectCopyEvidence, installCopyRecorder } from './copy-recorder.mjs'
+import { COPY_EVIDENCE_SCRIPT, COPY_RECORDER_MARKER, installCopyRecorder } from './copy-recorder.mjs'
 import { shownCopyKeys } from './copy-coverage.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
 import {
@@ -599,7 +599,7 @@ async function main() {
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
                 const copy =
-                    copyRecording === 'recorded' ? shownCopyKeys(await page.evaluate(collectCopyEvidence)) : undefined
+                    copyRecording === 'recorded' ? shownCopyKeys(await page.evaluate(COPY_EVIDENCE_SCRIPT)) : undefined
                 const image = storeAsset(assets, previous)
                 // Keep the exact PNG as the only CI capture source. The trusted
                 // publisher converts it to a full-resolution WebP after diffing.
