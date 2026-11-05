@@ -847,6 +847,7 @@ const MethodSection = ({
                             onClick={
                                 closed ? () => onClosedRowClick(row) : tappable ? () => onRowClick(row) : undefined
                             }
+                            data-testid={`method-row-${row.id}`}
                         />
                     )
                 })}

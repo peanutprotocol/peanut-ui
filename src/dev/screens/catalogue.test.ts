@@ -73,4 +73,18 @@ describe('screen catalogue', () => {
             'bank-transfer-chooser',
         ])
     })
+
+    it('opens the Brazilian resident details drawers by test id', () => {
+        const clickTestIds = (id: string) => SCREENS.find((screen) => screen.id === id)?.clickTestIds
+        expect(clickTestIds('profile-brazil-bank-details')).toEqual(['bank-row-brl'])
+        expect(clickTestIds('profile-brazil-qr-details')).toEqual(['method-row-qr-pay'])
+    })
+
+    // The harness taps `clicks` with getByText, so a selector there never matches.
+    it('lists visible text in clicks, not Playwright selectors', () => {
+        const selectorLike = /^(text|css|xpath|id|data-testid)=|^\w*\[[^\]]+\]|^[.#]\w/
+        expect(SCREENS.flatMap(({ id, clicks }) => clicks.filter((c) => selectorLike.test(c)).map(() => id))).toEqual(
+            []
+        )
+    })
 })

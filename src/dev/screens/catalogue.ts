@@ -103,7 +103,8 @@ const definitions: Screen[] = [
         defaultScreen: false,
         route: '/profile/accounts',
         fixture: 'profile-accounts-br-resident',
-        clicks: ['text=BRL'],
+        clicks: [],
+        clickTestIds: ['bank-row-brl'],
         expectSelector: '[role="dialog"]',
     },
     {
@@ -114,7 +115,8 @@ const definitions: Screen[] = [
         defaultScreen: false,
         route: '/profile/payments',
         fixture: 'profile-accounts-br-resident',
-        clicks: ['img[src*="ar.svg"]'],
+        clicks: [],
+        clickTestIds: ['method-row-qr-pay'],
         expectSelector: '[role="dialog"]',
     },
     {
