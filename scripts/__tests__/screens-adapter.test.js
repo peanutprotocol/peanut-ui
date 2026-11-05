@@ -9,7 +9,11 @@ const childOptions = { cwd: root, encoding: 'utf8', timeout: 30000 }
 it('runs the existing synthetic screen adapter Node acceptance suite', () => {
     let output
     try {
-        output = execFileSync(process.execPath, ['--test', 'scripts/screens/adapter.test.mjs'], childOptions)
+        output = execFileSync(
+            process.execPath,
+            ['--test', '--test-reporter=tap', 'scripts/screens/adapter.test.mjs'],
+            childOptions
+        )
     } catch (error) {
         throw new Error(String(error.stdout || error.stderr || error))
     }
