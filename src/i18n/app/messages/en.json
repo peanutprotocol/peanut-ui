@@ -2714,7 +2714,7 @@
     },
     "history": {
         "title": "Activity",
-        "errorTitle": "Couldn’t load your activity",
+        "errorTitle": "Couldn’t load activity",
         "errorDescription": "Check your connection and try again.",
         "empty": "No transactions yet",
         "loadingMore": "Loading more...",

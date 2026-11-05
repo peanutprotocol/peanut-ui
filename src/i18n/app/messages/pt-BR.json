@@ -2714,7 +2714,7 @@
     },
     "history": {
         "title": "Atividade",
-        "errorTitle": "Não foi possível carregar sua atividade",
+        "errorTitle": "Não foi possível carregar a atividade",
         "errorDescription": "Verifique sua conexão e tente de novo.",
         "empty": "Nenhuma transação ainda",
         "loadingMore": "Carregando mais...",

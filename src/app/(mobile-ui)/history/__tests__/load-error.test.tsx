@@ -49,7 +49,12 @@ jest.mock('@/utils/history.utils', () => ({
 jest.mock('@/components/Kyc/KycStatusItem', () => ({ KycStatusItem: () => null, isKycStatusItem: () => false }))
 jest.mock('@/components/Badges/BadgeStatusItem', () => ({ BadgeStatusItem: () => null }))
 jest.mock('@/components/Badges/badge.types', () => ({ isBadgeHistoryItem: () => false }))
-jest.mock('@/components/Global/NavHeader', () => ({ title }: { title: string }) => <h1>{title}</h1>)
+jest.mock('@/components/Global/NavHeader', () => {
+    function MockNavHeader({ title }: { title: string }) {
+        return <h1>{title}</h1>
+    }
+    return MockNavHeader
+})
 jest.mock('@/components/Global/Loading', () => () => null)
 jest.mock('@/components/Global/EmptyStates/NoDataEmptyState', () => () => null)
 jest.mock('@/components/TransactionDetails/TransactionCard', () => () => null)
