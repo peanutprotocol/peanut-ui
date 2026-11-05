@@ -105,6 +105,13 @@ describe('HomeWallOfLove', () => {
         expect(shownHandles(container)).not.toEqual(first)
     })
 
+    it('keeps the pause control in the accessibility tree but visually hidden until it has focus', () => {
+        const { getByRole } = renderWall()
+        const wrapper = getByRole('button', { name: 'Pause' }).parentElement!
+        expect(wrapper).toHaveClass('sr-only', 'focus-within:not-sr-only', 'focus-within:mt-6')
+        expect(wrapper).not.toHaveClass('hidden', 'invisible')
+    })
+
     it('never cycles under reduced motion', () => {
         reducedMotion = true
         const { container } = renderWall()
