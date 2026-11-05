@@ -15,6 +15,11 @@ jest.mock('@/app/actions/clients', () => ({}))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
+const mockCaptureTriaged = jest.fn()
+jest.mock('@/utils/network-triage', () => ({
+    captureNetworkTriagedFailure: (...args: unknown[]) => mockCaptureTriaged(...args),
+    isNetworkLayerFailure: () => false,
+}))
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 42161 },
     PEANUT_WALLET_TOKEN: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
@@ -158,6 +163,38 @@ describe('useAveniaWithdrawSubmit', () => {
         })
 
         expect(mockInit).not.toHaveBeenCalled()
+    })
+
+    it('reports an unexplained signing failure with the critical-flow tags', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        mockSendTransactions.mockRejectedValue(new Error('bundler said no'))
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(mockCaptureTriaged).toHaveBeenCalledWith(expect.any(Error), {
+            tags: { critical_flow: 'withdraw-avenia', withdraw_step: 'sign' },
+            extra: { intentId: 'w1' },
+        })
+    })
+
+    it("reports an init that failed without the API's refusal code, and not a refusal", async () => {
+        mockInit.mockRejectedValueOnce(new ApiError('refused', { status: 422, code: 'PIX_KEY_NOT_OWN' }))
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        expect(mockCaptureTriaged).not.toHaveBeenCalled()
+
+        mockInit.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        expect(mockCaptureTriaged).toHaveBeenCalledWith(expect.any(TypeError), {
+            tags: { critical_flow: 'withdraw-avenia', withdraw_step: 'init' },
+        })
     })
 
     it('never calls a send with no receipt a success, and reports nothing it cannot prove', async () => {

@@ -14,6 +14,8 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
     IN_APP_BROWSER_CLOSED_EVENT: 'peanut:in-app-browser-closed',
 }))
+const mockCaptureException = jest.fn()
+jest.mock('@/utils/sentry-lazy', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 const mockStartKyc = jest.fn()
 jest.mock('@/services/avenia', () => ({ aveniaApi: { startKyc: (body: unknown) => mockStartKyc(body) } }))
 const mockMarkUnavailable = jest.fn()
@@ -118,6 +120,11 @@ describe('useAveniaKycStart', () => {
         })
         expect(hook.result.current.error).toBe('unavailable')
         expect(mockMarkUnavailable).not.toHaveBeenCalled()
+        // only the unexplained failure reaches Sentry, tagged for prod-watch
+        expect(mockCaptureException).toHaveBeenCalledTimes(1)
+        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(ApiError), {
+            tags: { critical_flow: 'kyc', kyc_step: 'avenia_launch' },
+        })
     })
 
     it.each([

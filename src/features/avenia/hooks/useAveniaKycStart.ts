@@ -9,6 +9,8 @@ import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-e
 import { markAveniaUnavailable } from '@/features/avenia/aveniaAvailability'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { reserveDetachedTab } from '@/utils/reserved-tab'
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 
 /** Re-arm cadence for the user poller, under its 30 s window (same as useWaitingOnProviderModal). */
 const REARM_INTERVAL_MS = 20_000
@@ -92,7 +94,10 @@ export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): Av
                 setError(t('setup.termsNotSaved'))
             else if (code === API_ERROR_CODES.AVENIA_CPF_REQUIRED) setError(t('setup.cpfRequired'))
             else if (apiErrorStatus(caught) === 409) setError(t('setup.settingUp'))
-            else setError(t('unavailable'))
+            else {
+                Sentry.captureException(caught, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'avenia_launch' } })
+                setError(t('unavailable'))
+            }
         } finally {
             setIsStarting(false)
             startingRef.current = false

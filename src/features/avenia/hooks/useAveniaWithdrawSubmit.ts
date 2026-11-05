@@ -22,6 +22,9 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { BALANCE_DECREASE, PIX_WITHDRAW, TRANSACTIONS } from '@/constants/query.consts'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
+import { friendlyError } from '@/utils/friendly-error.utils'
+import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
 
 /**
@@ -30,6 +33,8 @@ import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
  * the withdrawal's history entry says when it does.
  * `unconfirmed`: the deposit was sent but its receipt never arrived, so the app cannot say it landed.
  */
+const flowTags = (step: string) => ({ ...criticalFlowTags('withdraw-avenia'), withdraw_step: step })
+
 export type AveniaWithdrawPhase = 'idle' | 'starting' | 'reconfirm' | 'signing' | 'funded' | 'unconfirmed'
 
 interface OpenedWithdrawal {
@@ -124,6 +129,15 @@ export function useAveniaWithdrawSubmit({
                 minedHash = result.receipt?.transactionHash
             } catch (caught) {
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, { method_type: 'avenia', stage: 'sign' })
+                // A classified error is a user action or a known state; an unclassified or network
+                // failure on the money leg is what prod-watch must see (as on the Manteca flow).
+                const classified = friendlyError(caught)
+                if (
+                    (classified.kind === 'code' && classified.code === 'genericSupport') ||
+                    isNetworkLayerFailure(caught)
+                ) {
+                    void captureNetworkTriagedFailure(caught, { tags: flowTags('sign'), extra: { intentId } })
+                }
                 setError(toFriendlyError(caught))
                 setPhase('idle')
                 return
@@ -139,7 +153,7 @@ export function useAveniaWithdrawSubmit({
             // Optional for the money (Avenia's webhook moves it either way); it names the
             // funding transaction on the receipt sooner. Only a mined hash can be checked.
             aveniaApi.reportFunding(intentId, minedHash).catch((caught) => {
-                Sentry.captureException(caught, { extra: { intentId } })
+                Sentry.captureException(caught, { tags: flowTags('report-funding'), extra: { intentId } })
             })
         },
         [queryClient, sendDeposit, tShared, toFriendlyError]
@@ -156,11 +170,14 @@ export function useAveniaWithdrawSubmit({
                 try {
                     init = await aveniaApi.initWithdrawal(request)
                 } catch (caught) {
+                    const code = wireErrorCode(caught)
                     posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
                         method_type: 'avenia',
                         stage: 'init',
-                        error_code: wireErrorCode(caught) ?? 'unknown',
+                        error_code: code ?? 'unknown',
                     })
+                    // a wire code is the API's own refusal; anything else is a failure to look at
+                    if (!code) void captureNetworkTriagedFailure(caught, { tags: flowTags('init') })
                     setError(initError(caught))
                     setPhase('idle')
                     return
@@ -176,6 +193,7 @@ export function useAveniaWithdrawSubmit({
                     !signMatchesDisplay(init.display, init.sign)
                 ) {
                     Sentry.captureException(new Error('Avenia withdrawal sign request off-contract'), {
+                        tags: flowTags('sign-request'),
                         extra: { intentId: init.intentId, kind: init.sign.kind },
                     })
                     setError(tShared('unavailable'))
