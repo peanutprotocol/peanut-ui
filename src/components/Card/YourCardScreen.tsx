@@ -14,6 +14,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { Button } from '@/components/0_Bruddle/Button'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
@@ -43,6 +44,9 @@ interface Props {
     onPrev?: () => void
     /** Lock/cancel/unlock report their wallet stop here, to the page that outlives this screen. */
     onStopAttempt?: (attempt: StopAttempt | null) => void
+    onCompleteVerification?: () => void
+    verificationBusy?: boolean
+    verificationError?: boolean
 }
 
 const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiryCopied' | 'cvvCopied'> = {
@@ -65,7 +69,15 @@ const RETURN_ERROR_KEY: Record<
     failed: 'moveFailed',
 }
 
-const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) => {
+const YourCardScreen: FC<Props> = ({
+    overview,
+    card,
+    onPrev,
+    onStopAttempt,
+    onCompleteVerification,
+    verificationBusy,
+    verificationError,
+}) => {
     const t = useTranslations('card.yourCard')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -141,8 +153,20 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev, onStopAttempt }) =>
     )
 
     return (
-        <PageStack gap="6">
+        <PageStack gap="6" data-testid="your-card-screen">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
+
+            {onCompleteVerification && (
+                <Button
+                    variant="primary"
+                    onClick={onCompleteVerification}
+                    disabled={verificationBusy}
+                    data-testid="card-verification-continue"
+                >
+                    {t('completeVerification')}
+                </Button>
+            )}
+            {verificationError && <Callout priority="error">{tCommon('somethingWentWrong')}</Callout>}
 
             {revealError && <Callout priority="error">{revealError}</Callout>}
 

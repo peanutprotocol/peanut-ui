@@ -1026,6 +1026,7 @@
             "positionBadge": "Sos el #{position} en la lista"
         },
         "yourCard": {
+            "completeVerification": "Completá la verificación",
             "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contactá a soporte para saldarla.",
             "moveFailed": "No pudimos terminar de mover el saldo de tu tarjeta. Revisá tu saldo y después intentá de nuevo.",
             "movePending": "El movimiento del saldo de tu tarjeta aún no está confirmado. Revisá de nuevo en un momento.",

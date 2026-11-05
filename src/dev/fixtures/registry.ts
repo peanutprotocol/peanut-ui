@@ -1847,6 +1847,51 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /rain/cards/funding': cardFunding('ready'),
         },
     },
+    'card-verification-open': {
+        route: '/card',
+        about: 'Existing cardholder can complete a pending card verification while card controls remain available.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                pendingVerification: {
+                    kind: 'card_addon',
+                    generation: 'capture-generation',
+                    entryScope: 'a'.repeat(64),
+                },
+                verificationContext: { status: 'open', generation: 'capture-generation', entryScope: 'a'.repeat(64) },
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-checking': {
+        route: '/card',
+        about: 'Existing cardholder while a previously opened card verification is being checked.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                verificationContext: {
+                    status: 'checking',
+                    generation: 'capture-generation',
+                    entryScope: 'a'.repeat(64),
+                },
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-unavailable': {
+        route: '/card',
+        about: 'Existing cardholder when the optional card verification status cannot be read.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, verificationContext: { status: 'unavailable' } },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
     'card-holder-collateral': {
         route: '/card',
         about: 'Managed holder with the permission ready and card balance left from before: the collateral note offers Move card balance to wallet.',

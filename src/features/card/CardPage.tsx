@@ -22,6 +22,7 @@ import { KycFeatureActivationStatus } from '@/features/paperwork-verification/Ky
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
+import { useCardVerificationContinuation } from './useCardVerificationContinuation'
 
 const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
 
@@ -88,6 +89,13 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+    const cardVerification = useCardVerificationContinuation(
+        user?.user?.userId,
+        state === 'active' ? overview?.pendingVerification : undefined,
+        state === 'active' ? overview?.verificationContext : { status: 'none' },
+        invalidateOverview,
+        fetchUser
+    )
     // Outlives the card screen: a cancel can remove the last card while the stop is still pending.
     const [stopAttempt, setStopAttempt] = useState<StopAttempt | null>(null)
     const clearStopAttempt = useCallback(() => setStopAttempt(null), [])
@@ -384,7 +392,17 @@ export const CardPage: FC = () => {
                 }
                 const card = findActiveCard(overview)!
                 return (
-                    <YourCardScreen overview={overview!} card={card} onPrev={onBack} onStopAttempt={setStopAttempt} />
+                    <YourCardScreen
+                        overview={overview!}
+                        card={card}
+                        onPrev={onBack}
+                        onStopAttempt={setStopAttempt}
+                        onCompleteVerification={
+                            cardVerification.available ? () => void cardVerification.start() : undefined
+                        }
+                        verificationBusy={cardVerification.busy}
+                        verificationError={cardVerification.error}
+                    />
                 )
             }
             default:
@@ -456,6 +474,14 @@ export const CardPage: FC = () => {
                 onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}
                 onRefreshToken={handleSumsubRefreshToken}
+            />
+            <SumsubKycWrapper
+                visible={!!cardVerification.active}
+                accessToken={cardVerification.active?.token ?? null}
+                sessionKey={cardVerification.active?.action.generation}
+                onClose={cardVerification.finish}
+                onComplete={cardVerification.finish}
+                onRefreshToken={cardVerification.refresh}
             />
         </PageContainer>
     )

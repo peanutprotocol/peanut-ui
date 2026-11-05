@@ -1214,6 +1214,21 @@
         "route": "/card"
     },
     {
+        "id": "fixture-card-verification-open",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-verification-checking",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-verification-unavailable",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
         "id": "fixture-card-holder-collateral",
         "flow": "Card",
         "route": "/card"

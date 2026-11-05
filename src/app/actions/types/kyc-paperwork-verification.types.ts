@@ -48,6 +48,8 @@ export interface PaperworkVerificationStep {
 
 export interface PaperworkVerificationQuestions {
     available: boolean
+    /** Opaque current-journey guard; absent on APIs predating opening reminders. */
+    entryScope?: string
     attemptId: string | null
     residence: string | null
     steps: PaperworkVerificationStep[]

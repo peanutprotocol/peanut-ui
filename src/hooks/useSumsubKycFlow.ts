@@ -438,7 +438,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             crossRegion?: boolean,
             rawTargetCountry?: string,
             correctSession = false,
-            corridor?: DepositCorridor
+            corridor?: DepositCorridor,
+            explicitEntry = true
         ) => {
             // targetCountry is only ever consumed by the BE as a Manteca geo
             // (pendingMantecaGeo stamp + action externalId suffix). Call sites
@@ -451,6 +452,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 onKycSuccess?.()
                 return
             }
+            const entryUserId = user?.user?.userId
 
             const normalizedTargetCountry = rawTargetCountry?.toUpperCase()
             const targetCountry =
@@ -510,14 +512,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
                 documentAttemptRef.current = null
                 setDocumentConfig(undefined)
-                const response = await initiateSumsubKyc({
+                const startParams = {
                     corridor,
                     regionIntent: overrideIntent ?? regionIntent,
                     levelName,
                     crossRegion,
                     targetCountry,
                     correctSession,
-                })
+                }
+                const response =
+                    explicitEntry && !correctSession && !levelName && entryUserId
+                        ? await initiateSumsubKyc(startParams, entryUserId)
+                        : await initiateSumsubKyc(startParams)
 
                 if (response.code === 'paperwork_verification_required') {
                     userInitiatedRef.current = false
@@ -701,6 +707,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             acceptDocumentSession,
             router,
             handleDocumentConflict,
+            user?.user?.userId,
             user?.capabilities?.features,
         ]
     )

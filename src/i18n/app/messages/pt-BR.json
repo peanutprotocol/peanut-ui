@@ -1948,6 +1948,7 @@
         },
         "yourCard": {
             "navTitle": "Cartão",
+            "completeVerification": "Concluir verificação",
             "addToGoogleWallet": "Adicionar a Carteira do Google",
             "addedToGoogleWallet": "Adicionado à Carteira do Google",
             "addToAppleWallet": "Adicionar à Apple Wallet",

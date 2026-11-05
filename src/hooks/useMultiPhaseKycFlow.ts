@@ -617,7 +617,15 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
-            return originalHandleInitiateKyc(overrideIntent, levelName, crossRegion, targetCountry, false, corridor)
+            return originalHandleInitiateKyc(
+                overrideIntent,
+                levelName,
+                crossRegion,
+                targetCountry,
+                false,
+                corridor,
+                !resumingRef.current
+            )
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, blockIfFinal]
     )

@@ -12038,7 +12038,7 @@
 														"type": "number"
 													},
 													"preparationId": {
-														"minLength": 1,
+														"format": "uuid",
 														"type": "string"
 													},
 													"preparedCoordinatorAddress": {
@@ -12577,7 +12577,7 @@
 														"type": "number"
 													},
 													"preparationId": {
-														"minLength": 1,
+														"format": "uuid",
 														"type": "string"
 													},
 													"preparedCoordinatorAddress": {
@@ -13278,6 +13278,7 @@
 								"properties": {
 									"usageId": {
 										"description": "PerkUsage id to claim",
+										"format": "uuid",
 										"type": "string"
 									}
 								},
@@ -14088,6 +14089,29 @@
 											},
 											"type": "array"
 										},
+										"pendingVerification": {
+											"properties": {
+												"entryScope": {
+													"pattern": "^[a-f0-9]{64}$",
+													"type": "string"
+												},
+												"generation": {
+													"type": "string"
+												},
+												"kind": {
+													"enum": [
+														"card_addon"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"kind",
+												"generation",
+												"entryScope"
+											],
+											"type": "object"
+										},
 										"status": {
 											"properties": {
 												"applicationStatus": {
@@ -14116,6 +14140,67 @@
 												"hasApplication"
 											],
 											"type": "object"
+										},
+										"verificationContext": {
+											"anyOf": [
+												{
+													"properties": {
+														"status": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"none"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unavailable"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"status"
+													],
+													"type": "object"
+												},
+												{
+													"properties": {
+														"entryScope": {
+															"pattern": "^[a-f0-9]{64}$",
+															"type": "string"
+														},
+														"generation": {
+															"type": "string"
+														},
+														"status": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"open"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"checking"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"status",
+														"generation",
+														"entryScope"
+													],
+													"type": "object"
+												}
+											]
 										}
 									},
 									"required": [
@@ -16077,7 +16162,7 @@
 										"type": "string"
 									},
 									"chargeId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"directTransfer": {
@@ -16347,7 +16432,7 @@
 							"schema": {
 								"properties": {
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									}
 								},
@@ -16622,7 +16707,7 @@
 							"schema": {
 								"properties": {
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"txHash": {
@@ -16960,7 +17045,7 @@
 										"type": "number"
 									},
 									"preparationId": {
-										"minLength": 1,
+										"format": "uuid",
 										"type": "string"
 									},
 									"preparedCoordinatorAddress": {
@@ -17581,7 +17666,7 @@
 												"type": "number"
 											},
 											"preparationId": {
-												"minLength": 1,
+												"format": "uuid",
 												"type": "string"
 											},
 											"preparedCoordinatorAddress": {
@@ -18210,7 +18295,7 @@
 												"type": "number"
 											},
 											"preparationId": {
-												"minLength": 1,
+												"format": "uuid",
 												"type": "string"
 											},
 											"preparedCoordinatorAddress": {
@@ -19478,6 +19563,135 @@
 									},
 									"required": [
 										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/rain/verification/resume": {
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "x-kyc-entry-user",
+						"required": true,
+						"schema": {
+							"maxLength": 255,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "x-kyc-entry-scope",
+						"required": true,
+						"schema": {
+							"pattern": "^[a-f0-9]{64}$",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"additionalProperties": false,
+								"properties": {
+									"generation": {
+										"maxLength": 64,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"generation"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"token": "synthetic-sumsub-sdk-token"
+								},
+								"schema": {
+									"properties": {
+										"token": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"token"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"verification_task_changed"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"verification_task_unavailable"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
 									],
 									"type": "object"
 								}
@@ -21136,6 +21350,15 @@
 		"/rhino/reset-status/{depositAddress}": {
 			"post": {
 				"parameters": [
+					{
+						"in": "query",
+						"name": "chargeId",
+						"required": false,
+						"schema": {
+							"minLength": 1,
+							"type": "string"
+						}
+					},
 					{
 						"in": "path",
 						"name": "depositAddress",
@@ -26068,6 +26291,26 @@
 		},
 		"/users/identity": {
 			"post": {
+				"parameters": [
+					{
+						"description": "Send 1 only for an explicit initial verification entry. Omit on refresh. Requires x-kyc-entry-user.",
+						"in": "header",
+						"name": "x-kyc-entry-start",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "When x-kyc-entry-start is 1, the initiating user ID must match the authenticated user; at most 255 characters. It never selects the owner.",
+						"in": "header",
+						"name": "x-kyc-entry-user",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
 				"responses": {
 					"200": {
 						"description": "Default Response"
@@ -27705,6 +27948,109 @@
 				}
 			}
 		},
+		"/users/kyc/attempts/{attemptId}/document-check": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "attemptId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"countryMismatch": true,
+									"picked": {
+										"issuingCountry": "PT",
+										"type": "RESIDENCE_PERMIT"
+									},
+									"recognised": {
+										"issuingCountry": "UA",
+										"type": "PASSPORT"
+									}
+								},
+								"schema": {
+									"properties": {
+										"countryMismatch": {
+											"type": "boolean"
+										},
+										"picked": {
+											"anyOf": [
+												{
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"recognised": {
+											"anyOf": [
+												{
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"picked",
+										"recognised",
+										"countryMismatch"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/users/kyc/attempts/{attemptId}/token": {
 			"post": {
 				"parameters": [
@@ -28862,6 +29208,130 @@
 									},
 									"required": [
 										"error",
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/kyc/opened": {
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "x-kyc-entry-user",
+						"required": true,
+						"schema": {
+							"maxLength": 255,
+							"minLength": 1,
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "x-kyc-entry-scope",
+						"required": true,
+						"schema": {
+							"pattern": "^[a-f0-9]{64}$",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"additionalProperties": false,
+								"properties": {
+									"feature": {
+										"anyOf": [
+											{
+												"enum": [
+													"bank"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"card"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"local"
+												],
+												"type": "string"
+											}
+										]
+									}
+								},
+								"type": "object"
+							}
+						}
+					}
+				},
+				"responses": {
+					"204": {
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"verification_entry_changed"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"verification_entry_unavailable"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
 										"code"
 									],
 									"type": "object"
@@ -31532,6 +32002,10 @@
 												"type": "object"
 											},
 											"type": "array"
+										},
+										"entryScope": {
+											"pattern": "^[a-f0-9]{64}$",
+											"type": "string"
 										},
 										"firstUnanswered": {
 											"anyOf": [
