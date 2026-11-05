@@ -146,6 +146,14 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'KycVerificationInProgressModal (verifying)',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
     },
+    '24-c-kyc-ready-ars-action': {
+        name: 'KYC complete — ARS needs one more step',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
+    '24-d-kyc-ready-bank-review': {
+        name: 'KYC complete — EUR under review',
+        path: 'Kyc/KycVerificationInProgressModal.tsx',
+    },
     '25-b-kycactionrequiredmodal': { name: 'KycActionRequiredModal', path: 'Kyc/modals/KycActionRequiredModal.tsx' },
     '26-b-kycfailedmodal': { name: 'KycFailedModal', path: 'Kyc/modals/KycFailedModal.tsx' },
     '27-b-kycprocessingmodal': { name: 'KycProcessingModal', path: 'Kyc/modals/KycProcessingModal.tsx' },
