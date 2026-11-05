@@ -334,6 +334,17 @@ describe('a refused identity', () => {
         expect(open.every((row) => row.identityRefused)).toBe(true)
     })
 
+    // mono#339 4a: the API refused every corridor on the residence a final rejection ended
+    it('takes the backend at its word when it names the identity', () => {
+        const unavailable = corridorRecord((corridor) => withheldFor(corridor, 'identity-rejected', 'support-required'))
+        const { open } = virtualAccountRows(input({ unavailable }), true)
+
+        expect(open.every((row) => row.identityRefused && !row.openable)).toBe(true)
+        expect(closedOpenRow(open[0], { hasResidence: true, unavailable: unavailable[open[0].corridor] })).toEqual({
+            kind: 'identity-rejected',
+        })
+    })
+
     it('sends a bank row the identity holds to the same drawer, and leaves a residence refusal alone', () => {
         const [brl] = buildBankRows({
             bankChips: { brl: 'attention', ars: 'notAvailable', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },

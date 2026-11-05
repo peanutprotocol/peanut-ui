@@ -148,14 +148,16 @@ function isOpenable(
  * Was the identity refused, rather than this corridor? The verification behind
  * "Verify" cannot pass a final decision, and "Not available" tells the user
  * nothing they can do; support can review it (the Home card's answer). The
- * backend's own word on the corridor wins where it names something else, such
- * as a residence rule.
+ * backend's own word on the corridor wins: `identity-rejected` says it outright
+ * (a final rejection also ends the residence the corridors were refused on),
+ * and anything else it names, such as a residence rule, is about the corridor.
  */
 function refusedByIdentity(
     gate: GateState | undefined,
     withheld: UnavailableCorridor | undefined,
     identityFailed: boolean
 ): boolean {
+    if (withheld?.cause === 'identity-rejected') return true
     // the backend's answer for a failed identity is support-required with no cause
     const withheldForIdentity =
         !withheld ||

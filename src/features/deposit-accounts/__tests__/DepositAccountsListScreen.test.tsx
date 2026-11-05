@@ -808,6 +808,59 @@ describe('a rejected identity', () => {
         }
     })
 
+    /*
+     * mono#339 4a: a final rejection ends the approved residence, and the API
+     * refused every corridor on it, so each row read Not available. The API
+     * now names the identity (`identity-rejected`), and the rows follow it.
+     */
+    describe('when the backend names the identity', () => {
+        const identityRejected = () =>
+            Object.fromEntries(
+                ACCOUNT_CORRIDORS.map((corridor) => [
+                    corridor,
+                    withheld(corridor, 'support-required', 'identity-rejected'),
+                ])
+            )
+
+        it.each([
+            ['the profile reports the rejection', { status: 'failed' } as const],
+            ['the profile has not caught up', undefined],
+        ])('says Action needed on every account, where %s', (_, identity) => {
+            mockIdentity = identity
+            const { container } = list(false, {
+                gates: identity ? reportGates(identity) : allGates(),
+                unavailable: identityRejected(),
+            })
+
+            for (const corridor of ACCOUNT_CORRIDORS) {
+                const row = inRow(container, corridor)
+                expect(row.getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+                expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+                expect(row.queryByText(messages.common.contactSupport)).not.toBeInTheDocument()
+            }
+        })
+
+        it('opens the rejection drawer, and support gets the reason', () => {
+            mockIdentity = { status: 'failed', reason: { code: 'duplicate_account', userMessage: '' } }
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates: reportGates(mockIdentity),
+                unavailable: identityRejected(),
+                onOpen,
+            })
+
+            fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+            expect(onOpen).not.toHaveBeenCalled()
+            expect(drawer().getByText(messages.identity.reasons.duplicate_account)).toBeInTheDocument()
+            expect(
+                drawer().queryByText(LIST.residenceRestrictedBody.replace('{currency}', 'EUR'))
+            ).not.toBeInTheDocument()
+
+            contactSupport()
+            expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('reason: duplicate_account'))
+        })
+    })
+
     it('sends the tap to support with the rejection in the prefill, as the Home card does', () => {
         mockIdentity = { status: 'failed', reason: { code: 'sumsub_final_rejection', userMessage: '' } }
         const onOpen = jest.fn()
