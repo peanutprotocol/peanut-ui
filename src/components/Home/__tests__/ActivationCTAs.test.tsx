@@ -75,9 +75,10 @@ jest.mock('@/context/authContext', () => ({
 }))
 let mockRegionRestricted = false
 let mockIdentityReason: { code: string; userMessage: string } | undefined
+let mockRejectLabels: string[] | undefined
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
-        identity: { status: 'not_started', reason: mockIdentityReason },
+        identity: { status: 'not_started', reason: mockIdentityReason, rejectLabels: mockRejectLabels },
         isProcessing: false,
         needsAction: false,
         isRegionRestricted: mockRegionRestricted,
@@ -177,6 +178,7 @@ beforeEach(() => {
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
     mockIdentityReason = undefined
+    mockRejectLabels = undefined
     mockShowWrapper = false
     mockPaperworkVerification = () => Promise.resolve(false)
 })
@@ -284,8 +286,29 @@ describe('ActivationCTAs — an ID check that ended on a final decision', () => 
         mockIdentityReason = { code: 'identity_rejected', userMessage: 'Your verification was not approved.' }
         render(<ActivationCTAs onboarding={FAILED} />)
         fireEvent.click(screen.getByText('Contact support'))
-        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('Your verification was not approved.'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/^Hi! My ID check didn’t go through[\s\S]*reason: identity_rejected/)
+        )
         expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('a duplicate says the ID is on another account and prefills that case', () => {
+        mockRejectLabels = ['DUPLICATE']
+        render(<ActivationCTAs onboarding={FAILED} />)
+        expect(screen.getByText(/already linked to another Peanut account. Log in to that account/)).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/documents are already on another Peanut account[\s\S]*reason: duplicate_account/)
+        )
+    })
+
+    it('a cause only support can review is not named', () => {
+        mockRejectLabels = ['FORGERY']
+        render(<ActivationCTAs onboarding={FAILED} />)
+        expect(
+            screen.getByText('We couldn’t finish your ID check in the app. Message support and we’ll take a look.')
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/forg|altered/i)).toBeNull()
     })
 
     // TASK-24046: the import Bridge rejected is named, and support learns which case it is

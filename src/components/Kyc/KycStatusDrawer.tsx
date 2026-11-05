@@ -15,7 +15,7 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useAuth } from '@/context/authContext'
 import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
 import { supportCaseOf } from '@/utils/capability-gate'
-import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { profileIdentityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycStatusDrawerProps {
@@ -34,20 +34,31 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         useIdentityVerification()
     const { logoutUser, user } = useAuth()
     const t = useTranslations('kyc')
-    const tIdentity = useTranslations('identity')
+    const tRoot = useTranslations()
     const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
     const control = useKycControl('kyc-status', 'kyc_status')
 
     // A block only support lifts gets a prefill naming it, so the agent looks
     // past this one account (TASK-24046).
     const supportCase = isEmailCollision ? 'duplicate-account' : supportCaseOf(identity.reason?.code)
-    const supportCaseReasonKey = supportCase ? reasonCodeKey(identity.reason?.code) : undefined
+    // A decision is explained, and its support prefill named, by its reject labels.
+    const rejection =
+        !isEmailCollision && (status === 'failed' || isTerminalFailure) ? profileIdentityRejection(identity) : null
+    const rejectionMessage = rejection ? tRoot(rejection.descriptionKey as never) : undefined
     const contactSupport = () =>
-        supportCase
+        rejection?.support
             ? openSupportWithMessage(
-                  buildSupportCaseMessage(supportCase, t(SUPPORT_CASE_MESSAGE_KEYS[supportCase]), identity.reason)
+                  rejectionSupportMessage(
+                      rejection.support,
+                      tRoot(rejection.support.messageKey as never),
+                      identity.reason
+                  )
               )
-            : setIsSupportModalOpen(true)
+            : supportCase
+              ? openSupportWithMessage(
+                    buildSupportCaseMessage(supportCase, t(SUPPORT_CASE_MESSAGE_KEYS[supportCase]), identity.reason)
+                )
+              : setIsSupportModalOpen(true)
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -125,6 +136,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                             onRetry={resumeKyc}
                             isTerminal
                             onContactSupport={contactSupport}
+                            terminalMessage={rejectionMessage}
                         />
                     )
                 }
@@ -157,7 +169,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         isLoading={sumsubFlow.isLoading}
                         isTerminal={isTerminalFailure}
                         onContactSupport={contactSupport}
-                        terminalMessage={supportCaseReasonKey && tIdentity(supportCaseReasonKey)}
+                        terminalMessage={isTerminalFailure ? rejectionMessage : undefined}
                     />
                 )
             default:

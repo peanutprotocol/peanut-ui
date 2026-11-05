@@ -20,12 +20,8 @@ import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
-import {
-    buildContactSupportMessage,
-    buildSupportCaseMessage,
-    SUPPORT_CASE_MESSAGE_KEYS,
-} from '@/utils/contact-support.utils'
-import { supportCaseOf } from '@/utils/capability-gate'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { identityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
@@ -70,6 +66,7 @@ export default function ActivationCTAs({
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
     const tKyc = useTranslations('kyc')
+    const tRoot = useTranslations()
     const tRegion = useTranslations('kyc.regionRestricted')
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
@@ -96,9 +93,11 @@ export default function ActivationCTAs({
     // Known reason codes render localized identity.reasons.* copy; unknown
     // codes keep the backend's display-ready prose as fallback.
     const primaryRejectionReasonKey = reasonCodeKey(primaryRejectionCode)
-    // an identity held on a block only support lifts names it, here and in the prefill
-    const identitySupportCase = supportCaseOf(identity.reason?.code)
-    const identitySupportCaseKey = identitySupportCase ? reasonCodeKey(identity.reason?.code) : undefined
+    // A final decision: its reject labels say why, and what support is asked.
+    const decidedRejection = useMemo(
+        () => identityRejection({ rejectLabels: identity.rejectLabels, reason: identity.reason, retryable: false }),
+        [identity.rejectLabels, identity.reason]
+    )
     const localizedRejectionMessage = primaryRejectionReasonKey
         ? tIdentity(primaryRejectionReasonKey)
         : primaryRejectionMessage
@@ -175,9 +174,7 @@ export default function ActivationCTAs({
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
                 title: t('verificationIssue.title'),
-                description: identitySupportCaseKey
-                    ? tIdentity(identitySupportCaseKey)
-                    : t('verificationIssue.description'),
+                description: tRoot(decidedRejection.descriptionKey as never),
                 ctaLabel: t('verificationIssue.cta'),
                 href: '', // handled in onClick
             }
@@ -237,8 +234,8 @@ export default function ActivationCTAs({
         return null
     }, [
         t,
-        tIdentity,
-        identitySupportCaseKey,
+        tRoot,
+        decidedRejection,
         hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
@@ -325,11 +322,12 @@ export default function ActivationCTAs({
                         if (isRegionRestricted) {
                             router.push(REGION_RESTRICTED_CTA_HREF)
                         } else if (hasIdentityFailure) {
+                            const support = decidedRejection.support
                             openSupportWithMessage(
-                                identitySupportCase
-                                    ? buildSupportCaseMessage(
-                                          identitySupportCase,
-                                          tKyc(SUPPORT_CASE_MESSAGE_KEYS[identitySupportCase]),
+                                support
+                                    ? rejectionSupportMessage(
+                                          support,
+                                          tRoot(support.messageKey as never),
                                           identity.reason
                                       )
                                     : buildContactSupportMessage({

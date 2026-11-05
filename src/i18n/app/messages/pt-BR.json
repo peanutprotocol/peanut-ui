@@ -3549,6 +3549,34 @@
                 "description": "Houve um problema com sua verificação. Tente novamente ou fale com o suporte."
             }
         },
+        "rejectActions": {
+            "retry_document": {
+                "description": "A foto do seu documento não passou. Tente de novo com uma foto nítida ou use outro documento."
+            },
+            "retry_selfie": {
+                "description": "Sua selfie não passou. Tire outra com boa luz e com o rosto inteiro aparecendo.",
+                "cta": "Tirar outra selfie"
+            },
+            "check_details": {
+                "description": "Alguns dos seus dados não batem com o seu documento. Confira e tente de novo.",
+                "cta": "Conferir meus dados"
+            },
+            "try_later": {
+                "description": "Não conseguimos terminar a verificação agora. Tente de novo daqui a pouco."
+            },
+            "other_account": {
+                "description": "Este documento já está vinculado a outra conta do Peanut. Entre nessa conta ou fale com o suporte que a gente te ajuda a resolver.",
+                "cta": "Entrar nessa conta",
+                "supportMessage": "Oi! Minha verificação diz que meus documentos já estão em outra conta do Peanut. Vocês podem me ajudar a resolver?"
+            },
+            "contact_support": {
+                "description": "Não conseguimos terminar sua verificação no app. Fale com o suporte que a gente dá uma olhada.",
+                "supportMessage": "Oi! Minha verificação não passou e não consigo tentar de novo no app. Vocês podem dar uma olhada?"
+            },
+            "not_available": {
+                "description": "No momento não conseguimos verificar você para o Peanut, e tentar de novo não vai mudar isso. Se achar que é um erro, fale com o suporte."
+            }
+        },
         "errorStartActionFailed": "Não conseguimos iniciar a verificação. Tente novamente.",
         "errorInvalidResponse": "Resposta inválida do servidor",
         "actionMessageActionRequired": "Precisamos de um pouco mais para verificar sua identidade. Toque abaixo para continuar.",
@@ -3935,7 +3963,7 @@
             },
             "failed": {
                 "title": "Precisamos ver seu documento de novo",
-                "description": "Sua verificação precisa de algo de você. O início mostra o que fazer.",
+                "terminalTitle": "Não conseguimos verificar seu documento",
                 "cta": "Ir para o início",
                 "retry": "Tentar de novo"
             },

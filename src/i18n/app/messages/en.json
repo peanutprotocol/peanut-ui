@@ -3549,6 +3549,34 @@
                 "description": "There was an issue with your verification. Please try again or contact support."
             }
         },
+        "rejectActions": {
+            "retry_document": {
+                "description": "Your ID photo didn’t go through. Try again with a clear photo, or use another document."
+            },
+            "retry_selfie": {
+                "description": "Your selfie didn’t go through. Take a new one in good light, with your whole face in view.",
+                "cta": "Retake selfie"
+            },
+            "check_details": {
+                "description": "Some of your details don’t match your ID. Check them and try again.",
+                "cta": "Check my details"
+            },
+            "try_later": {
+                "description": "We couldn’t finish the check just now. Try again in a little while."
+            },
+            "other_account": {
+                "description": "This ID is already linked to another Peanut account. Log in to that account, or message support and we’ll help you sort it out.",
+                "cta": "Log in to that account",
+                "supportMessage": "Hi! My ID check says my documents are already on another Peanut account. Can you help me sort it out?"
+            },
+            "contact_support": {
+                "description": "We couldn’t finish your ID check in the app. Message support and we’ll take a look.",
+                "supportMessage": "Hi! My ID check didn’t go through and I can’t try again in the app. Can you take a look?"
+            },
+            "not_available": {
+                "description": "We can’t verify you for Peanut right now, and trying again won’t change that. If you think this is a mistake, message support."
+            }
+        },
         "errorStartActionFailed": "Could not start verification. Please try again.",
         "errorInvalidResponse": "Invalid response from server",
         "actionMessageActionRequired": "We need a bit more to verify your identity. Tap below to continue.",
@@ -3935,7 +3963,7 @@
             },
             "failed": {
                 "title": "We need another look at your ID",
-                "description": "Your ID check needs something from you. Home shows what to do next.",
+                "terminalTitle": "We couldn’t verify your ID",
                 "cta": "Go to Home",
                 "retry": "Try again"
             },
