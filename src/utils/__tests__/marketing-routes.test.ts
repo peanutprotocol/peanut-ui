@@ -1,3 +1,4 @@
+import { STAR_LP_ROUTES } from '@/constants/star-lp-routes.consts'
 import { isMarketingRoute } from '../marketing-routes'
 
 describe('isMarketingRoute', () => {
@@ -26,6 +27,45 @@ describe('isMarketingRoute', () => {
         expect(isMarketingRoute('/es-419/pricing')).toBe(true)
         expect(isMarketingRoute('/pt-br/compare/wise')).toBe(true)
         expect(isMarketingRoute('/en/terms')).toBe(true)
+    })
+
+    it('treats the root-level star LPs, /lp and /request-links as marketing', () => {
+        const routes = [...Object.values(STAR_LP_ROUTES), '/lp', '/request-links']
+        expect(routes).toEqual(
+            expect.arrayContaining([
+                '/us-europe-accounts',
+                '/qr-payments/argentina',
+                '/qr-payments/brazil',
+                '/peanut-card',
+                '/self-custody',
+            ])
+        )
+        for (const route of routes) {
+            expect(isMarketingRoute(route)).toBe(true)
+            expect(isMarketingRoute(`${route}/`)).toBe(true)
+        }
+    })
+
+    it('matches the root-level marketing pages by exact path, never by prefix', () => {
+        for (const route of [
+            '/qr-payments',
+            '/qr-payments/',
+            '/qr-payments/unknown',
+            '/qr-payments/brazil/extra',
+            '/peanut-card/apply',
+            '/lp/x',
+            '/request-links/abc',
+            '/qr-pay',
+        ]) {
+            expect(isMarketingRoute(route)).toBe(false)
+        }
+    })
+
+    it('keeps the star LPs on the app tree in native builds', () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        for (const route of [...Object.values(STAR_LP_ROUTES), '/lp']) {
+            expect(isMarketingRoute(route)).toBe(false)
+        }
     })
 
     it('keeps app routes on the full provider tree', () => {

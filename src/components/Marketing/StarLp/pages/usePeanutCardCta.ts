@@ -6,7 +6,7 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useAuth } from '@/context/authContext'
+import { useOptionalAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import type { PeanutCardCtaPlacement } from './peanutCard.types'
 
@@ -20,7 +20,11 @@ import type { PeanutCardCtaPlacement } from './peanutCard.types'
  */
 export function usePeanutCardCta(placement: PeanutCardCtaPlacement) {
     const router = useRouter()
-    const { user, isFetchingUser } = useAuth()
+    // Star LPs render in the marketing tree, which has no AuthProvider: every
+    // visitor there is a guest and never waits on auth.
+    const auth = useOptionalAuth()
+    const user = auth?.user ?? null
+    const isFetchingUser = auth?.isFetchingUser ?? false
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
         surface: MIGRATION_SURFACES.STAR_LP,
         trackImpressionWhenGuest: placement === 'hero' && !isFetchingUser && !user,
