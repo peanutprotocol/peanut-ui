@@ -132,7 +132,9 @@ export function ReviewScreen({
                       controls.track('log_in', 'tap')
                       onLogIn()
                   },
-                  'verify-review-log-in'
+                  'verify-review-log-in',
+                  false,
+                  'secondary'
               )
             : null
     const support =
@@ -143,9 +145,7 @@ export function ReviewScreen({
                       controls.track('support', 'tap')
                       onContactSupport()
                   },
-                  'verify-review-support',
-                  false,
-                  logIn ? 'secondary' : undefined
+                  'verify-review-support'
               )
             : null
     return (
@@ -170,8 +170,8 @@ export function ReviewScreen({
                             )
                         ) : logIn || support ? (
                             <>
-                                {logIn}
                                 {support}
+                                {logIn}
                             </>
                         ) : (
                             primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')

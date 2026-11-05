@@ -3566,7 +3566,7 @@
             },
             "other_account": {
                 "description": "This ID is already linked to another Peanut account. Log in to that account, or message support and we’ll help you sort it out.",
-                "cta": "Log in to that account",
+                "cta": "Log in to another account",
                 "supportMessage": "Hi! My ID check says my documents are already on another Peanut account. Can you help me sort it out?"
             },
             "contact_support": {

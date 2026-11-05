@@ -123,9 +123,16 @@ describe('a rejected identity on /verify', () => {
         expect(message).toContain('reason: duplicate_account')
     })
 
+    it('leads with Contact support and offers the other account second', async () => {
+        renderFlow()
+        await screen.findByRole('button', { name: 'Contact support' })
+        const names = screen.getAllByRole('button').map((b) => b.textContent)
+        expect(names.indexOf('Contact support')).toBeLessThan(names.indexOf('Log in to another account'))
+    })
+
     it('offers to log in to the other account', async () => {
         renderFlow()
-        fireEvent.click(await screen.findByRole('button', { name: 'Log in to that account' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Log in to another account' }))
         expect(mockLogout).toHaveBeenCalledTimes(1)
     })
 
@@ -156,7 +163,7 @@ describe('a rejected identity on /verify', () => {
             screen.getByText('We couldn’t finish your ID check in the app. Message support and we’ll take a look.')
         ).toBeInTheDocument()
         expect(screen.queryByText(/forg|altered|original/i)).toBeNull()
-        expect(screen.queryByRole('button', { name: 'Log in to that account' })).toBeNull()
+        expect(screen.queryByRole('button', { name: 'Log in to another account' })).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(mockSupport.mock.calls[0][0]).not.toMatch(/FORGERY/)
         expect(mockReplace).not.toHaveBeenCalled()

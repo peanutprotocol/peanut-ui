@@ -3566,7 +3566,7 @@
             },
             "other_account": {
                 "description": "Este documento já está vinculado a outra conta do Peanut. Entre nessa conta ou fale com o suporte que a gente te ajuda a resolver.",
-                "cta": "Entrar nessa conta",
+                "cta": "Entrar em outra conta",
                 "supportMessage": "Oi! Minha verificação diz que meus documentos já estão em outra conta do Peanut. Vocês podem me ajudar a resolver?"
             },
             "contact_support": {
