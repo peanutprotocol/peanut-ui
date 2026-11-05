@@ -115,6 +115,16 @@ export async function publishReport({
     // Comparisons above always consume the exact PNG capture artifacts. Only
     // this public copy is rewritten to lossy, full-resolution WebP assets.
     const publicReport = JSON.parse(JSON.stringify(report))
+    // Shown-copy keys go out once, in copy-coverage.json; repeating them per screen would bloat every manifest.
+    for (const capture of publicReport.type === 'comparison'
+        ? [publicReport.before, publicReport.after]
+        : [publicReport])
+        for (const screen of capture.screens ?? []) delete screen.copy
+    if (publicReport.type === 'comparison')
+        for (const screen of publicReport.screens) {
+            delete screen.before?.copy
+            delete screen.after?.copy
+        }
     const publicAssets = new Map()
     const convertedAssets = new Map()
     const variableDimensions = report.type === 'journeys'
@@ -222,6 +232,7 @@ export async function publishReport({
                 .replace(/\u2029/g, '\\u2029')};`
         )
         const html = readFileSync('public/screen-library/index.html', 'utf8')
+            .replace(/\s*<a class="copy-nav"[^>]*>[^<]*<\/a>/, '')
             .replaceAll('/screen-library/', './')
             .replace(
                 '<script defer src="./viewer.js">',
