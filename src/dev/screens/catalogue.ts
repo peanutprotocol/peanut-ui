@@ -126,7 +126,7 @@ const definitions: Screen[] = [
                 ? '[data-testid="card-verification-continue"]'
                 : id === 'card-verification-checking' || id === 'card-verification-unavailable'
                   ? '[data-testid="your-card-screen"]'
-                  : id.startsWith('paperwork-verification-state-')
+                  : id.startsWith('paperwork-verification-us-address')
                     ? '[data-testid="verify-input-state"]'
                     : id.startsWith('paperwork-verification-closed-')
                       ? '[data-testid="verify-closed-features"]'

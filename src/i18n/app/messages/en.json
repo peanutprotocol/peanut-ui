@@ -2715,9 +2715,8 @@
     },
     "history": {
         "title": "Activity",
-        "transactions": "Transactions",
-        "errorTitle": "Error loading transactions!",
-        "errorDescription": "Please contact support.",
+        "errorTitle": "Couldn’t load activity",
+        "errorDescription": "Check your connection and try again.",
         "empty": "No transactions yet",
         "loadingMore": "Loading more...",
         "today": "Today",
