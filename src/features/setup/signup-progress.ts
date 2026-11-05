@@ -97,9 +97,7 @@ export function readSignupProgress(userId: string, now = Date.now()): SignupProg
                 notificationChoices: notificationChoices(answers.notificationChoices),
                 inviterAccepted: answers.inviterAccepted === true,
                 sellScreensCountry:
-                    answers.sellScreensCountry === null
-                        ? null
-                        : country(answers.sellScreensCountry) || undefined,
+                    answers.sellScreensCountry === null ? null : country(answers.sellScreensCountry) || undefined,
             },
         }
     } catch {

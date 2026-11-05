@@ -114,6 +114,7 @@ test('account setup keeps distinct integer steps in the intended journey order',
             '07-d-notification-settings',
             '07-b-advantage-control',
             '05-a-signtesttransaction',
+            '05-b-signtesttransaction-network-busy',
             '07-e-setup-celebration',
             '20-a-setupnotificationsmodal',
         ]
