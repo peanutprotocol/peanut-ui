@@ -28,7 +28,15 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
 import { AveniaNewKeyFlow } from '../components/AveniaNewKeyFlow'
 
 const withdrawal = (state: string, status = 'PROCESSING') => ({
-    data: { uuid: 'w1', status, extraData: { kind: 'OFFRAMP', aveniaRecoveryPlaceholder: { state } } },
+    data: {
+        uuid: 'w1',
+        status,
+        extraData: {
+            kind: 'OFFRAMP',
+            provider: 'AVENIA',
+            aveniaRecovery: { state, reason: 'payout-failed', failureCode: 'RECEIVER_ACCOUNT_CLOSED' },
+        },
+    },
     isError: false,
     refetch: jest.fn(),
 })

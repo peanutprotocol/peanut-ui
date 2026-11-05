@@ -7,14 +7,12 @@
 import type { HistoryEntryExtraData } from '@/utils/history.utils'
 
 /**
- * PLACEHOLDER until PR B names the history field: whether a withdrawal's
- * history entry says its payout was refused for the key or the account, so
- * the money waits with Avenia for another own key (PR B `NEEDS_NEW_KEY`,
- * recovery state `awaiting-key`). Every reader goes through here, so wiring
- * the real field changes this function and `HistoryEntryExtraData` only.
+ * Whether a withdrawal's history entry says its payout was refused for the
+ * key or the account, so the money waits with Avenia for another own key
+ * (PR B `NEEDS_NEW_KEY`: `extraData.aveniaRecovery.state` is `awaiting-key`).
  */
 export function awaitsNewPixKey(extraData: HistoryEntryExtraData | undefined): boolean {
-    return extraData?.aveniaRecoveryPlaceholder?.state === 'awaiting-key'
+    return extraData?.aveniaRecovery?.state === 'awaiting-key'
 }
 
 /** The new-key screen for a withdrawal (`intentId` in the URL, so a notification can open it). */

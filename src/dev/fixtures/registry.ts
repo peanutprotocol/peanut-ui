@@ -274,7 +274,7 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
     tokenSymbol: 'USDC',
     tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     // the new key paid it, once it is no longer waiting
-    status: awaitingKey ? 'PROCESSING' : 'COMPLETED',
+    status: awaitingKey ? 'PENDING' : 'COMPLETED',
     userRole: 'SENDER',
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
@@ -283,7 +283,12 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
         kind: 'OFFRAMP',
         provider: 'AVENIA',
         usdAmount: '92.50431',
-        aveniaRecoveryPlaceholder: awaitingKey ? { state: 'awaiting-key' } : { state: 'done' },
+        // GET /history/:entryId as PR B sends it: Avenia closed the account the old key pointed to
+        aveniaRecovery: {
+            state: awaitingKey ? 'awaiting-key' : 'done',
+            reason: 'payout-failed',
+            failureCode: 'RECEIVER_ACCOUNT_CLOSED',
+        },
     },
 })
 const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`

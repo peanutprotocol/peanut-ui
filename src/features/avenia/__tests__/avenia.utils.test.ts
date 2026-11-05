@@ -250,10 +250,18 @@ describe('aveniaRouteState', () => {
 })
 
 describe('awaitsNewPixKey', () => {
+    // the extraData of GET /history/:entryId for an Avenia withdrawal, as PR B sends it
+    const recovery = (state: 'awaiting-key' | 'in-progress' | 'done') => ({
+        kind: 'OFFRAMP',
+        provider: 'AVENIA',
+        aveniaRecovery: { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_PIX_KEY_INVALID' },
+    })
+
     it('reads the recovery state of the history entry', () => {
-        expect(awaitsNewPixKey({ aveniaRecoveryPlaceholder: { state: 'awaiting-key' } })).toBe(true)
-        expect(awaitsNewPixKey({ aveniaRecoveryPlaceholder: { state: 'in-progress' } })).toBe(false)
-        expect(awaitsNewPixKey({ aveniaRecoveryPlaceholder: null })).toBe(false)
+        expect(awaitsNewPixKey(recovery('awaiting-key'))).toBe(true)
+        expect(awaitsNewPixKey(recovery('in-progress'))).toBe(false)
+        expect(awaitsNewPixKey(recovery('done'))).toBe(false)
+        expect(awaitsNewPixKey({ kind: 'OFFRAMP', provider: 'AVENIA', aveniaRecovery: null })).toBe(false)
         expect(awaitsNewPixKey(undefined)).toBe(false)
     })
 

@@ -8,6 +8,7 @@ import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import type { paths } from '@/types/api.generated'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import {
@@ -85,6 +86,13 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
+/** An Avenia withdrawal's recovery as `GET /history/:entryId` sends it (PR B `AveniaRecoveryView`). */
+export type AveniaRecoveryView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['aveniaRecovery']
+>
+
 /**
  * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
  * the field was `Record<string, any>` — every consumer did an implicit
@@ -103,8 +111,9 @@ export type HistoryStatus = `${EHistoryStatus}`
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    /** PLACEHOLDER until PR B names it: an Avenia withdrawal's recovery (read through `awaitsNewPixKey`). */
-    aveniaRecoveryPlaceholder?: { state?: string } | null
+    /** On an Avenia OFFRAMP only: its recovery after the payout failed or came back, null when it has none.
+     *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
+    aveniaRecovery?: AveniaRecoveryView | null
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.
