@@ -23,7 +23,7 @@ patchedDependencies:
     hash: 9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993a8202a65a915f85
     path: patches/@capacitor__clipboard.patch
   '@capgo/capacitor-passkey@8.2.2':
-    hash: bc32345fe5731445bf4069600b77fb4244ad1394d9f08b2eec54787e895a3499
+    hash: 09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf
     path: patches/@capgo__capacitor-passkey.patch
   '@zerodev/webauthn-key':
     hash: dbbe28d978dbe8ccab7b5354cfadfacb8a4dbe83087016de6cacc111a9cfbb28
@@ -95,7 +95,7 @@ importers:
         version: 8.6.0(@capacitor/core@8.2.0)
       '@capgo/capacitor-passkey':
         specifier: ^8.2.2
-        version: 8.2.2(patch_hash=bc32345fe5731445bf4069600b77fb4244ad1394d9f08b2eec54787e895a3499)(@capacitor/core@8.2.0)
+        version: 8.2.2(patch_hash=09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf)(@capacitor/core@8.2.0)
       '@capgo/capacitor-updater':
         specifier: 8.51.23
         version: 8.51.23(@capacitor/core@8.2.0)
@@ -8934,7 +8934,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
-  '@capgo/capacitor-passkey@8.2.2(patch_hash=bc32345fe5731445bf4069600b77fb4244ad1394d9f08b2eec54787e895a3499)(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-passkey@8.2.2(patch_hash=09e445a818ba77ce63b8430b71872dc0b9feeca1d327c1529e96e57ba8ab2edf)(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 
