@@ -14,6 +14,7 @@ import { PEANUT_API_KEY } from '@/constants/general.consts'
 import { getStepUpToken, STEP_UP_HEADER } from './step-up'
 import { apiFetch } from '@/utils/api-fetch'
 import { getAuthToken } from '@/utils/auth-token'
+import { captureSessionFence } from '@/utils/session-fence'
 import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
@@ -117,6 +118,9 @@ export interface RainCardSummary {
 export interface RainCardOverview {
     status: RainCardApplicationStatus
     balance: RainCardBalance | null
+    /** A current owned card verification that the customer can continue. */
+    pendingVerification?: paths['/rain/cards']['get']['responses'][200]['content']['application/json']['pendingVerification']
+    verificationContext?: paths['/rain/cards']['get']['responses'][200]['content']['application/json']['verificationContext']
     /**
      * `true` when the backend could not read the balance from Rain, so `balance`
      * is a stale cached value or `null` — NOT an authoritative zero. A null
@@ -632,6 +636,31 @@ export const rainApi = {
     /** Authoritative card-section state: status + balance + cards. */
     getOverview: async (): Promise<RainCardOverview> => {
         return rainRequest<RainCardOverview>({ method: 'GET', path: '/rain/cards' })
+    },
+
+    resumeVerification: async (
+        owner: string,
+        scope: string,
+        generation: string,
+        signal: AbortSignal
+    ): Promise<string> => {
+        const fence = captureSessionFence(owner, () => !signal.aborted)
+        const response = await apiFetch('/rain/verification/resume', {
+            method: 'POST',
+            headers: { 'x-kyc-entry-user': owner, 'x-kyc-entry-scope': scope } satisfies paths['/rain/verification/resume']['post']['parameters']['header'],
+            body: JSON.stringify({ generation } satisfies paths['/rain/verification/resume']['post']['requestBody']['content']['application/json']),
+            signal,
+            beforeDispatch: fence.current,
+            cache: 'no-store',
+            timeoutMs: 10_000,
+            callerReportsFailures: true,
+            redactTelemetry: true,
+        })
+        if (!response.ok) throw new Error('Card verification unavailable')
+        const body: unknown = await response.json()
+        const token = body && typeof body === 'object' && 'token' in body ? body.token : undefined
+        if (typeof token !== 'string' || !token.trim()) throw new Error('Card verification unavailable')
+        return token
     },
 
     /**

@@ -21,6 +21,8 @@ import {
 
 type FetchOptions = RequestInit & {
     timeoutMs?: number
+    /** Recheck a captured session immediately before an optional guarded request is dispatched. */
+    beforeDispatch?: () => boolean
     /** Public endpoints can opt out of sending the web bearer token. */
     includeAuth?: boolean
     /** See `FetchWithSentryOptions.silentTimeout`. Rides through on the spread. */
@@ -48,7 +50,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
         return import('@/dev/fixtures/respond').then((m) => m.fixtureRespond(path, options))
     }
 
-    const { timeoutMs, includeAuth = true, ...fetchOptions } = options ?? {}
+    const { timeoutMs, includeAuth = true, beforeDispatch, ...fetchOptions } = options ?? {}
     const startedAt = globalThis.performance?.now?.() ?? Date.now()
     let authWaitMs = 0
 
@@ -91,7 +93,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
 
     const args: Parameters<typeof fetchWithSentry> = [
         `${PEANUT_API_URL}${path}`,
-        { ...fetchOptions, headers, ...(preferNativeTransport && { preferNativeTransport }) },
+        { ...fetchOptions, headers, ...(beforeDispatch && { beforeDispatch }), ...(preferNativeTransport && { preferNativeTransport }) },
     ]
     if (timeoutMs !== undefined) args[2] = timeoutMs
 

@@ -6784,6 +6784,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -6988,6 +6989,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -7481,7 +7483,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description PerkUsage id to claim */
+                        /**
+                         * Format: uuid
+                         * @description PerkUsage id to claim
+                         */
                         usageId: string;
                     };
                 };
@@ -7929,6 +7934,12 @@ export interface paths {
                                 rainCardId: string;
                                 status: string;
                             }[];
+                            pendingVerification?: {
+                                entryScope: string;
+                                generation: string;
+                                /** @enum {string} */
+                                kind: "card_addon";
+                            };
                             status: {
                                 applicationStatus?: string;
                                 contractAddress?: string;
@@ -7937,6 +7948,13 @@ export interface paths {
                                 issuanceRefusalReason?: string;
                                 railStatus?: string;
                                 rainUserId?: string;
+                            };
+                            verificationContext?: {
+                                status: "none" | "unavailable";
+                            } | {
+                                entryScope: string;
+                                generation: string;
+                                status: "open" | "checking";
                             };
                         };
                     };
@@ -8960,6 +8978,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount: string;
+                        /** Format: uuid */
                         chargeId?: string;
                         directTransfer: boolean;
                         /** Format: uuid */
@@ -9108,6 +9127,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         preparationId: string;
                     };
                 };
@@ -9302,6 +9322,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         preparationId: string;
                         txHash: string;
                     };
@@ -9458,6 +9479,7 @@ export interface paths {
                         executorSalt: string;
                         executorSignature: string;
                         expiresAt: number;
+                        /** Format: uuid */
                         preparationId: string;
                         preparedCoordinatorAddress?: string;
                         recipientAddress: string;
@@ -9787,6 +9809,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -10148,6 +10171,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -10858,6 +10882,87 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/verification/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-kyc-entry-user": string;
+                    "x-kyc-entry-scope": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        generation: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_task_changed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_task_unavailable";
                         };
                     };
                 };
@@ -11707,7 +11812,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    chargeId?: string;
+                };
                 header?: never;
                 path: {
                     depositAddress: string;
@@ -13648,7 +13755,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Send 1 only for an explicit initial verification entry. Omit on refresh. Requires x-kyc-entry-user. */
+                    "x-kyc-entry-start"?: string;
+                    /** @description When x-kyc-entry-start is 1, the initiating user ID must match the authenticated user; at most 255 characters. It never selects the owner. */
+                    "x-kyc-entry-user"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -14261,6 +14373,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/attempts/{attemptId}/document-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    attemptId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "countryMismatch": true,
+                         *       "picked": {
+                         *         "issuingCountry": "PT",
+                         *         "type": "RESIDENCE_PERMIT"
+                         *       },
+                         *       "recognised": {
+                         *         "issuingCountry": "UA",
+                         *         "type": "PASSPORT"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            countryMismatch: boolean;
+                            picked: {
+                                issuingCountry: string;
+                                type: string;
+                            } | null;
+                            recognised: {
+                                issuingCountry: string;
+                                type: string;
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/attempts/{attemptId}/token": {
         parameters: {
             query?: never;
@@ -14717,6 +14898,83 @@ export interface paths {
                             /** @enum {string} */
                             code: "provider_unavailable";
                             error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-kyc-entry-user": string;
+                    "x-kyc-entry-scope": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        feature?: "bank" | "card" | "local";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_entry_changed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_entry_unavailable";
                         };
                     };
                 };
@@ -15612,6 +15870,7 @@ export interface paths {
                                 feature: "qr" | "local" | "card" | "bank";
                                 reason: string;
                             }[];
+                            entryScope?: string;
                             firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
                             needs: ("residence" | "features")[];
                             progress: {

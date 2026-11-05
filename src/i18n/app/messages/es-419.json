@@ -1934,6 +1934,7 @@
         },
         "yourCard": {
             "navTitle": "Tarjeta",
+            "completeVerification": "Completar verificación",
             "addToGoogleWallet": "Agregar a la Billetera de Google",
             "addedToGoogleWallet": "Agregada a la Billetera de Google",
             "addToAppleWallet": "Agregar a Apple Wallet",

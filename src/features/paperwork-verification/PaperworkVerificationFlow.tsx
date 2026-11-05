@@ -83,6 +83,7 @@ import {
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
 import { paperworkVerificationRestartPath, paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { useVerificationOpening } from './useVerificationOpening'
 
 const STATUS_POLL_MS = 15_000
 const REFRESH_EVERY_POLLS = 4
@@ -340,6 +341,7 @@ function PaperworkVerificationSteps({
     }, [failed])
     const reviewing = submitted || (!!status && IN_REVIEW_STATUSES.has(status))
     const asking = !approved && !reviewing && !failed
+    useVerificationOpening(asking, questions.entryScope)
     const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
     // A visit that still has questions or the ID ahead opens on the steps overview, in front

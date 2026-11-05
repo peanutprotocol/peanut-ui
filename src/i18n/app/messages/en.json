@@ -1934,6 +1934,7 @@
         },
         "yourCard": {
             "navTitle": "Card",
+            "completeVerification": "Complete verification",
             "addToGoogleWallet": "Add to Google Wallet",
             "addedToGoogleWallet": "Added to Google Wallet",
             "addToAppleWallet": "Add to Apple Wallet",
