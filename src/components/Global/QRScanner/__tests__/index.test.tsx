@@ -257,7 +257,7 @@ it('"Click to paste": onScan failure is not misreported as a clipboard error', a
     expect(mockCaptureException).toHaveBeenCalledWith(
         expect.any(Error),
         expect.objectContaining({
-            extra: { qrLengthBucket: '64-255', qrKind: 'pix', pix_qr_host: 'unknown' },
+            extra: { qrLengthBucket: '64-255', qrKind: 'pix' },
         })
     )
 })

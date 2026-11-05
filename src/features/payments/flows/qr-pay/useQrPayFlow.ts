@@ -804,7 +804,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                     ...(deterministic ? { failureCode: deterministic.code } : {}),
                 })
                 if (deterministic) {
-                    if (!deterministic.amountRetryable) setAmountEntryRejection(deterministic)
+                    if (
+                        [QR_INIT_CODE.PAYER_BLOCKED, QR_INIT_CODE.MERCHANT_BLOCKED, QR_INIT_CODE.PIX_RESIDENCE].some(
+                            (code) => code === deterministic.code
+                        )
+                    )
+                        setAmountEntryRejection(deterministic)
                     // Deterministic rejection — actionable copy, not a
                     // Sentry-worthy surprise.
                     /*

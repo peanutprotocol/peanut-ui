@@ -20,7 +20,7 @@ it.each([
     expect(error).not.toHaveProperty('cause')
     expect(context).toEqual({
         tags: { error_type: 'qr_scan_processing' },
-        extra: { qrKind: kind, qrLengthBucket: bucket, ...(kind === 'pix' ? { pix_qr_host: 'unknown' } : {}) },
+        extra: { qrKind: kind, qrLengthBucket: bucket },
     })
     expect(context).not.toHaveProperty('extra.qrPayload')
     if (payload) expect(JSON.stringify(context)).not.toContain(payload)

@@ -25,8 +25,9 @@ export function qrTelemetry(data: string) {
 }
 
 export function reportQrScanError(data: string): void {
+    const { qrKind, qrLengthBucket } = qrTelemetry(data)
     captureException(new Error('QR scan processing failed'), {
         tags: { error_type: 'qr_scan_processing' },
-        extra: qrTelemetry(data),
+        extra: { qrKind, qrLengthBucket },
     })
 }
