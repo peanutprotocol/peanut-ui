@@ -12,6 +12,7 @@ jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => [] }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
 }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => null }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => undefined,
     useModalsContext: () => ({ openSupportWithMessage: jest.fn() }),

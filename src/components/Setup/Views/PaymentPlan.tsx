@@ -166,7 +166,9 @@ export default function PaymentPlanStep() {
                         value={funding}
                         placeholder={t('choose')}
                         compactLabel={(channel) =>
-                            t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
+                            channel === 'peanut'
+                                ? t('peanutCompact')
+                                : t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
                         }
                         label={(channel) =>
                             channel === 'bank' && intents?.bank.currencies?.length
@@ -188,6 +190,9 @@ export default function PaymentPlanStep() {
                         options={options.payment}
                         value={payment}
                         placeholder={t('choose')}
+                        compactLabel={(channel) =>
+                            channel === 'peanut' ? t('peanutCompact') : t(`payment.${channel}`)
+                        }
                         label={(channel) => t(`payment.${channel}`)}
                         onChange={setPaymentChannel}
                     />
