@@ -141,7 +141,7 @@ describe('Smart Paperwork Verification tracking', () => {
 
     it('keeps the country locked, offers the residence change and reports it', () => {
         const onChangeResidence = renderScreen()
-        expect(screen.getByTestId('verify-input-country')).toHaveAttribute('readonly')
+        expect(screen.getByTestId('verify-input-country')).toHaveAttribute('aria-readonly', 'true')
         fireEvent.click(screen.getByTestId('verify-change-residence'))
         expect(onChangeResidence).toHaveBeenCalled()
         expect(events()).toContain(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED)
