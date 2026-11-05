@@ -10,20 +10,20 @@ diff --git a/android/src/main/AndroidManifest.xml b/android/src/main/AndroidMani
 diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
 --- a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
 +++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
-@@ -5,7 +5,7 @@
-
+@@ -5,7 +5,7 @@ import androidx.credentials.webauthn.PublicKeyCredentialRequestOptions;
+ 
  public class CapacitorPasskey {
-
+ 
 -    public static final String PLUGIN_VERSION = "8.0.0";
-+    public static final String PLUGIN_VERSION = "8.2.2-peanut.1";
-
++    public static final String PLUGIN_VERSION = "8.2.2-peanut.2";
+ 
      public String getPluginVersion() {
          return PLUGIN_VERSION;
 diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 --- a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
-@@ -2,6 +2,9 @@
-
+@@ -2,6 +2,9 @@ package app.capgo.passkey;
+ 
  import android.app.Activity;
  import android.os.Build;
 +import android.os.CancellationSignal;
@@ -32,7 +32,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
  import androidx.core.content.ContextCompat;
  import androidx.credentials.CreateCredentialResponse;
  import androidx.credentials.CreatePublicKeyCredentialRequest;
-@@ -14,7 +17,9 @@
+@@ -14,7 +17,9 @@ import androidx.credentials.GetCredentialResponse;
  import androidx.credentials.GetPublicKeyCredentialOption;
  import androidx.credentials.PublicKeyCredential;
  import androidx.credentials.exceptions.CreateCredentialException;
@@ -42,18 +42,18 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
  import androidx.credentials.exceptions.NoCredentialException;
  import androidx.credentials.exceptions.domerrors.DomError;
  import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException;
-@@ -38,6 +43,7 @@
-
+@@ -38,6 +43,7 @@ public class CapacitorPasskeyPlugin extends Plugin {
+ 
      private final CapacitorPasskey implementation = new CapacitorPasskey();
      private CredentialManager credentialManager;
 +    private final RequestCoordinator<PluginCall> requests = new RequestCoordinator<>();
-
+ 
      @Override
      public void load() {
-@@ -83,28 +89,36 @@
+@@ -83,28 +89,36 @@ public class CapacitorPasskeyPlugin extends Plugin {
                  return;
              }
-
+ 
 -            credentialManager.createCredentialAsync(
 -                activity,
 -                request,
@@ -85,18 +85,18 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +
 +                            resolveJson(call, ((CreatePublicKeyCredentialResponse) response).getRegistrationResponseJson());
                          }
-
+ 
 -                        resolveJson(call, ((CreatePublicKeyCredentialResponse) response).getRegistrationResponseJson());
+-                    }
+-
+-                    @Override
+-                    public void onError(CreateCredentialException exception) {
+-                        rejectCreateException(call, exception);
 +                        @Override
 +                        public void onError(CreateCredentialException exception) {
 +                            if (finishRequest(attempt)) rejectCreateException(call, exception);
 +                        }
                      }
--
--                    @Override
--                    public void onError(CreateCredentialException exception) {
--                        rejectCreateException(call, exception);
--                    }
 -                }
 -            );
 +                );
@@ -105,11 +105,11 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +            }
          });
      }
-
-@@ -142,30 +156,123 @@
+ 
+@@ -142,32 +156,120 @@ public class CapacitorPasskeyPlugin extends Plugin {
                  return;
              }
-
+ 
 -            credentialManager.getCredentialAsync(
 -                activity,
 -                request,
@@ -143,25 +143,26 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +
 +                            resolveJson(call, ((PublicKeyCredential) credential).getAuthenticationResponseJson());
                          }
-
+ 
 -                        resolveJson(call, ((PublicKeyCredential) credential).getAuthenticationResponseJson());
 +                        @Override
 +                        public void onError(GetCredentialException exception) {
 +                            if (finishRequest(attempt)) rejectGetException(call, exception);
 +                        }
                      }
--
--                    @Override
--                    public void onError(GetCredentialException exception) {
--                        rejectGetException(call, exception);
--                    }
 +                );
 +            } catch (Exception exception) {
 +                if (finishRequest(attempt)) rejectDom(call, "UnknownError", "Native passkey request failed.", exception);
 +            }
 +        });
 +    }
-+
+ 
+-                    @Override
+-                    public void onError(GetCredentialException exception) {
+-                        rejectGetException(call, exception);
+-                    }
+-                }
+-            );
 +    private RequestCoordinator.Attempt<PluginCall> beginRequest(PluginCall call, CancellationSignal cancellation) {
 +        // getString alone can coerce or hide a malformed non-string ID. Inspect the raw value.
 +        Object rawId = call.getData().opt("requestId");
@@ -178,12 +179,8 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +    }
 +
 +    private boolean finishRequest(RequestCoordinator.Attempt<PluginCall> attempt) {
-+        if (!requests.complete(attempt)) return false;
-+        if (attempt.cancelled) {
-+            rejectDom(attempt.value, "AbortError", "Passkey request was cancelled.", null);
-+            return false;
-+        }
-+        return true;
++        // A cancelled attempt was answered by cancelRequest; its provider callback is dropped.
++        return requests.complete(attempt);
 +    }
 +
 +    @PluginMethod
@@ -194,24 +191,19 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +                rejectDom(call, "DataError", "Invalid requestId.", null);
 +                return;
 +            }
-+            try {
-+                // True is sent only after the original provider request's terminal callback.
-+                if (!requests.cancel((String) rawId, () -> resolveCancellation(call, true))) {
-+                    resolveCancellation(call, false);
-                 }
--            );
-+            } catch (IllegalStateException exception) {
-+                rejectDom(call, "InvalidStateError", "Too many pending cancellation requests.", null);
++            RequestCoordinator.Attempt<PluginCall> released = requests.cancel((String) rawId);
++            JSObject result = new JSObject();
++            result.put("cancelled", released != null);
++            if (released != null) {
++                rejectDom(released.value, "AbortError", "Passkey request was cancelled.", null);
++                // The slot is free now; the provider may still be closing its UI.
++                result.put("released", true);
++                result.put("settled", false);
 +            }
++            call.resolve(result);
          });
-+    }
-+
-+    private void resolveCancellation(PluginCall call, boolean cancelled) {
-+        JSObject result = new JSObject();
-+        result.put("cancelled", cancelled);
-+        call.resolve(result);
-+    }
-+
+     }
+ 
 +    @PluginMethod
 +    public void getDiagnostics(final PluginCall call) {
 +        // Device/software facts only. Never inspect accounts, credentials or request payloads.
@@ -221,6 +213,9 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +        result.put("manufacturer", boundedFact(Build.MANUFACTURER));
 +        result.put("model", boundedFact(Build.MODEL));
 +        result.put("pluginVersion", implementation.getPluginVersion());
++        result.put("releasedOnCancel", requests.releasedOnCancel());
++        result.put("lateCallbacks", requests.lateCallbacks());
++        if (requests.lastLateCallbackMs() >= 0) result.put("lastLateCallbackMs", Math.min(requests.lastLateCallbackMs(), 86_400_000L));
 +        result.put("appVersion", "unknown");
 +        result.put("playServicesVersion", "unknown");
 +        result.put("playServicesStatus", "unknown");
@@ -246,12 +241,14 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +        // String.isBlank() needs API 33; minSdk is 24.
 +        if (value == null || value.trim().isEmpty()) return "unknown";
 +        return value.substring(0, Math.min(value.length(), 80));
-     }
-
++    }
++
      @PluginMethod
-@@ -219,6 +326,10 @@
+     public void getConfiguration(final PluginCall call) {
+         PluginConfig config = getConfig();
+@@ -219,6 +321,10 @@ public class CapacitorPasskeyPlugin extends Plugin {
      }
-
+ 
      private void rejectCreateException(PluginCall call, CreateCredentialException exception) {
 +        if (exception instanceof CreateCredentialCancellationException) {
 +            rejectDom(call, "NotAllowedError", "Passkey registration was cancelled.", exception);
@@ -260,9 +257,9 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
          if (exception instanceof CreatePublicKeyCredentialDomException) {
              DomError domError = ((CreatePublicKeyCredentialDomException) exception).getDomError();
              rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey registration failed."), exception);
-@@ -229,6 +340,10 @@
+@@ -229,6 +335,10 @@ public class CapacitorPasskeyPlugin extends Plugin {
      }
-
+ 
      private void rejectGetException(PluginCall call, GetCredentialException exception) {
 +        if (exception instanceof GetCredentialCancellationException) {
 +            rejectDom(call, "NotAllowedError", "Passkey authentication was cancelled.", exception);
@@ -271,7 +268,7 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
          if (exception instanceof GetPublicKeyCredentialDomException) {
              DomError domError = ((GetPublicKeyCredentialDomException) exception).getDomError();
              rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey authentication failed."), exception);
-@@ -256,6 +371,8 @@
+@@ -256,6 +366,8 @@ public class CapacitorPasskeyPlugin extends Plugin {
      private void rejectDom(PluginCall call, String name, String message, Exception exception) {
          JSObject data = new JSObject();
          data.put("name", name);
@@ -279,16 +276,15 @@ diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +        if (exception != null) data.put("nativeException", exception.getClass().getSimpleName());
          call.reject(message, name, exception, data);
      }
-
+ 
 diff --git a/android/src/main/java/app/capgo/passkey/RequestCoordinator.java b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
 new file mode 100644
 --- /dev/null
 +++ b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,95 @@
 +package app.capgo.passkey;
 +
-+import java.util.ArrayList;
-+import java.util.List;
++import java.util.function.LongSupplier;
 +
 +/** One Credential Manager operation. All callers must use the Android main thread. */
 +final class RequestCoordinator<T> {
@@ -296,9 +292,9 @@ new file mode 100644
 +        final String id;
 +        final T value;
 +        final Runnable signalCancellation;
-+        final List<Runnable> cancellationWaiters = new ArrayList<>();
 +        boolean cancelled;
 +        boolean completed;
++        long cancelledAt;
 +
 +        Attempt(String id, T value, Runnable signalCancellation) {
 +            this.id = id;
@@ -307,7 +303,19 @@ new file mode 100644
 +        }
 +    }
 +
++    private final LongSupplier clock;
 +    private Attempt<T> active;
++    private int releasedOnCancel;
++    private int lateCallbacks;
++    private long lastLateCallbackMs = -1;
++
++    RequestCoordinator() {
++        this(System::currentTimeMillis);
++    }
++
++    RequestCoordinator(LongSupplier clock) {
++        this.clock = clock;
++    }
 +
 +    Attempt<T> begin(String id, T value, Runnable signalCancellation) {
 +        if (id != null && !validId(id)) throw new IllegalArgumentException("Invalid requestId.");
@@ -320,36 +328,103 @@ new file mode 100644
 +        return id != null && id.matches("[A-Za-z0-9_-]{1,64}");
 +    }
 +
-+    boolean cancel(String id, Runnable acknowledge) {
++    /**
++     * Releases the slot at once and returns the released attempt, or null when id is not the live request.
++     * Androidx Play Services (Android 13 and older) never calls back after the CancellationSignal fires, and
++     * the framework can take minutes, so waiting for the provider would block every later request. The
++     * released attempt's later callback is ignored by complete(). Mark and release before signalling:
++     * a provider may call back synchronously from cancel().
++     */
++    Attempt<T> cancel(String id) {
 +        Attempt<T> request = active;
-+        if (request == null || id == null || !id.equals(request.id)) return false;
-+        if (request.cancellationWaiters.size() >= 16) throw new IllegalStateException("Too many pending cancellation requests.");
-+        request.cancellationWaiters.add(acknowledge);
-+        if (!request.cancelled) {
-+            // A provider may call back synchronously from cancel(). Mark and register first.
-+            request.cancelled = true;
-+            try {
-+                request.signalCancellation.run();
-+            } catch (RuntimeException ignored) {
-+                // Unknown cleanup is still pending. Only a terminal callback releases it.
-+            }
++        if (request == null || id == null || !id.equals(request.id)) return null;
++        request.cancelled = true;
++        request.cancelledAt = clock.getAsLong();
++        active = null;
++        releasedOnCancel = Math.min(releasedOnCancel + 1, 10_000);
++        try {
++            request.signalCancellation.run();
++        } catch (RuntimeException ignored) {
++            // The slot is already free; the provider's own callback, if any, is ignored.
 +        }
++        return request;
++    }
++
++    /** True only for the live attempt's first terminal callback; that callback may then answer JS. */
++    boolean complete(Attempt<T> request) {
++        if (request.completed) return false;
++        request.completed = true;
++        if (active != request) {
++            if (request.cancelled) {
++                lateCallbacks = Math.min(lateCallbacks + 1, 10_000);
++                lastLateCallbackMs = Math.max(0, clock.getAsLong() - request.cancelledAt);
++            }
++            return false;
++        }
++        active = null;
 +        return true;
 +    }
 +
-+    boolean complete(Attempt<T> request) {
-+        if (active != request || request.completed) return false;
-+        request.completed = true;
-+        active = null;
-+        for (Runnable acknowledge : request.cancellationWaiters) acknowledge.run();
-+        request.cancellationWaiters.clear();
-+        return true;
++    int releasedOnCancel() {
++        return releasedOnCancel;
++    }
++
++    int lateCallbacks() {
++        return lateCallbacks;
++    }
++
++    long lastLateCallbackMs() {
++        return lastLateCallbackMs;
 +    }
 +}
+diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
+--- a/dist/esm/definitions.d.ts
++++ b/dist/esm/definitions.d.ts
+@@ -232,6 +232,8 @@ export interface PasskeyPublicKeyCredentialCreationOptionsJSON {
+  * @since 1.0.0
+  */
+ export interface CreateCredentialOptions {
++    /** Optional Android cancellation identity, 1-64 ASCII letters/digits/_/-. */
++    requestId?: string;
+     /**
+      * JSON-safe registration request.
+      */
+@@ -286,6 +288,8 @@ export interface PasskeyPublicKeyCredentialRequestOptionsJSON {
+  * @since 1.0.0
+  */
+ export interface GetCredentialOptions {
++    /** Optional Android cancellation identity, 1-64 ASCII letters/digits/_/-. */
++    requestId?: string;
+     /**
+      * JSON-safe authentication request.
+      */
+@@ -455,6 +459,22 @@ export interface PasskeySupportResult {
+  * @since 1.0.0
+  */
+ export interface CapacitorPasskeyPlugin {
++    /** Android only. `released` (peanut.2+): the slot is free at once and the provider's later callback is ignored. */
++    cancelRequest(options: { requestId: string }): Promise<{ cancelled: boolean; released?: boolean; settled?: boolean }>;
++    /** Android only. Installed Play Services does not establish usable provider readiness. */
++    getDiagnostics(): Promise<{
++        androidSdk: number;
++        osVersion: string;
++        manufacturer: string;
++        model: string;
++        appVersion: string;
++        pluginVersion: string;
++        playServicesVersion: string;
++        playServicesStatus: 'available' | 'missing' | 'disabled' | 'outdated' | 'invalid' | 'unknown';
++        releasedOnCancel?: number;
++        lateCallbacks?: number;
++        lastLateCallbackMs?: number;
++    }>;
+     /**
+      * Install a browser-style WebAuthn shim on top of the native plugin.
+      *
 diff --git a/dist/esm/index.js b/dist/esm/index.js
 --- a/dist/esm/index.js
 +++ b/dist/esm/index.js
-@@ -58,7 +58,7 @@
+@@ -58,7 +58,7 @@ const CapacitorPasskey = {
          return effectiveConfiguration;
      },
      async createCredential(options) {
@@ -358,7 +433,7 @@ diff --git a/dist/esm/index.js b/dist/esm/index.js
      },
      async getConfiguration() {
          if (!configurationPromise) {
-@@ -67,7 +67,13 @@
+@@ -67,7 +67,13 @@ const CapacitorPasskey = {
          return configurationPromise;
      },
      async getCredential(options) {
@@ -373,44 +448,3 @@ diff --git a/dist/esm/index.js b/dist/esm/index.js
      },
      async getPluginVersion() {
          return NativeCapacitorPasskey.getPluginVersion();
-diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
---- a/dist/esm/definitions.d.ts
-+++ b/dist/esm/definitions.d.ts
-@@ -232,6 +232,8 @@
-  * @since 1.0.0
-  */
- export interface CreateCredentialOptions {
-+    /** Optional Android cancellation identity, 1-64 ASCII letters/digits/_/-. */
-+    requestId?: string;
-     /**
-      * JSON-safe registration request.
-      */
-@@ -286,6 +288,8 @@
-  * @since 1.0.0
-  */
- export interface GetCredentialOptions {
-+    /** Optional Android cancellation identity, 1-64 ASCII letters/digits/_/-. */
-+    requestId?: string;
-     /**
-      * JSON-safe authentication request.
-      */
-@@ -455,6 +459,19 @@
-  * @since 1.0.0
-  */
- export interface CapacitorPasskeyPlugin {
-+    /** Android only. True requires the original native request's terminal callback. */
-+    cancelRequest(options: { requestId: string }): Promise<{ cancelled: boolean }>;
-+    /** Android only. Installed Play Services does not establish usable provider readiness. */
-+    getDiagnostics(): Promise<{
-+        androidSdk: number;
-+        osVersion: string;
-+        manufacturer: string;
-+        model: string;
-+        appVersion: string;
-+        pluginVersion: string;
-+        playServicesVersion: string;
-+        playServicesStatus: 'available' | 'missing' | 'disabled' | 'outdated' | 'invalid' | 'unknown';
-+    }>;
-     /**
-      * Install a browser-style WebAuthn shim on top of the native plugin.
-      *
