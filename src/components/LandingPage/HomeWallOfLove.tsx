@@ -24,10 +24,14 @@ const POST =
  * row from md, a stack on phones). Each slot holds every third post of the
  * curated list stacked in one grid cell, so a slot is as tall as its longest
  * post and swapping posts never moves the page. One slot swaps every few
- * seconds, in turn; see useWallOfLoveCycle for when it holds. A small
- * pause control stops it for good (WCAG 2.2.2: a screen-reader cursor fires no
- * hover or focus, so the hold alone is not enough). Under reduced motion the
- * stacks unfold, the wall shows every post, still, and the control goes.
+ * seconds, in turn; see useWallOfLoveCycle for when it holds. A pause
+ * control stops it for good (WCAG 2.2.2: a screen-reader cursor fires no hover
+ * or focus, so the hold alone is not enough). The control stays visually
+ * hidden until it gets keyboard focus, like a skip link: mouse users already
+ * have the hover hold, keyboard and screen-reader users reach it by Tab or in
+ * the accessibility tree, and browsers give a page no signal that a screen
+ * reader is on. Under reduced motion the stacks unfold, the wall shows every
+ * post, still, and the control goes.
  */
 export function HomeWallOfLove({ heading, pauseLabel, playLabel, posts }: HomeWallOfLoveProps) {
     const slots = useMemo(() => dealIntoSlots(posts, WALL_OF_LOVE_SLOTS), [posts])
@@ -55,7 +59,8 @@ export function HomeWallOfLove({ heading, pauseLabel, playLabel, posts }: HomeWa
                     </li>
                 ))}
             </ul>
-            <div className="mt-6 flex justify-center motion-reduce:hidden">
+            {/* not-sr-only resets margin, so the spacing is a focus-within utility too */}
+            <div className="sr-only flex justify-center focus-within:not-sr-only focus-within:mt-6 motion-reduce:hidden">
                 <Button variant="ghost" size="compact" className="w-auto" onClick={() => setStopped((value) => !value)}>
                     {stopped ? playLabel : pauseLabel}
                 </Button>

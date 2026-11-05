@@ -576,6 +576,28 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['24-b-kycverificationinprogressmodal'],
         render: () => <KycVerificationInProgressModal isOpen onClose={noop} />,
     },
+    '24-c-kyc-ready-ars-action': {
+        ...SURFACE_META['24-c-kyc-ready-ars-action'],
+        render: () => (
+            <KycVerificationInProgressModal
+                isOpen
+                onClose={noop}
+                phase="complete"
+                completionNotice={{ kind: 'action', currencies: ['ARS'] }}
+            />
+        ),
+    },
+    '24-d-kyc-ready-bank-review': {
+        ...SURFACE_META['24-d-kyc-ready-bank-review'],
+        render: () => (
+            <KycVerificationInProgressModal
+                isOpen
+                onClose={noop}
+                phase="complete"
+                completionNotice={{ kind: 'review', currencies: ['EUR'] }}
+            />
+        ),
+    },
     '25-b-kycactionrequiredmodal': {
         ...SURFACE_META['25-b-kycactionrequiredmodal'],
         render: () => (

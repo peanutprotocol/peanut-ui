@@ -14,7 +14,14 @@ import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
-import { startWebVitalsShim } from '@/utils/web-vitals-shim'
+import { startWebVitalsShim, WEB_VITALS_FLUSH_DELAY_MS } from '@/utils/web-vitals-shim'
+import { isMarketingRoute } from '@/utils/marketing-routes'
+import {
+    afterLoadIdle,
+    DEFERRED_ADDONS_INIT,
+    releaseDeferredAddons,
+    rememberRemoteConfig,
+} from '@/utils/posthog-deferred-addons'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
@@ -59,6 +66,8 @@ if (
 
     // An empty key means this build sends nothing (see posthogProjectKey).
     if (POSTHOG_KEY) {
+        // The landing pages start PostHog's add-ons after load (posthog-deferred-addons).
+        const deferAddons = isMarketingRoute(window.location.pathname)
         posthog.init(POSTHOG_KEY, {
             // Non-production builds keep the production key for feature flags
             // (posthog-js still requests /flags when capture is opted out) and
@@ -127,10 +136,11 @@ if (
              * Session recording is ON everywhere, native included, as a deliberate
              * trial from 1.0.48.
              *
-             * It starts at `whenIdle` rather than at init: rrweb's recorder is a
-             * separate ~183 KB script whose load and first full-DOM snapshot landed
-             * in the middle of page load, and on the landing page that is the single
-             * largest blocking cost after the framework itself. Recording still
+             * It starts at `whenIdle` (after `load` on the marketing site) rather
+             * than at init: rrweb's recorder is a separate ~183 KB script whose
+             * load and first full-DOM snapshot landed in the middle of page load,
+             * and on the landing page that is the single largest blocking cost
+             * after the framework itself. Recording still
              * covers every session — it begins a beat later, so the opening moment
              * of a replay is not captured.
              *
@@ -153,9 +163,22 @@ if (
             // Masks amounts, ids, addresses, names in sensitive areas, picked images,
             // QR payloads and claim-link secrets; drops network bodies and headers.
             session_recording: SESSION_RECORDING_PRIVACY,
+            // Only the flush delay is set here: web vitals and their metric list
+            // stay with the remote config. A metric buffered when the visitor
+            // leaves is lost, so a shorter wait keeps more LCP samples.
+            capture_performance: { web_vitals_delayed_flush_ms: WEB_VITALS_FLUSH_DELAY_MS },
+            ...(deferAddons ? DEFERRED_ADDONS_INIT : {}),
         })
 
-        if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())
+        if (deferAddons) {
+            const latestRemoteConfig = rememberRemoteConfig(posthog)
+            afterLoadIdle(() => {
+                releaseDeferredAddons(posthog, latestRemoteConfig())
+                if (ANALYTICS_CAPTURE) posthog.startSessionRecording()
+            })
+        } else if (ANALYTICS_CAPTURE) {
+            whenIdle(() => posthog.startSessionRecording())
+        }
     }
 
     // No-ops unless the document is one PostHog refuses to measure (iOS native,
