@@ -225,7 +225,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'IconBubble',
             icon: CircleDot,
             href: '/dev/ds/primitives/icon-bubble',
-            description: 'Round colored icon container. Sizes xs/s/m/l, five colors + logo',
+            description: 'Round colored icon container. Sizes xs/s/m/l/xl, five colors + logo',
             status: 'production',
         },
         {

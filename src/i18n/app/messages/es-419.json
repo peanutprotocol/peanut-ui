@@ -882,7 +882,9 @@
         "loginFailed": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
         "landing": {
             "signUp": "Regístrate",
-            "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?"
+            "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?",
+            "testBuild": "Versión de prueba",
+            "testSignUp": "Regístrate en la web"
         },
         "loginRecovery": {
             "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",
@@ -1013,6 +1015,8 @@
             "deviceState": "Hubo un problema con la passkey en este dispositivo. Reinicia la app e inténtalo de nuevo.",
             "interrupted": "Algo interrumpió la solicitud de la passkey. Inténtalo de nuevo.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
+            "accountDeleted": "Esta cuenta fue eliminada. Regístrate para crear una nueva.",
+            "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elige otro nombre de usuario para crear una nueva.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
             "learnMore": "Aprende más sobre las passkeys",
             "help": {
@@ -1924,13 +1928,18 @@
         },
         "physical": {
             "navTitle": "Tarjeta física",
-            "onListTitle": "¡Estás en la lista!",
-            "onListBody": "Eres el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "comingSoonTitle": "¡Próximamente!",
-            "comingSoonBody": "Únete a nuestra lista de espera y sé de los primeros en tenerla.",
+            "onListTitle": "Estás en la lista de espera",
+            "onListBody": "Te avisamos apenas puedas pedirla.",
+            "comingSoonTitle": "La tarjeta física está en camino",
+            "comingSoonBody": "Todavía no puedes pedirla. Así va a funcionar:",
             "joinCta": "Unirme a la lista de espera",
             "joinFailed": "No se pudo unir a la lista de espera",
-            "onListBodyPending": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse."
+            "stepJoin": "Únete hoy a la lista de espera",
+            "stepNotify": "Te avisamos cuando se pueda pedir",
+            "stepShip": "Pídela y te la enviamos",
+            "notAvailableBadge": "Aún no disponible",
+            "positionBadge": "Eres el #{position} en la lista",
+            "onListBadge": "Estás en la lista"
         },
         "yourCard": {
             "navTitle": "Tarjeta",
@@ -2134,7 +2143,6 @@
             "exchangeRate": "Tipo de cambio",
             "providerFees": "Comisiones del proveedor",
             "providerFeesInfo": "Manteca y la blockchain cobran una pequeña comisión por cada transacción. Esa comisión ya está incluida en el monto que ves.",
-            "flagAlt": "bandera",
             "shareTitle": "Datos de la transferencia bancaria",
             "shareDetails": "Compartir datos",
             "shareAmount": "Monto: {currency} {amount}",
@@ -2299,7 +2307,6 @@
             "selectBank": "Selecciona el banco",
             "redirecting": "Redirigiendo...",
             "exchangeRate": "Tipo de cambio",
-            "flagAlt": "bandera",
             "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
             "enterAccountDetails": "Ingresa los datos del banco o billetera",
             "accountDetailsHint": "{country, select, BR {Las claves de teléfono empiezan con +55.} other {Las cuentas de Mercado Pago también sirven.}}",
@@ -3039,8 +3046,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "¿Activar las notificaciones?",
-        "setupDescription": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
         "migrationSetupTitle": "Recibe alertas de dinero",
         "migrationSetupDescription": "Te avisamos al instante cuando llegue dinero o alguien te pida un pago.",
         "enable": "Activar notificaciones",
@@ -3147,6 +3152,11 @@
             "preparingConfiguringDescription": "Configurando tus regiones...",
             "preparingSlowTitle": "Ya casi",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
+            "accountReadyTitle": "Tu cuenta está lista",
+            "accountReadyAction": "{currencies} {count, plural, one {necesita} other {necesitan}} un paso más.",
+            "accountReadyReview": "{currencies} {count, plural, one {sigue} other {siguen}} en revisión. Te avisaremos cuando esté listo.",
+            "accountReadyActionGeneric": "Tus cuentas bancarias necesitan un paso más.",
+            "accountReadyReviewGeneric": "Tus cuentas bancarias siguen en revisión. Te avisaremos cuando estén listas.",
             "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse.",
             "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Puedes cerrar esto y te avisaremos cuando haya una decisión.",
@@ -4737,10 +4747,10 @@
                 "beetle": "Escarabajo de bugs"
             },
             "CARD_ALPHA": {
-                "card": "Carta alfa"
+                "card": "Tarjeta alfa"
             },
             "CARD_FIRST_SWIPE": {
-                "card": "Carta del primer swipe"
+                "card": "Tarjeta del primer swipe"
             },
             "CARD_SPENT_1K": {
                 "stack": "Pila del gastador"

@@ -882,7 +882,9 @@
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
             "signUp": "Criar conta",
-            "recoverWallet": "Precisa recuperar uma conta Peanut?"
+            "recoverWallet": "Precisa recuperar uma conta Peanut?",
+            "testBuild": "Versão de teste",
+            "testSignUp": "Cadastre-se na web"
         },
         "loginRecovery": {
             "title": "Sua passkey pode estar no celular onde você criou sua conta",
@@ -1013,6 +1015,8 @@
             "deviceState": "Houve um problema com a passkey neste dispositivo. Reinicie o app e tente de novo.",
             "interrupted": "Algo interrompeu a solicitação da passkey. Tente de novo.",
             "serverUnreachable": "Não foi possível acessar os servidores do Peanut. Verifique sua conexão e tente de novo.",
+            "accountDeleted": "Esta conta foi excluída. Crie uma conta nova para continuar.",
+            "accountDeletedChooseUsername": "Esta conta foi excluída. Escolha outro nome de usuário para criar uma conta nova.",
             "usernameTaken": "Este nome de usuário já está registrado — possivelmente de uma tentativa anterior neste dispositivo. Se foi você, sua passkey está pronta: é só fazer login.",
             "learnMore": "Saiba mais sobre as passkeys",
             "help": {
@@ -1924,13 +1928,18 @@
         },
         "physical": {
             "navTitle": "Cartão físico",
-            "onListTitle": "Você está na lista!",
-            "onListBody": "Você é o #{position} da lista. Avisamos quando os cartões estiverem prontos para envio.",
-            "comingSoonTitle": "Em breve!",
-            "comingSoonBody": "Entre na nossa lista de espera e seja um dos primeiros a ter.",
+            "onListTitle": "Você está na lista de espera",
+            "onListBody": "Avisamos assim que você puder pedir.",
+            "comingSoonTitle": "O cartão físico está a caminho",
+            "comingSoonBody": "Ainda não dá para pedir. Veja como vai funcionar:",
             "joinCta": "Entrar na lista de espera",
             "joinFailed": "Não foi possível entrar na lista de espera",
-            "onListBodyPending": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio."
+            "stepJoin": "Entre na lista de espera hoje",
+            "stepNotify": "Avisamos quando os pedidos abrirem",
+            "stepShip": "Peça e enviamos para você",
+            "notAvailableBadge": "Ainda não disponível",
+            "positionBadge": "Você é o #{position} da lista",
+            "onListBadge": "Você está na lista"
         },
         "yourCard": {
             "navTitle": "Cartão",
@@ -2134,7 +2143,6 @@
             "exchangeRate": "Taxa de câmbio",
             "providerFees": "Taxas do provedor",
             "providerFeesInfo": "A Manteca e a blockchain cobram uma pequena taxa em cada transação. Essa taxa já está considerada no valor que você vê.",
-            "flagAlt": "bandeira",
             "shareTitle": "Dados da transferência bancária",
             "shareDetails": "Compartilhar dados",
             "shareAmount": "Valor: {currency} {amount}",
@@ -2299,7 +2307,6 @@
             "selectBank": "Selecione o banco",
             "redirecting": "Redirecionando...",
             "exchangeRate": "Taxa de câmbio",
-            "flagAlt": "bandeira",
             "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento.",
             "enterAccountDetails": "Insira os dados do banco ou da carteira",
             "accountDetailsHint": "{country, select, BR {Chaves de telefone começam com +55.} other {Contas do Mercado Pago também funcionam.}}",
@@ -3039,8 +3046,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "Ativar as notificações?",
-        "setupDescription": "Ative as notificações e receba alertas de toda a atividade da sua carteira.",
         "migrationSetupTitle": "Receba alertas de dinheiro",
         "migrationSetupDescription": "Avisamos na hora quando o dinheiro chegar ou alguém pedir um pagamento.",
         "enable": "Ativar notificações",
@@ -3147,6 +3152,11 @@
             "preparingConfiguringDescription": "Configurando suas regiões...",
             "preparingSlowTitle": "Quase lá",
             "preparingSlowDescription": "Isso está demorando um pouco mais do que o normal. Aguarde só um instante.",
+            "accountReadyTitle": "Sua conta está pronta",
+            "accountReadyAction": "{currencies} {count, plural, one {precisa} other {precisam}} de mais uma etapa.",
+            "accountReadyReview": "{currencies} ainda {count, plural, one {está} other {estão}} em análise. Avisaremos quando estiver pronto.",
+            "accountReadyActionGeneric": "Suas contas bancárias precisam de mais uma etapa.",
+            "accountReadyReviewGeneric": "Suas contas bancárias ainda estão em análise. Avisaremos quando estiverem prontas.",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
             "verifyingStillGoing": "Ainda em andamento. A maioria termina rápido, então esta provavelmente está recebendo uma análise mais detalhada. Você pode fechar isto e avisaremos quando houver uma decisão.",

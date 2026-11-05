@@ -24,6 +24,7 @@ import esAR from '../../src/i18n/app/messages/es-AR.json'
 import ptBR from '../../src/i18n/app/messages/pt-BR.json'
 import { findOverflows } from './overflow-check'
 import { EXTRA_APP_ROUTES, LANDING_TARGETS, MARKETING_TARGETS, OVERLAY_TARGETS } from './sweep-targets'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
 const OUT = process.env.SWEEP_OUT ?? 'e2e/__sweep__'
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
@@ -271,7 +272,7 @@ for (const locale of APP_LOCALES_SWEEP) {
         }
 
         for (const route of ['/setup', '/setup?step=signup', '/setup?step=login']) {
-            test(`setup:${route}:${locale}`, async ({ page }, testInfo) => {
+            test(`setup:${route}:${locale}`, async ({ page, baseURL }, testInfo) => {
                 const cdp = await page.context().newCDPSession(page)
                 await cdp.send('WebAuthn.enable')
                 await cdp.send('WebAuthn.addVirtualAuthenticator', {
@@ -286,6 +287,9 @@ for (const locale of APP_LOCALES_SWEEP) {
                 })
                 await blockExternal(page)
                 await page.clock.setFixedTime(FROZEN_NOW)
+                // web signup is app-only; the support keep-web cookie reopens the form for this sweep
+                if (route.includes('step=signup'))
+                    await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
                 await page.goto(route, { waitUntil: 'domcontentloaded' })
                 await settle(page)
                 if (route.includes('step=signup')) {

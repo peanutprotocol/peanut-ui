@@ -1,4 +1,5 @@
 import { FIXTURES } from '../fixtures/registry'
+import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
 import { SURFACE_META } from '../surfaces/list'
 import { PAGE_CAPTURES, type PageCapture } from './pages'
 
@@ -60,7 +61,7 @@ const routeOverrides: Record<
     { route: string; fixture: string; event?: Screen['event']; storage?: Record<string, string> }
 > = {
     '11-a-earlyusermodal': { route: '/home', fixture: 'early-user' },
-    '41-c-migrationdownloadmodal': { route: '/home', fixture: 'home', storage: { 'pwa-sunset': 'true' } },
+    '41-c-migrationdownloadmodal': { route: '/home', fixture: DOWNLOAD_PROMPT_FIXTURE },
     '57-d-raincooldownintromodal': { route: '/home', fixture: 'home', event: 'rain:cooldown' },
     '58-d-stalecardapprovalreenablemodal': { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
     '18-a-reconsentmodal': { route: '/home', fixture: 'reconsent' },

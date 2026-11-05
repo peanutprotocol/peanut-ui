@@ -9,8 +9,6 @@ import type { HomePersonaStrings } from './homePersona.types'
 // catalogs (same reason ContentLanding/HelpLanding take `strings`).
 export interface LandingStrings {
     signUp: string
-    logIn: string
-    signUpNow: string
     heroHeadline: string
     heroSubline: string
     heroGetPaid: string
@@ -65,8 +63,6 @@ const seamWords = (words: string): string[] => words.split('\n')
 export function landingStrings(i18n: Translations): LandingStrings {
     return {
         signUp: i18n.landingSignUp,
-        logIn: i18n.landingLogIn,
-        signUpNow: i18n.landingSignUpNow,
         heroHeadline: i18n.landingHeroHeadline,
         heroSubline: i18n.landingHeroSubline,
         heroGetPaid: i18n.landingHeroGetPaid,

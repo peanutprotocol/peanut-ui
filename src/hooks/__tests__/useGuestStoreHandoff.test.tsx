@@ -6,20 +6,21 @@ import { renderHookWithIntl } from '@/test-utils/intl'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { isCapacitor } from '@/utils/capacitor'
 
 const mockOpenStore = jest.fn()
 const mockCapture = jest.fn()
-let mockMigrationOn = true
 let mockDeviceType: DeviceType = DeviceType.WEB
-let mockIsCapacitor = false
 const mockBuildDeferredPayload = jest.fn((dest?: string, _invite?: string) => `pnutdl=1&dest=${dest ?? ''}`)
 
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigrationOn }))
 jest.mock('@/hooks/useGetDeviceType', () => {
     const actual = jest.requireActual('@/hooks/useGetDeviceType')
     return { ...actual, useDeviceType: () => ({ deviceType: mockDeviceType }) }
 })
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: jest.fn(() => false),
+}))
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
@@ -38,9 +39,8 @@ jest.mock('@/components/Migration/ScanToDownloadModal', () => ({
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockMigrationOn = true
     mockDeviceType = DeviceType.WEB
-    mockIsCapacitor = false
+    jest.mocked(isCapacitor).mockReturnValue(false)
 })
 
 describe('useGuestStoreHandoff surface', () => {
@@ -112,7 +112,7 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     it('never intercepts inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         mockDeviceType = DeviceType.IOS
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff({ surface: MIGRATION_SURFACES.LANDING_DOOR }))
 
@@ -127,7 +127,7 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     it('does not track the guest impression inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         renderHookWithIntl(() =>
             useGuestStoreHandoff({ trackImpressionWhenGuest: true, surface: MIGRATION_SURFACES.LANDING_DOOR })
         )
@@ -135,8 +135,8 @@ describe('useGuestStoreHandoff surface', () => {
         expect(mockCapture).not.toHaveBeenCalled()
     })
 
-    it('does not intercept while the migration flag is off', () => {
-        mockMigrationOn = false
+    it('does not intercept inside the native app', () => {
+        jest.mocked(isCapacitor).mockReturnValue(true)
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff({ surface: MIGRATION_SURFACES.LANDING_DOOR }))
 
         let handled = true
@@ -150,21 +150,15 @@ describe('useGuestStoreHandoff surface', () => {
     })
 
     /* handoffActive is what labels the button. A CTA reading "Download Peanut"
-       that still opens web signup is worse than the old copy, so it must track
-       the same two gates the intercept uses. */
+       that still opens signup is worse than the old copy, so it must track
+       the same gate the intercept uses. */
     it('reports the hand-off active only where the intercept will take the click', () => {
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
         expect(result.current.handoffActive).toBe(true)
     })
 
-    it('reports no hand-off while the migration flag is off', () => {
-        mockMigrationOn = false
-        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
-        expect(result.current.handoffActive).toBe(false)
-    })
-
     it('reports no hand-off inside the native app', () => {
-        mockIsCapacitor = true
+        jest.mocked(isCapacitor).mockReturnValue(true)
         const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
         expect(result.current.handoffActive).toBe(false)
     })

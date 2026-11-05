@@ -882,7 +882,9 @@
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
-            "recoverWallet": "Need to recover a Peanut account?"
+            "recoverWallet": "Need to recover a Peanut account?",
+            "testBuild": "Test build",
+            "testSignUp": "Sign up on web"
         },
         "loginRecovery": {
             "title": "Your passkey may be on the phone you signed up on",
@@ -1013,6 +1015,8 @@
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
             "interrupted": "Something interrupted the passkey prompt. Please try again.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
+            "accountDeleted": "This account was deleted. Sign up to create a new one.",
+            "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
             "learnMore": "Learn more about Passkeys",
             "help": {
@@ -1924,13 +1928,18 @@
         },
         "physical": {
             "navTitle": "Physical card",
-            "onListTitle": "You are on the list!",
-            "onListBody": "You are #{position} on the list. We'll let you know when cards are ready to be shipped.",
-            "comingSoonTitle": "Coming soon!",
-            "comingSoonBody": "Join our waiting list and be amongst the first to get it.",
-            "joinCta": "Join waiting list",
+            "onListTitle": "You're on the waiting list",
+            "onListBody": "We'll tell you as soon as you can order it.",
+            "comingSoonTitle": "The physical card is on its way",
+            "comingSoonBody": "You can't order it yet. Here's how it will work:",
+            "joinCta": "Join the waiting list",
             "joinFailed": "Failed to join waitlist",
-            "onListBodyPending": "You are on the list. We'll let you know when cards are ready to be shipped."
+            "stepJoin": "Join the waiting list today",
+            "stepNotify": "We'll tell you when ordering opens",
+            "stepShip": "Order it and we'll ship it to you",
+            "notAvailableBadge": "Not available yet",
+            "positionBadge": "You're #{position} on the list",
+            "onListBadge": "You're on the list"
         },
         "yourCard": {
             "navTitle": "Card",
@@ -2134,7 +2143,6 @@
             "exchangeRate": "Exchange rate",
             "providerFees": "Provider fees",
             "providerFeesInfo": "Manteca and the blockchain charge a small fee for every transaction. This fee is already accounted for in the amount you see.",
-            "flagAlt": "flag",
             "shareTitle": "Bank transfer details",
             "shareDetails": "Share details",
             "shareAmount": "Amount: {currency} {amount}",
@@ -2299,7 +2307,6 @@
             "selectBank": "Select bank",
             "redirecting": "Redirecting...",
             "exchangeRate": "Exchange rate",
-            "flagAlt": "flag",
             "increaseLimitsMessage": "Hi, I would like to increase my payment limits.",
             "enterAccountDetails": "Enter bank or wallet details",
             "accountDetailsHint": "{country, select, BR {Phone keys start with +55.} other {Mercado Pago accounts work too.}}",
@@ -3039,8 +3046,6 @@
         }
     },
     "notifications": {
-        "setupTitle": "Turn on notifications?",
-        "setupDescription": "Enable notifications and get alerts for all wallet activity.",
         "migrationSetupTitle": "Get money alerts",
         "migrationSetupDescription": "We'll ping you the moment money lands or someone asks you to pay.",
         "enable": "Enable notifications",
@@ -3147,6 +3152,11 @@
             "preparingConfiguringDescription": "Configuring your regions...",
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
+            "accountReadyTitle": "Your account is ready",
+            "accountReadyAction": "{currencies} {count, plural, one {needs} other {need}} one more step.",
+            "accountReadyReview": "{currencies} {count, plural, one {is} other {are}} still under review. We’ll let you know when it’s ready.",
+            "accountReadyActionGeneric": "Your bank accounts need one more step.",
+            "accountReadyReviewGeneric": "Your bank accounts are still under review. We’ll let you know when they’re ready.",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "Still going. Most checks finish fast, so this one is probably getting a closer look. You can close this and we will message you when there is a decision.",

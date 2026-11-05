@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import { DOWNLOAD_PROMPT_FIXTURE } from './active'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import {
@@ -2650,6 +2651,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home',
         about: 'Card-eligible demo user — the activation spend chooser can open.',
         responses: { 'GET /card': { isEligible: true, geoProhibited: false } },
+    },
+
+    [DOWNLOAD_PROMPT_FIXTURE]: {
+        route: '/home',
+        about: 'The web "The Peanut app is here" prompt over home; every other fixture hides it.',
     },
 
     'early-user': {

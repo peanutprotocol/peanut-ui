@@ -27,20 +27,18 @@ const QR_SLOT_CODE: Record<StarLpQrSlot, string> = {
 }
 
 /**
- * Where a scan of a star-LP QR lands. Flag on: /home?app_entry=1, the same
- * entry DownloadQR uses (native shells open it; browsers go on to /app, the
- * store redirect, with the utm_* params kept). Flag off: web signup.
+ * Where a scan of a star-LP QR lands: /home?app_entry=1, the same entry
+ * DownloadQR uses (native shells open it; browsers go on to /app, the store
+ * redirect, with the utm_* params kept).
  * Tagged `utm_campaign=qr-ar|qr-br`, `utm_content=h|c|w|m` (hero, close,
  * ways-in, home: the homepage's pay-like-a-local stickers).
  */
-export function starLpQrUrl({ origin, migrationOn, campaign, slot }: StarLpQrUrlInput): string {
+export function starLpQrUrl({ origin, campaign, slot }: StarLpQrUrlInput): string {
     const utm = {
         source: UTM_SOURCES.STAR_LP,
         medium: UTM_MEDIUMS.CONTENT,
         campaign: QR_CAMPAIGN_CODE[campaign],
         content: QR_SLOT_CODE[slot],
     }
-    return migrationOn
-        ? withUtm(`${origin}/home`, utm, { [APP_ENTRY_QUERY_PARAM]: '1' })
-        : withUtm(`${origin}/setup`, utm)
+    return withUtm(`${origin}/home`, utm, { [APP_ENTRY_QUERY_PARAM]: '1' })
 }

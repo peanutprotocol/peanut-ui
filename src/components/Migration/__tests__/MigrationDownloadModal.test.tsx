@@ -2,7 +2,7 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 /**
- * MigrationDownloadModal — the pwa-sunset "The Peanut app is here" prompt.
+ * MigrationDownloadModal — the web "The Peanut app is here" prompt.
  *
  * Gating contract: flag ON + logged-in web user + snooze expired. Flag OFF
  * must render nothing. The web app stays available, so there is no deadline.
@@ -18,11 +18,6 @@ const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper:
 // must still show, with no deadline in its copy
 const DAY_MS = 24 * 60 * 60 * 1000
 const FROZEN_NOW = new Date('2026-10-09T12:00:00Z').getTime()
-
-let mockFlagOn = false
-jest.mock('@/hooks/useMigrationFlag', () => ({
-    useMigrationFlag: () => mockFlagOn,
-}))
 
 let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
@@ -45,13 +40,19 @@ jest.mock('@/utils/general.utils', () => ({
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
+let mockFixture: string | null = null
+jest.mock('@/dev/fixtures/active', () => ({
+    ...jest.requireActual('@/dev/fixtures/active'),
+    peekActiveFixture: () => mockFixture,
+}))
+
 import MigrationDownloadModal from '../MigrationDownloadModal'
 
 let nowSpy: jest.SpyInstance<number, []>
 beforeEach(() => {
     jest.clearAllMocks()
-    mockFlagOn = false
     mockIsCapacitor = false
+    mockFixture = null
     mockGetPrefs.mockReturnValue(undefined)
     nowSpy = jest.spyOn(Date, 'now').mockReturnValue(FROZEN_NOW)
 })
@@ -60,26 +61,30 @@ afterEach(() => {
 })
 
 describe('MigrationDownloadModal', () => {
-    it('renders nothing while the pwa-sunset flag is off', () => {
+    it('shows for a logged-in web user', () => {
+        render(<MigrationDownloadModal />)
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('stays hidden under a fixture, so it does not cover the drawer the fixture shows', () => {
+        mockFixture = 'early-user'
         render(<MigrationDownloadModal />)
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('shows for a logged-in web user', () => {
-        mockFlagOn = true
+    it('shows under its own capture fixture', () => {
+        mockFixture = 'download-prompt'
         render(<MigrationDownloadModal />)
         expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('stays hidden inside the native app', () => {
-        mockFlagOn = true
         mockIsCapacitor = true
         render(<MigrationDownloadModal />)
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
     it('stays hidden while a recent snooze is active, reappears after it expires', () => {
-        mockFlagOn = true
         mockGetPrefs.mockReturnValue({ migrationPromptSnoozedAt: new Date(FROZEN_NOW).toISOString() })
         const { unmount } = render(<MigrationDownloadModal />)
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -92,14 +97,12 @@ describe('MigrationDownloadModal', () => {
     })
 
     it('shows the app copy with no deadline', () => {
-        mockFlagOn = true
         render(<MigrationDownloadModal />)
         expect(screen.getByText('The Peanut app is here!')).toBeInTheDocument()
         expect(screen.queryByText(/\bdays?\b/i)).not.toBeInTheDocument()
     })
 
     it('remind-me-later snoozes and reports visibility', async () => {
-        mockFlagOn = true
         const onVisibilityChange = jest.fn()
         render(<MigrationDownloadModal onVisibilityChange={onVisibilityChange} />)
         expect(onVisibilityChange).toHaveBeenLastCalledWith(true)
