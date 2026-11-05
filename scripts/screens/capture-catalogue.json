@@ -2080,6 +2080,11 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-profile-accounts-provider-asks",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
         "id": "fixture-profile-payments",
         "flow": "Profile and settings",
         "route": "/profile/payments"
