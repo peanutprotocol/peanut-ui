@@ -36,6 +36,8 @@ import { getPasskeySetupKey } from '@/utils/webauthn.utils'
 import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
 import { useSignupTestTransaction } from '@/features/setup/useSignupTestTransaction'
 import { classifySignupTestTxFailure, type SignupTestTxFailure } from '@/features/setup/signup-test-tx-failure'
+import { SignupTestTxError } from '@/features/setup/signup-test-tx-error'
+import { passkeyFailureReason } from '@/utils/passkey-failure-reporting'
 import {
     canDeferSignupTestTransaction,
     clearSignupTestTransaction,
@@ -389,29 +391,39 @@ const SignTestTransaction = ({
             }
             // Otherwise the login flow's account-exists effect owns navigation; loading stays on until it redirects.
         } catch (e) {
-            console.error('[SignTestTransaction] Test transaction failed:', e)
+            /*
+             * console.info, not error: captureConsoleIntegration turned an error log into an
+             * "unhandled" event without this step's tags, and Sentry's dedupe then dropped
+             * the tagged capture below as its duplicate.
+             */
+            console.info('[SignTestTransaction] Test transaction failed:', e)
 
             // Browser capability probes must not delay recovery from a failed signature.
             void capturePasskeyDebugInfo('test-transaction-failed').catch((debugError) => {
                 console.warn('[SignTestTransaction] Diagnostics failed:', debugError)
             })
 
+            // Read before classifying, which renames shim errors in place: the signing hook decided on the original.
+            const reportedBySigningHook =
+                e instanceof SignupTestTxError && e.phase === 'sign' && passkeyFailureReason(e.cause) !== undefined
             // classify first: it renames the capgo shim's plain `Error('User cancelled the selector')`
             // to NotAllowedError in place, so read error_name after it
             const failure = classifySignupTestTxFailure(e)
             const record = readSignupTestTransaction(userId)
-            Sentry.captureException(e, {
-                tags: { feature: 'signup-test-transaction', failure_mode: failure.mode },
-                extra: {
-                    address,
-                    accountExists,
-                    testTransactionCompleted,
-                    phase: failure.phase,
-                    submissionKind: failure.submissionKind,
-                    errorMessage: failure.rootCause.message,
-                    errorName: failure.rootCause.name,
-                },
-            })
+            if (!reportedBySigningHook) {
+                Sentry.captureException(e, {
+                    tags: { feature: 'signup-test-transaction', failure_mode: failure.mode },
+                    extra: {
+                        address,
+                        accountExists,
+                        testTransactionCompleted,
+                        phase: failure.phase,
+                        submissionKind: failure.submissionKind,
+                        errorMessage: failure.rootCause.message,
+                        errorName: failure.rootCause.name,
+                    },
+                })
+            }
             const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
             const deferrable = failure.mode === 'bundler_transient' && canDeferSignupTestTransaction(record)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {

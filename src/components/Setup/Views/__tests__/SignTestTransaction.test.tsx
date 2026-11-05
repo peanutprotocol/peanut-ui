@@ -10,6 +10,7 @@ import SignTestTransaction from '../SignTestTransaction'
 import CompleteSignupStep from '../CompleteSignup'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import posthog from 'posthog-js'
+import * as Sentry from '@sentry/nextjs'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AccountSetupError } from '@/services/account-setup'
 import { AccountType } from '@/interfaces/interfaces'
@@ -559,6 +560,48 @@ describe('SignTestTransaction — setup completion', () => {
                 en.setup.testTransaction.errors.supportNeeded
             )
             expect(event).toMatchObject({ failure_mode: 'unknown', phase: 'submit' })
+        })
+
+        it('leaves a failed passkey prompt to the signing hook’s rate-limited report', async () => {
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const closed = new SignupTestTxError(
+                'sign',
+                Object.assign(new Error('The operation either timed out or was not allowed.'), {
+                    name: 'NotAllowedError',
+                })
+            )
+            await failConfirmWith(closed, en.setup.passkey.notCompleted)
+            expect(Sentry.captureException).not.toHaveBeenCalled()
+            expect(consoleError).not.toHaveBeenCalled()
+            consoleError.mockRestore()
+        })
+
+        it('still reports a signing failure the passkey reporter does not recognise', async () => {
+            const broken = new SignupTestTxError(
+                'sign',
+                new TypeError("Cannot read properties of undefined (reading 'x')")
+            )
+            await failConfirmWith(broken, en.setup.passkey.interrupted)
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+            expect(Sentry.captureException).toHaveBeenCalledWith(
+                broken,
+                expect.objectContaining({ tags: { feature: 'signup-test-transaction', failure_mode: 'passkey' } })
+            )
+        })
+
+        it('reports a submission failure once, with its tags, and never through console.error', async () => {
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const failure = new SignupTestTxError('submit', new Error('AA21 didn’t pay prefund'))
+            await failConfirmWith(failure, en.setup.testTransaction.errors.supportNeeded)
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+            expect(Sentry.captureException).toHaveBeenCalledWith(
+                failure,
+                expect.objectContaining({
+                    tags: { feature: 'signup-test-transaction', failure_mode: 'unknown' },
+                })
+            )
+            expect(consoleError).not.toHaveBeenCalled()
+            consoleError.mockRestore()
         })
 
         it('shows retry copy for a passkey prompt that closed without a reason', async () => {

@@ -10,10 +10,14 @@ const reportedErrors = new WeakSet<object>()
 /** Called only at a passkey flow's owning catch, after bounded recovery finishes.
  * Every attempt remains in ceremony analytics; repeated diagnostics get one report per
  * operation/reason every five minutes. Unknown application failures stay with the caller. */
-export function reportPasskeyFailure(error: unknown, operation: PasskeyOperation): boolean {
-    const nativeReason = nativePasskeyFailure(error)
+/** The reason `reportPasskeyFailure` reports this error under; undefined when it leaves the error to the caller. */
+export function passkeyFailureReason(error: unknown): string | undefined {
     const name = error instanceof Error ? error.name : undefined
-    const reason = nativeReason ?? (name === 'NotAllowedError' ? 'not_completed' : undefined)
+    return nativePasskeyFailure(error) ?? (name === 'NotAllowedError' ? 'not_completed' : undefined)
+}
+
+export function reportPasskeyFailure(error: unknown, operation: PasskeyOperation): boolean {
+    const reason = passkeyFailureReason(error)
     if (!reason) return false
     if (error && typeof error === 'object') {
         if (reportedErrors.has(error)) return true
