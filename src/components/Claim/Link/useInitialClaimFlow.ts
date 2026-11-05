@@ -39,6 +39,7 @@ import { previewSdaTransfer } from '@/services/rhino-sda'
 import { findClaimRoute, resolveClaimQuoteRecipient } from '@/utils/claim-route.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getChainName } from '@/utils/general.utils'
+import { loadChainRegistry } from '@/utils/chain-registry'
 import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
@@ -358,6 +359,8 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
                         amountUsd: hasUsdAmount ? claimUsdAmount : null,
                     })
                     if (belowMin) {
+                        // The network name comes from viem's chain registry, loaded on first use.
+                        if (claimToExternalWallet) await loadChainRegistry().catch(() => undefined)
                         const amount = formatFiniteDisplay(belowMin.minUsd, locale, {
                             style: 'currency',
                             currency: 'USD',

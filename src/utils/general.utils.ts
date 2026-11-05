@@ -12,7 +12,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
 import type { TransactionReceipt } from 'viem'
 import { getAddress, isAddress } from 'viem'
-import * as wagmiChains from 'wagmi/chains'
+import { getLoadedChain, loadChainRegistry } from '@/utils/chain-registry'
 import { type ChargeEntry } from '@/services/services.types'
 import { contributedAmount } from '@/utils/request-pot.utils'
 import { personFrom } from '@/lib/person/person'
@@ -378,12 +378,11 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     return formattedAmount === '—' ? undefined : formattedAmount
 }
 
-export const isTestnetChain = (chainId: string) => {
+export const isTestnetChain = async (chainId: string): Promise<boolean> => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).
-    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
-    const chain = all.find((c) => c?.id === Number(chainId))
-    return chain?.testnet === true
+    await loadChainRegistry()
+    return getLoadedChain(chainId)?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
@@ -539,12 +538,16 @@ export const formatIban = (iban: string) => {
         .trim()
 }
 
+/**
+ * Sync: names the wallet chain at once and any other chain once viem's
+ * registry has loaded (`useChainRegistry`, or `completeHistoryEntry` for
+ * history rows). Before that it returns undefined and starts the load.
+ */
 export function getChainName(chainId: string): string | undefined {
     if (chainId === '0') {
         return 'Solana'
     }
-    const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
-    return chain?.name ?? undefined
+    return getLoadedChain(chainId)?.name
 }
 
 /**

@@ -391,7 +391,7 @@ const useClaimLink = () => {
             campaignTag?: string
             amountUsd?: number
         }) => {
-            const isTestnet = isTestnetChain(destinationChainId)
+            const isTestnet = await isTestnetChain(destinationChainId)
             return await executeClaimXChain({
                 link,
                 recipientAddress: address,

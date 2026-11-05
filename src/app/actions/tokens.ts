@@ -21,7 +21,7 @@ export const fetchTokenDetails = unstable_cache(
     }> => {
         const tokenDetails = getTokenDetails({ tokenAddress: tokenAddress as Address, chainId: chainId! })
         if (tokenDetails) return tokenDetails
-        const client = getPublicClient(Number(chainId) as ChainId)
+        const client = await getPublicClient(Number(chainId) as ChainId)
         const [symbol, name, decimals] = await Promise.all([
             client.readContract({
                 address: tokenAddress as Address,

@@ -116,7 +116,7 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     if (!tokenSymbol) {
         try {
             const { getPublicClient } = await import('@/app/actions/clients')
-            const client = getPublicClient(Number(chainId) as ChainId)
+            const client = await getPublicClient(Number(chainId) as ChainId)
             tokenSymbol = (await client.readContract({
                 address: tokenAddress as Address,
                 abi: erc20Abi,

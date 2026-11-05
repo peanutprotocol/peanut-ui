@@ -1,6 +1,4 @@
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import { extractChain } from 'viem'
-import * as chains from 'viem/chains'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 import { PEANUT_API_URL } from './general.consts'
 import { isCapacitor } from '@/utils/capacitor'
@@ -66,16 +64,18 @@ import { USE_SEPOLIA } from './wallet-token.consts'
 // Wallet chain & token — configurable via env for sandbox/testnet testing.
 // Defaults: Arbitrum mainnet + USDC. When NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID
 // is '421614' (Arb Sepolia), default token falls back to Circle's testnet USDC.
+// Only these two are deployed and configured (prod and the QA harness). Any
+// other id fails at start: resolving it here would need viem's whole chain
+// registry in every bundle, the landing pages included.
 const walletChainId = Number(process.env.NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID || arbitrum.id)
-export const PEANUT_WALLET_CHAIN =
-    walletChainId === arbitrum.id
-        ? arbitrum
-        : USE_SEPOLIA
-          ? arbitrumSepolia
-          : extractChain({
-                chains: Object.values(chains),
-                id: walletChainId as (typeof chains)[keyof typeof chains]['id'],
-            })
+function resolveWalletChain() {
+    if (walletChainId === arbitrum.id) return arbitrum
+    if (USE_SEPOLIA) return arbitrumSepolia
+    throw new Error(
+        `NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID=${walletChainId} is not supported: use ${arbitrum.id} or ${arbitrumSepolia.id}`
+    )
+}
+export const PEANUT_WALLET_CHAIN = resolveWalletChain()
 export { PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from './wallet-token.consts'
 export const PEANUT_WALLET_TOKEN_NAME = process.env.NEXT_PUBLIC_PEANUT_WALLET_TOKEN_NAME || 'USD Coin'
 export const PEANUT_WALLET_TOKEN_IMG_URL =

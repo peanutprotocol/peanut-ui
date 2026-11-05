@@ -15,6 +15,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useRecoverableBalances } from '@/hooks/useRecoverableBalances'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
 import { areEvmAddressesEqual, isTxReverted, getChainName } from '@/utils/general.utils'
+import { needsChainRegistry } from '@/utils/chain-registry'
+import { useChainRegistry } from '@/hooks/useChainRegistry'
 import { getExplorerUrl } from '@/utils/token.utils'
 import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
@@ -40,12 +42,14 @@ const isNativeToken = (tokenAddress: string): boolean => {
 // the native balance is read again at send time, so a balance that moved
 // since the list loaded is still sent in full
 const fetchExactNativeBalance = async (chainId: string, address: Address): Promise<bigint> => {
-    const client = getPublicClient(Number(chainId) as ChainId)
+    const client = await getPublicClient(Number(chainId) as ChainId)
     return await client.getBalance({ address })
 }
 
 export default function RecoverFundsPage() {
     const [selectedBalance, setSelectedBalance] = useState<RecoverableBalance | undefined>()
+    // The selected chain's name comes from viem's chain registry, loaded on first use.
+    useChainRegistry(needsChainRegistry(selectedBalance?.chainId))
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
     const [errorMessage, setErrorMessage] = useState('')
     const [inputChanging, setInputChanging] = useState(false)

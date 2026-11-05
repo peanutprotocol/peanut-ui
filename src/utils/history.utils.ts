@@ -4,6 +4,7 @@ import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils/token.utils'
+import { loadChainRegistry, needsChainRegistry } from '@/utils/chain-registry'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
@@ -468,6 +469,10 @@ export function getTransactionSign(transaction: Pick<TransactionDetails, 'direct
 
 /** Completes a history entry by adding additional data and formatting the amount. */
 export async function completeHistoryEntry(entry: HistoryEntry): Promise<HistoryEntry> {
+    // Receipts name the entry's chain synchronously (transactionTransformer), so
+    // every history row passes here first and loads the chain registry when its
+    // chain needs it. A failed load only leaves the chain name out.
+    if (needsChainRegistry(entry.chainId)) await loadChainRegistry().catch(() => undefined)
     const extraData = entry.extraData ?? {}
     const kind = extraData.kind
     let link: string = ''
