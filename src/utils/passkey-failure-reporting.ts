@@ -1,6 +1,7 @@
 import { addBreadcrumb, captureException } from '@sentry/nextjs'
 import { nativePasskeyFailure } from './native-passkey-errors'
 
+// Recovery, reporting and monitoring policy: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/passkey-failures.md
 type PasskeyOperation = 'login' | 'registration' | 'sign-user-op' | 'send-user-op'
 const REPORT_INTERVAL_MS = 5 * 60_000
 const lastReported = new Map<string, number>()

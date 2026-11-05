@@ -6,7 +6,8 @@ import { LOOP_HOLD_MS, planLoop, stillFrame, type LoopMarker } from './loopPlayb
 
 /*
  * The sign-up hero loops. Each file is one screen's loop; replacing a file swaps that
- * screen's art with no code change. Sources and revisions: src/assets/onboarding/README.md.
+ * screen's art with no code change. Sources and revisions:
+ * https://github.com/peanutprotocol/mono/blob/main/engineering/ui/signup-hero-loops.md
  */
 const loaders = {
     invite: () => import('@/assets/onboarding/invite.json'),

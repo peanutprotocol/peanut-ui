@@ -11,6 +11,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
  * Apple Wallet buttons, and the passkey step-up before Apple's sheet rules out
  * PKAddPassButton itself (no interstitial screens allowed after it), so this
  * row is the compliant control. Show it only when it starts the native add.
+ * Artwork provenance: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/wallet-brand-assets.md
  */
 export default function AppleWalletRow({ isAdding, onClick }: { isAdding: boolean; onClick: () => void }) {
     const t = useTranslations('card.yourCard')

@@ -5,6 +5,8 @@ import { useLocale, useTranslations } from 'next-intl'
 import { resolveLocale, type AppLocale } from '@/i18n/app/config'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 
+// Artwork provenance and Google's branding rules:
+// https://github.com/peanutprotocol/mono/blob/main/engineering/ui/wallet-brand-assets.md
 type Artwork = {
     file: string
     oneLineWidth: number
