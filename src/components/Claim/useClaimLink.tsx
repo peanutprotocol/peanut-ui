@@ -13,7 +13,8 @@ import { captureException } from '@sentry/nextjs'
 
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
+import { isTestnetChain } from '@/utils/general.utils'
+import { getTokenSymbol } from '@/utils/token.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -390,7 +391,7 @@ const useClaimLink = () => {
             campaignTag?: string
             amountUsd?: number
         }) => {
-            const isTestnet = isTestnetChain(destinationChainId)
+            const isTestnet = await isTestnetChain(destinationChainId)
             return await executeClaimXChain({
                 link,
                 recipientAddress: address,

@@ -5,7 +5,8 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { areEvmAddressesEqual, getTokenDetails } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 
 /**
  * Symbol and decimals of the token a request is paid in, read synchronously:

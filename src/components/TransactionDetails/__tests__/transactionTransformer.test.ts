@@ -1,7 +1,7 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
-import { getTransactionExplorerUrl } from '@/utils/general.utils'
+import { getTransactionExplorerUrl } from '@/utils/token.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
