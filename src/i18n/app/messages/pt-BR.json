@@ -1609,7 +1609,7 @@
         },
         "kyc": {
             "unlockTitle": "Desbloqueie pagamentos com QR",
-            "unlockDescription": "Confirme sua identidade para usar os pagamentos QR disponíveis para sua conta. Leva cerca de um minuto.",
+            "unlockDescription": "Confirme sua identidade para usar os pagamentos QR disponíveis. Leva cerca de um minuto.",
             "unlockCta": "Verificar identidade",
             "inProgressTitle": "Quase lá",
             "inProgressDescription": "Estamos confirmando sua identidade. Continue de onde parou e logo você estará pagando.",

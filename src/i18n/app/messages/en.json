@@ -1609,7 +1609,7 @@
         },
         "kyc": {
             "unlockTitle": "Unlock QR payments",
-            "unlockDescription": "Confirm your ID to use QR payments available for your account. Takes a minute.",
+            "unlockDescription": "Confirm your ID to use available QR payments. Takes a minute.",
             "unlockCta": "Verify identity",
             "inProgressTitle": "Almost there",
             "inProgressDescription": "We're confirming your ID. Pick up where you left off and you'll be paying in no time.",
