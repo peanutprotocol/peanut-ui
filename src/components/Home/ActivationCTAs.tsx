@@ -1,9 +1,11 @@
 'use client'
 
+import { Icon } from '@/components/Global/Icons/Icon'
+import { CAROUSEL_CLOSE_BUTTON_POSITION, CAROUSEL_CLOSE_ICON_SIZE } from '@/constants/carousel.consts'
+import { twMerge } from '@/utils/tw'
 import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type OnboardingState } from '@/utils/activation-step.utils'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
@@ -284,7 +286,28 @@ export default function ActivationCTAs({
         )
 
     return (
-        <Card position="solo" className="p-0">
+        <Card position="solo" className="relative p-0">
+            {blockedCard && onHideBlockedCard && (
+                // The same close as the Home carousel cards; support stays in Profile → Accounts.
+                <button
+                    type="button"
+                    aria-label={tGettingStarted('hide')}
+                    onClick={() => {
+                        posthog.capture(ANALYTICS_EVENTS.HOME_BLOCKED_CARD_HIDDEN, {
+                            card_kind: blockedCard.kind,
+                            reason_code: blockedCard.reasonCode,
+                        })
+                        onHideBlockedCard(blockedCard.ctaId)
+                    }}
+                    className={twMerge(
+                        CAROUSEL_CLOSE_BUTTON_POSITION,
+                        'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
+                    )}
+                    data-testid="blocked-card-hide"
+                >
+                    <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
+                </button>
+            )}
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
                 <IconBubble {...step.bubble} />
                 <div className="w-full text-center">
@@ -357,23 +380,6 @@ export default function ActivationCTAs({
                 >
                     {step.ctaLabel}
                 </Button>
-                {blockedCard && onHideBlockedCard && (
-                    // tertiary dismiss (design.md). mt-3 tops the card's gap-3 up to
-                    // the 24px the LinkButton's hit area needs under the primary.
-                    // The fix or support route stays in Profile → Accounts.
-                    <LinkButton
-                        onClick={() => {
-                            posthog.capture(ANALYTICS_EVENTS.HOME_BLOCKED_CARD_HIDDEN, {
-                                card_kind: blockedCard.kind,
-                                reason_code: blockedCard.reasonCode,
-                            })
-                            onHideBlockedCard(blockedCard.ctaId)
-                        }}
-                        className="mt-3 text-body-s text-foreground-primary"
-                    >
-                        {tGettingStarted('hide')}
-                    </LinkButton>
-                )}
             </div>
             <ProvideEmailStep
                 visible={showProvideEmail}

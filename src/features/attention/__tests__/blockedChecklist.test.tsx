@@ -292,7 +292,7 @@ test.each([
     expect(latest?.decision.zone?.id).toBe('checklist')
     expect(screen.getByText('to-do list')).toBeInTheDocument()
     expect(screen.queryByText('blocked reason')).not.toBeInTheDocument()
-    expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
     expect(readLedger('user-a')['blocked-card']?.version).toBe(VERIFICATION_ISSUE)
     // the list itself was never dismissed: it stays once the door opens
     expect(readLedger('user-a').checklist?.dismissedAt).toBeUndefined()

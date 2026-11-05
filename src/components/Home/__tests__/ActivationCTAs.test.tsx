@@ -310,13 +310,13 @@ describe('ActivationCTAs — an ID check that ended on a final decision', () => 
         render(<ActivationCTAs onboarding={FAILED} showBlockedCard={false} />)
         expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
         expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
-        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
     })
 
     it('can be hidden under its own key', () => {
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={FAILED} onHideBlockedCard={onHide} />)
-        fireEvent.click(screen.getByText('Hide'))
+        fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:identity_failed')
     })
 
@@ -603,7 +603,7 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         mockRegionRestricted = true
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={onHide} />)
-        fireEvent.click(screen.getByText('Hide'))
+        fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:region-restricted:identity_region_restricted')
         expect(posthog().capture).toHaveBeenCalledWith('home_blocked_card_hidden', {
             card_kind: 'region-restricted',
@@ -624,7 +624,7 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={VERIFIED} onHideBlockedCard={onHide} />)
         expect(screen.getByText('Verification issue')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Hide'))
+        fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:provider_rejected')
     })
 
@@ -632,12 +632,12 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         mockRegionRestricted = true
         render(<ActivationCTAs onboarding={NEW_USER} showBlockedCard={false} onHideBlockedCard={jest.fn()} />)
         expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
-        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
     })
 
     it('the checklist itself shows no blocked-card Hide', () => {
         render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={jest.fn()} />)
-        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
     })
 })
 
