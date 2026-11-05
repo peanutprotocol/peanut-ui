@@ -171,7 +171,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal (early)',
         path: 'Migration/MigrationDownloadModal.tsx',
-        blocked: 'Opens itself off the sunset countdown and a stored dismissal — no visible prop.',
+        blocked:
+            'Opens itself for a signed-in web user unless snoozed — no visible prop. Captured through the download-prompt fixture.',
     },
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },

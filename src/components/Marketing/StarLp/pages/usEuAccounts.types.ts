@@ -27,9 +27,6 @@ export interface UsEuTimelineRowProps {
 
 /** A plain link that goes where the page CTA goes, download modal included. */
 export interface UsEuAppLinkProps {
-    href: string
-    /** Where a signed-in visitor goes instead, as on StarLpCta. */
-    signedInHref?: string
     children: ReactNode
     className?: string
     /** Analytics surface of the click; STAR_LP by default. */

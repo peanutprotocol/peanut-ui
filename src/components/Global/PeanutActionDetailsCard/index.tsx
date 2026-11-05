@@ -1,4 +1,4 @@
-import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import type { Person } from '@/lib/person/person.types'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
@@ -45,7 +45,6 @@ export interface PeanutActionDetailsCardProps {
     viewType?: 'NORMAL' | 'SUCCESS'
     className?: HTMLDivElement['className']
     fileUrl?: string
-    avatarSize?: AvatarSize
     countryCodeForFlag?: string
     currencySymbol?: string
     isLoading?: boolean
@@ -77,7 +76,6 @@ export default function PeanutActionDetailsCard({
     viewType = 'NORMAL',
     className,
     fileUrl,
-    avatarSize = 'l',
     countryCodeForFlag,
     currencySymbol,
     isLoading = false,
@@ -209,8 +207,8 @@ export default function PeanutActionDetailsCard({
         if (!(isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim))
             return undefined
         const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
-        const bankBubble = <IconBubble {...CONCEPT_ICONS.bank} size="m" />
-        return imgSrc ? <AvatarWithBadge size="m" logo={imgSrc} fallback={bankBubble} /> : bankBubble
+        const bankBubble = <IconBubble {...CONCEPT_ICONS.bank} size="s" />
+        return imgSrc ? <AvatarWithBadge size="s" logo={imgSrc} fallback={bankBubble} /> : bankBubble
     }
 
     return (
@@ -224,11 +222,11 @@ export default function PeanutActionDetailsCard({
                         // The branch that used to draw the counterparty's
                         // initials: a Peanut handle with no icon of its own.
                         // `decorative` because the card names them above.
-                        <UserAvatar person={person} size={avatarSize} decorative />
+                        <UserAvatar person={person} size="s" decorative />
                     ) : (
                         <AvatarWithBadge
                             icon={avatarIcon}
-                            size={avatarSize}
+                            size="s"
                             name={viewType === 'NORMAL' ? recipientName : undefined}
                             inlineStyle={{
                                 backgroundColor: getAvatarBackgroundColor(),

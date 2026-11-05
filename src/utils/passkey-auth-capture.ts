@@ -33,6 +33,38 @@ export class PasskeyVerifyRejectedError extends Error {
     }
 }
 
+/** The assertion verified, but the account it belongs to was deleted (soft-deleted). */
+export class PasskeyAccountDeletedError extends Error {
+    constructor() {
+        super('Passkey account was deleted')
+        this.name = 'PasskeyAccountDeletedError'
+    }
+}
+
+/**
+ * /login/options or /register/options answered non-2xx. ZeroDev would hand the
+ * error body to @simplewebauthn, which crashes reading the missing challenge
+ * with a browser-specific TypeError. No prompt was shown, so nothing is known
+ * about the device's passkey.
+ */
+export class PasskeyOptionsFailedError extends Error {
+    readonly status: number
+
+    constructor(path: string, status: number) {
+        super(`Passkey ${path} failed with status ${status}`)
+        this.name = 'PasskeyOptionsFailedError'
+        this.status = status
+    }
+}
+
+function errorCodeOf(body: string): unknown {
+    try {
+        return (JSON.parse(body) as { error?: unknown } | null)?.error
+    } catch {
+        return undefined
+    }
+}
+
 function reportPasskeyHttpFailure(path: string, status: number, body: string): void {
     Sentry.addBreadcrumb({
         category: 'passkey.http',
@@ -103,7 +135,7 @@ export function installPasskeyVerifyCapture(): void {
             }
         }
 
-        let verifyRejection: PasskeyVerifyRejectedError | null = null
+        let failure: Error | null = null
         try {
             if (passkeyPath && !response.ok) {
                 const body = await response
@@ -117,7 +149,15 @@ export function installPasskeyVerifyCapture(): void {
                 // ZeroDev decodes the error body as `{ verification: ... }`;
                 // the login recovery wrapper decides whether to re-prompt.
                 if (passkeyPath === '/passkeys/login/verify' && (response.status === 400 || response.status === 401)) {
-                    verifyRejection = new PasskeyVerifyRejectedError(response.status)
+                    failure = new PasskeyVerifyRejectedError(response.status)
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    response.status === 403 &&
+                    errorCodeOf(body) === 'ACCOUNT_DELETED'
+                ) {
+                    failure = new PasskeyAccountDeletedError()
+                } else if (passkeyPath.endsWith('/options')) {
+                    failure = new PasskeyOptionsFailedError(passkeyPath, response.status)
                 }
             }
             // The token is only STASHED here (keyed to the issuing ceremony);
@@ -137,7 +177,7 @@ export function installPasskeyVerifyCapture(): void {
         } catch {
             // capture is best-effort; never break the original request
         }
-        if (verifyRejection) throw verifyRejection
+        if (failure) throw failure
         return response
     }
 }

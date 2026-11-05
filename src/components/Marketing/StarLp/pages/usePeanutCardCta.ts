@@ -12,9 +12,9 @@ import type { PeanutCardCtaPlacement } from './peanutCard.types'
 
 /**
  * The card CTA's routing, shared by the buttons and the hero card: signed-in
- * visitors go straight to /card; with the PWA-sunset flag on, guests get the
- * store (or the desktop QR modal) with /card as the deferred destination.
- * Flag off, guests sign up and land on /card. A click while auth is still
+ * visitors go straight to /card; guests get the store (or the desktop QR
+ * modal) with /card as the deferred destination. The guest href is the
+ * fallback when the hand-off does not take the click. A click while auth is still
  * loading is queued and runs when it settles, so a returning user is not sent
  * to the store and a tap is never dead. Render `storeHandoffModal` beside the link.
  */

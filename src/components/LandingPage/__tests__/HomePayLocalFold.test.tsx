@@ -3,7 +3,6 @@ import { HomePayLocalFold } from '../HomePayLocalFold'
 import { getTranslations } from '@/i18n'
 import type { HomePayLocalStrings } from '../homeFolds.types'
 
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
 jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowed: () => false }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('react-qr-code', () => ({

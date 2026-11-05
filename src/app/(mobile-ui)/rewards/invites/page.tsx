@@ -188,7 +188,7 @@ const InvitesPage = () => {
                                             person={personFrom(invite)}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
-                                            size="m"
+                                            size="s"
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">

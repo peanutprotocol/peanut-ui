@@ -13,10 +13,6 @@ export interface RequestLinksPaidTickProps {
     className?: string
 }
 
-export interface RequestLinksAvatarProps {
-    size?: 'small' | 'large'
-}
-
 export interface RequestLinksAppLinkProps {
     children: ReactNode
     className?: string

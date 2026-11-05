@@ -549,6 +549,8 @@
             "deviceState": "Hubo un problema con la passkey en este dispositivo. Reiniciá la app e intentalo de nuevo.",
             "interrupted": "Algo interrumpió la solicitud de la passkey. Intentalo de nuevo.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
+            "accountDeleted": "Esta cuenta fue eliminada. Registrate para crear una nueva.",
+            "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elegí otro nombre de usuario para crear una nueva.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
             "learnMore": "Aprendé más sobre las passkeys",
             "help": {
@@ -1012,8 +1014,11 @@
             "description": "Revisá y aceptá"
         },
         "physical": {
-            "onListBody": "Sos el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "comingSoonBody": "Unite a nuestra lista de espera y sé de los primeros en tenerla."
+            "onListBody": "Te avisamos apenas puedas pedirla.",
+            "comingSoonBody": "Todavía no podés pedirla. Así va a funcionar:",
+            "stepJoin": "Unite hoy a la lista de espera",
+            "stepShip": "Pedila y te la enviamos",
+            "positionBadge": "Sos el #{position} en la lista"
         },
         "yourCard": {
             "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contactá a soporte para saldarla.",
@@ -1329,9 +1334,6 @@
         "loadErrorDescription": "Revisá tu conexión e intentá de nuevo.",
         "shareText": "¡Gané la insignia {badge} en Peanut!\n\nUnite a Peanut y empezá a ganar puntos, desbloquear logros y mover dinero por todo el mundo\n\n{link}",
         "shareJoin": "Unite a Peanut conmigo: {link}"
-    },
-    "notifications": {
-        "setupDescription": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera."
     },
     "kyc": {
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",

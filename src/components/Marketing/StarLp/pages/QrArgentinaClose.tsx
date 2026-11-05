@@ -1,7 +1,6 @@
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import { QrArgentinaScanFrame } from './QrArgentinaScanFrame'
 import { QrArgentinaSticker } from './QrArgentinaSticker'
 
@@ -27,7 +26,7 @@ export function QrArgentinaClose() {
             </p>
             <p className="mx-auto mt-8 max-w-xl text-body-l">Verify with your passport before you land.</p>
             <div className="mx-auto mt-8 w-fit">
-                <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
+                <StarLpCta qrPlacement="close" ground="pink">
                     Create an account
                 </StarLpCta>
             </div>

@@ -4,7 +4,6 @@ import ActionModal from '../Global/ActionModal'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
@@ -23,9 +22,6 @@ const MOMENT_COPY = {
 export default function SetupNotificationsModal() {
     const captureSession = useSessionFence()
     const attempting = useRef(false)
-    // migration-era copy ("Get money alerts") only ships when the pwa-sunset
-    // flag is on — flag off keeps today's prompt byte-for-byte (TASK-20771)
-    const migrationOn = useMigrationFlag()
     const {
         showPermissionModal,
         promptTrigger,
@@ -86,7 +82,6 @@ export default function SetupNotificationsModal() {
             onAllow={handleAllowClick}
             onClose={handleCloseNotifsSetupModal}
             isRequestingPermission={isRequestingPermission}
-            migrationOn={migrationOn}
         />
     )
 }
@@ -98,14 +93,12 @@ export function SetupNotificationsPrompt({
     onAllow,
     onClose,
     isRequestingPermission = false,
-    migrationOn = false,
 }: {
     visible: boolean
     trigger?: PushPromptTrigger | null
     onAllow: (event?: React.MouseEvent) => void
     onClose: (event?: React.MouseEvent) => void
     isRequestingPermission?: boolean
-    migrationOn?: boolean
 }) {
     const t = useTranslations('notifications')
     const momentCopy = trigger && trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK ? MOMENT_COPY[trigger] : null
@@ -114,12 +107,8 @@ export function SetupNotificationsPrompt({
             <ActionModal
                 visible={visible}
                 onClose={onClose}
-                title={momentCopy ? t(momentCopy.title) : t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
-                description={
-                    momentCopy
-                        ? t(momentCopy.description)
-                        : t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')
-                }
+                title={momentCopy ? t(momentCopy.title) : t('migrationSetupTitle')}
+                description={momentCopy ? t(momentCopy.description) : t('migrationSetupDescription')}
                 content={<PeanutMascotScene scene="paper-planes" className="h-40 max-w-48" />}
                 // stacked CTAs at every width; sm:flex-none stops ActionModal's
                 // sm:flex-1 from stretching the buttons in the column

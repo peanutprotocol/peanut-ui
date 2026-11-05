@@ -11,5 +11,5 @@ export interface HomeFoldsProps {
     /** The FAQ items from the landing content file, each with its help link if it has one. */
     faqItems: StarLpFaqItem[]
     /** The hero's own CTA from the landing content file: the close repeats it word for word. */
-    closeCta: { label: string; href: string }
+    closeCta: { label: string }
 }

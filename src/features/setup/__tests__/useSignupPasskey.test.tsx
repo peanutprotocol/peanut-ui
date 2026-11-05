@@ -223,6 +223,25 @@ describe('failures keep the user on the username step', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Login exploded')
     })
 
+    // The native availability check (GET) hides deleted accounts, but /register/options still
+    // holds their username, so the 409 sends the user to a Log in that cannot succeed.
+    it('asks for another username when the taken username belongs to a deleted account', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('Username already exists'), { name: 'UsernameTaken' })
+        )
+        mockLogin.mockRejectedValueOnce(
+            Object.assign(new Error('curated'), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'This account was deleted. Choose a different username to create a new one.'
+        )
+        expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument()
+    })
+
     it('treats a plain NotAllowedError as an unfinished verification the user can retry', async () => {
         mockHandleRegister.mockRejectedValue(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
         renderWithIntl(<Harness />)
