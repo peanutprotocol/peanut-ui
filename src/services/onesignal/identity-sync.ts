@@ -4,8 +4,14 @@ export interface PushIdentityAdapter {
     logout(): Promise<void>
 }
 
+/** Which SDK call was still pending when the budget ran out. */
+export type PushIdentityStage = 'init' | 'login' | 'logout' | 'verification'
+
 export class PushIdentityTimeoutError extends Error {
-    constructor(message = 'Push identity operation timed out') {
+    constructor(
+        message = 'Push identity operation timed out',
+        public readonly stage?: PushIdentityStage
+    ) {
         super(message)
         this.name = 'PushIdentityTimeoutError'
     }
@@ -24,7 +30,7 @@ export function createPushIdentitySync(
     let expirePending: (() => void) | undefined
     let invalidationRevision = 0
 
-    function bounded<T>(operation: Promise<T>): Promise<T> {
+    function bounded<T>(operation: Promise<T>, stage: PushIdentityStage): Promise<T> {
         let expired = false
         let timer: ReturnType<typeof setTimeout>
         let expire: () => void
@@ -33,7 +39,7 @@ export function createPushIdentitySync(
                 if (expired) return
                 expired = true
                 options.onTimeout?.()
-                reject(new PushIdentityTimeoutError())
+                reject(new PushIdentityTimeoutError(undefined, stage))
             }
             expirePending = expire
             timer = setTimeout(expire, options.timeoutMs ?? 3_000)
@@ -69,7 +75,8 @@ export function createPushIdentitySync(
                 getAdapter().then(async (adapter) => {
                     await adapter.init()
                     return adapter
-                })
+                }),
+                'init'
             )
         }
         let adapter: PushIdentityAdapter
@@ -83,7 +90,10 @@ export function createPushIdentitySync(
             const next = desired ?? null
             const revision = invalidationRevision
             try {
-                await bounded(next === null ? adapter.logout() : adapter.login(next))
+                await bounded(
+                    next === null ? adapter.logout() : adapter.login(next),
+                    next === null ? 'logout' : 'login'
+                )
                 // Multiple raw SDK promises can settle in one event-loop turn.
                 // A stale effect invalidates this receipt even if our await
                 // continuation runs after its compensation request.

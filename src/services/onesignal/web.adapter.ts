@@ -7,6 +7,7 @@ import type {
 } from './types'
 import { isOneSignalDebug } from './debug'
 import { OneSignalConfigError } from './errors'
+import { webInitProgress } from './web-diagnostics'
 
 function browserPermission(): NotificationPermissionState {
     if (typeof Notification === 'undefined') return 'default'
@@ -79,6 +80,9 @@ export const webOneSignalAdapter: OneSignalAdapter = {
                 )
             }
 
+            webInitProgress.started()
+            const deferred = (window as { OneSignalDeferred?: Array<() => void> }).OneSignalDeferred
+            deferred?.push(webInitProgress.sdkReady)
             await OneSignal.init({
                 appId: appId,
                 safari_web_id: safariWebId,
@@ -107,6 +111,10 @@ export const webOneSignalAdapter: OneSignalAdapter = {
 
             attachUnderlyingListeners()
         })()
+        initPromise.then(
+            () => webInitProgress.settled('resolved'),
+            () => webInitProgress.settled('rejected')
+        )
         return initPromise
     },
 
