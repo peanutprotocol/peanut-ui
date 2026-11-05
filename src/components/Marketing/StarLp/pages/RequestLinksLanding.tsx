@@ -12,7 +12,6 @@ import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
 import {
-    STAR_LP_HREF,
     STAR_LP_SKY_CLOUDS,
     STAR_LP_SKY_CLOUDS_CLASS,
     STAR_LP_TRUST_LINE,
@@ -88,7 +87,7 @@ export function RequestLinksLanding() {
                 // the mail's title bar stays readable under the wide Knerd
                 artTuck="rim"
                 cta={
-                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" ground="pink">
                         {CTA_LABEL}
                     </StarLpCta>
                 }
@@ -205,7 +204,7 @@ export function RequestLinksLanding() {
                     </PopIn>
                 </div>
                 <div className="mx-auto mt-10 w-fit">
-                    <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="close" ground="pink">
                         {CTA_LABEL}
                     </StarLpCta>
                 </div>

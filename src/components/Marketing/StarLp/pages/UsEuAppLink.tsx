@@ -3,33 +3,20 @@
 import Link from 'next/link'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useOptionalAuth } from '@/context/authContext'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { twMerge } from '@/utils/tw'
 import type { UsEuAppLinkProps } from './usEuAccounts.types'
 
 /**
- * Makes a picture on the page lead where its CTA leads (signed in: straight to
- * the destination), with the same PWA-sunset handling as LandingAppLink. It
- * sits inside art that duplicates a visible CTA, so it stays out of the tab
- * order. `group` lets the art take the DS press (`group-active:` drops its shadow).
+ * Makes a picture on the page lead where its CTA leads: /app and the download
+ * modal, as LandingAppLink does. It sits inside art that duplicates a visible
+ * CTA, so it stays out of the tab order. `group` lets the art take the DS press (`group-active:` drops its shadow).
  */
-export function UsEuAppLink({
-    href,
-    signedInHref,
-    children,
-    className,
-    surface = MIGRATION_SURFACES.STAR_LP,
-}: UsEuAppLinkProps) {
-    // the homepage renders these with no AuthProvider above it: there every visitor gets the guest href
-    const user = useOptionalAuth()?.user
-    const migrationOn = useMigrationFlag()
+export function UsEuAppLink({ children, className, surface = MIGRATION_SURFACES.STAR_LP }: UsEuAppLinkProps) {
     const interceptAppCta = useAppModal()
-    const destination = user && signedInHref ? signedInHref : href
     return (
         <Link
             prefetch={false}
-            href={migrationOn ? '/app' : destination}
+            href="/app"
             tabIndex={-1}
             className={twMerge('group', className)}
             onClick={(event) => {

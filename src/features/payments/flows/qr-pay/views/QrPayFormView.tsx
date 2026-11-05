@@ -136,9 +136,9 @@ export function QrPayFormView() {
                                 <Image
                                     src={methodIcon}
                                     alt={t('paymentMethodAlt')}
-                                    width={48}
-                                    height={48}
-                                    className="h-12 w-12 rounded-full object-cover"
+                                    width={32}
+                                    height={32}
+                                    className="size-8 rounded-full object-cover"
                                 />
                             </div>
                             <div className="min-w-0 flex-1">

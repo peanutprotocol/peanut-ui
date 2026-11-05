@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
+import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import IframeWrapper, { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { KycControlFlowProvider, useKycControl } from '@/features/paperwork-verification/analytics'
@@ -92,9 +93,19 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 isLoadingTos={flow.isLoadingTos}
                 preparingTimedOut={flow.preparingTimedOut}
                 preparingStage={flow.preparingStage}
+                completionNotice={flow.completionNotice}
             />
 
             {flow.tosLink && <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={closeTosPage} />}
+
+            {flow.showVerificationReview && (
+                <KycFailedModal
+                    visible
+                    isTerminal
+                    onClose={flow.dismissVerificationReview}
+                    onRetry={flow.dismissVerificationReview}
+                />
+            )}
         </KycControlFlowProvider>
     )
 }

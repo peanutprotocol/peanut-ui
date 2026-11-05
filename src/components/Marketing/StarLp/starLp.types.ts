@@ -100,10 +100,6 @@ export type StarLpHeroArtTuck = 'deep' | 'rim' | 'none'
 
 export interface StarLpCtaProps {
     qrPlacement?: string
-    /** Destination when the PWA-sunset flag is off. With the flag on every CTA goes to /app. */
-    href: string
-    /** Where a signed-in visitor goes instead (e.g. '/card'). Omit to use `href` for everyone. */
-    signedInHref?: string
     /** The ground the button sits on: picks the DS variant (white on colour, pink on cream/black/white). */
     ground: BandGround
     /** Sentence-case label. */
@@ -308,18 +304,16 @@ export interface StarLpQrCodeProps {
     slot: StarLpQrSlot
     /** Width classes; the code is square and carries its own white quiet zone. */
     className?: string
-    /** The registered marketing QR to show when the PWA sunset is on. Leave it out on the
-        star LPs: the code then registers as `{campaign}-{slot}-en`. Another page (home)
-        passes its own page, placement and locale; `campaign` and `slot` still tag the
-        fallback URL while the sunset is off. */
+    /** The registered marketing QR to show. Leave it out on the star LPs: the code then
+        registers as `{campaign}-{slot}-en`. Another page (home) passes its own page,
+        placement and locale; `campaign` and `slot` still tag the fallback URL used until
+        the registered one resolves. */
     qrContext?: MarketingQrContext
 }
 
 export interface StarLpQrUrlInput {
     /** Origin of the server that rendered the page, so a LAN or preview scan returns to it. */
     origin: string
-    /** PWA-sunset flag. On: the native app-entry path. Off: web signup. */
-    migrationOn: boolean
     campaign: StarLpQrCampaign
     slot: StarLpQrSlot
 }
@@ -393,8 +387,6 @@ export interface TillStickerProps {
     slot: StarLpQrSlot
     /** Width classes; the sticker scales with its width. */
     className?: string
-    /** Load the mark eagerly; set only where the sticker is in the first screen. */
-    priority?: boolean
     /** Passed to StarLpQrCode: the registered QR of a page other than the star LPs. */
     qrContext?: MarketingQrContext
 }

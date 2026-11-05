@@ -7,7 +7,7 @@ import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
 import { Card } from '../0_Bruddle/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
-import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
+import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { UserAvatar } from '../Avatar/UserAvatar'
 import { VerifiedUserLabel } from '../UserHeader'
 import PotProgress from './PotProgress'
@@ -19,7 +19,6 @@ interface UserCardBaseProps {
     type: 'send' | 'request' | 'received_link' | 'request_pay' | 'request_fulfilment'
     username: string
     fullName?: string
-    size?: AvatarSize
     message?: string
     fileUrl?: string
     isVerified?: boolean
@@ -49,7 +48,6 @@ const UserCard = ({
     username,
     fullName,
     recipientType,
-    size = 's',
     message,
     fileUrl,
     isVerified,
@@ -102,7 +100,7 @@ const UserCard = ({
                     // A Peanut handle is a person: their picked avatar, with the
                     // handle's letter as the fallback. `decorative` because the
                     // card names them right beside it.
-                    <UserAvatar person={person} size={size} decorative />
+                    <UserAvatar person={person} size="s" decorative />
                 ) : (
                     <AvatarWithBadge
                         // an address is the crypto concept (coins on blue)
@@ -111,7 +109,7 @@ const UserCard = ({
                             backgroundColor: `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`,
                             color: AVATAR_TEXT_DARK,
                         }}
-                        size={size}
+                        size="s"
                         name={fullName || username}
                     />
                 )}
