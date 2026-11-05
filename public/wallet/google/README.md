@@ -4,17 +4,20 @@ Google-supplied Add to Google Wallet SVG artwork with only the pill removed. `Go
 - Wallet brand guidelines: https://developers.google.com/wallet/generic/resources/brand-guidelines
 - Codelab button layout: https://codelabs.developers.google.com/save-to-wallet-android
 - Source archive: https://developers.google.com/static/wallet/download-assets/add-to-wallet-svg.zip
-- Retrieved: 2026-10-23. The issuer documentation's archive links returned 404; Google's shared Wallet archive supplies these official assets.
+- Retrieved: 2026-10-23 (two-line files first retrieved 2026-10-09). The issuer documentation's archive links returned 404; Google's shared Wallet archive supplies these official assets.
 
 | File | Source in the archive |
 | --- | --- |
 | `one-line/en.svg` | `enUS_add_to_google_wallet_wallet-button.svg` |
 | `one-line/es-419.svg` | `es419_add_to_google_wallet_wallet-button.svg` (also es-AR) |
 | `one-line/pt-BR.svg` | `br_add_to_google_wallet_wallet-button.svg` |
+| `two-line/en.svg` | `enUS_add_to_google_wallet_add-wallet-badge.svg` |
+| `two-line/es-419.svg` | `es419_add_to_google_wallet_add-wallet-badge.svg` (also es-AR) |
+| `two-line/pt-BR.svg` | `br_add_to_google_wallet_add-wallet-badge.svg` |
 
 Each file is the archive file minus its two `<rect>` elements (pill fill and outline). Icon and text paths, viewBox and internal spacing are unchanged.
 
-The one-line (primary) button is Google's choice for light backgrounds. It renders 48px high in every language, Google's minimum ("All Add to Google Wallet buttons need to have a minimum height of 48 dp"). The artwork keeps its ratio and scales down to fit a pill narrower than its drawn width (Spanish needs 363px at 48px), instead of switching to the taller two-line badge, so the button is one height everywhere. Keep at least 8dp clear space around the button. Only show it when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.
+The one-line (primary) button is Google's choice for light backgrounds. It renders 48px high and needs its full drawn width at that height (Google's side padding included). Where the pill is narrower, the button falls back to the two-line (condensed) badge at 56px, as Google's guidelines direct. Pressing never moves the button (it has no shadow to drop into); the pill fill turns `#333333`, Google's fill under Material's 10% pressed state layer, and the artwork is untouched. Keep at least 8dp clear space around the button. Only show it when it starts native card provisioning. Google UX/branding review and production launch approval remain required before rollout.
 
 ## Google Pay logo (`google-pay-logo.svg`)
 

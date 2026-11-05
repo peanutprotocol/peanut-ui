@@ -56,6 +56,7 @@ it('starts Android provisioning only from the official Google button', () => {
     const button = screen.getByRole('button', { name: 'Add to Google Wallet' })
     expect(Array.from(button.querySelectorAll('img'), (image) => image.getAttribute('src'))).toEqual([
         '/wallet/google/one-line/en.svg',
+        '/wallet/google/two-line/en.svg',
     ])
     expect(screen.getAllByRole('button', { name: 'Add to Google Wallet' })).toHaveLength(1)
     fireEvent.click(button)

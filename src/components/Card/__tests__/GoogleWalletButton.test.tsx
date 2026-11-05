@@ -26,9 +26,15 @@ it.each(APP_LOCALES)('uses official artwork and a matching accessible label in %
     const button = screen.getByRole('button', { name: messages.card.yourCard.addToGoogleWallet })
     const file = locale === 'es-AR' ? 'es-419' : locale
     const images = Array.from(button.querySelectorAll('img'))
-    expect(images.map((image) => image.getAttribute('src'))).toEqual([`/wallet/google/one-line/${file}.svg`])
-    // Google's 48dp minimum in every language; the one-line artwork scales into it
-    expect(button.className.split(' ')).toContain('h-12')
+    expect(images.map((image) => image.getAttribute('src'))).toEqual([
+        `/wallet/google/one-line/${file}.svg`,
+        `/wallet/google/two-line/${file}.svg`,
+    ])
+    // Never below Google's 48dp minimum: the two-line badge at 56px until the one-line artwork fits at 48px
+    const classes = button.className.split(' ')
+    expect(classes).toContain('h-14')
+    expect(classes.some((name) => /^@min-\[\d+px\]:h-12$/.test(name))).toBe(true)
+    images.forEach((image) => expect(image.className).toMatch(/\bh-full\b/))
     images.forEach((image) => expect(image).toHaveAttribute('alt', ''))
     fireEvent.click(button)
     expect(onClick).toHaveBeenCalledTimes(1)
@@ -44,7 +50,7 @@ it.each(APP_LOCALES)('uses official artwork and a matching accessible label in %
     expect(messages.card.yourCard.addedToGoogleWallet).toBeTruthy()
 })
 
-it('shifts 1px down-right while pressed and holds there while the add runs', async () => {
+it('darkens the fill while pressed and while the add runs, without moving', async () => {
     const messages = await loadMessages('en')
     const onClick = jest.fn()
     const renderButton = (isAdding: boolean) => (
@@ -58,12 +64,12 @@ it('shifts 1px down-right while pressed and holds there while the add runs', asy
     const classes = button.className.split(' ')
     expect(classes).toEqual(
         expect.arrayContaining([
-            'active:translate-x-px',
-            'active:translate-y-px',
-            'aria-busy:translate-x-px',
-            'aria-busy:translate-y-px',
+            'active:bg-background-google-wallet-press',
+            'aria-busy:bg-background-google-wallet-press',
         ])
     )
+    // Shadowless, so it never translates on press (design.md law 7).
+    expect(button.className).not.toMatch(/translate/)
     // The artwork itself is never moved, scaled or recoloured.
     button.querySelectorAll('img').forEach((image) => expect(image.className).not.toMatch(/translate|scale|opacity/))
 
