@@ -1,7 +1,7 @@
 import { useAppOrigin } from '@/hooks/useAppOrigin'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
-import { Button } from '@/components/0_Bruddle/Button'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -53,6 +53,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const tGlobal = useTranslations('global')
     const tKyc = useTranslations('kyc')
     const toast = useToast()
+    const { triggerHaptic } = useAppHaptic()
     // The self-profile verified badge means "this person's ID was confirmed" —
     // NOT "this person has an enabled payment rail." It reads identityVerification
     // (Sumsub-cleared), matching the counterparty badge logic (`isVerified` on
@@ -61,7 +62,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     const self = useSelfPerson()
     const isAuthenticatedUserVerified = selfIsIdentityVerified && authenticatedUser?.user.username === username
     const isSelfProfile = authenticatedUser?.user.username?.toLowerCase() === username.toLowerCase()
-    const ownAvatar = (size: 'm' | 'xl') => self && <UserAvatar person={self} size={size} />
+    // a profile shows its owner at the avatar xl (96), on every branch
+    const ownAvatar = self && <UserAvatar person={self} size="xl" />
 
     // Preview and staging links use their own origin.
     const profileUrl = shareableUrl(`/${username}`, origin)
@@ -99,21 +101,25 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     one is also the picker button. */}
                 {isSelfProfile ? (
                     onChangeAvatar ? (
-                        <Button
+                        // The sticker itself is the button: plain on the page like
+                        // every sticker (no circle, no shadow), so its art is never
+                        // cut by a border. A 96 sticker overflowed the old 96 circle.
+                        <button
                             type="button"
-                            variant="secondary"
-                            shadowSize="4"
-                            onClick={onChangeAvatar}
+                            onClick={() => {
+                                triggerHaptic()
+                                onChangeAvatar()
+                            }}
                             aria-label={tAvatar('change')}
-                            className="size-16 w-16 shrink-0 rounded-full p-0"
+                            className="flex shrink-0 rounded-full focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-action-focus"
                         >
-                            {ownAvatar('m')}
-                        </Button>
+                            {ownAvatar}
+                        </button>
                     ) : (
-                        ownAvatar('xl')
+                        ownAvatar
                     )
                 ) : (
-                    person && <UserAvatar person={person} size="l" />
+                    person && <UserAvatar person={person} size="xl" />
                 )}
 
                 {/* Without a full name, the self profile's handle appears only in the pill. */}

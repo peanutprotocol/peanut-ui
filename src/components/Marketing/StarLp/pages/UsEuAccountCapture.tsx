@@ -31,6 +31,7 @@ export function UsEuAccountCapture({
     badgeCorner,
     className,
     entrance,
+    priority = false,
 }: UsEuAccountCaptureProps) {
     const card = (
         <div
@@ -44,7 +45,8 @@ export function UsEuAccountCapture({
                 alt=""
                 sizes="(min-width: 1024px) 480px, (min-width: 768px) 352px, 90vw"
                 className="h-auto w-full"
-                priority
+                priority={priority}
+                fetchPriority={priority ? 'high' : undefined}
             />
         </div>
     )

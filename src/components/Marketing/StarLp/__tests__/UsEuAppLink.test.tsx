@@ -5,24 +5,19 @@ import { UsEuAppLink } from '../pages/UsEuAppLink'
 
 const mockIntercept = jest.fn(() => true)
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => mockIntercept }))
 
 beforeEach(() => mockIntercept.mockClear())
 
 describe('UsEuAppLink surface', () => {
     it('reports the star-LP surface by default', () => {
-        render(<UsEuAppLink href="/setup">art</UsEuAppLink>)
+        render(<UsEuAppLink>art</UsEuAppLink>)
         fireEvent.click(screen.getByText('art'))
         expect(mockIntercept).toHaveBeenCalledWith(MIGRATION_SURFACES.STAR_LP, 'artwork')
     })
 
     it('reports the surface it is given, so home clicks stay out of the star-LP funnel', () => {
-        render(
-            <UsEuAppLink href="/setup" surface={MIGRATION_SURFACES.LANDING_APP_FOLD}>
-                art
-            </UsEuAppLink>
-        )
+        render(<UsEuAppLink surface={MIGRATION_SURFACES.LANDING_APP_FOLD}>art</UsEuAppLink>)
         fireEvent.click(screen.getByText('art'))
         expect(mockIntercept).toHaveBeenCalledWith(MIGRATION_SURFACES.LANDING_APP_FOLD, 'artwork')
     })

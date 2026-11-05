@@ -22,7 +22,6 @@ import {
     type PermissionRequestTrigger,
     type PushPromptTrigger,
 } from '@/constants/push-prompt.consts'
-import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 
@@ -236,14 +235,14 @@ function isPromptSnoozed(trigger: PushPromptTrigger, userId: string): boolean {
     // The Home fallback snoozes on the last "Not now" of any pre-prompt.
     // Migration window (TASK-20771): "Not now" snoozes instead of dismissing
     // forever. Legacy `notifModalClosed: true` (no timestamp) converts to a
-    // snooze starting now, same trick as getDismissedCTAs. Flag off keeps the
-    // old closed-forever behavior.
+    // snooze starting now, same trick as getDismissedCTAs. Where web signup is
+    // open (previews, local), the old closed-forever behavior stays.
     let closedAt = userPreferences?.notifModalClosedAt
     if (!closedAt && userPreferences?.notifModalClosed) {
         closedAt = new Date().toISOString()
         updateUserPreferences(userId, { notifModalClosedAt: closedAt })
     }
-    return !!closedAt && (!isPwaSunsetOn() || isWithinSnooze(closedAt))
+    return !!closedAt && isWithinSnooze(closedAt)
 }
 
 /**

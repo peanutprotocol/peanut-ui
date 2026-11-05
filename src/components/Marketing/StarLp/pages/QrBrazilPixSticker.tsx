@@ -3,7 +3,7 @@ import { TillSticker } from '@/components/Marketing/StarLp/TillSticker'
 import type { QrBrazilPixStickerProps } from './qrBrazil.types'
 
 /** The "Pague com Pix" counter sticker a Brazilian shop tapes next to the till; its QrBrazilAppLink carries the press. */
-export function QrBrazilPixSticker({ slot, className, priority = false }: QrBrazilPixStickerProps) {
+export function QrBrazilPixSticker({ slot, className }: QrBrazilPixStickerProps) {
     return (
         <TillSticker
             mark={PixIcon}
@@ -13,7 +13,6 @@ export function QrBrazilPixSticker({ slot, className, priority = false }: QrBraz
             campaign="qr-brazil"
             slot={slot}
             className={className}
-            priority={priority}
         />
     )
 }

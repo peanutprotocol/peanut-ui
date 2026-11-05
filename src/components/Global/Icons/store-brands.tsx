@@ -1,6 +1,6 @@
 import { type FC, type SVGProps } from 'react'
 
-// brand marks for the app-store CTAs (pwa-sunset migration surfaces).
+// brand marks for the app-store CTAs.
 // monochrome (currentColor) so they follow button text color like Lucide icons.
 
 export const AppleLogoIcon: FC<SVGProps<SVGSVGElement>> = (props) => (

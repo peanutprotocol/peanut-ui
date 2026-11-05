@@ -4,7 +4,6 @@ import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { PopIn } from '@/components/Marketing/StarLp/PopIn'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 
 /**
  * The closing fold, built from CloseFold's parts so the two sparkles sit on
@@ -21,7 +20,14 @@ export function SelfCustodyClose() {
                     className="pointer-events-none absolute -top-6 -left-8 w-10 md:-top-8 md:-left-14 md:w-14"
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                    <img
+                        src={Sparkle.src}
+                        width={Sparkle.width}
+                        height={Sparkle.height}
+                        alt=""
+                        aria-hidden
+                        loading="lazy"
+                    />
                 </PopIn>
                 <KnerdTitle text={'Only\nyours'} size="hero" />
                 <PopIn
@@ -31,13 +37,20 @@ export function SelfCustodyClose() {
                 >
                     <Wiggle kind="wobble" delay={0.6}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                        <img
+                            src={Sparkle.src}
+                            width={Sparkle.width}
+                            height={Sparkle.height}
+                            alt=""
+                            aria-hidden
+                            loading="lazy"
+                        />
                     </Wiggle>
                 </PopIn>
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-body-l">No password. Just your passkey.</p>
             <PopIn delay={0.35} className="mx-auto mt-8 w-fit">
-                <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
+                <StarLpCta qrPlacement="close" ground="pink">
                     Create an account
                 </StarLpCta>
             </PopIn>

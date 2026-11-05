@@ -242,18 +242,22 @@ export const AVATAR_LETTER_ENTRIES: PublicArtEntry[] = LETTERS.map((letter) => (
 }))
 
 /**
- * Badge avatars: exactly one per badge, drawn to read at 24 px. Approved by
+ * Badge avatars: exactly one per badge, drawn to read at 32 px. Approved by
  * Konrad, 2026-11-04 (TASK-24388). Mirrors the manifest, so a badge without art
  * lists nothing.
  */
-export const AVATAR_BADGE_RULE = 'One avatar per badge, drawn to read at 24 px. Approved by Konrad, 2026-11-04.'
+export const AVATAR_BADGE_RULE = 'One avatar per badge, drawn to read at 32 px. Approved by Konrad, 2026-11-04.'
+
+/** The two avatar sizes (TASK-24388), the AvatarSize type in avatar-size.consts.ts. */
+export const AVATAR_SIZE_RULE =
+    "Avatars have two sizes: 32 px (s) in every list, row, card and confirm card, and 96 px (xl) on profiles (your own, the profile-tab button, and someone else's) and in the payment details header. The avatar picker tiles keep their own size. Approved by Konrad, 2026-11-04."
 
 export const AVATAR_BADGE_ENTRIES: PublicArtEntry[] = Object.entries(badgeAssets.avatars.badges).flatMap(
     ([code, slugs]) =>
         slugs.map((slug) => ({
             label: `badge.${code}.${slug}`,
             src: avatarSrc(`badge.${code}.${slug}`)!,
-            usedIn: 'Badge avatar, one per badge, reads at 24 px',
+            usedIn: 'Badge avatar, one per badge, reads at 32 px',
         }))
 )
 

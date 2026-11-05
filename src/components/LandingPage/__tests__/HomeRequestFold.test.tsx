@@ -3,7 +3,6 @@ import { HomeRequestFold } from '../HomeRequestFold'
 import type { HomeRequestStrings } from '../homeFolds.types'
 
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => true }))
 jest.mock('@/components/Migration/AppModalProvider', () => ({ useAppModal: () => () => false }))
 
 const ES_AR: HomeRequestStrings = {

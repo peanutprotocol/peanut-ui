@@ -16,6 +16,7 @@ export function RequestLinksExclamations() {
                 height={Exclamations.height}
                 alt=""
                 aria-hidden
+                loading="lazy"
                 className="ml-2 inline-block w-7 -translate-y-4 align-top md:-mb-4 md:w-10 md:-translate-y-1"
                 initial={{ rotate: 12 }}
                 whileInView={{ rotate: [12, 22, 4, 16, 12] }}
