@@ -183,6 +183,7 @@ jobs:
 
     capture_before:
         needs: [refs, capture_after]
+        # No --full-catalogue here: states a release adds have no scenario at the previous main and show as added.
         # Verify the actual after environment before app/browser installation.
         if: needs.refs.outputs.mode != 'skip' && needs.capture_after.result == 'success'
         permissions:
@@ -231,7 +232,6 @@ jobs:
               env:
                   BEFORE_HARNESS: ${{ needs.refs.outputs.before_harness }}
                   CAPTURE_ONLY: ${{ needs.refs.outputs.only }}
-                  FULL_CATALOGUE: ${{ github.ref == 'refs/heads/main' }}
               run: node scripts/screens/decide-before-harness.mjs --target=../target
             - name: Select verified exact-before capture
               id: reuse
@@ -274,7 +274,7 @@ jobs:
               run: |
                   args=()
                   if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
-                  node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+                  node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}"
             - name: Install base capture tools
               if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
               working-directory: target
@@ -293,7 +293,7 @@ jobs:
               run: |
                   args=()
                   if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
-                  node scripts/screens/run-capture.mjs . "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+                  node scripts/screens/run-capture.mjs . "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}"
             - name: Record base harness provenance
               if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
               working-directory: harness
