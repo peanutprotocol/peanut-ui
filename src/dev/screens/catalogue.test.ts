@@ -80,6 +80,13 @@ describe('screen catalogue', () => {
         expect(clickTestIds('profile-brazil-qr-details')).toEqual(['method-row-qr-pay'])
     })
 
+    it('waits for the open drawer title, never the first dialog on the page', () => {
+        for (const id of ['profile-brazil-bank-details', 'profile-brazil-qr-details'])
+            expect(SCREENS.find((screen) => screen.id === id)?.expectSelector).toBe(
+                '[role="dialog"][data-state="open"] h2'
+            )
+    })
+
     // The harness taps `clicks` with getByText, so a selector there never matches.
     it('lists visible text in clicks, not Playwright selectors', () => {
         const selectorLike = /^(text|css|xpath|id|data-testid)=|^\w*\[[^\]]+\]|^[.#]\w/

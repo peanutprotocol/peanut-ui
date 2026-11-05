@@ -105,7 +105,8 @@ const definitions: Screen[] = [
         fixture: 'profile-accounts-br-resident',
         clicks: [],
         clickTestIds: ['bank-row-brl'],
-        expectSelector: '[role="dialog"]',
+        // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
+        expectSelector: '[role="dialog"][data-state="open"] h2',
     },
     {
         id: 'profile-brazil-qr-details',
@@ -117,7 +118,7 @@ const definitions: Screen[] = [
         fixture: 'profile-accounts-br-resident',
         clicks: [],
         clickTestIds: ['method-row-qr-pay'],
-        expectSelector: '[role="dialog"]',
+        expectSelector: '[role="dialog"][data-state="open"] h2',
     },
     {
         id: 'qr-camera-permission',
