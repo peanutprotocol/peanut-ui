@@ -29,11 +29,33 @@ it('expires the owning scope, blocks retries until the raw SDK stops, then allow
     expect(currentAndroidPasskeyScope()?.expired).toBe(true)
     expect(cancel).toHaveBeenCalledTimes(1)
     const retry = jest.fn(async () => 'unsafe')
-    await expect(guardPasskeyCeremony(retry)).rejects.toMatchObject({ name: 'PasskeyCleanupPendingError' })
+    const refused = guardPasskeyCeremony(retry).catch((error: Error) => error)
+    await jest.advanceTimersByTimeAsync(1_999)
+    expect(retry).not.toHaveBeenCalled()
+    await jest.advanceTimersByTimeAsync(1)
+    // Retryable, not "restart the app": the old flow ends on its own.
+    await expect(refused).resolves.toMatchObject({ name: 'PasskeyRequestSettlingError' })
     expect(retry).not.toHaveBeenCalled()
     finish()
     await jest.advanceTimersByTimeAsync(0)
     await expect(guardPasskeyCeremony(async () => 'new')).resolves.toBe('new')
+})
+
+it('a tap during the short wait starts as soon as the expired flow stops', async () => {
+    let finish!: () => void
+    const raw = new Promise<void>((resolve) => {
+        finish = resolve
+    })
+    void guardPasskeyCeremony(() => raw).catch(() => {})
+    await jest.advanceTimersByTimeAsync(60000)
+    const retry = guardPasskeyCeremony(async () => 'new')
+    await jest.advanceTimersByTimeAsync(500)
+    finish()
+    await expect(retry).resolves.toBe('new')
+})
+
+it('recognizes a still-closing request as a guard error', () => {
+    expect(isCeremonyGuardError(Object.assign(new Error(), { name: 'PasskeyRequestSettlingError' }))).toBe(true)
 })
 
 it('recognizes cleanup uncertainty as a signup guard error with restart handling', () => {

@@ -1,4 +1,5 @@
-import { beginAndroidPasskeyScope } from './android-passkey-scope'
+import { beginAndroidPasskeyScope, waitForExpiredAndroidPasskeyScope } from './android-passkey-scope'
+import { ANDROID_PASSKEY_SETTLE_GRACE_MS } from './android-passkey-controller'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
@@ -65,7 +66,8 @@ export const isCeremonyGuardError = (err: unknown): err is Error =>
         err.name === 'PasskeyShimNotReadyError' ||
         err.name === 'PasskeyShimFailedError' ||
         err.name === 'CeremonyConflictError' ||
-        err.name === 'PasskeyCleanupPendingError')
+        err.name === 'PasskeyCleanupPendingError' ||
+        err.name === 'PasskeyRequestSettlingError')
 
 const GUARD_ERROR_TAG: Record<string, string> = {
     CeremonyTimeoutError: 'ceremony_timeout',
@@ -73,6 +75,7 @@ const GUARD_ERROR_TAG: Record<string, string> = {
     PasskeyShimFailedError: 'shim_failed',
     CeremonyConflictError: 'ceremony_conflict',
     PasskeyCleanupPendingError: 'cleanup_pending',
+    PasskeyRequestSettlingError: 'request_settling',
 }
 
 // A second tap while a ceremony owns the window is a rejected interaction, not
@@ -237,6 +240,8 @@ export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): 
     const native = isCapacitor()
     if (activeCeremonyId !== null) throw new CeremonyConflictError()
     if (native) await waitForPasskeyShim()
+    const expiredScope = native ? waitForExpiredAndroidPasskeyScope(ANDROID_PASSKEY_SETTLE_GRACE_MS) : undefined
+    if (expiredScope) await expiredScope
     // re-check: another ceremony may have claimed the window during the wait
     if (activeCeremonyId !== null) throw new CeremonyConflictError()
     const androidScope = native ? beginAndroidPasskeyScope() : undefined

@@ -52,3 +52,11 @@ The pinned 8.2.2 pnpm patch changes native Android source and the native fingerp
 - No APK/device/provider verification, screenshot capture, hosted CI, merge, release or deployment. China-specific root cause remains unconfirmed. All four locale catalogs, including resolved es-AR delta behavior, passed catalog tests.
 
 - Full TypeScript check passed after fixing the new wrapper union type, generating standard Next types, and initializing the exact pinned content submodule. Initial missing asset/content declarations were environment prerequisites, not suppressed assertions. Final patch whitespace normalization changed its fingerprint only; coordinator/transport tests and pnpm application were revalidated.
+
+## Revision 2026-11-05: no hard lock after a timeout
+
+Release 166 kept a timed-out request open until native confirmed the cancel. On androidx Play Services (Android 13 and older) a fired CancellationSignal suppresses the provider callback (`cancelOrCallbackExceptionOrResult`), and the framework path (Android 14+) can take minutes, so every later tap failed with restart guidance (PEANUT-UI-TK3, PEANUT-UI-TKA). This replaces A2's "unknown cleanup blocks a further native call":
+
+- JS frees its slot when native acknowledges, when the request settles, or after a 2 s grace, whichever is first. Late results are still dropped by request ID, so I1/I2 do not depend on the lock.
+- Binary contract comes from `getDiagnostics().pluginVersion`: `8.2.2-peanut.2+` releases its native slot on cancel; `8.2.2-peanut.1` blocks until the provider ends, so JS does not cancel there on Android 13 and older, and when native answers "already pending" it re-sends a missing cancel, waits up to the grace, retries once, then shows still-open guidance without blocking the next tap. Pre-patch binaries have no control API and only get the grace.
+- The native release (`8.2.2-peanut.2`) ships separately because it changes the native fingerprint; the JS change ships by OTA to binaries already in the store.
