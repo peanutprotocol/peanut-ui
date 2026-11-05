@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -13,8 +13,8 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useAuth } from '@/context/authContext'
-import { countdownLabel } from '@/features/avenia/avenia.utils'
 import { useAveniaDepositStatus } from '@/features/avenia/hooks/useAveniaDepositStatus'
+import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import type { AveniaDeposit } from '@/services/avenia'
 import { formatBankAmount } from '@/utils/currency'
 
@@ -42,17 +42,7 @@ export function AveniaPixQrDeposit({
     const { phase } = useAveniaDepositStatus(deposit.intentId, onComplete)
 
     const expiresAtMs = useMemo(() => (deposit.expiresAt ? Date.parse(deposit.expiresAt) : null), [deposit.expiresAt])
-    const [nowMs, setNowMs] = useState(() => Date.now())
-    const remainingMs = expiresAtMs === null ? null : expiresAtMs - nowMs
-    const isExpired = remainingMs !== null && remainingMs <= 0
-    const timeLeft = remainingMs === null ? null : countdownLabel(remainingMs)
-
-    // tick once a second until the code is paid or has lapsed
-    useEffect(() => {
-        if (phase !== 'pending' || isExpired || expiresAtMs === null) return
-        const interval = setInterval(() => setNowMs(Date.now()), 1000)
-        return () => clearInterval(interval)
-    }, [phase, isExpired, expiresAtMs])
+    const { timeLeft, isExpired } = useExpiryCountdown(expiresAtMs, phase === 'pending')
 
     if (phase === 'completed') {
         return (

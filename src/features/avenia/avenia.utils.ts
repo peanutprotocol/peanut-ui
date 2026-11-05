@@ -81,14 +81,6 @@ export function aveniaDepositPhase(status: AveniaDepositStatus | undefined): Ave
     return 'pending'
 }
 
-/** "9:05" for the time left, or null once it has run out. */
-export function countdownLabel(remainingMs: number): string | null {
-    if (!(remainingMs > 0)) return null
-    const minutes = Math.floor(remainingMs / 60_000)
-    const seconds = Math.floor((remainingMs % 60_000) / 1000)
-    return `${minutes}:${String(seconds).padStart(2, '0')}`
-}
-
 /**
  * The key as the Pix directory holds it, or null while it cannot be a complete
  * key yet. A lookup costs the user's Avenia sub-account DICT tokens (20 for a

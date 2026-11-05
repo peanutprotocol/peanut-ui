@@ -8,7 +8,6 @@ import {
     signMatchesDisplay,
     brazilPixPath,
     completePixKey,
-    countdownLabel,
     maskedTaxIdKind,
     pixKeyVerdict,
     toApiDecimal,
@@ -109,15 +108,6 @@ describe('aveniaDepositPhase', () => {
     it('reads a failed or cancelled deposit as returned to the payer', () => {
         expect(aveniaDepositPhase(status('FAILED', 'FAILED'))).toBe('returned')
         expect(aveniaDepositPhase(status('CANCELLED', 'CANCELED'))).toBe('returned')
-    })
-})
-
-describe('countdownLabel', () => {
-    it('shows minutes and padded seconds, and nothing once time is up', () => {
-        expect(countdownLabel(9 * 60_000 + 5_000)).toBe('9:05')
-        expect(countdownLabel(59_999)).toBe('0:59')
-        expect(countdownLabel(0)).toBeNull()
-        expect(countdownLabel(-1)).toBeNull()
     })
 })
 
