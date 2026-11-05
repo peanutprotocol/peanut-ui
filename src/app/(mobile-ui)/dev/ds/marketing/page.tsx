@@ -7,9 +7,9 @@ export default function MarketingPage() {
             <div>
                 <h1 className="text-heading-m">Marketing</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
-                    The marketing surfaces&apos; design system: the live site is the brand (ruled 2026-10-14, Konrad).
-                    Brand and Assets document the ratified reality; Landing and Content show the page recipes at true
-                    390/1440 viewports.
+                    What to use on landing and content pages. Brand: the tokens and type. Knerd: display lettering and
+                    hero animation. Assets: the art you may use. Landing and Content: the page recipes, rendered at 390
+                    and 1440. The long form is design.md § marketing.
                 </p>
             </div>
 

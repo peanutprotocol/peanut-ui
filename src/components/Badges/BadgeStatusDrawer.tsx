@@ -20,6 +20,7 @@ export type BadgeStatusDrawerProps = {
         code: string
         name: string
         description?: string | null
+        shareLine?: string
         iconUrl?: string | null
         earnedAt?: string | Date
     }
@@ -110,6 +111,8 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                                                 badge: displayName,
                                                 link: shareLink,
                                             }),
+                                            shareLine: badge.shareLine,
+                                            joinLine: t('shareJoin', { link: shareLink }),
                                         })
                                     )
                                 }
@@ -126,6 +129,7 @@ export const BadgeStatusDrawer = ({ isOpen, onClose, badge }: BadgeStatusDrawerP
                 code={badge.code}
                 title={displayName}
                 description={displayDescription || ''}
+                shareLine={badge.shareLine}
                 logo={displayIcon}
             />
         </>

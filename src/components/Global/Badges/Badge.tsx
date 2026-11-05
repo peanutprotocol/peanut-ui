@@ -50,10 +50,13 @@ interface BadgeProps {
 // board 17802:61533 colors: pending=attention, processing=info, fail=error,
 // success=success, accent=soon/custom, helper=neutral. borderless, dark text.
 // neutral exists so counters and dead ends stop borrowing the accent colour
-// through `custom` (Konrad review, 2026-09-23).
+// through `custom` (Konrad review, 2026-09-23). `closed` is a request closed
+// short of its goal (a paid-off one reads completed): a fact with no tone, so
+// the neutral grey, not the success green it wore beside "$25.51 remaining"
+// (TASK-23856).
 const STATUS_STYLES: Record<StatusType, string> = {
     completed: 'bg-background-badge-success',
-    closed: 'bg-background-badge-success',
+    closed: 'bg-background-badge-helper',
     refunded: 'bg-background-badge-success',
     pending: 'bg-background-badge-attention',
     processing: 'bg-background-badge-info',
@@ -75,7 +78,7 @@ const STATUS_ICONS: Record<IconStatusType, IconName> = {
     pending: 'pending',
     cancelled: 'ban',
     refunded: 'undo',
-    closed: 'success',
+    closed: 'lock',
 }
 
 // board 17802:61533: small = px S/8 + py XXS/2 + Label/M, medium = px M/12

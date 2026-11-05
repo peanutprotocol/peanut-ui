@@ -14,6 +14,14 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
+import { parseDeferredPayload } from '@/utils/deferred-link'
+import { captureSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
+import { saveToCookie } from '@/utils/cookie-url.utils'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
+
+let mockAnalyticsAllowed = true
+jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowed: () => mockAnalyticsAllowed }))
 
 let mockDeviceType = 'web'
 jest.mock('@/hooks/useGetDeviceType', () => ({
@@ -23,35 +31,26 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 
 const mockReplace = jest.fn()
 const mockNotFound = jest.fn()
+const mockRouter = { replace: mockReplace }
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ replace: mockReplace }),
+    useRouter: () => mockRouter,
     notFound: () => mockNotFound(),
 }))
 
-// flags land immediately: the page waits for this callback (or a 4s timeout)
-// before it is willing to 404
-jest.mock('posthog-js', () => ({
-    capture: jest.fn(),
-    onFeatureFlags: jest.fn((cb: () => void) => {
-        cb()
-        return jest.fn()
-    }),
-}))
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 let mockNative = false
 jest.mock('@/utils/capacitor', () => ({
     isNativeBridge: () => mockNative,
-    isCapacitor: () => mockNative,
+    isCapacitor: () => false,
     isAndroidNative: () => false,
     isIOSNative: () => false,
     openExternalUrl: jest.fn(),
 }))
 
-let mockFlagOn = true
 jest.mock('@/utils/migration.utils', () => ({
     storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
     storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
-    isPwaSunsetOn: () => mockFlagOn,
     trackStoreClick: jest.fn(),
 }))
 
@@ -101,9 +100,13 @@ const storeButton = (name: RegExp) => screen.getByRole('button', { name })
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockAnalyticsAllowed = true
+    localStorage.clear()
+    for (const cookie of document.cookie.split(';')) {
+        document.cookie = `${cookie.split('=')[0].trim()}=; Max-Age=0; path=/`
+    }
     mockDeviceType = 'web'
     mockNative = false
-    mockFlagOn = true
     visit('')
 })
 
@@ -152,9 +155,9 @@ describe('/app smart store link', () => {
         expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
     })
 
-    it('ignores a querystring without the marker', () => {
+    it('ignores a querystring with neither the marker nor a campaign', () => {
         mockDeviceType = 'ios'
-        visit('?utm_source=newsletter')
+        visit('?lang=es')
         renderPage()
         expect(locationReplace).toHaveBeenCalledWith(STORE_URL.ios)
     })
@@ -182,9 +185,192 @@ describe('/app smart store link', () => {
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
-    it('404s while the flag is off', () => {
-        mockFlagOn = false
+    it('serves the store page to every web visitor', () => {
         renderPage()
-        expect(mockNotFound).toHaveBeenCalled()
+        expect(mockNotFound).not.toHaveBeenCalled()
+        expect(storeButton(/app store/i)).toBeInTheDocument()
+    })
+})
+
+const MARKETING_QUERY =
+    '?marketing_qr=home-hero-en&qr_analytics=allow&utm_source=google&utm_medium=cpc&utm_campaign=accounts-launch'
+
+describe('registered marketing QR handoff', () => {
+    it('builds an Android campaign payload before redirect and excludes ambient functional campaigns', () => {
+        mockDeviceType = 'android'
+        stashInvite('alice', EInviteType.DIRECT)
+        saveToCookie('campaignTag', 'unrelated-badge')
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(locationReplace).toHaveBeenCalledTimes(1)
+        const storeUrl = new URL(locationReplace.mock.calls[0][0])
+        const referrer = storeUrl.searchParams.get('referrer')!
+        const payload = parseDeferredPayload(referrer)!
+        expect(payload).toMatchObject({ dest: '/home', lang: 'en' })
+        expect(payload.attribution?.firstTouch).toMatchObject({ utmSource: 'google', utmCampaign: 'accounts-launch' })
+        expect(new URLSearchParams(referrer).get('utm_campaign')).toBe('accounts-launch')
+        expect(payload.invite).toBeUndefined()
+        expect(payload.badgeCampaigns).toBeUndefined()
+        expect(referrer).not.toContain('marketing_qr')
+    })
+
+    it('keeps iOS on the user-tap path and writes only the scanner handoff', () => {
+        mockDeviceType = 'ios'
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(locationReplace).not.toHaveBeenCalled()
+        fireEvent.click(storeButton(/app store/i))
+        const payload = parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])!
+        expect(payload.dest).toBe('/home')
+        expect(payload.attribution?.firstTouch.utmCampaign).toBe('accounts-launch')
+        expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+
+    it.each(['deny-marker', 'current-opt-out'] as const)(
+        'does not create marketing attribution when denied by %s',
+        (reason) => {
+            mockDeviceType = 'android'
+            mockAnalyticsAllowed = reason !== 'current-opt-out'
+            visit(reason === 'deny-marker' ? MARKETING_QUERY.replace('allow', 'deny') : MARKETING_QUERY)
+            renderPage()
+            expect(locationReplace).toHaveBeenCalledWith(STORE_URL.android)
+            expect(readSignupAttribution()).toBeNull()
+            expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['user@example.com', 'a'.repeat(65)])(
+        'does not capture malformed content on a direct app marker: %s',
+        (content) => {
+            mockDeviceType = 'android'
+            visit(`${MARKETING_QUERY}&utm_content=${encodeURIComponent(content)}`)
+            renderPage()
+            expect(locationReplace).toHaveBeenCalledWith(STORE_URL.android)
+            expect(readSignupAttribution()).toBeNull()
+            expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        }
+    )
+
+    it('keeps a scanner’s earlier first touch while recording the marketing campaign as the last touch', () => {
+        const firstTouch = {
+            occurredAt: new Date().toISOString(),
+            utmSource: 'twitter',
+            utmMedium: 'social',
+            utmCampaign: 'first-visit',
+            path: '/',
+        }
+        saveToCookie('signupAttribution', {
+            schemaVersion: '1',
+            journeyId: '8c7ea260-78f2-4e88-b83a-b423c5779854',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch,
+        })
+        visit(MARKETING_QUERY)
+        renderPage()
+        expect(readSignupAttribution()?.firstTouch).toEqual(firstTouch)
+        expect(readSignupAttribution()?.lastTouch?.utmCampaign).toBe('accounts-launch')
+    })
+})
+
+const AD_QUERY = '?utm_source=twitter&utm_medium=cpm&utm_campaign=launch-films-ar'
+
+function loadedDocument(pathname: string, referrer: string) {
+    Object.defineProperty(document, 'referrer', { configurable: true, value: referrer })
+    Object.defineProperty(performance, 'getEntriesByType', {
+        configurable: true,
+        value: () => [{ name: `https://peanut.me${pathname}` }],
+    })
+}
+
+describe('ad landing link (/app with campaign parameters)', () => {
+    afterEach(() => {
+        Object.defineProperty(document, 'referrer', { configurable: true, value: '' })
+        Object.defineProperty(performance, 'getEntriesByType', { configurable: true, value: () => [] })
+    })
+
+    it('bounces Android to Play with the marker, the campaign and the journey in the referrer', () => {
+        mockDeviceType = 'android'
+        visit(AD_QUERY)
+        renderPage()
+        expect(locationReplace).toHaveBeenCalledTimes(1)
+        expect(locationReplace.mock.calls[0][0].startsWith(`${STORE_URL.android}&referrer=`)).toBe(true)
+        const referrer = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
+        expect(new URLSearchParams(referrer).get('pnutdl')).toBe('1')
+        expect(new URLSearchParams(referrer).get('utm_medium')).toBe('cpm')
+        expect(new URLSearchParams(referrer).get('utm_campaign')).toBe('launch-films-ar')
+        const payload = parseDeferredPayload(referrer)!
+        expect(payload.dest).toBeUndefined()
+        expect(payload.attribution?.firstTouch).toMatchObject({
+            utmSource: 'twitter',
+            utmMedium: 'cpm',
+            utmCampaign: 'launch-films-ar',
+        })
+        expect(payload.attribution?.journeyId).toBe(readSignupAttribution()?.journeyId)
+        expect(mockTrackHandoffCreated).toHaveBeenCalledTimes(1)
+        expect(mockTrackHandoffCreated).toHaveBeenCalledWith('android')
+    })
+
+    it('waits for the iOS tap, then writes the clipboard hand-off with the campaign', () => {
+        mockDeviceType = 'ios'
+        visit(AD_QUERY)
+        renderPage()
+        expect(locationReplace).not.toHaveBeenCalled()
+        fireEvent.click(storeButton(/app store/i))
+        expect(mockCopyIOSHandoff).toHaveBeenCalledTimes(1)
+        const payload = parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])!
+        expect(payload.dest).toBeUndefined()
+        expect(payload.attribution?.firstTouch).toMatchObject({ utmSource: 'twitter', utmCampaign: 'launch-films-ar' })
+        expect(trackStoreClick).toHaveBeenCalledWith('ios', 'smart_link', true)
+        expect(locationAssign).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+
+    it('treats an external referrer on the loaded page as a campaign', () => {
+        mockDeviceType = 'android'
+        loadedDocument('/app', 'https://t.co/abc')
+        visit('')
+        // instrumentation-client records the document referrer before React mounts
+        captureSignupAttribution({ includeDocumentReferrer: true })
+        renderPage()
+        const referrer = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
+        expect(parseDeferredPayload(referrer)?.attribution?.firstTouch.referrerHost).toBe('t.co')
+    })
+
+    it('ignores a referrer left over from the page the visitor loaded before navigating here', () => {
+        mockDeviceType = 'ios'
+        loadedDocument('/es-ar', 'https://t.co/abc')
+        visit('')
+        renderPage()
+        expect(locationReplace).toHaveBeenCalledWith(STORE_URL.ios)
+        expect(readSignupAttribution()).toBeNull()
+    })
+
+    it.each(['android', 'ios'])('builds no attribution on %s when analytics consent is off', (device) => {
+        mockDeviceType = device
+        mockAnalyticsAllowed = false
+        visit(AD_QUERY)
+        renderPage()
+        expect(locationReplace).toHaveBeenCalledWith(STORE_URL[device as 'android' | 'ios'])
+        expect(readSignupAttribution()).toBeNull()
+        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+    })
+
+    it('keeps the marked payload as given when it also carries campaign parameters', () => {
+        mockDeviceType = 'android'
+        visit(`?${PAYLOAD}&utm_source=twitter`)
+        renderPage()
+        expect(locationReplace).toHaveBeenCalledWith(
+            `${STORE_URL.android}&referrer=${encodeURIComponent(`${PAYLOAD}&utm_source=twitter`)}`
+        )
+        expect(readSignupAttribution()).toBeNull()
+    })
+
+    it('inside the app, goes home without building a hand-off', () => {
+        mockNative = true
+        visit(AD_QUERY)
+        renderPage()
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+        expect(readSignupAttribution()).toBeNull()
     })
 })

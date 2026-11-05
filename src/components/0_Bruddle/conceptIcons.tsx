@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type IconBubbleColor } from './IconBubble'
@@ -41,7 +41,7 @@ export const CONCEPT_ICONS = {
     otherCountries: { icon: 'globe', color: 'blue' },
     // 5/8 of the bubble: 20px in the s bubble, as the mascot was drawn there
     peanutUser: {
-        icon: <Image src={PEANUTMAN} alt="" className="h-5/8 w-auto" />,
+        icon: <Image src={LOGO} alt="" className="h-5/8 w-auto" />,
         color: 'yellow',
     },
     friends: { icon: 'users', color: 'yellow' },

@@ -15,7 +15,7 @@ test('main updates capture both full catalogues and retain the original push bou
     assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)
     assert.match(screenLibrary, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     assert.match(screenLibrary, /node scripts\/screens\/capture-revisions\.mjs >> "\$GITHUB_OUTPUT"/)
-    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 2)
+    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 3)
     assert.match(publisher, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     for (const field of ['before', 'after'])
         assert.match(
@@ -23,6 +23,41 @@ test('main updates capture both full catalogues and retain the original push bou
             new RegExp(`MAIN_${field.toUpperCase()}: \\$\\{\\{ github\\.event\\.inputs\\.${field}_sha \\}\\}`)
         )
     assert.match(publishRun, /before: run\.event === 'push' \? process\.env\.PUSH_BEFORE : process\.env\.MAIN_BEFORE/)
+})
+
+test('before harness is decided before reuse and base capture runs entirely from target', () => {
+    const refs = screenLibrary.slice(screenLibrary.indexOf('    refs:'), screenLibrary.indexOf('    capture_after:'))
+    assert.match(refs, /before_harness: \$\{\{ steps\.before_harness\.outputs\.before_harness \|\| 'head' \}\}/)
+    assert.match(refs, /node scripts\/screens\/decide-before-harness\.mjs/)
+    const before = screenLibrary.slice(
+        screenLibrary.indexOf('    capture_before:'),
+        screenLibrary.indexOf('\n    gallery:')
+    )
+    assert.ok(
+        before.indexOf('Resolve supported before harness') < before.indexOf('Select verified exact-before capture')
+    )
+    assert.match(before, /BEFORE_HARNESS: \$\{\{ steps\.harness\.outputs\.mode \}\}/)
+    for (const name of [
+        'Install base capture tools',
+        'Install base pinned browser',
+        'Build and capture with base harness',
+    ]) {
+        const step = before.split(/^ {12}- /m).find((entry) => entry.startsWith(`name: ${name}\n`))
+        assert.ok(step, name)
+        assert.match(step, /steps\.harness\.outputs\.mode == 'base'/)
+        assert.match(step, /steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true'/)
+        assert.match(step, /working-directory: target/)
+    }
+    assert.match(before, /node scripts\/screens\/run-capture\.mjs \. "\$TARGET_SHA" \.\.\/capture/)
+    assert.match(before, /node scripts\/screens\/write-before-harness\.mjs \.\.\/capture/)
+    assert.equal(
+        (
+            screenLibrary.match(
+                /uses: peanutprotocol\/peanut-ui\/\.github\/workflows\/screen-library-publish.yml@dev/g
+            ) ?? []
+        ).length,
+        2
+    )
 })
 
 test('capture workflows run on the standard Ubuntu pool', () => {
@@ -154,4 +189,42 @@ test('screen tests use supported Node and install the isolated worker dependency
         unchangedAppNodeVersions.length > 0 && unchangedAppNodeVersions.every((version) => version === '20'),
         'other application jobs must remain on their existing Node 20 runtime'
     )
+})
+
+test('closed review skip propagates through baseline resolution, publication and dependent jobs', () => {
+    const publishJob = publisher.slice(publisher.indexOf('\n    publish:'), publisher.indexOf('\n    gallery:'))
+    assert.match(publishJob, /mode: \$\{\{ steps\.baseline\.outputs\.mode \}\}/)
+    const resolution = publishJob.split(/^ {12}- /m).find((step) => step.startsWith('name: Resolve verified baseline'))
+    assert.match(resolution, /node scripts\/screens\/resolve-baseline\.mjs --current >> "\$GITHUB_OUTPUT"/)
+    assert.doesNotMatch(resolution, /echo 'mode=(?:external|current)'/)
+    const laterSteps = publishJob.slice(publishJob.indexOf('            - name: Download verified baseline'))
+    for (const step of laterSteps.split(/^ {12}- /m).filter((step) => step.trim()))
+        assert.match(step, /if: steps\.baseline\.outputs\.mode (?:== 'external'|!= 'skip')/)
+    const indexJob = publisher.slice(publisher.indexOf('\n    index:'), publisher.indexOf('\n    deploy:'))
+    assert.match(indexJob, /if: always\(\) && needs\.publish\.outputs\.mode != 'skip'/)
+    const deployJob = publisher.slice(publisher.indexOf('\n    deploy:'))
+    assert.match(deployJob, /needs: \[index, publish\]/)
+    assert.match(
+        deployJob,
+        /if: always\(\) && !cancelled\(\) && needs\.index\.result == 'success' && needs\.publish\.outputs\.mode != 'skip'/
+    )
+    // The route-only gallery job is exclusive to dev pushes; closed PRs cannot enter it.
+    const galleryJob = publisher.slice(publisher.indexOf('\n    gallery:'), publisher.indexOf('\n    index:'))
+    assert.match(galleryJob, /needs\.route\.result == 'success'/)
+    const routeJob = publisher.slice(publisher.indexOf('\n    route:'), publisher.indexOf('\n    publish:'))
+    assert.match(routeJob, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/dev'/)
+})
+
+test('gallery uses the checked-in bounded diagnostic helper and retains deployment budgets', () => {
+    assert.match(gallery, /install -m 700 scripts\/screens\/deploy-operation\.sh \/tmp\/screen-deploy-operation/)
+    assert.match(gallery, /timeout-minutes: 10/)
+    for (const step of gallery
+        .split(/^ {12}- /m)
+        .filter((step) => step.includes('run: bash /tmp/screen-deploy-operation')))
+        assert.match(step, /timeout-minutes: 5/)
+    const helper = readFileSync('scripts/screens/deploy-operation.sh', 'utf8')
+    assert.match(helper, /timeout --signal=TERM --kill-after=10s 270s/)
+    assert.match(helper, /WRANGLER_LOG_SANITIZE=true/)
+    assert.match(helper, /sleep 45/)
+    assert.match(helper, /node scripts\/screens\/deploy-diagnostics\.mjs/)
 })

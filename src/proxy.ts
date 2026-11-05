@@ -3,10 +3,10 @@
 // https://nextjs.org/docs/messages/middleware-to-proxy
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import maintenanceConfig from '@/config/underMaintenance.config'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
+import { marketingQrHandoffUrl } from '@/features/marketing-qr/contract'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -27,21 +27,10 @@ export function proxy(request: NextRequest) {
         return new NextResponse(null, { status: 410, headers: { 'X-Robots-Tag': 'noindex' } })
     }
 
-    // check if full maintenance mode is enabled
-    if (maintenanceConfig.enableFullMaintenance) {
-        const allowedPaths = ['/', '/maintenance', '/apple-app-site-association', '/support']
-        if (
-            !allowedPaths.includes(pathname) &&
-            !pathname.startsWith('/api/') &&
-            !pathname.startsWith('/_next/') &&
-            !pathname.startsWith('/.well-known/') &&
-            !pathname.match(
-                /.*\.(jpg|jpeg|png|gif|svg|ico|ttf|woff|woff2|eot|css|js|json|xml|txt|mp3|mp4|webm|ogg|wav|flac|aac)$/
-            )
-        ) {
-            return NextResponse.redirect(new URL('/maintenance', request.url))
-        }
-    }
+    // Registered landing-page QRs also enter through /home, so an installed app opens
+    // directly. A browser records the opening on /q first; /q continues to /app.
+    const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
+    if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
 
     // QR downloads enter through /home because that path is already claimed by
     // every released native shell. A browser has no App Link interception, so

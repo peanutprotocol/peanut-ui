@@ -23,7 +23,7 @@ let mockAuth: { user: unknown; isFetchingUser: boolean }
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ hasSufficientSpendableBalance: () => false, isFetchingSpendableBalance: false }),
+    useWallet: () => ({ hasSufficientSpendableBalance: () => false, isSpendableBalanceReady: true }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ canDo: () => true }) }))
 jest.mock('@/hooks/useDetermineBankRequestType', () => ({
@@ -270,7 +270,9 @@ describe('RequestPotActionList', () => {
             )
         })
 
-        it('states what is left on a part-paid non-dollar request', () => {
+        // TASK-23856: the note repeated the "€100 requested" heading above the
+        // amount and gave the payer nothing to act on, so it is gone.
+        it('adds no currency note under a non-dollar request', () => {
             mockPayAmounts = {
                 requestCurrency: 'EUR',
                 requestAmount: '100.00',
@@ -279,28 +281,7 @@ describe('RequestPotActionList', () => {
             }
             renderList({ bankPayable: false, requestCurrency: 'EUR', remainingUsd: 108 })
 
-            expect(screen.getByText(/asks for €100, and €40 is left to pay\./)).toBeInTheDocument()
-        })
-
-        it('states no remainder where the API missed a payment', () => {
-            mockPayAmounts = {
-                requestCurrency: 'EUR',
-                requestAmount: '100.00',
-                remainingAmount: '90.00',
-                rails: [usdRail],
-            }
-            renderList({ bankPayable: false, requestCurrency: 'EUR', remainingUsd: 57 })
-
-            expect(screen.getByText(/This request asks for €100\./)).toBeInTheDocument()
-            expect(screen.queryByText(/is left to pay/)).not.toBeInTheDocument()
-        })
-
-        // A euro request is paid in dollars on the Peanut and crypto rails.
-        it('tells the payer what a non-dollar request asks for', () => {
-            mockPayAmounts = { requestCurrency: 'EUR', requestAmount: '100.00', rails: [usdRail] }
-            renderList({ bankPayable: false, requestCurrency: 'EUR' })
-
-            expect(screen.getByText(/This request asks for €100\./)).toBeInTheDocument()
+            expect(screen.queryByText(/This request asks for/)).not.toBeInTheDocument()
         })
 
         it('says nothing about the currency of a dollar request', () => {

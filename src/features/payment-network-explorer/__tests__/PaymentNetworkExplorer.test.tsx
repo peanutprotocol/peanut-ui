@@ -3,7 +3,7 @@ import { defaultExplorerFilters } from '../query'
 import { useExplorerUrlState } from '../useExplorerUrlState'
 import { usePaymentNetworkExplorer } from '../usePaymentNetworkExplorer'
 import PaymentNetworkExplorer from '../PaymentNetworkExplorer'
-import { suppressPaymentNetworkTelemetry } from '../privacy'
+import { suppressPrivateRouteTelemetry } from '@/utils/private-route-telemetry'
 import type { ExplorerGraphResponse, ExplorerNode } from '../types'
 
 let mockGraphProps: Record<string, unknown> | null = null
@@ -11,7 +11,7 @@ let mockInspectorProps: Record<string, unknown> | null = null
 
 jest.mock('../useExplorerUrlState', () => ({ useExplorerUrlState: jest.fn() }))
 jest.mock('../usePaymentNetworkExplorer', () => ({ usePaymentNetworkExplorer: jest.fn() }))
-jest.mock('../privacy', () => ({ suppressPaymentNetworkTelemetry: jest.fn() }))
+jest.mock('@/utils/private-route-telemetry', () => ({ suppressPrivateRouteTelemetry: jest.fn() }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock(
     '../NetworkCanvas',
@@ -93,7 +93,7 @@ describe('PaymentNetworkExplorer surface boundary', () => {
     it('suppresses telemetry before rendering and derives relationships from p2p edges', () => {
         render(<PaymentNetworkExplorer />)
         const root = screen.getByText('graph-surface').closest('main')
-        expect(suppressPaymentNetworkTelemetry).toHaveBeenCalled()
+        expect(suppressPrivateRouteTelemetry).toHaveBeenCalled()
         expect(root).toHaveClass('ph-no-capture')
         expect(root).toHaveAttribute('data-private', 'true')
         expect(root).toHaveAttribute('data-sentry-mask')

@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 // Locks the receipt view model's behaviour for the canonical TI wire shape.
 // Two surfaces:
 //   1. The "cancelled-sendlink-sender keeps its data" exemption (memo,
@@ -9,13 +10,14 @@ import { renderHook } from '@testing-library/react'
 import { useReceiptViewModel } from '../useReceiptViewModel'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
+import type { ReceiptSurface } from '../transaction-types'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 let mockResidence: string | undefined
 jest.mock('@/context/authContext', () => ({
-    useOptionalAuth: () => ({ user: { residence: { verified: mockResidence } } }),
+    useOptionalAuth: () => ({ user: { residence: normalizeResidence({ verified: mockResidence }) } }),
 }))
 
 const baseTx: TransactionDetails = {
@@ -52,8 +54,12 @@ const withDrawer = (overrides: Record<string, unknown>, drawerOverrides: Record<
         extraDataForDrawer: { ...(baseTx.extraDataForDrawer as Record<string, unknown>), ...drawerOverrides },
     }) as unknown as TransactionDetails
 
-const renderConfig = (tx: TransactionDetails, isPublic = false) =>
-    renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.rowVisibilityConfig
+// a public receipt is always a page; an in-app one defaults to the drawer
+const renderConfig = (
+    tx: TransactionDetails,
+    isPublic = false,
+    surface: ReceiptSurface = isPublic ? 'page' : 'drawer'
+) => renderHook(() => useReceiptViewModel(tx, { isPublic, surface })).result.current.rowVisibilityConfig
 
 const senderSendLink = (status: string): TransactionDetails =>
     withDrawer({ status }, { originalUserRole: EHistoryUserRole.SENDER, kind: 'SEND_LINK' })
@@ -272,7 +278,7 @@ describe('fee rows — one charge, one row', () => {
                 status: 'completed',
                 sourceView: 'status',
                 fee,
-                networkFeeDetails: { amountDisplay: '$0.05' },
+                networkFeeDetails: { state: 'charged', amountDisplay: '$0.05' },
             },
             { kind: 'CRYPTO_WITHDRAW' }
         )
@@ -287,6 +293,69 @@ describe('fee rows — one charge, one row', () => {
         const config = renderConfig(withFees(0.5))
         expect(config.networkFee).toBe(true)
         expect(config.fee).toBe(true)
+    })
+
+    it('a sponsored network fee does not hide the Fee row', () => {
+        const config = renderConfig(
+            withDrawer(
+                { status: 'completed', sourceView: 'status', fee: 0, networkFeeDetails: { state: 'sponsored' } },
+                { kind: 'CRYPTO_WITHDRAW' }
+            )
+        )
+        expect(config.networkFee).toBe(true)
+        expect(config.fee).toBe(true)
+    })
+})
+
+describe('network fee rows (TASK-23487)', () => {
+    const withdraw = (
+        sourceView: 'status' | 'history',
+        status: string,
+        networkFeeDetails: Record<string, unknown> | undefined,
+        recipientReceivesUsd?: number
+    ) =>
+        withDrawer(
+            { status, sourceView, fee: undefined, networkFeeDetails, recipientReceivesUsd },
+            { kind: 'CRYPTO_WITHDRAW' }
+        )
+    const charged = { state: 'charged', amountDisplay: '$1.43' }
+
+    it('Activity shows a charged fee and what the recipient received', () => {
+        const config = renderConfig(withdraw('history', 'completed', charged, 63.07))
+        expect(config.networkFee).toBe(true)
+        expect(config.recipientReceives).toBe(true)
+    })
+
+    it('Activity shows a pending fee', () => {
+        const config = renderConfig(withdraw('history', 'completed', { state: 'pending' }))
+        expect(config.networkFee).toBe(true)
+        expect(config.recipientReceives).toBe(false)
+    })
+
+    it('Activity leaves out a sponsored fee; the success screen says it', () => {
+        expect(renderConfig(withdraw('history', 'completed', { state: 'sponsored' })).networkFee).toBe(false)
+        expect(renderConfig(withdraw('status', 'completed', { state: 'sponsored' })).networkFee).toBe(true)
+    })
+
+    it.each(['failed', 'cancelled', 'refunded'])('a %s withdrawal shows neither row', (status) => {
+        const config = renderConfig(withdraw('history', status, charged, 63.07))
+        expect(config.networkFee).toBe(false)
+        expect(config.recipientReceives).toBe(false)
+    })
+
+    it('Recipient receives shows only beside a charged fee', () => {
+        expect(renderConfig(withdraw('status', 'completed', { state: 'pending' }, 63.07)).recipientReceives).toBe(false)
+        expect(renderConfig(withdraw('status', 'completed', { state: 'sponsored' }, 63.07)).recipientReceives).toBe(
+            false
+        )
+        expect(renderConfig(withdraw('status', 'completed', charged)).recipientReceives).toBe(false)
+        expect(renderConfig(withdraw('status', 'completed', charged, 63.07)).recipientReceives).toBe(true)
+    })
+
+    it('no fee details, no fee rows', () => {
+        const config = renderConfig(withdraw('status', 'completed', undefined))
+        expect(config.networkFee).toBe(false)
+        expect(config.recipientReceives).toBe(false)
     })
 })
 
@@ -323,7 +392,8 @@ describe('useReceiptViewModel — provider', () => {
         { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'BANK_SEND_LINK_CLAIM' }
     )
     const providerOf = (tx: TransactionDetails, isPublic: boolean) =>
-        renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.providerId
+        renderHook(() => useReceiptViewModel(tx, { isPublic, surface: isPublic ? 'page' : 'drawer' })).result.current
+            .providerId
 
     afterEach(() => {
         mockResidence = undefined
@@ -346,5 +416,30 @@ describe('useReceiptViewModel — provider', () => {
 
     test('a peanut-only send names no provider', () => {
         expect(providerOf(baseTx, false)).toBeNull()
+    })
+})
+
+/**
+ * The on-chain hash leaves the drawer (TASK-24141): the drawer is the short
+ * first view, and the full receipt (the receipt pages and the PDF) carries
+ * the Transaction ID.
+ */
+describe('Transaction ID row (TASK-24141)', () => {
+    const completedSend = withDrawer({ status: 'completed' }, { kind: 'DIRECT_TRANSFER' })
+
+    test('the drawer never shows it', () => {
+        expect(renderConfig(completedSend, false, 'drawer').txId).toBe(false)
+    })
+
+    test('the in-app receipt page shows it', () => {
+        expect(renderConfig(completedSend, false, 'page').txId).toBe(true)
+    })
+
+    test('the public receipt page shows it', () => {
+        expect(renderConfig(completedSend, true, 'page').txId).toBe(true)
+    })
+
+    test('a page shows no row when there is no hash', () => {
+        expect(renderConfig(withDrawer({ status: 'completed', txHash: undefined }, {}), false, 'page').txId).toBe(false)
     })
 })

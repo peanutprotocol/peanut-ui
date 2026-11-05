@@ -25,6 +25,8 @@ const mockUpdateUserPreferences = jest.fn()
 let mockUserId = 'u1'
 let mockCreatedAt = '2026-01-01T00:00:00.000Z'
 let mockCookieOnly = false
+let mockNoStoredKey = false
+let mockIntentionalLogout = false
 const mockCookieKey = {
     pubX: 1n,
     pubY: 2n,
@@ -65,7 +67,7 @@ jest.mock('@/hooks/useZeroDevFlow', () => ({
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: () => (mockCookieOnly ? mockCookieKey : null),
     getUserPreferences: (userId: string) =>
-        mockCookieOnly
+        mockCookieOnly || mockNoStoredKey
             ? {}
             : {
                   webAuthnKey: {
@@ -77,6 +79,7 @@ jest.mock('@/utils/general.utils', () => ({
                   },
               },
     updateUserPreferences: (...args: unknown[]) => mockUpdateUserPreferences(...args),
+    isIntentionalLogout: () => mockIntentionalLogout,
 }))
 jest.mock('@zerodev/passkey-validator', () => ({
     PasskeyValidatorContractVersion: { V0_0_2: 'V0_0_2', V0_0_3_PATCHED: 'V0_0_3_PATCHED' },
@@ -129,7 +132,10 @@ jest.mock('@/utils/capacitor', () => ({
 jest.mock('@/utils/native-webauthn', () => ({ createNativeSignMessageCallback: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => null }))
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: false,
+}))
 
 import { KernelClientProvider, createKernelClientForChain, useKernelClient } from '../kernelClient.context'
 import { PAYMASTER_PREVIEW_CONTEXT } from '@/hooks/wallet/paymasterSponsorship'
@@ -148,6 +154,8 @@ beforeEach(() => {
     mockUserId = 'u1'
     mockCreatedAt = '2026-01-01T00:00:00.000Z'
     mockCookieOnly = false
+    mockNoStoredKey = false
+    mockIntentionalLogout = false
     jest.spyOn(console, 'error').mockImplementation(() => {})
     jest.spyOn(console, 'warn').mockImplementation(() => {})
 })
@@ -180,6 +188,8 @@ describe('KernelClientProvider — primary client build failure', () => {
 
         renderProvider()
         await waitFor(() => expect(mockLogoutUser).toHaveBeenCalledTimes(1))
+        // A stale key on this device is no reason to revoke the other devices.
+        expect(mockLogoutUser).toHaveBeenCalledWith({ skipBackendCall: true })
 
         // Preferences outlive the logout, so leaving the rejected key behind
         // would re-pair the account with it on the next restore.
@@ -209,6 +219,29 @@ describe('KernelClientProvider — primary client build failure', () => {
         expect(mockLogoutUser).not.toHaveBeenCalled()
         expect(mockReconnectCallback).toBeUndefined()
         expect(mockCaptureException).not.toHaveBeenCalled()
+    })
+})
+
+describe('KernelClientProvider — no stored wallet key outside setup', () => {
+    it('signs out this device only, leaving the account’s other sessions alive', async () => {
+        mockNoStoredKey = true
+
+        renderProvider()
+        await waitFor(() => expect(mockLogoutUser).toHaveBeenCalledTimes(1))
+        expect(mockLogoutUser).toHaveBeenCalledWith({ skipBackendCall: true })
+    })
+
+    it('stays out of a logout that is already in progress', async () => {
+        mockNoStoredKey = true
+        mockIntentionalLogout = true
+        const { captureMessage } = jest.requireMock('@sentry/nextjs')
+
+        renderProvider()
+        await act(async () => {
+            await Promise.resolve()
+        })
+        expect(mockLogoutUser).not.toHaveBeenCalled()
+        expect(captureMessage).not.toHaveBeenCalled()
     })
 })
 

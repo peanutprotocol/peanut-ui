@@ -270,6 +270,7 @@ jobs:
                   fi
 
             - name: Build signed AAB
+              id: build
               env:
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
                   SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
@@ -299,6 +300,7 @@ jobs:
                   # the two schemes this replaces.
                   ANDROID_VERSION_CODE="$(node scripts/android-version-code.mjs)"
                   export ANDROID_VERSION_CODE
+                  echo "code=$ANDROID_VERSION_CODE" >> "$GITHUB_OUTPUT"
                   echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
@@ -427,6 +429,22 @@ jobs:
                   releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
                   tracks: ${{ inputs.track || 'internal' }}
                   status: completed
+
+            # The bundle is on its Play track now. Promotion to production is
+            # still done by hand; this records when the build reached the store,
+            # the start of the "What is live" store clock. Never fails the release.
+            - name: Record the store upload in PostHog
+              if: steps.version.outputs.profile != 'true'
+              continue-on-error: true
+              env:
+                  PLATFORM: android
+                  VERSION: ${{ steps.version.outputs.name }}
+                  BUILD: ${{ steps.build.outputs.code }}
+                  COMMIT: ${{ inputs.sourceSha }}
+                  TRACK: ${{ inputs.track || 'internal' }}
+                  RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+              run: node scripts/store-build-event.mjs
 
             # Upload a matching .0 only when this platform has no active legacy
             # bridge. No channel moves here: release-native.yml promotes both

@@ -22,6 +22,11 @@ import { getShakeClass } from '@/utils/perk.utils'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { withReturnTo } from '@/utils/return-to.utils'
+import {
+    captureCardGateAddFundsTapped,
+    captureCardGateStepViewed,
+    type CardGateStep,
+} from '@/features/card/card-gate-analytics'
 
 const STEPS = ['eligibility', 'looking-up', 'available', 'funding', 'entry'] as const
 
@@ -54,7 +59,7 @@ export function CardMilestoneScreen({
                 )}
                 <TitleBlock
                     title={<h1>{t(issued ? 'issuedTitle' : 'availableTitle')}</h1>}
-                    description={<p>{t(issued ? 'issuedBody' : 'fundingBody')}</p>}
+                    description={<p>{t(issued ? 'issuedBody' : funded ? 'fundedBody' : 'fundingBody')}</p>}
                     align={issued ? 'center' : 'start'}
                     size="s"
                 />
@@ -68,6 +73,21 @@ export function CardMilestoneScreen({
     )
 }
 
+/** The screen the acquisition flow shows; null during the `looking-up` animation. */
+function shownGateStep(
+    eligible: boolean,
+    fundingRequired: boolean,
+    currentStep: (typeof STEPS)[number]
+): CardGateStep | null {
+    // Unknown residence still goes through the existing verification path;
+    // it must never receive the "You're in" eligibility promise.
+    if (!eligible || (currentStep === 'entry' && !fundingRequired)) return 'entry'
+    if (fundingRequired || currentStep === 'funding') return 'funding'
+    if (currentStep === 'available') return 'available'
+    if (currentStep === 'eligibility') return 'eligibility'
+    return null
+}
+
 /** Figma: Peanut WIP Slava / STEPS / 04 SPEND (19068:2985).
  * Presentation steps only. The live balance and provider state always own application access. */
 export function CardAcquisitionScreen({
@@ -76,6 +96,7 @@ export function CardAcquisitionScreen({
     funded,
     fundingRequired,
     needsFundingBeforeApply = false,
+    balanceKnown = true,
     onApply,
     onPrev,
     applyError,
@@ -85,6 +106,8 @@ export function CardAcquisitionScreen({
     funded: boolean
     fundingRequired: boolean
     needsFundingBeforeApply?: boolean
+    /** False while the first balance read is in flight: `funded` is not yet true or false. */
+    balanceKnown?: boolean
     onApply: () => void | Promise<void>
     onPrev: () => void
     applyError?: string | null
@@ -121,12 +144,29 @@ export function CardAcquisitionScreen({
         }
     }, [currentStep, reducedMotion, triggerHaptic, setStep])
 
-    // Unknown residence still goes through the existing verification path;
-    // it must never receive the "You're in" eligibility promise.
-    if (!eligible || (currentStep === 'entry' && !fundingRequired)) {
+    const shownStep = shownGateStep(eligible, fundingRequired, currentStep)
+    const minBalanceShown =
+        shownStep === 'funding' || shownStep === 'available' || (shownStep === 'entry' && needsFundingBeforeApply)
+    const lastStepViewRef = useRef<string | null>(null)
+    useEffect(() => {
+        if (!shownStep || !balanceKnown) return
+        const view = `${shownStep}:${funded}:${minBalanceShown}`
+        if (lastStepViewRef.current === view) return
+        lastStepViewRef.current = view
+        captureCardGateStepViewed(shownStep, funded, minBalanceShown)
+    }, [shownStep, funded, minBalanceShown, balanceKnown])
+
+    if (shownStep === 'entry') {
         return (
             <AddCardEntryScreen
-                onApply={onApply}
+                onApply={
+                    needsFundingBeforeApply
+                        ? () => {
+                              captureCardGateAddFundsTapped('entry', funded)
+                              return onApply()
+                          }
+                        : onApply
+                }
                 onPrev={onPrev}
                 applyError={applyError}
                 needsFundingBeforeApply={needsFundingBeforeApply}
@@ -134,7 +174,7 @@ export function CardAcquisitionScreen({
         )
     }
 
-    if (fundingRequired || currentStep === 'funding') {
+    if (shownStep === 'funding') {
         return (
             <PageStack>
                 <NavHeader title={t('onboarding.navTitle')} onPrev={onPrev} />
@@ -146,14 +186,20 @@ export function CardAcquisitionScreen({
                         body={tAdd('methods.bankTransferDescription')}
                         leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                         chevron
-                        onClick={() => router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))}
+                        onClick={() => {
+                            captureCardGateAddFundsTapped('funding', funded, 'bank')
+                            router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))
+                        }}
                     />
                     <ListItem
                         title={tAdd('methods.crypto')}
                         body={tAdd('methods.cryptoDescription')}
                         leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
                         chevron
-                        onClick={() => router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))}
+                        onClick={() => {
+                            captureCardGateAddFundsTapped('funding', funded, 'crypto')
+                            router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))
+                        }}
                     />
                 </ListGroup>
                 <PageStack.Footer>
@@ -170,11 +216,12 @@ export function CardAcquisitionScreen({
         )
     }
 
-    if (currentStep === 'available') {
+    if (shownStep === 'available') {
         return (
             <CardMilestoneScreen
                 funded={funded}
                 onContinue={() => {
+                    if (!funded) captureCardGateAddFundsTapped('available', funded)
                     writeStoredValue(seenKey, '1')
                     void setStep(funded ? 'entry' : 'funding', { history: 'push' })
                 }}

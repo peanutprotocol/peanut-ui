@@ -13,7 +13,7 @@
  * wraps ContributePotPage and provides state to all child views
  */
 
-import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'
 import {
     type TRequestResponse,
@@ -21,7 +21,10 @@ import {
     type PaymentCreationResponse,
 } from '@/services/services.types'
 import { collectedTotal, usdRemainingOf } from './collected'
-import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
+import { contributedAmount } from '@/utils/request-pot.utils'
+import { personFrom } from '@/lib/person/person'
+import type { Person } from '@/lib/person/person.types'
+import { useRequestPot } from './useRequestPot'
 
 // view states for contribute pot flow
 export type ContributePotFlowView = 'INITIAL' | 'STATUS' | 'EXTERNAL_WALLET'
@@ -32,8 +35,8 @@ export interface PotRecipient {
     address: Address
     userId?: string
     fullName?: string
-    /** Their picked profile avatar; null means the username-letter fallback. */
-    avatarKey?: string | null
+    /** The requester (TASK-23756); null when the request names no Peanut user. */
+    person: Person | null
 }
 
 // contributor info from charges
@@ -41,9 +44,9 @@ export interface PotContributor {
     uuid: string
     username?: string
     address?: string
-    /** The contributor's picked profile avatar; null means the username-letter
-     *  fallback, and it stays null for a raw-address contributor. */
-    avatarKey?: string | null
+    /** The Peanut contributor (TASK-23756); null for a raw-address contributor. */
+    person: Person | null
+    /** What the contributor paid, which can be less than their charge asked. */
     amount: string
     createdAt: string
 }
@@ -69,7 +72,8 @@ interface ContributePotFlowContextValue {
 
     // request data (fetched from api)
     request: TRequestResponse | null
-    setRequest: (request: TRequestResponse | null) => void
+    /** Read the request and what it still needs again, together. */
+    refetchRequestPot: () => Promise<void>
 
     // derived recipient
     recipient: PotRecipient | null
@@ -77,6 +81,9 @@ interface ContributePotFlowContextValue {
     // amount state
     amount: string
     setAmount: (amount: string) => void
+    /** The suggestion the amount field last offered, as it shows it ("58.51"). */
+    lastSuggestedAmount: string
+    setLastSuggestedAmount: (amount: string) => void
     usdAmount: string
     setUsdAmount: (amount: string) => void
 
@@ -122,11 +129,21 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     // view state
     const [currentView, setCurrentView] = useState<ContributePotFlowView>('INITIAL')
 
-    // request data
-    const [request, setRequest] = useState<TRequestResponse | null>(initialRequest)
+    // request data: one source for the contributors and the remainder
+    const { request, payAmounts, refetch: refetchRequestPot } = useRequestPot(initialRequest)
+
+    // Back on the amount screen (from the deposit address or a finished
+    // payment), the request may have changed meanwhile: read it again, with
+    // the remainder, before the next suggestion is made.
+    const previousView = useRef(currentView)
+    useEffect(() => {
+        if (currentView === 'INITIAL' && previousView.current !== 'INITIAL') void refetchRequestPot()
+        previousView.current = currentView
+    }, [currentView, refetchRequestPot])
 
     // amount state
     const [amount, setAmount] = useState<string>('')
+    const [lastSuggestedAmount, setLastSuggestedAmount] = useState<string>('')
     const [usdAmount, setUsdAmount] = useState<string>('')
 
     // attachment state
@@ -150,7 +167,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             username: request.recipientAccount.user?.username || request.recipientAccount.identifier,
             address: request.recipientAddress as Address,
             userId: request.recipientAccount.userId,
-            avatarKey: request.recipientAccount.user?.avatarKey ?? null,
+            person: personFrom(request.recipientAccount.user),
         }
     }, [request])
 
@@ -167,7 +184,6 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
      * the payer read "$0 contributed" on a request somebody had already paid by
      * bank — the requester saw the right figure, and only the requester.
      */
-    const { payAmounts } = useRequestPayAmounts(request?.uuid)
     const totalCollected = useMemo(() => collectedTotal(request, usdRemainingOf(payAmounts)), [request, payAmounts])
 
     // derive contributors from charges
@@ -179,8 +195,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
                 uuid: c.uuid,
                 username: c.fulfillmentPayment?.payerAccount?.user?.username,
                 address: c.fulfillmentPayment?.payerAddress ?? undefined,
-                avatarKey: c.fulfillmentPayment?.payerAccount?.user?.avatarKey ?? null,
-                amount: c.tokenAmount,
+                person: personFrom(c.fulfillmentPayment?.payerAccount?.user),
+                amount: contributedAmount(c),
                 createdAt: c.createdAt,
             }))
     }, [request?.charges])
@@ -189,6 +205,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const resetContributePotFlow = useCallback(() => {
         setCurrentView('INITIAL')
         setAmount('')
+        setLastSuggestedAmount('')
         setUsdAmount('')
         setAttachment({})
         setCharge(null)
@@ -205,10 +222,12 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             currentView,
             setCurrentView,
             request,
-            setRequest,
+            refetchRequestPot,
             recipient,
             amount,
             setAmount,
+            lastSuggestedAmount,
+            setLastSuggestedAmount,
             usdAmount,
             setUsdAmount,
             attachment,
@@ -235,8 +254,10 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         [
             currentView,
             request,
+            refetchRequestPot,
             recipient,
             amount,
+            lastSuggestedAmount,
             usdAmount,
             attachment,
             charge,

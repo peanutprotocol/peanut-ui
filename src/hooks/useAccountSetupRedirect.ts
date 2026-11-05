@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
-import { AccountType } from '@/interfaces/interfaces'
+import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 import { isDemoMode } from '@/utils/demo'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 
@@ -17,32 +17,30 @@ export const useAccountSetupRedirect = () => {
     const pathName = usePathname()
 
     // synchronously check if user needs redirect (runs during render, not after)
-    const needsRedirect = useMemo(() => {
-        if (!user || isFetchingUser || pathName === '/setup/finish') return false
+    const target = useMemo(() => {
+        if (!user || isFetchingUser || pathName === '/setup/finish') return null
         // Demo mode: synthetic user is complete; never bounce to setup.
-        if (demoMode) return false
-
-        const hasPeanutWalletAccount = user.accounts.some((a) => a.type === AccountType.PEANUT_WALLET)
-        return !hasPeanutWalletAccount
+        if (demoMode) return null
+        return unfinishedSignupRoute(user)
     }, [user, isFetchingUser, pathName, demoMode])
 
     // perform redirect in effect
     useEffect(() => {
-        if (needsRedirect) {
+        if (target) {
             console.log(
-                '[useAccountSetupRedirect] User logged in without peanut wallet account, redirecting to /setup/finish'
+                `[useAccountSetupRedirect] User logged in without peanut wallet account, redirecting to ${target}`
             )
-            router.push('/setup/finish')
+            router.push(target)
             // Hard navigation fallback in case soft navigation silently fails.
             // Without this, needsRedirect stays true and the loading gate in
             // layout.tsx blocks rendering indefinitely.
             const fallback = setTimeout(() => {
-                window.location.replace('/setup/finish')
+                window.location.replace(target)
             }, 3000)
             return () => clearTimeout(fallback)
         }
         return undefined
-    }, [needsRedirect, router])
+    }, [target, router])
 
-    return { needsRedirect, isCheckingAccount: isFetchingUser }
+    return { needsRedirect: target !== null, isCheckingAccount: isFetchingUser }
 }

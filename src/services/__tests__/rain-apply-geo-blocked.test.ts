@@ -48,6 +48,23 @@ describe('rainApi.applyForCard — geo-blocked normalization', () => {
         })
     })
 
+    // The send gate refused Rain for this user's plan; `reason` names the step the card screen offers.
+    it("maps 403 code 'provider-not-in-plan' with its reason into the union", async () => {
+        mockFetchWithSentry.mockResolvedValue(
+            jsonResponse(403, {
+                status: 'error',
+                code: 'provider-not-in-plan',
+                reason: 'identity_document_insufficient',
+                message: 'The card is not part of your current verification.',
+            })
+        )
+        await expect(rainApi.applyForCard()).resolves.toEqual({
+            status: 'provider-not-in-plan',
+            reason: 'identity_document_insufficient',
+            message: 'The card is not part of your current verification.',
+        })
+    })
+
     it('still throws for a 403 without the code (old backend / other denial)', async () => {
         mockFetchWithSentry.mockResolvedValue(jsonResponse(403, { status: 'error', message: 'nope' }))
         await expect(rainApi.applyForCard()).rejects.toThrow(ApiError)

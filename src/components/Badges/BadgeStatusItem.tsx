@@ -20,6 +20,7 @@ export const BadgeStatusItem = ({ position = 'top', entry }: { position?: CardPo
             code: entry.code,
             name: entry.name,
             description: entry.description,
+            shareLine: entry.shareLine,
             iconUrl: entry.iconUrl || undefined,
             earnedAt: entry.timestamp,
         }),

@@ -80,9 +80,9 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
     }
 
     const getTrackColor = () => {
-        if (isOverGoal) return 'bg-action-secondary'
+        if (isOverGoal) return 'bg-background-accent-yellow'
         if (!isClosed) return 'bg-background-disabled'
-        return isGoalAchieved ? 'bg-green-500' : 'bg-red-200'
+        return isGoalAchieved ? 'bg-background-icon-bubble-green' : 'bg-red-200'
     }
 
     const renderStatusText = () => {
@@ -144,18 +144,19 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
 
         if (isOverGoal) {
             return [
-                { position: goalPercentage, className: 'bg-green-500' },
-                { position: 'end', className: 'bg-action-secondary' },
+                { position: goalPercentage, className: 'bg-background-icon-bubble-green' },
+                { position: 'end', className: 'bg-background-accent-yellow' },
             ]
         }
 
         const markers: ProgressBarMarker[] = []
-        if (!isGoalAchieved) markers.push({ position: progressPercentage, className: 'bg-green-500' })
+        if (!isGoalAchieved)
+            markers.push({ position: progressPercentage, className: 'bg-background-icon-bubble-green' })
         markers.push(
             isGoalAchieved
                 ? {
                       position: 'end',
-                      className: 'bg-green-500',
+                      className: 'bg-background-icon-bubble-green',
                       label: <p className="absolute right-0 bottom-full mb-2 text-body-s whitespace-nowrap">100%</p>,
                   }
                 : { position: 100, className: 'bg-red-200' }
@@ -171,7 +172,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
             <ProgressBar
                 value={isOverGoal ? goalPercentage : progressPercentage}
                 trackClassName={getTrackColor()}
-                fillClassName="bg-green-500"
+                fillClassName="bg-background-icon-bubble-green"
                 markers={getMarkers()}
             />
         </div>

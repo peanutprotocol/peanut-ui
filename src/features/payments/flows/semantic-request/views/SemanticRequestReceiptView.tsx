@@ -15,6 +15,7 @@ import { useMemo } from 'react'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getInitialsFromName } from '@/utils/general.utils'
+import { personFrom } from '@/lib/person/person'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -53,7 +54,6 @@ export function SemanticRequestReceiptView() {
             ? payLinkUrl(`/${recipientIdentifier}?chargeId=${charge.uuid}`, origin)
             : undefined
 
-        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
         // determine who paid (payer name for display)
@@ -79,7 +79,7 @@ export function SemanticRequestReceiptView() {
                 link: receiptLink,
             },
             userName: payerName,
-            avatarKey: successfulPayment.payerAccount?.user?.avatarKey ?? null,
+            peer: personFrom(successfulPayment.payerAccount?.user),
             sourceView: 'status',
             memo: charge.requestLink?.reference || undefined,
             attachmentUrl: charge.requestLink?.attachmentUrl || undefined,
@@ -89,10 +89,8 @@ export function SemanticRequestReceiptView() {
                 tokenIconUrl: tokenIconUrl,
                 chainIconUrl: chainIconUrl,
             },
-            networkFeeDetails: {
-                amountDisplay: networkFeeDisplayValue,
-                moreInfoText: t('confirm.slippageInfo'),
-            },
+            // The payer may be an external wallet that paid its own gas, and
+            // this is the recipient's receipt: no network fee is claimed.
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
@@ -100,7 +98,7 @@ export function SemanticRequestReceiptView() {
         }
 
         return details as TransactionDetails
-    }, [charge, recipient, parsedUrl, tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol, t, origin])
+    }, [charge, recipient, parsedUrl, tokenIconUrl, chainIconUrl, resolvedChainName, resolvedTokenSymbol, origin])
 
     // show loading if fetching charge
     if (isFetchingCharge || !charge) {

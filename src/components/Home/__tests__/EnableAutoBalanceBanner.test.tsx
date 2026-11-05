@@ -13,6 +13,10 @@
  *    escape never rendered. Regressions below pin (a) findActiveCard-based
  *    selection (a CANCELED newest row must not drive the modal) and (b) the
  *    stuck-after-success escape + Sentry/console signal.
+ *
+ * It is the prompt for an account on the existing card permission that
+ * managed funding is not open to (the server's decision). Every other
+ * decision, and an unknown one, shows nothing here.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
@@ -28,6 +32,15 @@ let mockLastError: GrantSessionKeyError | null = null
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ grant: mockGrant, isGranting: false, lastError: mockLastError }),
 }))
+
+// The server's funding decision; undefined is an unread or failed decision.
+let mockAccess: { fundingMode: 'legacy' | 'managed'; enrollmentAllowed: boolean } | undefined
+jest.mock('@/hooks/useCardFundingAccess', () => {
+    const { fundingSetupPath } = jest.requireActual('@/utils/rain-funding.utils')
+    return {
+        useCardFundingAccess: () => ({ access: mockAccess, setupPath: fundingSetupPath(mockAccess) }),
+    }
+})
 
 type MockCard = { id?: string; status: string; hasWithdrawApproval: boolean }
 let mockCards: MockCard[] = []
@@ -78,6 +91,26 @@ beforeEach(() => {
     mockLastError = null
     mockGrant.mockResolvedValue({ ok: false })
     mockCards = [{ id: 'card-a', status: 'ACTIVE', hasWithdrawApproval: false }]
+    mockAccess = { fundingMode: 'legacy', enrollmentAllowed: false }
+})
+
+describe('EnableAutoBalanceBanner — the funding decision', () => {
+    it('prompts an account on the existing permission that managed funding is not open to', () => {
+        render(<EnableAutoBalanceBanner />)
+        expect(screen.getByTestId('modal')).toBeInTheDocument()
+    })
+
+    it.each([
+        ['open to managed funding', { fundingMode: 'legacy', enrollmentAllowed: true }],
+        ['managed', { fundingMode: 'managed', enrollmentAllowed: true }],
+        ['managed after new enrollment closed', { fundingMode: 'managed', enrollmentAllowed: false }],
+        ['unread or failed', undefined],
+    ] as const)('shows nothing for an account whose decision is %s', (_name, access) => {
+        mockAccess = access ? { ...access } : undefined
+        render(<EnableAutoBalanceBanner />)
+        expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+        expect(mockGrant).not.toHaveBeenCalled()
+    })
 })
 
 describe('EnableAutoBalanceBanner', () => {

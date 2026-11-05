@@ -18,6 +18,8 @@ let mockRequest: Record<string, unknown>
 jest.mock('../../useContributePotFlow', () => ({
     useContributePotFlow: () => ({
         amount: '',
+        lastSuggestedAmount: '',
+        setLastSuggestedAmount: jest.fn(),
         request: mockRequest,
         recipient: { username: 'ana', userId: 'u1' },
         error: { showError: false, errorMessage: '' },

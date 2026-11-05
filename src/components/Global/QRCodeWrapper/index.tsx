@@ -55,7 +55,8 @@ const QRCodeWrapper = ({
                         <QRCode
                             value={url}
                             size={256}
-                            className="h-auto w-full max-w-full"
+                            // ph-no-capture: the code encodes an address or a payment payload
+                            className="ph-no-capture h-auto w-full max-w-full"
                             viewBox={`0 0 256 256`}
                             level="H" // Highest error correction level to allow for logo
                         />

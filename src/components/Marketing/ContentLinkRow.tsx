@@ -7,6 +7,8 @@ interface ContentLinkRowProps {
     href: string
     title: string
     description?: string
+    /** Keep guide requirements and availability visible on narrow screens. */
+    wrap?: boolean
     /** Position in the group — the row draws its own top/middle/bottom corners. */
     index: number
     total: number
@@ -25,9 +27,18 @@ interface ContentLinkRowProps {
  * ListGroup, whose cloneElement would put `position` on the anchor, cannot own
  * the grouping here.
  */
-export function ContentLinkRow({ href, title, description, index, total, lang, languageLabel }: ContentLinkRowProps) {
+export function ContentLinkRow({
+    href,
+    title,
+    description,
+    wrap = false,
+    index,
+    total,
+    lang,
+    languageLabel,
+}: ContentLinkRowProps) {
     const heading = (
-        <h3 lang={lang} className="truncate group-hover:underline">
+        <h3 lang={lang} className={wrap ? 'group-hover:underline' : 'truncate group-hover:underline'}>
             {title}
         </h3>
     )
@@ -51,13 +62,14 @@ export function ContentLinkRow({ href, title, description, index, total, lang, l
                 }
                 body={
                     lang && description ? (
-                        <span lang={lang} className="block truncate">
+                        <span lang={lang} className={wrap ? 'block' : 'block truncate'}>
                             {description}
                         </span>
                     ) : (
                         description
                     )
                 }
+                bodyWrap={wrap}
                 trailing={<Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />}
                 className="transition-colors duration-instant group-hover:bg-background-disabled"
             />

@@ -168,6 +168,9 @@ function contentSecurityPolicyReportOnly(includeReporting = true) {
             'https://pbs.twimg.com',
             // Only reached in the SDK's single-embed mode; see frame-src below.
             'https://api.typeform.com',
+            // Rhino's public token list, which recover funds reads balances for
+            // (useRecoverableBalances, TASK-23850)
+            'https://api.rhino.fi',
             ...chainRpcHosts,
         ].join(' '),
         // Bridge is the terms-of-service iframe BridgeTosStep renders through
@@ -202,12 +205,35 @@ function reportingEndpointsHeader() {
     return [{ key: 'Reporting-Endpoints', value: `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"` }]
 }
 
+/**
+ * Responses that get the CSP headers: documents, API routes and the two
+ * service-worker scripts (a worker's CSP comes from its own response).
+ * Static assets do not: the report-only policy is about 6.5 KB, so sending
+ * it with every chunk, font, image and flag added about 5 KB per asset, and
+ * a CSP on a non-document, non-worker response has no effect.
+ * The QR exclusion is the same as on the Referrer-Policy rule below.
+ */
+const CSP_DOCUMENT_SOURCE =
+    '/:path((?!q(?:/|$)|api/marketing-qr/open(?:/|$)|_next/(?:static|image)(?:/|$)|flags/|press/assets/|' +
+    '(?!(?:sw|onesignal/OneSignalSDKWorker)\\.js$).*\\.(?:js|mjs|css|map|woff2?|ttf|otf|eot|png|jpe?g|webp|avif|gif|svg|ico|json|txt|xml|webmanifest|pdf|mp3|mp4|webm|wav|lottie|ai|eps)$).*)'
+
+// /flags (copied from the pinned circle-flags package at install) and
+// /press/assets (brand files) keep their names when their bytes change, so
+// they get a day of caching plus a week of background revalidation, not
+// `immutable`. `:path+` keeps the /press page itself out of this rule.
+const UNHASHED_STATIC_CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=604800'
+
 // Get git commit hash at build time
 let gitCommitHash = 'unknown'
 try {
     gitCommitHash = execSync('git rev-parse --short=7 HEAD').toString().trim()
 } catch (error) {
-    console.warn('Could not get git commit hash:', error.message)
+    // CLI preview uploads have no .git, so preview.yaml passes the SHA in.
+    if (process.env.GIT_COMMIT_SHA) {
+        gitCommitHash = process.env.GIT_COMMIT_SHA.slice(0, 7)
+    } else {
+        console.warn('Could not get git commit hash:', error.message)
+    }
 }
 const interfaces = os.networkInterfaces()
 let ipAddress = 'Unable to determine IP address'
@@ -318,6 +344,8 @@ let nextConfig = {
     // file tracer — include them for the deployed serverless function.
     outputFileTracingIncludes: {
         '/receipt/[entryId]/pdf': ['./src/assets/fonts/*.ttf'],
+        '/api/og': ['./src/assets/brand/*.svg'],
+        '/api/og/marketing': ['./src/assets/brand/*.svg'],
     },
 
     // Dynamic content reads can trace the submodule's .git metadata. Vercel
@@ -345,6 +373,9 @@ let nextConfig = {
         ],
         // Speed up webpack builds (used for production builds with --webpack flag)
         webpackBuildWorker: true,
+        // The Release 166 production build (c755ec556) was killed for memory on Vercel.
+        // Production builds also upload Sentry source maps, so they peak higher than previews.
+        webpackMemoryOptimizations: true,
     },
 
     webpack: (config, { isServer, dev, webpack }) => {
@@ -471,6 +502,18 @@ let nextConfig = {
                         key: 'Permissions-Policy',
                         value: 'camera=*, microphone=*, clipboard-read=(self), clipboard-write=(self)',
                     },
+                    { key: 'X-Content-Type-Options', value: 'nosniff' },
+                ],
+            },
+            {
+                // Standalone QR routes supply their own nonce CSP and no-referrer
+                // policy. Global headers would replace those response headers.
+                source: '/:path((?!q(?:/|$)|api/marketing-qr/open(?:/|$)).*)',
+                headers: [{ key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }],
+            },
+            {
+                source: CSP_DOCUMENT_SOURCE,
+                headers: [
                     // Security headers - prevents clickjacking and other attacks
                     // Using frame-ancestors instead of X-Frame-Options to allow specific domains
                     // object-src/base-uri are safe to enforce today: the app embeds no
@@ -481,9 +524,15 @@ let nextConfig = {
                     },
                     { key: 'Content-Security-Policy-Report-Only', value: contentSecurityPolicyReportOnly() },
                     ...reportingEndpointsHeader(),
-                    { key: 'X-Content-Type-Options', value: 'nosniff' },
-                    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
                 ],
+            },
+            {
+                source: '/flags/:path+',
+                headers: [{ key: 'Cache-Control', value: UNHASHED_STATIC_CACHE_CONTROL }],
+            },
+            {
+                source: '/press/assets/:path+',
+                headers: [{ key: 'Cache-Control', value: UNHASHED_STATIC_CACHE_CONTROL }],
             },
             {
                 source: '/dev/payment-graph',
@@ -563,8 +612,15 @@ if (process.env.NODE_ENV !== 'development') {
             // auto-registration and an online event reloading a page mid-payment.
             register: false,
             reloadOnOnline: false,
-            // explicitly include offline screen assets in precache
-            additionalPrecacheEntries: ['/icons/peanut-icon.svg'],
+            // Precache no build output. With the default (every client asset),
+            // each first-time visitor downloaded ~7 MB of JS, CSS and media
+            // right after load, competing with their next tap. Chunks, styles,
+            // fonts and images are cached on first use by `defaultCache` in
+            // sw.ts instead. `/./` matches every webpack asset, so nothing from
+            // the build is precached; @serwist/next still appends its own exclude.
+            exclude: [/./],
+            // The whole precache: offline screen icon and the push notification icon.
+            additionalPrecacheEntries: ['/icons/peanut-icon.svg', '/icons/icon-192x192-maskable.png'],
         })
         return withBundleAnalyzer(withSerwist(nextConfig))
     }

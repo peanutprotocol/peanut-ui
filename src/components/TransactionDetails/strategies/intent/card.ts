@@ -8,11 +8,14 @@ export const qrPay: TransactionStrategy = (entry: HistoryEntry): TransactionStra
     const raw = entry.recipientAccount?.identifier
     // A PIX key the payer looked up arrives with its owner's name: name the
     // owner and keep the key beside the name. A shared receipt gets the key masked.
+    // Only a bare key is looked up (Send → Bank, or a key pasted in the scanner),
+    // so this is money sent to a person and reads "Send". A scanned QR or a
+    // copia e cola carries no owner and stays "Pay".
     const ownerName = entry.recipientAccount?.fullName
     if (raw && ownerName) {
         return {
-            direction: 'qr_payment',
-            transactionCardType: 'pay',
+            direction: 'send',
+            transactionCardType: 'send',
             nameForDetails: normalizeMerchantName(ownerName),
             nameDetail: formatBrTaxId(raw),
             isPeerActuallyUser: false,

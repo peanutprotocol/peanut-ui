@@ -15,6 +15,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    PasskeyServerError,
     withIOSPasskeyLoginRecovery,
     type PasskeyErrorCode,
 } from '@/utils/webauthn.utils'
@@ -51,6 +52,7 @@ import {
     signupAnalyticsState,
 } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { AccountType } from '@/interfaces/interfaces'
 
 // types
 type UserOpEncodedParams = {
@@ -77,6 +79,7 @@ const PRE_ASSERTION_PLATFORM_CODES: ReadonlySet<PasskeyErrorCode> = new Set([
     'PASSKEY_UNSUPPORTED',
     'PASSKEY_ORIGIN',
     'PASSKEY_STATE',
+    'PASSKEY_NOT_FOUND',
 ])
 
 let loginTransitionInFlight = false
@@ -86,6 +89,12 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
+    // The PEANUT_WALLET account exists only after finalizeAccountSetup succeeds,
+    // so a loaded user without one is still at signup's Confirm & finish. A user
+    // that is not loaded yet is not known to be mid-signup (Confirm & finish
+    // refuses to sign without one).
+    const isAwaitingWalletAccount =
+        !!user && !user.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
 
@@ -218,12 +227,18 @@ export const useZeroDev = () => {
 
             setWebAuthnKey(webAuthnKey)
         } catch (e) {
-            if ((e as Error).message.includes('pending')) {
+            if (!isCeremonyGuardError(e) && e instanceof Error && e.message.includes('pending')) {
                 // the concurrent-request bail must still release the button
                 zeroDevFlowActions.setIsRegistering(false)
                 return
             }
-            const err = normalizeNativePasskeyError(e) as Error
+            // A /register/options error body throws the same decoder TypeError as
+            // login's; the verify-side wording differs, so only the server-request
+            // case is taken from the login normaliser.
+            const serverError = normalizePasskeyServerError(e)
+            const err = normalizeNativePasskeyError(
+                serverError instanceof PasskeyServerError ? serverError : e
+            ) as Error
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
@@ -291,7 +306,9 @@ export const useZeroDev = () => {
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that
             // tells us WHERE native logins hang.
-            if (isCeremonyGuardError(err)) {
+            if (code === 'ACCOUNT_DELETED') {
+                // Expected state, not a fault: the server minted no session, so local state stays as it was.
+            } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
                 // Platform/device outcomes never invalidate an existing session.
@@ -388,7 +405,10 @@ export const useZeroDev = () => {
                 // exit is logging out and back in, so surface the message AND
                 // force the logout (showing the toast alone left users stuck in a
                 // signed-in-but-broken state).
-                if (isStaleKeyError(error)) {
+                // Before the wallet account exists the key is fresh and there is
+                // no session to drop: a logout only forces another orphan signup.
+                // The finish screen classifies the root error itself (TASK-23931).
+                if (isStaleKeyError(error) && !isAwaitingWalletAccount) {
                     console.error('Detected stale webAuthnKey error - session is invalid')
                     captureException(error, {
                         tags: { error_type: 'stale_webauthn_key' },
@@ -400,7 +420,8 @@ export const useZeroDev = () => {
                     })
                     zeroDevFlowActions.setIsSendingUserOp(false)
                     if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
-                    logoutUser()
+                    // this device's key is stale; the account's other sessions are fine
+                    logoutUser({ skipBackendCall: true })
                     throw createStaleSessionError(error)
                 }
 
@@ -452,7 +473,14 @@ export const useZeroDev = () => {
                 receipt: userOpReceipt.receipt,
             }
         },
-        [getClientForChain, ensureClientForChain, logoutUser, setLoadingState, user?.user.userId]
+        [
+            getClientForChain,
+            ensureClientForChain,
+            isAwaitingWalletAccount,
+            logoutUser,
+            setLoadingState,
+            user?.user.userId,
+        ]
     )
 
     return {

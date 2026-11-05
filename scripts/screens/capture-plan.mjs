@@ -8,7 +8,7 @@ const validPath = (path) =>
     path.split('/').every((part) => part && part !== '.' && part !== '..')
 // The scripts/ entries are exactly what the capture build executes; capture-build-inputs.test.mjs derives and checks them.
 const globalSource =
-    /^(?:public\/(?!screen-library\/)|src\/(?:.*\/__fixtures__\/|content(?:\/|$)|i18n\/|dev\/|context\/|hooks\/|services\/)|scripts\/(?:screens\/|next-font-google\/|copy-flags\.mjs$|generate-legal-versions\.mjs$)|\.github\/workflows\/screen-library[^/]*\.ya?ml$|(?:pnpm-lock\.yaml|package(?:-lock)?\.json|(?:next|tailwind|postcss)\.config\.[^/]+)$)/
+    /^(?:public\/(?!screen-library\/)|src\/(?:.*\/__fixtures__\/|content(?:\/|$)|i18n\/|dev\/|context\/|hooks\/|services\/)|scripts\/(?:screens\/|next-font-google\/|copy-flags\.mjs$|generate-legal-versions\.mjs$|generate-signup-attribution-paths\.ts$)|\.github\/workflows\/screen-library[^/]*\.ya?ml$|(?:pnpm-lock\.yaml|package(?:-lock)?\.json|(?:next|tailwind|postcss)\.config\.[^/]+)$)/
 
 export const galleryMaintenanceChange = (path) =>
     validPath(path) &&

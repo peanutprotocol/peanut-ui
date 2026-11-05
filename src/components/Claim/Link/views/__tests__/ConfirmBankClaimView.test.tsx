@@ -60,12 +60,12 @@ describe('ConfirmBankClaimView — the rate is in the currency the transfer pays
     it('a UK IBAN shows the EUR rate, never GBP', () => {
         renderConfirm(details({ type: 'iban', iban: 'GB31PRTC00000000000000' }))
         expect(mockRateFor).toHaveBeenCalledWith(AccountType.IBAN)
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
         expect(screen.queryByText(/GBP/)).not.toBeInTheDocument()
     })
 
     it('a UK sort-code account shows the GBP rate', () => {
         renderConfirm(details({ type: 'gb', accountNumber: '12345678', sortCode: '123456' }))
-        expect(screen.getByText('1 USD = 0.7508 GBP')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.7508 GBP')).toBeInTheDocument()
     })
 })

@@ -18,6 +18,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { getAuthHeaders } from '@/utils/auth-token'
 import { debugLog } from '@/utils/debug-console'
 import { logRunMode } from '@/utils/mode'
+import { HARNESS_STORAGE_KEYS, harnessSignerStorage } from '@/constants/harness.consts'
 
 export function PeanutDebug() {
     useEffect(() => {
@@ -152,9 +153,7 @@ export function PeanutDebug() {
                     // reset to known-good every time. Use `debug.harnessSigner(pk)`
                     // if you want to keep a custom PK across calls.
                     const pk = opts.pk ?? DEFAULT_HARNESS_PK
-                    localStorage.setItem('__harness_skip_passkey', 'true')
-                    localStorage.setItem('__harness_ecdsa_pk', pk)
-                    localStorage.setItem('__harness_ecdsa_sponsored', 'true')
+                    for (const [k, v] of Object.entries(harnessSignerStorage(pk, true))) localStorage.setItem(k, v)
                 }
                 debugLog(`impersonating ${userId} — reloading /home`)
                 location.href = '/home'
@@ -171,10 +170,8 @@ export function PeanutDebug() {
                         'Tip: pass no argument to use the default harness PK.',
                     ])
                 }
-                const key = pk ?? localStorage.getItem('__harness_ecdsa_pk') ?? DEFAULT_HARNESS_PK
-                localStorage.setItem('__harness_skip_passkey', 'true')
-                localStorage.setItem('__harness_ecdsa_pk', key)
-                localStorage.setItem('__harness_ecdsa_sponsored', 'true')
+                const key = pk ?? localStorage.getItem(HARNESS_STORAGE_KEYS.ecdsaPk) ?? DEFAULT_HARNESS_PK
+                for (const [k, v] of Object.entries(harnessSignerStorage(key, true))) localStorage.setItem(k, v)
                 debugLog(`harness signer set (pk=${key.slice(0, 10)}…) — reload to take effect`)
                 location.reload()
             },

@@ -1,5 +1,28 @@
 # Peanut UI engineering checklist
 
+## Post-KYC region setup (L8)
+
+- Identity approval, completion of the setup screen and permission to use a bank account are separate. Known user actions and explicit provider reviews end preparing; only a usable requested account can invoke the money-flow success callback.
+- Missing capability reports or action descriptors remain unknown. Ordinary provisioning retains bounded timeout recovery. Country/intent scope applies to review signals as well as usable accounts.
+- Clear preparation timers on completion. Late refresh/terms responses after dismissal, unmount or another attempt cannot reopen the modal or complete a newer flow. Repeated Continue is idempotent.
+- Completion copy names the outstanding currency and distinguishes a user step from provider review. Existing terms and proof-of-address collection remain available; no provider policy or schema change.
+- Verify spec-derived hook tests, timer/fault and legacy-session regressions, four-locale component copy, registered Screen Library states, affected lint/format and required hosted CI. Keep deployment and device/provider evidence separate.
+
+Undecided: None for L8. No hook installation, runtime trust or provider configuration changes are included.
+
+## Android signup passkey compatibility
+
+- Check original signed client-data layout before native registration returns to the SDK and submits server verification. Standard create uses challenge-property byte 26; the deployed validator expects byte 23 for get.
+- Preserve exact credential bytes, account addresses, existing validator selection and credential pinning. Backup eligibility alone does not determine compatibility.
+- Reject incompatible/malformed registration with sanitized terminal guidance; no automatic retry, server account creation, navigation or signup success event. Preserve cancellation, timeout and native ownership fences.
+- Verify layout permutations, invalid data and UTF-8 prefixes, retry after rejection, get/web/iOS compatibility and signup recovery copy. A physical failing-provider check remains required before release; create layout cannot prove every future assertion layout.
+
+Undecided: audited dynamic-offset validator adoption and account migration, outside this compatibility guard. Native/provider validation remains separate from mocked acceptance tests.
+
+
+- Browser contract builds: explicitly cap V8 old-space at 4096 MiB on the build
+  steps. Preserve blocking browser specs and existing deadlines; heap capacity is
+  separate from total runner memory and successful hosted execution.
 - Money movement: preserve pre-sign affordability, execution idempotency and record-only recovery after funds move.
 - Visual coverage: every claimed UI state must have a deterministic, named capture scenario; capture completeness means all registered states ran, not that all changed states were registered.
 - State truth: validation for a new spend must not be shown as an error for an already processing or settled spend. Fixtures preserve the relevant input and lifecycle state without real payments or external side effects.
@@ -13,6 +36,7 @@
 - Capture cost: classify known nonvisual diffs before capture dependency/browser installation. Unknown or unprovable impact requires full capture. A targeted PR runs every registered state in its affected flows across all four supported locales; dev/main after libraries remain full.
 - Scoped coverage: targeted reports retain `complete: false` for the whole library and separately prove `scopeComplete`. The publisher recomputes the expected scope from immutable revisions. Omitted states are not tested, removed or unchanged; scoped reports cannot become full baselines or advance the full-library latest pointer.
 - Baseline reuse: require a trusted exact-before source, retained full capture, valid image digests and compatible harness, fixtures, renderer, locale, viewport, adapter, origin and device. Missing, expired or incompatible evidence triggers at most one fresh-before capture per locale; API failures remain unknown and visible.
+- Synthetic API changes: before may use its own base harness only with a matching receipt; renderer fields still match. Base reuse requires the exact before integration push to prove the producing harness. Harness-only fixes retain head on both sides; unsupported base runners visibly fall back to head.
 - Verification: run focused acceptance and Jest regressions, the Screen Library suite, affected lint/format/type checks, and required hosted CI. Report local checks separately from native/device, hosted capture, and deployed behavior.
 - Local hook: `.codex/quality-gates.json` runs a bounded Screen Library acceptance set plus affected ESLint and Prettier checks before direct commits. The full Screen Library suite and typecheck remain required in hosted CI; the local hook is an additional guardrail.
 
@@ -80,3 +104,15 @@ cannot be reconstructed from reports that were never captured or retained.
 - Verification: Node screen tests, formatting/lint for changed files, disposable toggle mutation, desktop/mobile browser inspection when available.
 
 Undecided: None for this change. Live deployment is outside this change.
+
+## Numeric money and UI invariants (TASK-24355)
+
+- Raw money and localized display strings are separate. Construct Money with explicit currency/asset, precision and exact bigint minor units; never serialize the Money object itself. Payment guards reject zero/negative, malformed/nonfinite, excessive precision and uint256 overflow before optimistic cache changes, charge creation or signing.
+- Shared numeric API decoders reject invalid present amount/rate fields without coercing responses. Nullable optional data remains unavailable; owning token/rate decoders enforce required fields. Rates must be finite and positive. Preserve transport auth, timeouts, request keys and post-transfer record-only recovery.
+- AmountInput retains canonical raw decimal state and rational conversion precision across toggles. A missing rate is unavailable and cannot mint a converted amount. Typed amounts remain owned by the payer during delayed rate/suggestion updates.
+- Invalid numeric displays use an unavailable marker, never a fabricated zero or free/sponsored fee. A legitimately pending fee keeps its pending state. The shared formatting adapters preserve existing valid locale and rounding contracts.
+- Numeric diagnostics contain only fixed source/category dimensions (at most35 combinations per runtime). The Sentry export boundary strips user, request, breadcrumbs, contexts, arbitrary tags and values. Reporting failure must not affect product behavior.
+- Bounds: raw numeric text1024 characters before regex/bigint processing; Money precision0..36; response decoder depth32 and100000 visited values. The registry compatibility test covers every existing asset spelling without bundling the token registry into Money.
+- Verification: independent spec tests, deterministic exact-unit/conversion oracles (seed24355), four-locale real-component failure/recovery tests, no-side-effect submission regressions, mutation challenges and lint-rule tests. Every registered Screen Library capture checks visible text, input values and slider attributes before its screenshot. The numeric rule and capture tests run in required test workflow alongside existing suites.
+
+Undecided: production alert thresholds and release/rollout ownership remain operational decisions. No live payment, deployment or production alert change is part of this PR.

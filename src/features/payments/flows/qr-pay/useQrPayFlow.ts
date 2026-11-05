@@ -1,6 +1,6 @@
 'use client'
 
-import { isPixKeyNotFound, verifiedPixKeyLabel } from '@/utils/pix.utils'
+import { isPixKeyNotFound, recipientBankNameOf, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
 import { usePixKeySavePrompt } from './usePixKeySavePrompt'
 import {
@@ -31,7 +31,7 @@ import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError, type SpendStrategy } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
-import { isPasskeyBusyError } from '@/utils/webauthn.utils'
+import { isPasskeyBusyError, isPasskeyCleanupPendingError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
@@ -53,7 +53,8 @@ import { PointsAction } from '@/services/services.types'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
-import maintenanceConfig from '@/config/underMaintenance.config'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -165,7 +166,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const recoverSignedSpend = useSignedSpendRecovery()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
     const queryClient = useQueryClient()
 
@@ -214,9 +215,14 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [qrType])
 
     // Check if this payment provider is under maintenance
+    const { disabledPaymentProviders } = useKillSwitches()
     const isProviderDisabled = useMemo(() => {
-        return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
-    }, [paymentProcessor])
+        return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
+    }, [paymentProcessor, disabledPaymentProviders])
+    const isBrazilPaused = useBrazilServicesPaused() && qrType === EQrType.PIX
+    // Neither an outage nor the Brazil pause starts a payment. The view keeps them
+    // apart: a payment made before the pause still shows its status (TASK-24197).
+    const blocksNewPayment = isProviderDisabled || isBrazilPaused
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
@@ -251,7 +257,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         enabled:
             !!lockedSpend &&
             !shouldBlockPay &&
-            !isProviderDisabled &&
+            !blocksNewPayment &&
             !isLoading &&
             !isSuccess &&
             !qrPayment &&
@@ -439,7 +445,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             !shouldBlockPay &&
             // The maintenance kill-switch is render-only below; without this the
             // doomed /init still fires on every scan during a provider outage.
-            !isProviderDisabled,
+            !blocksNewPayment,
         retry: (failureCount, error) => {
             /*
              * One predicate over one table (`init-error-classifier`), reading
@@ -495,6 +501,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     )
     // The generic init card has no support entry; these refusals need one.
     const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)
+    // The API refused the scan for identity, whatever the capabilities said:
+    // the card offers the verification step instead of only "Go back".
+    const initErrorNeedsVerification = scanOutcome.kind === 'failed' && scanOutcome.reason === QR_INIT_CODE.KYC
+    // The same answer can pause the QR rails (a pool payment with no sender
+    // identity). Read the user again, so the gate and the verification step
+    // act on what the API decided rather than on the capabilities from before.
+    useEffect(() => {
+        if (initErrorNeedsVerification) void fetchUser()
+    }, [initErrorNeedsVerification, fetchUser])
 
     // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
@@ -597,6 +612,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         if (!paymentLock) return null
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
+
+    const recipientBankName = recipientBankNameOf(paymentLock)
 
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
@@ -866,6 +883,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // Looser than the classifier's 'not allowed by the user agent';
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
+            } else if (isPasskeyCleanupPendingError(error)) {
+                // Blocking on purpose: the controller refuses every retry until a restart.
+                void captureNetworkTriagedFailure(error, {
+                    tags: {
+                        ...criticalFlowTags('qr-pay'),
+                        qr_pay_step: 'sign',
+                        qr_pay_failure: 'passkey_cleanup_pending',
+                    },
+                })
+                setErrorMessage(t('errors.passkeyRestart'))
             } else if (isPasskeyBusyError(error)) {
                 // an earlier passkey prompt still owns the authenticator; nothing was signed.
                 // still reported, tagged apart, so the busy rate stays visible
@@ -1206,6 +1233,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const view = deriveQrPayView({
         kycGateState,
         isProviderDisabled,
+        isBrazilPaused,
         errorInitiatingPayment,
         waitingForMerchantAmount,
         showOrderNotReadyModal,
@@ -1239,6 +1267,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         errorMessage,
         errorInitiatingPayment,
         initErrorNeedsSupport,
+        initErrorNeedsVerification,
         isBlockingError,
         balanceErrorMessage,
         rateUnavailable,
@@ -1252,6 +1281,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balance,
         usdAmount,
         merchantName,
+        recipientBankName,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,

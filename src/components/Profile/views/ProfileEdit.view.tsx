@@ -36,8 +36,6 @@ export const ProfileEditView = () => {
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
     const { isVerified: isKycApproved, isLoading: isIdentityLoading } = useIdentityVerification()
-    const nameLocked = user?.profileNameLocked ?? isKycApproved
-    const canEditName = !nameLocked
     const [codeSentTo, setCodeSentTo] = useState('')
     const [isSendingCode, setIsSendingCode] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
@@ -63,12 +61,9 @@ export const ProfileEditView = () => {
         const parts = (user.user.fullName || '').trim().split(/\s+/)
         const surname = parts.length > 1 ? parts.pop()! : ''
         if (hydrated.current) {
-            // Once verified, show the provider-owned name even if verification
-            // finished during an edit. Keep the user's email draft untouched.
-            if (nameLocked) {
-                resetField('name', { defaultValue: parts.join(' ') })
-                resetField('surname', { defaultValue: surname })
-            }
+            // Names belong to identity verification, including before approval.
+            resetField('name', { defaultValue: parts.join(' ') })
+            resetField('surname', { defaultValue: surname })
             // Signup can save after this form first hydrates. Adopt the saved
             // email as a clean default while preserving an edited replacement.
             if (!dirtyFields.email) resetField('email', { defaultValue: user.user.email || '' })
@@ -76,10 +71,9 @@ export const ProfileEditView = () => {
         }
         hydrated.current = true
         reset({ name: parts.join(' '), surname, email: user.user.email || '', code: '' })
-    }, [user, nameLocked, reset, resetField, dirtyFields.email])
+    }, [user, reset, resetField, dirtyFields.email])
 
-    const nameChanged = canEditName && !!(dirtyFields.name || dirtyFields.surname)
-    const isDirty = nameChanged || !!dirtyFields.email
+    const isDirty = !!dirtyFields.email
     const disabled = !user || isIdentityLoading || isSubmitting || isSendingCode
 
     const emailValue = watch('email').trim()
@@ -106,11 +100,14 @@ export const ProfileEditView = () => {
             // a missing name nor overwrite a name changed by a KYC webhook.
             const result = await updateUserById({
                 userId: user.user.userId,
-                ...(nameChanged ? { fullName: `${values.name.trim()} ${values.surname.trim()}`.trim() } : {}),
                 ...(dirtyFields.email ? { email: values.email.trim() } : {}),
                 ...(hasCode ? { emailVerificationCode: values.code } : {}),
             })
             if (result?.error) {
+                if (result.code === 'PROFILE_NAME_READ_ONLY') {
+                    setErrorMessage(t('errors.nameReadOnly'))
+                    return
+                }
                 if (result.error === 'This email is already associated with another account') {
                     setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
                     return
@@ -153,13 +150,12 @@ export const ProfileEditView = () => {
                     <Controller
                         name="name"
                         control={control}
-                        rules={{ validate: (value) => !nameChanged || !!value.trim() || t('errors.nameRequired') }}
                         render={({ field, fieldState }) => (
                             <ProfileEditField
                                 {...field}
                                 label={t('fields.name')}
                                 error={fieldState.error?.message}
-                                disabled={disabled || !canEditName}
+                                locked
                                 autoComplete="given-name"
                             />
                         )}
@@ -171,12 +167,12 @@ export const ProfileEditView = () => {
                             <ProfileEditField
                                 {...field}
                                 label={t('fields.surname')}
-                                disabled={disabled || !canEditName}
+                                locked
                                 autoComplete="family-name"
                             />
                         )}
                     />
-                    {!canEditName && <p className="text-body-s text-foreground-secondary">{t('verifiedNameHelp')}</p>}
+                    <p className="text-body-s text-foreground-secondary">{t('verifiedNameHelp')}</p>
                 </div>
                 <Controller
                     name="email"

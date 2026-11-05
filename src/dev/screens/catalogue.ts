@@ -1,4 +1,5 @@
 import { FIXTURES } from '../fixtures/registry'
+import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
 import { SURFACE_META } from '../surfaces/list'
 import { PAGE_CAPTURES, type PageCapture } from './pages'
 
@@ -60,7 +61,7 @@ const routeOverrides: Record<
     { route: string; fixture: string; event?: Screen['event']; storage?: Record<string, string> }
 > = {
     '11-a-earlyusermodal': { route: '/home', fixture: 'early-user' },
-    '41-c-migrationdownloadmodal': { route: '/home', fixture: 'home', storage: { 'pwa-sunset': 'true' } },
+    '41-c-migrationdownloadmodal': { route: '/home', fixture: DOWNLOAD_PROMPT_FIXTURE },
     '57-d-raincooldownintromodal': { route: '/home', fixture: 'home', event: 'rain:cooldown' },
     '58-d-stalecardapprovalreenablemodal': { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
     '18-a-reconsentmodal': { route: '/home', fixture: 'reconsent' },
@@ -111,9 +112,28 @@ const definitions: Screen[] = [
         flow: flow(`${id} ${f.route}`),
         kind: 'route' as const,
         defaultScreen: false,
-        route: f.route,
+        route: f.landsOn ?? f.route,
+        entryRoute: f.landsOn ? f.route : undefined,
         fixture: id,
         clicks: [],
+        actions:
+            // ready shows the consent screen and on passes through; the other states answer the tap
+            /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
+                ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
+                : undefined,
+        expectSelector: id.startsWith('paperwork-verification-state-')
+            ? '[data-testid="verify-input-state"]'
+            : id.startsWith('paperwork-verification-closed-')
+              ? '[data-testid="verify-closed-features"]'
+              : id === 'paperwork-verification-outage'
+                ? '[data-testid="verify-outage"]'
+                : id === 'paperwork-verification-policy-hold'
+                  ? '[data-testid="verify-review-retry"]'
+                  : id === 'paperwork-verification-rejected'
+                    ? '[data-testid="verify-review-home"]'
+                    : id === 'paperwork-verification-restart-foreign'
+                      ? '[data-testid="verify-id"]'
+                      : undefined,
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({
@@ -168,6 +188,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 31 },
     '09-a-passkeyinfomodal': { journey: 'Account setup', step: 32 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
+    '03-b-residence-compare': { journey: 'Account setup', step: 41 },
     '04-b-advantage-fees': { journey: 'Account setup', step: 42 },
     '02-b-advantage-card': { journey: 'Account setup', step: 44 },
     '03-c-residence-congrats': { journey: 'Account setup', step: 46 },

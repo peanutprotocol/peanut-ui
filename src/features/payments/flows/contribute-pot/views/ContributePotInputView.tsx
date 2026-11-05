@@ -21,13 +21,14 @@ import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useContributePotFlow } from '../useContributePotFlow'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { formatBankAmount } from '@/utils/currency'
+import { formatTokenAmount } from '@/utils/general.utils'
 
 export function ContributePotInputView() {
     const onBack = useSafeBack('/')
@@ -35,6 +36,8 @@ export function ContributePotInputView() {
     const { isFetchingUser } = useAuth()
     const {
         amount,
+        lastSuggestedAmount,
+        setLastSuggestedAmount,
         request,
         recipient,
         error,
@@ -54,6 +57,20 @@ export function ContributePotInputView() {
         executeContribution,
         setCurrentView,
     } = useContributePotFlow()
+
+    // What the field shows when this screen mounts. An amount that is only the
+    // last suggestion is not the payer's: the field starts empty and takes the
+    // fresh suggestion, so after somebody else paid it no longer offers the old
+    // remainder. A typed amount survives (TASK-23856). Read once, at mount: the
+    // field reports every change back into `amount` itself.
+    const [initialAmount] = useState(() => (amount === lastSuggestedAmount ? '' : amount))
+    // as the field reports it: the figure it shows, without thousands separators
+    const suggestedAmountText = sliderDefaults.suggestedAmount
+        ? (formatTokenAmount(sliderDefaults.suggestedAmount.toString(), 2) ?? '').replace(/,/g, '')
+        : ''
+    useEffect(() => {
+        if (suggestedAmountText) setLastSuggestedAmount(suggestedAmountText)
+    }, [suggestedAmountText, setLastSuggestedAmount])
 
     // handle submit - directly execute contribution
     const handlePayWithPeanut = () => {
@@ -99,7 +116,10 @@ export function ContributePotInputView() {
                     <UserCard
                         type="request_pay"
                         username={recipient.username}
-                        recipientType="USERNAME"
+                        // a requester with no Peanut user behind the request shows as the address it is
+                        {...(recipient.person
+                            ? { recipientType: 'USERNAME' as const, person: recipient.person }
+                            : { recipientType: 'ADDRESS' as const })}
                         isVerified={!!recipient.userId}
                         message={request?.reference || ''}
                         fileUrl={request?.attachmentUrl || ''}
@@ -107,7 +127,6 @@ export function ContributePotInputView() {
                         amountCollected={totalCollected}
                         isRequestPot={true}
                         contributors={contributors}
-                        avatarKey={recipient.avatarKey}
                     />
                 )}
 
@@ -128,7 +147,7 @@ export function ContributePotInputView() {
                 {/* amount input with slider + its field error form one column, 4px apart */}
                 <div className="flex flex-col gap-1">
                     <AmountInput
-                        initialAmount={amount}
+                        initialAmount={initialAmount}
                         setPrimaryAmount={setAmount}
                         onSubmit={handlePayWithPeanut}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
@@ -155,8 +174,7 @@ export function ContributePotInputView() {
                     isAmountEntered={isAmountEntered}
                     usdAmount={amount}
                     recipientUserId={recipient?.userId}
-                    recipientUsername={recipient?.username}
-                    recipientAvatarKey={recipient?.avatarKey}
+                    person={recipient?.person}
                     requestMessage={request?.reference || ''}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}

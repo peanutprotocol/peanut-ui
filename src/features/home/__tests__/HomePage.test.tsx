@@ -4,6 +4,7 @@
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { OnboardingState } from '@/utils/activation-step.utils'
 
 let mockFlow: {
@@ -39,6 +40,7 @@ jest.mock('@/components/Home/ActivationCTAs', () => ({
     ),
 }))
 jest.mock('@/components/Home/HomeCarouselCTA', () => ({ __esModule: true, default: () => <div>home-carousel</div> }))
+jest.mock('@/components/Home/FundingSetupPrompt', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/EnableAutoBalanceBanner', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Home/HomeHistory', () => ({ __esModule: true, default: () => null }))
 // The real component renders `whenEmpty` only when it has no large task card
@@ -49,7 +51,13 @@ jest.mock('@/components/Home/PendingVerificationTasks', () => ({
     default: ({ whenEmpty }: { whenEmpty: React.ReactNode }) =>
         mockHasTaskCard ? <div>verification-task-card</div> : <>{whenEmpty}</>,
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ nextActions: [], rails: [] }) }))
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({
+        nextActions: [],
+        rails: [],
+        capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
+    }),
+}))
 jest.mock('@/utils/bridge-tasks.utils', () => ({ selectHomeTasks: () => ({ documentSlide: undefined }) }))
 let mockHasProviderRejection = false
 const BLOCKED = {

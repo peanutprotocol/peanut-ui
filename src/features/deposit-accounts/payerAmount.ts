@@ -74,7 +74,8 @@ export function readServerPayerAmount(raw: unknown): ServerPayerAmount | undefin
     if (rate && typeof rate === 'object') {
         const { from, rate: quoted } = rate as Record<string, unknown>
         const usdRate = Number(quoted)
-        if (typeof from === 'string' && from.toUpperCase() === 'USD' && usdRate > 0) parsed.usdRate = usdRate
+        if (typeof from === 'string' && from.toUpperCase() === 'USD' && Number.isFinite(usdRate) && usdRate > 0)
+            parsed.usdRate = usdRate
     }
     return parsed
 }

@@ -14,8 +14,10 @@ describe('OnrampConfirmationModal', () => {
     it('asks for the reference, not for an exact amount', () => {
         renderWithIntl(<OnrampConfirmationModal visible onClose={jest.fn()} onConfirm={jest.fn()} />)
 
-        expect(screen.getByText('Copy the one-time reference code exactly')).toBeInTheDocument()
-        expect(screen.getByText('If the reference is missing or wrong:')).toBeInTheDocument()
+        expect(screen.getByText('Copy the reference exactly')).toBeInTheDocument()
+        expect(
+            screen.getByText('Without the exact reference, the deposit can be delayed or returned to your bank.')
+        ).toBeInTheDocument()
         expect(screen.queryByText(/Send exactly/)).not.toBeInTheDocument()
         expect(screen.queryByText(/amount or reference/)).not.toBeInTheDocument()
     })

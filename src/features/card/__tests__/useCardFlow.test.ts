@@ -5,20 +5,56 @@ import { act, renderHook } from '@testing-library/react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi } from '@/services/rain'
 import { useCardFlow } from '../useCardFlow'
+import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { RailCapability } from '@/types/capabilities'
+
+jest.mock('@/app/actions/kyc-feature-activation', () => ({ activateKycFeature: jest.fn() }))
 
 const mockCapture = jest.fn()
 let mockFunded = true
+let mockBalance: bigint | undefined = 10_000_000n
 let mockState = 'add-card'
 let mockOverview: Record<string, unknown> | undefined
 let mockOverviewLoading = false
-let mockUser: { user: { userId: string } } | null = { user: { userId: 'user-1' } }
+let mockUser: { user: { userId: string }; identityVerification?: { oneShot: boolean } } | null = {
+    user: { userId: 'user-1' },
+}
 let mockRainRails: Array<{ id: string; reason?: { code: string; userMessage: string } }> = []
+const mockFetchUser = jest.fn()
+let mockCardPlanReason: string | undefined
+const mockCapabilities = () =>
+    withFeatureReport(
+        {
+            rails: mockRainRails.map(
+                (rail) =>
+                    ({
+                        provider: 'rain',
+                        method: 'CARD_RAIN',
+                        channel: 'card',
+                        country: 'GLOBAL',
+                        currency: 'USD',
+                        status: 'requires-info',
+                        ...rail,
+                    }) as RailCapability
+            ),
+            nextActions: [],
+        },
+        { identity: { status: 'verified' }, planReasons: { rain: mockCardPlanReason } }
+    )
 const mockInvalidateQueries = jest.fn()
 let mockUserFetching = 0
-const mockQueryClient = { invalidateQueries: mockInvalidateQueries, isFetching: () => mockUserFetching }
+const mockQueryClient = {
+    invalidateQueries: mockInvalidateQueries,
+    isFetching: () => mockUserFetching,
+    setQueryData: jest.fn(),
+}
 
+const mockRouterPush = jest.fn()
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
+    useRouter: () => ({ push: mockRouterPush }),
 }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: () => ({ data: undefined, isLoading: false, error: null, refetch: jest.fn() }),
@@ -36,13 +72,26 @@ jest.mock('@/services/card', () => ({
     cardApi: { getInfo: jest.fn() },
 }))
 jest.mock('@/services/rain', () => ({
-    rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn() },
+    rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn(), getFundingAccess: jest.fn() },
+}))
+// The existing card permission is signed by its own (tested) hook; here only
+// whether and when the flow asks for it matters.
+const mockSerializeGrant = jest.fn()
+jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
+    useGrantSessionKey: () => ({ serializeGrant: mockSerializeGrant }),
 }))
 jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: mockUser && {
+            ...mockUser,
+            identityVerification: { status: 'verified', ...mockUser.identityVerification },
+            capabilities: mockCapabilities(),
+        },
+        fetchUser: mockFetchUser,
+    }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -58,15 +107,21 @@ jest.mock('@/components/Card/cardApply.utils', () => ({
 jest.mock('@/app/actions/sumsub', () => ({
     initiateSelfHealResubmission: jest.fn(),
 }))
-jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ hasSufficientSpendableBalance: () => mockFunded }),
+const mockGrantFunding = jest.fn()
+jest.mock('@/hooks/wallet/useRainFunding', () => ({
+    useRainFunding: () => ({ grant: mockGrantFunding }),
 }))
-
-jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
-    useGrantSessionKey: () => ({ serializeGrant: jest.fn() }),
+jest.mock('@/hooks/wallet/useWallet', () => ({
+    useWallet: () => ({ balance: mockBalance, hasSufficientSpendableBalance: () => mockFunded }),
+}))
+// The connected wallet: a flow belongs to one user and one wallet.
+let mockAddress: string | undefined = '0xA'
+jest.mock('@/hooks/useZeroDev', () => ({
+    useZeroDev: () => ({ address: mockAddress }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: mockCapabilities(),
         railsForProvider: (provider: string) => (provider === 'rain' ? mockRainRails : []),
         nextActionsForRail: () => [],
         isLoading: false,
@@ -84,12 +139,25 @@ jest.mock('@/hooks/useSafeBack', () => ({
 jest.mock('@/hooks/useSumsubReloadResume', () => ({
     useSumsubReloadResume: jest.fn(),
 }))
+const mockStartAction = jest.fn()
+const mockBlockIfFinal = jest.fn(() => false)
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: () => ({ handleStartAction: mockStartAction, blockIfFinal: mockBlockIfFinal }),
+}))
 
 const mockApplyForCard = rainApi.applyForCard as jest.Mock
+const mockGetFundingAccess = rainApi.getFundingAccess as jest.Mock
+
+beforeEach(() => {
+    mockAddress = '0xA'
+    mockCardPlanReason = undefined
+})
 
 describe('useCardFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        // the existing cases accept the managed terms on a managed account
+        mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: true })
         mockUserFetching = 0
         mockFunded = true
         mockState = 'add-card'
@@ -98,6 +166,46 @@ describe('useCardFlow', () => {
         mockUser = { user: { userId: 'user-1' } }
         mockRainRails = []
         window.localStorage.clear()
+    })
+
+    it.each(['document_country_unsupported', 'identity_document_insufficient'])(
+        'reads reported %s without applying and Back dismisses it only for this visit',
+        (reason) => {
+            mockCardPlanReason = reason
+            expect(mockCapabilities().features?.card).toMatchObject({ state: 'refused', reason })
+            const { result, rerender, unmount } = renderHook(() => useCardFlow())
+
+            expect(result.current.planRefusal).toBe(reason)
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            act(() => result.current.setPlanRefusal(null))
+            expect(result.current.planRefusal).toBeNull()
+            rerender()
+            expect(result.current.planRefusal).toBeNull()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+
+            unmount()
+            const nextVisit = renderHook(() => useCardFlow())
+            expect(nextVisit.result.current.planRefusal).toBe(reason)
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+        }
+    )
+
+    // the API refuses a legacy applicant to a Smart Paperwork Verification user
+    it('an application the API sends to /verify goes there, never to an error or the legacy check', async () => {
+        const { ApiError } = jest.requireActual('@/services/api-error')
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockApplyForCard.mockRejectedValue(
+            new ApiError('Answer a few questions to start your verification.', {
+                status: 409,
+                code: 'paperwork_verification_required',
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify')
+        expect(result.current.applyError).toBeNull()
     })
 
     it('does not contact Rain before a confirmed $10 balance for a new application', async () => {
@@ -123,9 +231,13 @@ describe('useCardFlow', () => {
         mockFunded = false
         rerender()
         await act(async () => {
-            await result.current.handleAcceptTerms()
+            await result.current.handleAcceptTerms({
+                authorizationAccepted: true,
+                authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+            })
         })
         expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockGrantFunding).not.toHaveBeenCalled()
         expect(result.current.pendingTerms).toBeNull()
         expect(result.current.fundingRequired).toBe(true)
     })
@@ -151,6 +263,46 @@ describe('useCardFlow', () => {
         })
         expect(result.current.sumsubToken).toBe('tok-1')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
+    it('(H9) a final rejection shows the account review instead of the sumsub sdk', async () => {
+        mockBlockIfFinal.mockReturnValueOnce(true)
+        mockApplyForCard.mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 'tok-1' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockBlockIfFinal).toHaveBeenCalled()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
+    it('asks the Smart Paperwork Verification card questions on questions-required, then applies again once they are saved', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'purpose' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('purpose')
+        expect(result.current.pendingTerms).toBeNull()
+
+        mockApplyForCard.mockResolvedValueOnce({ status: 'terms-required', isUsResident: true })
+        await act(async () => {
+            result.current.handleQuestionsDone()
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(2)
+        expect(mockApplyForCard).toHaveBeenLastCalledWith(expect.objectContaining({ termsAccepted: false }))
+        expect(result.current.pendingQuestions).toBeNull()
+        expect(result.current.pendingTerms).toEqual({ isUsResident: true })
+    })
+
+    it('asks the job again when Rain refused the title (questions-required at the work step)', async () => {
+        mockApplyForCard.mockResolvedValueOnce({ status: 'questions-required', step: 'work' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.pendingQuestions).toBe('work')
     })
 
     it('routes terms-required to the terms screen', async () => {
@@ -183,6 +335,50 @@ describe('useCardFlow', () => {
 
         expect(result.current.pendingResidenceBlocked).toBe(true)
         expect(result.current.geoBlocked).toBe(false)
+    })
+
+    describe('a card the plan does not send to Rain', () => {
+        const refused = (reason?: string) => ({
+            status: 'provider-not-in-plan',
+            ...(reason ? { reason } : {}),
+            message: 'The card is not part of your current verification.',
+        })
+
+        it('opens the missing requirement through start-action', async () => {
+            mockApplyForCard.mockResolvedValue(refused('requirements_missing'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(mockStartAction).toHaveBeenCalledWith('supplement:rain')
+            expect(result.current.planRefusal).toBeNull()
+            expect(result.current.applyError).toBeNull()
+        })
+
+        it.each(['identity_document_insufficient', 'requirements_uncollectable'])(
+            'holds %s for the status screen instead of an English error',
+            async (reason) => {
+                mockApplyForCard.mockResolvedValue(refused(reason))
+                const { result } = renderHook(() => useCardFlow())
+                await act(async () => {
+                    await result.current.handleApply()
+                })
+                expect(result.current.planRefusal).toBe(reason)
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
+                expect(result.current.applyError).toBeNull()
+                expect(mockStartAction).not.toHaveBeenCalled()
+            }
+        )
+
+        it('keeps the error line for a refusal the app has no copy for', async () => {
+            mockApplyForCard.mockResolvedValue(refused('not_requested'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(result.current.planRefusal).toBeNull()
+            expect(result.current.applyError).toBe('The card is not part of your current verification.')
+        })
     })
 
     it('surfaces an apply failure as applyError', async () => {
@@ -259,6 +455,373 @@ describe('useCardFlow', () => {
         mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'PENDING' } }
         rerender()
         expect(result.current.applyError).toBeNull()
+    })
+
+    describe('handleAcceptTerms — the funding permission follows the application', () => {
+        const CONSENT = {
+            authorizationAccepted: true,
+            authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+        }
+
+        it('applies first, then grants with the boxes the person ticked — and sends no serializedApproval', async () => {
+            const order: string[] = []
+            mockGrantFunding.mockImplementation(async () => {
+                order.push('grant')
+                return { ok: true, status: 'pending' }
+            })
+            mockApplyForCard.mockImplementation(async () => {
+                order.push('apply')
+                return { status: 'pending', rainUserId: 'ru-1', message: 'submitted' }
+            })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(order).toEqual(['apply', 'grant'])
+            // handed over for exactly the user and wallet that accepted
+            expect(mockGrantFunding).toHaveBeenCalledWith(CONSENT, { userId: 'user-1', connectedAddress: '0xA' })
+            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true, acceptedDocuments: [] })
+            expect(result.current.isIssuing).toBe(false)
+        })
+
+        it('a cancelled or failed grant leaves the issued card and shows no card error', async () => {
+            mockGrantFunding.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
+            mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            // the Home prompt asks again; the application itself is not undone
+            expect(result.current.applyError).toBeNull()
+            expect(result.current.isIssuing).toBe(false)
+        })
+
+        it.each([
+            [{ status: 'terms-required', isUsResident: false }],
+            [{ status: 'incomplete', sumsubAccessToken: 'tok-1' }],
+            [{ status: 'geo-blocked', message: 'no' }],
+        ])('never signs the permission when the application did not go through (%j)', async (response) => {
+            mockApplyForCard.mockResolvedValue(response)
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+        })
+
+        it('never signs the permission when the application call fails', async () => {
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            mockApplyForCard.mockRejectedValue(new Error('boom'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBe('boom')
+            consoleSpy.mockRestore()
+        })
+
+        it('a managed account finishes on the managed path even when new enrollment is closed', async () => {
+            mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
+            mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+            expect(mockGrantFunding).toHaveBeenCalledWith(CONSENT, { userId: 'user-1', connectedAddress: '0xA' })
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+        })
+
+        // Account A's application answers after the person switched to B (or
+        // to another wallet). A's consent must never start B's enrollment or
+        // any signature, and A's answer changes nothing on B's screen.
+        it.each([
+            ['another account', () => (mockUser = { user: { userId: 'user-2' } })],
+            ['another wallet on the same account', () => (mockAddress = '0xB')],
+        ])('an application that answers after a switch to %s grants nothing', async (_name, switchTo) => {
+            let answer!: (value: unknown) => void
+            mockApplyForCard.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+            const { result, rerender } = renderHook(() => useCardFlow())
+            let pending!: Promise<void>
+            await act(async () => {
+                pending = result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+            switchTo()
+            rerender()
+            await act(async () => {
+                answer({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+                await pending
+            })
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+            expect(window.localStorage.getItem('card_issuance_celebration_pending_v1:user-1')).toBeNull()
+            expect(result.current.applyError).toBeNull()
+        })
+
+        it('stores the fresh decision under this user and wallet only', async () => {
+            mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(['rain-card-funding-access', 'user-1', '0xa'], {
+                fundingMode: 'managed',
+                enrollmentAllowed: true,
+            })
+        })
+
+        it.each([
+            ['the terms', { status: 'terms-required', isUsResident: true }, 'pendingTerms'],
+            [
+                'the country question',
+                { status: 'country-confirmation-required', candidates: [] },
+                'pendingCountryConfirmation',
+            ],
+        ] as const)(
+            'an application answer that lands after a switch does not open %s for the next account',
+            async (_n, response, field) => {
+                let answer!: (value: unknown) => void
+                mockApplyForCard.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+                const { result, rerender } = renderHook(() => useCardFlow())
+                let pending!: Promise<void>
+                await act(async () => {
+                    pending = result.current.handleApply()
+                })
+                mockUser = { user: { userId: 'user-2' } }
+                rerender()
+                await act(async () => {
+                    answer(response)
+                    await pending
+                })
+                expect(result.current[field]).toBeNull()
+            }
+        )
+
+        it('a country answer that lands after a wallet switch changes nothing', async () => {
+            let answer!: (value: unknown) => void
+            mockApplyForCard.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+            const { result, rerender } = renderHook(() => useCardFlow())
+            let pending!: Promise<void>
+            await act(async () => {
+                pending = result.current.handleConfirmCountry('US')
+            })
+            mockAddress = '0xB'
+            rerender()
+            await act(async () => {
+                answer({ status: 'terms-required', isUsResident: true })
+                await pending
+            })
+            expect(result.current.pendingTerms).toBeNull()
+            expect(result.current.applyError).toBeNull()
+        })
+
+        it('an accept handler kept from before a switch reads, applies and grants nothing', async () => {
+            const { result, rerender } = renderHook(() => useCardFlow())
+            const acceptForA = result.current.handleAcceptTerms
+            mockUser = { user: { userId: 'user-2' } }
+            rerender()
+            await act(async () => {
+                await acceptForA(CONSENT)
+            })
+            expect(mockGetFundingAccess).not.toHaveBeenCalled()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+            expect(mockQueryClient.setQueryData).not.toHaveBeenCalled()
+        })
+
+        it('a switch while the decision is read writes nothing to the cache for either account', async () => {
+            let release!: () => void
+            mockGetFundingAccess.mockImplementation(
+                () =>
+                    new Promise((resolve) => {
+                        release = () => resolve({ fundingMode: 'managed', enrollmentAllowed: true })
+                    })
+            )
+            const { result, rerender } = renderHook(() => useCardFlow())
+            let pending!: Promise<void>
+            act(() => {
+                pending = result.current.handleAcceptTerms(CONSENT)
+            })
+            mockAddress = '0xB'
+            rerender()
+            await act(async () => {
+                release()
+                await pending
+            })
+            expect(mockQueryClient.setQueryData).not.toHaveBeenCalled()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+        })
+
+        // The person read and accepted the managed text; enrollment closed
+        // before they pressed Continue. Nothing is applied or signed, and the
+        // existing permission is never signed in its place.
+        it('enrollment closed while the managed terms were open: no application, no signature, accept again', async () => {
+            mockGetFundingAccess.mockResolvedValue({ fundingMode: 'legacy', enrollmentAllowed: false })
+            mockOverview = { status: { contractAddress: '0xc', coordinatorAddress: '0xd' }, cards: [] }
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBe('funding.termsChanged')
+            expect(result.current.isIssuing).toBe(false)
+        })
+
+        it('an unreadable decision applies and signs nothing', async () => {
+            mockGetFundingAccess.mockRejectedValue(new Error('funding_access_unavailable'))
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(CONSENT)
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBe('page.setupFailed')
+        })
+    })
+
+    // An account managed funding is not open to keeps the production card
+    // path: the existing agreement, the existing permission, the existing gates.
+    describe('handleAcceptTerms — the existing card path', () => {
+        const CONTRACTS = { contractAddress: '0xcollateral', coordinatorAddress: '0xcoordinator' }
+        beforeEach(() => {
+            mockGetFundingAccess.mockResolvedValue({ fundingMode: 'legacy', enrollmentAllowed: false })
+        })
+
+        it('re-issue with contracts in place signs the existing permission first, then applies with it', async () => {
+            const order: string[] = []
+            mockOverview = { status: { ...CONTRACTS, hasApplication: true, railStatus: 'ENABLED' }, cards: [] }
+            mockSerializeGrant.mockImplementation(async () => {
+                order.push('sign')
+                return { ok: true, serialized: 'SERIALIZED_APPROVAL' }
+            })
+            mockApplyForCard.mockImplementation(async () => {
+                order.push('apply')
+                return { status: 'pending', rainUserId: 'ru-1', message: 'submitted' }
+            })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(null)
+            })
+            expect(order).toEqual(['sign', 'apply'])
+            expect(mockSerializeGrant).toHaveBeenCalledWith({ userId: 'user-1', connectedAddress: '0xA' })
+            expect(mockApplyForCard).toHaveBeenCalledWith({
+                termsAccepted: true,
+                acceptedDocuments: [],
+                serializedApproval: 'SERIALIZED_APPROVAL',
+            })
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+        })
+
+        it.each([
+            ['cancelled', 'user-cancelled', 'page.setupCancelled'],
+            ['failed', 'unexpected', 'page.setupFailed'],
+        ])('a %s signature creates no card', async (_name, kind, message) => {
+            mockOverview = { status: { ...CONTRACTS, hasApplication: true, railStatus: 'ENABLED' }, cards: [] }
+            mockSerializeGrant.mockResolvedValue({ ok: false, error: { kind, message: 'x' } })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(null)
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBe(message)
+            expect(result.current.isIssuing).toBe(false)
+        })
+
+        it('a first application with no contracts yet applies without a permission (Home asks after issuance)', async () => {
+            mockOverview = { status: { hasApplication: false }, cards: [] }
+            mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(null)
+            })
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true, acceptedDocuments: [] })
+            expect(mockGrantFunding).not.toHaveBeenCalled()
+        })
+
+        it('keeps the $10 balance gate for a new application', async () => {
+            mockFunded = false
+            mockOverview = { status: { hasApplication: false }, cards: [] }
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(null)
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.fundingRequired).toBe(true)
+        })
+
+        it('the $10 gate stops a new application with contracts before anything is signed', async () => {
+            mockFunded = false
+            mockOverview = { status: { ...CONTRACTS, hasApplication: false }, cards: [] }
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(null)
+            })
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.fundingRequired).toBe(true)
+        })
+
+        it('an account that became managed while these terms were open is never given the existing permission', async () => {
+            mockGetFundingAccess.mockResolvedValue({ fundingMode: 'managed', enrollmentAllowed: false })
+            mockOverview = { status: { ...CONTRACTS, hasApplication: true, railStatus: 'ENABLED' }, cards: [] }
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleAcceptTerms(null)
+            })
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBe('funding.termsChanged')
+        })
+
+        it('an approval signed for one wallet is never sent after a switch to another', async () => {
+            let signed!: (value: unknown) => void
+            mockSerializeGrant.mockImplementation(() => new Promise((resolve) => (signed = resolve)))
+            mockOverview = { status: { ...CONTRACTS, hasApplication: true, railStatus: 'ENABLED' }, cards: [] }
+            const { result, rerender } = renderHook(() => useCardFlow())
+            let pending!: Promise<void>
+            await act(async () => {
+                pending = result.current.handleAcceptTerms(null)
+            })
+            expect(mockSerializeGrant).toHaveBeenCalledTimes(1)
+            mockAddress = '0xB'
+            rerender()
+            await act(async () => {
+                signed({ ok: true, serialized: 'SIGNED_FOR_A' })
+                await pending
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.applyError).toBeNull()
+        })
+
+        it('a switch of account while the decision is read applies and signs nothing', async () => {
+            let release!: () => void
+            mockGetFundingAccess.mockImplementation(
+                () =>
+                    new Promise((resolve) => {
+                        release = () => resolve({ fundingMode: 'legacy', enrollmentAllowed: false })
+                    })
+            )
+            mockOverview = { status: { ...CONTRACTS, hasApplication: true, railStatus: 'ENABLED' }, cards: [] }
+            const { result, rerender } = renderHook(() => useCardFlow())
+            let pending!: Promise<void>
+            act(() => {
+                pending = result.current.handleAcceptTerms(null)
+            })
+            mockUser = { user: { userId: 'user-2' } }
+            rerender()
+            await act(async () => {
+                release()
+                await pending
+            })
+            expect(mockSerializeGrant).not.toHaveBeenCalled()
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+        })
     })
 
     it('fires the abandonment event only when sumsub closes without completing', async () => {
@@ -456,5 +1019,121 @@ describe('useCardFlow — state viewed analytics', () => {
                 },
             ],
         ])
+    })
+})
+
+describe('useCardFlow — balance known', () => {
+    beforeEach(() => {
+        mockBalance = 10_000_000n
+        mockOverview = { status: { hasApplication: false }, cards: [], balance: null }
+    })
+
+    it('treats the balance as known only once a value was read', () => {
+        mockBalance = undefined
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.isBalanceKnown).toBe(false)
+        mockBalance = 0n
+        rerender()
+        expect(result.current.isBalanceKnown).toBe(true)
+    })
+
+    it('waits for the Rain half of the balance', () => {
+        mockBalance = 0n
+        mockOverview = undefined
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.isBalanceKnown).toBe(false)
+        mockOverview = {
+            status: { hasApplication: false, railStatus: 'ENABLED' },
+            cards: [],
+            balance: null,
+            balanceUnavailable: true,
+        }
+        rerender()
+        expect(result.current.isBalanceKnown).toBe(false)
+        mockOverview = { ...mockOverview, balance: { spendingPower: 2500 }, balanceUnavailable: false }
+        rerender()
+        expect(result.current.isBalanceKnown).toBe(true)
+    })
+})
+
+describe('card first-use activation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { oneShot: true } }
+        mockFunded = true
+        mockBalance = 10_000_000n
+        mockOverview = { status: { hasApplication: false }, cards: [] }
+        mockOverviewLoading = false
+        mockState = 'add-card'
+        mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: false })
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'on' } })
+    })
+
+    it('waits for activation before asking Rain, with duplicate clicks serialized', async () => {
+        let resolve!: (value: Awaited<ReturnType<typeof activateKycFeature>>) => void
+        jest.mocked(activateKycFeature).mockReturnValue(
+            new Promise((done) => {
+                resolve = done
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        let first!: Promise<void>
+        let second!: Promise<void>
+        act(() => {
+            first = result.current.handleApply()
+            second = result.current.handleApply()
+        })
+        expect(activateKycFeature).toHaveBeenCalledWith('card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        await act(async () => {
+            resolve({ kind: 'report', report: { state: 'on' } })
+            await Promise.all([first, second])
+        })
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('legacy users apply without activation', async () => {
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { oneShot: false } }
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(activateKycFeature).not.toHaveBeenCalled()
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['setting_up', 'pending'] as const)(
+        '%s keeps Rain untouched and exposes setup to CardPage',
+        async (state) => {
+            jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state } })
+            const { result } = renderHook(() => useCardFlow())
+            await act(async () => {
+                await result.current.handleApply()
+            })
+            expect(mockApplyForCard).not.toHaveBeenCalled()
+            expect(result.current.activation.allowed).toBe(false)
+            expect(result.current.activation.result).toEqual({ kind: 'report', report: { state } })
+        }
+    )
+
+    it('questions_missing routes to feature questions without applying', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing', step: 'tax' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(mockRouterPush).toHaveBeenCalledWith('/verify?feature=card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+    })
+
+    it('a cold interrupted KYC resume activates before any Rain request', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'pending' } })
+        renderHook(() => useCardFlow())
+        const resume = jest.mocked(useSumsubReloadResume).mock.calls.at(-1)![1]
+        await act(async () => {
+            await resume({})
+        })
+        expect(activateKycFeature).toHaveBeenCalledWith('card')
+        expect(mockApplyForCard).not.toHaveBeenCalled()
     })
 })

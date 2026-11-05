@@ -2,6 +2,11 @@
 export type Fixture = {
     /** Route the fixture is built for. The listing page links here with the param applied. */
     route: string
+    /**
+     * Where the app sends the user from `route`, when that screen is the state
+     * under test. The capture opens `route` and shoots once it lands here.
+     */
+    landsOn?: string
     /** What the fixture proves. One line, shown on /dev/fixtures. */
     about: string
     /**
@@ -18,6 +23,12 @@ export type Fixture = {
     balance?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
+    /**
+     * `METHOD /path` keys that answer an API refusal: the 4xx status and the
+     * body the API sends with it, `code` included. For screens that branch on a
+     * typed refusal rather than on a 500.
+     */
+    rejects?: Record<string, { status: number; body: Record<string, unknown> }>
     /**
      * Set when the state under test IS a loader — a screen waiting on a
      * provider that will not answer inside a fixture. The capture normally

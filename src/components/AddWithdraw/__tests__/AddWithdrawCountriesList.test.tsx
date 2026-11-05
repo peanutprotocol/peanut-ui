@@ -16,11 +16,17 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * gate is NOT ready — so the fix didn't just delete the guard wholesale.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { railVerdict } from '@/utils/capability-gate'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 import { render as rtlRender, screen, fireEvent, within, act, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
+
+const killSwitches = getKillSwitches()
 import { addBankAccount } from '@/app/actions/users'
 
 // the screen is named in the URL (`?step=form`), so every render needs the
@@ -48,6 +54,11 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => mockSearchParams,
 }))
 
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+
 // ---- consts: one country ('testland', id 'US') with a bank add-method and a
 // Bridge bank withdraw-method (the withdraw path also runs checkBridgeGate). ----
 jest.mock('@/components/AddMoney/consts', () => ({
@@ -57,10 +68,38 @@ jest.mock('@/components/AddMoney/consts', () => ({
         // hand-editing the URL, which is the hole F9 names
         { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
         { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
+        { type: 'country', path: 'argentina', id: 'AR', title: 'Argentina', currency: 'ars' },
+        { type: 'country', path: 'brazil', id: 'BR', title: 'Brazil', currency: 'brl' },
     ],
     // the corridor table reads this; the real module exports it
     BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
     COUNTRY_SPECIFIC_METHODS: {
+        BR: {
+            add: [
+                {
+                    id: 'pix-add',
+                    title: 'Pix',
+                    description: 'Instant transfers',
+                    icon: 'pix',
+                    path: '/add-money/brazil/manteca',
+                },
+            ],
+            withdraw: [],
+        },
+        // the real Argentina row: Mercado Pago has no row of its own
+        AR: {
+            add: [
+                {
+                    id: 'bank-transfer-add',
+                    title: 'From Bank',
+                    description: 'Usually in minutes - KYC required',
+                    // the Mercado Pago logo, an imported image like the real one
+                    icon: { src: '/mercado-pago.svg', width: 32, height: 32 },
+                    path: '/add-money/argentina/manteca',
+                },
+            ],
+            withdraw: [],
+        },
         US: {
             add: [
                 {
@@ -119,6 +158,10 @@ function setCapabilities(
     gateByScope?: (op: string, scope: GateScopeArg) => string
 ) {
     mockUseCapabilities.mockReturnValue({
+        capabilities: withFeatureReport(
+            { rails: rails as RailCapability[], nextActions: [], restrictions: [] },
+            { identity: { status: rails.some((r) => r.status === 'enabled') ? 'verified' : 'not_started' } }
+        ),
         isKycApproved: rails.some((r) => r.status === 'enabled'),
         gateFor: (op: string, scope: GateScopeArg) => {
             mockGateForOp(op, scope)
@@ -138,17 +181,34 @@ function setCapabilities(
 const mockFetchUser = jest.fn().mockResolvedValue(undefined)
 // one stable reference, as React Query hands out: a submit tells "the context
 // has rendered a newer user" apart from "the same user" by identity
-let mockAuthUser: unknown = { accounts: [] }
+let mockAuthUser: unknown = {
+    accounts: [],
+    capabilities: withFeatureReport(
+        { rails: [], nextActions: [], restrictions: [] },
+        { identity: { status: 'verified' } }
+    ),
+    identityVerification: { status: 'verified' },
+}
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockAuthUser, fetchUser: mockFetchUser }),
     useOptionalAuth: () => ({ user: mockAuthUser }),
 }))
 // The submit resolves its gate from the profile the fetch returns, through the
 // real deriveGate — so a fetched profile says what its own bank rail allows.
-const enabledUsBankRail = { id: 'bridge.us', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }
+const enabledUsBankRail = {
+    id: 'bridge.us',
+    provider: 'bridge',
+    channel: 'bank',
+    country: 'US',
+    currency: 'USD',
+    status: 'enabled',
+}
 const fetchedProfile = (accounts: unknown[] = [], rails: unknown[] = [enabledUsBankRail]) => ({
     accounts,
-    capabilities: { rails, nextActions: [], restrictions: [] },
+    capabilities: withFeatureReport(
+        { rails: rails as RailCapability[], nextActions: [], restrictions: [] },
+        { identity: { status: rails.length > 0 ? 'verified' : 'processing' } }
+    ),
     identityVerification: { status: rails.length > 0 ? 'verified' : 'pending' },
 })
 const mockSetSelectedBankAccount = jest.fn()
@@ -168,20 +228,25 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 // useTosGuard is real: its own unscoped deposit read is what the ToS regressions below exercise
 let mockCooldown: { retryAt?: string } | null = null
+let mockShowWrapper = false
 const mockDismissCooldown = jest.fn()
 beforeEach(() => {
     mockCooldown = null
+    mockShowWrapper = false
     mockDismissCooldown.mockClear()
 })
+const mockHandleInitiateKyc = jest.fn()
+const mockHandleRestartIdentity = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
-        handleInitiateKyc: jest.fn(),
+        handleInitiateKyc: mockHandleInitiateKyc,
+        handleRestartIdentity: mockHandleRestartIdentity,
         handleSelfHealResubmit: jest.fn(),
         isLoading: false,
         error: null,
         errorCooldown: mockCooldown,
         dismissErrorCooldown: mockDismissCooldown,
-        showWrapper: false,
+        showWrapper: mockShowWrapper,
     }),
 }))
 // back leaves for the list the country was picked from; the history rewind
@@ -238,7 +303,9 @@ jest.mock('@/components/0_Bruddle/ListItem', () => ({
             onClick={props.disabled ? undefined : props.onClick}
             disabled={props.disabled}
         >
+            {props.leading}
             {props.title}
+            {props.body}
             {props.trailing}
         </button>
     ),
@@ -287,10 +354,12 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
         props.visible && !props.cooldownActive ? (
             <div data-testid="initiate-kyc-modal" data-variant={props.variant} data-reason={props.reasonCode}>
                 {props.providerMessage}
+                <button data-testid="initiate-kyc-verify" onClick={props.onVerify} />
             </div>
         ) : null,
 }))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+// renders the alt text only, so a test can read what the row announces
+jest.mock('next/image', () => ({ __esModule: true, default: ({ alt }: { alt: string }) => <img alt={alt} /> }))
 
 describe('AddWithdrawCountriesList — bank gate', () => {
     beforeEach(() => {
@@ -368,6 +437,21 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
     })
 
+    // The list carried its own copy of the dispatch and it had no restart branch,
+    // so "Verify with a different document" started a fresh run instead.
+    it('a restart-identity gate restarts the identity check, never a fresh verification', async () => {
+        setCapabilities('restart-identity', [{ status: 'blocked', channel: 'bank', country: 'US' }])
+
+        render(<AddWithdrawCountriesList flow="add" />)
+        fireEvent.click(screen.getByTestId('method-bank'))
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('initiate-kyc-verify'))
+        })
+
+        expect(mockHandleRestartIdentity).toHaveBeenCalled()
+        expect(mockHandleInitiateKyc).not.toHaveBeenCalled()
+    })
+
     // provide-email is a self-serve gate (one email unblocks the rail) — it must
     // open the email sheet, NEVER the contact-support KYC modal. Both the click
     // gate (checkBridgeGate) and the form-submit gate (handleFormSubmit) must
@@ -417,6 +501,37 @@ describe('AddWithdrawCountriesList — crypto is offered once per flow', () => {
  * maintenance" (config: pixBrazilOnrampMaintenance) — warn-only: it stays
  * visible and clickable.
  */
+// TASK-24197: with the Brazil pause on, every Brazil method opens the paused drawer
+describe('AddWithdrawCountriesList — the Brazil pause', () => {
+    afterEach(() => {
+        mockBrazilPaused = false
+        closeBrazilPausedDrawer()
+        mockParams.country = 'testland'
+    })
+
+    it('a Brazil method opens the paused drawer and goes nowhere', () => {
+        mockBrazilPaused = true
+        mockParams.country = 'brazil'
+        mockPush.mockClear()
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        fireEvent.click(screen.getByTestId('method-pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('the same Pix method listed under another country is not stopped', () => {
+        mockBrazilPaused = true
+        mockPush.mockClear()
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        fireEvent.click(screen.getByTestId('method-pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(false)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+})
+
 describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     // snapshot/restore the shipped flag so each test can flip it without leaking
     // state — and without coupling the restore to the committed default
@@ -426,15 +541,15 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
         mockPush.mockClear()
         // a ready gate so a click can navigate — proving the option is not blocked
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        originalPixMaintenance = underMaintenanceConfig.pixBrazilOnrampMaintenance
+        originalPixMaintenance = killSwitches.pixBrazilOnrampMaintenance
     })
 
     afterEach(() => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = originalPixMaintenance
+        killSwitches.pixBrazilOnrampMaintenance = originalPixMaintenance
     })
 
     it('tags the Pix option "Maintenance" but keeps it clickable (warn-only)', () => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = true
+        killSwitches.pixBrazilOnrampMaintenance = true
 
         render(<AddWithdrawCountriesList flow="add" />)
 
@@ -447,7 +562,7 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     })
 
     it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
-        underMaintenanceConfig.pixBrazilOnrampMaintenance = false
+        killSwitches.pixBrazilOnrampMaintenance = false
 
         render(<AddWithdrawCountriesList flow="add" />)
 
@@ -541,7 +656,9 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockUrlAmount = '50'
         mockNuqsParams = { step: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: newAccount.id } })
+        ;(addBankAccount as jest.Mock).mockResolvedValue({
+            data: { id: newAccount.id, bridgeAccountId: newAccount.bridgeAccountId },
+        })
         // the refetched user carries the freshly added account
         mockFetchUser.mockResolvedValue(fetchedProfile([newAccount]))
     })
@@ -550,6 +667,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockUrlAmount = ''
         mockNuqsParams = {}
         mockSearchParams = new URLSearchParams()
+        mockAuthUser = fetchedProfile([])
         ;(addBankAccount as jest.Mock).mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(undefined)
@@ -564,6 +682,40 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         expect(result).toEqual({})
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(newAccount)
         expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=50')
+    })
+
+    it('a corrected account keeps its id: the refetched account, with its new Bridge account, is the destination', async () => {
+        // a new routing number updates the saved account in place (TASK-23891)
+        const savedAccount = { id: 'acct-saved', bridgeAccountId: 'ext-old', identifier: '123456789' }
+        const corrected = { ...savedAccount, bridgeAccountId: 'ext-new', routingNumber: '026009593' }
+        mockAuthUser = fetchedProfile([savedAccount])
+        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: savedAccount.id, bridgeAccountId: 'ext-new' } })
+        mockFetchUser.mockResolvedValue(fetchedProfile([corrected]))
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        const result = await submitForm()
+
+        expect(result).toEqual({})
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(corrected)
+    })
+
+    it('a refetch that still shows the old Bridge account is not trusted: the API answer is the destination', async () => {
+        // a failed /users/me refresh hands back the cached profile, and a lagging one the old row
+        const savedAccount = { id: 'acct-saved', bridgeAccountId: 'ext-old', identifier: '123456789' }
+        mockAuthUser = fetchedProfile([savedAccount])
+        ;(addBankAccount as jest.Mock).mockResolvedValue({
+            data: { id: savedAccount.id, bridgeAccountId: 'ext-new', identifier: '123456789', details: {} },
+        })
+        mockFetchUser.mockResolvedValue(fetchedProfile([savedAccount]))
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        const result = await submitForm()
+
+        expect(result).toEqual({})
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledTimes(1)
+        expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(
+            expect.objectContaining({ id: savedAccount.id, bridgeAccountId: 'ext-new' })
+        )
     })
 
     it('entered from the send flow, the method marker rides along with the amount', async () => {
@@ -589,6 +741,16 @@ describe('restart cooldown in add and withdraw flows', () => {
         fireEvent.click(screen.getByText("I'll try later"))
         expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
     })
+})
+
+it('the SDK takes over from the bank initiation prompt', () => {
+    setCapabilities('needs-identity', [])
+    const { rerender } = render(<AddWithdrawCountriesList flow="add" />)
+    fireEvent.click(screen.getByTestId('method-bank'))
+    expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
+    mockShowWrapper = true
+    rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
+    expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
 })
 
 it('closing a cooldown also closes the underlying bank initiation prompt', async () => {
@@ -637,7 +799,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         mockBankFormProps.mockClear()
         mockNuqsParams = { step: 'form' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new' } })
+        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new', bridgeAccountId: 'ext-new' } })
         mockFetchUser.mockResolvedValue(fetchedProfile([{ id: 'acct-new', bridgeAccountId: 'ext-new' }]))
     })
 
@@ -813,6 +975,36 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
  * rail list of its own, so the two things that could break are the screen it
  * renders and the button that leaves it.
  */
+// TASK-21375: "Mercado Pago" and "From Bank" were two rows into the one Manteca
+// screen, which takes either transfer. One row names both, Mercado Pago first.
+describe('AddWithdrawCountriesList — Argentina', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockParams.country = 'argentina'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'AR' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+    })
+
+    it('offers one row for a Mercado Pago or bank transfer, into the Manteca screen', () => {
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        const row = screen.getByTestId('method-mercado pago or bank')
+        expect(row).toHaveTextContent('Usually arrives in minutes')
+        expect(screen.queryByTestId('method-from bank')).toBeNull()
+        expect(screen.queryByTestId('method-mercado pago')).toBeNull()
+        expect(screen.queryByTestId('method-bank or mercado pago')).toBeNull()
+        // the logo is decorative: the button's name is the title, not a method id
+        expect(row.querySelector('img')).toHaveAttribute('alt', '')
+        expect(row).not.toHaveTextContent('bank-transfer-add')
+
+        fireEvent.click(row)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+})
+
 describe('AddWithdrawCountriesList — the euro area', () => {
     beforeEach(() => {
         mockPush.mockClear()
@@ -1085,7 +1277,7 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
 
         afterEach(() => {
             mockParams.country = 'testland'
-            mockAuthUser = { accounts: [] }
+            mockAuthUser = fetchedProfile([])
         })
 
         const submit = () => {
@@ -1216,7 +1408,22 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
             }
             const profileWith = (rail: unknown, nextActions: unknown[] = []) => ({
                 ...fetchedProfile([], [rail]),
-                capabilities: { rails: [rail], nextActions, restrictions: [] },
+                capabilities: withFeatureReport(
+                    {
+                        rails: [
+                            {
+                                ...(rail as RailCapability),
+                                resolved: railVerdict(
+                                    rail as RailCapability,
+                                    new Map((nextActions as NextAction[]).map((action) => [action.key, action]))
+                                ),
+                            },
+                        ],
+                        nextActions: nextActions as NextAction[],
+                        restrictions: [],
+                    },
+                    { identity: { status: 'verified' } }
+                ),
             })
 
             beforeEach(() => {

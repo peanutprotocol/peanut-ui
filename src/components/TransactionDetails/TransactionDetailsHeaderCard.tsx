@@ -4,6 +4,7 @@ import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
 import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
+import type { Person } from '@/lib/person/person.types'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
     IN_SENTENCE_NAME_KEYS,
@@ -22,7 +23,7 @@ import React from 'react'
 import { VerifiedUserLabel } from '../UserHeader'
 import { useRouter } from 'next/navigation'
 import { twMerge } from '@/utils/tw'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import { profileUrl } from '@/utils/native-routes'
 
 import type { TransactionDetails } from './transactionTransformer'
@@ -49,9 +50,9 @@ interface TransactionDetailsHeaderCardProps {
     /** Rain-enriched merchant brand logo for a card spend. Shown when there is
      *  no `avatarUrl`; the generic card badge is the fallback. */
     merchantLogo?: string | null
-    /** The counterparty's picked profile avatar (TASK-22625). A merchant
+    /** The counterparty as a Peanut user (TASK-23756). A merchant
      *  `avatarUrl` still wins — it identifies the payee more precisely. */
-    avatarKey?: string | null
+    person?: Person | null
     /** `false` for a row whose name is system copy (a reaper-failed transfer),
      *  so the avatar slot does not draw a face for a failure message. */
     isPeer?: boolean
@@ -128,9 +129,10 @@ const getTitle = (
                     // Direction stays in words for every status (PR #2813
                     // review): a bare counterparty name can't tell inflow
                     // from outflow. Non-completed (pending / cancelled /
-                    // failed) reads "Sending to".
+                    // failed) reads "Sending to". A PIX-key send keeps the key
+                    // beside the owner's name.
                     titleText = t(status === 'completed' ? 'title.sentTo' : 'title.sendingTo', {
-                        name: sentenceName,
+                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
                     })
                 }
                 break
@@ -189,9 +191,7 @@ const getTitle = (
                     // the title keeps the type wording "Paid to {name}" in every
                     // non-failed state — the status badge, not the verb tense,
                     // carries pending/cancelled. ("Paying to" retired with it.)
-                    titleText = t('title.paidTo', {
-                        name: nameDetail ? `${sentenceName} · ${nameDetail}` : sentenceName,
-                    })
+                    titleText = t('title.paidTo', { name: sentenceName })
                 }
                 break
             case 'bank_request_fulfillment':
@@ -241,7 +241,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     merchantLogo,
-    avatarKey,
+    person,
     isPeer,
     haveSentMoneyToUser = false,
     isNameClickable = false,
@@ -275,10 +275,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
-    // The sticker's letter follows the handle instead (same rule as the feed
-    // row), so the receipt and the profile agree. An address counterparty draws
-    // no letter from `userName`, so the display name is the fallback.
-    const avatarNameForAvatar = isAddress(userName) ? nameForAvatar : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -299,13 +295,12 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
         <TransactionAvatarBadge
             initials={initials}
             userName={nameForAvatar}
-            avatarName={avatarNameForAvatar}
-            avatarKey={avatarKey}
+            person={person}
             isPeer={isPeer}
             isLinkTransaction={isLinkTransaction}
             transactionType={typeForAvatar}
             status={status}
-            size="m"
+            size="xl"
             countryCode={countryCode}
         />
     )
@@ -313,12 +308,16 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
-                <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
+                <Image src={LOGO} alt="Peanut Logo" width={96} height={96} className="size-24" />
             ) : (
                 <div
+                    // ph-sensitive: its aria-label can be the counterparty's real name
                     className={twMerge(
+                        'ph-sensitive',
                         isAvatarClickable &&
-                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus'
+                            'cursor-pointer rounded-full focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                        // a full name in the accessible name is a legal name; a username is not
+                        nameForAvatar !== userName && 'ph-mask'
                     )}
                     onClick={isAvatarClickable ? handleUserProfileClick : undefined}
                     role={isAvatarClickable ? 'button' : undefined}
@@ -335,8 +334,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             : undefined
                     }
                 >
+                    {/* one 96 px slot (the avatar xl) for every branch: a person,
+                        a flag, a bubble, an image or a merchant logo */}
                     {avatarUrl ? (
-                        <div className="flex size-12 items-center justify-center rounded-full">
+                        <div className="flex size-24 items-center justify-center rounded-full">
                             <Image
                                 src={avatarUrl}
                                 alt="Icon"
@@ -346,7 +347,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             />
                         </div>
                     ) : merchantLogo ? (
-                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="md" />
+                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="xl" />
                     ) : (
                         genericBadge
                     )}

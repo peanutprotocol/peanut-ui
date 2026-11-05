@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
 import posthog from 'posthog-js'
 import ProfileHeader from '../ProfileHeader'
+import { personFrom } from '@/lib/person/person'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 
@@ -10,6 +11,12 @@ let mockAuthAvatarKey: string | null
 const mockShareButton = jest.fn()
 const mockCopyToClipboard = jest.fn()
 const mockToast = { info: jest.fn(), error: jest.fn() }
+
+// real next/image resets src on mount when onError is set, which makes it absolute
+jest.mock('next/image', () => ({
+    __esModule: true,
+    default: ({ unoptimized, ...rest }: ComponentProps<'img'> & { unoptimized?: boolean }) => <img {...rest} />,
+}))
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -207,8 +214,9 @@ describe('ProfileHeader avatar', () => {
             <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={onChangeAvatar} />
         )
 
-        // the DS Button, so the pressed state comes from `.btn-*`
-        expect(avatarButton()).toHaveClass('btn')
+        // TASK-24388: the sticker is the button, plain on the page — no
+        // bordered, shadowed circle for its art to cross
+        expect(avatarButton()).not.toHaveClass('btn')
 
         fireEvent.click(avatarButton()!)
 
@@ -238,7 +246,12 @@ describe('ProfileHeader avatar', () => {
     // themselves everywhere else.
     it("shows the counterparty's picked avatar", () => {
         const { container } = renderWithIntl(
-            <ProfileHeader name="Hal Finney" username="hal" avatarKey="basic.frog" showShareButton />
+            <ProfileHeader
+                name="Hal Finney"
+                username="hal"
+                person={personFrom({ username: 'hal', avatarKey: 'basic.frog' })}
+                showShareButton
+            />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
@@ -246,10 +259,25 @@ describe('ProfileHeader avatar', () => {
 
     it('falls back to the username letter when the counterparty has no pick', () => {
         const { container } = renderWithIntl(
-            <ProfileHeader name="Hal Finney" username="hal" avatarKey={null} showShareButton />
+            <ProfileHeader
+                name="Hal Finney"
+                username="hal"
+                person={personFrom({ username: 'hal', avatarKey: null })}
+                showShareButton
+            />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/h.webp')
+    })
+
+    // TASK-23756: no person yet means no avatar, not a letter that might be wrong
+    it('leaves the avatar slot empty while the counterparty loads', () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader name="Hal Finney" username="hal" person={null} showShareButton />
+        )
+
+        expect(container.querySelector('img')).toBeNull()
+        expect(screen.getByTestId('profile-name')).toHaveTextContent('Hal Finney')
     })
 
     it("shows the signed-in user's own pick on their own profile", () => {
@@ -257,5 +285,46 @@ describe('ProfileHeader avatar', () => {
         const { container } = renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
+    })
+})
+
+// TASK-24388: a profile shows its owner at 96 px, the avatar xl, on all
+// three branches: someone else's profile, your own full header, and your
+// own profile tab, where the avatar is the change-avatar button.
+describe('ProfileHeader avatar size', () => {
+    // the sticker's own box: the span that holds the art
+    const stickerBox = (container: HTMLElement) => container.querySelector('img')!.parentElement!
+
+    it("draws someone else's profile at 96", () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader
+                name="Hal Finney"
+                username="hal"
+                person={personFrom({ username: 'hal', avatarKey: 'basic.frog' })}
+                showShareButton
+            />
+        )
+
+        expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+    })
+
+    it('draws your own full header at 96', () => {
+        const { container } = renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+
+        expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+    })
+
+    it('makes the 96 sticker itself the profile tab button, with no circle around it', () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader name="Satoshi" username="satoshi" showShareButton onChangeAvatar={jest.fn()} />
+        )
+
+        const button = avatarButton()!
+        expect(button).toContainElement(stickerBox(container))
+        expect(stickerBox(container)).toHaveClass('h-24', 'w-24')
+        // the button adds no box of its own: no border, shadow or fixed size
+        expect(button.className).not.toMatch(/(?:^|\s)(btn|border|shadow|size-\d+|[hw]-\d+)(?:-|\s|$)/)
+        // keyboard focus stays visible
+        expect(button).toHaveClass('focus-visible:outline-action-focus')
     })
 })

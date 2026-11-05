@@ -1,9 +1,12 @@
+import { parseFiniteNumber } from '@/lib/money'
+import { reportInvalidNumeric } from '@/lib/numeric-telemetry'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { formatAmountNumber, formatFiniteDisplay } from '@/utils/currency'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
@@ -18,6 +21,8 @@ import * as wagmiChains from 'wagmi/chains'
  */
 import { type ChainId } from '@/app/actions/clients'
 import { type ChargeEntry } from '@/services/services.types'
+import { contributedAmount } from '@/utils/request-pot.utils'
+import { personFrom } from '@/lib/person/person'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
@@ -198,10 +203,14 @@ export const syncLocalStorageToCookie = (key: string) => {
  * that uses specific locales (e.g., 'es-AR' for '1.234,56').
  * This function standardizes on en-US for parsable input display.
  *
+ * Rounds half-up through `formatAmountNumber`, the one place a display amount
+ * is rounded. The input's own trailing zeros do not set the decimals: "1.5"
+ * and "1.50" format the same way.
+ *
  * @param {string | undefined} valueStr - The numeric string value to format.
  * @param {object} [options] - Optional formatting options.
  * @param {number} [options.maxDecimals] - The maximum number of decimals to display.
- * @param {number} [options.minDecimals] - The minimum number of decimals to display.
+ * @param {number} [options.minDecimals] - The minimum number of decimals to display when there is a fraction.
  * @returns {string} The formatted string for display with thousands separators (en-US).
  */
 export const formatNumberForDisplay = (
@@ -215,45 +224,39 @@ export const formatNumberForDisplay = (
     if (valueStr.endsWith('.') && (valueStr.match(/\./g) || []).length === 1) {
         // For inputs like "123.", format the numeric part "123"
         const numberPart = valueStr.slice(0, -1)
-        if (numberPart === '' || isNaN(Number(numberPart))) return valueStr // Avoid formatting " ." or invalid things like "abc."
-        const formattedNumberPart = Number(numberPart).toLocaleString('en-US', {
+        if (numberPart === '' || parseFiniteNumber(numberPart) === null) return '—' // Avoid formatting " ." or invalid things like "abc."
+        const formattedNumberPart = formatFiniteDisplay(numberPart, 'en-US', {
             minimumFractionDigits: 0, // Whole numbers don't get .00 unless typed
             maximumFractionDigits: options?.maxDecimals ?? 0, // Max decimals for the number part if any
         })
-        return formattedNumberPart + '.' // Append the dot back
+        return formattedNumberPart === '—' ? formattedNumberPart : formattedNumberPart + '.' // Append the dot back
     }
 
     // Validate the numeric string, allowing for numbers with or without decimal points.
     // Disallow multiple decimal points or non-numeric characters (except the single dot handled above).
     if (!/^\d*\.?\d*$/.test(valueStr) || (valueStr.match(/\./g) || []).length > 1) {
-        return '' // Return empty for invalid numeric strings not caught above
+        return '—' // Unavailable display data is distinct from an editable empty field
     }
 
     const num = Number(valueStr)
-    if (isNaN(num)) return ''
+    if (!Number.isFinite(num)) return '—'
 
-    const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
-    let minDecimals = options?.minDecimals ?? 0
-    const parts = valueStr.split('.')
-
-    if (parts.length === 2 && parts[1].length > 0) {
-        // If there's an actual decimal part in the input string (e.g., "1.2", "1.20"),
-        // set minDecimals to its length to preserve trailing zeros.
-        minDecimals = parts[1].length
-    }
-    // For whole numbers (e.g. "123"), minDecimals remains 0.
-
-    minDecimals = Math.min(minDecimals, maxDecimals) // Cap by maxDecimals
-
-    return num.toLocaleString('en-US', {
-        minimumFractionDigits: minDecimals,
-        maximumFractionDigits: maxDecimals,
-        roundingMode: 'trunc',
-    })
+    return formatAmountNumber(num, options?.maxDecimals ?? 0, options?.minDecimals ?? 0)
 }
 
-export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
+/**
+ * A USD amount for display, without the "$": "1,234.56", "0.50", "1,234".
+ * Rounds half-up to the cent and drops ".00" on a round amount (design.md,
+ * copy → amounts). A spendable balance uses `formatUsdcBalance`, which rounds
+ * down instead.
+ */
+export function formatCurrency(
+    value: string | number | undefined,
+    maxDecimals: number = 2,
+    minDecimals: number = 2
+): string {
+    if (value === undefined || value === '') return ''
+    return formatAmountNumber(value, maxDecimals, minDecimals)
 }
 
 /**
@@ -261,18 +264,15 @@ export function formatCurrency(valueStr: string | undefined, maxDecimals: number
  * - displaying 2 significant digits for small numbers (<0.01)
  * - removing unnecessary trailing zeros after decimal point
  * - if all decimal places are zeros, returns the whole number
+ *
+ * For token amounts and URL segments only. It drops a trailing zero ("0.5"),
+ * so a money amount on screen uses `formatCurrency` or `formatBankAmount`.
  * @param amount - number or string to format
  * @returns formatted string representation of the number
  */
 export const formatAmount = (amount: string | number): string => {
-    // handle undefined, null, or empty string
-    if (!amount && amount !== 0) return '0'
-
-    // convert amount to number if not already
-    const num = typeof amount === 'string' ? Number(amount) : amount
-
-    // check for NaN after conversion
-    if (isNaN(num)) return '0'
+    const num = parseFiniteNumber(amount)
+    if (num === null) return '—'
 
     // handle small numbers differently
     if (Math.abs(num) < 0.01) {
@@ -307,12 +307,25 @@ export const formatAmount = (amount: string | number): string => {
 }
 
 export function floorFixed(value: number, decimals: number) {
-    return (Math.floor(value * 10 ** decimals) / 10 ** decimals).toFixed(decimals)
+    if (!Number.isFinite(value) || !Number.isInteger(decimals) || decimals < 0 || decimals > 100) return '—'
+    const scaled = value * 10 ** decimals
+    if (!Number.isFinite(scaled)) {
+        reportInvalidNumeric('format', 'overflow')
+        return '—'
+    }
+    return (Math.floor(scaled) / 10 ** decimals).toFixed(decimals)
 }
 
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
+    if (
+        !Number.isFinite(amount) ||
+        !Number.isInteger(significantDigits) ||
+        significantDigits < 0 ||
+        significantDigits > 100
+    )
+        return '—'
     if (amount === 0) return amount.toFixed(significantDigits)
-    let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
+    let fractionDigits = Math.floor(Math.log10(1 / Math.abs(amount))) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
     return floorFixed(amount, fractionDigits)
 }
@@ -320,6 +333,8 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
 export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
+    if (!Number.isInteger(maxFractionDigits) || maxFractionDigits < 0 || maxFractionDigits > 100)
+        return forInput ? '' : undefined
 
     // For input mode, preserve progressive typing (e.g., "1.", "0.")
     if (forInput && typeof amount === 'string') {
@@ -336,6 +351,7 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
+        if (s !== '.' && parseFiniteNumber(s) === null) return ''
         const whole = m[1] ?? ''
         const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
         if (fracRaw === undefined) return whole
@@ -344,13 +360,16 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         return `${whole}.${frac}`
     }
 
-    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
-
-    // check for NaN after conversion
-    if (isNaN(amountNumber)) return undefined
+    const amountNumber = parseFiniteNumber(amount)
+    if (amountNumber === null) return undefined
 
     // floor the amount
     const flooredAmount = Math.floor(amountNumber * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+
+    if (!Number.isFinite(flooredAmount)) {
+        reportInvalidNumeric('format', 'overflow')
+        return undefined
+    }
 
     // Convert number to string to count significant digits
     const amountString = flooredAmount.toFixed(maxFractionDigits)
@@ -360,11 +379,11 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     const fractionDigits = Math.max(2 - significantDigits, 0)
 
     // Format the number with the calculated fraction digits
-    const formattedAmount = flooredAmount.toLocaleString('en-US', {
-        minimumFractionDigits: fractionDigits,
+    const formattedAmount = formatFiniteDisplay(flooredAmount, 'en-US', {
+        minimumFractionDigits: Math.min(fractionDigits, maxFractionDigits),
         maximumFractionDigits: maxFractionDigits,
     })
-    return formattedAmount
+    return formattedAmount === '—' ? undefined : formattedAmount
 }
 
 export const isTestnetChain = (chainId: string) => {
@@ -643,27 +662,22 @@ export function getChainName(chainId: string): string | undefined {
  */
 /**
  * Formats a number to use K, M, B, T suffixes if it exceeds 6 digits in length.
- * Uses the formatAmount function to format the number before adding a suffix.
+ * Below that it shows the full amount like any money amount ("1,234.50");
+ * a suffixed amount is compact ("12.5K").
  *
  * @param amount - The number or string to format.
  * @returns A formatted string with appropriate suffix.
  */
 export const formatExtendedNumber = (amount: string | number, minDigitsForFomatting: number = 6): string => {
-    // Handle null/undefined/invalid inputs
-    if (!amount && amount !== 0) return '0'
-
-    // Validate input type and convert to number
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount
-
-    // Check for NaN values
-    if (isNaN(num)) return '0'
+    const num = parseFiniteNumber(amount)
+    if (num === null) return '—'
 
     // Count total digits by removing decimal point and negative sign
     const totalDigits = amount.toString().replace(/[.-]/g, '').length
 
-    // If 6 or fewer digits, just use formatAmount
+    // If 6 or fewer digits, show the amount in full, with its cents: "257.50", not "257.5"
     if (totalDigits <= minDigitsForFomatting) {
-        return formatAmount(num)
+        return formatAmountNumber(num)
     }
 
     // Get absolute value for comparison
@@ -695,7 +709,7 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
         }
     }
 
-    return formatAmount(num)
+    return formatAmountNumber(num)
 }
 
 export function getRequestLink(
@@ -782,6 +796,8 @@ export const beginIntentionalLogout = () => {
 export const endIntentionalLogout = () => {
     intentionalLogout = false
 }
+
+export const isIntentionalLogout = () => intentionalLogout
 
 /**
  * Why a post-auth destination was stored. `deep-link` is an intent of the
@@ -1195,8 +1211,10 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     }
 }
 
-export const getInitialsFromName = (name: string): string => {
-    const nameParts = name.trim().split(/\s+/)
+// A user who never finished signup has no username and no name; one such row
+// must not take down the screen that lists it.
+export const getInitialsFromName = (name: string | null | undefined): string => {
+    const nameParts = (name ?? '').trim().split(/\s+/)
     if (nameParts.length === 1) {
         return nameParts[0].substring(0, 2).toUpperCase()
     } else {
@@ -1316,7 +1334,8 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
             return {
                 uuid: charge.uuid,
                 payments: charge.payments,
-                amount: charge.tokenAmount,
+                // what the contributor paid, which can be less than the charge asked
+                amount: contributedAmount(charge),
                 username,
                 fulfillmentPayment: charge.fulfillmentPayment,
                 // FOLLOW-UP (tracked, not in this PR pair): the charges/payments BE flow
@@ -1328,7 +1347,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
                 // charge/service.ts to immutable response building). Scoped separately.
                 isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
                 isPeanutUser,
-                avatarKey: payerAccount?.user?.avatarKey ?? null,
+                person: personFrom(payerAccount?.user),
             }
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)

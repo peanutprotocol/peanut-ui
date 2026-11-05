@@ -55,4 +55,23 @@ describe('InitiateKycModal — restart_identity', () => {
         ).toBeInTheDocument()
         expect(screen.queryByText('Complete your verification')).not.toBeInTheDocument()
     })
+
+    it('asks for a different document when the one on file cannot be used for the account', () => {
+        const onVerify = jest.fn()
+        renderModal({
+            variant: 'restart_identity',
+            reasonCode: 'identity_document_insufficient',
+            providerMessage: 'Backend English prose',
+            onVerify,
+        })
+
+        expect(
+            screen.getByText(
+                "The document you verified with can't be used for this account. Verify again with a different ID document."
+            )
+        ).toBeInTheDocument()
+        expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Verify with a different document' }))
+        expect(onVerify).toHaveBeenCalled()
+    })
 })

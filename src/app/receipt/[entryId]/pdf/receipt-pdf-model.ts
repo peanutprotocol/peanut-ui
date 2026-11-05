@@ -13,7 +13,7 @@ import {
     receiptExchangeRate,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -162,8 +162,19 @@ export function buildReceiptPdfModel(
     // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
 
+    // The network fee a crypto withdrawal settled, and what arrived. Only a
+    // charged fee is printed: the document records what happened, and a
+    // pending fee has not happened yet. Same status gate as the screen.
+    const deliveredSomething = !['cancelled', 'failed', 'refunded'].includes(status ?? '')
+    if (transaction.networkFeeDetails?.state === 'charged' && deliveredSomething) {
+        push(t('transaction.rows.networkFee'), transaction.networkFeeDetails.amountDisplay)
+        if (transaction.recipientReceivesUsd !== undefined) {
+            push(t('transaction.rows.recipientReceives'), formatBankAmount(transaction.recipientReceivesUsd, 'USD'))
+        }
+    }
+
     if (transaction.fee !== undefined && !isCancelled) {
-        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
+        push(t('transaction.rows.fee'), formatBankAmount(transaction.fee, 'USD'))
     }
 
     // without the owner's residence bridge gets its brand-only record
@@ -194,8 +205,8 @@ export function buildReceiptPdfModel(
     }
 
     // The payer's own reference on a bank deposit is NOT printed. It is free
-    // text a third party typed (up to 300 characters), and "Share receipt" sends
-    // this document onward. The owner still reads it in the receipt drawer.
+    // text a third party typed (up to 300 characters), and "Share receipt (PDF)"
+    // sends this document onward. The owner still reads it in the receipt drawer.
     // Temporary decision TD-12.
 
     // One rule for both the screen and this document — see receiptHeadlineAmount.

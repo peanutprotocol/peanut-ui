@@ -15,9 +15,12 @@ import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
 import UserCard from '@/components/User/UserCard'
+import type { Person } from '@/lib/person/person.types'
 import { isCryptoAddress, printableAddress } from '@/utils/general.utils'
 import { isBelowRhinoMinDeposit } from '@/utils/withdraw.utils'
 import { useTranslations } from 'next-intl'
+import { useEffect } from 'react'
+import { formatBankAmount } from '@/utils/currency'
 
 interface RhinoDepositViewProps {
     onBack?: () => void
@@ -29,7 +32,29 @@ interface RhinoDepositViewProps {
     onSuccess: (amount: number) => void
     showUserCard?: boolean
     amount?: number
+    /** the exact amount in the token the charge settles in, e.g. "58.51 USDC"; shown on the user card */
+    tokenAmount?: string
     identifier?: string
+    /**
+     * The requester behind a handle `identifier`, from the flow that already
+     * resolved them (the charge or the request). The card never waits on a
+     * fetch of its own: the amount it shows is the payment, so it stays on
+     * screen even when no person is known (ui#3909 review).
+     */
+    person?: Person | null
+    /** the deposit bridged and the flow is waiting for the API to book it: stay on the processing state */
+    isConfirming?: boolean
+    /**
+     * A deposit arrived short of the charge: what the charge booked and what it
+     * asked, in dollars (TASK-23856). The card states it in place of the user
+     * card, offers `onDone` as the exit, and clears the address status so the
+     * poll sees the next transfer to the same address.
+     */
+    shortDeposit?: { received: string; asked: string }
+    /** Exit for a payer who stops after a short deposit; shown as a Done button. */
+    onDone?: () => void
+    /** The charge a request-payment address was opened for; the API needs it to clear the status. */
+    chargeId?: string
 }
 
 const RhinoDepositView = ({
@@ -42,7 +67,13 @@ const RhinoDepositView = ({
     onSuccess,
     showUserCard = false,
     amount,
+    tokenAmount,
     identifier,
+    person,
+    isConfirming = false,
+    shortDeposit,
+    onDone,
+    chargeId,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
@@ -52,9 +83,26 @@ const RhinoDepositView = ({
         status: depositAddressStatus,
         resetStatus,
         isResetting,
-    } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess)
+    } = useCryptoDepositPolling(depositAddressData?.depositAddress, onSuccess, chargeId)
+
+    // The requester is a Peanut handle unless the identifier is a wallet address.
+    const isAddressIdentifier = isCryptoAddress(identifier ?? '')
 
     const amountLimitsTitle = chainType === 'EVM' ? t('evmNetworks') : NETWORK_LABELS[chainType]
+
+    // Rhino reports one deposit per address, and its status stays "completed"
+    // until it is cleared. After a short deposit, the same clear the
+    // market-moved retry uses re-arms the poll for the rest, and again after
+    // every read-back that leaves the card short: a top-up Rhino reported
+    // before the API booked it must not leave the next transfer unseen.
+    const shortDepositReceived = shortDeposit?.received
+    useEffect(() => {
+        if (shortDepositReceived === undefined || isConfirming) return
+        resetStatus().catch(() => {
+            // the clear failed: the next transfer still books on the backend,
+            // and the payer finds it in Activity
+        })
+    }, [shortDepositReceived, isConfirming, resetStatus])
 
     /*
      * Fixed-amount flows (request payments pass `amount`) below the chain's SDA
@@ -95,10 +143,12 @@ const RhinoDepositView = ({
     // deposit detected and settling — the processing state owns the whole
     // screen; the network toggle and instructions must not invite another
     // deposit while this one confirms
-    if (depositAddressStatus === 'loading') {
+    if (depositAddressStatus === 'loading' || isConfirming) {
         return (
             <PageStack>
-                <NavHeader title={headerTitle} onPrev={onBack} />
+                {/* no way back while the payment is being booked: the flow would
+                    land on the amount screen with its buttons still busy */}
+                <NavHeader title={headerTitle} onPrev={onBack} hideBackBtn={isConfirming} />
                 <ProcessingScreen
                     title={tAddMoney('processingDepositTitle')}
                     description={tAddMoney('processingDepositBody')}
@@ -112,16 +162,61 @@ const RhinoDepositView = ({
             <NavHeader title={headerTitle} onPrev={onBack} />
 
             <PageStack.Center className="items-center gap-4">
-                {showUserCard && (
-                    <UserCard
-                        recipientType={isCryptoAddress(identifier ?? '') ? 'ADDRESS' : 'USERNAME'}
-                        type="request_fulfilment"
-                        username={
-                            isCryptoAddress(identifier ?? '') ? printableAddress(identifier ?? '') : (identifier ?? '')
-                        }
-                        amount={amount}
-                    />
+                {shortDeposit && (
+                    <Card>
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                            <IconBubble icon="alert" size="s" color="yellow" />
+                            <h1 className="text-center text-heading-card text-foreground-primary">
+                                {tPayment('partialContribution.title', {
+                                    received: formatBankAmount(shortDeposit.received, 'USD'),
+                                    asked: formatBankAmount(shortDeposit.asked, 'USD'),
+                                })}
+                            </h1>
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {tPayment('partialContribution.description', {
+                                    remaining: formatBankAmount(
+                                        Math.max(Number(shortDeposit.asked) - Number(shortDeposit.received), 0),
+                                        'USD'
+                                    ),
+                                })}
+                            </p>
+                        </div>
+                    </Card>
                 )}
+                {showUserCard &&
+                    !shortDeposit &&
+                    (isAddressIdentifier ? (
+                        <UserCard
+                            recipientType="ADDRESS"
+                            type="request_fulfilment"
+                            username={printableAddress(identifier ?? '')}
+                            amount={amount}
+                            tokenAmount={tokenAmount}
+                            // a wallet or network fee taken from the deposit leaves the charge partly paid
+                            amountNote={t('sendExtraForFees')}
+                        />
+                    ) : person ? (
+                        <UserCard
+                            recipientType="USERNAME"
+                            person={person}
+                            type="request_fulfilment"
+                            username={identifier ?? ''}
+                            amount={amount}
+                            tokenAmount={tokenAmount}
+                            // a wallet or network fee taken from the deposit leaves the charge partly paid
+                            amountNote={t('sendExtraForFees')}
+                        />
+                    ) : (
+                        // no person known for the handle: the amount is the payment and stays on
+                        // screen; the card draws the crypto concept in place of their avatar
+                        <UserCard
+                            type="request_fulfilment"
+                            username={identifier ?? ''}
+                            amount={amount}
+                            tokenAmount={tokenAmount}
+                            amountNote={t('sendExtraForFees')}
+                        />
+                    ))}
                 <Tabs
                     tabs={[
                         { value: 'EVM', label: 'EVM' },
@@ -209,6 +304,12 @@ const RhinoDepositView = ({
                             </Card>
                         )}
                     </>
+                )}
+
+                {shortDeposit && onDone && (
+                    <Button variant="primary" className="w-full" onClick={onDone}>
+                        {tCommon('done')}
+                    </Button>
                 )}
             </PageStack.Center>
         </PageStack>

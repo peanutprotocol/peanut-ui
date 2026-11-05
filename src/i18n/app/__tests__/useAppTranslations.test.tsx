@@ -87,7 +87,7 @@ describe('useAppTranslations', () => {
 
         it('falls through to the base string when there is no override', () => {
             // same namespace as an overridden key, deliberately not overridden
-            expect(t('rewards')('inviteNow')).toBe('Invite Now')
+            expect(t('rewards')('inviteNow')).toBe('Invite now')
             expect(t('rewards')('peopleYouInvited')).toBe('People invited')
             expect(t('qrPay')('success.splitThisBill')).toBe('Split this bill')
         })

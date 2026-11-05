@@ -6,7 +6,7 @@
  * response, which is why the gate lives here and not in the action list.
  */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
@@ -31,10 +31,12 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 
 jest.mock('@/components/User/UserCard', () => ({
     __esModule: true,
-    default: () => <div data-testid="user-card" />,
+    default: ({ person }: { person?: unknown }) => <div data-testid="user-card" data-person={person ? 'yes' : 'no'} />,
 }))
 
+import { personFrom } from '@/lib/person/person'
 import RhinoDepositView from '../RhinoDeposit.view'
+import { rhinoApi } from '@/services/rhino'
 
 const DEPOSIT_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
 
@@ -44,7 +46,7 @@ const depositAddressData = {
     maxDepositLimitUsd: 5000,
 } as CreateDepositAddressResponse
 
-const renderView = (amount?: number) => {
+const renderView = (amount?: number, extra: Partial<React.ComponentProps<typeof RhinoDepositView>> = {}) => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return render(
         <IntlWrapper>
@@ -57,11 +59,14 @@ const renderView = (amount?: number) => {
                     isDepositAddressDataLoading={false}
                     onSuccess={jest.fn()}
                     amount={amount}
+                    {...extra}
                 />
             </QueryClientProvider>
         </IntlWrapper>
     )
 }
+
+beforeEach(() => jest.clearAllMocks())
 
 // CopyToClipboard toasts on a failed copy; the view renders it, so it needs the hook.
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
@@ -97,5 +102,75 @@ describe('RhinoDepositView sub-minimum gate', () => {
 
         expect(screen.getByTestId('deposit-qr')).toHaveTextContent(DEPOSIT_ADDRESS)
         expect(screen.queryByText(en.payment.minAmount.title)).not.toBeInTheDocument()
+    })
+})
+
+// TASK-23856: an external-wallet deposit that arrived short of its charge keeps
+// the payer on this card. It states what arrived and what is still needed in
+// place of the user card, keeps the address for the rest, and clears the
+// address status so the poll sees the next transfer.
+describe('RhinoDepositView after a short deposit', () => {
+    const shortDeposit = { received: '33', asked: '58.51' }
+
+    it('states what arrived and what is still needed, keeps the address, and exits on Done', () => {
+        const onDone = jest.fn()
+        renderView(58.51, { showUserCard: true, shortDeposit, onDone })
+
+        expect(screen.getByText('$33 of $58.51 received')).toBeInTheDocument()
+        expect(screen.getByText('$25.51 is still needed. Send it to the address below.')).toBeInTheDocument()
+        expect(screen.queryByTestId('user-card')).not.toBeInTheDocument()
+        expect(screen.getByTestId('deposit-qr')).toHaveTextContent(DEPOSIT_ADDRESS)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+        expect(onDone).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears the address status, with the charge id, so the poll sees the next transfer', async () => {
+        renderView(58.51, { shortDeposit, chargeId: 'charge-1' })
+        await waitFor(() =>
+            expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS, 'charge-1')
+        )
+    })
+
+    // Rhino can report a top-up before the API books it; the read-back then
+    // ends with the card still short, and the next transfer must be seen too.
+    it('clears the status again after each read-back that leaves the card short', async () => {
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        const view = (isConfirming: boolean) => (
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <RhinoDepositView
+                        headerTitle="Pay"
+                        chainType="EVM"
+                        setChainType={jest.fn()}
+                        depositAddressData={depositAddressData}
+                        isDepositAddressDataLoading={false}
+                        onSuccess={jest.fn()}
+                        amount={58.51}
+                        shortDeposit={shortDeposit}
+                        isConfirming={isConfirming}
+                    />
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+        const { rerender } = render(view(false))
+        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledTimes(1))
+
+        rerender(view(true))
+        rerender(view(false))
+        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledTimes(2))
+    })
+
+    it('leaves the status alone, and shows no Done, on an ordinary deposit', () => {
+        renderView(58.51, { showUserCard: true, identifier: 'alice', person: personFrom({ username: 'alice' }) })
+        expect(rhinoApi.resetDepositAddressStatus).not.toHaveBeenCalled()
+        expect(screen.getByTestId('user-card')).toHaveAttribute('data-person', 'yes')
+        expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()
+    })
+
+    // the amount on the card is the payment: it never waits on a profile fetch
+    it('keeps the amount card for a handle with no person known', () => {
+        renderView(58.51, { showUserCard: true, identifier: 'alice' })
+        expect(screen.getByTestId('user-card')).toHaveAttribute('data-person', 'no')
     })
 })

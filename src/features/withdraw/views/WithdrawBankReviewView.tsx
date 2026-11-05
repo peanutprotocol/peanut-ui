@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
@@ -152,7 +154,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
             <PeanutActionDetailsCard
                 countryCodeForFlag={accountCountryCode}
-                avatarSize="m"
                 transactionType={'WITHDRAW_BANK_ACCOUNT'}
                 recipientType={'BANK_ACCOUNT'}
                 recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
@@ -238,7 +239,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             label={tCommon('exchangeRate')}
                             value={
                                 payout.rate
-                                    ? `1 USD = ${Number(payout.rate).toFixed(4)} ${payout.currency.toUpperCase()}`
+                                    ? `1 USD ≈ ${formatFiniteDisplay(payout.rate, 'en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4, useGrouping: false })} ${payout.currency.toUpperCase()}`
                                     : '-'
                             }
                             moreInfoText={tRate('approximate')}
@@ -283,14 +284,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <Field
                     label={t('bank.reference')}
                     htmlFor="withdraw-bank-reference"
-                    helper={
-                        <>
-                            {t(`bank.${referenceSpec.helperKey}`)}
-                            {/* The rail rewrites the text on some rails — the
-                                receipt is where the user reads the final value. */}
-                            {referenceSpec.rewrittenKey && <> {t(`bank.${referenceSpec.rewrittenKey}`)}</>}
-                        </>
-                    }
                     // After a failed submit there is nothing left to finish
                     // typing, so the reason shows without waiting for a blur.
                     error={

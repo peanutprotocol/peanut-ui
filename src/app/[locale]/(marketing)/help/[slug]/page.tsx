@@ -5,6 +5,7 @@ import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/confi
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     readPageContentLocalized,
     listContentSlugs,
     contentLocaleFor,
@@ -81,16 +82,7 @@ export default async function HelpArticlePage({ params }: PageProps) {
                 { name: i18n.help, href: `/${locale}/help` },
                 { name: displayTitle, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

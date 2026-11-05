@@ -24,15 +24,8 @@ describe('landing content href overrides', () => {
             stablecoinBalanceVisaMerchants: '/en/blog/stablecoin-balance-visa-merchants',
             help: '/es-ar/help',
             depositBank: '/es-419/help/deposit-bank',
-            revolutComparison: '/es-419/compare/peanut-vs-revolut',
-            mercadoPagoQr: '/es-ar/help/mercadopago-qr',
-            brazil: '/es-ar/brazil',
             wiseComparison: '/es-ar/compare/peanut-vs-wise',
-            unitedStates: '/es-419/united-states',
-            spain: '/es-419/spain',
-            mexico: '/es-419/mexico',
             paypalComparison: '/es-419/compare/peanut-vs-paypal',
-            westernUnionComparison: '/es-419/compare/peanut-vs-western-union',
             securityDisclosure: '/es-419/help/security-disclosure',
         }
 

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { apiFetch } from '@/utils/api-fetch'
 import { resetCrispProxySessions } from '@/utils/crisp'
@@ -23,12 +25,15 @@ const MAX_ATTEMPTS = 3
  *
  * @see https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/
  */
-async function fetchCrispToken(expectedUserId: string): Promise<string | undefined> {
+type CrispTokenFailure = 'http_error' | 'user_mismatch' | 'invalid_response' | 'request_failed'
+type CrispTokenResult = { tokenId: string } | { failure: CrispTokenFailure; httpStatus?: number }
+
+async function fetchCrispToken(expectedUserId: string): Promise<CrispTokenResult> {
     const res = await apiFetch('/user/crisp-token')
-    if (!res.ok) return undefined
+    if (!res.ok) return { failure: 'http_error', httpStatus: res.status }
     const data = (await res.json()) as { crispTokenId?: unknown; userId?: unknown }
-    if (data.userId !== expectedUserId) return undefined
-    return typeof data.crispTokenId === 'string' ? data.crispTokenId : undefined
+    if (data.userId !== expectedUserId) return { failure: 'user_mismatch' }
+    return typeof data.crispTokenId === 'string' ? { tokenId: data.crispTokenId } : { failure: 'invalid_response' }
 }
 
 // In-memory cache so the token is available synchronously after the first fetch,
@@ -87,24 +92,34 @@ export function useCrispTokenId(): string | undefined {
                 await resetCrispProxySessions()
                 if (cancelled) return
             }
+            let result: CrispTokenResult | undefined
             for (let attempt = 0; attempt < MAX_ATTEMPTS && !cancelled; attempt++) {
                 if (attempt > 0) {
                     await new Promise((resolve) => setTimeout(resolve, 300 * attempt))
                     if (cancelled) return
                 }
-                const token = await fetchCrispToken(userId).catch(() => undefined)
+                result = await fetchCrispToken(userId).catch((): CrispTokenResult => ({ failure: 'request_failed' }))
                 if (cancelled) return
-                if (token) {
-                    tokenCache.set(userId, { tokenId: token, email })
-                    setTokenId(token)
+                if ('tokenId' in result) {
+                    tokenCache.set(userId, { tokenId: result.tokenId, email })
+                    setTokenId(result.tokenId)
                     return
                 }
+            }
+            // Support stays on its loader without a token, and no screen says why.
+            if (result && 'failure' in result) {
+                posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_TOKEN_FAILED, {
+                    reason: result.failure,
+                    http_status: result.httpStatus ?? null,
+                })
             }
         })().catch((error) => {
             // Keep the token unavailable when a native reset fails. A later
             // mount may retry, but this render must never pair the replacement
             // mailbox with the former device-local support session.
-            if (!cancelled) console.debug('[Crisp] session rotation failed:', error)
+            if (cancelled) return
+            console.debug('[Crisp] session rotation failed:', error)
+            posthog.capture(ANALYTICS_EVENTS.SUPPORT_CHAT_TOKEN_FAILED, { reason: 'session_reset_failed' })
         })
 
         return () => {

@@ -1,3 +1,7 @@
+import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
+import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { LEGAL_POLICIES } from '@/constants/legal-policies'
+import { saveToCookie } from '../cookie-url.utils'
 import {
     buildSignupAttributionHeader,
     captureSignupAttribution,
@@ -43,11 +47,196 @@ beforeEach(async () => {
 })
 
 describe('signup attribution context', () => {
+    it('preserves every published sitemap landing in the registration payload', () => {
+        for (const path of publicAttributionPaths) {
+            clearAttributionCookie()
+            window.history.replaceState({}, '', path)
+            Object.defineProperty(document, 'referrer', { configurable: true, value: 'https://www.google.com/' })
+
+            const context = captureSignupAttribution({ includeDocumentReferrer: true })
+            expect(context?.firstTouch).toMatchObject({ path, referrerHost: 'www.google.com' })
+            expect(parseSignupAttribution(buildSignupAttributionHeader())?.firstTouch.path).toBe(path)
+            const isHomepage = path === '/' || SUPPORTED_LOCALES.some((locale) => path === `/${locale}`)
+            const isPolicy = LEGAL_POLICIES.some(({ slug }) => path.endsWith(`/${slug}`))
+            expect(context?.firstContentTouch?.path).toBe(
+                isHomepage || isPolicy || path === '/careers' ? undefined : path
+            )
+        }
+    })
+
+    it.each([
+        '/alice',
+        '/en/alice',
+        '/en/profile',
+        '/es-419/claim/secret',
+        '/pt-br/withdraw',
+        '/withdraw/to-bank',
+        '/send/alice',
+        '/request/alice',
+        '/pay/550e8400-e29b-41d4-a716-446655440000',
+        '/en/deposit/from-550e8400-e29b-41d4-a716-446655440000',
+        '/en/deposit/from-0x0000000000000000000000000000000000000001',
+        '/en/blog/alice@example.com',
+        '/en/blog/alice%40example.com',
+        '/en/blog/alice',
+        '/zz/argentina',
+        '/en/receive-money-from/united-states/private',
+    ])('does not capture a private, identifier-bearing or nonexistent route: %s', (path) => {
+        window.history.replaceState({}, '', path)
+        const context = captureSignupAttribution()
+        expect(context?.firstTouch.path).toBeUndefined()
+        expect(context?.firstContentTouch).toBeUndefined()
+    })
+
+    it('keeps the first country article after later content and signup navigation', () => {
+        window.history.replaceState({}, '', '/en/argentina?email=private%40example.com#customer')
+        const first = captureSignupAttribution()
+        window.history.replaceState({}, '', '/en/pay-with/pix')
+        captureSignupAttribution()
+        window.history.replaceState({}, '', '/signup')
+        const registration = parseSignupAttribution(buildSignupAttributionHeader())
+
+        expect(first?.firstTouch.path).toBe('/en/argentina')
+        expect(registration?.journeyId).toBe(first?.journeyId)
+        expect(registration?.firstContentTouch).toEqual(first?.firstContentTouch)
+        expect(registration?.firstContentTouch?.path).toBe('/en/argentina')
+        expect(JSON.stringify(registration)).not.toContain('private')
+    })
+
+    it.each(['/careers', '/en/privacy', '/en/terms', '/en/card-terms-us'])(
+        'does not let an administrative page take the first content touch: %s',
+        (path) => {
+            window.history.replaceState({}, '', path)
+            const first = captureSignupAttribution()
+            expect(first?.firstTouch.path).toBe(path)
+            expect(first?.firstContentTouch).toBeUndefined()
+            window.history.replaceState({}, '', '/en/argentina')
+            const content = captureSignupAttribution()
+            expect(content?.firstTouch).toEqual(first?.firstTouch)
+            expect(content?.firstContentTouch?.path).toBe('/en/argentina')
+        }
+    )
+
+    it('records delayed content discovery without replacing the initial home touch', () => {
+        window.history.replaceState({}, '', '/es-419')
+        const first = captureSignupAttribution()
+        expect(first?.firstContentTouch).toBeUndefined()
+        window.history.replaceState({}, '', '/es-419/use-cases/remote-workers')
+        const content = captureSignupAttribution()
+        expect(content?.firstTouch).toEqual(first?.firstTouch)
+        expect(content?.firstContentTouch?.path).toBe('/es-419/use-cases/remote-workers')
+    })
+
+    it('records a real locale fallback article even though its canonical URL uses another locale', () => {
+        window.history.replaceState({}, '', '/es-ar/blog/stablecoin-balance-visa-merchants')
+        const context = captureSignupAttribution()
+        expect(context?.firstTouch.path).toBe('/es-ar/blog/stablecoin-balance-visa-merchants')
+        expect(context?.firstContentTouch?.path).toBe('/es-ar/blog/stablecoin-balance-visa-merchants')
+    })
+
+    it.each([
+        '/en/deposit/from-future-exchange',
+        '/pt-br/withdraw/future-network',
+        '/es-419/stories/new-story',
+        '/en/use-cases/new-use-case',
+        '/en/compare/peanut-vs-future-provider',
+        '/en/send-money-from/future-origin/to/future-destination',
+    ])('reads a public article absent from an older native inventory: %s', (path) => {
+        window.history.replaceState({}, '', '/en/argentina')
+        const context = captureSignupAttribution()!
+        const touch = { ...context.firstTouch, path }
+        const restored = parseSignupAttribution(
+            JSON.stringify({ ...context, firstTouch: touch, firstContentTouch: touch })
+        )
+        expect(restored?.journeyId).toBe(context.journeyId)
+        expect(restored?.firstTouch.path).toBe(path)
+        expect(restored?.firstContentTouch?.path).toBe(path)
+
+        clearAttributionCookie()
+        window.history.replaceState({}, '', path)
+        expect(captureSignupAttribution()?.firstTouch.path).toBeUndefined()
+    })
+
+    it.each([
+        '/en/new-country-hub',
+        '/en/profile',
+        '/en/deposit/from-alice@example.com',
+        '/en/deposit/from-alice%40example.com',
+        '/en/deposit/from-550e8400-e29b-41d4-a716-446655440000',
+        '/en/withdraw/0x0000000000000000000000000000000000000001',
+        '/en/withdraw/to-bank/private',
+        '/zz/deposit/from-coinbase',
+    ])('drops an unknown or sensitive stored path without losing the known journey: %s', (path) => {
+        window.history.replaceState({}, '', '/en/argentina?utm_source=newsletter')
+        const context = captureSignupAttribution()!
+        const touch = { ...context.firstTouch, path }
+        const restored = parseSignupAttribution(
+            JSON.stringify({ ...context, firstTouch: touch, firstContentTouch: touch })
+        )
+        expect(restored?.journeyId).toBe(context.journeyId)
+        expect(restored?.firstTouch.utmSource).toBe('newsletter')
+        expect(restored?.firstTouch.path).toBeUndefined()
+        expect(restored?.firstContentTouch).toBeUndefined()
+        expect(JSON.stringify(restored)).not.toContain(path)
+    })
+
+    it('still rejects malformed path types and unrecognized touch fields', () => {
+        window.history.replaceState({}, '', '/en/argentina')
+        const context = captureSignupAttribution()!
+        for (const touch of [
+            { ...context.firstTouch, path: { private: 'value' } },
+            { ...context.firstTouch, privateField: 'value' },
+        ]) {
+            expect(parseSignupAttribution(JSON.stringify({ ...context, firstTouch: touch }))).toBeNull()
+        }
+    })
+
+    it('retains a previously captured article after it leaves the sitemap', () => {
+        const touch = {
+            occurredAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            path: '/en/blog/retired-article',
+            utmSource: 'newsletter',
+        }
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'web',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: touch,
+            firstContentTouch: touch,
+        })
+        window.history.replaceState({}, '', '/en/argentina')
+        const context = captureSignupAttribution()
+        expect(context?.firstTouch).toEqual(touch)
+        expect(context?.firstContentTouch).toEqual(touch)
+        expect(parseSignupAttribution(buildSignupAttributionHeader())?.firstContentTouch).toEqual(touch)
+    })
+
+    it('carries a deposit article through deferred native restore and a lost cookie', async () => {
+        window.history.replaceState({}, '', '/en/deposit/from-usd-account')
+        const web = captureSignupAttribution()
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        window.history.replaceState({}, '', '/setup')
+        const deferred = restoreSignupAttribution(parseSignupAttribution(serializeSignupAttribution(web))!)
+        const registration = await ensureSignupAttributionForRegistration()
+        expect(registration?.firstContentTouch?.path).toBe('/en/deposit/from-usd-account')
+        expect(registration?.journeyId).toBe(web?.journeyId)
+        expect(registration?.captureMethod).toBe('deferred_link')
+
+        clearAttributionCookie()
+        mockPreferencesGet.mockResolvedValue({ value: JSON.stringify(deferred) })
+        const recovered = await ensureSignupAttributionForRegistration()
+        expect(recovered?.firstTouch).toEqual(web?.firstTouch)
+        expect(recovered?.firstContentTouch).toEqual(web?.firstContentTouch)
+        expect(recovered?.captureMethod).toBe('deferred_link')
+    })
+
     it('keeps first touch stable while updating the last source touch', () => {
         window.history.replaceState(
             {},
             '',
-            '/blog/creator-guide?utm_source=creator&utm_medium=social&utm_campaign=summer'
+            '/en/blog/earn-with-peanut-3min-setup?utm_source=creator&utm_medium=social&utm_campaign=summer'
         )
         Object.defineProperty(document, 'referrer', {
             configurable: true,
@@ -63,9 +252,9 @@ describe('signup attribution context', () => {
                 utmMedium: 'social',
                 utmCampaign: 'summer',
                 referrerHost: 'example.com',
-                path: '/blog/creator-guide',
+                path: '/en/blog/earn-with-peanut-3min-setup',
             },
-            firstContentTouch: { path: '/blog/creator-guide' },
+            firstContentTouch: { path: '/en/blog/earn-with-peanut-3min-setup' },
         })
 
         window.history.replaceState({}, '', '/signup?utm_source=paid&utm_medium=cpc&utm_campaign=retargeting')
@@ -84,7 +273,7 @@ describe('signup attribution context', () => {
     })
 
     it('does not replay the document referrer on an untagged SPA navigation', () => {
-        window.history.replaceState({}, '', '/blog/creator-guide')
+        window.history.replaceState({}, '', '/en/blog/earn-with-peanut-3min-setup')
         Object.defineProperty(document, 'referrer', {
             configurable: true,
             value: 'https://example.com/article',
@@ -94,7 +283,10 @@ describe('signup attribution context', () => {
         window.history.replaceState({}, '', '/signup')
         const second = captureSignupAttribution()
 
-        expect(first?.lastTouch).toMatchObject({ referrerHost: 'example.com', path: '/blog/creator-guide' })
+        expect(first?.lastTouch).toMatchObject({
+            referrerHost: 'example.com',
+            path: '/en/blog/earn-with-peanut-3min-setup',
+        })
         expect(second?.lastTouch).toEqual(first?.lastTouch)
     })
 

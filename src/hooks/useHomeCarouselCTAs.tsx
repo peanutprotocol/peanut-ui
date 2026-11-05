@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import { useNotifications } from './useNotifications'
+import { PERMISSION_REQUEST_SOURCES } from '@/constants/push-prompt.consts'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from './useCapabilities'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
@@ -16,18 +17,18 @@ import { useDeviceType } from './useGetDeviceType'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
+import { useCardSurfaceAccess } from './useCardSurfaceAccess'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useMigrationFlag } from './useMigrationFlag'
 import { openStore, storeForDevice } from '@/utils/migration.utils'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
 import { QrKycState } from '@/constants/kyc.consts'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { useIdentityVerification } from './useIdentityVerification'
@@ -64,13 +65,13 @@ export const useHomeCarouselCTAs = ({
     startQrIdentityCheckRef.current = onStartQrIdentityCheck
     const t = useAppTranslations('home.carousel')
     const tMigration = useTranslations('migration')
-    const migrationOn = useMigrationFlag()
     const flagEnabled = useFeatureFlags()
     // User-interview campaign gate. nonProdBypass: previews/local always show
     // the card for QA; on prod the PostHog `username` release condition decides.
-    // No mounted guard needed (cf. useMigrationFlag): the value is only read in
-    // generateCarouselCTAs, which runs after mount in an effect.
+    // No mounted guard needed: the value is only read in generateCarouselCTAs,
+    // which runs after mount in an effect.
     const interviewInviteOn = flagEnabled('user-interviews-invite', { nonProdBypass: true })
+    const cardPromotionDisabled = flagEnabled(CARD_PROMOTION_DISABLED_FLAG)
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
@@ -78,7 +79,7 @@ export const useHomeCarouselCTAs = ({
         useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, channelOf, nextActions } = useCapabilities()
+    const { capabilities, rails, nextActions } = useCapabilities()
     const { isRegionRestricted, isTerminalFailure, status: identityStatus } = useIdentityVerification()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
@@ -89,6 +90,7 @@ export const useHomeCarouselCTAs = ({
     const { openSupportWithMessage, setIsGetAppModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
     const { isEligible: isCardEligible, cardInfo } = useCardInfo()
+    const { showCardSurface, hasCardRelationship } = useCardSurfaceAccess()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -143,9 +145,9 @@ export const useHomeCarouselCTAs = ({
             })
         }
 
-        // During the native-app cutover, mobile opens the visitor's store and
-        // desktop opens the scan-to-download QR.
-        if (migrationOn && !isCapacitor()) {
+        // On the web, mobile opens the visitor's store and desktop opens the
+        // scan-to-download QR.
+        if (!isCapacitor()) {
             _carouselCTAs.push({
                 id: 'app-install',
                 title: tMigration('banner.title'),
@@ -186,7 +188,7 @@ export const useHomeCarouselCTAs = ({
                 onClick: async () => {
                     // Native permission recovery opens the operating-system settings
                     // when the user already denied the prompt.
-                    const result = await requestPermission()
+                    const result = await requestPermission(PERMISSION_REQUEST_SOURCES.HOME_CAROUSEL)
                     await afterPermissionAttempt()
                     // 'default' = browser suppressed prompt (policy/Shields) or
                     // user dismissed it — calling again won't help this session.
@@ -201,11 +203,9 @@ export const useHomeCarouselCTAs = ({
         // the same gate the QR pay page reads: the slide shows only when a scan would pay
         const qrGate = selectQrKycGate({
             isLoading: false,
-            isRegionRestricted,
-            isTerminalFailure,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails: rails.filter((rail) => rail.provider === 'manteca'),
+            features: capabilities.features,
             nextActions,
+            rails,
         })
         if (showQrPayCTA({ canPayQrNow: qrGate.kycGateState === QrKycState.PROCEED_TO_PAY, hasMadeQrPayment })) {
             _carouselCTAs.push({
@@ -259,17 +259,11 @@ export const useHomeCarouselCTAs = ({
 
         // Public card offer for ACTIVATED users — pre-activation Home is owned
         // by ActivationCTAs (checklist / spend step), which carries its own
-        // card arm. Excluded: known prohibited residences, anyone with a card
-        // relationship (any card-channel rail: active card or in-flight
-        // application), and the same kill switch as every other card prompt.
-        const hasCardRelationship = rails.some((rail) => channelOf(rail) === 'card')
-        if (
-            !underMaintenanceConfig.disableCardPromotion &&
-            isActivated === true &&
-            cardInfo &&
-            !cardInfo.geoProhibited &&
-            !hasCardRelationship
-        ) {
+        // card arm. Excluded: residences the nav hides the card from (the
+        // shared useCardSurfaceAccess gate), anyone with a card relationship
+        // (any card-channel rail: active card or in-flight application), and
+        // the same flag as every other card prompt.
+        if (!cardPromotionDisabled && isActivated === true && cardInfo && showCardSurface && !hasCardRelationship) {
             _carouselCTAs.push({
                 id: 'card-offer',
                 title: <span>{t.rich('card.title', { b })}</span>,
@@ -313,7 +307,6 @@ export const useHomeCarouselCTAs = ({
         t,
         isPermissionGranted,
         isPushOptedIn,
-        canDo,
         isInFlight,
         router,
         requestPermission,
@@ -323,13 +316,16 @@ export const useHomeCarouselCTAs = ({
         userCountryCode,
         isCardEligible,
         cardInfo,
+        showCardSurface,
+        hasCardRelationship,
         rails,
-        channelOf,
         nextActions,
+        capabilities.features,
         isRegionRestricted,
         isTerminalFailure,
         identityStatus,
         isActivated,
+        cardPromotionDisabled,
         hasMadeQrPayment,
         hasSentInvites,
         hasSupportSurvivorBadge,
@@ -337,7 +333,6 @@ export const useHomeCarouselCTAs = ({
         toast,
         dismissCTA,
         openSupportWithMessage,
-        migrationOn,
         interviewInviteOn,
         tMigration,
         setIsGetAppModalOpen,

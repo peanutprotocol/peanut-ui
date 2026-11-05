@@ -7,6 +7,8 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * carousel, and must not be asked to verify for something they can never do.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
 import { renderHook, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { useHomeCarouselCTAs } from '@/hooks/useHomeCarouselCTAs'
@@ -15,7 +17,7 @@ import { blockedCardCtaId, hideHomeCta } from '@/utils/home-carousel.utils'
 // Every mocked value is stable across renders: the hook's effects and
 // callbacks depend on their identity, and fresh objects would loop.
 let mockRegionRestricted = false
-let mockIdentityStatus = 'not_started'
+let mockIdentityStatus: IdentityVerificationStatus = 'not_started'
 let mockRails: Array<Record<string, unknown>> = []
 const mockNoActions: never[] = []
 const mockChannelOf = (rail: { channel: string }) => rail.channel
@@ -26,6 +28,7 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: mockUser.capabilities,
         rails: mockRails,
         nextActions: mockNoActions,
         channelOf: mockChannelOf,
@@ -33,7 +36,12 @@ jest.mock('@/hooks/useCapabilities', () => ({
         canDo: mockCanDo,
     }),
 }))
-const mockUser = { user: { userId: 'u1', badges: [] }, invitesSent: [] }
+const mockUser = {
+    user: { userId: 'u1', badges: [] },
+    invitesSent: [],
+    identityVerification: { status: 'not_started' as IdentityVerificationStatus },
+    capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'not_started' } }),
+}
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 const mockNotifications = {
     requestPermission: jest.fn(),
@@ -56,13 +64,18 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 const mockGeo = { countryCode: 'US' }
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: () => mockGeo }))
-const mockCardInfo = { isEligible: false, cardInfo: { isEligible: false, geoProhibited: true } }
+const mockCardIneligible = { isEligible: false, cardInfo: { isEligible: false, geoProhibited: true } }
+let mockCardInfo = mockCardIneligible
 jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => mockCardInfo }))
-const mockActivation = { isActivated: false }
+const mockNotActivated = { isActivated: false }
+let mockActivation = mockNotActivated
 jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => mockActivation }))
+// useCardSurfaceAccess runs for real: the card offer must follow the nav's gate
+const mockUnrestricted = { banking: false, card: false }
+let mockRestrictions = mockUnrestricted
+jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
 const mockHistory = { data: { entries: [] } }
 jest.mock('@/hooks/useTransactionHistory', () => ({ useTransactionHistory: () => mockHistory }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 const mockFlag = () => false
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockFlag }))
 jest.mock('@/utils/capacitor', () => ({
@@ -73,6 +86,16 @@ jest.mock('@/utils/capacitor', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 const ids = () => {
+    mockUser.identityVerification = { status: mockIdentityStatus }
+    mockUser.capabilities = withFeatureReport(
+        { rails: mockRails as unknown as RailCapability[], nextActions: mockNoActions },
+        {
+            identity: {
+                status: mockRegionRestricted ? 'failed' : mockIdentityStatus,
+                ...(mockRegionRestricted ? { reason: { code: 'identity_region_restricted' } } : {}),
+            },
+        }
+    )
     const { result } = renderHook(() => useHomeCarouselCTAs(), {
         wrapper: ({ children }: { children: React.ReactNode }) => <IntlWrapper>{children}</IntlWrapper>,
     })
@@ -84,6 +107,9 @@ beforeEach(() => {
     mockRegionRestricted = false
     mockIdentityStatus = 'not_started'
     mockRails = []
+    mockCardInfo = mockCardIneligible
+    mockActivation = mockNotActivated
+    mockRestrictions = mockUnrestricted
 })
 
 describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () => {
@@ -94,6 +120,7 @@ describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () 
 
     it('region refused → hide the region card → the carousel has no kyc-prompt', async () => {
         mockRegionRestricted = true
+        mockIdentityStatus = 'failed'
         hideHomeCta('u1', blockedCardCtaId('region-restricted', 'identity_region_restricted'))
         const result = ids()
         await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
@@ -122,5 +149,26 @@ describe('useHomeCarouselCTAs — the verify slide follows the QR-pay gate', () 
         const result = ids()
         await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
         expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('kyc-prompt')
+    })
+})
+
+describe('useHomeCarouselCTAs — the card offer follows the nav', () => {
+    beforeEach(() => {
+        mockActivation = { isActivated: true }
+        mockCardInfo = { isEligible: true, cardInfo: { isEligible: true, geoProhibited: false } }
+    })
+
+    it('an activated user the nav shows the card to gets the card offer', async () => {
+        const result = ids()
+        await waitFor(() => expect(result.current.carouselCTAs.map((cta) => cta.id)).toContain('card-offer'))
+    })
+
+    it('a residence restriction hides the card offer even when the card country is not prohibited', async () => {
+        // e.g. a pending move to a card-restricted residence: /users/me restricts
+        // the card, /card/info still answers for the current residence
+        mockRestrictions = { banking: false, card: true }
+        const result = ids()
+        await waitFor(() => expect(result.current.carouselCTAs).toBeDefined())
+        expect(result.current.carouselCTAs.map((cta) => cta.id)).not.toContain('card-offer')
     })
 })

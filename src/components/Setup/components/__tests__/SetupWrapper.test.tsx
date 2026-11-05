@@ -7,7 +7,10 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  */
 import React from 'react'
 import { act, fireEvent, screen } from '@testing-library/react'
+import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
+import { signupControls } from '@/test-utils/signup-controls'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { SetupWrapper, useSetupFullScreen } from '../SetupWrapper'
 
 const mockReducedMotion = { value: true }
@@ -16,8 +19,8 @@ const mockSetBackgroundColor = jest.fn()
 
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
     isCapacitor: () => mockCapacitor.value,
@@ -167,6 +170,27 @@ describe('SetupWrapper navigation', () => {
         renderWrapper({ showBackButton: true, onBack })
         fireEvent.click(screen.getByRole('button', { name: 'Go back' }))
         expect(onBack).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports Back and Skip taps, and gives the step its screen for its own controls', () => {
+        const StepControl = () => {
+            const { track } = useSignupControl()
+            return <button onClick={() => track('continue', 'tap')}>Step control</button>
+        }
+        renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="invite" showBackButton showSkipButton onBack={jest.fn()}>
+                <StepControl />
+            </SetupWrapper>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Go back' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Step control' }))
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['back:tap', 'skip:tap', 'continue:tap'])
+        expect((posthog.capture as jest.Mock).mock.calls.map(([, props]) => props.screen_id)).toEqual([
+            'invite',
+            'invite',
+            'invite',
+        ])
     })
 })
 
@@ -433,6 +457,42 @@ describe('SetupWrapper transitions', () => {
         expect(screen.getByText('Welcome').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '100%')
         // the art drifts the same way as the panel
         expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '-30%')
+    })
+
+    // An accepted inviter drops the step behind the current one, so the same screen gets a
+    // lower index. Reading that as a Back flipped the slide mid-transition, and the
+    // outgoing screen then never left the page.
+    it('keeps the slide direction when the list changes under the current screen', () => {
+        mockReducedMotion.value = false
+        const renderFees = (step: number) => (
+            <SetupWrapper
+                layoutType="signup"
+                screenId="advantage-fees"
+                step={step}
+                direction={1}
+                image={{ pose: 'pointing' }}
+                title="Euros? Dollars? Pesos? Yes."
+            >
+                <div>Fees</div>
+            </SetupWrapper>
+        )
+        const { rerender } = renderWithIntl(
+            <SetupWrapper
+                layoutType="signup"
+                screenId="invite"
+                step={2}
+                direction={1}
+                image={{ pose: 'waving-chill' }}
+                title="Invited by a friend?"
+            >
+                <div>Invite</div>
+            </SetupWrapper>
+        )
+        rerender(renderFees(3))
+        rerender(renderFees(2))
+
+        expect(screen.getByText('Fees').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '-100%')
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-exit-x', '-30%')
     })
 
     it('uses an instant transition for reduced motion', () => {

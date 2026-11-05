@@ -28,6 +28,24 @@ describe('CompareSavings', () => {
         expect(text).not.toContain('NaN')
     })
 
+    it('lets crawlers follow an editorial fee source', () => {
+        withRate(0)
+
+        render(
+            <CompareSavings
+                strings={en}
+                competitor="Wise"
+                markupPct="1"
+                verifiedAt="2026-08-10"
+                sourceUrl="https://wise.com/pricing/"
+            />
+        )
+
+        const source = screen.getByRole('link', { name: en.compareSavingsSource })
+        expect(source).toHaveAttribute('href', 'https://wise.com/pricing/')
+        expect(source).toHaveAttribute('rel', 'noopener')
+    })
+
     it('adds local-currency amounts once a rate arrives', () => {
         withRate(1500)
 

@@ -25,10 +25,12 @@ export const LOTTIE_PROFILE_ENABLED = process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENA
 // activity visualisation shown at events. full-graph is deliberately absent:
 // the legacy page loads the same team-gated dataset without the explorer's
 // telemetry suppression. safe-area reads device insets and must run on the
-// production native build, where the bad insets are.
+// production native build, where the bad insets are. users reads production
+// records, so it only works on peanut.me; the API refuses non-team accounts.
 const PROD_ALLOWED_DEV_ROUTES = [
     '/dev/payment-graph',
     '/dev/safe-area',
+    '/dev/users',
     ...(LOTTIE_PROFILE_ENABLED ? ['/dev/lottie-profile'] : []),
 ]
 

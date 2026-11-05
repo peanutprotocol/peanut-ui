@@ -11,8 +11,8 @@ import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
-import { type ITokenPriceData } from '@/interfaces/interfaces'
-import { formatNumberForDisplay, isStableCoin } from '@/utils/general.utils'
+import { type IToken } from '@/interfaces/interfaces'
+import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 import { useMemo } from 'react'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
@@ -21,7 +21,7 @@ import { savedAddressLabel } from '@/utils/saved-address.utils'
 
 interface WithdrawConfirmViewProps {
     amount: string
-    token: ITokenPriceData
+    token: IToken
     chain: ChainWithTokens
     toAddress: string
     /** Rhino's quoted total fee (USD), verbatim from `useCrossChainTransfer`. */
@@ -71,9 +71,9 @@ interface WithdrawConfirmViewProps {
     isFromSendFlow?: boolean
     /** Address-book nickname when the destination is already saved — "To" renders "Nickname · …abcd". */
     toNickname?: string | null
-    /** "Save to address book" prompt, rendered under the recipient card (only when not yet saved). */
+    /** "Save to favorites" prompt, rendered under the recipient card (only when not yet saved). */
     saveAddressPrompt?: React.ReactNode
-    /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
+    /** Extra gate for the CTA — e.g. "Save to favorites" ticked with no nickname yet. */
     confirmDisabled?: boolean
     /**
      * Funds already left the wallet for this charge and only the bookkeeping
@@ -138,7 +138,7 @@ export default function ConfirmWithdrawView({
     const totalPayDisplay = useMemo<string | null>(() => {
         if (!isCrossChain || !payAmount) return null
         const parsed = parseFloat(payAmount)
-        return Number.isFinite(parsed) ? `$${formatNumberForDisplay(payAmount, { maxDecimals: 6 })}` : null
+        return Number.isFinite(parsed) ? `$${formatCurrency(payAmount, 6)}` : null
     }, [isCrossChain, payAmount])
 
     return (
@@ -147,11 +147,10 @@ export default function ConfirmWithdrawView({
 
             <div className="space-y-4 pb-4">
                 <PeanutActionDetailsCard
-                    avatarSize="m"
                     transactionType={'WITHDRAW'}
                     recipientType="USERNAME"
                     recipientName={''}
-                    amount={formatNumberForDisplay(amount, { maxDecimals: 6 })}
+                    amount={formatCurrency(amount, 6)}
                     tokenSymbol="USDC"
                     isFromSendFlow={isFromSendFlow}
                 />

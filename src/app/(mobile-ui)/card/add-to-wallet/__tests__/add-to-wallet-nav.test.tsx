@@ -8,7 +8,6 @@ const replace = jest.fn()
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ back, push, replace, prefetch: jest.fn() }) }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/hooks/useWalletPlatform', () => ({ useWalletPlatform: () => 'ios' }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => {
     return function MockPageContainer(p: { children?: React.ReactNode }) {
         return <div>{p.children}</div>
@@ -27,6 +26,7 @@ jest.mock('@/components/Card/AddToWalletCarousel', () => {
     }
 })
 
+import posthog from 'posthog-js'
 import AddToWalletPage from '../page'
 
 // Regression (TASK-21930): Done used router.push, so Back popped the user straight back
@@ -38,6 +38,18 @@ describe('card add-to-wallet navigation', () => {
         push.mockReset()
         replace.mockReset()
         __testing.reset()
+    })
+
+    it('records one view with the phone OS, and leaves the platform super property alone', () => {
+        jest.mocked(posthog.capture).mockClear()
+        const userAgent = jest
+            .spyOn(navigator, 'userAgent', 'get')
+            .mockReturnValue('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)')
+        render(<AddToWalletPage />)
+
+        expect(posthog.capture).toHaveBeenCalledTimes(1)
+        expect(posthog.capture).toHaveBeenCalledWith('card_add_to_wallet_viewed', { os: 'ios' })
+        userAgent.mockRestore()
     })
 
     it('backs out of the tutorial on Done when entered in-app, leaving no tutorial entry', () => {

@@ -29,16 +29,19 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
+import { personFrom } from '@/lib/person/person'
+import type { Person } from '@/lib/person/person.types'
 import { useAuth } from '@/context/authContext'
 import type { TRequestChargeResponse, PaymentCreationResponse } from '@/services/services.types'
-import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
+import { getInitialsFromName } from '@/utils/general.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { isDemoMode } from '@/utils/demo'
 import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useReturnTo } from '@/hooks/useSafeBack'
+import { useFlowExit } from '@/features/payments/shared/hooks/useFlowExit'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
@@ -52,18 +55,18 @@ import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import type { ProviderId } from '@/types/provider.types'
-import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
-
-// minimal user info needed for display
-type UserDisplayInfo = {
-    username?: string
-    fullName?: string
-    /** Their picked profile avatar (TASK-22625); null means the letter fallback. */
-    avatarKey?: string | null
-}
+import {
+    receiptKindForCharge,
+    settledReceiptFields,
+    sponsoredNetworkFee,
+} from '@/features/payments/shared/utils/charge-receipt.utils'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { withPublicReceipt } from '@/utils/history.utils'
+import { pendingNetworkFee } from '@/components/TransactionDetails/network-fee.utils'
 
 type DirectSuccessViewProps = {
-    user?: UserDisplayInfo
+    /** The Peanut user who got the money (TASK-23756). Absent or null: the charge names them, if anyone. */
+    recipient?: Person | null
     amount?: string
     message?: string | ReactNode
     recipientType?: RecipientType
@@ -73,7 +76,18 @@ type DirectSuccessViewProps = {
     /** A second amount under the headline, already formatted: the other currency of a conversion. */
     secondaryAmount?: string
     isExternalWalletFlow?: boolean
+    /**
+     * The charge was paid from an external wallet, which paid its own gas:
+     * the receipt states no network fee for it.
+     */
+    isExternalWalletPayment?: boolean
     isWithdrawFlow?: boolean
+    /**
+     * A cross-chain withdrawal's quoted fee (USD), the number the confirm
+     * screen showed: the receipt reads it as an estimate until the charge's
+     * history entry states the settled fee.
+     */
+    quotedNetworkFeeUsd?: number
     /**
      * A withdraw the user reached through the send flow. Narrow on purpose: it
      * only reframes the title. `isWithdrawFlow` still governs layout (it
@@ -93,10 +107,16 @@ type DirectSuccessViewProps = {
     transactionDetails?: TransactionDetails | null
     /** The provider that moved the money; named in the fine print under the card. */
     providerId?: ProviderId
+    /**
+     * The in-place receipt's status. A flow that read the charge back after
+     * the payment passes what the charge says; the default is for flows whose
+     * own send just confirmed.
+     */
+    receiptStatus?: IconStatusType
 }
 
 const PaymentSuccessView = ({
-    user,
+    recipient,
     amount,
     message,
     recipientType,
@@ -105,7 +125,9 @@ const PaymentSuccessView = ({
     currencyAmount,
     secondaryAmount,
     isExternalWalletFlow,
+    isExternalWalletPayment,
     isWithdrawFlow,
+    quotedNetworkFeeUsd,
     isFromSendFlow,
     redirectTo = '/home',
     onComplete,
@@ -116,6 +138,7 @@ const PaymentSuccessView = ({
     usdAmount,
     transactionDetails: transactionDetailsProp,
     providerId,
+    receiptStatus = 'completed',
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const origin = useAppOrigin()
@@ -132,8 +155,8 @@ const PaymentSuccessView = ({
     })
 
     const recipientName = useMemo(() => {
-        if (user?.username) {
-            return user.fullName || user.username
+        if (recipient) {
+            return recipient.displayName
         }
         if (parsedPaymentData?.recipient?.identifier) {
             return parsedPaymentData.recipient.identifier
@@ -142,7 +165,7 @@ const PaymentSuccessView = ({
             user: chargeDetails?.requestLink?.recipientAccount?.user,
             address: chargeDetails?.requestLink?.recipientAddress || '',
         }).displayName
-    }, [user, parsedPaymentData, chargeDetails])
+    }, [recipient, parsedPaymentData, chargeDetails])
 
     const amountValue = useMemo(() => {
         return amount ?? chargeDetails?.tokenAmount ?? '0'
@@ -154,20 +177,19 @@ const PaymentSuccessView = ({
         if (currencyAmount) return currencyAmount
 
         // 2. usdAmount - comes from charge response
-        if (usdAmount) return `$${formatAmount(Number(usdAmount))}`
+        if (usdAmount) return formatBankAmount(usdAmount, 'USD')
 
         // 3. fallback: we only know the raw amount which is USD
-        return `$${formatAmount(amountValue)}`
+        return formatBankAmount(amountValue, 'USD')
     }, [amountValue, currencyAmount, usdAmount])
 
     // construct transaction details for the drawer
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!chargeDetails) return null
 
-        const networkFeeDisplayValue = '$0' // fee is zero for peanut wallet txns
         const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
-        const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
+        const recipientIdentifier = recipient?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
             ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`, origin)
             : undefined
@@ -181,10 +203,10 @@ const PaymentSuccessView = ({
             // `txHash` below.
             id: chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as IconStatusType,
+            status: receiptStatus,
             amount: parseFloat(amountValue),
             createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
-            completedAt: new Date(),
+            completedAt: receiptStatus === 'completed' ? new Date() : undefined,
             tokenSymbol: chargeDetails.tokenSymbol,
             direction: 'send', // only showing receipt for send txns
             initials: getInitialsFromName(recipientName),
@@ -198,7 +220,7 @@ const PaymentSuccessView = ({
             // external-wallet withdrawals have no username/identifier — fall back to
             // the recipient address so the receipt never renders "Sent to undefined"
             userName:
-                user?.username ||
+                recipient?.username ||
                 parsedPaymentData?.recipient?.identifier ||
                 chargeDetails.requestLink?.recipientAddress ||
                 recipientName,
@@ -211,20 +233,18 @@ const PaymentSuccessView = ({
                 tokenIconUrl: tokenIconUrl,
                 chainIconUrl: chainIconUrl,
             },
-            networkFeeDetails: {
-                amountDisplay: networkFeeDisplayValue,
-                moreInfoText: t('confirm.slippageInfo'),
-            },
+            // Until the history entry loads: a withdrawal's network fee is not
+            // known yet; any other charge states the sponsored row only when it
+            // is a same-chain Peanut-wallet payment (sponsoredNetworkFee).
+            networkFeeDetails: isWithdrawFlow
+                ? pendingNetworkFee(quotedNetworkFeeUsd)
+                : sponsoredNetworkFee(chargeDetails, !!isExternalWalletPayment),
             peanutFeeDetails: {
                 amountDisplay: peanutFeeDisplayValue,
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
-            // The recipient we were handed, or the one the charge names. A
-            // handed-in recipient is authoritative: their explicit null means
-            // "no pick", not "look somewhere else".
-            avatarKey: user
-                ? (user.avatarKey ?? null)
-                : (chargeDetails.requestLink?.recipientAccount?.user?.avatarKey ?? null),
+            // The recipient we were handed, or the one the charge names.
+            peer: recipient ?? personFrom(chargeDetails.requestLink?.recipientAccount?.user),
         }
 
         return details as TransactionDetails
@@ -233,7 +253,7 @@ const PaymentSuccessView = ({
         amountValue,
         recipientName,
         parsedPaymentData,
-        user,
+        recipient,
         tokenIconUrl,
         chainIconUrl,
         resolvedChainName,
@@ -241,12 +261,34 @@ const PaymentSuccessView = ({
         paymentDetails,
         origin,
         usdAmount,
-        t,
+        receiptStatus,
+        isWithdrawFlow,
+        isExternalWalletPayment,
+        quotedNetworkFeeUsd,
     ])
 
+    // The charge's history entry: the backend's own amount, status and network
+    // fee, polled while a withdrawal's fee settles. A guest cannot read it (the
+    // API answers 404 by design), and demo mode has no backend.
+    const { data: historyEntry } = useHistoryEntry(
+        chargeDetails?.uuid,
+        chargeDetails ? receiptKindForCharge(chargeDetails) : undefined,
+        {
+            enabled: !!authUser?.user.userId && !isDemoMode() && !transactionDetailsProp && !!chargeDetails,
+            retry: false,
+        }
+    )
+
     // the one transaction this view's receipt drawer shows — the drawer opens
-    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer)
-    const receiptTransaction = transactionDetailsProp ?? transactionForDrawer
+    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer).
+    // The entry's facts go over the receipt the flow built, never replace it:
+    // the flow's receipt keeps the comment and the attachment. The entry also
+    // says whether the receipt has a public link to share.
+    const receiptTransaction = useMemo(() => {
+        if (transactionDetailsProp) return transactionDetailsProp
+        if (!transactionForDrawer || !historyEntry) return transactionForDrawer
+        return withPublicReceipt({ ...transactionForDrawer, ...settledReceiptFields(historyEntry) }, historyEntry)
+    }, [transactionDetailsProp, transactionForDrawer, historyEntry])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
@@ -269,7 +311,7 @@ const PaymentSuccessView = ({
                 recordDemoTransaction({
                     amount: String(amountValue),
                     recipientName,
-                    recipientUsername: user?.username,
+                    recipientUsername: recipient?.username,
                     recipientAddress: chargeDetails?.requestLink?.recipientAddress,
                     txHash,
                     createdAt: paymentDetails?.createdAt ?? chargeDetails?.createdAt,
@@ -283,15 +325,8 @@ const PaymentSuccessView = ({
     }, [queryClient])
 
     // Rewinds to the destination past every entry the flow pushed, or replaces
-    // this page with it. A push kept the finished flow under home, so back from
-    // home reopened the request or send just completed (QA-09); a replace
-    // still kept the flow's earlier entries.
-    const leaveFlow = useReturnTo(!!authUser?.user.userId ? redirectTo : '/setup')
-    const handleDone = () => {
-        // navigate before onComplete, which may reset state and unmount this view first
-        leaveFlow()
-        onComplete?.()
-    }
+    // this page with it; a replace still kept the flow's earlier entries.
+    const handleDone = useFlowExit(redirectTo, onComplete)
 
     const getTitle = () => {
         if (isExternalWalletFlow) return t('success.addedExternal')

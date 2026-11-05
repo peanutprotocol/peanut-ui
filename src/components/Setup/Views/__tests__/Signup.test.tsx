@@ -1,6 +1,9 @@
 /** @jest-environment jsdom */
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
@@ -53,7 +56,7 @@ const renderSignup = () => {
     const view = renderWithIntl(
         <QueryClientProvider client={queryClient}>
             <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                <SignupStep />
+                {onSignupScreen('signup', <SignupStep />)}
                 <FlowState />
             </SetupFlowProvider>
         </QueryClientProvider>
@@ -92,12 +95,34 @@ describe('Claim username', () => {
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
-    it('explains a too-short username instead of only marking the field red', async () => {
+    it('shows the username rules before any error, and an error in their place', async () => {
         renderSignup()
+        const rules = '4–12 characters. Start with a letter. Letters and numbers only.'
+        expect(screen.getByText(rules)).toBeInTheDocument()
         fireEvent.change(usernameField(), { target: { value: 'abc' } })
-        expect(await screen.findByText('Username must be at least 4 characters long')).toBeInTheDocument()
+        expect(await screen.findByText('Use at least 4 characters.')).toBeInTheDocument()
+        expect(screen.queryByText(rules)).not.toBeInTheDocument()
         expect(mockApiFetch).not.toHaveBeenCalled()
         expect(claimButton()).toBeDisabled()
+        // the category only: what the person typed stays out of analytics
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
+            error_type: 'too_short',
+        })
+    })
+
+    it.each([
+        ['waytoolongname', 'Use 12 characters or fewer.', 'too_long'],
+        ['1abc', 'Start with a letter. Use only letters and numbers.', 'format'],
+        ['ab.cd', 'Start with a letter. Use only letters and numbers.', 'format'],
+    ])('explains %s against the same rules and records why', async (value, message, errorType) => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value } })
+        expect(await screen.findByText(message)).toBeInTheDocument()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
+            error_type: errorType,
+        })
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['username:change', `username:error:${errorType}`])
     })
 
     it('keeps Claim disabled for a taken username', async () => {
@@ -234,5 +259,43 @@ describe('Claim username', () => {
         await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
         expect(isDemoMode()).toBe(false)
         expect(mockSetScreenId).not.toHaveBeenCalled()
+    })
+})
+
+describe('Claim username — control analytics', () => {
+    const controls = () => signupControls(posthog.capture as jest.Mock)
+
+    it('reports the first edit, each new error category, the clear button and Claim, never the typed name', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 200 })
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        await screen.findByText('Use at least 4 characters.')
+        fireEvent.change(usernameField(), { target: { value: 'takenname' } })
+        await screen.findByText('Username already taken')
+        fireEvent.change(usernameField(), { target: { value: 'freename' } })
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        fireEvent.click(claimButton())
+        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        expect(controls()).toEqual(['username:change', 'username:error:too_short', 'username:error:taken', 'claim:tap'])
+        const sent = JSON.stringify((posthog.capture as jest.Mock).mock.calls)
+        expect(sent).not.toMatch(/takenname|freename/)
+    })
+
+    it('reports Log in for a taken username and the passkey help drawer actions', () => {
+        Object.assign(mockPasskey, { usernameTaken: true, helpErrorName: 'NotAllowedError', isHelpOpen: true })
+        renderSignup()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
+        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+        fireEvent.click(screen.getByRole('button', { name: 'Log in', hidden: true }))
+        expect(controls()).toEqual([
+            'passkey_help_retry:tap',
+            'passkey_help_support:tap',
+            'passkey_help:dismiss',
+            'log_in:tap',
+        ])
+        expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
     })
 })

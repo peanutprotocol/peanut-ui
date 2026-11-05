@@ -97,7 +97,7 @@ export default function DataRowPage() {
                 <ProductUsage.Example
                     title="Receipt — transaction details"
                     path="src/components/TransactionDetails/ReceiptDetailsCard.tsx"
-                    description="The reference call site. The card owns the dashed dividers and the container-query column widths (receiptDataRowCardClassName); rows carry copy buttons and a fee tooltip."
+                    description="The reference call site. The card owns the dashed dividers and the container-query column widths (receiptDataRowCardClassName); rows carry copy buttons."
                     code={`<Card position="solo" className={receiptDataRowCardClassName}>
     <DataRow label={t('rows.created')} value={formatDate(transaction.createdAt)} />
     <DataRow
@@ -106,22 +106,14 @@ export default function DataRowPage() {
         allowCopy
         copyValue={transaction.userName}
     />
-    <DataRow
-        label={t('rows.networkFee')}
-        value={transaction.networkFeeDetails!.amountDisplay}
-        moreInfoText={transaction.networkFeeDetails!.moreInfoText}
-    />
+    <DataRow label={t('rows.networkFee')} value={networkFeeValue} />
     <DataRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
 </Card>`}
                 >
                     <Card position="solo" className={receiptDataRowCardClassName}>
                         <DataRow label="Created" value="Sep 21, 2026, 14:02" />
                         <DataRow label="To" value="0x1f9a…4c7d" allowCopy copyValue="0x1f9a04c7d" />
-                        <DataRow
-                            label="Network fee"
-                            value="$0.01"
-                            moreInfoText="Paid to the network to settle the transfer."
-                        />
+                        <DataRow label="Network fee" value="$0.01" />
                         <DataRow label="Peanut fee" value="Sponsored by Peanut" />
                     </Card>
                 </ProductUsage.Example>

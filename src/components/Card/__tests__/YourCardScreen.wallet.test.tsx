@@ -22,6 +22,16 @@ jest.mock('@/components/Card/CardFace', () => ({ __esModule: true, default: () =
 jest.mock('@/components/Card/LockCardModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CancelCardModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/context/ModalsContext', () => {
+    const modals = { setIsSupportModalOpen: jest.fn() }
+    return { useModalsContext: () => modals, useModalsContextOptional: () => modals }
+})
+jest.mock('@/hooks/wallet/useCardCollateralReturn', () => ({
+    useCardCollateralReturn: () => ({ returnCollateral: jest.fn(), isReturning: false, lastError: null }),
+}))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
+jest.mock('@/hooks/useCardFundingAccess', () => ({ useCardFundingAccess: () => ({ access: undefined }) }))
+jest.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: undefined }) }))
 jest.mock('next/image', () => ({
     __esModule: true,
     default: ({
@@ -44,7 +54,10 @@ beforeEach(() => {
 it('starts Android provisioning only from the official Google button', () => {
     renderScreen()
     const button = screen.getByRole('button', { name: 'Add to Google Wallet' })
-    expect(button.querySelector('img')).toHaveAttribute('src', '/wallet/google/en.svg')
+    expect(Array.from(button.querySelectorAll('img'), (image) => image.getAttribute('src'))).toEqual([
+        '/wallet/google/one-line/en.svg',
+        '/wallet/google/two-line/en.svg',
+    ])
     expect(screen.getAllByRole('button', { name: 'Add to Google Wallet' })).toHaveLength(1)
     fireEvent.click(button)
     expect(mockAdd).toHaveBeenCalledTimes(1)

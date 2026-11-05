@@ -7,6 +7,7 @@ const catalog = [
         name: 'First Invite',
         description: 'Invite one friend.',
         publicDescription: 'Invited one friend.',
+        shareLine: 'I earned it.',
         iconUrl: '/badges/first_invite.svg',
         unlock: { kind: 'invites', target: 1 },
         earnable: true,
@@ -16,6 +17,7 @@ const catalog = [
         name: 'First Swipe',
         description: 'Use your card.',
         publicDescription: 'Used their card.',
+        shareLine: 'I earned it.',
         iconUrl: '/badges/happy_card.svg',
         unlock: { kind: 'card_purchase' },
         earnable: true,
@@ -25,6 +27,7 @@ const catalog = [
         name: 'Psyops Division',
         description: 'Enlisted in the Psyops Division.',
         publicDescription: 'Enlisted in the Psyops Division.',
+        shareLine: 'I earned it.',
         iconUrl: '/badges/psyops_division.svg',
         unlock: { kind: 'campaign' },
         earnable: false,
@@ -65,6 +68,14 @@ describe('buildBadgeCollection', () => {
             earned: true,
             description: 'Enlisted in the Psyops Division.',
         })
+    })
+
+    it('carries the api share line of an earned badge', () => {
+        const [badge] = buildBadgeCollection(
+            [owned('FIRST_INVITE', '2026-09-01T00:00:00Z', { shareLine: 'Traje a mi primer amigo' })],
+            catalog
+        )
+        expect(badge.shareLine).toBe('Traje a mi primer amigo')
     })
 
     it('does not duplicate an earned badge from the catalog', () => {

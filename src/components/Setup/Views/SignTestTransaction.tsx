@@ -8,7 +8,6 @@ import SetupFooter from '../components/SetupFooter'
 import SetupTitleBlock from '../components/SetupTitleBlock'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useAuth } from '@/context/authContext'
@@ -20,7 +19,8 @@ import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { setupCountrySignalProperties } from '@/features/setup/country-signals'
-import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
+import { attachSignupGeo } from '@/services/signup-geo'
+import { saveSignupResidence } from '@/features/setup/saveSignupAnswers'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { readInviteCode } from '@/utils/invite-stash'
 import {
@@ -32,7 +32,16 @@ import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import type en from '@/i18n/app/messages/en.json'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { confettiPresets } from '@/utils/confetti'
+import { isAa24Error } from '@/utils/walletCredential.utils'
+import { classifyPasskeyError, getPasskeySetupKey } from '@/utils/webauthn.utils'
+import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
+
+/** A `setup` catalog key: the finish screen's own errors or the shared passkey copy. */
+type FinishErrorKey =
+    | `testTransaction.errors.${keyof typeof en.setup.testTransaction.errors}`
+    | ReturnType<typeof getPasskeySetupKey>
 
 export function SetupConfirmationView({
     onConfirm,
@@ -54,8 +63,17 @@ export function SetupConfirmationView({
 }) {
     const t = useTranslations('setup')
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
+    const { track } = useSignupControl()
     const button = (
-        <Button onClick={onConfirm} loading={isLoading} disabled={isLoading} className="w-full">
+        <Button
+            onClick={() => {
+                track('finish', 'tap')
+                onConfirm()
+            }}
+            loading={isLoading}
+            disabled={isLoading}
+            className="w-full"
+        >
             {buttonText || t(merged ? 'cta.finish' : 'testTransaction.confirmAndFinish')}
         </Button>
     )
@@ -81,7 +99,12 @@ export function SetupConfirmationView({
             </PageStack.Center>
             <SetupFooter actions={button} secondary={secondary}>
                 <p className="text-center text-body-xs text-foreground-secondary">
-                    <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>
+                    <LinkButton
+                        onClick={() => {
+                            track('passkey_info', 'open')
+                            setIsPasskeyInfoOpen(true)
+                        }}
+                    >
                         <Icon name="info" size={16} className="shrink-0" />
                         {t('passkey.learnMore')}
                     </LinkButton>
@@ -108,9 +131,10 @@ const SignTestTransaction = ({
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
+    const { track } = useSignupControl()
     const {
         residenceCountry,
-        secondResidenceCountry,
+        nationalityCountry,
         setIsLoading: setSetupLoading,
         signupEntryFlow,
         fundingChannel,
@@ -118,7 +142,7 @@ const SignTestTransaction = ({
     } = useSetupFlowContext()
     // the key, not the text: translated at render, so the message follows a
     // language change made after it appeared (Release 164 smoke test)
-    const [errorKey, setErrorKey] = useState<keyof typeof en.setup.testTransaction.errors | null>(null)
+    const [errorKey, setErrorKey] = useState<FinishErrorKey | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const creatingAccountRef = useRef(false)
@@ -141,6 +165,7 @@ const SignTestTransaction = ({
 
     const completeSignup = async () => {
         console.log('[SignTestTransaction] Account setup complete')
+        if (user?.user?.userId) await attachSignupGeo(user.user.userId)
         // The final passkey confirmation has succeeded and the account exists.
         // The finish route redirects immediately; setup celebrates on its
         // dedicated final screen after the completion callback.
@@ -176,7 +201,7 @@ const SignTestTransaction = ({
             await clearSignupAttribution()
         }
         // Keep the independently observed hints on the identified analytics
-        // profile. Only the user's declared residences go to /update-user.
+        // profile, and retain them separately in the API geo observation model.
         try {
             posthog.setPersonProperties(setupCountrySignalProperties())
         } catch {
@@ -187,30 +212,14 @@ const SignTestTransaction = ({
         // the account exists. Fire-and-forget: prequalification data,
         // never a reason to fail or delay the redirect.
         if (residenceCountry) {
-            posthog.setPersonProperties({
-                residence_country: residenceCountry,
-                second_residence_country: secondResidenceCountry || undefined,
-            })
+            // The nationality stays off analytics: only the API keeps it, for the ID check.
+            posthog.setPersonProperties({ residence_country: residenceCountry })
             const userId = user?.user?.userId
-            if (userId) {
-                storeDeclaredResidence(userId, residenceCountry)
-                storeSecondResidence(userId, secondResidenceCountry || null)
-                void updateUserById({
-                    userId,
-                    residenceCountry,
-                    ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
+            // Readers drop the device mirror once /users/me carries a residence, so fetch it once saved.
+            if (userId)
+                saveSignupResidence(userId, residenceCountry, nationalityCountry || residenceCountry, () => {
+                    void fetchUser().catch(() => undefined)
                 })
-                    .then((result) => {
-                        // updateUserById maps API failures to { error },
-                        // it doesn't throw them — inspect the result.
-                        if (result?.error) {
-                            console.error('[SignTestTransaction] Failed to persist residence:', result.error)
-                        }
-                    })
-                    .catch((err: unknown) => {
-                        console.error('[SignTestTransaction] Failed to persist residence:', err)
-                    })
-            }
         }
 
         // Completion is terminal for this screen. Keep both loading states
@@ -240,7 +249,7 @@ const SignTestTransaction = ({
                     tags: { feature: 'signup-test-transaction' },
                     extra: { context: 'user-fetch-on-mount' },
                 })
-                setErrorKey('loadUserFailed')
+                setErrorKey('testTransaction.errors.loadUserFailed')
             })
         } else if (user) {
             console.log('[SignTestTransaction] User loaded successfully:', {
@@ -271,15 +280,16 @@ const SignTestTransaction = ({
 
     const handleTestTransaction = async () => {
         if (redirectingRef.current) return
+        const attemptStartedAt = Date.now()
 
         if (!address) {
-            setErrorKey('noWalletAddress')
+            setErrorKey('testTransaction.errors.noWalletAddress')
             return
         }
 
         if (!user) {
             console.error('[SignTestTransaction] Cannot proceed without user data')
-            setErrorKey('userNotLoaded')
+            setErrorKey('testTransaction.errors.userNotLoaded')
             return
         }
 
@@ -338,7 +348,7 @@ const SignTestTransaction = ({
                     // The request layer already recorded the concrete failure;
                     // avoid another console-captured wrapper event here.
                     console.info('[SignTestTransaction] Account setup remains retryable')
-                    setErrorKey('setupFailed')
+                    setErrorKey('testTransaction.errors.setupFailed')
                     setIsSigning(false)
                     setSetupLoading(false)
                     return
@@ -379,15 +389,31 @@ const SignTestTransaction = ({
                 },
             })
 
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
-            setErrorKey('supportNeeded')
+            // viem wraps a signer or bundler rejection in UserOperationExecutionError with the
+            // real failure in `cause`; the login path's stale-session wrapper does the same.
+            const rootCause = e instanceof Error && e.cause instanceof Error ? e.cause : (e as Error)
+            const isAa24 = isAa24Error(rootCause)
+            // classify first: it renames the capgo shim's plain `Error('User cancelled the selector')`
+            // to NotAllowedError in place, so read error_name after it
+            const errorCode = isAa24 ? undefined : classifyPasskeyError(rootCause).code
+            const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {
+                error_name: rootCause.name,
+                error_code: errorCode,
+                is_aa24: isAa24,
+                backup_eligible: assertion?.backupEligible,
+                challenge_offset: assertion?.challengeOffset,
+            })
+            if (isAa24) setErrorKey('testTransaction.errors.passkeyProviderUnsupported')
+            else if (errorCode && errorCode !== 'LOGIN_ERROR') setErrorKey(getPasskeySetupKey(errorCode))
+            else setErrorKey('testTransaction.errors.supportNeeded')
             setIsSigning(false)
             setSetupLoading(false)
         }
     }
 
     const isLoading = isSigning || isProcessing || isFetchingUser || !user
-    const displayError = (errorKey && t(`testTransaction.errors.${errorKey}`)) || setupError
+    const displayError = (errorKey && t(errorKey)) || setupError
 
     // determine button text based on state
     const getButtonText = () => {
@@ -406,7 +432,13 @@ const SignTestTransaction = ({
             showTitle={!!onComplete}
             secondary={
                 showLogout && (
-                    <LinkButton onClick={() => void logoutUser()} disabled={isLoggingOut}>
+                    <LinkButton
+                        onClick={() => {
+                            track('log_out', 'tap')
+                            void logoutUser()
+                        }}
+                        disabled={isLoggingOut}
+                    >
                         {tProfile('logOut')}
                     </LinkButton>
                 )

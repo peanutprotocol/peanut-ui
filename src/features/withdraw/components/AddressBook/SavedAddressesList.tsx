@@ -52,13 +52,22 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                         // Select and Edit are sibling controls in a plain row, never
                         // a button inside a button: the select button covers the row
                         // and the edit button sits above it (sep-23 review, A49).
-                        <div key={saved.id} className="relative">
+                        // ph-sensitive: the nickname can be a person's name.
+                        <div key={saved.id} className="ph-sensitive relative">
                             <ListItem
                                 position="solo"
                                 title={label}
                                 truncate
-                                body={`${shortAddress} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
-                                bodyWrap
+                                // two fixed lines, like the saved bank rows: a wrapped body made rows uneven
+                                // heights, and one cut line hid the last-used date
+                                body={
+                                    <>
+                                        <span className="block truncate">{`${shortAddress} · ${chainName}`}</span>
+                                        <span className="block truncate">
+                                            {t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}
+                                        </span>
+                                    </>
+                                }
                                 // one leading element: the chain logo. the wallet
                                 // mini-bubble it used to carry was a composite
                                 // (design.md, ListItem leading)

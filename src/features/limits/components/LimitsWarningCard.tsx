@@ -212,7 +212,10 @@ export default function LimitsWarningCard({
                     </>
                 ) : showSupportLink ? (
                     <>
+                        {/* data-support-ask: this is the card's support action, so the
+                            error Callout must not add a second "Contact support" link */}
                         <button
+                            data-support-ask
                             onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
                             className="flex items-center gap-1"
                         >

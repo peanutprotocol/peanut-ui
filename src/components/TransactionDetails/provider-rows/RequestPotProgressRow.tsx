@@ -19,7 +19,11 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
     // A settled request has nothing left to pay, even when it closed a few cents
     // short in USD: a request asked in another currency settles on what was sent.
     const isSettled = transaction.status === 'completed'
-    const potRemaining = isSettled ? 0 : Math.max(potGoal - potCollected, 0)
+    // in whole cents: $99.16 − $73.65 is 25.509999… in floating point
+    const potRemaining = isSettled ? 0 : Math.max(Math.round((potGoal - potCollected) * 100) / 100, 0)
+    // A closed request takes no more money: what is left is not "remaining",
+    // nobody can pay it any more (TASK-23856).
+    const isClosedShort = transaction.status === 'closed'
 
     return (
         <div className="flex w-full flex-col gap-2 py-3">
@@ -28,7 +32,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                     {tGlobal('progressBar.contributed', { amount: `$${formatCurrency(potCollected.toString())}` })}
                 </span>
                 <span className="text-foreground-secondary">
-                    {tGlobal('progressBar.remaining', {
+                    {tGlobal(isClosedShort ? 'progressBar.notPaid' : 'progressBar.remaining', {
                         amount: `$${formatCurrency(potRemaining.toString())}`,
                     })}
                 </span>

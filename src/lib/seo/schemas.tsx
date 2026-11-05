@@ -24,21 +24,30 @@ export interface ArticleMeta {
     title: string
     description: string
     url: string
-    datePublished: string
+    schemaType?: 'Article' | 'BlogPosting'
+    datePublished?: string
     dateModified?: string
     inLanguage?: string
 }
 
-export function articleSchema({ title, description, url, datePublished, dateModified, inLanguage }: ArticleMeta) {
+export function articleSchema({
+    title,
+    description,
+    url,
+    schemaType = 'Article',
+    datePublished,
+    dateModified,
+    inLanguage,
+}: ArticleMeta) {
     return {
         '@context': 'https://schema.org',
-        '@type': 'Article',
+        '@type': schemaType,
         headline: title,
         description,
         url: `${baseUrl}${url}`,
         ...(inLanguage ? { inLanguage } : {}),
-        datePublished,
-        dateModified: dateModified ?? datePublished,
+        ...(datePublished ? { datePublished } : {}),
+        ...(dateModified ? { dateModified } : {}),
         author: {
             '@type': 'Organization',
             name: 'Peanut',

@@ -7,6 +7,7 @@ import Badge from '../Global/Badges/Badge'
 import { KYCStatusIcon } from './KYCStatusIcon'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 // kyc history entry type + type guard — a marker the timeline injects so the
 // identity-verification row renders inline. Status is read from
@@ -31,6 +32,7 @@ export const KycStatusItem = ({
     position?: CardPosition
     className?: HTMLAttributes<HTMLDivElement>['className']
 }) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc')
     const { status } = useIdentityVerification()
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -69,6 +71,7 @@ export const KycStatusItem = ({
             <ListItem
                 position={position}
                 onClick={() => {
+                    track('kyc_status', 'open')
                     setIsDrawerOpen(true)
                 }}
                 className={className}

@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Modal from '../Modal'
-import { Icon, type IconName } from '../Icons/Icon'
+import { type IconName } from '../Icons/Icon'
 import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
-import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { type ButtonVariant } from '@/components/0_Bruddle/Button'
+import VerificationFrameHeader from '../VerificationFrameHeader'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 
 /**
@@ -14,8 +14,10 @@ import { isAndroidNativeBridge } from '@/utils/capacitor'
  *   - `manual`       — the user backed out
  *   - `completed`    — the embedded flow reported completion (postMessage)
  *   - `tos_accepted` — Bridge's iframe reported a signed agreement (postMessage)
- *   - `returned`     — the android system-browser tab closed; carries NO
- *                      acceptance claim, the caller must ask the provider
+ *   - `returned`     — the user left the provider's page without it reporting
+ *                      anything: the android system-browser tab closed, or the
+ *                      page moved its own frame to another address. Carries NO
+ *                      acceptance claim; the caller must ask the provider
  */
 export type IframeCloseSource = 'manual' | 'completed' | 'tos_accepted' | 'returned'
 
@@ -33,6 +35,16 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
     const [modalVariant, setModalVariant] = useState<'stop-verification' | 'trouble'>('trouble')
     const [copied, setCopied] = useState(false)
     const iframeRef = useRef<HTMLIFrameElement | null>(null)
+    // Per mounted frame: how many documents it loaded, and whether it already
+    // closed the wrapper. A new frame (another src, or the modal reopening)
+    // starts over.
+    const frameLoadsRef = useRef(0)
+    const frameClosedRef = useRef(false)
+    const attachFrame = useCallback((frame: HTMLIFrameElement | null) => {
+        iframeRef.current = frame
+        frameLoadsRef.current = 0
+        frameClosedRef.current = false
+    }, [])
     const router = useRouter()
     const { setIsSupportModalOpen } = useModalsContext()
 
@@ -160,13 +172,17 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             // instant the modal is hiding: the acceptance already happened at
             // Bridge, and never confirming it strands a stale task.
             if (!event.source || event.source !== iframeRef.current?.contentWindow) return
+            // one close per frame: a page that also moved its frame away
+            // already reported `returned`
+            if (frameClosedRef.current) return
             const data = event.data
             if (data?.name === 'complete' && data?.metadata?.status === 'completed') {
+                frameClosedRef.current = true
                 onClose('completed')
-            }
-            // @dev note: kinda hacky, but tos modal takes too long to close using websocket, so we use the signedAgreementId to close it
-            // persona fires this event when the user clicks the "accept" button within the iframe
-            if (data?.signedAgreementId) {
+            } else if (data?.signedAgreementId) {
+                // @dev note: kinda hacky, but tos modal takes too long to close using websocket, so we use the signedAgreementId to close it
+                // persona fires this event when the user clicks the "accept" button within the iframe
+                frameClosedRef.current = true
                 onClose('tos_accepted')
             }
         }
@@ -174,6 +190,21 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
         window.addEventListener('message', handleMessage)
         return () => window.removeEventListener('message', handleMessage)
     }, [onClose, visible])
+
+    /*
+     * The provider's page is the frame's first load. A later load means the
+     * page moved its own frame somewhere else: Bridge's ToS page does that
+     * instead of posting `signedAgreementId` when its link carries a
+     * `redirect_uri`, and peanut.me then refuses to render inside the native
+     * app (a blank frame). Nothing in that frame can finish the flow, so close
+     * it and let the caller ask the provider what happened (TASK-23881).
+     */
+    const handleFrameLoad = () => {
+        frameLoadsRef.current += 1
+        if (frameLoadsRef.current < 2 || frameClosedRef.current) return
+        frameClosedRef.current = true
+        onCloseRef.current('returned')
+    }
 
     if (useSystemBrowser) return null
 
@@ -198,40 +229,28 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
             preventClose={true}
             hideOverlay={false}
         >
-            <div className="flex h-full flex-col gap-2 p-0 pt-safe-top">
-                <div className="h-full w-full flex-grow overflow-scroll">
-                    <iframe
-                        key={src}
-                        ref={iframeRef}
-                        src={src}
-                        allow="camera *; microphone *; fullscreen *"
-                        className="h-[85%] w-full rounded-sm border-0"
-                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
-                    />
-                    {/* gap-4: the link's 44px hit area extends 14px past its text row */}
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-4">
-                        <Button
-                            variant={'secondary'}
-                            className={`max-w-md`}
-                            onClick={() => {
-                                setModalVariant('stop-verification')
-                                setIsHelpModalOpen(true)
-                            }}
-                        >
-                            {t('iframeWrapper.stopVerification')}
-                        </Button>
-
-                        <LinkButton
-                            onClick={() => {
-                                setModalVariant('trouble')
-                                setIsHelpModalOpen(true)
-                            }}
-                        >
-                            <Icon name="peanut-support" size={16} className="shrink-0" />
-                            {t('iframeWrapper.havingTrouble')}
-                        </LinkButton>
-                    </div>
-                </div>
+            {/* pb-safe-bottom: the frame is full height now, so the provider's bottom
+                submit button would otherwise sit under the home indicator */}
+            <div className="flex h-full flex-col pt-safe-top pb-safe-bottom">
+                <VerificationFrameHeader
+                    onSupport={() => {
+                        setModalVariant('trouble')
+                        setIsHelpModalOpen(true)
+                    }}
+                    onClose={() => {
+                        setModalVariant('stop-verification')
+                        setIsHelpModalOpen(true)
+                    }}
+                />
+                <iframe
+                    key={src}
+                    ref={attachFrame}
+                    src={src}
+                    onLoad={handleFrameLoad}
+                    allow="camera *; microphone *; fullscreen *"
+                    className="w-full flex-1 rounded-sm border-0"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
+                />
             </div>
             <ActionModal
                 visible={isHelpModalOpen}

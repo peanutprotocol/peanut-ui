@@ -39,6 +39,14 @@ const countryCurrencyMappings: CountryCurrencyMapping[] = [
     { currencyCode: 'RSD', currencyName: 'Serbian Dinar', country: 'Serbia', flagCode: 'rs', path: 'serbia' },
     { currencyCode: 'SEK', currencyName: 'Swedish Krona', country: 'Sweden', flagCode: 'se', path: 'sweden' },
     { currencyCode: 'CHF', currencyName: 'Swiss Franc', country: 'Switzerland', flagCode: 'ch', path: 'switzerland' },
+    // after Switzerland: a lookup by currency (flag, name, rates landing) finds the first CHF entry
+    {
+        currencyCode: 'CHF',
+        currencyName: 'Swiss Franc',
+        country: 'Liechtenstein',
+        flagCode: 'li',
+        path: 'liechtenstein',
+    },
     {
         currencyCode: 'GBP',
         currencyName: 'British Pound Sterling',

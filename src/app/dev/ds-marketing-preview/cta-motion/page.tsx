@@ -5,7 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CTA_MOTION } from '@/components/Marketing/constants'
 
 /**
- * The marketing CTA motion layer (ruled 2026-10-16, konrad): the plain DS
+ * The marketing CTA motion layer: the plain DS
  * Button plus CTA_MOTION. Hover a button for the drop-and-tilt; "Replay
  * entrance" remounts the pair so the mount entrance plays again. With
  * prefers-reduced-motion on, neither moves — only the DS press remains.

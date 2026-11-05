@@ -5,6 +5,7 @@ import {
     asksAddressCountry,
     bankCorridorFor,
     corridorAcceptsAddressCountry,
+    findSavedBankAccount,
     fixedAddressCountry,
     hasBridgeBankCorridor,
     isOwnerAddressCountryAccepted,
@@ -18,6 +19,7 @@ import { liveRailsForCountry, soleLiveRailForCountry } from '@/features/destinat
 import { liveWithdrawCurrencies, withdrawPayoutCurrency } from '@/features/withdraw/components/withdraw-currencies'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { AccountType, type Account } from '@/interfaces/interfaces'
 
 const fieldNames = (country: string) => bankCorridorFor(country)?.fields.map((field) => field.name)
 const fieldFor = (country: string, name: string) =>
@@ -342,5 +344,63 @@ describe('US street lines', () => {
     it('says nothing about an empty line: the required rule owns that', () => {
         expect(usStreetProblem('  ')).toBeNull()
         expect(usStreetLacksLeadingNumber('')).toBe(false)
+    })
+})
+
+describe('which saved account typed bank details name (TASK-23891)', () => {
+    const saved = (account: Partial<Account>) => account as Account
+    const US = bankCorridorFor('USA')!
+    const GB = bankCorridorFor('GB')!
+    const savedUs = saved({ id: 'us', type: AccountType.US, identifier: '123456789', routingNumber: '021000021' })
+    const savedGb = saved({ id: 'gb', type: AccountType.GB, identifier: '01234567', sortCode: '200000' })
+    const savedIban = saved({ id: 'iban', type: AccountType.IBAN, identifier: 'de89370400440532013000' })
+
+    it('reuses a saved US account only when the routing number matches as well', () => {
+        expect(findSavedBankAccount([savedUs], US, '123456789', { routingNumber: '021000021' })).toBe(savedUs)
+        // the same number at another bank is a correction for the API
+        expect(findSavedBankAccount([savedUs], US, '123456789', { routingNumber: '026009593' })).toBeUndefined()
+    })
+
+    it('never reuses a saved account it cannot compare: one saved without its routing number', () => {
+        const noRouting = saved({ ...savedUs, routingNumber: undefined })
+        expect(findSavedBankAccount([noRouting], US, '123456789', { routingNumber: '021000021' })).toBeUndefined()
+    })
+
+    it('compares a UK sort code however it was typed, and falls back to the routing number a UK row keeps', () => {
+        expect(findSavedBankAccount([savedGb], GB, '01234567', { sortCode: '20-00-00' })).toBe(savedGb)
+        expect(findSavedBankAccount([savedGb], GB, '01234567', { sortCode: '40-00-75' })).toBeUndefined()
+        const rowOnly = saved({ ...savedGb, sortCode: undefined, routingNumber: '200000' })
+        expect(findSavedBankAccount([rowOnly], GB, '01234567', { sortCode: '20 00 00' })).toBe(rowOnly)
+    })
+
+    it('names an IBAN by its number alone, in any case and spacing', () => {
+        const IBAN = bankCorridorFor('SEPA')!
+        expect(findSavedBankAccount([savedIban], IBAN, 'DE89 3704 0044 0532 0130 00', {})).toBe(savedIban)
+    })
+
+    it('keeps the letters of an IBAN: two banks with the same digits are two accounts', () => {
+        const IBAN = bankCorridorFor('SEPA')!
+        const nwbk = saved({ id: 'nwbk', type: AccountType.IBAN, identifier: 'gb29nwbk60161331926819' })
+        expect(findSavedBankAccount([nwbk], IBAN, 'GB29 ABCD 6016 1331 9268 19', {})).toBeUndefined()
+        expect(findSavedBankAccount([nwbk], IBAN, 'GB29 NWBK 6016 1331 9268 19', {})).toBe(nwbk)
+    })
+
+    it('never takes a saved account of another kind with the same number', () => {
+        const usNumberAsGb = saved({ ...savedGb, identifier: '123456789', sortCode: '021000021' })
+        expect(findSavedBankAccount([usNumberAsGb], US, '123456789', { routingNumber: '021000021' })).toBeUndefined()
+    })
+
+    it('leaves a Colombian account to the API: no saved account keeps its document and bank code', () => {
+        const CO = bankCorridorFor('CO')!
+        const savedCo = saved({ id: 'co', type: AccountType.CO_BANK_TRANSFER, identifier: '12345678910' })
+        expect(
+            findSavedBankAccount([savedCo], CO, '12345678910', {
+                documentType: 'cc',
+                documentNumber: '1234567890',
+                bankCode: '1007',
+                accountCategory: 'savings',
+                phoneNumber: '+573001234567',
+            })
+        ).toBeUndefined()
     })
 })

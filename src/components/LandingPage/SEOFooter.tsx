@@ -5,7 +5,7 @@ import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { getTranslations, t } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
-import { countryIso2 } from '@/data/seo/corridors'
+import { countryIso2 } from '@/data/seo/country-display'
 import { localizedCountryName, ptBrFromPreposition } from '@/utils/country-name.utils'
 
 // Server-only SEO footer driven by the content manifest
@@ -162,7 +162,7 @@ export function SEOFooter({
     return (
         <nav
             aria-label={i18n.footerSiteDirectory}
-            className={twMerge('bg-black px-6 py-8 md:px-20', padForStickyCta && 'pb-24 md:pb-8')}
+            className={twMerge('bg-black px-6 py-8 md:px-16', padForStickyCta && 'pb-24 md:pb-8')}
         >
             <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4">
                 {hasSendMoney && (

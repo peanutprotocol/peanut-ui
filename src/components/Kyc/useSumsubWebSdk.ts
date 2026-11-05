@@ -1,11 +1,19 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocale } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
-import { evaluateSumsubStatusEvent, type SumsubStatusEventPayload } from './sumsubStatusEvent.utils'
+import {
+    EARLY_EVENT_GUARD_MS,
+    evaluateSumsubStatusEvent,
+    type SumsubStatusEventPayload,
+} from './sumsubStatusEvent.utils'
+import { createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 // todo: move to consts
@@ -40,17 +48,21 @@ export function useSumsubWebSdk({
     visible,
     sessionKey,
     accessToken,
+    documentConfig,
     email,
     onComplete,
     onSubmitted,
     onError,
     onRefreshToken,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: UseSumsubWebSdkArgs) {
     const accessTokenRef = useRef(accessToken)
     accessTokenRef.current = accessToken
     // Read the latest default at launch without restarting an active SDK,
     // which would discard edits made inside Sumsub.
+    const documentConfigRef = useRef(documentConfig)
+    documentConfigRef.current = documentConfig
     const emailRef = useRef(email)
     emailRef.current = email
     const hasAccessToken = !!accessToken
@@ -72,6 +84,7 @@ export function useSumsubWebSdk({
     const onSubmittedRef = useRef(onSubmitted)
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
+    const onIdentityStepCompletedRef = useRef(onIdentityStepCompleted)
     const isMultiLevelRef = useRef(isMultiLevel)
     // flips to true as soon as any "the user finished something" event fires.
     // Drives the close-confirmation short-circuit: if the user has already
@@ -86,8 +99,9 @@ export function useSumsubWebSdk({
         onSubmittedRef.current = onSubmitted
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
+        onIdentityStepCompletedRef.current = onIdentityStepCompleted
         isMultiLevelRef.current = isMultiLevel
-    }, [onComplete, onSubmitted, onError, onRefreshToken, isMultiLevel])
+    }, [onComplete, onSubmitted, onError, onRefreshToken, onIdentityStepCompleted, isMultiLevel])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -108,6 +122,9 @@ export function useSumsubWebSdk({
 
         const handleLoaded = () => setSdkLoaded(true)
         const handleError = () => {
+            Sentry.captureException(new Error('[sumsub] failed to load websdk script'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_script' },
+            })
             console.error(new Error('[sumsub] failed to load websdk script'))
             setSdkLoadError(true)
         }
@@ -159,6 +176,9 @@ export function useSumsubWebSdk({
             // track sdk init time so we can ignore stale onApplicantStatusChanged events
             // that fire immediately when the applicant is already approved (e.g. additional-docs flow)
             const sdkInitTime = Date.now()
+            // The SDK paints inside a cross-origin iframe that session replay
+            // cannot record; these events are its only trace.
+            const tracker = createSumsubSdkTracker('web')
 
             const handleSubmitted = () => {
                 console.log('[sumsub] onApplicantSubmitted fired')
@@ -224,7 +244,21 @@ export function useSumsubWebSdk({
                     isMultiLevel: !!isMultiLevelRef.current,
                 })
                 if (evaluation.markSubmitted) hasSubmittedRef.current = true
+                tracker.statusChanged({
+                    newStatus: payload?.reviewStatus,
+                    reviewAnswer: payload?.reviewResult?.reviewAnswer,
+                    // the same early window evaluateSumsubStatusEvent treats as stale
+                    snapshot: Date.now() - sdkInitTime < EARLY_EVENT_GUARD_MS,
+                })
                 if (evaluation.autoClose) stableOnComplete()
+            }
+            const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) =>
+                tracker.step(eventType, payload?.idDocSetType)
+            const handleStepInitiated = handleStep('StepInitiated')
+            const trackStepCompleted = handleStep('StepCompleted')
+            const handleStepCompleted = (payload?: { idDocSetType?: unknown }) => {
+                trackStepCompleted(payload)
+                if (payload?.idDocSetType === 'IDENTITY') onIdentityStepCompletedRef.current?.()
             }
             const handleStatusChanged = handleStatusEvent('onApplicantStatusChanged')
             const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
@@ -234,6 +268,7 @@ export function useSumsubWebSdk({
                 .withConf({
                     lang: sumsubLocaleRef.current,
                     theme: 'light',
+                    ...documentConfigRef.current,
                     ...(emailRef.current ? { email: emailRef.current } : {}),
                 })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
@@ -244,6 +279,8 @@ export function useSumsubWebSdk({
                 .on('onActionSubmitted', handleActionSubmitted)
                 .on('onApplicantActionSubmitted', handleActionSubmitted)
                 .on('onApplicantActionStatusChanged', handleActionCompleted)
+                .on('onStepInitiated', handleStepInitiated)
+                .on('onStepCompleted', handleStepCompleted)
                 // also listen for idCheck-prefixed events (some sdk versions use these)
                 .on('idCheck.onApplicantSubmitted', handleSubmitted)
                 .on('idCheck.onApplicantResubmitted', handleResubmitted)
@@ -251,7 +288,10 @@ export function useSumsubWebSdk({
                 .on('idCheck.onActionSubmitted', handleActionSubmitted)
                 .on('idCheck.onApplicantActionSubmitted', handleActionSubmitted)
                 .on('idCheck.onApplicantActionStatusChanged', handleActionCompleted)
+                .on('idCheck.onStepInitiated', handleStepInitiated)
+                .on('idCheck.onStepCompleted', handleStepCompleted)
                 .on('onError', (error: unknown) => {
+                    Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_error' } })
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
                 })
@@ -285,6 +325,7 @@ export function useSumsubWebSdk({
                 existingIframe.allow = 'camera; microphone; fullscreen'
             }
         } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_init' } })
             console.error('[sumsub] failed to initialize sdk', error)
             // surface the error UI — without this the modal stays blank
             setSdkLoadError(true)
@@ -339,6 +380,9 @@ export function useSumsubWebSdk({
         if (!visible) return
         const timer = setTimeout(() => {
             if (hasLaunchedRef.current) return
+            Sentry.captureException(new Error('[sumsub] sdk launch timed out'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_launch' },
+            })
             console.error('[sumsub] sdk never launched within timeout — surfacing error')
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCH_TIMEOUT, {
                 timeoutMs: SDK_LAUNCH_TIMEOUT_MS,

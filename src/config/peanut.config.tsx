@@ -13,6 +13,7 @@ import { authReady } from '@/utils/auth-token'
 import { installPasskeyVerifyCapture } from '@/utils/passkey-auth-capture'
 import { scheduleTransportCanary } from '@/utils/native-canary'
 import { installCeremonyTelemetry } from '@/utils/webauthn-ceremony-telemetry'
+import { installAndroidPasskeyControl } from '@/utils/android-passkey-control'
 import { markPasskeyShimFailed } from '@/utils/passkeyCeremony.utils'
 // Note: Sentry configs are auto-loaded by @sentry/nextjs via next.config.js
 // DO NOT import them here - it bundles server/edge configs into client code
@@ -48,6 +49,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
                         console.warn('[PeanutProvider] passkey isSupported check failed:', err)
                     })
 
+                installAndroidPasskeyControl(CapacitorPasskey)
                 await CapacitorPasskey.autoShimWebAuthn({ origin: `https://${nativeRpId}` })
 
                 // verify the shim actually installed by checking if credentials was

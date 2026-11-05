@@ -1,3 +1,4 @@
+import type { Person } from '@/lib/person/person.types'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { AVATAR_TEXT_DARK } from '@/utils/color.utils'
 import { useCallback } from 'react'
@@ -6,7 +7,7 @@ import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
 import { Card } from '../0_Bruddle/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
-import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
+import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { UserAvatar } from '../Avatar/UserAvatar'
 import { VerifiedUserLabel } from '../UserHeader'
 import PotProgress from './PotProgress'
@@ -14,43 +15,51 @@ import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/com
 import type { PotContributor } from '@/features/payments/flows/contribute-pot/ContributePotFlowContext'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 
-interface UserCardProps {
+interface UserCardBaseProps {
     type: 'send' | 'request' | 'received_link' | 'request_pay' | 'request_fulfilment'
     username: string
     fullName?: string
-    recipientType?: RecipientType
-    size?: AvatarSize
     message?: string
     fileUrl?: string
     isVerified?: boolean
     haveSentMoneyToUser?: boolean
     amount?: number
+    /** request_fulfilment: the exact amount in the token the charge settles in, e.g. "58.51 USDC" */
+    tokenAmount?: string
+    /** request_fulfilment: one line under the amount, e.g. that wallet fees come on top */
+    amountNote?: string
     amountCollected?: number
     isRequestPot?: boolean
     /** A request sent with no amount: the person paying chooses it. */
     isOpenAmount?: boolean
     contributors?: PotContributor[]
-    /** The other person's picked avatar (TASK-22625). Read only when
-     *  `recipientType` is USERNAME — an address has nobody behind it. */
-    avatarKey?: string | null
 }
+
+/** A Peanut handle is a person, so the card needs the resolved person to draw
+ *  their avatar (TASK-23756); an address or ENS name has nobody behind it. */
+type UserCardProps = UserCardBaseProps &
+    (
+        | { recipientType: Extract<RecipientType, 'USERNAME'>; person: Person }
+        | { recipientType?: Exclude<RecipientType, 'USERNAME'>; person?: undefined }
+    )
 
 const UserCard = ({
     type,
     username,
     fullName,
     recipientType,
-    size = 's',
     message,
     fileUrl,
     isVerified,
     haveSentMoneyToUser,
     amount,
+    tokenAmount,
+    amountNote,
     amountCollected,
     isRequestPot,
     isOpenAmount,
     contributors,
-    avatarKey,
+    person,
 }: UserCardProps) => {
     const t = useTranslations('global')
     const getIcon = (): IconName | undefined => {
@@ -91,7 +100,7 @@ const UserCard = ({
                     // A Peanut handle is a person: their picked avatar, with the
                     // handle's letter as the fallback. `decorative` because the
                     // card names them right beside it.
-                    <UserAvatar name={username} avatarKey={avatarKey} size={size} decorative />
+                    <UserAvatar person={person} size="s" decorative />
                 ) : (
                     <AvatarWithBadge
                         // an address is the crypto concept (coins on blue)
@@ -100,7 +109,7 @@ const UserCard = ({
                             backgroundColor: `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`,
                             color: AVATAR_TEXT_DARK,
                         }}
-                        size={size}
+                        size="s"
                         name={fullName || username}
                     />
                 )}
@@ -117,6 +126,14 @@ const UserCard = ({
                                             {t('userCard.sendExactAmount')}
                                         </p>
                                     </div>
+                                    {/* the figure to type into the wallet, and the deposit
+                                        screen's note on fees: a charge paid short stays partly paid */}
+                                    {tokenAmount && (
+                                        <p className="text-body-s text-foreground-primary">{tokenAmount}</p>
+                                    )}
+                                    {amountNote && (
+                                        <p className="text-body-s text-foreground-secondary">{amountNote}</p>
+                                    )}
                                 </div>
                             )}
 

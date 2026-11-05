@@ -1,4 +1,5 @@
-import { chromium, devices, expect } from '@playwright/test'
+import { chromium, devices, expect, type Request } from '@playwright/test'
+import { hasInvalidNumericUi } from './numeric-ui.mjs'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -9,8 +10,7 @@ import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
-import { fixtureIdentityFiles } from './capture-impact.mjs'
-import { knownNonvisual } from './capture-plan.mjs'
+import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
 import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
@@ -139,14 +139,7 @@ async function main() {
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     const harness = identity(harnessIdentityFiles())
-    const fixtures = identity(
-        fixtureIdentityFiles([
-            ...walk('src/dev/fixtures').filter((path) => !knownNonvisual(path)),
-            'src/utils/demo-api.ts',
-            'src/constants/demo-data.ts',
-            'src/constants/residence.consts.ts',
-        ])
-    )
+    const fixtures = identity(fixtureIdentityFiles(fixtureRootFiles(walk('src/dev/fixtures'))))
     const manifest = () => {
         const capture = {
             schema: 1,
@@ -236,6 +229,10 @@ async function main() {
             page.setDefaultTimeout(15000)
             const unknown = new Set<string>()
             const transportFailures = new Set<string>()
+            const inFlight = new Map<Request, string>()
+            page.on('request', (request) => inFlight.set(request, `${request.method()} ${request.url()}`))
+            page.on('requestfinished', (request) => inFlight.delete(request))
+            page.on('requestfailed', (request) => inFlight.delete(request))
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
@@ -397,6 +394,10 @@ async function main() {
                             }
                             return route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
                         }
+                        // The receipt pdf route reads the entry server side, past the synthetic API, so a
+                        // fixture never resolves there; the request-pot kind held networkidle open for good.
+                        if (url.origin === base.origin && /^\/receipt\/[^/]+\/pdf$/.test(url.pathname))
+                            return route.fulfill({ status: 404, headers: { 'cache-control': 'no-store' }, body: '' })
                         if (url.origin === base.origin) {
                             const cacheable =
                                 request.method() === 'GET' &&
@@ -464,7 +465,12 @@ async function main() {
                 }
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
-                await page.waitForLoadState('networkidle', { timeout: 15000 })
+                await page.waitForLoadState('networkidle', { timeout: 15000 }).catch((error: Error) => {
+                    // a bare timeout names neither the request that never settled nor an unmapped API call
+                    throw new Error(
+                        `${error.message}\nIn flight: ${[...inFlight.values()].join(', ') || 'none'}\nUnmapped: ${[...unknown].join(', ') || 'none'}`
+                    )
+                })
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {
@@ -549,6 +555,18 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                // Applies to every registered screen/state and requested locale,
+                // including controls whose value does not appear in innerText.
+                const numericSnapshot = await page.evaluate(() => ({
+                    text: document.body.innerText,
+                    inputs: [...document.querySelectorAll('input')].map((input) => input.value),
+                    sliderAttributes: [...document.querySelectorAll('[role="slider"]')].flatMap((slider) =>
+                        ['aria-valuenow', 'aria-valuemin', 'aria-valuemax', 'aria-valuetext'].map(
+                            (name) => slider.getAttribute(name) ?? ''
+                        )
+                    ),
+                }))
+                if (hasInvalidNumericUi(numericSnapshot)) throw new Error('Invalid numeric UI in captured state')
                 let previous = await page.screenshot({
                     animations: 'disabled',
                     caret: 'hide',

@@ -1,5 +1,6 @@
 import { getOneSignalAdapter, type OneSignalAdapter } from './index'
-import { createPushIdentitySync } from './identity-sync'
+import { createPushIdentitySync, PushIdentityTimeoutError } from './identity-sync'
+import { reportPushIdentityFailure } from './identity-report'
 import { captureException } from '@/utils/sentry-lazy'
 
 let initialized: Promise<OneSignalAdapter> | null = null
@@ -85,10 +86,12 @@ const identity = createPushIdentitySync(
         onTimeout: () => {
             initialized = null
         },
-        onReconcileError: () => {
-            captureException(new Error('Push identity late-operation reconciliation failed'), {
-                tags: { source: 'push_identity_reconcile' },
-            })
+        onReconcileError: (error) => {
+            reportPushIdentityFailure(
+                'Push identity late-operation reconciliation failed',
+                'push_identity_reconcile',
+                error
+            )
         },
     }
 )
@@ -142,7 +145,7 @@ export async function reconcileNotificationIdentity(
             Promise.resolve().then(verifyExternalId),
             new Promise<never>((_, reject) => {
                 timeout = setTimeout(
-                    () => reject(new Error('Push identity authentication verification timed out')),
+                    () => reject(new PushIdentityTimeoutError('Push identity authentication verification timed out')),
                     PUSH_IDENTITY_VERIFICATION_TIMEOUT_MS
                 )
             }),
@@ -179,7 +182,7 @@ export async function logoutNotificationIdentity(): Promise<void> {
             new Promise<never>((_, reject) => {
                 timeout = setTimeout(() => {
                     identity.expirePending()
-                    reject(new Error('Push identity logout timed out'))
+                    reject(new PushIdentityTimeoutError('Push identity logout timed out'))
                 }, PUSH_LOGOUT_TIMEOUT_MS)
             }),
         ])
@@ -208,10 +211,8 @@ if (typeof window !== 'undefined') {
         authExternalId = null
         verificationRevision += 1
         logoutVersion = event.newValue
-        void identity.setExternalId(null).catch(() => {
-            captureException(new Error('Push identity cross-tab logout failed'), {
-                tags: { source: 'push_identity_storage' },
-            })
+        void identity.setExternalId(null).catch((error) => {
+            reportPushIdentityFailure('Push identity cross-tab logout failed', 'push_identity_storage', error)
         })
     })
 }

@@ -7,9 +7,12 @@ import { redactQrTelemetryString } from './qr-telemetry-privacy'
  * filter) consults this, and infrastructure must not import from a /dev feature.
  */
 export const PAYMENT_NETWORK_PATH = '/dev/payment-graph'
+/** Team-only view of one customer's full database record. */
+export const USER_RECORDS_PATH = '/dev/users'
+export const PRIVATE_DATA_PATHS = [PAYMENT_NETWORK_PATH, USER_RECORDS_PATH]
 
-export function isPaymentNetworkExplorerPath(pathname: string): boolean {
-    return pathname === PAYMENT_NETWORK_PATH || pathname.startsWith(`${PAYMENT_NETWORK_PATH}/`)
+export function isPrivateDataPath(pathname: string): boolean {
+    return PRIVATE_DATA_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
 type GuardedWindow = Window &
@@ -26,7 +29,7 @@ export function disablePaymentNetworkGoogleAnalytics(
     try {
         path = new URL(pathname, window.location.href).pathname
     } catch {}
-    if (!isPaymentNetworkExplorerPath(path) && redactQrTelemetryString(pathname) === pathname) return
+    if (!isPrivateDataPath(path) && redactQrTelemetryString(pathname) === pathname) return
     ;(window as unknown as GuardedWindow)[`ga-disable-${measurementId}`] = true
 }
 

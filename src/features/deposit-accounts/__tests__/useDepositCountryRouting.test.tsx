@@ -174,6 +174,25 @@ describe('useDepositCountryRouting', () => {
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
+    it('offers setup for not_started even before there is a provider rail', async () => {
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderRouting((event) => updates.push(event), {
+            unavailable: {
+                SEPA_EU: {
+                    railId: 'bridge.sepa_eu',
+                    method: 'SEPA_EU',
+                    country: 'EU',
+                    currency: 'EUR',
+                    reason: 'not-offered',
+                    cause: 'not_started',
+                },
+            } as NonNullable<RoutingArgs>['unavailable'],
+        })
+        act(() => result.current.openCountry(PORTUGAL as any))
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
     it('keeps the standing account where the user already holds a working one', async () => {
         mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
         const updates: UrlUpdateEvent[] = []
@@ -242,6 +261,39 @@ describe('useDepositCountryRouting', () => {
         act(() => result.current.openCountry(COLOMBIA as any))
 
         await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_CO'))
+    })
+
+    describe("a corridor closed to the user's residence", () => {
+        // what the paperwork engine leaves for a resident of Mali, whose residence Bridge serves no euro account
+        const closedEuro = {
+            SEPA_EU: {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                reason: 'not-offered',
+                cause: 'residence-restricted',
+            },
+        } as unknown as NonNullable<RoutingArgs>['unavailable']
+
+        it('opens the screen that says so, never the transfer on the same closed rail', async () => {
+            const updates: UrlUpdateEvent[] = []
+            const { result } = renderRouting((e) => updates.push(e), { unavailable: closedEuro })
+
+            let navigated: boolean | undefined
+            act(() => {
+                navigated = result.current.openCountry(GERMANY as any)
+            })
+
+            await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+            expect(mockRouterPush).not.toHaveBeenCalled()
+            // the drawer opens over the list, so the country row must not keep spinning
+            expect(navigated).toBe(false)
+        })
+
+        it('keeps the country in the list rather than sending it to the waitlist', () => {
+            const { result } = renderRouting(undefined, { unavailable: closedEuro })
+
+            expect(result.current.isCountrySupported(PORTUGAL as any)).toBe(true)
+        })
     })
 
     it('still offers the waitlist for Colombia when the backend offers no peso account', () => {

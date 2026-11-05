@@ -21,6 +21,7 @@ export type ModalProps = {
     hideOverlay?: boolean
     classNameWrapperDiv?: string
     preventClose?: boolean
+    closeTestId?: string
 }
 
 // This child lives through Headless UI's exit transition. Deferred prompts
@@ -44,6 +45,7 @@ const Modal = ({
     hideOverlay,
     classNameWrapperDiv,
     preventClose = false,
+    closeTestId,
 }: ModalProps) => {
     let dialogRef = useRef(null)
     const tCommon = useTranslations('common')
@@ -134,6 +136,7 @@ const Modal = ({
                                     <button
                                         type="button"
                                         aria-label={tCommon('close')}
+                                        data-testid={closeTestId}
                                         className={twMerge(
                                             'absolute top-3 right-3 h-14 w-14 fill-white p-2 text-0',
                                             classButtonClose
@@ -149,6 +152,7 @@ const Modal = ({
                                         size="small"
                                         shape="square"
                                         aria-label={tCommon('close')}
+                                        data-testid={closeTestId}
                                         icon={<Icon name="cancel" size={20} className="transition-colors" />}
                                         className={twMerge('absolute top-1 right-1 z-10 w-10 text-0', classButtonClose)}
                                         onClick={onClose}

@@ -82,7 +82,15 @@ describe('receiptConversionLine', () => {
     it('reads balance → fiat for money going out', () => {
         expect(
             receiptConversionLine(eurDeposit({ amount: -33.25, currency: { code: 'ARS', amount: '30000' } }), '-')
-        ).toBe('33.25 USD → ARS 30,000.00')
+        ).toBe('33.25 USD → ARS 30,000')
+    })
+
+    // A Pix payment of 1.127608 USDC: the headline rounds half-up to "-$1.13",
+    // so the conversion row must say 1.13 too, never a truncated 1.12.
+    it('rounds the balance side half-up, like the headline', () => {
+        expect(
+            receiptConversionLine(eurDeposit({ amount: -1.127608, currency: { code: 'BRL', amount: '6.00' } }), '-')
+        ).toBe('1.13 USD → BRL 6')
     })
 
     it('is nothing when there is no conversion', () => {

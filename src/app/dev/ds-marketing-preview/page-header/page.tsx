@@ -5,7 +5,7 @@ import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE } from '@/i18n/types'
 
 /**
- * The marketing page header (page-header B, ruled 2026-10-14), composed from
+ * The marketing page header, composed from
  * the same parts as app/[locale]/(marketing)/layout.tsx: cream strip,
  * HeroBackNav's circle floating over its left edge, locale switcher flush
  * right. Every non-landing marketing page carries it; home and /lp keep the

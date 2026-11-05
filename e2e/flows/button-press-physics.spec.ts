@@ -17,6 +17,7 @@
  */
 
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
 // a Button in shadow mode. Raw `btn btn-primary` markup on marketing pages
 // carries the look but not the press classes, so it is not this contract.
@@ -127,23 +128,17 @@ test.describe('Button press physics', () => {
     // navigation row, and its circles were the last call site still drawing a
     // secondary button with the shadow stripped — a white chip on the #90a8ed
     // hero, which is the state the board does not have (kush QA 2026-09-21).
-    // The invite step's back circle renders that row with no backend and no
+    // The username step's back circle renders that row with no backend and no
     // login. (/setup/finish used to, through a log-out circle that moved under
     // its primary in the Release 164 smoke-test fixes.)
-    test('the setup nav circle is a ring on the hero, not a white chip', async ({ page }) => {
-        // Headless Chromium has no platform authenticator; the setup gate would show the unsupported modal.
-        await page.addInitScript(() => {
-            const w = window as unknown as {
-                PublicKeyCredential: { isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean> }
-            }
-            w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
-            w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
-        })
+    test('the setup nav circle is a ring on the hero, not a white chip', async ({ page, baseURL }) => {
+        // web signup is app-only; the support keep-web cookie reopens it in this browser
+        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
         await page.goto('/setup', { waitUntil: 'domcontentloaded' })
         const signUp = page.getByRole('button', { name: 'Sign up' })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await signUp.click()
-        await expect(page).toHaveURL(/screen=invite/)
+        await expect(page).toHaveURL(/screen=signup/)
 
         const circle = page.getByRole('button', { name: 'Go back' })
         await expect(circle).toBeVisible()

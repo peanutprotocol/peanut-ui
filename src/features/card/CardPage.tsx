@@ -1,5 +1,6 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useState } from 'react'
+import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useTranslations } from 'next-intl'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { CardAcquisitionScreen, CardMilestoneScreen } from './components/CardAcquisitionScreen'
@@ -8,22 +9,35 @@ import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
+import CardStopBanner from '@/components/Card/CardStopBanner'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
+import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
+import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
+import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
+
+const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
 
 export const CardPage: FC = () => {
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const {
         user,
+        activation,
         cardInfo,
         isCardFunded,
+        isBalanceKnown,
         needsFundingBeforeApply,
+        termsFundingPath,
+        fundingAccessLoading,
+        refetchFundingAccess,
         fundingRequired,
         fetchUser,
         cardInfoError,
@@ -42,6 +56,13 @@ export const CardPage: FC = () => {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        planRefusal,
+        setPlanRefusal,
+        pendingQuestions,
+        pendingApplication,
+        setPendingQuestions,
+        handleQuestionsDone,
+        kycFlow,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -67,12 +88,22 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+    // Outlives the card screen: a cancel can remove the last card while the stop is still pending.
+    const [stopAttempt, setStopAttempt] = useState<StopAttempt | null>(null)
+    const clearStopAttempt = useCallback(() => setStopAttempt(null), [])
 
     const celebrationKey = `card_issuance_celebration_pending_v1:${user?.user.userId}`
     const [showIssuedCelebration, setShowIssuedCelebration] = useState(false)
     useEffect(() => {
         setShowIssuedCelebration(state === 'active' && readStoredValue(celebrationKey) === '1')
     }, [state, celebrationKey])
+
+    // A legacy applicant's first ID check runs in the card level's Sumsub: it
+    // opens behind /verify's intro, like every other start. A verified user's
+    // token (the card questions, a missing selfie) opens Sumsub at once.
+    const [introDoneFor, setIntroDoneFor] = useState<string | null>(null)
+    const showCardIntro =
+        sumsubToken !== null && user?.identityVerification?.status === 'not_started' && introDoneFor !== sumsubToken
 
     if (state === 'loading') {
         return (
@@ -104,8 +135,22 @@ export const CardPage: FC = () => {
         // `onPrev` is not optional here: this screen carries no other control,
         // so omitting it made a poll that ran long (or never resolved) read as
         // a frozen app — animations running, nothing tappable.
+        if (activation && !activation.allowed && (activation.result || activation.isLoading)) {
+            return (
+                <KycFeatureActivationStatus
+                    feature="card"
+                    result={activation.result}
+                    isLoading={activation.isLoading}
+                    onRetry={() => void activation.activate()}
+                    onBack={onBack}
+                />
+            )
+        }
         if (isIssuing) {
             return <ApplicationStatusScreen variant="pending" onPrev={onBack} />
+        }
+        if (pendingApplication && state === 'add-card') {
+            return <ApplicationStatusScreen variant={pendingApplication} onPrev={onBack} />
         }
         // Terminal regulatory block detected mid-funnel by the BE apply gate —
         // takes precedence over the confirmation/terms overlays (those flows
@@ -115,6 +160,47 @@ export const CardPage: FC = () => {
         }
         if (pendingResidenceBlocked) {
             return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
+        }
+        // A supplement start the backend refused for good: support is the way on.
+        if (kycFlow.isTerminalError && kycFlow.error) {
+            return (
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonMessage={kycFlow.error}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onPrev={onBack}
+                />
+            )
+        }
+        // Smart Paperwork Verification: the card's own questions on one full screen over the page, then the application resumes.
+        if (pendingQuestions) {
+            return (
+                <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
+                    <AddFeatureQuestions
+                        feature="card"
+                        requiredStep={pendingQuestions}
+                        onBack={() => setPendingQuestions(null)}
+                        onDone={handleQuestionsDone}
+                    />
+                </div>
+            )
+        }
+        if (planRefusal) {
+            return (
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    reasonCode={planRefusal}
+                    onContactSupport={() => setIsSupportModalOpen(true)}
+                    onUploadIdentity={
+                        planRefusal === 'identity_document_insufficient' ||
+                        planRefusal === 'document_country_unsupported'
+                            ? () => void kycFlow.handleRestartIdentity()
+                            : undefined
+                    }
+                    uploadError={kycFlow.error ?? undefined}
+                    onPrev={() => setPlanRefusal(null)}
+                />
+            )
         }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.
@@ -143,6 +229,7 @@ export const CardPage: FC = () => {
                     userId={user?.user.userId ?? ''}
                     eligible={true}
                     funded={isCardFunded}
+                    balanceKnown={isBalanceKnown}
                     needsFundingBeforeApply={needsFundingBeforeApply}
                     fundingRequired
                     onApply={() => handleApply(false)}
@@ -151,9 +238,26 @@ export const CardPage: FC = () => {
             )
         }
         if (pendingTerms) {
+            // The terms differ by funding path, so they wait for the server's
+            // decision; an unreadable decision offers a retry, never a guess.
+            if (!termsFundingPath) {
+                return fundingAccessLoading ? (
+                    <div className="flex min-h-inherit w-full items-center justify-center">
+                        <Loading />
+                    </div>
+                ) : (
+                    <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                        <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
+                        <Button onClick={() => void refetchFundingAccess()} variant="primary" shadowSize="4">
+                            {tCommon('retry')}
+                        </Button>
+                    </div>
+                )
+            }
             return (
                 <CardTermsScreen
                     isUsResident={pendingTerms.isUsResident}
+                    managedFunding={termsFundingPath === 'managed'}
                     onAccept={handleAcceptTerms}
                     onPrev={() => setPendingTerms(null)}
                     submitError={applyError}
@@ -172,11 +276,12 @@ export const CardPage: FC = () => {
                             overview?.status.railStatus !== 'ENABLED'
                         }
                         funded={isCardFunded}
+                        balanceKnown={isBalanceKnown}
                         needsFundingBeforeApply={needsFundingBeforeApply}
                         fundingRequired={fundingRequired}
                         onApply={() => handleApply(false)}
                         onPrev={onBack}
-                        applyError={applyError}
+                        applyError={applyError ?? kycFlow.error}
                     />
                 )
             case 'pending':
@@ -198,7 +303,7 @@ export const CardPage: FC = () => {
                     )
                 }
                 const cardRail = railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? PROOF_OF_ADDRESS_RECEIVED : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
@@ -251,7 +356,7 @@ export const CardPage: FC = () => {
                 // on its own (reassurance + support CTA), so show it now and let
                 // the reason fill in once capabilities resolve.
                 const cardRail = capabilitiesLoading ? undefined : railsForProvider('rain')[0]
-                const cardRailReasonCode = poaSubmitted ? 'proof_of_address_review' : cardRail?.reason?.code
+                const cardRailReasonCode = poaSubmitted ? PROOF_OF_ADDRESS_RECEIVED : cardRail?.reason?.code
                 const cardRailReason = poaSubmitted ? undefined : cardRail?.reason?.userMessage
                 return (
                     <ApplicationStatusScreen
@@ -278,7 +383,9 @@ export const CardPage: FC = () => {
                     )
                 }
                 const card = findActiveCard(overview)!
-                return <YourCardScreen overview={overview!} card={card} onPrev={onBack} />
+                return (
+                    <YourCardScreen overview={overview!} card={card} onPrev={onBack} onStopAttempt={setStopAttempt} />
+                )
             }
             default:
                 return null
@@ -287,41 +394,64 @@ export const CardPage: FC = () => {
 
     return (
         <PageContainer>
-            {renderState()}
-            <SumsubKycWrapper
-                visible={poaToken !== null}
-                accessToken={poaToken}
-                onClose={() => setPoaToken(null)}
-                onComplete={() => {
-                    // Document submitted to Sumsub. Review + the backend webhook
-                    // stamp happen async — flip the optimistic banner and refetch
-                    // so the screen picks up the backend's wait state when ready.
-                    setPoaToken(null)
-                    setPoaSubmitted(true)
-                    invalidateOverview()
-                    void fetchUser()
-                }}
-                onRefreshToken={async () => {
-                    const response = await initiateSelfHealResubmission('RAIN')
-                    if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
-                    return response.data.token
-                }}
+            {/* PageContainer lays its children out in a row; the stop banner
+                must stack above the screen, not take width from it. */}
+            <div className="flex min-h-inherit flex-col gap-6">
+                <CardStopBanner
+                    key={stopAttempt?.attemptId}
+                    enabled={!!overview?.status?.hasApplication}
+                    attempt={stopAttempt}
+                    onSettled={clearStopAttempt}
+                />
+                {renderState()}
+            </div>
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={poaToken !== null}
+                    accessToken={poaToken}
+                    onClose={() => setPoaToken(null)}
+                    onComplete={() => {
+                        // Document submitted to Sumsub. Review + the backend webhook
+                        // stamp happen async — flip the optimistic banner and refetch
+                        // so the screen picks up the backend's wait state when ready.
+                        setPoaToken(null)
+                        setPoaSubmitted(true)
+                        invalidateOverview()
+                        void fetchUser()
+                    }}
+                    onRefreshToken={async () => {
+                        const response = await initiateSelfHealResubmission('RAIN')
+                        if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
+                        return response.data.token
+                    }}
+                />
+            </KycControlFlowProvider>
+            <SumsubKycModals flow={kycFlow} />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    sessionKey={informationSession?.key}
+                    visible={informationSession !== null}
+                    accessToken={informationSession?.token ?? null}
+                    onClose={() => setInformationSession(null)}
+                    onComplete={() => {
+                        markSubmitted()
+                        setInformationSession(null)
+                        invalidateOverview()
+                        void fetchUser()
+                    }}
+                    onRefreshToken={refreshInformationToken}
+                />
+            </KycControlFlowProvider>
+            <IdentityCheckIntroScreen
+                visible={showCardIntro}
+                hasQuestions
+                providerId="third-national"
+                providerLabel="cardProvider"
+                onBack={handleSumsubClose}
+                onContinue={() => setIntroDoneFor(sumsubToken)}
             />
             <SumsubKycWrapper
-                sessionKey={informationSession?.key}
-                visible={informationSession !== null}
-                accessToken={informationSession?.token ?? null}
-                onClose={() => setInformationSession(null)}
-                onComplete={() => {
-                    markSubmitted()
-                    setInformationSession(null)
-                    invalidateOverview()
-                    void fetchUser()
-                }}
-                onRefreshToken={refreshInformationToken}
-            />
-            <SumsubKycWrapper
-                visible={sumsubToken !== null}
+                visible={sumsubToken !== null && !showCardIntro}
                 accessToken={sumsubToken}
                 onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}

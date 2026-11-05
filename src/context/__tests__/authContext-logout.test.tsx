@@ -40,11 +40,14 @@ jest.mock('@/hooks/useUserAutoRefresh', () => ({ useUserAutoRefresh: jest.fn() }
 jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => false }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
-jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('@/utils/auth-token', () => ({
+    getClearEpoch: jest.fn(() => 0),
+    clearAuthToken: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/utils/login-session', () => ({ recoverLoginSession: jest.fn() }))
 jest.mock('@/utils/cache.utils', () => ({ purgeCaches: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isNativeBridge: () => false }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), setUser: jest.fn() }))
 jest.mock('@/i18n/app/locale-store', () => ({
     currentAppLocale: () => 'en',
@@ -69,12 +72,19 @@ jest.mock('@/services/pending-invite-attribution', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+    },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'
 import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
+import { purgeCaches } from '@/utils/cache.utils'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -151,6 +161,29 @@ describe('logoutUser', () => {
         expect(hasHeldSession()).toBe(false)
     })
 
+    it('purges the cross-origin cache, where older workers stored API responses', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
+    })
+
+    it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
+        localStorage.setItem('posthog-person-properties-sent', 'abc123')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+    })
+
     it('releases the latch when the hard navigation never happens', async () => {
         stubLocation(() => {
             throw new Error('navigation blocked')
@@ -181,6 +214,29 @@ describe('logoutUser', () => {
         })
 
         expect(order).toEqual(['api:/users/logout', 'cache-cleared'])
+    })
+
+    it('signs out every device through /users/logout/all when asked', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all'])
+    })
+
+    it('falls back to /users/logout, which revokes everything there, on an API without /all', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all', '/users/logout'])
     })
 
     it('awaits signup-attribution cleanup before leaving the account boundary', async () => {

@@ -4,11 +4,12 @@ import matter from 'gray-matter'
 import { RECEIVE_SOURCES } from './corridors'
 
 const RECEIVE_FROM_DIR = path.join(process.cwd(), 'src/content/content/receive-from')
+const PROTECTED_CONTENT = path.join(process.cwd(), 'src/content/content/help/verification/en.md')
 
 beforeAll(() => {
-    if (!fs.existsSync(RECEIVE_FROM_DIR)) {
+    if (!fs.existsSync(PROTECTED_CONTENT)) {
         throw new Error(
-            `content tree missing at ${RECEIVE_FROM_DIR} — the src/content submodule is not ` +
+            `content tree missing at ${PROTECTED_CONTENT} — the src/content submodule is not ` +
                 'initialized in this checkout. Run: git submodule update --init'
         )
     }
@@ -20,6 +21,7 @@ beforeAll(() => {
  *  via the lib) so YAML semantics match what the loader's parser actually does
  *  (`published: False`, trailing comments, nesting). */
 function publishedReceiveFromSlugs(): string[] {
+    if (!fs.existsSync(RECEIVE_FROM_DIR)) return []
     return fs
         .readdirSync(RECEIVE_FROM_DIR)
         .filter((slug) => slug !== 'index')

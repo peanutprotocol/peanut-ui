@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import badgeAssets from '@/types/badge-assets.json'
 import en from '@/i18n/app/messages/en.json'
+import { PEANUT_API_URL } from '@/constants/general.consts'
 import {
     avatarPool,
     avatarSrc,
@@ -10,6 +11,7 @@ import {
     dealHand,
     HAND_SIZE,
     letterAvatarSrc,
+    servedAvatarArt,
 } from '../avatar.utils'
 
 describe('avatar catalog', () => {
@@ -25,6 +27,13 @@ describe('avatar catalog', () => {
         expect(paths.length).toBeGreaterThanOrEqual(26)
         for (const path of paths) {
             expect({ path, exists: existsSync(join(process.cwd(), 'public', path)) }).toEqual({ path, exists: true })
+        }
+    })
+
+    // one avatar per badge, drawn to read at 32 px (TASK-24388)
+    it('unlocks at most one avatar per badge', () => {
+        for (const [code, slugs] of Object.entries(badgeAssets.avatars.badges)) {
+            expect({ code, atMostOne: slugs.length <= 1 }).toEqual({ code, atMostOne: true })
         }
     })
 
@@ -51,18 +60,16 @@ describe('avatar catalog', () => {
         expect(badgeAvatarKeys([])).toEqual([])
         // a catalog badge without art is listed as [] in the manifest: nothing unlocked
         expect(badgeAvatarKeys(['FIRST_INVITE', 'NOT_A_BADGE'])).toEqual([])
-        expect(badgeAvatarKeys(['BUG_WHISPERER'])).toEqual([
-            'badge.BUG_WHISPERER.beetle',
-            'badge.BUG_WHISPERER.shell',
-            'badge.BUG_WHISPERER.peek',
-        ])
-        // 26 letters + 20 basics + the 3 OFFRAMP_USER avatars
-        expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(49)
+        expect(badgeAvatarKeys(['BUG_WHISPERER'])).toEqual(['badge.BUG_WHISPERER.beetle'])
+        // 26 letters + 20 basics + the one OFFRAMP_USER avatar
+        expect(avatarPool(['OFFRAMP_USER'])).toHaveLength(47)
     })
 
     it('maps keys to their art and rejects anything the manifest does not know', () => {
         expect(avatarSrc('basic.apple')).toBe('/avatars/basic/apple.webp')
-        expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBe('/avatars/badge/OFFRAMP_USER/wink.webp')
+        expect(avatarSrc('badge.OFFRAMP_USER.bolt')).toBe('/avatars/badge/OFFRAMP_USER/bolt.webp')
+        // retired with one avatar per badge (TASK-24388)
+        expect(avatarSrc('badge.OFFRAMP_USER.wink')).toBeNull()
         expect(avatarSrc('basic.peanut')).toBeNull()
         expect(avatarSrc('badge.BUG_WHISPERER.nope')).toBeNull()
         expect(avatarSrc('badge.FIRST_INVITE.beetle')).toBeNull()
@@ -103,8 +110,10 @@ describe('dealHand', () => {
     })
 
     it('keeps the pick in the hand and always deals at least one earned avatar', () => {
+        // one avatar per badge: a second earned card needs a second badge
+        const two = badgeAvatarKeys(['BUG_WHISPERER', 'OFFRAMP_USER'])
         for (const pick of ['basic.sun', 'badge.BUG_WHISPERER.beetle']) {
-            const hand = dealHand(pick, unlocked, { random: seeded(2) })
+            const hand = dealHand(pick, two, { random: seeded(2) })
             expect(hand).toContain(pick)
             // a worn badge avatar does not count: the guarantee is a second earned card
             expect(hand.filter((key) => isBadge(key) && key !== pick).length).toBeGreaterThan(0)
@@ -123,7 +132,7 @@ describe('dealHand', () => {
         const hand = dealHand('letter.k', unlocked, { random: seeded(8) })
         expect(hand).toHaveLength(1 + HAND_SIZE)
         expect(hand).not.toContain('letter.k')
-        expect(hand.map(avatarSrc)).not.toContain('/avatars/letter/k.webp')
+        expect(hand.map((key) => avatarSrc(key))).not.toContain('/avatars/letter/k.webp')
     })
 
     it('deals only basics to a user with no badges', () => {
@@ -145,11 +154,11 @@ describe('dealHand', () => {
     // the same badge code twice unlocks the same files twice: one drawing, one tile
     it('never deals two tiles that draw the same art', () => {
         const twice = badgeAvatarKeys(['BUG_WHISPERER', 'BUG_WHISPERER'])
-        expect(twice).toHaveLength(6)
+        expect(twice).toEqual(['badge.BUG_WHISPERER.beetle', 'badge.BUG_WHISPERER.beetle'])
         for (let seed = 1; seed <= 20; seed++) {
             const art = dealHand('basic.sun', twice, { random: seeded(seed) })
                 .slice(1)
-                .map(avatarSrc)
+                .map((key) => avatarSrc(key))
             expect(art).toHaveLength(HAND_SIZE)
             expect(new Set(art).size).toBe(HAND_SIZE)
             expect(art).not.toContain(null)
@@ -167,11 +176,12 @@ describe('dealHand', () => {
     })
 })
 
-// TASK-22677: every sticker is a 176x176 WebP, so one slot draws every pick at
-// one size. mono/skills/badges-recraft export-avatar.mjs writes that canvas
-// and refuses strip-shaped art; this keeps a hand-dropped file honest.
+// TASK-22677: every sticker is a 288x288 WebP (3x the 96 px avatar, TASK-24388),
+// so one slot draws every pick at one size. mono/skills/badges-recraft
+// export-avatar.mjs writes that canvas and refuses strip-shaped art; this keeps
+// a hand-dropped file honest.
 describe('avatar artwork geometry', () => {
-    const STICKER_SIDE = 176
+    const STICKER_SIDE = 288
     // RIFF container: 'VP8 ' lossy, 'VP8L' lossless, 'VP8X' extended (alpha)
     const webpSize = (webp: Buffer) => {
         if (webp.toString('ascii', 0, 4) !== 'RIFF' || webp.toString('ascii', 8, 12) !== 'WEBP') return null
@@ -184,7 +194,7 @@ describe('avatar artwork geometry', () => {
         return { width: webp.readUInt16LE(26) & 0x3fff, height: webp.readUInt16LE(28) & 0x3fff }
     }
 
-    it('ships every sticker on a 176x176 canvas', () => {
+    it('ships every sticker on a 288x288 canvas', () => {
         const paths = [
             ...'abcdefghijklmnopqrstuvwxyz'.split('').map((letter) => `/avatars/letter/${letter}.webp`),
             ...badgeAssets.avatars.basics.map((slug) => `/avatars/basic/${slug}.webp`),
@@ -196,5 +206,69 @@ describe('avatar artwork geometry', () => {
             const size = webpSize(readFileSync(join(process.cwd(), 'public', path)))
             expect({ path, size }).toEqual({ path, size: { width: STICKER_SIDE, height: STICKER_SIDE } })
         }
+    })
+})
+
+// GET /avatars/art (TASK-23547): bundled file first, served url second, none last
+describe('served avatar art', () => {
+    const served = (file: string) => `${PEANUT_API_URL}/badges/art/${file}`
+    const frog = served('avatar-basic-frog.0123456789ab.webp')
+    const newBadge = served('avatar-badge-NEW_BADGE-owl.0123456789ab.webp')
+    const art = { 'basic.frog': frog, 'badge.NEW_BADGE.owl': newBadge, 'letter.s': served('avatar-letter-s.webp') }
+
+    it('prefers the bundled file, then the served url, then nothing', () => {
+        // known to both: the bundle wins
+        expect(avatarSrc('basic.frog', art)).toBe('/avatars/basic/frog.webp')
+        expect(letterAvatarSrc('satoshi', art)).toBe('/avatars/letter/s.webp')
+        // served only: the map url
+        expect(avatarSrc('badge.NEW_BADGE.owl', art)).toBe(newBadge)
+        expect(avatarSrc('badge.NEW_BADGE.owl')).toBeNull()
+        expect(avatarSrc('badge.NOPE.x', art)).toBeNull()
+        expect(servedAvatarArt('basic.frog', art)).toBe(frog)
+    })
+
+    it.each([
+        ['another host', 'https://evil.example/badges/art/avatar-basic-frog.webp'],
+        ['a host that only starts like the api', `${PEANUT_API_URL}.evil.example/badges/art/avatar-basic-frog.webp`],
+        ['another path', `${PEANUT_API_URL}/uploads/avatar-basic-frog.webp`],
+        ['a non-avatar file', served('badge-BUG_WHISPERER.webp')],
+        ['traversal', served('avatar-../../x.webp')],
+        ['a non-webp file', served('avatar-basic-frog.png')],
+        ['a query string', served('avatar-basic-frog.webp?x=1')],
+        ['a data url', 'data:image/webp;base64,AAAA'],
+        ['a relative path', '/badges/art/avatar-basic-frog.webp'],
+    ])('rejects %s', (_, url) => {
+        expect(servedAvatarArt('badge.NEW_BADGE.owl', { 'badge.NEW_BADGE.owl': url })).toBeNull()
+        expect(avatarSrc('badge.NEW_BADGE.owl', { 'badge.NEW_BADGE.owl': url })).toBeNull()
+    })
+
+    it('does not read a key off Object.prototype', () => {
+        expect(servedAvatarArt('constructor', {})).toBeNull()
+    })
+
+    it('unlocks badge art only the served map knows, for holders only', () => {
+        expect(badgeAvatarKeys(['NEW_BADGE'], art)).toEqual(['badge.NEW_BADGE.owl'])
+        expect(badgeAvatarKeys(['NEW_BADGE'])).toEqual([])
+        expect(badgeAvatarKeys(['BUG_WHISPERER'], art)).toEqual(badgeAvatarKeys(['BUG_WHISPERER']))
+        expect(badgeAvatarKeys(['NEW_BADGE'], { 'badge.NEW_BADGE.owl': 'https://evil.example/x.webp' })).toEqual([])
+    })
+
+    // TASK-24388: an API that still serves a retired slug (before its own
+    // one-avatar change) must not put it back in the pool, but someone still
+    // wearing it keeps their art
+    it('ignores served slugs for a badge with bundled art, and still draws a worn one', () => {
+        const swipe = served('avatar-badge-CARD_ALPHA-swipe.0123456789ab.webp')
+        const old = {
+            'badge.CARD_ALPHA.swipe': swipe,
+            'badge.CARD_ALPHA.tape': served('avatar-badge-CARD_ALPHA-tape.webp'),
+        }
+        expect(badgeAvatarKeys(['CARD_ALPHA'], old)).toEqual(['badge.CARD_ALPHA.card'])
+        expect(avatarSrc('badge.CARD_ALPHA.swipe', old)).toBe(swipe)
+    })
+
+    it('deals a served-only badge avatar to its holder', () => {
+        const hand = dealHand(null, badgeAvatarKeys(['NEW_BADGE'], art), { art })
+        expect(hand).toContain('badge.NEW_BADGE.owl')
+        expect(basicAvatarKeys(art)).toEqual(basicAvatarKeys())
     })
 })

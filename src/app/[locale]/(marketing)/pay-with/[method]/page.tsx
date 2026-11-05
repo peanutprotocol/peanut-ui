@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/confi
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     readPageContentLocalized,
     type ContentFrontmatter,
     contentLocaleFor,
@@ -73,16 +74,7 @@ export default async function PayWithPage({ params }: PageProps) {
                 { name: i18n.home, href: `/${locale}` },
                 { name: pm.name, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

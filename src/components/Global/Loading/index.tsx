@@ -1,4 +1,4 @@
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO } from '@/assets/brand'
 import Image from 'next/image'
 import { twMerge } from '@/utils/tw'
 
@@ -33,7 +33,7 @@ const Loading = ({ className, variant = 'spinner', coverFullScreen = false, mess
                     )}
                 >
                     <div className="animate-spin">
-                        <Image src={PEANUTMAN} alt="Peanut mascot" className="h-10 w-auto" />
+                        <Image src={LOGO} alt="Peanut mascot" className="h-10 w-auto" />
                         {/* one accessible copy: the visible caption announces when present */}
                         {!message && <span className="sr-only">Loading...</span>}
                     </div>

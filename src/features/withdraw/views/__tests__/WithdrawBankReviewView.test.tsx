@@ -86,11 +86,10 @@ const referenceInput = () => screen.queryByLabelText('Reference (optional)') as 
 const submitButton = () => screen.getByRole('button', { name: /withdraw/i })
 
 describe('WithdrawBankReviewView — the optional reference', () => {
-    it('SEPA: shows the field with the rail limits, and an empty reference leaves submit enabled', () => {
+    it('SEPA: shows the field capped at the rail limit, and an empty reference leaves submit enabled', () => {
         renderWithIntl(<Harness rail="sepa" />)
         expect(referenceInput()).toBeInTheDocument()
         expect(referenceInput()).toHaveAttribute('maxlength', '140')
-        expect(screen.getByText(/6 to 140 characters/)).toBeInTheDocument()
         expect(submitButton()).toBeEnabled()
     })
 
@@ -116,22 +115,19 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         expect(submitButton()).toBeEnabled()
     })
 
-    it('ACH: shows its own limits', () => {
+    it('ACH: caps the field at its own limit', () => {
         renderWithIntl(<Harness rail="ach" />)
         expect(referenceInput()).toHaveAttribute('maxlength', '10')
-        expect(screen.getByText(/Up to 10 characters/)).toBeInTheDocument()
     })
 
-    it('Faster Payments: shows its own limits', () => {
+    it('Faster Payments: caps the field at its own limit', () => {
         renderWithIntl(<Harness rail="faster_payments" />)
         expect(referenceInput()).toHaveAttribute('maxlength', '18')
-        expect(screen.getByText(/Up to 18 characters/)).toBeInTheDocument()
     })
 
-    it('SPEI: shows its own limits and refuses punctuation', () => {
+    it('SPEI: caps the field at its own limit and refuses punctuation', () => {
         renderWithIntl(<Harness rail="spei" />)
         expect(referenceInput()).toHaveAttribute('maxlength', '40')
-        expect(screen.getByText(/Up to 40 characters/)).toBeInTheDocument()
 
         fireEvent.change(referenceInput()!, { target: { value: 'RENTA-09' } })
         expect(submitButton()).toBeDisabled()
@@ -142,10 +138,9 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         expect(submitButton()).toBeEnabled()
     })
 
-    it('Colombia: shows its own limits', () => {
+    it('Colombia: caps the field at its own limit', () => {
         renderWithIntl(<Harness rail="co_bank_transfer" />)
         expect(referenceInput()).toHaveAttribute('maxlength', '18')
-        expect(screen.getByText(/Up to 18 characters/)).toBeInTheDocument()
     })
 
     it('an over-length reference blocks submit on every rail that takes one', () => {
@@ -176,14 +171,16 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
     })
 
-    it('SEPA: warns that the rail rewrites the spacing and case', () => {
-        renderWithIntl(<Harness rail="sepa" />)
-        expect(screen.getByText(/spacing and capital letters may change/)).toBeInTheDocument()
-    })
-
-    it('a rail we have not measured says nothing about rewriting', () => {
-        renderWithIntl(<Harness rail="ach" />)
-        expect(screen.queryByText(/spacing and capital letters may change/)).not.toBeInTheDocument()
+    it('shows no helper text under the field on any rail', () => {
+        // Release 166 smoke test: the limits are named by the field error when
+        // the text breaks them, so the line under the field went on every rail.
+        for (const rail of ['sepa', 'ach', 'wire', 'faster_payments', 'spei', 'co_bank_transfer']) {
+            const { unmount } = renderWithIntl(<Harness rail={rail} />)
+            expect(screen.queryByText(/bank shows it with the payment/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/characters: letters a-z/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/spacing and capital letters may change/)).not.toBeInTheDocument()
+            unmount()
+        }
     })
 
     it('names who the recipient bank shows as the sender on the rails we can confirm', () => {
@@ -264,7 +261,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         )
 
         expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
     })
 
     it.each([
@@ -283,7 +280,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
         expect(screen.getByTestId('secondary')).toHaveTextContent('≈ €44.78')
         expect(screen.queryByText(/GBP|PLN|SEK|CHF|£/)).not.toBeInTheDocument()
         expect(screen.getByText('Bridge sends EUR to the bank')).toBeInTheDocument()
@@ -298,7 +295,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.getByText('1 USD = 0.7508 GBP')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.7508 GBP')).toBeInTheDocument()
         expect(screen.getByTestId('secondary')).toHaveTextContent('≈ £37.54')
         expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
     })
@@ -313,7 +310,7 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
             />
         )
 
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
         expect(screen.queryByText('Bridge sends EUR to the bank')).not.toBeInTheDocument()
     })
 
@@ -402,7 +399,7 @@ describe('WithdrawBankReviewView — the amount leads in the currency the user t
         )
         expect(screen.getByTestId('headline')).toHaveTextContent('≈ €2,000')
         expect(screen.getByTestId('secondary')).toHaveTextContent('$50')
-        expect(screen.getByText('1 USD = 0.8955 EUR')).toBeInTheDocument()
+        expect(screen.getByText('1 USD ≈ 0.8955 EUR')).toBeInTheDocument()
     })
 
     it('typed in USD: the USD leads, the bank amount follows as an estimate', () => {
@@ -585,7 +582,7 @@ describe('WithdrawBankReviewView — USD speed and the wire fee (TASK-23054)', (
         expect(row('Fee')).toHaveTextContent(/\$20(\.00)?/)
         expect(row('Bank receives')).toHaveTextContent(/\$30(\.00)?/)
         // the wire memo field replaces the 10-character ACH one
-        expect(screen.getByText(/Up to 140 characters/)).toBeInTheDocument()
+        expect(referenceInput()).toHaveAttribute('maxlength', '140')
     })
 
     it.each([

@@ -30,8 +30,10 @@ jest.mock('@/context/authContext', () => ({
         user: { user: { userId: 'u1' }, accounts: [{ type: 'peanut-wallet', identifier: '0xwallet' }] },
     }),
 }))
-jest.mock('@/services/charges', () => ({ chargesApi: {} }))
-jest.mock('@/services/requests', () => ({ requestsApi: {} }))
+const mockChargeCancel = jest.fn(async (_id: string) => undefined)
+const mockRequestClose = jest.fn(async (_id: string) => undefined)
+jest.mock('@/services/charges', () => ({ chargesApi: { cancel: (id: string) => mockChargeCancel(id) } }))
+jest.mock('@/services/requests', () => ({ requestsApi: { close: (id: string) => mockRequestClose(id) } }))
 
 import { useReceiptActions } from '../useReceiptActions'
 import type { TransactionDetails } from '../transactionTransformer'
@@ -91,4 +93,28 @@ test('confirmed cancellation finishes while history is still pending', async () 
     const { result } = renderHook(() => useReceiptActions(tx))
     await expect(result.current.cancelSendLink()).resolves.toBe('cancelled')
     expect(mockToast.success).toHaveBeenCalledWith('toast.linkCancelled')
+})
+
+// TASK-24006: the API lets only the payer cancel an addressed charge, so the
+// requester's close never calls the charge cancel.
+describe('useReceiptActions.closeRequest', () => {
+    test('a request link closes through the requests api', async () => {
+        const pot = { id: 'req-1', isRequestPotLink: true } as unknown as TransactionDetails
+        const { result } = renderHook(() => useReceiptActions(pot))
+
+        await expect(result.current.closeRequest()).resolves.toBe(true)
+
+        expect(mockRequestClose).toHaveBeenCalledWith('req-1')
+        expect(mockChargeCancel).not.toHaveBeenCalled()
+    })
+
+    test('an addressed charge is not cancelled by the requester', async () => {
+        const charge = { id: 'charge-1', isRequestPotLink: false } as unknown as TransactionDetails
+        const { result } = renderHook(() => useReceiptActions(charge))
+
+        await expect(result.current.closeRequest()).resolves.toBe(false)
+
+        expect(mockChargeCancel).not.toHaveBeenCalled()
+        expect(mockRequestClose).not.toHaveBeenCalled()
+    })
 })

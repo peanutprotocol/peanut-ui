@@ -93,8 +93,6 @@ jest.mock('posthog-js', () => ({
 
 // Assets
 jest.mock('@/assets', () => ({
-    SOLANA_ICON: '/solana.png',
-    TRON_ICON: '/tron.png',
     MERCADO_PAGO: '/mercado-pago.png',
     PIX: '/pix.png',
 }))
@@ -354,7 +352,9 @@ jest.mock('@/utils/general.utils', () => ({
 }))
 
 jest.mock('@/utils/currency', () => ({
+    ...jest.requireActual('@/utils/currency'),
     formatBankAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
+    formatAmountNumber: jest.fn((amount: string | number) => String(amount)),
 }))
 
 jest.mock('@/utils/format.utils', () => ({
@@ -629,12 +629,20 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
 // MantecaTransfersMaintenanceView — the outage screen shown when a currency is
 // in disabledMantecaCurrencies. Mocked to a testid so GROUP 7 can assert which
 // branch the regional-method route renders without pulling the real Card tree.
+// the Brazil pause, per test; GROUP 7 asserts which branch the regional-method route renders
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
+    BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
+}))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     __esModule: true,
     MantecaTransfersMaintenanceView: () => <div data-testid="manteca-transfers-maintenance">Manteca Maintenance</div>,
 }))
 
-// AddMoneyBankDetails (for US bank page and bank details step)
+// AddMoneyBankDetails (for the bank details step)
 jest.mock('@/components/AddMoney/components/AddMoneyBankDetails', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -744,7 +752,9 @@ import OnrampBankPage from '../[country]/bank/page'
 import AddMoneyRegionalMethodPage from '../[country]/[regional-method]/page'
 import AddMoneyCountryPage from '../[country]/page'
 import CryptoDepositView from '@/components/AddMoney/views/CryptoDeposit.view'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
+
+const killSwitches = getKillSwitches()
 
 // ---------- helpers ----------
 
@@ -1643,15 +1653,17 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 })
 
 // ============================================================
-// GROUP 6: US Bank Page (static route)
+// GROUP 6: US Bank Page (static route, retired to an alias)
 // ============================================================
 describe('GROUP 6: US Bank Page', () => {
-    test('renders AddMoneyBankDetails with flow=add-money', () => {
-        const USBankPage = require('../us/bank/page').default
-        renderWithProviders(<USBankPage />)
+    test('sends the old US link to the live US bank route, query included', () => {
+        window.history.replaceState(null, '', '/add-money/us/bank?amount=10&currency=USD')
+        const USBankAlias = require('../us/bank/page').default
+        renderWithProviders(<USBankAlias />)
 
-        expect(screen.getByTestId('add-money-bank-details')).toBeInTheDocument()
-        expect(screen.getByText('Bank Details (flow: add-money)')).toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/usa/bank?amount=10&currency=USD')
+        expect(screen.queryByTestId('add-money-bank-details')).not.toBeInTheDocument()
+        window.history.replaceState(null, '', '/')
     })
 })
 
@@ -1661,11 +1673,29 @@ describe('GROUP 6: US Bank Page', () => {
 describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     afterEach(() => {
         // reset the per-currency outage list so its default value can't leak between tests
-        underMaintenanceConfig.disabledMantecaCurrencies = []
+        killSwitches.disabledMantecaCurrencies = []
+        mockBrazilPaused = false
+    })
+
+    test('BR + manteca shows the Brazil paused screen while the pause covers the user', () => {
+        mockBrazilPaused = true
+        setParams({ country: 'brazil', 'regional-method': 'manteca' })
+        renderWithProviders(<AddMoneyRegionalMethodPage />)
+
+        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+        expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
+    })
+
+    test('AR + manteca stays open during the Brazil pause', () => {
+        mockBrazilPaused = true
+        setParams({ country: 'argentina', 'regional-method': 'manteca' })
+        renderWithProviders(<AddMoneyRegionalMethodPage />)
+
+        expect(screen.getByTestId('manteca-add-money')).toBeInTheDocument()
     })
 
     test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {
-        underMaintenanceConfig.disabledMantecaCurrencies = ['BRL'] // BRL down, ARS live
+        killSwitches.disabledMantecaCurrencies = ['BRL'] // BRL down, ARS live
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
@@ -1673,7 +1703,7 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     })
 
     test('AR + manteca shows the outage screen when ARS is in the disabled list', () => {
-        underMaintenanceConfig.disabledMantecaCurrencies = ['ARS']
+        killSwitches.disabledMantecaCurrencies = ['ARS']
         setParams({ country: 'argentina', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 

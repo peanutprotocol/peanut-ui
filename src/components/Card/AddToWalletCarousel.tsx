@@ -8,7 +8,8 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { APPLE_WALLET_STEPS, GOOGLE_WALLET_STEPS } from '@/assets/cards'
-import { useWalletPlatform, type WalletPlatform } from '@/hooks/useWalletPlatform'
+import { useWalletPlatform } from '@/hooks/useWalletPlatform'
+import type { WalletPlatform } from '@/utils/wallet-platform'
 
 // Pixel threshold for treating a pointer drag as a swipe. Smaller values
 // feel jumpy on desktop trackpads; larger values miss short mobile flicks.

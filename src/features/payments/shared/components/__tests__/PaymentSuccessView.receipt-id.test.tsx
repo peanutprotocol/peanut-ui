@@ -14,6 +14,7 @@
 import { render } from '@testing-library/react'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { personFrom } from '@/lib/person/person'
 import type { PaymentCreationResponse, TChargeTransactionType, TRequestChargeResponse } from '@/services/services.types'
 
 const capturedTransactions: Array<TransactionDetails | null | undefined> = []
@@ -57,6 +58,8 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }))
+// the charge's history entry has not loaded: the receipt is the one the flow built
+jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => ({ data: undefined }) }))
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
@@ -119,7 +122,7 @@ const CASES = [
         flow: 'direct send',
         chargeType: 'DIRECT_SEND',
         expectedKind: 'DIRECT_TRANSFER',
-        props: { recipientType: 'USERNAME', user: { username: 'alice', fullName: 'Alice' } },
+        props: { recipientType: 'USERNAME', recipient: personFrom({ username: 'alice', fullName: 'Alice' }) },
     },
     {
         flow: 'request fulfilment',
@@ -131,7 +134,7 @@ const CASES = [
         flow: 'pot contribution',
         chargeType: 'REQUEST',
         expectedKind: 'P2P_REQUEST_FULFILL',
-        props: { recipientType: 'USERNAME', user: { username: 'bob', fullName: 'Bob' } },
+        props: { recipientType: 'USERNAME', recipient: personFrom({ username: 'bob', fullName: 'Bob' }) },
     },
     {
         flow: 'crypto withdraw',
@@ -159,5 +162,40 @@ describe('PaymentSuccessView — receipt id and kind per transaction type', () =
         expect(receipt!.extraDataForDrawer?.kind).toBe(expectedKind)
         // The on-chain hash is still carried, just in its own field.
         expect(receipt!.txHash).toBe(TX_HASH)
+    })
+})
+
+// The receipt drawer draws the counterparty's avatar from `peer` (TASK-23756).
+describe('PaymentSuccessView — the receipt names the person paid', () => {
+    it('is the recipient the flow hands in', () => {
+        const alice = personFrom({ userId: 'u-alice', username: 'alice', avatarKey: 'basic.cloud' })
+        render(
+            <PaymentSuccessView
+                type="SEND"
+                usdAmount="5"
+                recipientType="USERNAME"
+                recipient={alice}
+                chargeDetails={chargeOfType('DIRECT_SEND')}
+                paymentDetails={paymentDetails}
+            />
+        )
+
+        expect(capturedTransactions.find((tx) => tx != null)?.peer).toBe(alice)
+    })
+
+    it("is the charge's requester when the flow hands in nobody", () => {
+        const charge = chargeOfType('REQUEST')
+        charge.requestLink.recipientAccount = {
+            userId: 'u-bob',
+            identifier: '0xrecipient',
+            type: 'peanut-wallet',
+            user: { username: 'bob', avatarKey: 'basic.frog' },
+        }
+        render(<PaymentSuccessView type="SEND" usdAmount="5" recipientType="ADDRESS" chargeDetails={charge} />)
+
+        expect(capturedTransactions.find((tx) => tx != null)?.peer).toMatchObject({
+            username: 'bob',
+            avatarKey: 'basic.frog',
+        })
     })
 })

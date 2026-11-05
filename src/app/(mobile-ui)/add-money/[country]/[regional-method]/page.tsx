@@ -3,12 +3,16 @@ import MantecaAddMoney from '@/components/AddMoney/components/MantecaAddMoney'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import { type CountryData, countryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
+import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
+import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
+import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useParams, useSearchParams } from 'next/navigation'
 
 export default function AddMoneyRegionalMethodPage() {
     const params = useParams()
     const searchParams = useSearchParams()
+    const { disabledMantecaCurrencies } = useKillSwitches()
+    const brazilPaused = useBrazilServicesPaused()
     // path params (web) or query params (native static export)
     const country = (params.country as string) || searchParams.get('country') || ''
     const method = (params['regional-method'] as string) || searchParams.get('view') || ''
@@ -18,7 +22,8 @@ export default function AddMoneyRegionalMethodPage() {
     if (isMantecaSupportedCountryCode(countryDetails?.id) && method === 'manteca') {
         // Manteca provider outage — block the onramp only for currencies still down.
         const currency = countryDetails?.currency?.toUpperCase() ?? ''
-        if ((underMaintenanceConfig.disabledMantecaCurrencies as string[]).includes(currency)) {
+        if (brazilPaused && currency === 'BRL') return <BrazilPausedScreen />
+        if ((disabledMantecaCurrencies as string[]).includes(currency)) {
             return <MantecaTransfersMaintenanceView action="deposits" />
         }
         return <MantecaAddMoney />

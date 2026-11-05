@@ -1,5 +1,5 @@
 /**
- * SaveAddressPrompt — the "Save to address book" field on the withdraw review.
+ * SaveAddressPrompt — the "Save to favorites" field on the withdraw review.
  * Pins the sep-23 review follow-up (A47/A50): the field is labelled "Name", as
  * in the edit drawer, the label stays visible after typing, and a missing name
  * becomes a field error once the user has been in the field.
@@ -51,7 +51,7 @@ describe('SaveAddressPrompt', () => {
 
     it('focuses the name when the user ticks the box', () => {
         render(<Harness initialChecked={false} />, { wrapper: IntlWrapper })
-        fireEvent.click(screen.getByLabelText('Save to address book'))
+        fireEvent.click(screen.getByLabelText('Save to favorites'))
         expect(screen.getByLabelText('Name')).toHaveFocus()
     })
 

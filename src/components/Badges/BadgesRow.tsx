@@ -7,7 +7,7 @@ import { Tooltip } from '../Tooltip'
 import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '../Global/Icons/Icon'
-import { getBadgeIcon } from './badge.utils'
+import { getBadgeDescription, getBadgeIcon } from './badge.utils'
 import { displayableBadges } from '@/constants/badges.consts'
 import { useBadgeCopy } from './useBadgeCopy'
 import { BadgeImage } from './BadgeImage'
@@ -110,9 +110,8 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                     aria-label={t('collectionLabel')}
                 >
                     {visibleBadges.map((badge) => {
-                        // Same precedence as before, with the localized string standing
-                        // in for `badge.description`: the backend's third-person
-                        // `publicDescription` still wins when you are not the owner.
+                        // visitors read the api's third-person `publicDescription`;
+                        // the owner reads the second-person description.
                         const { name: displayName, description: selfDescription } = badgeCopy(
                             badge.code,
                             badge.name,
@@ -120,7 +119,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
                         )
                         const displayDescription = isSelfProfile
                             ? selfDescription
-                            : (badge.publicDescription ?? selfDescription)
+                            : (getBadgeDescription(badge.publicDescription) ?? selfDescription)
 
                         return (
                             <Tooltip

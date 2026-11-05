@@ -35,14 +35,13 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(ROOT, 'src')
 const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 
-// allowlist for every metric: image-generation surfaces render standalone html
+// allowlist for every metric: the OG image surfaces render standalone html
 // with no tailwind, raw values are the tool there, not debt. the /dev/devices
 // harness sizes its panes from measured pixel values and keeps its chrome
 // deliberately colorless, so the app inside the panes is what you judge.
 const GLOBAL_ALLOW = [
     'components/og/',
     'app/api/og/',
-    'ImageGeneration/',
     'dev/_components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
@@ -335,12 +334,12 @@ counts.bareListLeading = files
     .filter((f) => isTsx(f) && !allowed(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, BARE_LIST_LEADING_RE), 0)
 
-// marketing ratchet (raw-hex-marketing ruling, 2026-10-14). LEGACY_ALLOW keeps
+// marketing ratchet. LEGACY_ALLOW keeps
 // the marketing surfaces out of the app-wide hex metric (DS 17), but hand-typed
 // hex drifted exactly there (#F9F4F0 vs cream #faf4f0), so the same list now
 // also SCOPES marketing-side ratchets instead of leaving the drift uncounted.
 // knerdOutsideTitle is app-wide: the Knerd display face renders through
-// 0_Bruddle/Title.tsx alone (knerd-closing-fold ruling).
+// 0_Bruddle/Title.tsx alone.
 const inMarketing = (path) => LEGACY_ALLOW.some((a) => path.includes(a))
 counts.rawHexMarketing = files
     .filter((f) => isTsx(f) && inMarketing(f.path) && !allowed(f.path, HEX_ALLOW))

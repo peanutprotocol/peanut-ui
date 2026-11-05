@@ -37,11 +37,14 @@ jest.mock('@/hooks/useUserAutoRefresh', () => ({ useUserAutoRefresh: jest.fn() }
 jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => false }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('@/utils/auth-token', () => ({
+    getClearEpoch: jest.fn(() => 0),
+    clearAuthToken: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/utils/login-session', () => ({ recoverLoginSession: jest.fn() }))
 jest.mock('@/utils/cache.utils', () => ({ purgeCaches: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn() }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isNativeBridge: () => false }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), setUser: jest.fn() }))
 jest.mock('@/i18n/app/locale-store', () => ({
     currentAppLocale: () => 'en',
@@ -60,7 +63,13 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
 jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn(), readInviteCode: () => '' }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+    },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'

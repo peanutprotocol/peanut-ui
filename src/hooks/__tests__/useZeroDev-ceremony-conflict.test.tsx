@@ -12,7 +12,7 @@ let mockActiveCeremonyId: number | null = null
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'alice' } },
+        user: { user: { userId: 'u1', username: 'alice' }, accounts: [] },
         logoutUser: jest.fn(),
         hydrateLoginSession: jest.fn().mockResolvedValue({ user: { userId: 'u1' } }),
     }),

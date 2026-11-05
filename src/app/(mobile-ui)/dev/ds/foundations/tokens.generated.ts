@@ -40,22 +40,22 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-action-primary"
     },
     {
-        "name": "action-primary-hover",
+        "name": "action-primary-press",
         "value": "#ffa3ec",
         "section": "semantic",
-        "previewClass": "bg-action-primary-hover"
+        "previewClass": "bg-action-primary-press"
     },
     {
-        "name": "action-secondary",
+        "name": "background-accent-yellow",
         "value": "#ffc900",
         "section": "semantic",
-        "previewClass": "bg-action-secondary"
+        "previewClass": "bg-background-accent-yellow"
     },
     {
-        "name": "action-ghost-hover",
+        "name": "action-ghost-press",
         "value": "#bd33a1",
         "section": "semantic",
-        "previewClass": "bg-action-ghost-hover"
+        "previewClass": "bg-action-ghost-press"
     },
     {
         "name": "action-focus",
@@ -98,6 +98,18 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "var(--color-blue-300)",
         "section": "semantic",
         "previewClass": "bg-background-marketing-sky"
+    },
+    {
+        "name": "background-google-wallet",
+        "value": "#1f1f1f",
+        "section": "semantic",
+        "previewClass": "bg-background-google-wallet"
+    },
+    {
+        "name": "border-google-wallet",
+        "value": "#747775",
+        "section": "semantic",
+        "previewClass": "bg-border-google-wallet"
     },
     {
         "name": "background-icon-bubble-green",
@@ -158,6 +170,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#fdfdfd",
         "section": "semantic",
         "previewClass": "bg-background-surface-helper"
+    },
+    {
+        "name": "background-skeleton",
+        "value": "color-mix(in oklab, var(--color-foreground-primary) 10%, transparent)",
+        "section": "semantic",
+        "previewClass": "bg-background-skeleton"
     },
     {
         "name": "background-badge-attention",
@@ -906,13 +924,6 @@ export const FONT_TOKENS: FontToken[] = [
         "section": "parity",
         "previewClass": "font-sans",
         "stack": "var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
-    },
-    {
-        "name": "condensed",
-        "section": "parity",
-        "previewClass": "font-condensed",
-        "stack": "var(--font-roboto)",
-        "fontVariationSettings": "'wdth' 50"
     }
 ]
 

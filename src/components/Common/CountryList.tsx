@@ -14,7 +14,8 @@ import { useHomeCountry } from '@/features/destinations/useHomeCountry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
+import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
+import { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer/easter-egg-countries.consts'
 import { CountryWaitlist } from './CountryWaitlist'
 import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
 import Loading from '../Global/Loading'
@@ -30,7 +31,8 @@ interface CountryListViewProps {
     inputTitle?: string
     inputDescription?: string
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
-    onCountryClick: (country: CountryData) => void
+    /** returns false when it answered in place (a drawer over this list), so the row does not wait */
+    onCountryClick: (country: CountryData) => void | boolean
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
@@ -273,7 +275,7 @@ export const CountryList = ({
                                     }
                                     // set loading state immediately for visual feedback
                                     setClickedCountryId(country.id)
-                                    onCountryClick(country)
+                                    if (onCountryClick(country) === false) setClickedCountryId(null)
                                 }}
                                 position={position}
                                 disabled={clickedCountryId === country.id}

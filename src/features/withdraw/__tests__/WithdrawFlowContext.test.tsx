@@ -19,9 +19,13 @@ describe('WithdrawFlowContext resetWithdrawFlow', () => {
         act(() => {
             ctx.setSelectedMethod({ type: 'crypto', title: 'Crypto' })
             ctx.setShowCompatibilityModal(true)
+            ctx.setNetworkUnconfirmed(true)
+            ctx.setScannedRecipient({ addressFamily: 'evm' })
         })
         expect(ctx.selectedMethod).toEqual({ type: 'crypto', title: 'Crypto' })
         expect(ctx.showCompatibilityModal).toBe(true)
+        expect(ctx.networkUnconfirmed).toBe(true)
+        expect(ctx.scannedRecipient).toEqual({ addressFamily: 'evm' })
 
         act(() => {
             ctx.resetWithdrawFlow()
@@ -32,5 +36,9 @@ describe('WithdrawFlowContext resetWithdrawFlow', () => {
         // the reset used to leave a browser-back-abandoned modal armed for the
         // next /withdraw/crypto entry — pin that it closes with everything else
         expect(ctx.showCompatibilityModal).toBe(false)
+        // a prefilled destination's pending network pick goes with its destination
+        expect(ctx.networkUnconfirmed).toBe(false)
+        // and so does the scan that opened the pay screen
+        expect(ctx.scannedRecipient).toBeNull()
     })
 })

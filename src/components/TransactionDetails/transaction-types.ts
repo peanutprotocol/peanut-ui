@@ -54,3 +54,18 @@ export type TransactionType =
 /** Why the bank sent a deposit back (peanut-api-ts `DepositReturnReasonCode`).
  *  `other` gets the general explanation. */
 export type DepositReturnReasonCode = 'third_party' | 'other'
+
+/** The network-fee row of a receipt. `pending`: the fee is not settled yet;
+ *  `amountDisplay`, when present, is the quote the confirm screen showed,
+ *  rendered as an estimate ('≈ $1.43'). `sponsored`: the user paid none.
+ *  `charged`: `amountDisplay` is what came out of the withdrawal ('$1.43',
+ *  '< $0.01'). */
+export type NetworkFeeDetails =
+    | { state: 'pending'; amountDisplay?: string }
+    | { state: 'sponsored'; amountDisplay?: undefined }
+    | { state: 'charged'; amountDisplay: string }
+
+/** Where a receipt renders. `drawer`: the transaction details drawer.
+ *  `page`: a screen of its own (the public receipt page, the native receipt
+ *  page, a receipt inside a flow). Some rows belong to one surface only. */
+export type ReceiptSurface = 'drawer' | 'page'

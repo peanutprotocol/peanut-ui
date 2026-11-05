@@ -128,3 +128,6 @@ src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 # Transient exact-build markers for isolated screen captures
 .screen-capture-adapter.json
 /public/screen-capture-build.json
+
+# Rendered SEO contract artifacts
+e2e/__seo_results__/

@@ -22,9 +22,13 @@ it.each(APP_LOCALES)('uses official artwork and a matching accessible label in %
         </NextIntlClientProvider>
     )
     const button = screen.getByRole('button', { name: messages.card.yourCard.addToGoogleWallet })
-    const image = button.querySelector('img')
-    expect(image).toHaveAttribute('src', `/wallet/google/${locale === 'es-AR' ? 'es-419' : locale}.svg`)
-    expect(image).toHaveAttribute('alt', '')
+    const file = locale === 'es-AR' ? 'es-419' : locale
+    const images = Array.from(button.querySelectorAll('img'))
+    expect(images.map((image) => image.getAttribute('src'))).toEqual([
+        `/wallet/google/one-line/${file}.svg`,
+        `/wallet/google/two-line/${file}.svg`,
+    ])
+    images.forEach((image) => expect(image).toHaveAttribute('alt', ''))
     fireEvent.click(button)
     expect(onClick).toHaveBeenCalledTimes(1)
     rerender(

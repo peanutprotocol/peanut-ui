@@ -14,7 +14,7 @@ import {
     type DepositReturnReasonCode,
     type TransactionDirection,
 } from '@/components/TransactionDetails/transaction-types'
-import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
+import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -112,6 +112,13 @@ export interface HistoryEntryExtraData {
     // that share an intent kind (ONRAMP / OFFRAMP / BANK_SEND_LINK_CLAIM /
     // GUEST_DIRECT_SEND).
     bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+    /** The API serves this entry on the public receipt page
+     *  (`/receipt/<id>?kind=<kind>`) and its PDF to anyone with the link,
+     *  without the owner-only fields. The API decides it per entry
+     *  (peanut-api-ts `src/routes/user/history-receipt-access.ts`) and sends it
+     *  on the feed and on `GET /history/:entryId`. Absent means no public
+     *  receipt. */
+    publicReceipt?: boolean
     // Request-pot rollup discriminator — single P2P_REQUEST_FULFILL entry
     // that summarises a request pot's contributors rather than an
     // individual fulfilment.
@@ -124,16 +131,34 @@ export interface HistoryEntryExtraData {
      *  transfer. Written by the API request rollup; the requester's drawer
      *  gates on it before asking for the bank details. */
     bankInstructionsShared?: boolean
+    /** Request rollups only: the amount the requester asked, in `requestCurrency`
+     *  (decimal string). The USD figures stay the money truth. */
+    requestedAmount?: string
+    /** Request rollups only: the currency the requester asked in (EUR, BRL…). */
+    requestCurrency?: string
 
     // Common fields
     link?: string
     fulfillmentType?: 'bridge' | 'wallet'
     bridgeTransferId?: string
     usdAmount?: string
-    /** Cross-chain (Rhino) bridge fee in USD the user paid on top of the
-     *  principal — set only for CRYPTO_WITHDRAW that booked a matching FEE
-     *  entry (SDA path). Baked into the displayed amount in the transformer. */
+    /** CRYPTO_WITHDRAW only: whether the network fee is known yet.
+     *  `pending` until the delivery settles, `settled` once it has, `unknown`
+     *  when the ledger booked no fee it could stand behind (and on any failed
+     *  or cancelled row). Absent on every other kind. */
+    networkFeeStatus?: 'pending' | 'settled' | 'unknown'
+    /** CRYPTO_WITHDRAW only: the network fee deducted from the withdrawal, in
+     *  USD — the same number as the ledger FEE entry. A number only when
+     *  `networkFeeStatus` is `settled` (`0` when nothing was deducted). Already
+     *  inside `usdAmount`, which is the gross that left the wallet. */
     networkFeeUsd?: number | null
+    /** CRYPTO_WITHDRAW only: what the destination received, as a decimal
+     *  string. Set when the fee settled and something was deducted. */
+    deliveredUsd?: string | null
+    /** CRYPTO_WITHDRAW only: Rhino's quoted fee in USD while the fee is
+     *  `pending`, shown as an estimate until it settles; null once settled or
+     *  unknown, and on a same-chain withdrawal. */
+    quotedFeeUsd?: number | null
     /** Flat fee a paid USD payout rail (wire) withheld, in USD; absent when free. */
     payoutFeeUsd?: number | null
     /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
@@ -309,20 +334,41 @@ export function isFinalState(transaction: Pick<HistoryEntry, 'status'>): boolean
     return FINAL_STATES.includes(transaction.status)
 }
 
+/** How long a completed withdrawal waits for its network fee to settle before
+ *  a receipt stops asking. Some legacy routes never report the delivery. */
+const NETWORK_FEE_SETTLE_WINDOW_MS = 10 * 60_000
+
+/**
+ * True while an entry can still change what its receipt says: it is not in a
+ * final state yet, or it completed less than ten minutes ago and its network
+ * fee is still pending. Legacy cross-chain withdrawals complete before the
+ * bridge reports the delivery, so the fee lands on an already-completed row.
+ */
+export function isSettling(entry: Pick<HistoryEntry, 'status' | 'completedAt' | 'extraData'>, now: number): boolean {
+    if (!isFinalState(entry)) return true
+    if (entry.extraData?.networkFeeStatus !== 'pending' || !entry.completedAt) return false
+    const completedAt = new Date(entry.completedAt).getTime()
+    return Number.isFinite(completedAt) && now - completedAt < NETWORK_FEE_SETTLE_WINDOW_MS
+}
+
+/** The public receipt page of an entry, or undefined when the API serves the
+ *  entry to no one but its participants. A stamped action link (a pay or
+ *  claim link) is not a receipt, so it never stands in for one. */
 export function getReceiptUrl(transaction: TransactionDetails, origin?: string): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
-    // Kinds whose receipt URL is the dedicated /receipt page (shareable,
-    // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
-    // sendlinks get a receipt page too, but their share *button* is gated by
-    // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
-    // other kinds fall back to the stamped link.
-    if (kind && hasReceiptPage(transaction)) {
-        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
-    }
-    if (transaction.extraDataForDrawer?.link) {
-        return transaction.extraDataForDrawer.link
-    }
-    return undefined
+    if (!kind || !hasPublicReceipt(transaction)) return undefined
+    return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
+}
+
+/**
+ * A flow that builds its receipt from its own state (a QR payment, a payment
+ * success screen) has no public-receipt flag until the history entry loads.
+ * Copy the API's flag from the entry, so that receipt shares the same link as
+ * the one in Activity.
+ */
+export function withPublicReceipt(receipt: TransactionDetails, entry: HistoryEntry | undefined): TransactionDetails {
+    if (!entry?.extraData?.publicReceipt || !receipt.extraDataForDrawer) return receipt
+    return { ...receipt, extraDataForDrawer: { ...receipt.extraDataForDrawer, publicReceipt: true } }
 }
 
 export function getAvatarUrl(transaction: TransactionDetails): string | undefined {

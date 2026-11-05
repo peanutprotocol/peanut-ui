@@ -248,12 +248,19 @@ const mockSetSelectedBankAccount = jest.fn()
 const mockSetSelectedMethod = jest.fn()
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
+const mockSetNetworkUnconfirmed = jest.fn()
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
         setSelectedBankAccount: mockSetSelectedBankAccount,
         setSelectedMethod: mockSetSelectedMethod,
         setRecipient: mockSetRecipient,
         setIsValidRecipient: mockSetIsValidRecipient,
+        setNetworkUnconfirmed: mockSetNetworkUnconfirmed,
     }),
 }))
 
@@ -274,6 +281,8 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockBrazilPaused = false
+    closeBrazilPausedDrawer()
     mockIsBankFromSend = false
     mockUserAccounts = BANK_ACCOUNTS
     mockSavedAddresses = [mockSavedBaseAddress]
@@ -282,6 +291,37 @@ beforeEach(() => {
 // ---------- tests ----------
 
 import { stashScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
+import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
+
+// TASK-24197: with the Brazil pause on, a Brazil tap opens the paused drawer and goes nowhere
+describe('WithdrawMethodView — the Brazil pause', () => {
+    it('the Brazil country opens the paused drawer', () => {
+        mockBrazilPaused = true
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-brazil'))
+
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('a saved Brazil account opens the paused drawer', () => {
+        mockBrazilPaused = true
+        mockUserAccounts = [{ type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }]
+        renderView()
+        fireEvent.click(screen.getByTestId('account-maria@silva.com.br'))
+
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('other countries still open their flow', () => {
+        mockBrazilPaused = true
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-argentina'))
+
+        expect(isBrazilPausedDrawerOpen()).toBe(false)
+    })
+})
 
 describe('WithdrawMethodView — destination state and routing (Chip review round 7)', () => {
     it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca', () => {
@@ -404,6 +444,18 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         fireEvent.click(row())
 
         expect(takeScannedDestination(scanId)).toBeNull()
+    })
+
+    // A scanned EVM address leaves the network pick pending. A destination
+    // chosen by hand instead must not inherit that gate (TASK-23974).
+    it.each([
+        ['an address-book row', () => screen.getByTestId(`saved-address-${mockSavedBaseAddress.id}`)],
+        ['the plain crypto row', () => screen.getByTestId('crypto-row')],
+    ])('%s clears the pending network pick of an abandoned scan', (_case, row) => {
+        renderView()
+        fireEvent.click(row())
+
+        expect(mockSetNetworkUnconfirmed).toHaveBeenCalledWith(false)
     })
 })
 

@@ -11,6 +11,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -173,6 +174,10 @@ jest.mock('../views/Contacts.view', () => ({
     ),
 }))
 
+jest.mock('@/features/payments/flows/semantic-request/SemanticRequestPageWrapper', () => ({
+    SemanticRequestPageWrapper: () => <div data-testid="semantic-request" />,
+}))
+
 // withdraw-flow context — SendRouterView resets it when a click enters the withdraw flow
 
 // ---------- import component under test AFTER all mocks ----------
@@ -237,8 +242,15 @@ function applyDefaults() {
 
 // ---------- test suites ----------
 
+let mockBrazilPaused = false
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
+    useBrazilServicesPaused: () => mockBrazilPaused,
+}))
+
 beforeEach(() => {
     jest.clearAllMocks()
+    mockBrazilPaused = false
+    closeBrazilPausedDrawer()
     mockSearchParams.clear()
     safeBackTesting.reset()
     applyDefaults()
@@ -424,6 +436,18 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
+    test('Pix opens the Brazil paused drawer instead while the pause covers the user', () => {
+        mockBrazilPaused = true
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
     test('Clicking Peanut user navigates to /send?view=contacts', () => {
         renderSend()
 
@@ -447,5 +471,16 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockRouterBack).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
+    })
+})
+
+// A scanned EVM address now goes into the crypto withdrawal (TASK-23974), but a
+// shared payment link to one (the native form of /<address>) still opens the
+// payment page.
+describe('GROUP 5: Address recipient link', () => {
+    test('/send?recipient=<address> opens the payment page', async () => {
+        renderSend({ recipient: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' })
+
+        expect(await screen.findByTestId('semantic-request')).toBeInTheDocument()
     })
 })

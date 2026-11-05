@@ -1,36 +1,38 @@
 import { classifyPasskeySentryEvent, isExpectedPasskeyDeviceEvent } from './src/utils/passkey-sentry-event'
 import { redactQrTelemetry } from './src/utils/qr-telemetry-privacy'
+import { redactLinkSecrets } from './src/utils/link-secret-privacy'
 import { isExpectedCancellation, isExpectedCancellationChain } from './src/utils/expected-exception'
 // Shared Sentry utilities for filtering noise across all configs
 // Used by: sentry.client.config.ts, sentry.edge.config.ts, sentry.server.config.ts
 
 import type { ErrorEvent } from '@sentry/nextjs'
-import { PAYMENT_NETWORK_PATH, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { PRIVATE_DATA_PATHS, isPrivateDataPath } from '@/utils/private-routes'
 
 interface RoutableSentryEvent {
     request?: { url?: string }
     transaction?: string
 }
 
-function sentryValueTargetsPaymentNetwork(value: string | undefined): boolean {
-    if (!value) return false
+function routeIsPrivate(route: string): boolean {
     try {
-        if (value.startsWith('/') || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) {
-            return isPaymentNetworkExplorerPath(new URL(value, 'https://peanut.invalid').pathname)
-        }
-    } catch {}
-    const pathIndex = value.indexOf(PAYMENT_NETWORK_PATH)
-    if (pathIndex < 0) return false
-    const routeLikeValue = value.slice(pathIndex).split(/\s/, 1)[0]
-    try {
-        return isPaymentNetworkExplorerPath(new URL(routeLikeValue, 'https://peanut.invalid').pathname)
+        return isPrivateDataPath(new URL(route, 'https://peanut.invalid').pathname)
     } catch {
         return false
     }
 }
 
-export function isPaymentNetworkSentryEvent(event: RoutableSentryEvent): boolean {
-    return sentryValueTargetsPaymentNetwork(event.request?.url) || sentryValueTargetsPaymentNetwork(event.transaction)
+function sentryValueTargetsPrivateData(value: string | undefined): boolean {
+    if (!value) return false
+    if (value.startsWith('/') || /^[a-z][a-z\d+.-]*:\/\//i.test(value)) return routeIsPrivate(value)
+    // Transaction names like "GET /dev/users" carry the route after a method.
+    return PRIVATE_DATA_PATHS.some((path) => {
+        const pathIndex = value.indexOf(path)
+        return pathIndex >= 0 && routeIsPrivate(value.slice(pathIndex).split(/\s/, 1)[0])
+    })
+}
+
+export function isPrivateDataSentryEvent(event: RoutableSentryEvent): boolean {
+    return sentryValueTargetsPrivateData(event.request?.url) || sentryValueTargetsPrivateData(event.transaction)
 }
 
 import { CRITICAL_FLOW_TAG } from '@/utils/sentry-critical-flow'
@@ -650,10 +652,43 @@ export function cleanSensitiveHeaders(event: ErrorEvent): void {
 }
 
 /**
+ * QR payloads and send-link secrets out of a Sentry event or transaction: the
+ * request URL, breadcrumbs (navigation, fetch), messages and exception values.
+ */
+export function redactSentryTelemetry<T>(event: T): T {
+    return redactLinkSecrets(redactQrTelemetry(event))
+}
+
+/**
  * Standard beforeSend handler for all Sentry configs
  */
 export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
-    redactQrTelemetry(event)
+    // Numeric faults are aggregate diagnostics; discard automatically attached
+    // identity, request, breadcrumbs and arbitrary context before export.
+    if (event.fingerprint?.[0] === 'invalid_numeric') {
+        const source = event.tags?.numeric_source
+        const category = event.tags?.numeric_category
+        if (
+            !['money', 'rate', 'format', 'input', 'submission'].includes(String(source)) ||
+            !['missing', 'malformed', 'nonfinite', 'nonpositive', 'precision', 'unit', 'overflow'].includes(
+                String(category)
+            )
+        )
+            return null
+        return {
+            type: undefined,
+            event_id: event.event_id,
+            timestamp: event.timestamp,
+            platform: event.platform,
+            release: event.release,
+            environment: event.environment,
+            level: 'warning',
+            message: 'Invalid numeric value',
+            fingerprint: ['invalid_numeric', String(source), String(category)],
+            tags: { numeric_source: source, numeric_category: category },
+        }
+    }
+    redactSentryTelemetry(event)
     if (isExpectedPasskeyDeviceEvent(event) || shouldIgnoreError(event)) {
         return null
     }
@@ -669,9 +704,9 @@ export function beforeSendHandler(event: ErrorEvent): ErrorEvent | null {
 }
 
 export function beforeSendRouteAwareHandler(event: ErrorEvent): ErrorEvent | null {
-    return isPaymentNetworkSentryEvent(event) ? null : beforeSendHandler(event)
+    return isPrivateDataSentryEvent(event) ? null : beforeSendHandler(event)
 }
 
 export function beforeSendRouteAwareTransaction<T extends RoutableSentryEvent>(event: T): T | null {
-    return isPaymentNetworkSentryEvent(event) ? null : redactQrTelemetry(event)
+    return isPrivateDataSentryEvent(event) ? null : redactSentryTelemetry(event)
 }

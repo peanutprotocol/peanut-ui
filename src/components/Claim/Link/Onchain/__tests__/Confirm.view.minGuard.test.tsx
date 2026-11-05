@@ -18,9 +18,11 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disableXchainSend: false },
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disableXchainSend: false }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
+jest.mock('@/features/kill-switches/kill-switches.consts', () => ({
     CROSS_CHAIN_DISABLED_MESSAGE: 'Cross-chain temporarily unavailable',
 }))
 

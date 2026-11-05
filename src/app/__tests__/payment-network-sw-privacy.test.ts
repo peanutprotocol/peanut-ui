@@ -34,11 +34,15 @@ describe('payment network service-worker privacy', () => {
         '/invites/graph/session',
         '/invites/graph/focus',
         '/invites/graph/legacy-child',
+        '/dev/users',
+        '/admin/users',
+        '/admin/users/stats',
+        '/admin/users/aaaaaaaa-0000-4000-8000-000000000001',
     ])('matches the entire sensitive pathname family: %s', (pathname) => {
         expect(isSensitivePaymentNetworkPathname(pathname)).toBe(true)
     })
 
-    it.each(['/dev/payment-graphs', '/invites/graphs', '/dev/other', '/users/me'])(
+    it.each(['/dev/payment-graphs', '/invites/graphs', '/dev/other', '/users/me', '/dev/users-old', '/admin/user'])(
         'does not overmatch unrelated pathname: %s',
         (pathname) => {
             expect(isSensitivePaymentNetworkPathname(pathname)).toBe(false)

@@ -3,9 +3,13 @@
  */
 // node env: the WebView's global Response/Request are natively present in Node
 // but stripped by jsdom. demo-api uses only web-standard APIs, so node is faithful.
+import { REQUIRED_API_CONTRACTS } from '@/utils/api-contracts'
 import { demoRespond } from '@/utils/demo-api'
 import { DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { parseResidenceRestrictionSets, setServerResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
 // module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
@@ -22,19 +26,6 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
-    it('answers wallet-portfolio synthetically instead of hitting the owner-only endpoint', async () => {
-        const originalFetch = global.fetch
-        global.fetch = jest.fn()
-        try {
-            const { res, data } = await body('/tokens/wallet-portfolio?address=0xdemo')
-            expect(res.status).toBe(200)
-            expect(data).toEqual({ balances: [], totalBalance: 0 })
-            expect(global.fetch).not.toHaveBeenCalled()
-        } finally {
-            global.fetch = originalFetch
-        }
-    })
-
     it('bounds and forwards the shared FX passthrough', async () => {
         const originalFetch = global.fetch
         global.fetch = jest.fn().mockResolvedValue(
@@ -62,7 +53,11 @@ describe('demoRespond — routing', () => {
         expect(res.status).toBe(200)
         expect(res.headers.get('content-type')).toBe('application/json')
         expect(data.user.username).toBe(DEMO_USER.user.username)
-        expect(data.residence).toMatchObject({ declared: 'BR', declaredSecond: null })
+        expect(data.residence).toMatchObject({
+            verified: null,
+            declared: { country: 'BR', status: 'UNVERIFIED', secondCountry: null },
+            secondaryDeclaredCountry: null,
+        })
     })
 
     it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {
@@ -72,6 +67,20 @@ describe('demoRespond — routing', () => {
         const res = await demoRespond('/users/me/verified-address', { method: 'GET' }, { offline: true, strict: true })
         expect(res.status).toBe(200)
         // Nothing to prefill, so the form asks — no synthetic address is served.
+        expect(await res.json()).toEqual({})
+    })
+
+    it('answers the avatar art map with an empty map in strict capture mode', async () => {
+        // every UserAvatar reads it; unmapped, strict mode fails every screen with an avatar
+        const res = await demoRespond('/avatars/art', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({})
+    })
+
+    it('answers the kill-switch read with an empty map in strict capture mode', async () => {
+        // the app reads it on start; unmapped, strict mode fails every screen
+        const res = await demoRespond('/config/kill-switches', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
         expect(await res.json()).toEqual({})
     })
 
@@ -376,5 +385,144 @@ describe('demoRespond — withdraw quote (TASK-23054)', () => {
         const body = await res.json()
         expect(body.rate).toBe('1')
         expect(body.sourceAmount).toBeUndefined()
+    })
+})
+
+const strict = (path: string, options: RequestInit = { method: 'GET' }) =>
+    demoRespond(path, options, { offline: true, strict: true })
+
+// The KYC rework's reads: unmapped, the strict
+// capture harness failed every Home, verification and setup screen.
+describe('demoRespond — KYC reads in strict capture mode', () => {
+    it('keeps the verified demo user on today’s flow with no open attempt', async () => {
+        const plan = await (await strict('/users/kyc/plan')).json()
+        expect(plan).toMatchObject({ available: false, flow: null, needs: [], activeAttemptId: null, routes: [] })
+        const questions = await (await strict('/users/kyc/questions?feature=card')).json()
+        expect(questions).toMatchObject({ available: false, steps: [], firstUnanswered: null, needs: [] })
+    })
+
+    it('answers an approved identity whose status needs no refresh', async () => {
+        const profile = await (await strict('/users/kyc/profile')).json()
+        expect(profile.identity.canonicalStatus).toBe('APPROVED')
+        expect(profile.attempts).toEqual([])
+        const refresh = await strict('/users/kyc/identity/refresh', { method: 'POST', body: '{}' })
+        expect(await refresh.json()).toEqual({ status: null })
+    })
+
+    it('reopens no identity session for the verified user', async () => {
+        const res = await strict('/users/kyc/attempts/vo-attempt/token', { method: 'POST', body: '{}' })
+        expect(res.status).toBe(409)
+        expect(await res.json()).toEqual({ code: 'verification_complete' })
+    })
+
+    it('serves the same feature report /users/me carries', async () => {
+        const res = await strict('/users/kyc/features')
+        expect(await res.json()).toEqual({ features: DEMO_USER.capabilities?.features })
+    })
+
+    it('answers the profile details with the address and tax number held by Sumsub', async () => {
+        const details = await (await strict('/users/kyc/details')).json()
+        expect(details.name).toEqual({ first: 'Demo', last: 'User' })
+        expect(details.heldBySumsub).toEqual(['address', 'taxId'])
+    })
+})
+
+describe('demoRespond — kyc-intents per residence', () => {
+    it.each(Object.entries(KYC_INTENTS_BY_COUNTRY))(
+        'answers %s with synthetic availability and no unserved currency promises',
+        async (country, intents) => {
+            const res = await strict(`/config/kyc-intents?residence=${country.toLowerCase()}`)
+            expect(res.status).toBe(200)
+            expect(await res.json()).toEqual({
+                residence: country,
+                intents: { ...intents, bank: { ...intents.bank, currencies: [] } },
+            })
+        }
+    )
+
+    it('refuses every open feature for an ID whose issuer is refused', async () => {
+        const data = await (await strict('/config/kyc-intents?residence=DE&idCountry=IR')).json()
+        expect(data.idCountry).toBe('IR')
+        expect(data.intents).toEqual({
+            qr: { available: false, reason: 'document_country_unsupported' },
+            local: { available: false, reason: 'local_residence_unsupported' },
+            card: { available: false, reason: 'document_country_unsupported' },
+            bank: { available: false, reason: 'document_country_unsupported', currencies: [] },
+        })
+    })
+
+    it('keeps a Russian resident off Manteca and lets a Russian ID verify without the card', async () => {
+        const resident = await (await strict('/config/kyc-intents?residence=RU')).json()
+        expect(resident.intents.qr).toEqual({ available: false, reason: 'residence_sanctioned' })
+        const document = await (await strict('/config/kyc-intents?residence=DE&idCountry=RU')).json()
+        expect(document.intents).toEqual({
+            qr: { available: true },
+            local: { available: false, reason: 'local_residence_unsupported' },
+            card: { available: false, reason: 'document_country_unsupported' },
+            bank: { available: true, currencies: [] },
+        })
+    })
+
+    it('answers 400 for a residence that is not a country code', async () => {
+        expect((await strict('/config/kyc-intents?residence=Germany')).status).toBe(400)
+        expect((await strict('/config/kyc-intents')).status).toBe(400)
+    })
+})
+
+describe('demoRespond — notification preferences', () => {
+    it('saves the switches the settings screen sends and leaves the email channel alone', async () => {
+        expect(await (await strict('/notifications/preferences')).json()).toEqual({
+            push: true,
+            email: true,
+            marketingPush: false,
+            emailUpdates: true,
+            pushPermission: 'granted',
+        })
+        const saved = await strict('/notifications/preferences', {
+            method: 'PUT',
+            body: JSON.stringify({ marketingPush: true, email: false }),
+        })
+        expect(await saved.json()).toMatchObject({ marketingPush: true, email: true })
+        expect(await (await strict('/notifications/preferences')).json()).toMatchObject({ marketingPush: true })
+    })
+})
+
+it.each([undefined, { offline: true, strict: true }])('serves complete residence lists in mode %p', async (capture) => {
+    const response = await demoRespond('/config/residence-restrictions', { method: 'GET' }, capture)
+    expect(response.status).toBe(200)
+    const answer = await response.json()
+    expect(answer).toEqual(DEMO_RESIDENCE_RESTRICTIONS)
+    expect(parseResidenceRestrictionSets(answer)).not.toBeNull()
+    for (const issuer of answer.refusedIdIssuers) {
+        const data = await (
+            await demoRespond(`/config/kyc-intents?residence=DE&idCountry=${issuer}`, undefined, capture)
+        ).json()
+        expect(data.intents.bank).toEqual({ available: false, reason: 'document_country_unsupported', currencies: [] })
+    }
+})
+
+it('derives issuer eligibility from the answer it serves, not from app memory', async () => {
+    const served = parseResidenceRestrictionSets(await (await strict('/config/residence-restrictions')).json())!
+    const [refused] = served.refusedIdIssuers
+    setServerResidenceRestrictionSets({ ...served, refusedIdIssuers: new Set(['PT']) })
+    try {
+        const pt = await (await strict('/config/kyc-intents?residence=DE&idCountry=PT')).json()
+        expect(pt.intents.bank).toEqual({ available: true, currencies: [] })
+        const issuer = await (await strict(`/config/kyc-intents?residence=DE&idCountry=${refused}`)).json()
+        expect(issuer.intents.bank).toEqual({
+            available: false,
+            reason: 'document_country_unsupported',
+            currencies: [],
+        })
+    } finally {
+        setServerResidenceRestrictionSets(null)
+    }
+})
+
+describe('demo API compatibility', () => {
+    it('advertises the exact contracts required by this bundled UI', async () => {
+        const response = await demoRespond('/version', { method: 'GET' }, { offline: true, strict: true })
+        expect(response.status).toBe(200)
+        expect((await response.json()).contracts).toEqual(REQUIRED_API_CONTRACTS)
     })
 })

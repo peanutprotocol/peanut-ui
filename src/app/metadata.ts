@@ -9,6 +9,7 @@ export function generateMetadata({
     image = '/metadata-img.png',
     dynamicOg = false,
     ogSubtitle,
+    ogTitle,
     keywords,
     canonical,
     locale,
@@ -20,6 +21,8 @@ export function generateMetadata({
     dynamicOg?: boolean
     /** Subtitle shown on dynamic OG image */
     ogSubtitle?: string
+    /** Headline on the dynamic OG image. Defaults to `title`. */
+    ogTitle?: string
     keywords?: string
     /** Canonical URL path (e.g. '/careers') or full URL. Resolved against metadataBase. */
     canonical?: string
@@ -31,7 +34,7 @@ export function generateMetadata({
     locale?: Locale
 }): Metadata {
     const ogImage = dynamicOg
-        ? `/api/og/marketing?title=${encodeURIComponent(title)}${ogSubtitle ? `&subtitle=${encodeURIComponent(ogSubtitle)}` : ''}`
+        ? `/api/og/marketing?title=${encodeURIComponent(ogTitle ?? title)}${ogSubtitle ? `&subtitle=${encodeURIComponent(ogSubtitle)}` : ''}`
         : image
 
     return {
@@ -46,7 +49,8 @@ export function generateMetadata({
             description,
             url: canonical ? `${BASE_URL}${canonical}` : BASE_URL,
             siteName: 'Peanut',
-            images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+            // the generated card's alt is its own text, not the page title
+            images: [{ url: ogImage, width: 1200, height: 630, alt: dynamicOg ? (ogTitle ?? title) : title }],
             ...(locale
                 ? {
                       locale: OG_LOCALE_MAP[locale],

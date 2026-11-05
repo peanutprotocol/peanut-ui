@@ -24,6 +24,7 @@ import path from 'path'
 import matter from 'gray-matter'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { isValidLocale } from '@/i18n/config'
+import { resolvePermanentRedirectPath } from '@/lib/seo/redirects'
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src/content')
 
@@ -224,7 +225,7 @@ export function resolveContentHref(href: string, locale: Locale): string {
         if (!targetLocale) return href
 
         const ownedPath = `/${[targetLocale, ...segments].join('/')}`
-        return `${PEANUT_PRODUCTION_ORIGIN}${ownedPath}${absoluteHref.search}${absoluteHref.hash}`
+        return `${PEANUT_PRODUCTION_ORIGIN}${resolvePermanentRedirectPath(ownedPath)}${absoluteHref.search}${absoluteHref.hash}`
     }
     if (href.startsWith('//')) return href
 
@@ -239,7 +240,7 @@ export function resolveContentHref(href: string, locale: Locale): string {
     const owner = contentOwnerForPath(segments, locale)
     const targetLocale = owner ?? locale
     const localizedPath = `/${[targetLocale, ...segments].join('/')}`
-    return `${localizedPath}${suffix}`
+    return `${resolvePermanentRedirectPath(localizedPath)}${suffix}`
 }
 
 /** Supported locales whose own file exists for this page. */
@@ -274,7 +275,11 @@ export interface ContentFrontmatter {
     title: string
     description: string
     published?: boolean
-    generated_at?: string
+    generated_at?: string | Date
+    schema_types?: string[]
+    date?: string | Date
+    published_at?: string | Date
+    last_updated?: string | Date
 }
 
 /** content/team/en.md frontmatter shape — /press is the sole consumer since /team was removed. */
@@ -466,23 +471,46 @@ export function readSingletonContentLocalized<T = Record<string, unknown>>(
 
 // --- Content freshness ---
 
-/**
- * `generated_at` from a content file's frontmatter, as a Date.
- *
- * Mind the type/runtime mismatch: ContentFrontmatter declares `generated_at?: string`, but
- * gray-matter runs js-yaml, which parses unquoted YAML timestamps into JS Date objects — both
- * the bare `2026-03-27` form and the full `2026-03-20T17:10:00Z` form. Quoted values still
- * arrive as strings, so both shapes are accepted here. Missing or unparseable values return
- * undefined so callers can fall back to a default of their own.
- */
-export function contentGeneratedAt(content: MarkdownContent<ContentFrontmatter> | null): Date | undefined {
-    const value: unknown = content?.frontmatter?.generated_at
+/** gray-matter parses unquoted YAML timestamps as Date objects. */
+function parseContentDate(value: unknown): Date | undefined {
     if (value instanceof Date) return Number.isNaN(value.getTime()) ? undefined : value
     if (typeof value === 'string' && value.trim() !== '') {
         const parsed = new Date(value)
         return Number.isNaN(parsed.getTime()) ? undefined : parsed
     }
     return undefined
+}
+
+/** Authored publication date, independent of content regeneration. */
+export function contentPublishedAt(
+    content: Pick<MarkdownContent<ContentFrontmatter>, 'frontmatter'> | null
+): Date | undefined {
+    return parseContentDate(content?.frontmatter.published_at) ?? parseContentDate(content?.frontmatter.date)
+}
+
+/** Last known source change for sitemap entries; omit it when no source date exists. */
+export function contentModifiedAt(content: MarkdownContent<ContentFrontmatter> | null): Date | undefined {
+    return parseContentDate(content?.frontmatter.last_updated) ?? contentPublishedAt(content)
+}
+
+/** Emit article metadata only when the source declares an article schema. */
+export function contentArticleMetadata(content: Pick<MarkdownContent<ContentFrontmatter>, 'frontmatter'>, url: string) {
+    const { frontmatter } = content
+    const schemaType = frontmatter.schema_types?.includes('BlogPosting')
+        ? ('BlogPosting' as const)
+        : frontmatter.schema_types?.includes('Article')
+          ? ('Article' as const)
+          : undefined
+    if (!schemaType) return undefined
+
+    return {
+        title: frontmatter.title,
+        description: frontmatter.description,
+        url,
+        schemaType,
+        datePublished: contentPublishedAt(content)?.toISOString(),
+        dateModified: parseContentDate(frontmatter.last_updated)?.toISOString(),
+    }
 }
 
 // --- Content hub: cross-intent listing ---

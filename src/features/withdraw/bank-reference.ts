@@ -16,6 +16,10 @@
  * Colombia (18) and none for Faster Payments, and documents no character set
  * for any of the three. Those character sets are ours, chosen to match what the
  * banks on each rail print. Verify each on staging before trusting it.
+ *
+ * On SEPA the provider strips spaces and capitalises the text even though the
+ * spec allows a space ("hello world" arrives as "Helloworld", measured on a
+ * real transfer 2026-09-21). The receipt's reference row shows what was sent.
  */
 export interface BankReferenceSpec {
     /** The `destination` key of the create-offramp request that carries the text. */
@@ -30,26 +34,8 @@ export interface BankReferenceSpec {
     maxLength: number
     /** Matches a whole reference made of allowed characters only. */
     allowed: RegExp
-    /** `withdraw.bank` message key that states the limits under the field. */
-    helperKey:
-        | 'referenceHelperSepa'
-        | 'referenceHelperAch'
-        | 'referenceHelperWire'
-        | 'referenceHelperFasterPayments'
-        | 'referenceHelperSpei'
-        | 'referenceHelperCoBankTransfer'
     /** `withdraw.bank` message key that names the allowed characters. */
     invalidCharsKey: 'referenceInvalidCharsSepa' | 'referenceInvalidCharsAch' | 'referenceInvalidCharsSpei'
-    /**
-     * `withdraw.bank` key warning that the rail rewrites the text.
-     *
-     * Set only where we have seen it happen. On SEPA the spec allows a space
-     * and the provider still strips it and capitalises the result
-     * ("hello world" arrives as "Helloworld"), measured on a real transfer
-     * 2026-09-21. We do not echo the final value back at submit time, so the
-     * receipt's reference row is where the user reads what was really sent.
-     */
-    rewrittenKey?: 'referenceFormattingMayChange'
 }
 
 const ACH_SPEC: BankReferenceSpec = {
@@ -57,7 +43,6 @@ const ACH_SPEC: BankReferenceSpec = {
     minLength: 1,
     maxLength: 10,
     allowed: /^[a-zA-Z0-9 ]*$/,
-    helperKey: 'referenceHelperAch',
     invalidCharsKey: 'referenceInvalidCharsAch',
 }
 
@@ -67,9 +52,7 @@ const SPECS: Record<string, BankReferenceSpec> = {
         minLength: 6,
         maxLength: 140,
         allowed: /^[a-zA-Z0-9 &\-./]*$/,
-        helperKey: 'referenceHelperSepa',
         invalidCharsKey: 'referenceInvalidCharsSepa',
-        rewrittenKey: 'referenceFormattingMayChange',
     },
     ach: ACH_SPEC,
     ach_same_day: ACH_SPEC,
@@ -78,7 +61,6 @@ const SPECS: Record<string, BankReferenceSpec> = {
         minLength: 1,
         maxLength: 140,
         allowed: /^[a-zA-Z0-9 &\-./]*$/,
-        helperKey: 'referenceHelperWire',
         invalidCharsKey: 'referenceInvalidCharsSepa',
     },
     faster_payments: {
@@ -86,7 +68,6 @@ const SPECS: Record<string, BankReferenceSpec> = {
         minLength: 1,
         maxLength: 18,
         allowed: /^[a-zA-Z0-9 &\-./]*$/,
-        helperKey: 'referenceHelperFasterPayments',
         invalidCharsKey: 'referenceInvalidCharsSepa',
     },
     spei: {
@@ -94,7 +75,6 @@ const SPECS: Record<string, BankReferenceSpec> = {
         minLength: 1,
         maxLength: 40,
         allowed: /^[a-zA-Z0-9 ]*$/,
-        helperKey: 'referenceHelperSpei',
         invalidCharsKey: 'referenceInvalidCharsSpei',
     },
     co_bank_transfer: {
@@ -102,7 +82,6 @@ const SPECS: Record<string, BankReferenceSpec> = {
         minLength: 1,
         maxLength: 18,
         allowed: /^[a-zA-Z0-9 &\-./]*$/,
-        helperKey: 'referenceHelperCoBankTransfer',
         invalidCharsKey: 'referenceInvalidCharsSepa',
     },
 }

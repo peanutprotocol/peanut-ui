@@ -105,15 +105,16 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/RateUnavailable/RateGateScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
+// the Brazil pause reads the signed-in user; it is off here (amount-guard covers it)
+jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => null,
 }))
-jest.mock('@/config/underMaintenance.config', () => ({
-    __esModule: true,
-    default: { disabledMantecaCurrencies: [] },
-    underMaintenanceConfig: { disabledMantecaCurrencies: [] },
-}))
+jest.mock('@/features/kill-switches/kill-switches-store', () => {
+    const killSwitches = { disabledMantecaCurrencies: [] }
+    return { getKillSwitches: () => killSwitches, subscribeKillSwitches: () => () => {} }
+})
 jest.mock('@/utils/network-triage', () => ({
     captureNetworkTriagedFailure: jest.fn(),
     isNetworkLayerFailure: () => false,

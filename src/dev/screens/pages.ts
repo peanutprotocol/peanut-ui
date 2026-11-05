@@ -110,7 +110,7 @@ PAGE_CAPTURES.push(
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },
     { id: 'p52-kyc-success', name: 'Verification success', route: '/kyc/success' },
-    { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance' },
+    { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance', fixture: 'full-maintenance' },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
     { id: 'p56-request-recipient', name: 'Request from a recipient', route: '/request/demo' },
     { id: 'p57-qr-code', name: 'QR payment — invalid code', route: '/qr/synthetic-invalid' },
@@ -191,14 +191,14 @@ PAGE_CAPTURES.push(
     },
     {
         id: 'p75-residence-country-dropdown',
-        name: 'Residence — open country dropdown, selected country',
+        name: 'Residence — open country list, selected country',
         route: '/dev/surfaces?s=03-a-residence-select',
         actions: [
-            { clickSelector: '[role="combobox"]' },
-            { clickSelector: '[role="listbox"] [role="option"]' },
-            { clickSelector: '[role="combobox"]' },
+            { clickSelector: '[data-testid="setup-residence-country"]' },
+            { clickSelector: '[role="dialog"] [role="button"][aria-label]' },
+            { clickSelector: '[data-testid="setup-residence-country"]' },
         ],
-        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+        expectSelector: '[role="dialog"] [role="button"][aria-current="true"]',
     },
     {
         id: 'p76-exchange-currency-dropdown',
@@ -218,5 +218,11 @@ PAGE_CAPTURES.push(
         ],
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
     },
-    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' }
+    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' },
+    {
+        id: 'p79-notifications',
+        name: 'Notifications settings',
+        route: '/settings/notifications',
+        fixture: 'settings-notifications',
+    }
 )

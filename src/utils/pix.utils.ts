@@ -80,6 +80,16 @@ export function isPixKeyNotFound(error: unknown): boolean {
 }
 
 /**
+ * The bank a payment lock says the recipient's PIX key belongs to. The API names it only for a
+ * key it sent to Manteca bare, and only when the PIX directory answered; any other lock, or a
+ * value that is not text, gives null.
+ */
+export function recipientBankNameOf(lock: { paymentRecipientBankName?: unknown } | null | undefined): string | null {
+    const name = lock?.paymentRecipientBankName
+    return typeof name === 'string' && name.trim() ? name.trim() : null
+}
+
+/**
  * What to show under a PIX key owner's name. A CPF or CNPJ key is the owner's
  * own tax ID, typed in full by the user, so it shows once and unmasked. Any
  * other key shows next to the owner's masked tax ID. A tax ID whose kind cannot

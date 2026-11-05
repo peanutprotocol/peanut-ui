@@ -13,12 +13,20 @@ const DOCUMENTS_HELP_HREF = '/en/help/verification'
  * certified provider, Peanut keeps a reference id and a result — is exactly
  * what /help/verification spells out.
  */
-export const PeanutDoesntStoreAnyPersonalInformation = ({ className }: { className?: string }) => {
+export const PeanutDoesntStoreAnyPersonalInformation = ({
+    className,
+    onOpen,
+}: {
+    className?: string
+    /** the help link was opened, for the analytics of the screen it sits on */
+    onOpen?: () => void
+}) => {
     const t = useTranslations('kyc')
 
     return (
         <DocsLink
             href={DOCUMENTS_HELP_HREF}
+            onOpen={onOpen}
             // min-h-11, not a pseudo-element hit area: an 11px footnote's own
             // line box is nowhere near the 44px floor, so the after:-inset
             // trick the Callout dismiss uses would have to guess at a

@@ -1,10 +1,12 @@
 import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
     type DepositReturnReasonCode,
+    type NetworkFeeDetails,
     type TransactionDirection,
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import type { Person } from '@/lib/person/person.types'
 import {
     getExplorerUrl,
     getTransactionExplorerUrl,
@@ -20,6 +22,7 @@ import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/servic
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount, senderNoteText } from './transaction-details.utils'
+import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
 
@@ -378,10 +381,10 @@ export interface TransactionDetails {
     isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
-    /** The counterparty's picked profile avatar (TASK-22625). Null whenever the
+    /** The counterparty as a Peanut user (TASK-23756). Null whenever the
      *  counterparty is not a Peanut user, so a render site can pass it straight
      *  through without re-checking `isPeerActuallyUser`. */
-    avatarKey?: string | null
+    peer?: Person | null
     amount: number | bigint
     /** Raw destination-token amount string from the BE (e.g. "0.000416666"
      *  for a $1 ETH withdraw). Preserves full decimals for receipt rendering;
@@ -401,6 +404,9 @@ export interface TransactionDetails {
     fee?: number | string
     /** What the bank received after a paid rail's fee, in USD; set only when there was a fee. */
     payoutReceivedUsd?: number
+    /** What a crypto withdrawal's recipient received after the network fee, in
+     *  USD — the backend's figure. Set only when a fee was charged. */
+    recipientReceivesUsd?: number
     memo?: string
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
@@ -437,6 +443,11 @@ export interface TransactionDetails {
          *  entries — separates the four Bridge paths that share an intent kind
          *  (ONRAMP, OFFRAMP, BANK_SEND_LINK_CLAIM, GUEST_DIRECT_SEND). */
         bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+        /** The API serves this entry's receipt page and PDF to anyone with
+         *  the link (wire `extraData.publicReceipt`). Read it through
+         *  `hasPublicReceipt`: it is the one gate for the receipt link, its
+         *  share and the anonymous PDF. */
+        publicReceipt?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -473,6 +484,10 @@ export interface TransactionDetails {
         paymentReference?: string
         /** Request rollups: the requester opted in to payment by bank transfer. */
         bankInstructionsShared?: boolean
+        /** Request rollups: the amount the requester asked, in `requestCurrency` (decimal string). */
+        requestedAmount?: string
+        /** Request rollups: the currency the requester asked in. The USD figures stay the money truth. */
+        requestCurrency?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -541,10 +556,7 @@ export interface TransactionDetails {
         chainName?: string
         chainIconUrl?: string
     }
-    networkFeeDetails?: {
-        amountDisplay: string
-        moreInfoText?: string
-    }
+    networkFeeDetails?: NetworkFeeDetails
     peanutFeeDetails?: {
         amountDisplay: string
     }
@@ -696,15 +708,18 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         uiStatus = 'pending'
     }
 
-    // parse the amount from the usdamount string in extradata
-    const baseAmount = entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0
-    // Bake the cross-chain network fee into the displayed amount (product
-    // convention: fees are part of the amount, never a separate line — see the
-    // `fee: undefined` note below). The BE only sets `networkFeeUsd` for a
-    // CRYPTO_WITHDRAW whose kernel actually debited principal + fee (SDA path),
-    // so this shows the true amount deducted instead of just the principal.
-    const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
-    const amount = baseAmount + networkFeeUsd
+    // An API that states `networkFeeStatus` states the gross. One that predates
+    // the field states a v2 withdrawal's net and the fee beside it; add them back
+    // as before, so the headline never drops by the fee during a deploy window.
+    const preContractFee =
+        entry.extraData?.networkFeeStatus === undefined && typeof entry.extraData?.networkFeeUsd === 'number'
+            ? entry.extraData.networkFeeUsd
+            : 0
+    const amount = (entry.extraData?.usdAmount ? parseWireAmount(entry.extraData.usdAmount) : 0) + preContractFee
+    // The settled network fee and what the recipient received, both stated by
+    // the backend. Only a crypto withdrawal carries them.
+    const { networkFeeDetails, recipientReceivesUsd } =
+        intentKindOf(entry) === 'CRYPTO_WITHDRAW' ? networkFeeDetailsForEntry(entry.extraData) : {}
     // The one fee shown as its own line: a wire's, which the user picked and
     // saw before confirming (TASK-23054). The bank receives the amount less it.
     const payoutFeeUsd =
@@ -759,7 +774,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         showFullName,
         // Read after the reaper / failed-QR overrides above, so a row whose
         // counterparty was rewritten to system copy cannot keep their sticker.
-        avatarKey: isPeerActuallyUser ? (out.avatarKey ?? null) : null,
+        peer: isPeerActuallyUser ? (out.peer ?? null) : null,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
@@ -778,6 +793,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // the backend's own figure (Bridge's final_amount, or its payout helper
         // before then), never a subtraction here
         payoutReceivedUsd: payoutFeeUsd !== undefined ? usdBankAmount(entry.currency) : undefined,
+        // A crypto withdrawal's network fee has its own row: it comes out of
+        // what the recipient receives, and the receipt states both.
+        networkFeeDetails,
+        recipientReceivesUsd,
         // memo carries free-form user notes from non-card flows (link memos,
         // request comments). Card spends + Rain refunds suppress this — the
         // merchant name and any decline reason render inside CardPaymentRows
@@ -814,6 +833,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
+            publicReceipt: entry.extraData?.publicReceipt || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,
@@ -835,6 +855,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             minimumAmountDisplay,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
+            requestedAmount: entry.extraData?.requestedAmount || undefined,
+            requestCurrency: entry.extraData?.requestCurrency || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

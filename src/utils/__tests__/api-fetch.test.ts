@@ -12,6 +12,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import posthog from 'posthog-js'
 import { enableDemoMode, disableDemoMode } from '@/utils/demo'
 import { demoRespond } from '@/utils/demo-api'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 
 jest.mock('@/utils/demo-api', () => ({ demoRespond: jest.fn() }))
 
@@ -31,6 +32,8 @@ jest.mock('@/utils/auth-token', () => ({
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => false),
 }))
+
+jest.mock('@/i18n/app/locale-store', () => ({ currentAppLocale: jest.fn(() => null) }))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -110,6 +113,28 @@ describe('apiFetch', () => {
                 })
             )
             expect(mockFetchWithSentry.mock.calls[0][1]).not.toHaveProperty('includeAuth')
+        })
+    })
+
+    describe('accept-language header', () => {
+        const sentHeaders = () => mockFetchWithSentry.mock.calls[0][1]?.headers as Record<string, string>
+
+        it('sends the locale the user sees so the api localizes badge copy', async () => {
+            ;(currentAppLocale as jest.Mock).mockReturnValueOnce('es-AR')
+            await apiFetch('/users/me')
+            expect(sentHeaders()['Accept-Language']).toBe('es-AR')
+        })
+
+        it('omits it before the startup locale is applied', async () => {
+            await apiFetch('/users/me')
+            expect(sentHeaders()).not.toHaveProperty('Accept-Language')
+        })
+
+        it('keeps a caller-provided language', async () => {
+            ;(currentAppLocale as jest.Mock).mockReturnValueOnce('pt-BR')
+            await apiFetch('/users/me', { headers: { 'accept-language': 'en' } })
+            expect(sentHeaders()['accept-language']).toBe('en')
+            expect(sentHeaders()).not.toHaveProperty('Accept-Language')
         })
     })
 

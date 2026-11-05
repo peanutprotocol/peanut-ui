@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
@@ -7,9 +9,12 @@ import IframeWrapper, { type IframeCloseSource } from '@/components/Global/Ifram
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { getBridgeTosLink } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
-import { confirmBridgeTosAndAwaitRails } from '@/hooks/useMultiPhaseKycFlow'
+import { resolveBridgeTosClose } from '@/hooks/useMultiPhaseKycFlow'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface BridgeTosStepProps {
     visible: boolean
@@ -23,6 +28,7 @@ interface BridgeTosStepProps {
 // Bridge's page. The `tos_acceptance_link` endpoint serves the terms the
 // customer still owes (base or SEPA v2), so the prompt is the same for both.
 export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProps) => {
+    const { track } = useKycControl('tos', 'kyc_legacy')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { fetchUser } = useAuth()
@@ -44,6 +50,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
     }, [visible])
 
     const handleContinue = useCallback(async () => {
+        track(error ? 'retry' : 'continue', 'tap')
         setIsLoading(true)
         setError(null)
 
@@ -59,41 +66,40 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
 
             setTosLink(response.data.tosLink)
             setShowIframe(true)
-        } catch {
+            posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
+        } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_open' } })
             setError(t('bridgeTos.genericError'))
         } finally {
             setIsLoading(false)
         }
-    }, [t])
+    }, [t, error, track])
 
     const handleIframeClose = useCallback(
-        async (source?: IframeCloseSource) => {
-            if (source === 'tos_accepted' || source === 'returned') {
-                setIsConfirming(true)
-                setShowIframe(false)
-                try {
-                    const accepted = await confirmBridgeTosAndAwaitRails(fetchUser, {
-                        observedAcceptance: source === 'tos_accepted',
-                    })
-                    // `returned` only means the system browser closed, so a user
-                    // who backed out lands back on the prompt instead of being
-                    // told the step is done.
-                    if (source === 'returned' && !accepted) {
-                        setError(t('bridgeTos.notAcceptedYet'))
-                        return
-                    }
-                    onComplete()
-                } catch {
-                    setError(t('bridgeTos.confirmError'))
-                } finally {
-                    setIsConfirming(false)
-                }
-            } else {
-                setShowIframe(false)
+        async (source: IframeCloseSource = 'manual') => {
+            setShowIframe(false)
+            if (source === 'manual') {
+                track('tos_page', 'dismiss')
                 onSkip()
+                return
+            }
+            setIsConfirming(true)
+            try {
+                if (await resolveBridgeTosClose(fetchUser, source)) {
+                    onComplete()
+                    return
+                }
+                // The page closed by itself without a signature, so the user
+                // lands back on the prompt instead of being told the step is done.
+                setError(t('bridgeTos.notAcceptedYet'))
+            } catch (error) {
+                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
+                setError(t('bridgeTos.confirmError'))
+            } finally {
+                setIsConfirming(false)
             }
         },
-        [fetchUser, onComplete, onSkip, t]
+        [fetchUser, onComplete, onSkip, t, track]
     )
 
     if (!visible) return null
@@ -103,7 +109,10 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
             {/* confirmation modal — hidden when iframe is open or ToS is being confirmed */}
             <ActionModal
                 visible={visible && !showIframe && !isConfirming}
-                onClose={onSkip}
+                onClose={() => {
+                    track('tos', 'dismiss')
+                    onSkip()
+                }}
                 tone={error ? 'error' : 'info'}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : t('bridgeTos.title')}
@@ -119,7 +128,13 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip }: BridgeTosStepProp
                         shadowSize: '4',
                     },
                 ]}
-                tertiaryCta={{ text: t('bridgeTos.notNow'), onClick: onSkip }}
+                tertiaryCta={{
+                    text: t('bridgeTos.notNow'),
+                    onClick: () => {
+                        track('not_now', 'tap')
+                        onSkip()
+                    },
+                }}
             />
 
             {tosLink && <IframeWrapper src={tosLink} visible={showIframe} onClose={handleIframeClose} />}

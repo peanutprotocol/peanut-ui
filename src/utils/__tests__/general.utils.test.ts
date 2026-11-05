@@ -3,9 +3,12 @@ import {
     clearRedirectUrl,
     endIntentionalLogout,
     formatAmount,
+    formatCurrency,
     formatExtendedNumber,
+    formatNumberForDisplay,
     generateInviteCodeLink,
     getContributorsFromCharge,
+    getInitialsFromName,
     getRedirectOrigin,
     getRedirectUrl,
     getRequestLink,
@@ -64,18 +67,19 @@ describe('General Utilities', () => {
             })
         })
 
+        // TASK-24355: invalid display data is unavailable, never a fabricated zero.
         describe('formatAmount', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {
-                    expect(formatAmount('')).toBe('0')
+                    expect(formatAmount('')).toBe('—')
                 })
 
                 it('should handle invalid string input', () => {
-                    expect(formatAmount('invalid')).toBe('0')
+                    expect(formatAmount('invalid')).toBe('—')
                 })
 
                 it('should handle NaN', () => {
-                    expect(formatAmount(NaN)).toBe('0')
+                    expect(formatAmount(NaN)).toBe('—')
                 })
             })
 
@@ -137,47 +141,54 @@ describe('General Utilities', () => {
         describe('formatExtendedNumber', () => {
             describe('edge cases', () => {
                 it('should handle empty string', () => {
-                    expect(formatExtendedNumber('')).toBe('0')
+                    expect(formatExtendedNumber('')).toBe('—')
                 })
 
                 it('should handle invalid string input', () => {
-                    expect(formatExtendedNumber('invalid')).toBe('0')
+                    expect(formatExtendedNumber('invalid')).toBe('—')
                 })
 
                 it('should handle NaN', () => {
-                    expect(formatExtendedNumber(NaN)).toBe('0')
+                    expect(formatExtendedNumber(NaN)).toBe('—')
                 })
 
                 it('should handle undefined and null', () => {
-                    expect(formatExtendedNumber(undefined as any)).toBe('0')
-                    expect(formatExtendedNumber(null as any)).toBe('0')
+                    expect(formatExtendedNumber(undefined as any)).toBe('—')
+                    expect(formatExtendedNumber(null as any)).toBe('—')
                 })
             })
 
             describe('numbers with 6 or fewer digits', () => {
+                // Unsuffixed, it is a money amount (design.md, copy → amounts):
+                // separators, cents kept, no ".00" on a round amount.
                 it('should not apply suffix for numbers with 6 or fewer digits', () => {
-                    expect(formatExtendedNumber(12345)).toBe('12345')
+                    expect(formatExtendedNumber(12345)).toBe('12,345')
                     expect(formatExtendedNumber(999)).toBe('999')
-                    expect(formatExtendedNumber(1000)).toBe('1000')
-                    expect(formatExtendedNumber(999999)).toBe('999999')
+                    expect(formatExtendedNumber(1000)).toBe('1,000')
+                    expect(formatExtendedNumber(999999)).toBe('999,999')
                 })
 
                 it('should handle decimal numbers with 6 or fewer total digits', () => {
                     expect(formatExtendedNumber(12.34)).toBe('12.34')
-                    expect(formatExtendedNumber(123.4)).toBe('123.4')
+                    expect(formatExtendedNumber(123.4)).toBe('123.40')
                     expect(formatExtendedNumber(0.123)).toBe('0.12')
-                    expect(formatExtendedNumber(1234.5)).toBe('1234.5')
+                    expect(formatExtendedNumber(1234.5)).toBe('1,234.50')
+                })
+
+                it('keeps the cents of a home balance', () => {
+                    expect(formatExtendedNumber('257.50')).toBe('257.50')
+                    expect(formatExtendedNumber('257.00')).toBe('257')
                 })
 
                 it('should handle negative numbers with 6 or fewer digits', () => {
-                    expect(formatExtendedNumber(-1234)).toBe('-1234')
+                    expect(formatExtendedNumber(-1234)).toBe('-1,234')
                     expect(formatExtendedNumber(-12.34)).toBe('-12.34')
-                    expect(formatExtendedNumber(-99999)).toBe('-99999')
+                    expect(formatExtendedNumber(-99999)).toBe('-99,999')
                 })
 
                 it('should handle string inputs with 6 or fewer digits', () => {
-                    expect(formatExtendedNumber('12345')).toBe('12345')
-                    expect(formatExtendedNumber('-1234')).toBe('-1234')
+                    expect(formatExtendedNumber('12345')).toBe('12,345')
+                    expect(formatExtendedNumber('-1234')).toBe('-1,234')
                     expect(formatExtendedNumber('999.99')).toBe('999.99')
                 })
             })
@@ -223,10 +234,10 @@ describe('General Utilities', () => {
 
             describe('boundary cases', () => {
                 it('should handle numbers at the 6-digit boundary', () => {
-                    expect(formatExtendedNumber(999999)).toBe('999999')
+                    expect(formatExtendedNumber(999999)).toBe('999,999')
                     expect(formatExtendedNumber(1000000)).toBe('1M')
-                    expect(formatExtendedNumber(999.9999)).toBe('1000')
-                    expect(formatExtendedNumber(999.99999)).toBe('1000')
+                    expect(formatExtendedNumber(999.9999)).toBe('1,000')
+                    expect(formatExtendedNumber(999.99999)).toBe('1,000')
                 })
 
                 it('should handle numbers at suffix boundaries', () => {
@@ -235,6 +246,47 @@ describe('General Utilities', () => {
                     expect(formatExtendedNumber(999999999999)).toBe('1T')
                 })
             })
+        })
+    })
+
+    // design.md, copy → amounts: a USD amount rounds half-up to the cent, keeps
+    // its cents, and shows no ".00" on a round amount.
+    describe('formatCurrency', () => {
+        it('rounds half-up to the cent', () => {
+            expect(formatCurrency('1.127608')).toBe('1.13')
+            expect(formatCurrency(1.125)).toBe('1.13')
+            expect(formatCurrency('1.124')).toBe('1.12')
+        })
+
+        it('keeps the cents and drops ".00" on a round amount', () => {
+            expect(formatCurrency('0.5')).toBe('0.50')
+            expect(formatCurrency(10)).toBe('10')
+            expect(formatCurrency('1999.999')).toBe('2,000')
+            expect(formatCurrency('22.25')).toBe('22.25')
+        })
+
+        it('widens to more decimals for a rate or a full-precision USDC amount', () => {
+            expect(formatCurrency('0.87694', 4)).toBe('0.8769')
+            expect(formatCurrency('902.4', 4)).toBe('902.40')
+            expect(formatCurrency('10.123456', 6)).toBe('10.123456')
+        })
+
+        it('is empty for no value', () => {
+            expect(formatCurrency(undefined)).toBe('')
+            expect(formatCurrency('')).toBe('')
+        })
+    })
+
+    describe('formatNumberForDisplay', () => {
+        it('rounds half-up, not down', () => {
+            expect(formatNumberForDisplay('1.127608', { maxDecimals: 2 })).toBe('1.13')
+            expect(formatNumberForDisplay('0.0004166666', { maxDecimals: 6 })).toBe('0.000417')
+        })
+
+        it("takes its decimals from the options, not from the input's trailing zeros", () => {
+            expect(formatNumberForDisplay('20.00', { maxDecimals: 2 })).toBe('20')
+            expect(formatNumberForDisplay('1.50', { maxDecimals: 6 })).toBe('1.5')
+            expect(formatNumberForDisplay('1.5', { maxDecimals: 2, minDecimals: 2 })).toBe('1.50')
         })
     })
 
@@ -595,13 +647,41 @@ describe('General Utilities', () => {
             const payment = makePayment('SUCCESSFUL', 'alice')
             payment.payerAccount!.user!.avatarKey = 'basic.frog'
             const contributors = getContributorsFromCharge([makeCharge('c1', [payment])])
-            expect(contributors[0].avatarKey).toBe('basic.frog')
+            expect(contributors[0].person).toMatchObject({ username: 'alice', avatarKey: 'basic.frog' })
         })
 
         it('reports null for an anonymous on-chain contributor', () => {
             const contributors = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', null)])])
             expect(contributors[0].isPeanutUser).toBe(false)
-            expect(contributors[0].avatarKey).toBeNull()
+            expect(contributors[0].person).toBeNull()
+        })
+
+        // TASK-23856: $99.16 asked, Hugo paid $40.65, a second payer's $58.51
+        // charge received 33 USDC. The rows read $40.65 + $58.51 = $99.16 beside
+        // "$73.65 contributed".
+        it('shows what each contributor paid, so the rows add up to the collected total', () => {
+            const charges = [
+                {
+                    ...makeCharge('hugo', [makePayment('SUCCESSFUL', 'hugo')]),
+                    tokenAmount: '40.65',
+                    settledAmount: '40.65',
+                    partialPayment: false,
+                },
+                {
+                    ...makeCharge('short', [makePayment('SUCCESSFUL', null)]),
+                    tokenAmount: '58.51',
+                    settledAmount: '33',
+                    partialPayment: true,
+                },
+            ]
+            const contributors = getContributorsFromCharge(charges)
+            expect(contributors.map((c) => c.amount)).toEqual(['40.65', '33'])
+            expect(contributors.reduce((sum, c) => sum + Number(c.amount), 0)).toBeCloseTo(73.65, 2)
+        })
+
+        it('keeps the asked amount on an API that sends no settled figure', () => {
+            const [contributor] = getContributorsFromCharge([makeCharge('c1', [makePayment('SUCCESSFUL', 'alice')])])
+            expect(contributor.amount).toBe('10')
         })
     })
 
@@ -666,5 +746,41 @@ describe('General Utilities', () => {
             saveRedirectUrl()
             expect(getRedirectUrl()).toBe('/profile')
         })
+    })
+
+    describe('getInitialsFromName', () => {
+        it('takes the first letter of the first two words, or two letters of one word', () => {
+            expect(getInitialsFromName('ana maria lopez')).toBe('AM')
+            expect(getInitialsFromName('  konrad ')).toBe('KO')
+        })
+
+        // An invitee who never finished signup has no username and no name
+        // (TASK-24036): the invites screen must render, not crash.
+        it.each([null, undefined, '', '   '])('returns no initials for a missing name (%p)', (name) => {
+            expect(getInitialsFromName(name)).toBe('')
+        })
+    })
+})
+
+// TASK-24355: missing/invalid display data must never be formatted as a number.
+describe('numeric formatting boundaries', () => {
+    it('rejects nonfinite and partial raw token amounts without throwing', () => {
+        for (const value of [NaN, Infinity, -Infinity, '12garbage', '4,000', '9'.repeat(400)]) {
+            expect(formatTokenAmount(value)).toBeUndefined()
+        }
+        expect(formatTokenAmount('9'.repeat(400), 2, true)).toBe('')
+    })
+
+    it('can display whole-unit tokens at zero fraction digits', () => {
+        expect(formatTokenAmount(0, 0)).toBe('0')
+        expect(formatTokenAmount(10, 0)).toBe('10')
+        expect(formatTokenAmount(999.99, 0)).toBe('999')
+    })
+
+    it('returns unavailable for arithmetic overflow rather than emitting infinity', () => {
+        expect(formatTokenAmount(Number.MAX_VALUE, 2)).toBeUndefined()
+        expect(formatAmount(Infinity)).toBe('—')
+        expect(formatExtendedNumber(Infinity)).toBe('—')
+        expect(formatNumberForDisplay('9'.repeat(400))).toBe('—')
     })
 })

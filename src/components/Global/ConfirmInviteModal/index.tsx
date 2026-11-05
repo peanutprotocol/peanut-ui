@@ -1,15 +1,14 @@
 'use client'
 import { type FC } from 'react'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
 import ActionModal from '@/components/Global/ActionModal'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 
 interface ConfirmInviteModalProps {
     isOpen: boolean
     onClose: () => void
+    /** the sender, who gets rewards when the recipient signs up through the link */
+    username: string
     method: string
     handleLoseInvite: () => void
     handleContinueWithPeanut: () => void
@@ -18,6 +17,7 @@ interface ConfirmInviteModalProps {
 const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     isOpen,
     onClose,
+    username,
     method,
     handleLoseInvite,
     handleContinueWithPeanut,
@@ -37,28 +37,19 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
             contentContainerClassName="bg-background-default"
             visible={isOpen}
             onClose={onClose}
-            title={t('confirmInviteModal.title')}
-            description={t('confirmInviteModal.description', { method })}
+            title={t('confirmInviteModal.title', { username })}
+            description={t('confirmInviteModal.description', { username, method })}
             ctaClassName="sm:flex-col"
             ctas={[
                 {
-                    text: '',
+                    text: t('confirmInviteModal.joinCta'),
                     shadowSize: '4',
                     variant: 'primary',
                     className: 'sm:flex-none',
                     onClick: handleContinueWithPeanut,
-                    children: (
-                        <>
-                            <div>{t('confirmInviteModal.joinCta')}</div>
-                            <div className="flex items-center gap-1">
-                                <Image src={PEANUTMAN} alt="Peanut Logo" className="size-5" />
-                                <Image src={PEANUT_LOGO_BLACK} alt="Peanut Logo" />
-                            </div>
-                        </>
-                    ),
                 },
                 {
-                    text: t('confirmInviteModal.continueWithMethod', { method }),
+                    text: t('confirmInviteModal.claimWithoutSignup'),
                     variant: 'secondary',
                     className: 'sm:flex-none',
                     onClick: handleLoseInvite,

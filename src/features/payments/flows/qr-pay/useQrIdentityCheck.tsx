@@ -6,9 +6,8 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { QR_IDENTITY_CHECK_INTENT, selectQrKycGate } from './qrKycGate.utils'
+import { QR_IDENTITY_CHECK_INTENT, qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
 
 /**
  * The QR ID check started outside /qr-pay: Home's Verify row for a residence
@@ -24,20 +23,21 @@ import { QR_IDENTITY_CHECK_INTENT, selectQrKycGate } from './qrKycGate.utils'
 export function useQrIdentityCheck(): { start: () => void; modals: ReactNode } {
     const flow = useMultiPhaseKycFlow({})
     const { user } = useAuth()
-    const { canDo, railsForProvider, nextActions, isLoading } = useCapabilities()
-    const { isRegionRestricted, isTerminalFailure } = useIdentityVerification()
+    const { capabilities, railsForProvider, nextActions, isLoading } = useCapabilities()
     const toast = useToast()
     const startedRef = useRef(false)
 
+    const mantecaRails = railsForProvider('manteca')
     const canPayNow =
         selectQrKycGate({
             isLoading: isLoading || !user,
-            isRegionRestricted,
-            isTerminalFailure,
-            canPayManteca: canDo('pay', { provider: 'manteca' }),
-            mantecaRails: railsForProvider('manteca'),
+            features: capabilities.features,
             nextActions,
+            rails: capabilities.rails,
         }).kycGateState === QrKycState.PROCEED_TO_PAY
+    // An approved user whose identity evidence is missing: the start route
+    // answers "already approved" and opens nothing, so this is the restart.
+    const needsRestart = qrVerificationNeedsRestart({ mantecaRails, nextActions })
 
     const { showWrapper, isModalOpen, completeFlow, error } = flow
     useEffect(() => {
@@ -53,11 +53,12 @@ export function useQrIdentityCheck(): { start: () => void; modals: ReactNode } {
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
     }, [error])
 
-    const { handleInitiateKyc } = flow
+    const { handleInitiateKyc, handleRestartIdentity } = flow
     const start = useCallback(() => {
         startedRef.current = true
-        void handleInitiateKyc(QR_IDENTITY_CHECK_INTENT)
-    }, [handleInitiateKyc])
+        if (needsRestart) void handleRestartIdentity()
+        else void handleInitiateKyc(QR_IDENTITY_CHECK_INTENT)
+    }, [needsRestart, handleInitiateKyc, handleRestartIdentity])
 
     return { start, modals: <SumsubKycModals flow={flow} /> }
 }

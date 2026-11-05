@@ -16,11 +16,13 @@ import { onStoreAnchorClick, storeAnchorHref, storeForDevice, storeIcon } from '
  */
 export default function DownloadAppLink({
     surface,
+    qrPlacement,
     variant,
     size,
     className,
 }: {
     surface: MigrationSurface
+    qrPlacement?: string
     variant?: ButtonVariant
     /** marketing CTAs pass 'large' (design.md marketing); the sticky bar keeps the default */
     size?: ButtonSize
@@ -48,7 +50,8 @@ export default function DownloadAppLink({
             rel={store ? 'noopener noreferrer' : undefined}
             onClick={(event) => {
                 if (store) onStoreAnchorClick(store, surface)
-                else if (interceptAppCta(surface)) event.preventDefault()
+                else if (qrPlacement ? interceptAppCta(surface, qrPlacement) : interceptAppCta(surface))
+                    event.preventDefault()
             }}
             variant={variant}
             size={size}

@@ -28,8 +28,13 @@ declare global {
     }
 
     interface SNSMobileSDKBuilder {
+        withPreferredDocumentDefinitions(definitions: {
+            IDENTITY: { country: string; idDocType: string }
+        }): SNSMobileSDKBuilder
         withHandlers(handlers: SNSMobileSDKHandlers): SNSMobileSDKBuilder
         withLocale(locale: string): SNSMobileSDKBuilder
+        /** Overrides Sumsub's own texts by key, such as `sns_step_IDENTITY_title`. */
+        withStrings(strings: Record<string, string>): SNSMobileSDKBuilder
         withApplicantConf(conf: { email?: string; phone?: string }): SNSMobileSDKBuilder
         withDebug(debug: boolean): SNSMobileSDKBuilder
         withAnalyticsEnabled(enabled: boolean): SNSMobileSDKBuilder

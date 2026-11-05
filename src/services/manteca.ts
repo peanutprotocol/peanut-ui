@@ -1,3 +1,4 @@
+import { validateNumericResponse } from '@/lib/numeric-response'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawResponse,
@@ -86,6 +87,9 @@ export type QrPaymentLock = {
     userExternalId: string
     paymentRecipientName: string
     paymentRecipientLegalId: string
+    /** The bank that receives the payment, as the PIX directory names it. Only on a lock the
+     *  API made from a bare PIX key, and only when the directory answered (TASK-23738). */
+    paymentRecipientBankName?: string
     paymentAssetAmount: string
     paymentAsset: string
     paymentPrice: string
@@ -136,6 +140,17 @@ export type MantecaPrice = {
 /** Owner of a PIX key. `legalIdMasked` keeps the first 2 and last 2 digits. Read from the API schema, so a contract change fails typecheck. */
 export type PixKeyOwner = paths['/manteca/pix-key/owner']['post']['responses'][200]['content']['application/json']
 
+/** Body of /manteca/withdraw/init. */
+export type WithdrawInitRequest = {
+    /** USD (USDC) amount. With `fiatAmount` it is only the fallback for an API
+     *  that predates `fiatAmount` and ignores it. */
+    amount: string
+    /** The local amount the user typed, at most 2 decimals. The API ignores
+     *  `amount` and prices the exact USDC for this amount (TASK-23997). */
+    fiatAmount?: string
+    currency: string
+}
+
 // withdraw init response - contains locked price for withdraw flow
 export type WithdrawPriceLock = {
     priceLockCode: string
@@ -144,6 +159,8 @@ export type WithdrawPriceLock = {
     /** Milliseconds the lock had left when the API answered. Read this, not
      *  `expiresAt`, against the device clock (see receiveLock). */
     expiresInMs?: number
+    /** The exact USDC to sign and order, up to 6 decimals. For a `fiatAmount`
+     *  request the API prices it so the bank receives that amount (TASK-23997). */
     usdAmount: string
     fiatAmount: string
     currency: string
@@ -177,7 +194,7 @@ export const mantecaApi = {
             })
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     /**
      * Complete QR payment with a pre-signed transaction.
@@ -260,7 +277,7 @@ export const mantecaApi = {
             throw await apiErrorFromResponse(response, `QR payment failed: ${response.statusText}`)
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     getPrices: async (
         { asset, against }: { asset: string; against: string },
@@ -278,11 +295,11 @@ export const mantecaApi = {
             })
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     deposit: async (
         params: CreateMantecaOnrampParams
-    ): Promise<{ data?: MantecaDepositResponseData; error?: string }> => {
+    ): Promise<{ data?: MantecaDepositResponseData; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/deposit', {
                 method: 'POST',
@@ -298,7 +315,12 @@ export const mantecaApi = {
 
             if (!response.ok) {
                 console.log('error', response)
-                return { error: data.error || 'Failed to create on-ramp transfer for guest.' }
+                // A refusal's `error` is the generic "Unexpected error"; what
+                // it means is in `code` (PROVIDER_REJECTED).
+                return {
+                    error: data.error || 'Failed to create on-ramp transfer for guest.',
+                    ...(typeof data.code === 'string' ? { code: data.code } : {}),
+                }
             }
 
             return { data }
@@ -356,10 +378,9 @@ export const mantecaApi = {
      * Initialize withdraw with a locked price.
      * This locks the exchange rate for ~120 seconds so user sees the exact amount they'll receive.
      */
-    initiateWithdraw: async (params: {
-        amount: string
-        currency: string
-    }): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
+    initiateWithdraw: async (
+        params: WithdrawInitRequest
+    ): Promise<{ data?: WithdrawPriceLock; error?: string; code?: string }> => {
         try {
             const response = await serverFetch('/manteca/withdraw/init', {
                 method: 'POST',
@@ -510,7 +531,7 @@ export const mantecaApi = {
         if (!response.ok) {
             throw await apiErrorFromResponse(response, `PIX key lookup failed: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     /** Saves a PIX key to the user's address book under `label`; saving a saved key renames it. */
     savePixKey: async (pixKey: string, label: string): Promise<void> => {

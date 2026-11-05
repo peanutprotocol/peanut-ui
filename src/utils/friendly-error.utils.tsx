@@ -50,6 +50,7 @@ export const rainCollateralErrorMessage = (error: unknown): string | null => {
  *  the `errors` next-intl namespace (see `useFriendlyError`). This module stays
  *  copy-free — it only classifies. */
 export type FriendlyErrorCode =
+    | 'mantecaAccountRejected'
     | 'bankAccountNotUsable'
     | 'transferTemporarilyUnavailable'
     | 'userOpReverted'
@@ -85,6 +86,7 @@ export type FriendlyErrorCode =
     | 'passkeyDeviceLocked'
     | 'passkeyBiometryRequired'
     | 'passkeyVerificationIncomplete'
+    | 'passkeyRestartRequired'
     | 'claimLinkFailed'
     | 'sendLinkAlreadyClaimed'
     | 'lowLiquidity'
@@ -138,6 +140,7 @@ const passthrough = (text: string): FriendlyError => ({ kind: 'text', text })
  * Keep in sync with peanut-api-ts `src/errors/error-codes.ts`.
  */
 const WIRE_CODE_MAP: Partial<Record<ApiErrorCode, FriendlyErrorCode>> = {
+    [API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED]: 'mantecaAccountRejected',
     [API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE]: 'transferTemporarilyUnavailable',
     [API_ERROR_CODES.USER_OP_REVERTED]: 'userOpReverted',
     [API_ERROR_CODES.STALE_CARD_APPROVAL]: 'staleCardApproval',
@@ -330,6 +333,8 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     if (text.includes('does not match the target chain for the transaction')) return code('chainMismatch')
     if (text.includes('Insufficient balance')) return code('insufficientBalance')
     if (text.includes('The operation either timed out or was not allowed')) return code('operationTimedOut')
+    // An abandoned Android passkey request still owns the authenticator; retries fail until a restart.
+    if (name === 'PasskeyCleanupPendingError') return code('passkeyRestartRequired')
     // iOS Safari's NotAllowedError copy when the passkey ceremony never
     // completes. Third-party credential providers (1Password) can wedge and
     // refuse every assertion until unlocked or the device restarts
@@ -346,6 +351,11 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
         biometry_required: 'passkeyBiometryRequired',
         authorization_failed: 'passkeyNotCompleted',
         canceled: 'passkeyVerificationIncomplete',
+        // Signing never creates a credential, so setup_required cannot reach a
+        // payment; the retry copy is the safe answer for all three.
+        setup_required: 'passkeyNotCompleted',
+        provider_failed: 'passkeyNotCompleted',
+        credential_missing: 'passkeyNotCompleted',
     } as const
     if (nativeReason) return code(passkeyCodes[nativeReason])
     if (text.includes('not allowed by the user agent')) return code('passkeyNotCompleted')

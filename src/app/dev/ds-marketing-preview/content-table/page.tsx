@@ -2,7 +2,7 @@ import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { DEMO_TABLE } from '../_components/preview-data'
 
 /**
- * The ruled table treatment (table-tints A, 2026-10-14): plain tokens only —
+ * The table treatment: plain tokens only —
  * cream header row on background-page, white body rows on background-default,
  * full-strength border-default rules. No pink tint, no faded /10 rules. The
  * mdx element map (Marketing/mdx/components.tsx) renders the same classes;

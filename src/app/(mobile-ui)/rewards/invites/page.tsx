@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useNativePlatform } from '@/utils/native-platform'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Card from '@/components/Global/Card'
@@ -28,6 +30,8 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
 import { profileUrl } from '@/utils/native-routes'
+import { inviteeDisplayName } from '@/features/rewards/utils'
+import { personFrom } from '@/lib/person/person'
 
 const InvitesPage = () => {
     const nativePlatform = useNativePlatform()
@@ -122,11 +126,17 @@ const InvitesPage = () => {
             <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 <Card className="flex flex-col items-center justify-center gap-2 p-4">
                     {invites?.summary?.totalLifetimeEarnedUsd !== undefined &&
-                    invites.summary.totalLifetimeEarnedUsd > 0 ? (
+                    (invites.summary.totalLifetimeEarnedUsd > 0 ||
+                        !Number.isFinite(invites.summary.totalLifetimeEarnedUsd)) ? (
                         <>
                             <h2 className="text-center text-body-m text-foreground-primary">{t('friendsEarnedYou')}</h2>
                             <span className="text-heading-m text-foreground-primary">
-                                ${invites.summary.totalLifetimeEarnedUsd.toFixed(2)}
+                                $
+                                {formatFiniteDisplay(invites.summary.totalLifetimeEarnedUsd, 'en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                    useGrouping: false,
+                                })}
                             </span>
                             {nativePlatform.isIOSNative && (
                                 <span className="text-body-s text-foreground-secondary">{t('lifetimeCaption')}</span>
@@ -155,17 +165,16 @@ const InvitesPage = () => {
                 <div ref={listRef}>
                     {invites?.invitees?.map((invite: PointsInvite, i: number) => {
                         const username = invite.username
-                        const fullName = invite.fullName
                         const isVerified = invite.kycVerified
                         const pointsEarned = invite.contributedPoints ?? 0
-                        // respect user's showFullName preference for avatar and display name
-                        const displayName = invite.showFullName && fullName ? fullName : username
+                        const displayName = inviteeDisplayName(invite)
                         return (
                             <Card
                                 key={invite.inviteeId}
                                 position={getCardPosition(i, invites.invitees.length)}
-                                onClick={() => router.push(profileUrl(username))}
-                                className="cursor-pointer"
+                                // An invitee who never finished signup has no profile to open.
+                                onClick={username ? () => router.push(profileUrl(username)) : undefined}
+                                className={username ? 'cursor-pointer' : undefined}
                             >
                                 <div className="flex items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
@@ -175,17 +184,17 @@ const InvitesPage = () => {
                                             // matches their profile. An invitee without one keeps
                                             // the display name — an empty name reads as "not a
                                             // user" and drops to a wallet icon.
-                                            userName={username || displayName}
-                                            avatarKey={invite.avatarKey}
+                                            userName={username || displayName || undefined}
+                                            person={personFrom(invite)}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
-                                            size="m"
+                                            size="s"
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                         <VerifiedUserLabel
-                                            name={displayName}
-                                            username={username}
+                                            name={displayName ?? ''}
+                                            username={username ?? ''}
                                             isVerified={isVerified}
                                         />
                                     </div>

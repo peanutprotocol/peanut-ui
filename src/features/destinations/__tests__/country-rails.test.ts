@@ -4,6 +4,7 @@
  * pick (WithdrawMethodView) mock this helper, so without these cases a catalog
  * change would silently move users onto — or off — the shortcut.
  */
+import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { COUNTRY_SPECIFIC_METHODS } from '@/components/AddMoney/consts'
 import { isSendToBankCountry, liveRailsForCountry, soleLiveRailForCountry } from '../country-rails'
 
@@ -51,6 +52,22 @@ describe('liveRailsForCountry — add', () => {
 
     it('a Manteca country sends the deposit to its own screen', () => {
         expect(soleLiveRailForCountry('AR', 'add')?.path).toBe('/add-money/argentina/manteca')
+    })
+
+    // TASK-21375: a second "Mercado Pago" row opened the same screen as the bank row
+    it('Argentina lists one way in by bank, not a second row into the same screen', () => {
+        const rows = COUNTRY_SPECIFIC_METHODS.AR.add.filter((method) => method.id !== 'crypto-add')
+        expect(rows.map((method) => [method.id, method.path])).toEqual([
+            ['bank-transfer-add', '/add-money/argentina/manteca'],
+        ])
+    })
+
+    it('Argentina’s one row carries the Mercado Pago icon; other countries keep theirs', () => {
+        const bankRow = (country: string) =>
+            COUNTRY_SPECIFIC_METHODS[country].add.find((method) => method.id === 'bank-transfer-add')
+        expect(bankRow('AR')?.icon).toBe(MERCADO_PAGO)
+        for (const country of ['BR', 'DEU', 'US', 'MX']) expect(bankRow(country)?.icon).toBe('bank')
+        expect(COUNTRY_SPECIFIC_METHODS.BR.add.find((method) => method.id === 'pix-add')?.icon).toBe(PIX)
     })
 
     it('a country where bank deposits are not live yet keeps its per-country screen', () => {

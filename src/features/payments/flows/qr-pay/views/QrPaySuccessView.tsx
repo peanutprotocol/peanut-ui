@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useReturnTo } from '@/hooks/useSafeBack'
@@ -22,9 +24,10 @@ import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { useAuth } from '@/context/authContext'
 import { getShakeClass } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
-import { formatNumberForDisplay } from '@/utils/general.utils'
+import { formatCurrency } from '@/utils/general.utils'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { trackReceiptAction } from '@/components/TransactionDetails/receipt-action-analytics'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { useQrReceipt } from '../useQrReceipt'
 import { usePerkHoldToClaim } from '../usePerkHoldToClaim'
@@ -70,7 +73,7 @@ export function QrPaySuccessView() {
         ? savingsInCents < 100
             ? t('success.savedVsCardCents', { count: savingsInCents })
             : t('success.savedVsCardDollars', {
-                  amount: formatNumberForDisplay((savingsInCents / 100).toString(), { maxDecimals: 2 }),
+                  amount: formatCurrency(savingsInCents / 100),
               })
         : ''
 
@@ -100,14 +103,11 @@ export function QrPaySuccessView() {
                             </h1>
                             <div className="text-heading-s">
                                 {currency.symbol}{' '}
-                                {formatNumberForDisplay(
-                                    qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
-                                    { maxDecimals: 2 }
+                                {formatCurrency(
+                                    qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount
                                 )}
                             </div>
-                            <div className="text-heading-card">
-                                ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
-                            </div>
+                            <div className="text-heading-card">≈ {formatCurrency(usdAmount ?? undefined)} USD</div>
                             {/* Savings Message (Argentina Manteca only) */}
                             {showSavingsMessage && savingsMessage && (
                                 <p className="text-body-s text-foreground-secondary italic">{savingsMessage}</p>
@@ -127,7 +127,11 @@ export function QrPaySuccessView() {
                                     const amountSponsored = qrPayment?.perk?.amountSponsored
                                     if (amountSponsored && typeof amountSponsored === 'number') {
                                         return t('success.earnedHoldToClaim', {
-                                            amount: amountSponsored.toFixed(2),
+                                            amount: formatFiniteDisplay(amountSponsored, 'en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                                useGrouping: false,
+                                            }),
                                         })
                                     }
 
@@ -150,7 +154,11 @@ export function QrPaySuccessView() {
 
                                     if (amountSponsored && typeof amountSponsored === 'number') {
                                         return t('success.earnedInviteFriends', {
-                                            amount: amountSponsored.toFixed(2),
+                                            amount: formatFiniteDisplay(amountSponsored, 'en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                                useGrouping: false,
+                                            }),
                                         })
                                     }
 
@@ -231,6 +239,7 @@ export function QrPaySuccessView() {
                                     onClick={() => {
                                         if (splitNavigatedRef.current) return
                                         splitNavigatedRef.current = true
+                                        trackReceiptAction('split', 'qr_success', 'QR_PAY')
                                         // same query-builder shape as withdraw's downstreamQuery —
                                         // /request seeds its form from these params
                                         // A person's name paid by PIX key stays out of the URL,

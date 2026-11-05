@@ -9,28 +9,45 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import SetupFooter from '../components/SetupFooter'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { useAuth } from '@/context/authContext'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { invitesApi } from '@/services/invites'
+import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { EInviteType } from '@/services/services.types'
 import { toInviteCode } from '@/utils/invite-code.utils'
+import { clearInvite, readInviteCode, stashInvite } from '@/utils/invite-stash'
 
 /**
- * Invited by a friend? An optional step before the username: a verified inviter
- * becomes the invite that registration attributes; Skip leaves any invite link
- * the user arrived with in place.
+ * Invited by a friend? An optional step after registration, shown only when the
+ * signup has no invite. The person already owns a username here, so the field
+ * reads as someone else's, and a verified inviter is accepted on the spot through
+ * the same hand-off registration uses for an invite link.
  */
 export default function InviteStep() {
     const t = useTranslations('setup')
-    const { inviterUsername, setInviterUsername, applyManualInvite, clearManualInvite } = useSetupFlowContext()
+    const { username, setInviterAccepted } = useSetupFlowContext()
+    const { user, fetchUser } = useAuth()
     const { handleNext, isLoading } = useSetupFlow()
-    const [draft, setDraft] = useState(inviterUsername)
+    const [draft, setDraft] = useState('')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
+    const [isAccepting, setIsAccepting] = useState(false)
     const [error, setError] = useState('')
-    const valueRef = useRef(inviterUsername)
+    const valueRef = useRef('')
+    const { track, trackOnce, trackError } = useSignupControl()
+
+    const ownUsername = toInviteCode(user?.user.username ?? username)
+    const busy = isLoading || isAccepting
 
     const validate = async (value: string): Promise<boolean> => {
         setError('')
+        if (ownUsername && toInviteCode(value) === ownUsername) {
+            setError(t('signupStep.inviterIsSelf'))
+            trackError('inviter_username', 'self')
+            return false
+        }
         const result = await invitesApi.validateInviteCode(value)
         const valid = result.success && result.attributionResolved
         if (valueRef.current !== value) return valid
@@ -38,25 +55,43 @@ export default function InviteStep() {
         // "Not found" only for a confirmed miss; a failed request says the check did not work.
         const notFound = result.notFound || (result.success && !result.attributionResolved)
         if (!valid) setError(t(notFound ? 'signupStep.inviterNotFound' : 'signupStep.inviterCheckFailed'))
+        trackError('inviter_username', valid ? null : notFound ? 'not_found' : 'check_failed')
         return valid
     }
 
-    const onContinue = () => {
+    const onContinue = async () => {
         const code = toInviteCode(draft)
-        if (!isValid || isChanging || !code) return
-        setInviterUsername(draft)
-        applyManualInvite(code)
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
-        void handleNext()
+        const userId = user?.user.userId
+        if (!isValid || isChanging || busy || !code || !userId) return
+        track('continue', 'tap')
+        setIsAccepting(true)
+        try {
+            stashInvite(code, EInviteType.DIRECT)
+            const outcome = await settlePendingInviteAttribution(userId, 'setup_invite_step')
+            if (outcome.status === 'attributed') {
+                posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
+                // The inviter is final. The cursor moves first, then the step leaves the
+                // list, so Back cannot reopen it and offer a second inviter. The profile
+                // refresh brings the server's inviter in, which also hides the step after
+                // a reload.
+                await handleNext()
+                setInviterAccepted(true)
+                void fetchUser().catch(() => {})
+                return
+            }
+            // A transient failure keeps the stash for the next app start; Skip clears it.
+            setError(t(outcome.status === 'retryable' ? 'signupStep.inviterCheckFailed' : 'signupStep.inviterNotFound'))
+            trackError('inviter_username', outcome.status === 'retryable' ? 'accept_failed' : 'not_found')
+        } finally {
+            setIsAccepting(false)
+        }
     }
 
-    // Skip undoes an inviter added on an earlier visit and restores the
-    // invite-link referral, if there was one.
     const onSkip = () => {
-        if (inviterUsername) {
-            clearManualInvite()
-            setInviterUsername('')
-        }
+        track('skip', 'tap')
+        // Only this step can leave a stash here: the step is hidden when the signup had an invite.
+        if (readInviteCode()) clearInvite()
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
         void handleNext()
     }
 
@@ -71,6 +106,7 @@ export default function InviteStep() {
                     validate={validate}
                     shouldValidate={(value) => toInviteCode(value).length >= USERNAME_MIN_LENGTH}
                     onUpdate={({ value, isValid, isChanging }) => {
+                        if (isChanging) trackOnce('inviter_username', 'change')
                         valueRef.current = value
                         setDraft(value)
                         setIsValid(isValid)
@@ -81,6 +117,7 @@ export default function InviteStep() {
                     isInputChanging={isChanging}
                     prefix="@"
                     className="rounded-sm"
+                    onClear={() => track('inviter_username_clear', 'tap')}
                 />
                 <div className="min-h-8 compact:min-h-6">{error && <FieldError>{error}</FieldError>}</div>
             </div>
@@ -89,15 +126,15 @@ export default function InviteStep() {
                     <Button
                         shadowSize="4"
                         className="w-full"
-                        loading={isLoading}
-                        disabled={!isValid || isChanging || isLoading}
+                        loading={busy}
+                        disabled={!isValid || isChanging || busy}
                         onClick={onContinue}
                     >
                         {t('inviteStep.continue')}
                     </Button>
                 }
                 secondary={
-                    <Button variant="secondary" shadowSize="4" className="w-full" disabled={isLoading} onClick={onSkip}>
+                    <Button variant="secondary" shadowSize="4" className="w-full" disabled={busy} onClick={onSkip}>
                         {t('inviteStep.skip')}
                     </Button>
                 }

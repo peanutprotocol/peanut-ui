@@ -1,3 +1,5 @@
+import { featureReport } from '@/test-utils/featureReport.fixture'
+import type { NextAction } from '@/types/capabilities'
 import { act, renderHook } from '@testing-library/react'
 import { useQrIdentityCheck } from '../useQrIdentityCheck'
 
@@ -7,6 +9,7 @@ import { useQrIdentityCheck } from '../useQrIdentityCheck'
 
 const mockFlow = {
     handleInitiateKyc: jest.fn(),
+    handleRestartIdentity: jest.fn(),
     completeFlow: jest.fn(),
     showWrapper: false,
     isModalOpen: false,
@@ -18,11 +21,22 @@ const mockToastError = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
 let mockCanPay = false
+let mockNextActions: NextAction[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        canDo: () => mockCanPay,
+        capabilities: {
+            features: {
+                ...featureReport({
+                    rails: [],
+                    nextActions: mockNextActions,
+                    identity: { status: 'not_started' },
+                    residence: null,
+                }),
+                qr: mockCanPay ? { state: 'on' } : { state: 'action_required', action: 'verify' },
+            },
+        },
         railsForProvider: () => [],
-        nextActions: [],
+        nextActions: mockNextActions,
         isLoading: false,
     }),
 }))
@@ -33,6 +47,7 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
 beforeEach(() => {
     jest.clearAllMocks()
     mockCanPay = false
+    mockNextActions = []
     Object.assign(mockFlow, { showWrapper: false, isModalOpen: false, error: null })
 })
 
@@ -41,6 +56,16 @@ describe('useQrIdentityCheck', () => {
         const { result } = renderHook(() => useQrIdentityCheck())
         act(() => result.current.start())
         expect(mockFlow.handleInitiateKyc).toHaveBeenCalledWith('LATAM')
+    })
+
+    // TASK-22698: the start route answers "already approved" for this user and
+    // opens nothing, so the slide must restart the identity check.
+    it('restarts the identity check when the approval lost its identity evidence', () => {
+        mockNextActions = [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }]
+        const { result } = renderHook(() => useQrIdentityCheck())
+        act(() => result.current.start())
+        expect(mockFlow.handleRestartIdentity).toHaveBeenCalledTimes(1)
+        expect(mockFlow.handleInitiateKyc).not.toHaveBeenCalled()
     })
 
     it('closes the flow once QR pay opens, instead of waiting for a bank rail', () => {

@@ -118,21 +118,7 @@ describe('ProviderSheet rows', () => {
                 'Support',
             ],
         ],
-        [
-            'manteca-br',
-            'Manteca',
-            [
-                'Legal name',
-                'Registered office',
-                'Tax ID',
-                'Role',
-                'How this executes',
-                "Peanut's role",
-                'Terms',
-                'Privacy',
-                'Support',
-            ],
-        ],
+        ['manteca-br', 'Manteca', ['Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy', 'Support']],
         ['rhino', 'Rhino.fi', ['Legal name', 'Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy']],
         [
             'third-national',
@@ -184,7 +170,8 @@ describe('ProviderFinePrint', () => {
         withIntl(<ProviderFinePrint providerId="manteca-br" />)
         expect(screen.getByText('Provider · Manteca')).toBeInTheDocument()
         const sheet = openSheet('Manteca')
-        expect(within(sheet).getByText('CNPJ 63.653.001/0001-55')).toBeInTheDocument()
+        // brand only in brazil: no legal name, office or CNPJ
+        expect(within(sheet).queryByText(/CNPJ/)).not.toBeInTheDocument()
     })
 
     it('says Manteca settles, since the brazil sheet also opens from qr pay', () => {

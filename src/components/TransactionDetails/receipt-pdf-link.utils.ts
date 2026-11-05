@@ -33,8 +33,9 @@ export function openReceiptPdfUrl(pdfPath: `/${string}`): void {
 
 /** the receipt state the pdf renders; when it changes, a file fetched for the
  *  earlier state is outdated (pending → completed, refunds, amount or rate
- *  fixes, a new status date, tx hash, card dispute or provider). it rides the pdf url,
- *  so it is an opaque digest — amounts and dates never land in request logs. */
+ *  fixes, a settled network fee, a new status date, tx hash, card dispute or
+ *  provider). it rides the pdf url, so it is an opaque digest — amounts and
+ *  dates never land in request logs. */
 export const receiptPdfVersion = (transaction: TransactionDetails): string =>
     fnv1a64(
         [
@@ -46,6 +47,10 @@ export const receiptPdfVersion = (transaction: TransactionDetails): string =>
             transaction.extraDataForDrawer?.receipt?.exchange_rate,
             transaction.extraDataForDrawer?.wasReturned,
             transaction.fee,
+            // a withdrawal's network fee settles after the row completes
+            transaction.networkFeeDetails?.state,
+            transaction.networkFeeDetails?.amountDisplay,
+            transaction.recipientReceivesUsd,
             transaction.date,
             transaction.completedAt,
             transaction.claimedAt,

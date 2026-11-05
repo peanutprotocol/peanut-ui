@@ -31,7 +31,10 @@ jest.mock('next/dynamic', () => ({
     },
 }))
 
-jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: true }))
+jest.mock('@/constants/harness.consts', () => ({
+    ...jest.requireActual('@/constants/harness.consts'),
+    HARNESS_ENABLED: true,
+}))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: false }))
 
 const passthrough = (name: string) => ({
@@ -54,6 +57,8 @@ jest.mock('../AppGlobals', () => passthrough('AppGlobals'))
 jest.mock('@/components/Global/AppHelpProvider', () => passthrough('AppHelpProvider'))
 jest.mock('@/components/Global/ConsoleGreeting', () => ({ ConsoleGreeting: () => null }))
 jest.mock('@/components/Global/ScreenOrientationLocker', () => ({ ScreenOrientationLocker: () => null }))
+// Its once-per-module /version fetch would land in whichever test mounts it first.
+jest.mock('@/components/Global/TestBuildRibbon', () => ({ TestBuildRibbon: () => null }))
 jest.mock('@/components/Analytics/PathnamePageviewTracker', () => ({ PathnamePageviewTracker: () => null }))
 // ScreenTransitionTracker reads query state through nuqs; this spec mocks the
 // adapter to a passthrough, so stub the tracker like the pageview one above —
@@ -75,6 +80,8 @@ jest.mock('@/utils/marketing-routes', () => ({ isMarketingRoute: () => false }))
 jest.mock('@/context/HarnessReplay', () => ({ HarnessReplay: () => null }))
 
 import { ClientProviders } from '../ClientProviders'
+// Loaded up front so waitFor's window times the boundary, not module compilation under load.
+import '@/context/HarnessBootstrap'
 
 const reload = jest.fn()
 const replace = jest.fn()
@@ -110,6 +117,10 @@ beforeEach(() => {
     }) as unknown as typeof fetch
 })
 
+afterEach(() => {
+    jest.restoreAllMocks()
+})
+
 it('fetches the reproduce manifest from the root client boundary, on any user agent', async () => {
     render(
         <ClientProviders>
@@ -123,6 +134,7 @@ it('fetches the reproduce manifest from the root client boundary, on any user ag
 it('is a no-op without the reproduce param', async () => {
     window.location.search = '?method=bank'
     window.location.href = 'http://app.test/add-money?method=bank'
+    const addEventListener = jest.spyOn(window, 'addEventListener')
 
     render(
         <ClientProviders>
@@ -130,6 +142,8 @@ it('is a no-op without the reproduce param', async () => {
         </ClientProviders>
     )
 
-    await waitFor(() => expect(sessionStorage.getItem('__reproduce_applied')).toBeNull())
+    // The bootstrap subscribes to pageshow once its effect has run.
+    await waitFor(() => expect(addEventListener).toHaveBeenCalledWith('pageshow', expect.any(Function)))
+    expect(sessionStorage.getItem('__reproduce_applied')).toBeNull()
     expect(global.fetch).not.toHaveBeenCalled()
 })

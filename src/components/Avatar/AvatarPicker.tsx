@@ -13,10 +13,9 @@ import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
 import { badgeAvatarKeys, basicAvatarKeys, dealHand } from './avatar.utils'
-import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
-import { useAvatarKey } from './useAvatarKey'
+import { useAvatarArt } from './useAvatarArt'
 import { roveAvatarTiles } from './avatarPicker.utils'
-import { UserAvatar } from './UserAvatar'
+import { AvatarSticker } from './AvatarSticker'
 
 interface AvatarPickerProps {
     open: boolean
@@ -37,10 +36,12 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     const userId = user?.user.userId
     const username = user?.user.username ?? undefined
-    const saved = useAvatarKey(user?.user.avatarKey, userId)
+    const saved = user?.user.avatarKey ?? null
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
-    const unlocked = badgeAvatarKeys(held)
+    // the served map also unlocks badge art this bundle predates
+    const art = useAvatarArt()
+    const unlocked = badgeAvatarKeys(held, art)
 
     // Non-Latin initials have no sticker key; null renders the username's first character.
     const first = username?.trim().charAt(0) ?? ''
@@ -52,9 +53,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const draining = useRef(false)
     const pick = pending === undefined ? saved : pending
 
+    const reportSaveFailed = () => toast({ type: 'error', message: t('saveFailed') })
+
     const drain = async () => {
         draining.current = true
-        let serverKey = user?.user.avatarKey ?? null
         try {
             // A tap during refetch queues another write.
             do {
@@ -63,13 +65,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     wanted.current = undefined
                     try {
                         const { error } = await updateUserById({ userId, avatarKey: key })
-                        if (error) rememberOrReport(key, serverKey)
-                        else {
-                            serverKey = key
-                            storeLetterAvatar(userId, null)
-                        }
+                        if (error) reportSaveFailed()
                     } catch {
-                        rememberOrReport(key, serverKey)
+                        reportSaveFailed()
                     }
                 }
                 await fetchUser()
@@ -78,13 +76,6 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
             draining.current = false
             setPending(undefined)
         }
-    }
-
-    // Older APIs reject letter keys. Keep those locally; sticker failures still report an error.
-    const rememberOrReport = (key: string | null, serverKey: string | null) => {
-        // A changed server key invalidates this fallback after a pick on another device.
-        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key, serverKey)
-        else toast({ type: 'error', message: t('saveFailed') })
     }
 
     const save = (key: string | null) => {
@@ -98,22 +89,26 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const [turns, setTurns] = useState(0)
     useEffect(() => {
         // Deal on open and when auth resolves. Keep an in-flight pick when reopening.
-        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined }))
+        // ponytail: a map that lands after open is used from the next open or roll
+        if (open) setHand(dealHand(pick, unlocked, { prefer: preferBadge ?? undefined, art }))
         // Taps and ordinary user refetches must not reshuffle the hand.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, userId])
 
     useEffect(() => {
         if (!open || pending !== undefined || !saved) return
-        const earned = badgeAvatarKeys((user?.user.badges ?? []).map((badge) => badge.code))
-        if (!basicAvatarKeys().includes(saved) && !earned.includes(saved)) return
+        const earned = badgeAvatarKeys(
+            (user?.user.badges ?? []).map((badge) => badge.code),
+            art
+        )
+        if (!basicAvatarKeys(art).includes(saved) && !earned.includes(saved)) return
         // A failed save after a roll can restore a saved sticker that is no longer in the hand.
-        setHand((current) => (current.length && !current.includes(saved) ? dealHand(saved, earned) : current))
-    }, [open, pending, saved, user?.user.badges])
+        setHand((current) => (current.length && !current.includes(saved) ? dealHand(saved, earned, { art }) : current))
+    }, [open, pending, saved, user?.user.badges, art])
 
     const roll = () => {
         setTurns((n) => n + 1)
-        setHand(dealHand(pick, unlocked))
+        setHand(dealHand(pick, unlocked, { art }))
     }
 
     // A legacy pick of another letter has no matching tile; do not mark the user's initial instead.
@@ -182,11 +177,14 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                             className="absolute top-1 right-1"
                                         />
                                     )}
-                                    <UserAvatar
-                                        name={initial ? username : undefined}
+                                    <AvatarSticker
+                                        letterOf={initial ? (username ?? '') : ''}
                                         avatarKey={initial ? initialKey : key}
-                                        size="l"
-                                        className="aspect-square h-auto w-3/5"
+                                        size="xl"
+                                        // a chooser tile, not a person avatar: the tile sets the
+                                        // width, and the art-failed fallback keeps the tile's own
+                                        // Heading/S letter and 32 glyph instead of the xl steps
+                                        className="aspect-square h-auto w-3/5 text-heading-s [&_svg]:size-8"
                                     />
                                     {/* Two lines reserved for every name, so a roll that deals only one-line
                                         names keeps the rows as tall as one with a wrapped name (TASK-23054). */}

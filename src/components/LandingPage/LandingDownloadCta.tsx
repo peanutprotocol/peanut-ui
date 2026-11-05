@@ -8,6 +8,7 @@ export function LandingDownloadCta({ subtext }: { subtext?: string }) {
         <div className="flex w-full flex-col items-center" data-testid="landing-download-cta">
             <DownloadAppLink
                 surface={MIGRATION_SURFACES.LANDING_HERO}
+                qrPlacement="hero"
                 variant="secondary"
                 size="large"
                 className={`w-fit ${CTA_MOTION}`}

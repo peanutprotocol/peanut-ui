@@ -189,7 +189,7 @@ describe('a withheld corridor with its cause', () => {
             (row) => row.corridor === 'SEPA_EU'
         )!
 
-    it.each(['review-action', 'review-pending'] as const)(
+    it.each(['review-action', 'review-pending', 'not_started'] as const)(
         'opens the claim step, whose gate drawer names the review, for %s',
         (cause) => {
             expect(rowFor(withheldFor('SEPA_EU', cause)).openable).toBe(true)
@@ -233,8 +233,8 @@ describe('a withheld corridor with its cause', () => {
 
 describe('otherWaysRows', () => {
     const rows = buildBankRows({
-        bankChips: { brl: 'active', ars: 'unlock', usd: 'active', mxn: 'unlock', sepa: 'active' },
-        restrictions: { banking: false, card: false },
+        bankChips: { brl: 'active', ars: 'notAvailable', usd: 'active', mxn: 'unlock', sepa: 'active' },
+        closedBecause: { ars: 'residence' },
         residenceIso2: 'PT',
         isEuropeResidence: true,
     })
@@ -253,8 +253,8 @@ describe('otherWaysRows', () => {
     // the other ways, on one screen.
     it('lists a currency once: a bank row it cannot use yet goes where the account row answers for it', () => {
         const pending = buildBankRows({
-            bankChips: { brl: 'active', ars: 'unlock', usd: 'processing', mxn: 'attention', sepa: 'processing' },
-            restrictions: { banking: false, card: false },
+            bankChips: { brl: 'active', ars: 'notAvailable', usd: 'processing', mxn: 'attention', sepa: 'processing' },
+            closedBecause: { ars: 'residence' },
             residenceIso2: 'PT',
             isEuropeResidence: true,
         })

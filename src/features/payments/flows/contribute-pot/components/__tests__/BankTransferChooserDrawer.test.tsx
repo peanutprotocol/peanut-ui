@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { personFrom } from '@/lib/person/person'
 import { IntlWrapper } from '@/test-utils/intl'
 import { BankTransferChooserDrawer } from '../BankTransferChooserDrawer'
 
@@ -13,6 +14,8 @@ jest.mock('../PayByBankTransferDrawer', () => ({
     },
 }))
 
+const hugo = personFrom({ username: 'hugo', avatarKey: null })
+
 const rail = (currency: string, railId: string) => ({
     kind: 'bank' as const,
     railId,
@@ -26,8 +29,7 @@ it('opens one chooser with requester context and the eligible rails in order', (
             <BankTransferChooserDrawer
                 requestId="req-1"
                 rails={[rail('EUR', 'bridge.sepa_eu'), rail('USD', 'bridge.ach_us'), rail('GBP', 'bridge.fps_gb')]}
-                recipientUsername="hugo"
-                recipientAvatarKey={null}
+                person={hugo}
                 requestMessage="Dinner in Berlin"
                 requestAmount="100.00 EUR"
                 bankRowProps={{ bankPayable: true, remainingUsd: 108 }}
@@ -53,7 +55,7 @@ it('opens one chooser with requester context and the eligible rails in order', (
             requestId: 'req-1',
             nested: true,
             requestContext: expect.objectContaining({
-                recipientUsername: 'hugo',
+                person: hugo,
                 requestMessage: 'Dinner in Berlin',
                 requestAmount: '100.00 EUR',
             }),
@@ -67,8 +69,7 @@ it('wraps the row description instead of cutting it', () => {
             <BankTransferChooserDrawer
                 requestId="req-1"
                 rails={[rail('EUR', 'bridge.sepa_eu')]}
-                recipientUsername="hugo"
-                recipientAvatarKey={null}
+                person={hugo}
                 bankRowProps={{ bankPayable: true, remainingUsd: 108 }}
                 onUnavailable={jest.fn()}
             />

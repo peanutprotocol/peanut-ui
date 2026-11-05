@@ -11,7 +11,7 @@ import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
 import { type CreateChargeRequest, type TCharge } from './services.types'
 import { BASE_URL } from '@/constants/general.consts'
-import { ApiError } from '@/services/api-error'
+import { ApiError, apiErrorFromResponse } from '@/services/api-error'
 
 type ApiAccount = {
     identifier: string
@@ -42,6 +42,7 @@ export type ApiUser = {
         name: string
         description: string | null
         publicDescription?: string | null
+        shareLine?: string
         iconUrl: string | null
         color?: string | null
         earnedAt?: string
@@ -93,6 +94,9 @@ export const usersApi = {
         const response = await serverFetch(`/users/username/${username}`, {
             method: 'GET',
         })
+        // An unknown or deactivated handle 404s. Resolving with that body let the
+        // error pass as a profile, and the person cache kept it for minutes.
+        if (!response.ok) throw await apiErrorFromResponse(response, 'Failed to fetch user')
         return await response.json()
     },
 

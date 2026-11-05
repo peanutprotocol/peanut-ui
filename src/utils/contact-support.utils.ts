@@ -13,6 +13,7 @@
  * context that the agent can copy/paste into their ops tooling.
  */
 import type { CapabilityReason } from '@/types/capabilities'
+import { SUPPORT_CASE_REASON_CODES, type SupportCase } from '@/utils/capability-gate'
 
 export function buildContactSupportMessage(args: {
     reason?: CapabilityReason
@@ -32,4 +33,25 @@ export function buildContactSupportMessage(args: {
     if (railId) lines.push(`rail: ${railId}`)
     if (userId) lines.push(`user: ${userId}`)
     return lines.join('\n')
+}
+
+/** The user's own words for each support case (kyc namespace). */
+export const SUPPORT_CASE_MESSAGE_KEYS = {
+    'duplicate-account': 'initiate.supportMessageDuplicateAccount',
+    'imported-identity': 'initiate.supportMessageImportedIdentity',
+} as const satisfies Record<SupportCase, string>
+
+/**
+ * The prefill for a block only support can lift. The reason code names the
+ * case, so the agent looks for both accounts of a duplicate, or at the
+ * imported identity, instead of reasoning about this account alone.
+ */
+export function buildSupportCaseMessage(
+    supportCase: SupportCase,
+    userMessage: string,
+    reason?: Partial<CapabilityReason>
+): string {
+    return buildContactSupportMessage({
+        reason: { ...reason, code: SUPPORT_CASE_REASON_CODES[supportCase], userMessage },
+    })
 }

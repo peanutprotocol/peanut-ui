@@ -141,6 +141,32 @@ describe('badge badge campaign claims contract', () => {
         expect(result.pending).toEqual([])
     })
 
+    it('keeps the localized share line from the claim response', async () => {
+        mockServerFetch.mockResolvedValue(
+            response(200, {
+                claims: [
+                    {
+                        badgeCampaign: 'new-badge',
+                        badgeCode: 'NEW_BADGE',
+                        badge: {
+                            code: 'NEW_BADGE',
+                            name: 'Insignia nueva',
+                            description: 'La ganaste.',
+                            publicDescription: 'La ganó.',
+                            shareLine: '¡Gané una insignia nueva!',
+                            iconUrl: null,
+                        },
+                        outcome: 'awarded',
+                    },
+                ],
+            })
+        )
+
+        const result = await claimAndSettlePendingBadgeCampaigns(['new-badge'])
+
+        expect(result.claims[0].badge?.shareLine).toBe('¡Gané una insignia nueva!')
+    })
+
     it('aligns backend echoes case-insensitively and retains only definition_missing in a mixed batch', async () => {
         savePendingBadgeCampaigns(['NITA', 'Old', 'Mystery', 'Deploying'])
         mockServerFetch.mockResolvedValue(

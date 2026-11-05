@@ -6,6 +6,7 @@ import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/confi
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     availableCorridorLocales,
     corridorLocaleFor,
     readCorridorContentLocalized,
@@ -66,7 +67,6 @@ export default async function FromToCorridorPage({ params }: PageProps) {
     const fromName = getCountryName(from, locale)
     const toName = getCountryName(to, locale)
     const url = `/${locale}/send-money-from/${from}/to/${to}`
-    const fm = mdxSource.frontmatter
 
     return (
         <ContentPage
@@ -76,11 +76,7 @@ export default async function FromToCorridorPage({ params }: PageProps) {
                 { name: i18n.home, href: `/${locale}` },
                 { name: `${fromName} → ${toName}`, href: url },
             ]}
-            article={
-                fm.generated_at
-                    ? { title: fm.title, description: fm.description, url, datePublished: fm.generated_at }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

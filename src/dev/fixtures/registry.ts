@@ -10,11 +10,9 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
-import {
-    RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-} from '@/constants/residence.consts'
+import { DOWNLOAD_PROMPT_FIXTURE } from './active'
+import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
+import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -23,6 +21,116 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
+import { DEMO_ADDRESS } from '@/constants/demo-data'
+
+const ROUTES = {
+    bank: '/add-money/germany/bank',
+    local: '/add-money/argentina/manteca',
+    card: '/card?kyc=%7B%7D',
+} as const
+const PROVIDERS = { bank: 'bridge', local: 'manteca', card: 'rain' } as const
+const STATES = [
+    'ready',
+    'on',
+    'setting_up',
+    'pending',
+    'action_required',
+    'refused',
+    'failed',
+    'questions_missing',
+] as const
+
+const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntries(
+    Object.entries(ROUTES).flatMap(([feature, route]) =>
+        STATES.map((state) => {
+            const key = `POST /users/kyc/features/${feature}/activate`
+            const provider = PROVIDERS[feature as keyof typeof PROVIDERS]
+            return [
+                `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
+                {
+                    route,
+                    about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
+                    balance: '20',
+                    responses: {
+                        ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
+                        'GET /users/me': {
+                            identityVerification: { status: 'verified', oneShot: true },
+                            ...(feature === 'card'
+                                ? {}
+                                : {
+                                      // An account already on passes the gate with no tap; any other state asks first.
+                                      capabilities: {
+                                          features: {
+                                              [feature]: {
+                                                  ...(state === 'on'
+                                                      ? { state: 'on' }
+                                                      : { state: 'ready', action: 'activate' }),
+                                                  accounts: {
+                                                      [feature === 'bank' ? 'EUR' : 'ARS']:
+                                                          state === 'on'
+                                                              ? { state: 'on' }
+                                                              : { state: 'ready', action: 'activate' },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  }),
+                        },
+                        ...(feature === 'card'
+                            ? {
+                                  'GET /rain/cards': {
+                                      status: { hasApplication: false, railStatus: null, applicationStatus: null },
+                                      cards: [],
+                                      balance: null,
+                                  },
+                              }
+                            : {}),
+                        [key]: {
+                            state,
+                            ...(state === 'action_required' ? { action: `supplement:${provider}` } : {}),
+                            ...(state === 'refused' ? { reason: 'identity_document_insufficient' } : {}),
+                        },
+                        'GET /users/kyc/questions': {
+                            available: true,
+                            attemptId: null,
+                            residence: feature === 'local' ? 'AR' : 'DE',
+                            steps: [
+                                {
+                                    id: 'purpose',
+                                    features: [feature],
+                                    answered: false,
+                                    fields: [
+                                        {
+                                            key: feature === 'card' ? 'cardPurpose' : 'bankPurpose',
+                                            kind: 'choice',
+                                            required: true,
+                                            options: ['personal_or_living_expenses', 'travel'],
+                                            value: null,
+                                        },
+                                    ],
+                                },
+                            ],
+                            firstUnanswered: 'purpose',
+                        },
+                    },
+                    // the missing answers open the feature's questions on /verify
+                    ...(state === 'questions_missing' ? { landsOn: `/verify?feature=${feature}` } : {}),
+                    ...(state === 'failed' ? { fails: [key] } : {}),
+                    rejects: {
+                        'POST /users/kyc/start-action': {
+                            status: 503,
+                            body: { error: 'Synthetic action unavailable' },
+                        },
+                        ...(state === 'questions_missing'
+                            ? { [key]: { status: 409, body: { code: 'questions_missing', step: 'purpose' } } }
+                            : {}),
+                    },
+                } satisfies Fixture,
+            ]
+        })
+    )
+)
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -88,6 +196,35 @@ const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
 ]
 
+// A PIX key saved to favorites after a payment, with the bank the PIX directory
+// named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
+/** the Brazil pause switched on for a Brazil resident (TASK-24197) */
+const BRAZIL_PAUSED_RESPONSES = {
+    'GET /config/kill-switches': { brazilServicesPaused: true },
+    'GET /users/me': {
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+    },
+}
+
+const PIX_FAVORITE = {
+    id: 'fixture-pix-favorite-1',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'manteca',
+    identifier: 'maria@silva.com.br',
+    label: 'Maria',
+    lastUsedAt: '2026-08-20T09:00:00.000Z',
+    details: { bankName: 'NU PAGAMENTOS S.A.', accountOwnerName: '', countryCode: 'BRA', countryName: 'brazil' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: null,
+    isPixRecipient: true,
+}
+
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
 // three cleared, or "no transactions" still renders four rows.
@@ -118,10 +255,10 @@ const INVITES_ONE = {
         {
             inviteeId: 'fixture-invitee-1',
             username: 'testfriend1',
+            // A friend who shows their name: the API sends it in fullName.
             fullName: 'Test Friend',
             kycVerified: true,
             contributedPoints: 50,
-            showFullName: false,
             lifetimeEarnedUsd: 0.5,
         },
     ],
@@ -135,6 +272,23 @@ const INVITES_ONE = {
         totalLifetimeEarnedUsd: 0.5,
         totalPendingUsd: 0,
     },
+}
+
+// A friend who never finished signup: no username and no name (TASK-24036).
+const INVITES_WITH_UNNAMED = {
+    invitees: [
+        ...INVITES_ONE.invitees,
+        {
+            inviteeId: 'fixture-invitee-unnamed',
+            username: null,
+            fullName: null,
+            kycVerified: false,
+            contributedPoints: 0,
+            showFullName: false,
+            lifetimeEarnedUsd: 0,
+        },
+    ],
+    summary: { ...INVITES_ONE.summary, pendingInvites: 1, totalInvites: 2 },
 }
 
 const HUGE_HISTORY_ENTRY = {
@@ -169,6 +323,74 @@ const PIX_KEY_PAYMENT_ENTRY = {
     recipientAccount: { identifier: 'maria@silva.com.br', fullName: 'MARIA DA SILVA', type: 'BANK_CBU', isUser: false },
     currency: { amount: '51.30', code: 'BRL' },
     extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10' },
+}
+
+// An in-person card tap at a coffee shop, settled in USD (same currency, so
+// no Visa conversion). Shape follows peanut-api-ts transaction-intent/history.ts
+// for CARD_SPEND_CLEAR: the user sends, the merchant receives.
+const CARD_SPEND_ENTRY = {
+    uuid: 'fixture-card-spend',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-20T09:12:00.000Z'),
+    amount: '4.5',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'Corner Coffee', type: 'merchant', isUser: false },
+    currency: { amount: '4.50', code: 'USD' },
+    extraData: {
+        kind: 'CARD_SPEND_CLEAR',
+        provider: 'RAIN',
+        usdAmount: '4.5',
+        merchantName: 'Corner Coffee',
+        merchantCategory: 'Coffee shop',
+        merchantMcc: '5814',
+        cardAuthAmount: '4.50',
+        cardSettledAmount: '4.50',
+        settlementAdjusted: false,
+    },
+}
+
+// Two earlier taps, so the Activity list behind the receipt holds only card rows.
+const EARLIER_CARD_SPENDS = [
+    { merchant: 'Daily Bread', amount: '7.20', timestamp: '2026-10-19T08:40:00.000Z' },
+    { merchant: 'City Books', amount: '18.00', timestamp: '2026-10-18T16:05:00.000Z' },
+].map(({ merchant, amount, timestamp }, i) => ({
+    ...CARD_SPEND_ENTRY,
+    uuid: `fixture-card-spend-earlier-${i + 1}`,
+    timestamp: new Date(timestamp),
+    amount,
+    recipientAccount: { identifier: merchant, type: 'merchant', isUser: false },
+    currency: { amount, code: 'USD' },
+    extraData: {
+        ...CARD_SPEND_ENTRY.extraData,
+        usdAmount: amount,
+        merchantName: merchant,
+        merchantCategory: null,
+        merchantMcc: null,
+        cardAuthAmount: amount,
+        cardSettledAmount: amount,
+    },
+}))
+
+// A $400 request link paid from an exchange: the payer has no Peanut
+// account, so Activity names the sending address (star LP /request-links).
+const REQUEST_PAID_EXTERNAL_ENTRY = {
+    uuid: 'fixture-request-paid-external',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-20T17:34:00.000Z'),
+    amount: '400',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: '0x7a3f9c41d2e8b05a6f13c47e92d0ab58e1f491c2', type: 'evm-address', isUser: false },
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    extraData: { kind: 'P2P_REQUEST_FULFILL', usdAmount: '400' },
 }
 
 // A USD wire withdrawal (TASK-23054): $100 sent, a $20 wire fee withheld.
@@ -266,6 +488,126 @@ const PENDING_BANK_REQUEST_ENTRY = {
     totalAmountCollected: 0,
 }
 
+// A request pot asked in euros, part paid by two contributors (TASK-23856):
+// €88 = $99.16. Hugo paid $40.65 from his balance. A second payer's $58.51
+// charge received 33 USDC from an external wallet, so it completed short and
+// carries the API's partialPayment flag.
+const POT_PAYMENT = (
+    chargeUuid: string,
+    paidAmountInRequestedToken: string,
+    payer: string,
+    username: string | null
+) => ({
+    uuid: `${chargeUuid}-payment`,
+    chargeUuid,
+    payerTransactionHash: `0x${chargeUuid}`,
+    payerChainId: '42161',
+    paidTokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    paidAmountInRequestedToken,
+    payerAddress: payer,
+    fulfillmentTransactionHash: null,
+    status: 'SUCCESSFUL',
+    reason: null,
+    createdAt: '2026-10-19T19:36:10.000Z',
+    verifiedAt: '2026-10-19T19:36:10.000Z',
+    payerAccount: {
+        userId: username ? `fixture-${username}` : null,
+        identifier: username ?? payer,
+        type: username ? 'peanut-wallet' : 'evm-address',
+        user: username ? { username, bridgeKycStatus: 'approved', avatarKey: null } : null,
+    },
+})
+
+const POT_CHARGE = (
+    uuid: string,
+    tokenAmount: string,
+    settledAmount: string,
+    payment: ReturnType<typeof POT_PAYMENT>
+) => ({
+    uuid,
+    createdAt: '2026-10-19T19:34:13.000Z',
+    tokenAmount,
+    tokenDecimals: 6,
+    settledAmount,
+    status: 'COMPLETED',
+    partialPayment: Number(settledAmount) < Number(tokenAmount),
+    payments: [payment],
+    fulfillmentPayment: payment,
+})
+
+const HUGO_CHARGE = POT_CHARGE(
+    'fixture-pot-charge-hugo',
+    '40.65',
+    '40.65',
+    POT_PAYMENT('fixture-pot-charge-hugo', '40650000', '0x00000000000000000000000000000000000a11ce', 'hugo')
+)
+const SHORT_CHARGE = POT_CHARGE(
+    'fixture-pot-charge-short',
+    '58.51',
+    '33',
+    POT_PAYMENT('fixture-pot-charge-short', '33000000', '0x00000000000000000000000000000000000b0b0b', null)
+)
+
+const PARTIAL_POT_ENTRY = {
+    uuid: 'fixture-request-pot-partial',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-19T19:36:10.000Z'),
+    createdAt: new Date('2026-10-19T19:32:52.000Z'),
+    completedAt: null,
+    amount: '99.16',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'OPEN',
+    userRole: 'RECIPIENT',
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    memo: 'Dinner',
+    extraData: {
+        provider: 'PEANUT',
+        kind: 'P2P_REQUEST_FULFILL',
+        isRequestPotRollup: true,
+        fulfilledChargeCount: 2,
+        totalChargeCount: 2,
+        requestedAmount: '88',
+        requestCurrency: 'EUR',
+        link: 'https://peanut.me/request/fixture-request-pot-partial',
+    },
+    isRequestLink: true,
+    totalAmountCollected: 73.65,
+    charges: [HUGO_CHARGE, SHORT_CHARGE],
+}
+
+// The same pot after the requester closed it: CLOSED with no `completedAt`,
+// so $25.51 was never paid.
+const CLOSED_SHORT_POT_ENTRY = {
+    ...PARTIAL_POT_ENTRY,
+    uuid: 'fixture-request-pot-closed-short',
+    timestamp: new Date('2026-10-19T19:37:20.000Z'),
+    cancelledAt: new Date('2026-10-19T19:37:20.000Z'),
+    status: 'CLOSED',
+    extraData: { ...PARTIAL_POT_ENTRY.extraData, link: 'https://peanut.me/request/fixture-request-pot-closed-short' },
+}
+
+// The payer side of the same pot, as GET /requests/:uuid answers a payer.
+// Read through `demo-request`, the uuid demo-api answers every request read
+// with; the requester is someone else, so the demo user can pay it.
+const PAYER_POT_REQUEST = {
+    uuid: 'demo-request',
+    status: 'OPEN',
+    tokenAmount: '99.16',
+    currency: 'EUR',
+    requestedAmount: '88',
+    reference: 'Dinner',
+    recipientAccount: {
+        userId: 'fixture-ana',
+        identifier: '0x00000000000000000000000000000000000a11ce',
+        type: 'peanut-wallet',
+        user: { username: 'ana' },
+    },
+    charges: [HUGO_CHARGE],
+    totalCollectedAmount: 40.65,
+}
+
 // Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
 // baseline only ever shows the letter fallback; these restate the three lists a
 // peer appears in. Arrays replace on merge, so each list is given in full.
@@ -304,6 +646,38 @@ const PEER_HISTORY_ENTRY = (
     extraData: { kind: 'DIRECT_TRANSFER', usdAmount: amount },
     memo,
 })
+
+// Receipts the API serves to anyone with the link (TASK-24141): Share receipt
+// sends the link, and the PDF actions sit under More actions. A QR payment
+// also moves Split this bill there.
+const PUBLIC_RECEIPT_SEND_ENTRY = {
+    ...PEER_HISTORY_ENTRY('fixture-public-receipt-send', '25', 'Dinner', PEER('ana', 'Ana Ruiz', 'basic.frog'), false),
+    // a hash, so the fixture shows the drawer leaving out the Transaction ID row
+    txHash: '0x' + '5f1c'.repeat(16),
+    extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '25', publicReceipt: true },
+}
+
+const PUBLIC_RECEIPT_QR_PAY_ENTRY = {
+    uuid: 'fixture-public-receipt-qr-pay',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-28T20:30:00.000Z'),
+    amount: '12.4',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'La Parrilla de Juan', type: 'BANK_CBU', isUser: false },
+    currency: { amount: '15000', code: 'ARS' },
+    extraData: {
+        kind: 'QR_PAY',
+        provider: 'MANTECA',
+        usdAmount: '12.4',
+        publicReceipt: true,
+        receipt: { exchange_rate: '1209.68' },
+    },
+}
 
 const AVATAR_PEERS = [
     PEER('alice', 'Alice Nguyen', 'basic.frog'),
@@ -550,6 +924,35 @@ const QR_PAY_BLOCKED_RAIL = {
     reason: { code: 'provider_rejected', userMessage: 'QR payments are not available for this account.' },
 }
 
+/**
+ * QR rails the API paused because the identity behind the approval is not
+ * usable (`SUMSUB_IDENTITY_MISSING`), by cause: the fix is the identity restart.
+ */
+const qrIdentityPausedCapabilities = (code: string, userMessage: string) => ({
+    rails: [
+        {
+            ...QR_PAY_BLOCKED_RAIL,
+            blockingActions: ['restart-identity'],
+            reason: { code, userMessage },
+            resolved: {
+                status: 'fixable',
+                blocking: { code, userMessage, selfHealable: true, selfHealKind: 'restart-identity' },
+                nextAction: { key: 'restart-identity', kind: 'restart-identity', purpose: code },
+            },
+        },
+    ],
+    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: code }],
+    restrictions: [],
+})
+const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
+    'identity_missing',
+    'We could not read the name and ID number on your ID. Upload it again to pay by QR.'
+)
+
+/** A static Pix QR with no amount: the scan screen's own route. */
+const PIX_QR_ROUTE =
+    '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
+
 /** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
 const MANTECA_AR_CAPABILITIES = {
     rails: [
@@ -665,6 +1068,24 @@ const VA_READY_RESPONSE = {
 }
 
 /**
+ * A UK top-up as the API returns it: GBP over Faster Payments, so the bank
+ * details are a sort code and an account number, not an IBAN and a BIC.
+ */
+const GBP_ONRAMP = {
+    transferId: 'fixture-onramp-gbp',
+    depositInstructions: {
+        amount: '7.00',
+        currency: 'gbp',
+        depositMessage: 'BRGFIXTURE7GBP',
+        bankName: 'Clear Junction Limited',
+        bankAddress: '1 Fixture Street, London EC1A 1AA',
+        accountHolderName: 'Fixture Payments Ltd',
+        sortCode: '04-00-53',
+        accountNumber: '00000001',
+    },
+}
+
+/**
  * The Accounts page mix (Hugo, 2026-09-25): a verified Portuguese resident.
  * EUR is held and USD can open. The backend's own signals decide the rest
  * (peanut-api-ts `listDepositCorridors`): GBP is `not-offered`, MXN is in
@@ -699,6 +1120,62 @@ const PROFILE_ACCOUNTS_MIX = {
     },
 }
 
+/**
+ * An unverified Bangladesh resident who picked bank accounts. Every Bridge
+ * corridor waits on the ID, and the Smart Paperwork Engine (api#1931) refuses
+ * USD to the residence: Bridge publishes no USD rail for Bangladesh.
+ */
+const PAPERWORK_BANGLADESH_RESPONSE = {
+    'GET /users/me': {
+        capabilities: BLOCKED_BANK_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'BD', verified: null, pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [],
+        unavailable: [
+            {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'identity-required',
+            },
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GB',
+                currency: 'GBP',
+                reason: 'identity-required',
+            },
+            { railId: 'bridge.ach_us', method: 'ACH_US', country: 'US', currency: 'USD', reason: 'identity-required' },
+            {
+                railId: 'bridge.spei_mx',
+                method: 'SPEI_MX',
+                country: 'MX',
+                currency: 'MXN',
+                reason: 'identity-required',
+            },
+        ],
+    },
+    'GET /users/kyc/paperwork': {
+        products: [
+            {
+                product: 'bridge.usd',
+                provider: 'BRIDGE',
+                available: false,
+                reason: 'account_unavailable_in_residence',
+                rule: 'bridge.no-usd',
+            },
+            { product: 'bridge.eur', provider: 'BRIDGE', available: true },
+            { product: 'bridge.gbp', provider: 'BRIDGE', available: true },
+            { product: 'bridge.mxn', provider: 'BRIDGE', available: true },
+        ],
+        requirements: [],
+    },
+}
+
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
 const REQUEST_PAY_EUR = {
@@ -708,16 +1185,95 @@ const REQUEST_PAY_EUR = {
     rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
 }
 
+const CARD_HOLDER_OVERVIEW = {
+    status: { hasApplication: true, railStatus: 'ENABLED' },
+    balance: null,
+    cards: [
+        {
+            id: 'fixture-card',
+            rainCardId: 'fixture-rain',
+            status: 'ACTIVE',
+            last4: '0420',
+            expiryMonth: 6,
+            expiryYear: 2069,
+            network: 'visa',
+            issuedAt: '2026-01-01T00:00:00Z',
+            hasWithdrawApproval: false,
+        },
+    ],
+}
+
+/** $25.00 the provider can release; holds already excluded. */
+const CARD_HOLDER_COLLATERAL = {
+    creditLimit: 0,
+    spendingPower: 2500,
+    pendingCharges: 0,
+    postedCharges: 0,
+    balanceDue: 0,
+}
+
+// `GET /rain/cards/funding` for managed card funding. Fake spender, wallet and
+// session signer — a fixture never signs. `allowance` is informational only:
+// every fixture gives a large one on purpose, because readiness is the
+// backend's `management.status` and never the allowance.
+// Typed from the API schema, so a change to the funding response breaks this
+// file at typecheck instead of drifting.
+const cardFunding = (
+    status: RainFundingManagementStatus,
+    migration: RainCardFunding['management']['migration'] = null
+): RainCardFunding => ({
+    chainId: '42161',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    spenderAddress: '0x0000000000000000000000000000000000000001',
+    walletAddress: DEMO_ADDRESS,
+    allowance: '150000000',
+    sessionKeyAddress: '0x4300F803a281e257F3C1de001512e68972f8d022',
+    permission: {
+        scopeVersion: 2,
+        ceiling: '300000000',
+        termsVersion: 'rtf-2026-09-29',
+        authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+    },
+    management: { status, reason: null, migration, stop: null },
+})
+
+// `GET /rain/cards/funding/access`: the server's funding decision, which picks
+// the card surfaces. `managed` with `enrollmentAllowed: false` is an accepted
+// account whose cohort was closed since: it must still finish. Typed from the
+// service, so a change to the response breaks this file at typecheck.
+const cardAccess = (fundingMode: RainFundingAccess['fundingMode'], enrollmentAllowed: boolean): RainFundingAccess => ({
+    fundingMode,
+    enrollmentAllowed,
+})
+
+// An account on the existing card permission: collateral contracts on file and
+// no stored withdrawal approval, so Home asks for the existing permission.
+const LEGACY_CARD_OVERVIEW = {
+    ...CARD_HOLDER_OVERVIEW,
+    status: {
+        ...CARD_HOLDER_OVERVIEW.status,
+        contractAddress: '0x2222222222222222222222222222222222222222',
+        coordinatorAddress: '0x3333333333333333333333333333333333333333',
+    },
+}
+
+// The funding wallet matches the demo wallet (see `cardFunding`), so the modals
+// can verify the funding response's scope.
+const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending' | 'confirmed' | 'unavailable') => {
+    const base = cardFunding('temporarily_unavailable')
+    return {
+        ...base,
+        walletAddress: DEMO_ADDRESS,
+        management: { ...base.management, reason: cause, stop: { cause, state } },
+    }
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-payment-plan': {
         route: '/dev/surfaces?s=03-c-residence-congrats',
         about: 'Signup funding and payment choices with settled residence eligibility.',
         responses: {
-            'GET /config/residence-restrictions': {
-                full: [...RESTRICTED_RESIDENCE_ISO2],
-                cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
-                bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
-            },
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
         },
     },
     // ---------------------------------------------------------------------
@@ -729,6 +1285,11 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    'full-maintenance': {
+        route: '/maintenance',
+        about: 'Full maintenance is on: every app page sends the user to the maintenance screen.',
+        responses: { 'GET /config/kill-switches': { enableFullMaintenance: true } },
+    },
     'home-verification-needed': {
         route: '/home',
         about: 'Home: Add, Send and Request beside an additional bank-transfer verification task.',
@@ -780,6 +1341,19 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Accounts page for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
+    'settings-notifications': {
+        route: '/settings/notifications',
+        about: 'Notification settings: Important alerts and Email updates on, Offers and perks not opted in.',
+        responses: {
+            'GET /notifications/preferences': {
+                push: true,
+                email: true,
+                marketingPush: false,
+                emailUpdates: true,
+                pushPermission: 'granted',
+            },
+        },
+    },
     rewards: {
         route: '/rewards',
         about: 'Points total, tier badge and invite list.',
@@ -789,6 +1363,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/rewards/invites',
         about: 'Invite list with one verified friend.',
         responses: { 'GET /points/invites': INVITES_ONE },
+    },
+    'rewards-invites-unnamed': {
+        route: '/rewards/invites',
+        about: 'Invite list with a friend who never finished signup: no name, no profile link.',
+        responses: { 'GET /points/invites': INVITES_WITH_UNNAMED },
     },
     badges: {
         route: '/badges',
@@ -801,6 +1380,33 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
+    // TASK-24197: tap the BRL row. The Brazil pause opens its drawer instead of the transfer.
+    'add-money-brazil-paused': {
+        route: '/add-money?method=bank',
+        about: 'Add money by bank during the Brazil pause: the BRL row opens the paused drawer.',
+        responses: BRAZIL_PAUSED_RESPONSES,
+    },
+    // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
+    // screen, so the country offers one row.
+    'add-money-argentina': {
+        route: '/add-money/argentina',
+        about: 'Add money, Argentina: one row for bank or Mercado Pago.',
+        responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
+    },
+    // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
+    // amount screen asks for a euro account, as it does for Switzerland.
+    'add-money-bank-liechtenstein': {
+        route: '/add-money/liechtenstein/bank?step=inputAmount&amount=100',
+        about: 'Add money by bank, Liechtenstein: the amount screen asks for a euro account.',
+        responses: VA_READY_RESPONSE,
+    },
+    // TASK-23924: tap Continue, then confirm. The bank details show the sort
+    // code, the account number and pounds, read from the API answer.
+    'add-money-bank-uk': {
+        route: '/add-money/united-kingdom/bank?step=inputAmount&amount=7',
+        about: 'Add money by bank, UK: continue to the GBP bank details (sort code and account number).',
+        responses: { ...VA_READY_RESPONSE, 'POST /bridge/onramp/create': GBP_ONRAMP },
+    },
     // Open /add-money/spain?__fixture=add-money-country-provider-wait and tap
     // "From Bank". The euro rail is under provider review (waiting-on-provider),
     // so the tap opens the "We're reviewing your details" modal (TASK-22153).
@@ -838,6 +1444,15 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/withdraw/crypto',
         about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // TASK-23850: every token price lookup fails, as when Mobula refused every
+    // call. Pick ETH, then Base, and enter an address: Continue still works,
+    // because a withdrawal needs the chain's withdraw list, not a price.
+    'withdraw-crypto-eth-no-price': {
+        route: '/withdraw/crypto',
+        about: 'Crypto withdrawal while every token price lookup fails: ETH on Base still continues.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+        fails: ['GET /tokens/price'],
     },
     // Crypto address book beside the saved bank accounts. The three entries hit
     // the three last-used pill tones against the shots' frozen clock
@@ -926,6 +1541,12 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-24197: a Pix send reached by a link while the Brazil pause is on.
+    'withdraw-brazil-paused': {
+        route: '/withdraw/manteca?country=brazil&method=pix',
+        about: 'A Brazil Pix send during the Brazil pause: the paused screen instead of the key entry.',
+        responses: BRAZIL_PAUSED_RESPONSES,
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',
@@ -1013,15 +1634,19 @@ export const FIXTURES: Record<string, Fixture> = {
         fails: ['GET /manteca/prices'],
     },
     // A PIX-key send after the key screen resolved the owner: the owner's name is
-    // the heading, and the key with the masked CPF/CNPJ sits underneath.
+    // the heading, the key with the masked CPF/CNPJ sits underneath, and the bank
+    // the PIX directory names comes last (the API sent Manteca the bare key).
     'qr-pay-pix-key-owner': {
         route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&pixKey=maria%40silva.com.br&t=1',
-        about: "PIX-key payment showing the key owner's name, with the key and masked CPF/CNPJ below it.",
+        about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
-                paymentRecipientName: 'MARIA@SILVA.COM.BR',
+                paymentRecipientName: 'MARIA DA SILVA',
+                paymentRecipientLegalId: '12*******90',
+                paymentRecipientBankName: 'NU PAGAMENTOS S.A.',
+                paymentRecipientBankCode: '18236120',
                 paymentAsset: 'BRL',
                 paymentAgainst: 'USDC',
                 paymentPrice: '5.5',
@@ -1030,6 +1655,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // A CPF key is the owner's own tax ID: it shows once, in full, labelled CPF.
+    // Its lock names no bank, as when the API had to send the BR Code.
     'qr-pay-pix-key-cpf': {
         route: '/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1',
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
@@ -1045,11 +1671,80 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /manteca/pix-key/owner': { name: 'MARIA DA SILVA', legalIdMasked: '12*******09' },
         },
     },
+    // The capabilities let the user pay, but the API refuses the scan for
+    // identity (TASK-23747): the card starts the verification.
+    'qr-pay-kyc-required': {
+        route: PIX_QR_ROUTE,
+        about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 400,
+                body: {
+                    error: 'User KYC not approved',
+                    message: 'User KYC not approved',
+                    code: 'MANTECA_KYC_REQUIRED',
+                },
+            },
+        },
+    },
+    // TASK-22698: the restart, not the start route that answers "already approved".
+    'qr-pay-identity-missing': {
+        route: PIX_QR_ROUTE,
+        about: "QR paused: the payment partner can't read the name and ID number on the user's ID. They upload it again.",
+        responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+    },
+    'qr-pay-identity-restart-pending': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: the user started a new ID check and has not finished it. They continue it.',
+        responses: {
+            'GET /users/me': {
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_restart_pending',
+                    'Finish your new ID check to pay by QR again.'
+                ),
+            },
+        },
+    },
+    'qr-pay-identity-document-missing': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: an account imported from Manteca has no ID on file. They upload it and take a selfie.',
+        responses: {
+            'GET /users/me': {
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_document_missing',
+                    'We need an identity document and a selfie to complete your verification.'
+                ),
+            },
+        },
+    },
     // Activity after a PIX-key payment: the owner's name, not the key.
     'history-pix-key-owner': {
         route: '/history',
         about: 'Activity row for a PIX-key payment, named after the key owner.',
         responses: { 'GET /users/history': { entries: [PIX_KEY_PAYMENT_ENTRY], hasMore: false } },
+    },
+    // Activity after a request link is paid from an exchange (star LP /request-links capture).
+    'history-request-paid-external': {
+        route: '/history',
+        about: 'Activity row for a request paid from an external wallet, named by its address.',
+        responses: { 'GET /users/history': { entries: [REQUEST_PAID_EXTERNAL_ENTRY], hasMore: false } },
+    },
+    // Activity after an in-person card tap (star LP /peanut-card capture).
+    'history-card-spend': {
+        route: '/history',
+        about: 'Activity after in-person Peanut Card purchases in USD: card rows only, no badge rows.',
+        responses: {
+            'GET /users/history': { entries: [CARD_SPEND_ENTRY, ...EARLIER_CARD_SPENDS], hasMore: false },
+            'GET /users/me': { user: { badges: [] } },
+        },
+    },
+    // Send → Bank with a PIX key saved to favorites: the key's row names its bank.
+    'send-bank-pix-favorite': {
+        route: '/withdraw?method=bank',
+        about: 'Send to a bank account, with a PIX key saved to favorites that shows its bank.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, PIX_FAVORITE] },
+        },
     },
     // Named bank accounts beside the named address book: destinationLabel on
     // every row, masked identifier underneath.
@@ -1117,22 +1812,246 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
         responses: {
             'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-holder-collateral': {
+        route: '/card',
+        about: 'Managed holder with the permission ready and card balance left from before: the collateral note offers Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // Card balance on the existing card permission is what card payments use:
+    // no note and no move, however much there is.
+    'card-holder-collateral-legacy': {
+        route: '/card',
+        about: 'Holder on the existing card permission with card balance: the screen offers no note and no Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...LEGACY_CARD_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    // The funding authorization sits on the terms step, one tap in ("Get your
+    // card") — e2e/flows/card-public.spec.ts takes that tap and shoots it.
+    'card-reissue': {
+        route: '/card',
+        about: 'Approved holder with no card: the card terms end with one funding authorization.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': {
-                status: { hasApplication: true, railStatus: 'ENABLED' },
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
                 balance: null,
-                cards: [
-                    {
-                        id: 'fixture-card',
-                        rainCardId: 'fixture-rain',
-                        status: 'ACTIVE',
-                        last4: '0420',
-                        expiryMonth: 6,
-                        expiryYear: 2069,
-                        network: 'visa',
-                        issuedAt: '2026-01-01T00:00:00Z',
-                        hasWithdrawApproval: false,
-                    },
-                ],
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+            // eligible for managed funding, not accepted yet: the managed terms
+            'GET /rain/cards/funding/access': cardAccess('legacy', true),
+        },
+    },
+    'card-reissue-legacy': {
+        route: '/card',
+        about: 'Approved holder with no card on the existing card permission: the production card terms, with no funding authorization.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
+                balance: null,
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    // The Home prompt is today's centered modal for an existing cardholder.
+    // Nothing can be signed in a fixture, so Continue's outcome is not shot.
+    'card-funding-needed': {
+        route: '/home',
+        about: 'Managed cardholder whose funding permission is missing: the centered Home prompt with one unchecked authorization.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('required'),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Before acceptance the funding read is withheld (`enrollment_required`)
+    // and carries no retirement payload.
+    'card-funding-enrollment': {
+        route: '/home',
+        about: 'Cardholder eligible for managed funding who has not accepted yet: the same prompt with one unchecked authorization, nothing retired.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('legacy', true),
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'enrollment_required', migration: null },
+            },
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-legacy': {
+        route: '/home',
+        about: 'Cardholder on the existing card permission that managed funding is not open to: the production permission prompt, no funding authorization.',
+        responses: {
+            'GET /rain/cards': LEGACY_CARD_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    'card-funding-migration': {
+        route: '/home',
+        about: 'Managed cardholder with a legacy grant to retire: the same prompt, saying there are two confirmations.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Card balance from before goes back to the wallet before the old grant is
+    // retired: the same prompt names the amount and every confirmation.
+    'card-funding-return': {
+        route: '/home',
+        about: 'Existing cardholder with card balance and a legacy grant: the same prompt names the amount and more than one confirmation.',
+        responses: {
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                balance: CARD_HOLDER_COLLATERAL,
+                cards: [{ ...CARD_HOLDER_OVERVIEW.cards[0], hasWithdrawApproval: true }],
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-withdrawal-in-flight': {
+        route: '/home',
+        about: 'Existing cardholder with a legacy grant while a card withdrawal still confirms: the same prompt waits, then offers Check status and Skip.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'withdrawal_in_flight', migration: null },
+            },
+        },
+        waitFor: '[data-testid="modal-head"]',
+    },
+    'card-funding-pending': {
+        route: '/home',
+        about: 'Existing cardholder whose grant is accepted but not confirmed: a disabled Working… button, then Check status and Skip once the wait window passes.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('pending'),
+        },
+        waitFor: '[data-testid="modal-head"]',
+    },
+    'card-funding-enabled': {
+        route: '/home',
+        about: 'Existing cardholder with the permission ready: Home shows no prompt, whatever the allowance is.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-funding-unavailable': {
+        route: '/home',
+        about: 'Existing cardholder whose permission stands but refills are paused: Home never asks for a grant.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('temporarily_unavailable'),
+        },
+    },
+    'card-funding-error': {
+        route: '/home',
+        about: 'Managed cardholder whose funding state cannot be read: fails closed, Home shows no prompt.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+        },
+        fails: ['GET /rain/cards/funding'],
+    },
+    'card-funding-access-error': {
+        route: '/home',
+        about: 'Existing cardholder whose funding decision cannot be read: fails closed, Home shows neither permission prompt.',
+        responses: {
+            'GET /rain/cards': LEGACY_CARD_OVERVIEW,
+            'GET /rain/cards/funding': cardFunding('required'),
+        },
+        fails: ['GET /rain/cards/funding/access'],
+    },
+    'card-cancel': {
+        route: '/card',
+        about: 'Existing cardholder on Card settings, to check that cancelling offers no permission-removal step.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // A card lock or cancel is a wallet-wide stop of managed payments. The card is done at once; whether
+    // the wallet stop is confirmed comes from the funding read. One fixture per visible state, static data.
+    'card-cancel-stop-pending': {
+        route: '/card',
+        about: 'Cardholder whose cancel answers "stop in progress": Card canceled, then payments stopping, and the card page banner.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardStopFunding('card_canceled', 'pending'),
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 'CANCELED',
+                fundingStop: { state: 'pending', reason: 'card_canceled' },
+            },
+        },
+    },
+    'card-lock-stop-confirmed': {
+        route: '/card',
+        about: 'Cardholder whose lock is followed by a funding read confirming the wallet stop: "payments stopped".',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'confirmed'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'pending', reason: 'card_locked' },
+            },
+        },
+    },
+    'card-lock-stop-unavailable': {
+        route: '/card',
+        about: 'Cardholder whose lock cannot stop wallet payments (permission unusable): asks for support, never says stopped.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'unavailable'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'unavailable', reason: 'scope_retired' },
             },
         },
     },
@@ -1344,6 +2263,22 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /history/fixture-bank-paid-request': BANK_PAID_REQUEST_ENTRY,
         },
     },
+    'history-request-pot-partial': {
+        route: '/history?tx=fixture-request-pot-partial',
+        about: 'A €88 request part paid: one contribution arrived short of its charge. Rows show what each paid; Close request asks first.',
+        responses: {
+            'GET /users/history': { entries: [PARTIAL_POT_ENTRY], hasMore: false },
+            'GET /history/fixture-request-pot-partial': PARTIAL_POT_ENTRY,
+        },
+    },
+    'history-request-pot-closed-short': {
+        route: '/history?tx=fixture-request-pot-closed-short',
+        about: 'The same request closed by the requester with $25.51 unpaid: neutral Closed badge, "not paid".',
+        responses: {
+            'GET /users/history': { entries: [CLOSED_SHORT_POT_ENTRY], hasMore: false },
+            'GET /history/fixture-request-pot-closed-short': CLOSED_SHORT_POT_ENTRY,
+        },
+    },
     'history-request-bank-details': {
         route: '/history?tx=fixture-bank-request',
         about: 'A pending request that accepts bank transfer: its receipt shows the payment reference and the bank details.',
@@ -1355,6 +2290,22 @@ export const FIXTURES: Record<string, Fixture> = {
                 paymentReference: 'demo-req',
                 payerAmount: REQUEST_PAY_EUR,
             },
+        },
+    },
+    'history-receipt-public-link': {
+        route: '/history?tx=fixture-public-receipt-send',
+        about: 'A P2P send with a public receipt: Share receipt sends the link, the PDF is under More actions.',
+        responses: {
+            'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
+            'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
+        },
+    },
+    'history-qr-pay-public-link': {
+        route: '/history?tx=fixture-public-receipt-qr-pay',
+        about: 'A QR payment with a public receipt: Share receipt sends the link, Split this bill is under More actions.',
+        responses: {
+            'GET /users/history': { entries: [PUBLIC_RECEIPT_QR_PAY_ENTRY], hasMore: false },
+            'GET /history/fixture-public-receipt-qr-pay': PUBLIC_RECEIPT_QR_PAY_ENTRY,
         },
     },
     'empty-history': {
@@ -1483,6 +2434,28 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-20344: the provider refuses the ARS top-up for the account. Tap
+    // Continue: the screen shows the refusal copy, not "Unexpected error".
+    'add-money-provider-rejected': {
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        about: 'ARS top-up the provider refuses (PROVIDER_REJECTED): Continue shows the refusal copy.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+        },
+        rejects: {
+            'POST /manteca/deposit': {
+                status: 422,
+                body: {
+                    error: 'Unexpected error',
+                    message: 'Failed to create price lock: User needs extra doc.',
+                    code: 'PROVIDER_REJECTED',
+                },
+            },
+        },
+    },
     'kyc-action-required': {
         route: '/profile/accounts',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
@@ -1509,6 +2482,51 @@ export const FIXTURES: Record<string, Fixture> = {
                             requirementKey: 'proof_of_address',
                         },
                     ],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+
+    'bank-proof-of-address-supplement': {
+        route: '/profile/accounts',
+        about: 'Identity approved with bank accounts ticked: Bridge waits for a proof of address, collected on its supplement action after the identity.',
+        responses: {
+            'GET /users/me': {
+                // what api#1816 answers right after the approval: the rail is
+                // parked REQUIREMENTS_MISSING and names supplement:bridge
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.sepa_eu',
+                            provider: 'bridge',
+                            method: 'SEPA_EU',
+                            channel: 'bank',
+                            country: 'EU',
+                            currency: 'EUR',
+                            status: 'blocked',
+                            reason: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                            },
+                            blockingActions: ['supplement:bridge'],
+                            resolved: {
+                                status: 'fixable',
+                                blocking: {
+                                    code: 'requirements_missing',
+                                    userMessage: 'We need one more document to finish setting this up.',
+                                    selfHealable: true,
+                                    selfHealKind: 'document-resubmit',
+                                },
+                                nextAction: {
+                                    key: 'supplement:bridge',
+                                    kind: 'sumsub',
+                                    purpose: 'requirements_missing',
+                                },
+                            },
+                        },
+                    ],
+                    nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
                     restrictions: [],
                 },
             },
@@ -1605,6 +2623,11 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /card': { isEligible: true, geoProhibited: false } },
     },
 
+    [DOWNLOAD_PROMPT_FIXTURE]: {
+        route: '/home',
+        about: 'The web "The Peanut app is here" prompt over home; every other fixture hides it.',
+    },
+
     'early-user': {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
@@ -1642,6 +2665,32 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money?method=bank',
         about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'profile-details': {
+        route: '/profile/details',
+        about: 'Profile details for a verified Portuguese resident: the name and answers read live from Sumsub, the address and tax number kept only there.',
+        responses: {
+            'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
+            'GET /users/kyc/details': {
+                name: { first: 'Ana', last: 'Teste' },
+                nationality: 'PT',
+                idNationality: 'PT',
+                document: { country: 'PRT', type: 'PASSPORT' },
+                heldBySumsub: ['address', 'taxId'],
+                stored: {
+                    dateOfBirth: '1990-05-14',
+                    countryOfBirth: 'PT',
+                    cityOfBirth: 'Lisboa',
+                    phone: '+351912345678',
+                    occupation: 'software_developer_applications',
+                    employmentStatus: 'employed',
+                    annualSalary: '25k_50k',
+                    expectedMonthlyVolume: '1k_5k',
+                    cardPurpose: 'personal_spending',
+                    sourceOfFunds: 'salary',
+                },
+            },
+        },
     },
     'profile-accounts': {
         route: '/profile/accounts',
@@ -1744,6 +2793,16 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/deposit-accounts': { depositAccounts: [] },
             'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
         },
+    },
+    'get-paid-usd-closed-bangladesh': {
+        route: '/add-money?method=bank',
+        about: 'An unverified Bangladesh resident: the paperwork engine refuses USD, so USD reads Not available while EUR, GBP and MXN still ask for the ID.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
+    },
+    'get-paid-usd-closed-bangladesh-claim': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'A link straight to the USD claim for a Bangladesh resident: the drawer says USD is not available where they live, with no ID check offered.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
     },
     'get-paid-claim': {
         route: '/add-money?method=bank&step=claim&corridor=ACH_US',
@@ -2556,6 +3615,73 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-23850: a request is paid in USDC or USDT only. A link that asks for
+    // ETH is refused and says why; it is never paid in USDC instead. Opened
+    // through /send?recipient=, the route a native app and a scan use.
+    'pay-request-eth-link': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed%40base%2F0.1eth',
+        about: 'A request link that asks for ETH: refused, requests are paid in USDC or USDT only.',
+    },
+    // An ETH request made before TASK-23850, opened by its charge id, which
+    // skips the URL parser: it can't be paid anymore and never opens Confirm.
+    'pay-request-eth-charge': {
+        route: '/pay-request?chargeId=demo-eth-charge',
+        about: "An ETH request opened by its charge id: it can't be paid anymore (TASK-23850).",
+        responses: {
+            'GET /request-charges/demo-eth-charge': {
+                transactionType: 'REQUEST',
+                chainId: '8453',
+                tokenAddress: '0x0000000000000000000000000000000000000000',
+                tokenSymbol: 'ETH',
+                tokenDecimals: 18,
+                tokenType: 'native',
+                tokenAmount: '0.01',
+                currencyAmount: '25',
+                requestLink: { recipientAddress: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' },
+            },
+        },
+    },
+    // Tap Token: the request payment offers USDC and USDT, never ETH (TASK-23850).
+    // Cross-chain send is on here: its kill switch (on by default) locks the
+    // picker to USDC on Arbitrum.
+    'pay-request-address-tokens': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        about: 'Paying a request to an address: the token picker offers USDC and USDT, not ETH.',
+        responses: { 'GET /config/kill-switches': { disableXchainSend: false } },
+    },
+    'pay-request-pot-partial-success': {
+        // The pay screen of a part-paid €88 pot. Tap External wallet: about
+        // 15 s later the deposit poll answers completed and the charge reads
+        // back 33 USDC booked of $58.51, so the deposit card states what
+        // arrived and what is still needed.
+        route: '/pay-request?id=demo-request',
+        about: 'Paying a part-paid pot from an external wallet when the deposit arrives short (tap External wallet, wait ~15 s).',
+        responses: {
+            'GET /requests/demo-request': PAYER_POT_REQUEST,
+            'GET /requests/demo-request/pay-amounts': {
+                requestCurrency: 'EUR',
+                requestAmount: '88.00',
+                remainingAmount: '51.93',
+                rails: [{ kind: 'peanut_balance', payerAmount: { ...REQUEST_PAY_USD, amount: '58.51' } }],
+            },
+            // demo-api names every new charge at random; the read-back below keys on this one
+            'POST /charges': { data: { id: 'fixture-partial-charge' } },
+            'GET /request-charges/fixture-partial-charge': {
+                tokenAmount: '58.51',
+                currencyAmount: '58.51',
+                transactionType: 'REQUEST',
+                status: 'COMPLETED',
+                settledAmount: '33',
+                partialPayment: true,
+                requestLink: { uuid: 'demo-request' },
+            },
+            'GET /rhino/status/0xdec0debad1dec0debad1dec0debad1dec0debad1': { status: 'completed', amount: 33 },
+        },
+        // The card then clears the address status to watch for the rest. The
+        // status above always answers completed, so the clear has to fail here
+        // or the card would read the same deposit again every few seconds.
+        fails: ['POST /rhino/reset-status/0xdec0debad1dec0debad1dec0debad1dec0debad1'],
+    },
     'request-pay-by-bank': {
         // `demo-request` is the uuid demo-api answers every request read with,
         // so the overrides below key on it.
@@ -2604,4 +3730,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The caps screen when GET /users/limits fails.',
         fails: ['GET /users/limits'],
     },
+
+    ...PAPERWORK_VERIFICATION_FIXTURES,
+    ...KYC_FEATURE_ACTIVATION_FIXTURES,
 }

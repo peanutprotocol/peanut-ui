@@ -34,6 +34,7 @@ export const NAME_BY_QR_TYPE: { [key in QrType]?: string } = {
     [EQrType.TRON_ADDRESS]: 'Tron',
     [EQrType.SOLANA_ADDRESS]: 'Solana',
     [EQrType.XRP_ADDRESS]: 'Ripple',
+    [EQrType.EIP_681]: 'Ethereum payment request',
 }
 
 export type QrType = `${EQrType}`

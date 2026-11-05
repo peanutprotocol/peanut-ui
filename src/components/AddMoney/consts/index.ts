@@ -50,14 +50,6 @@ const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
         isSoon: false,
     },
     {
-        id: 'mercado-pago-add',
-        path: '/add-money/argentina/manteca',
-        icon: MERCADO_PAGO,
-        title: 'Mercado Pago',
-        description: 'Instant transfers',
-        isSoon: false,
-    },
-    {
         id: 'pix-add',
         icon: PIX,
         path: '/add-money/brazil/manteca',
@@ -2705,11 +2697,10 @@ countryData.forEach((country) => {
             })
         }
 
-        // filter add methods: include Mercado Pago only for LATAM countries
+        // Argentina has no Mercado Pago row of its own: its bank row opens the
+        // same Manteca screen, which takes a transfer from Mercado Pago or a bank,
+        // so that one row names both and carries the Mercado Pago icon (TASK-21375).
         const currentAddMethods = UPDATED_DEFAULT_ADD_MONEY_METHODS.filter((method) => {
-            if (method.id === 'mercado-pago-add') {
-                return countryCode === 'AR'
-            }
             if (method.id === 'pix-add') {
                 return countryCode === 'BR'
             }
@@ -2723,6 +2714,7 @@ countryData.forEach((country) => {
                     newMethod.path = `/add-money/${country.path}/bank`
                 }
                 newMethod.isSoon = !isCountryEnabledForBankTransfer(countryCode, 'deposit')
+                if (countryCode === 'AR') newMethod.icon = MERCADO_PAGO
             }
             return newMethod
         })

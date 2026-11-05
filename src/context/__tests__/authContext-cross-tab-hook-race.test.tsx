@@ -34,6 +34,8 @@ jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => mockLocked }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+// sign-up geo delivery has its own tests; here it would read the token mock's missing epoch
+jest.mock('@/services/signup-geo', () => ({ resumeSignupGeo: () => undefined }))
 jest.mock('@/utils/login-session', () => ({
     recoverLoginSession: (...args: unknown[]) => mockRecoverLoginSession(...args),
 }))
@@ -64,7 +66,14 @@ jest.mock('@/services/pending-invite-attribution', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn(), capture: jest.fn() },
+    default: {
+        identify: jest.fn(),
+        get_distinct_id: jest.fn(),
+        setPersonProperties: jest.fn(),
+        reset: jest.fn(),
+        register: jest.fn(),
+        capture: jest.fn(),
+    },
 }))
 
 jest.mock('@/services/account-setup', () => ({

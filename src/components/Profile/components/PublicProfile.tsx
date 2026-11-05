@@ -1,8 +1,7 @@
 'use client'
 
-import HandThumbsUpV2 from '@/assets/illustrations/hand-thumbs-up-v2.svg'
-import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
-import { PEANUTMAN } from '@/assets/mascot'
+import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import HomeHistory from '@/components/Home/HomeHistory'
@@ -13,7 +12,7 @@ import posthog from 'posthog-js'
 import ProfileHeader from './ProfileHeader'
 import { useState, useEffect, useRef } from 'react'
 import { invitesApi } from '@/services/invites'
-import { usersApi } from '@/services/users'
+import { usePerson } from '@/lib/person/usePerson'
 import { useRouter } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
@@ -42,31 +41,19 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const tNav = useTranslations('navigation')
     const tRequest = useTranslations('request')
     const requestContact = useRequestContact(username, isLoggedIn)
-    const [profileUserId, setProfileUserId] = useState<string | null>(null)
-    const [fullName, setFullName] = useState<string>(username)
-    const [showFullName, setShowFullName] = useState<boolean>(false)
-    const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
-    // Keyed by the username it was loaded for: the [...recipient] route reuses
-    // this component instance across profiles, and an effect-time reset still
-    // lets one render paint the previous owner's avatar beside the new name.
-    const [loadedAvatar, setLoadedAvatar] = useState<{ username: string; avatarKey: string | null } | null>(null)
-    const avatarKey = loadedAvatar?.username === username ? loadedAvatar.avatarKey : null
+    // Keyed by username: the [...recipient] route reuses this component
+    // instance across profiles, and the next owner's query starts empty, so no
+    // render paints the previous owner beside the new name.
+    const { person, profile } = usePerson(username)
+    const profileUserId = profile?.userId ?? null
+    const isKycVerified = profile?.isVerified ?? false
+    const profileBadges = profile?.badges ?? []
     const router = useRouter()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
     const isSelfProfile = user?.user.username?.toLowerCase() === username.toLowerCase()
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [isJoining, setIsJoining] = useState(false)
-    const [profileBadges, setProfileBadges] = useState<
-        Array<{
-            code: string
-            name: string
-            description: string | null
-            publicDescription?: string | null
-            iconUrl: string | null
-            earnedAt?: string | Date
-        }>
-    >([])
     // handle send button click
     const handleSend = () => {
         if (onSendClick) {
@@ -141,24 +128,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
         </Button>
     )
 
-    useEffect(() => {
-        // Ignore a response the next navigation has already superseded.
-        let superseded = false
-        usersApi.getByUsername(username).then((apiUser) => {
-            if (superseded) return
-            if (apiUser?.fullName) setFullName(apiUser.fullName)
-            // get the profile owner's showFullName preference
-            setShowFullName(apiUser?.showFullName ?? false)
-            setIsKycVerified(apiUser?.isVerified ?? false)
-            setProfileUserId(apiUser?.userId ?? null)
-            setProfileBadges(apiUser?.badges ?? [])
-            setLoadedAvatar({ username, avatarKey: apiUser?.avatarKey ?? null })
-        })
-        return () => {
-            superseded = true
-        }
-    }, [username])
-
     // interaction-status is the complete "sent money before" source (covers send-link
     // claims etc., unlike the profile payload's narrow received-from-you sum); stays
     // false (neutral) until the query resolves.
@@ -166,7 +135,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const haveSentMoneyToUser = !!profileUserId && (interactions[profileUserId] ?? false)
 
     // respect profile owner's showFullName preference: use fullName only if showFullName is true, otherwise use username
-    const displayName = showFullName && fullName ? fullName : username
+    const displayName = profile?.showFullName && profile.fullName ? profile.fullName : username
 
     return (
         <div className="flex min-h-inherit w-full flex-col gap-8">
@@ -174,8 +143,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             <div>
                 {!isLoggedIn ? (
                     <div className="flex items-center gap-2">
-                        <Image src={PEANUTMAN} alt={t('peanutMascotAlt')} height={24} />
-                        <Image src={PEANUT_LOGO_BLACK} alt={t('peanutLogoTextAlt')} height={12} />
+                        <Image src={LOGO} alt={t('peanutMascotAlt')} height={24} />
+                        <Image src={WORDMARK} alt={t('peanutLogoTextAlt')} height={12} />
                     </div>
                 ) : (
                     <NavHeader onPrev={goBack} hideLabel />
@@ -191,7 +160,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     isVerified={isKycVerified}
                     className="mb-6"
                     haveSentMoneyToUser={haveSentMoneyToUser}
-                    avatarKey={avatarKey}
+                    person={person}
                 />
 
                 {/* Action Buttons */}
@@ -249,10 +218,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <Card position="solo" className="flex flex-col gap-4 p-4 text-center">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-center gap-2">
-                                <Image src={HandThumbsUpV2.src} alt={t('joinPeanutAlt')} width={20} height={20} />
+                                <Image src={HandThumbsUp.src} alt={t('joinPeanutAlt')} width={20} height={20} />
                                 <h2 className="text-heading-card text-foreground-primary">{t('joinPeanut')}</h2>
                                 <Image
-                                    src={HandThumbsUpV2.src}
+                                    src={HandThumbsUp.src}
                                     className="scale-x-[-1] transform"
                                     alt={t('joinPeanutAlt')}
                                     width={20}

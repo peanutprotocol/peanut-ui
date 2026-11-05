@@ -11,6 +11,10 @@ import { formatCurrency, printableUserHandle } from '@/utils/general.utils'
  * 17835:83962): "Contributors (N)" then avatar + name + amount per row.
  * Renders inside ReceiptDetailsCard's `divide-y` as one dashed-divided
  * section.
+ *
+ * The amount is what the contributor paid, which can be less than their own
+ * charge asked (TASK-23856). What the charge asked is the payer's figure, so
+ * the requester's receipt does not show it.
  */
 export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
     const t = useTranslations('transaction')
@@ -25,17 +29,12 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
             {requestPotContributors.map((contributor) => (
                 <div key={contributor.uuid} className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2">
-                        {contributor.isPeanutUser ? (
-                            <UserAvatar
-                                name={contributor.username ?? ''}
-                                avatarKey={contributor.avatarKey}
-                                size="xs"
-                                decorative
-                            />
+                        {contributor.isPeanutUser && contributor.person ? (
+                            <UserAvatar person={contributor.person} size="s" decorative />
                         ) : (
                             /* AvatarWithBadge derives the per-username colors
                                itself when none are passed */
-                            <AvatarWithBadge name={contributor.username ?? ''} size="xs" />
+                            <AvatarWithBadge name={contributor.username ?? ''} size="s" />
                         )}
                         <span className="truncate text-body-s text-foreground-primary">
                             {printableUserHandle(contributor.username ?? '')}

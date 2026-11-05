@@ -20,6 +20,17 @@ describe('receiptPdfVersion', () => {
         expect(receiptPdfVersion(withRate('1400'))).not.toBe(receiptPdfVersion(withRate('1420')))
     })
 
+    test('changes when a withdrawal network fee settles', () => {
+        const withFee = (networkFeeDetails: unknown, recipientReceivesUsd?: number) =>
+            ({ ...base, status: 'completed', networkFeeDetails, recipientReceivesUsd }) as unknown as TransactionDetails
+        const pendingFee = receiptPdfVersion(withFee({ state: 'pending' }))
+        const charged = receiptPdfVersion(withFee({ state: 'charged', amountDisplay: '$1.43' }, 63.07))
+        expect(charged).not.toBe(pendingFee)
+        expect(receiptPdfVersion(withFee({ state: 'sponsored' }))).not.toBe(pendingFee)
+        expect(receiptPdfVersion(withFee({ state: 'charged', amountDisplay: '$1.50' }, 63.07))).not.toBe(charged)
+        expect(receiptPdfVersion(withFee({ state: 'charged', amountDisplay: '$1.43' }, 63.0))).not.toBe(charged)
+    })
+
     test('changes when the provider changes', () => {
         const withProvider = (provider: string) =>
             ({ ...base, extraDataForDrawer: { provider } }) as unknown as TransactionDetails

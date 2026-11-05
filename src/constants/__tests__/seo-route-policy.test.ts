@@ -2,6 +2,7 @@
 
 import {
     GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS,
+    MARKETING_CRAWL_ALLOW_PATHS,
     NOINDEX_EXACT_ROUTES,
     NOINDEX_HEADER,
     NOINDEX_ROUTE_PREFIXES,
@@ -9,6 +10,7 @@ import {
     buildNoindexHeaderRules,
 } from '../seo-route-policy'
 import { unstable_getResponseFromNextConfig } from 'next/experimental/testing/server'
+import { STAR_LP_ROUTES } from '@/components/Marketing/StarLp/starLp.consts'
 
 const criticalAppRoutes = [
     '/app',
@@ -27,6 +29,18 @@ const criticalAppRoutes = [
 ]
 
 const crawlablePublicRoutes = ['/lp', '/api/og/marketing', '/m/stain', '/m/badigitalnomads']
+
+/** Google's robots.txt matching: a prefix, or an exact path when the rule ends in '$'. */
+function robotsRuleMatches(rule: string, path: string): boolean {
+    return rule.endsWith('$') ? path === rule.slice(0, -1) : path.startsWith(rule)
+}
+
+/** Longest matching rule wins; an allow wins a tie (Google, Bing). */
+function robotsAllows(path: string, allow: readonly string[], disallow: readonly string[]): boolean {
+    const longest = (rules: readonly string[]) =>
+        Math.max(-1, ...rules.filter((rule) => robotsRuleMatches(rule, path)).map((rule) => rule.length))
+    return longest(allow) >= longest(disallow)
+}
 
 function receivesNoindexHeader(path: string): boolean {
     return (
@@ -81,12 +95,15 @@ describe('SEO route policy', () => {
         }
     )
 
-    it.each(['/lp', '/api/og/marketing?title=Peanut', '/m/stain', '/en/pay-with/pix'])(
-        'does not render a noindex header for %s through Next route matching',
-        async (route) => {
-            await expect(renderedRobotsHeader(route)).resolves.toBeNull()
-        }
-    )
+    it.each([
+        '/lp',
+        '/api/og/marketing?title=Peanut',
+        '/m/stain',
+        '/en/pay-with/pix',
+        ...Object.values(STAR_LP_ROUTES),
+    ])('does not render a noindex header for %s through Next route matching', async (route) => {
+        await expect(renderedRobotsHeader(route)).resolves.toBeNull()
+    })
 
     it('has no duplicate or malformed route entries', () => {
         expect(new Set(NOINDEX_ROUTE_PREFIXES).size).toBe(NOINDEX_ROUTE_PREFIXES.length)
@@ -94,9 +111,29 @@ describe('SEO route policy', () => {
         expect(new Set(ROBOTS_DISALLOWED_PATHS).size).toBe(ROBOTS_DISALLOWED_PATHS.length)
         expect(new Set(GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS).size).toBe(GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS.length)
 
-        for (const path of [...NOINDEX_ROUTE_PREFIXES, ...ROBOTS_DISALLOWED_PATHS]) {
+        for (const path of [...NOINDEX_ROUTE_PREFIXES, ...ROBOTS_DISALLOWED_PATHS, ...MARKETING_CRAWL_ALLOW_PATHS]) {
             expect(path).toMatch(/^\/[a-z0-9/-]+\/?$/)
         }
+    })
+
+    it.each(Object.values(STAR_LP_ROUTES))('lets crawlers reach the star LP %s so its meta robots governs', (route) => {
+        expect(robotsAllows(route, MARKETING_CRAWL_ALLOW_PATHS, ROBOTS_DISALLOWED_PATHS)).toBe(true)
+    })
+
+    it.each([
+        '/request',
+        '/request?amount=5',
+        '/request/pay',
+        '/qr',
+        '/qr?code=1',
+        '/qr/abc',
+        '/qr-pay',
+        '/qr-pay?code=1',
+        '/qr-pay/abc',
+    ])('still keeps the app surface %s out of crawling', (path) => {
+        // The bare prefix blocks it for prefix-only crawlers too.
+        expect(ROBOTS_DISALLOWED_PATHS.some((rule) => robotsRuleMatches(rule, path))).toBe(true)
+        expect(robotsAllows(path, MARKETING_CRAWL_ALLOW_PATHS, ROBOTS_DISALLOWED_PATHS)).toBe(false)
     })
 
     it('keeps crawl exceptions narrowly scoped to exact indexed shells', () => {

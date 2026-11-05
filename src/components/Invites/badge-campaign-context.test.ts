@@ -110,10 +110,9 @@ describe('badge campaign identity transport', () => {
             }
         }
 
-        // Guard the corpus scan itself with the known collision that motivated
-        // source qualification, then confirm no published UTM value can mint a
-        // badge identity now that the last alias retired (TASK-21226).
-        expect(publishedValues.has('arbitrum')).toBe(true)
+        // Guard the scan with a retained account guide. The historical arbitrum
+        // collision is covered independently above, even after its guide retires.
+        expect(publishedValues.has('usd-account')).toBe(true)
         expect(publishedValues.size).toBeGreaterThan(0)
         for (const rawValue of publishedValues) {
             expect(badgeCampaignsFromSearchParams(new URLSearchParams({ utm_campaign: rawValue }))).toEqual([])

@@ -29,10 +29,9 @@ import { useContext, useMemo, useState } from 'react'
 import ActionModal from '@/components/Global/ActionModal'
 import Divider from '../../0_Bruddle/Divider'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PEANUT_LOGO_BLACK } from '@/assets/logos'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { PEANUTMAN } from '@/assets/mascot'
+import { LOGO, WORDMARK } from '@/assets/brand'
 import { BankClaimType, useDetermineBankClaimType } from '@/hooks/useDetermineBankClaimType'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -55,9 +54,10 @@ import { stashInvite } from '@/utils/invite-stash'
 
 const SHOW_INVITE_MODAL_FOR_DEVCONNECT = false
 
-// The invite prompt offers to "continue without signing up". Mercado Pago and
+// The invite prompt offers to claim "without an account". Mercado Pago and
 // Pix always need an account (TASK-23648), and their account prompt keeps the
-// invite, so for them that offer would be false.
+// invite, so for them that offer would be false. The same holds for any method
+// this guest can only claim with an account (`methodRequiresVerification`).
 const SKIPS_INVITE_PROMPT = ['devconnect', 'mercadopago', 'pix']
 
 interface ISendLinkActionListProps {
@@ -255,8 +255,8 @@ export default function SendLinkActionList({
                 >
                     {showDevconnectMethod ? <div>{t('actions.claimOn')}</div> : <div>{t('actions.createAccount')}</div>}
                     <div className="flex items-center gap-1">
-                        <Image src={PEANUTMAN} alt={tNav('peanutLogoAlt')} className="size-5" />
-                        <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} />
+                        <Image src={LOGO} alt={tNav('peanutLogoAlt')} className="size-5" />
+                        <Image src={WORDMARK} alt={tNav('peanutLogoAlt')} className="h-3 w-auto" />
                     </div>
                 </Button>
             )}
@@ -291,6 +291,8 @@ export default function SendLinkActionList({
                                             if (
                                                 isInviteLink &&
                                                 !isLoggedIn &&
+                                                !!username &&
+                                                !methodRequiresVerification &&
                                                 !SKIPS_INVITE_PROMPT.includes(method.id)
                                             ) {
                                                 setSelectedMethod(method)
@@ -332,6 +334,7 @@ export default function SendLinkActionList({
             />
 
             <ConfirmInviteModal
+                username={username ?? ''}
                 method={selectedMethod?.title ?? ''}
                 handleContinueWithPeanut={handleContinueWithPeanut}
                 handleLoseInvite={() => {

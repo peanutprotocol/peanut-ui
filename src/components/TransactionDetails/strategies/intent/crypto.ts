@@ -1,4 +1,5 @@
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { savedAddressLabel } from '@/utils/saved-address.utils'
@@ -13,7 +14,7 @@ export const cryptoDeposit: TransactionStrategy = (entry: HistoryEntry): Transac
             : TRANSACTION_NAME_KEYS.depositSource,
     fullName: entry.senderAccount?.fullName ?? '',
     showFullName: entry.senderAccount?.showFullName,
-    avatarKey: entry.senderAccount?.avatarKey,
+    peer: personFrom(entry.senderAccount),
     isPeerActuallyUser: !!entry.senderAccount?.isUser,
     isLinkTx: false,
 })

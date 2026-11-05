@@ -10,6 +10,7 @@ const nextPlugin = require('@next/eslint-plugin-next')
 const importPlugin = require('eslint-plugin-import-x')
 const globals = require('globals')
 const copyPropsFromCatalog = require('./eslint-rules/copy-props-from-catalog')
+const finiteNumbers = require('./eslint-rules/finite-numbers.cjs')
 
 // Barrel paths banned by CLAUDE.md ("no barrel imports — never `import * as X from
 // '@/constants'` or create `index.ts` barrels. Import from specific files"). The bare
@@ -205,6 +206,17 @@ const RESTRICTED_SYNTAX_BASE = [
         message:
             "Don't read env(safe-area-inset-*) directly — use var(--safe-top|--safe-right|--safe-bottom|--safe-left) (or the pt-safe-top / pb-safe-bottom utilities) from globals.css. The tokens carry the Android < 15 zeroing and the native inset injection; env() bypasses both. The only legal raw read is the diagnostic at src/app/(mobile-ui)/dev/safe-area/page.tsx.",
     },
+    {
+        // The avatar is a property of the person (TASK-23756). A loose
+        // avatarKey prop is how the request-link card drew the handle's letter
+        // for a user who had picked one: nobody passed the key, and "not
+        // passed" rendered the same as "never picked". Surfaces hand a Person
+        // (src/lib/person) to UserAvatar; only src/components/Avatar renders a
+        // bare key (AvatarSticker, for the picker's candidate tiles).
+        selector: "JSXAttribute[name.name='avatarKey']",
+        message:
+            "Don't pass avatarKey as a prop — hand the component a Person (personFrom / usePerson from '@/lib/person') and let UserAvatar read person.avatarKey. Only src/components/Avatar/ renders a bare key (AvatarSticker, for the picker's tiles).",
+    },
 ]
 
 // Same shape as restrictedImportsExcept: an override names the selector it
@@ -246,6 +258,7 @@ module.exports = [
             globals: { ...globals.browser, ...globals.node },
         },
         plugins: {
+            numeric: { rules: { finite: finiteNumbers } },
             '@typescript-eslint': tsPlugin,
             react: reactPlugin,
             'react-hooks': reactHooksPlugin,
@@ -260,6 +273,7 @@ module.exports = [
             },
         },
         rules: {
+            'numeric/finite': 'error',
             ...tsPlugin.configs.recommended.rules,
             ...reactPlugin.configs.recommended.rules,
             ...reactHooksPlugin.configs.recommended.rules,
@@ -361,6 +375,17 @@ module.exports = [
                         !r.selector.includes("[property.name='length']") &&
                         !r.selector.includes("[callee.property.name='back']")
                 ),
+            ],
+        },
+    },
+    {
+        // The key-level renderer and the picker's candidate tiles are the one
+        // place a bare avatarKey prop is the design (TASK-23756).
+        files: ['src/components/Avatar/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                ...restrictedSyntaxExcept("[name.name='avatarKey']"),
+                ...QUERY_STRING_PUSH_RESTRICTIONS,
             ],
         },
     },
@@ -510,7 +535,7 @@ module.exports = [
         // Rasterized to PNG by html-to-image (see share-asset/captureShareAsset.ts).
         // next/image's lazy loading and wrapper markup break the capture — the same
         // class of bug as the runtime <canvas> that file already documents.
-        files: ['src/components/Card/share-asset/**', 'src/components/Global/ImageGeneration/**'],
+        files: ['src/components/Card/share-asset/**'],
         rules: { '@next/next/no-img-element': 'off' },
     },
     {
@@ -615,5 +640,18 @@ module.exports = [
                 },
             ],
         },
+    },
+    {
+        files: [
+            'src/components/Card/{CardLimitsScreen,YourCardScreen,PhysicalCardScreen,CardLimitEditDrawer}.tsx',
+            'src/components/TransactionDetails/provider-rows/{CardAdjustmentNotice,CardPaymentRows}.tsx',
+            'src/components/Profile/views/MethodLimits.tsx',
+            'src/components/Points/InviteePointsBadge.tsx',
+            'src/features/rewards/RewardsPage.tsx',
+            'src/components/ExchangeRate/index.tsx',
+            'src/components/Global/NetworkFeeRow/index.tsx',
+            'src/features/withdraw/views/WithdrawBankReviewView.tsx',
+        ],
+        rules: { 'numeric/finite': ['error', { banDirectFormatting: true }] },
     },
 ]

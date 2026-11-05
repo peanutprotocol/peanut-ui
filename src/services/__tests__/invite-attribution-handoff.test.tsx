@@ -5,11 +5,8 @@
 // session-cookie stash. That loss cost every automatic iOS referral from the
 // deferred-link launch until Oct 2026, and nothing failed — unit specs mocked
 // the stash and jsdom keeps cookies. Here only the network is mocked.
-import { act, renderHook } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { EInviteType } from '@/services/services.types'
-import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { applyDeferredPayload, iosHandoffString, parseDeferredPayload } from '@/utils/deferred-link'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { settlePendingInviteAttribution } from '../pending-invite-attribution'
@@ -73,16 +70,15 @@ describe('invite attribution hand-off in an iOS WebView without cookies', () => 
         })
     })
 
-    it('an inviter typed on the invite step reaches /invites/accept', async () => {
-        const wrapper = ({ children }: { children: ReactNode }) => (
-            <SetupFlowProvider masterScreenIds={[]}>{children}</SetupFlowProvider>
-        )
-        const { result } = renderHook(() => useSetupFlowContext(), { wrapper })
-        act(() => result.current.applyManualInvite('bob'))
+    it('an inviter typed on the setup invite step reaches /invites/accept', async () => {
+        // the step runs after registration and hands the typed code over the same way
+        stashInvite('bob', EInviteType.DIRECT)
 
-        await settlePendingInviteAttribution('typed-inviter-user', 'registration')
+        const outcome = await settlePendingInviteAttribution('typed-inviter-user', 'setup_invite_step')
 
         expect(mockAcceptInvite).toHaveBeenCalledWith('bob', EInviteType.DIRECT)
+        expect(outcome.status).toBe('attributed')
+        expect(readInviteCode()).toBe('')
     })
 
     it('an invite link opened in the app (/invite?code=) reaches /invites/accept', async () => {

@@ -17,6 +17,9 @@ const screens = JSON.parse(
 )
 
 const expectedStates = [
+    { id: 'numeric-request-amount-4000', requiredContext: ['suggestedAmount=4000', 'realSlider=true'] },
+    { id: 'numeric-request-rate-unavailable', requiredContext: ['secondaryRate=unavailable'] },
+    { id: 'numeric-request-amount-invalid', requiredContext: ['initialAmount=invalid'] },
     {
         id: '82-f-choice-card-needs-review',
         requiredContext: ['card_needs_review'],
@@ -35,7 +38,7 @@ const expectedStates = [
     },
 ]
 
-test('state catalogue exposes the four distinct stable scenario IDs', () => {
+test('state catalogue exposes the required distinct stable scenario IDs', () => {
     for (const { id } of expectedStates) {
         const matches = screens.filter((screen) => screen.id === id)
         assert.equal(matches.length, 1, `${id} must occur exactly once`)

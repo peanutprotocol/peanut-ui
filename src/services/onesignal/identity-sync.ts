@@ -5,8 +5,9 @@ export interface PushIdentityAdapter {
 }
 
 export class PushIdentityTimeoutError extends Error {
-    constructor() {
-        super('Push identity operation timed out')
+    constructor(message = 'Push identity operation timed out') {
+        super(message)
+        this.name = 'PushIdentityTimeoutError'
     }
 }
 

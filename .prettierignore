@@ -31,4 +31,4 @@ scripts/backdoor-scan.mjs
 scripts/next-font-google/css/
 
 # Official Google Wallet artwork; retain the downloaded SVG files unchanged.
-public/wallet/google/*.svg
+public/wallet/google/**/*.svg

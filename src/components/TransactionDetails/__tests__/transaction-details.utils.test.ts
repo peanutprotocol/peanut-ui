@@ -19,6 +19,7 @@ import {
     isSameReceiptMinute,
     receiptStatusDate,
     senderNoteText,
+    requestedInCurrency,
 } from '../transaction-details.utils'
 import { isCryptoAddressType, maskAccountIdentifier } from '@/utils/account-mask.utils'
 
@@ -209,5 +210,25 @@ describe('receiptHeadlineAmount', () => {
     it('reads an unusable amount as zero rather than printing NaN', () => {
         expect(receiptHeadlineAmount({ isRequestPotLink: true, totalAmountCollected: null }, 0, '').amount).toBe(0)
         expect(receiptHeadlineAmount({}, Number.NaN, '-').amount).toBe(0)
+    })
+})
+
+// TASK-23856: the requester saw only dollars on a request asked in euros
+describe('requestedInCurrency', () => {
+    const pot = (requestedAmount?: string, requestCurrency?: string) => ({
+        isRequestPotLink: true,
+        extraDataForDrawer: { requestedAmount, requestCurrency },
+    })
+
+    it('formats the asked amount in its own currency', () => {
+        expect(requestedInCurrency(pot('88', 'EUR'))).toBe('€88')
+        expect(requestedInCurrency(pot('800', 'brl'))).toBe('R$800')
+    })
+
+    it('says nothing for a dollar request, a missing amount, or a row that is not a request', () => {
+        expect(requestedInCurrency(pot('99.16', 'USD'))).toBeUndefined()
+        expect(requestedInCurrency(pot(undefined, 'EUR'))).toBeUndefined()
+        expect(requestedInCurrency(pot())).toBeUndefined()
+        expect(requestedInCurrency({ ...pot('88', 'EUR'), isRequestPotLink: false })).toBeUndefined()
     })
 })

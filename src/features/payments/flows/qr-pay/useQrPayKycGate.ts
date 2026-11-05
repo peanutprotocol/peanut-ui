@@ -1,28 +1,29 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { selectQrKycGate } from './qrKycGate.utils'
+import {
+    QR_IDENTITY_CHECK_INTENT,
+    qrIdentityRestartReason,
+    qrVerificationNeedsRestart,
+    selectQrKycGate,
+} from './qrKycGate.utils'
 
-// MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
-// Derived inline from the backend capability model. Mapping:
-//   canDo('pay',{manteca}) → PROCEED_TO_PAY. The BE resolver expresses both
-//     paths uniformly as an enabled pay op: Sumsub-approved pool users AND
-//     Sumsub-approved US-nationality-restricted users alike (compliance
-//     ratified 2026-05-28). No FE special-case needed.
-//   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED (genuine block —
-//     no Sumsub, or a non-restriction final rejection).
-//   manteca top-level 'requires-info' → PROVIDER_REJECTION_FIXABLE.
-//   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
-//   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
-// userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
+// The QR-pay KYC gate: the API's QR answer (`capabilities.features.qr`), via selectQrKycGate.
 export function useQrPayKycGate() {
-    const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { isRegionRestricted, isTerminalFailure } = useIdentityVerification()
+    const {
+        capabilities,
+        railsForProvider,
+        nextActions,
+        isKycApproved,
+        isLoading: isLoadingCapabilities,
+    } = useCapabilities()
+    const { isTerminalFailure } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
@@ -46,27 +47,45 @@ export function useQrPayKycGate() {
                 // fetch has resolved. Otherwise we briefly map an empty capability shape onto
                 // REQUIRES_IDENTITY_VERIFICATION for users whose auth state hasn't settled yet.
                 isLoading: isLoadingCapabilities || (!user && !userFetchSettled),
-                isRegionRestricted,
-                isTerminalFailure,
-                canPayManteca: canDo('pay', { provider: 'manteca' }),
-                mantecaRails: railsForProvider('manteca'),
+                features: capabilities.features,
                 nextActions,
+                rails: capabilities.rails,
             }),
-        [
-            isLoadingCapabilities,
-            canDo,
-            railsForProvider,
-            nextActions,
-            user,
-            userFetchSettled,
-            isRegionRestricted,
-            isTerminalFailure,
-        ]
+        [isLoadingCapabilities, capabilities.features, capabilities.rails, nextActions, user, userFetchSettled]
     )
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
     const sumsubFlow = useMultiPhaseKycFlow({})
+
+    const needsIdentityRestart = useMemo(
+        () => qrVerificationNeedsRestart({ mantecaRails: railsForProvider('manteca'), nextActions }),
+        [railsForProvider, nextActions]
+    )
+    const identityRestartReason = useMemo(
+        () => qrIdentityRestartReason({ mantecaRails: railsForProvider('manteca'), nextActions }),
+        [railsForProvider, nextActions]
+    )
+    // The one "Verify identity" step of every QR screen. An approved user whose
+    // identity evidence is missing needs the restart: the start route answers
+    // "already approved" for them and opens nothing.
+    const { handleRestartIdentity, handleInitiateKyc } = sumsubFlow
+    const startVerification = useCallback(
+        (targetCountry?: string) => {
+            if (needsIdentityRestart) void handleRestartIdentity()
+            else void handleInitiateKyc(QR_IDENTITY_CHECK_INTENT, undefined, isKycApproved || undefined, targetCountry)
+        },
+        [needsIdentityRestart, isKycApproved, handleRestartIdentity, handleInitiateKyc]
+    )
+
+    // No QR screen has room for an inline error, so a failed start is a toast:
+    // never a tap that does nothing.
+    const toast = useToast()
+    const startError = sumsubFlow.error
+    useEffect(() => {
+        if (startError) toast.error(startError)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
+    }, [startError])
 
     // Auto-dismiss the Sumsub flow if the user's QR-pool rails become enabled
     // server-side while a flow is mid-air. Two known sources:
@@ -91,5 +110,16 @@ export function useQrPayKycGate() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [kycGateState, sumsubFlow.showWrapper, sumsubFlow.isModalOpen, sumsubFlow.completeFlow])
 
-    return { kycGateState, qrKycUserMessage, qrKycActionKey, shouldBlockPay, isKycApproved, sumsubFlow }
+    return {
+        kycGateState,
+        qrKycUserMessage,
+        qrKycActionKey,
+        shouldBlockPay,
+        isKycApproved,
+        isTerminalFailure,
+        needsIdentityRestart,
+        identityRestartReason,
+        startVerification,
+        sumsubFlow,
+    }
 }

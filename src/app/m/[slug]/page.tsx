@@ -3,7 +3,7 @@ import { generateMetadata as generateMeta } from '@/app/metadata'
 import { LandingPageShell } from '@/components/LandingPage/LandingPageShell'
 import Footer from '@/components/LandingPage/Footer'
 import MerchantLandingPage from './MerchantLandingPage'
-import { MERCHANTS, MERCHANT_SLUGS } from './merchants'
+import { MERCHANTS, MERCHANT_SLUGS } from '@/data/merchants'
 
 export function generateStaticParams() {
     return MERCHANT_SLUGS.map((slug) => ({ slug }))

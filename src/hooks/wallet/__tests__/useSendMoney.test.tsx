@@ -89,6 +89,22 @@ describe('useSendMoney', () => {
 
     const mockAddress = '0xabcdef1234567890abcdef1234567890abcdef12' as `0x${string}`
 
+    it.each(['NaN', 'Infinity', '-1', '0', '1.0000001', '4,000', '9'.repeat(400)])(
+        'rejects invalid money %s before cache or spend effects',
+        async (amountInUsd) => {
+            const balance = 100_000_000n
+            queryClient.setQueryData(['balance', mockAddress], balance)
+            const cancel = jest.spyOn(queryClient, 'cancelQueries')
+            const { result } = renderHook(() => useSendMoney({ address: mockAddress }), { wrapper })
+            await act(async () => {
+                await expect(result.current.mutateAsync({ toAddress: mockAddress, amountInUsd })).rejects.toThrow()
+            })
+            expect(mockSpend).not.toHaveBeenCalled()
+            expect(cancel).not.toHaveBeenCalled()
+            expect(queryClient.getQueryData(['balance', mockAddress])).toBe(balance)
+        }
+    )
+
     describe('Optimistic Updates', () => {
         it('should optimistically update balance when sufficient balance exists', async () => {
             const initialBalance = parseUnits('100', PEANUT_WALLET_TOKEN_DECIMALS)

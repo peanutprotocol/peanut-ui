@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import Image from 'next/image'
 import { type ReactNode } from 'react'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
@@ -164,14 +166,14 @@ export function CardPaymentRows({
             subRows.push({
                 key: 'initialHold',
                 label: t('cardRows.initialHold'),
-                value: `$${(authCents / 100).toFixed(2)}`,
+                value: `$${formatFiniteDisplay(authCents / 100, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`,
             })
             if (settledCents != null && settledCents !== authCents) {
                 const deltaCents = settledCents - authCents
                 subRows.push({
                     key: 'settlementAdjustment',
                     label: t('cardRows.adjustment'),
-                    value: `${deltaCents > 0 ? '+' : '-'}$${(Math.abs(deltaCents) / 100).toFixed(2)}`,
+                    value: `${deltaCents > 0 ? '+' : '-'}$${formatFiniteDisplay(Math.abs(deltaCents) / 100, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}`,
                 })
             }
         }

@@ -3,6 +3,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 import posthog from 'posthog-js'
 import {
     isPasskeyBusyError,
+    isPasskeyCleanupPendingError,
     capturePasskeySignFailure,
     classifyPasskeyError,
     getPasskeyErrorSetupKey,
@@ -11,6 +12,7 @@ import {
     withIOSPasskeyLoginRecovery,
 } from '../webauthn.utils'
 import { isIOSNative } from '@/utils/capacitor'
+import { PasskeyAccountDeletedError, PasskeyOptionsFailedError } from '../passkey-auth-capture'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -226,6 +228,42 @@ describe('normalizePasskeyServerError', () => {
         expect(normalizePasskeyServerError(raw)).toBe(raw)
         expect(normalizePasskeyServerError('not an error')).toBe('not an error')
     })
+
+    test.each(['/passkeys/login/options', '/passkeys/register/options'])(
+        'maps a failed %s to a PasskeyServerError that classifies as NETWORK',
+        (path) => {
+            const raw = new PasskeyOptionsFailedError(path, 500)
+            const normalized = normalizePasskeyServerError(raw) as Error
+
+            expect(normalized.name).toBe('PasskeyServerError')
+            expect(normalized.cause).toBe(raw)
+            expect(classifyPasskeyError(normalized).code).toBe('NETWORK')
+            expect(classifyPasskeyError(raw).code).toBe('NETWORK')
+        }
+    )
+})
+
+describe('deleted account', () => {
+    test('classifies as ACCOUNT_DELETED, not LOGIN_ERROR, and keeps its own copy', () => {
+        const error = new PasskeyAccountDeletedError()
+
+        expect(normalizePasskeyServerError(error)).toBe(error)
+        expect(classifyPasskeyError(error)).toEqual({
+            code: 'ACCOUNT_DELETED',
+            message: 'This account was deleted. Sign up to create a new one.',
+        })
+        expect(
+            getPasskeyErrorSetupKey(Object.assign(new Error(), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' }))
+        ).toBe('passkey.accountDeleted')
+    })
+
+    test('is never retried by the iOS login recovery', async () => {
+        mockIsIOSNative.mockReturnValueOnce(true)
+        const operation = jest.fn().mockRejectedValue(new PasskeyAccountDeletedError())
+
+        await expect(withIOSPasskeyLoginRecovery(operation)).rejects.toBeInstanceOf(PasskeyAccountDeletedError)
+        expect(operation).toHaveBeenCalledTimes(1)
+    })
 })
 
 describe('getPasskeyErrorSetupKey', () => {
@@ -300,10 +338,10 @@ describe('normalizeNativePasskeyError', () => {
         expect(classifyPasskeyError(err).code).toBe('PASSKEY_UNSUPPORTED')
     })
 
-    test('treats the Android no-credential rejection as no passkey on this device, not a failed verification', () => {
+    test('distinguishes a credential inaccessible to this app from cancellation', () => {
         const err = normalizeNativePasskeyError(capacitorRejection('No matching passkey was found.', 'NotFoundError'))
         expect((err as Error).name).toBe('NotFoundError')
-        expect(classifyPasskeyError(err).code).toBe('LOGIN_CANCELED')
+        expect(classifyPasskeyError(err).code).toBe('PASSKEY_NOT_FOUND')
     })
 
     test('leaves an unattributable native failure alone rather than guessing', () => {
@@ -339,5 +377,32 @@ describe('isPasskeyBusyError', () => {
     it('does not match other passkey failures', () => {
         expect(isPasskeyBusyError(new Error('The operation either timed out or was not allowed'))).toBe(false)
         expect(isPasskeyBusyError('already in progress')).toBe(false)
+    })
+})
+
+describe('isPasskeyCleanupPendingError', () => {
+    const cleanup = Object.assign(new Error('Passkey cleanup is unconfirmed; restart the app'), {
+        name: 'PasskeyCleanupPendingError',
+    })
+
+    it('matches the controller and scope errors by name, wrapped or not', () => {
+        const scope = Object.assign(new Error('A previous passkey flow is still pending'), {
+            name: 'PasskeyCleanupPendingError',
+        })
+        expect(isPasskeyCleanupPendingError(cleanup)).toBe(true)
+        expect(isPasskeyCleanupPendingError(scope)).toBe(true)
+        expect(isPasskeyCleanupPendingError(new Error('sign failed', { cause: cleanup }))).toBe(true)
+    })
+
+    it('matches the controller message when a wrapper drops the name', () => {
+        expect(isPasskeyCleanupPendingError(new Error('Passkey cleanup is unconfirmed; restart the app'))).toBe(true)
+    })
+
+    it('is distinct from a busy prompt the user can close and retry', () => {
+        const conflict = Object.assign(new Error('A previous passkey flow is still pending'), {
+            name: 'CeremonyConflictError',
+        })
+        expect(isPasskeyCleanupPendingError(conflict)).toBe(false)
+        expect(isPasskeyBusyError(cleanup)).toBe(false)
     })
 })

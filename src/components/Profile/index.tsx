@@ -2,12 +2,14 @@
 
 import { useAboutHelpPreload } from '@/hooks/useAboutHelpPreload'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
+import ResidenceMenuItem from './components/ResidenceMenuItem'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -79,6 +81,9 @@ export const Profile = () => {
     const logout = async () => {
         await logoutUser()
     }
+    const logoutAllDevices = async () => {
+        await logoutUser({ allDevices: true })
+    }
 
     const username = user?.user.username || 'anonymous'
     // Full name or nothing: the share pill below already spells out
@@ -126,19 +131,19 @@ export const Profile = () => {
                         /profile/edit. */}
                     <ListGroup>
                         <ProfileMenuItem
-                            icon="bank"
-                            label={t('menu.accounts')}
-                            href="/profile/accounts"
+                            icon="wallet"
+                            label={t('menu.paymentMethods')}
+                            href="/profile/payments"
                             // same chip treatment as the card row's "New!" — a
                             // pulsing dot was a second attention language on
-                            // one screen. One entry carries it: verification
-                            // starts from either page.
+                            // one screen.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        <ProfileMenuItem icon="wallet" label={t('menu.payments')} href="/profile/payments" />
+                        <ResidenceMenuItem />
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
+                        <ProfileMenuItem icon="file-text" label={t('menu.statements')} href="/profile/statements" />
                         <ProfileMenuItem
                             icon="exchange"
                             label={t('menu.exchangeRatesAndFees')}
@@ -152,8 +157,8 @@ export const Profile = () => {
                             icon="smile"
                             label={t('menu.inviteFriends')}
                             onClick={openInviteFriendsModal}
-                            href="/dummy" // Dummy link, wont be called
                         />
+                        <ProfileMenuItem icon="user" label={t('menu.profile')} href="/profile/details" />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}
@@ -169,8 +174,7 @@ export const Profile = () => {
                             endText={LOCALE_LABELS[locale]}
                             href="/settings/language"
                         />
-                        {/* a document glyph: `download` already marks "Update available" in this group */}
-                        <ProfileMenuItem icon="docs" label={t('menu.statements')} href="/profile/statements" />
+                        <ProfileMenuItem icon="bell" label={t('menu.notifications')} href="/settings/notifications" />
                         <ProfileMenuItem
                             icon="upload-cloud"
                             label={t('menu.backup')}
@@ -182,12 +186,7 @@ export const Profile = () => {
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
                         {(pendingBundle || storeUpdateRequired) && (
-                            <ProfileMenuItem
-                                icon="download"
-                                label={t('menu.updateAvailable')}
-                                onClick={onUpdateTap}
-                                href="/dummy"
-                            />
+                            <ProfileMenuItem icon="download" label={t('menu.updateAvailable')} onClick={onUpdateTap} />
                         )}
                         {/* Enable with Account Management project. */}
                         {/* <ProfileMenuItem
@@ -198,8 +197,8 @@ export const Profile = () => {
                         /> */}
                     </ListGroup>
 
-                    {/* Logout + Delete account */}
-                    <div className="w-full pb-2">
+                    {/* Log out (this device), then the rarer everywhere switch */}
+                    <div className="flex w-full flex-col items-center gap-6 pb-2">
                         <Button
                             loading={isLoggingOut}
                             disabled={isLoggingOut}
@@ -210,6 +209,9 @@ export const Profile = () => {
                         >
                             <span>{t('logOut')}</span>
                         </Button>
+                        <LinkButton onClick={logoutAllDevices} disabled={isLoggingOut}>
+                            {t('logOutAllDevices')}
+                        </LinkButton>
                     </div>
                 </div>
             </div>

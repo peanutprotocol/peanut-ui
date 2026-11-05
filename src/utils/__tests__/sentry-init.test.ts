@@ -90,6 +90,19 @@ describe('initSentry', () => {
         expect(Sentry.init.mock.calls[0][0]).toMatchObject({ attachStacktrace: true })
     })
 
+    it('keeps a send-link secret out of web errors and transactions', async () => {
+        const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'production' })
+        Sentry.getClient.mockReturnValue(undefined)
+        initSentry()
+        await flush()
+
+        const { beforeSend, beforeSendTransaction } = Sentry.init.mock.calls[0][0]
+        const url = 'https://peanut.me/claim?c=42161&v=v4.4&i=552#p=fakeClaimSecret0123'
+        const breadcrumbs = [{ category: 'navigation', data: { to: `/setup?redirect_uri=${encodeURIComponent(url)}` } }]
+        expect(JSON.stringify(beforeSend({ request: { url }, breadcrumbs }))).not.toContain('fakeClaimSecret0123')
+        expect(JSON.stringify(beforeSendTransaction({ request: { url } }))).not.toContain('fakeClaimSecret0123')
+    })
+
     it('leaves an existing client alone', async () => {
         const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'production' })
         Sentry.getClient.mockReturnValue({})

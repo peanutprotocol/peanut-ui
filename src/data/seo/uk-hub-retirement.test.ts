@@ -1,4 +1,5 @@
-import { COUNTRIES_SEO, RECEIVE_SOURCES, SEND_TO_COUNTRIES, countryIso2, getCountryName } from './corridors'
+import { COUNTRIES_SEO, RECEIVE_SOURCES, SEND_TO_COUNTRIES } from './corridors'
+import { countryIso2, getCountryName } from './country-display'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 
 jest.mock('@/lib/content', () => {
@@ -9,6 +10,8 @@ jest.mock('@/lib/content', () => {
             actual
                 .listContentSlugs(intent)
                 .filter((slug: string) => intent !== 'countries' || slug !== 'united-kingdom'),
+        listPublishedSlugs: (intent: string) =>
+            ['send-to', 'receive-from'].includes(intent) ? ['united-kingdom'] : actual.listPublishedSlugs(intent),
         readPageContentLocalized: (intent: string, slug: string, locale: string) =>
             intent === 'countries' && slug === 'united-kingdom'
                 ? null

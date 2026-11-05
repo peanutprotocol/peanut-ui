@@ -8,8 +8,6 @@ jest.mock('next/image', () => ({
     default: (props: Record<string, unknown>) => React.createElement('img', props as Record<string, string>),
 }))
 
-jest.mock('@/assets/logos/peanut-logo-dark.svg', () => 'peanut-logo-dark.svg')
-
 describe('PublicReceiptIssuer', () => {
     test('shows the dark Peanut logo and peanut.me without Squirrel Labs details', () => {
         render(

@@ -21,6 +21,7 @@ import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
+import { clearAnalyticsIdentity, identifyAnalyticsUser } from '@/utils/posthog-identity'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
@@ -31,6 +32,7 @@ import {
     reconcileNotificationIdentity,
     resumeNotificationIdentity,
 } from '@/services/onesignal/identity'
+import { reportPushIdentityFailure } from '@/services/onesignal/identity-report'
 import posthog from 'posthog-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, type ReactNode, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
@@ -39,13 +41,20 @@ import { captureException, setUser as setSentryUser } from '@/utils/sentry-lazy'
 import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
+import {
+    draftResidenceOf,
+    forgetAnswerDraft,
+    forgetAnswerDraftOnResidenceChange,
+} from '@/features/paperwork-verification/answerDraft'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { resumeSignupGeo } from '@/services/signup-geo'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { clearAccountQueries } from '@/utils/account-query-cache'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -78,7 +87,7 @@ interface AuthContextType {
     }) => Promise<AccountSetupOutcome>
     isFetchingUser: boolean
     userFetchError: Error | null
-    logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
+    logoutUser: (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => Promise<void>
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
@@ -91,6 +100,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logoutGeneration = useRef(0)
+    const lastHeldUserId = useRef<string | null>(null)
     const toast = useToast()
     const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
@@ -108,6 +118,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         refetch: fetchUser,
         error: userFetchError,
     } = useUserQuery(!appLocked)
+
+    const geoUserId = user?.user?.userId
+    useEffect(() => {
+        if (geoUserId) lastHeldUserId.current = geoUserId
+    }, [geoUserId])
+    useEffect(() => {
+        if (!geoUserId || appLocked) return
+        return resumeSignupGeo(geoUserId)
+    }, [geoUserId, appLocked])
+
+    // Unsaved verification answers typed for one country must not outlive a move to another.
+    const declaredResidence = draftResidenceOf(user)
+    useEffect(() => {
+        forgetAnswerDraftOnResidenceChange(geoUserId, declaredResidence)
+    }, [geoUserId, declaredResidence])
 
     // Singleton auto-refresh poller — keeps the user query fresh while any
     // rail is provisioning OR a recent submission window is open. Mounted
@@ -132,9 +157,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // server-side identify in peanut-api-ts src/log/identifyUser.ts — keep in sync.
             // `name` duplicates username because PostHog's Persons-page search is
             // hardcoded to email/name/distinct_id — username alone is not searchable.
+            // This effect runs on every user refetch; identifyAnalyticsUser sends
+            // only an id change or changed properties.
             const enabledRails = user.rails?.filter((rail) => rail.status === 'ENABLED') ?? []
             const appLocale = currentAppLocale()
-            posthog.identify(user.user.userId, {
+            identifyAnalyticsUser(user.user.userId, {
                 username: user.user.username,
                 name: user.user.username,
                 userId: user.user.userId,
@@ -230,6 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     )
 
     const hydrateLoginSession = useCallback(async () => {
+        const previousUserId = lastHeldUserId.current
         const generation = logoutGeneration.current
         const pushLogoutVersion = getNotificationLogoutVersion()
         const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
@@ -239,9 +267,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (result.error) throw result.error
             return result.data ?? null
         }, cancel)
+        if (previousUserId && previousUserId !== profile.user.userId) clearAccountQueries(queryClient)
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(profile.user.userId).catch(() => {
-                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            void resumeNotificationIdentity(profile.user.userId).catch((error) => {
+                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return profile
@@ -269,10 +298,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (!active || loggingOut.current || isDemoMode()) return null
                 if (result.error) throw result.error
                 return result.data?.user?.userId ?? null
-            }).catch(() => {
-                captureException(new Error('Push identity reconciliation failed'), {
-                    tags: { source: 'push_identity_reconcile' },
-                })
+            }).catch((error) => {
+                reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
             })
         }
         const unsubscribe = onNotificationIdentityLoginAvailable(reconcile)
@@ -338,8 +365,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }),
         })
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(userId).catch(() => {
-                captureException(new Error('Push identity login failed'), { tags: { source: 'push_identity_login' } })
+            void resumeNotificationIdentity(userId).catch((error) => {
+                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return outcome
@@ -392,6 +419,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // of this device skip verification on card and withdrawal screens.
         clearStepUpToken()
 
+        // Unsaved verification answers belong to this account only.
+        forgetAnswerDraft(user?.user.userId)
+
         // NOTE: main also cancelled/cleared queries here. That already happens
         // above, deliberately BEFORE the token wipe — an in-flight /users/me can
         // re-persist a sliding-refresh token into native Preferences otherwise
@@ -416,6 +446,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void resetCrispProxySessions().catch((e) => console.warn('crisp reset failed:', e))
         try {
             posthog.reset()
+            clearAnalyticsIdentity()
             // reset() wipes registered super properties — re-register the
             // locale so logout-window events keep carrying app_locale
             const locale = currentAppLocale()
@@ -429,11 +460,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [queryClient, user?.user.userId])
 
     /**
-     * Logs out the user
-     * @param options.skipBackendCall - If true, skips the backend logout call (useful when backend is down)
+     * Logs out the user on this device. The account stays signed in elsewhere.
+     * @param options.skipBackendCall - If true, skips the backend logout call, leaving this
+     * device's session valid server-side (backend down, or a forced re-auth about this device's key)
+     * @param options.allDevices - If true, also signs the account out on every other device
      */
     const logoutUser = useCallback(
-        async (options?: { skipBackendCall?: boolean }) => {
+        async (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => {
             if (loggingOut.current) return
 
             loggingOut.current = true
@@ -443,22 +476,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // that by storing the current path as the post-auth destination.
             beginIntentionalLogout()
             // Start before any auth await; SDK events cannot relink the old user.
-            const pushLogout = logoutNotificationIdentity().catch(() => {
-                captureException(new Error('Push identity logout failed or timed out'), {
-                    tags: { source: 'push_identity_logout' },
-                })
+            const pushLogout = logoutNotificationIdentity().catch((error) => {
+                reportPushIdentityFailure('Push identity logout failed or timed out', 'push_identity_logout', error)
             })
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
-                 * /users/logout bumps the account's tokenVersion so every
-                 * outstanding JWT — this device and any other — stops
-                 * verifying. Best-effort: a dead backend must never trap the
-                 * user in a session, so failures fall through to local logout.
+                 * /users/logout revokes this device's session, /users/logout/all
+                 * bumps the account's tokenVersion so every outstanding JWT
+                 * stops verifying. Best-effort: a dead backend must never trap
+                 * the user in a session, so failures fall through to local logout.
                  */
                 if (!options?.skipBackendCall) {
                     try {
-                        await apiFetch('/users/logout', { method: 'POST' })
+                        const response = await apiFetch(options?.allDevices ? '/users/logout/all' : '/users/logout', {
+                            method: 'POST',
+                        })
+                        // an API without /all still revokes every session on /users/logout
+                        if (options?.allDevices && response?.status === 404) {
+                            await apiFetch('/users/logout', { method: 'POST' })
+                        }
                     } catch (e) {
                         console.warn('server-side session revocation failed, continuing local logout:', e)
                     }

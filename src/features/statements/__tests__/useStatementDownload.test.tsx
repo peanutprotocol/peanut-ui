@@ -69,7 +69,7 @@ describe('useStatementDownload', () => {
         expect(onSaved).toHaveBeenCalledTimes(1)
         expect(onSaved).toHaveBeenCalledWith(FILE, false)
         expect(result.current.isPrepared).toBe(false)
-        const event = { format: 'csv', platform: 'web', range_preset: 'custom', range_days: 12 }
+        const event = { format: 'csv', range_preset: 'custom', range_days: 12 }
         expect(mockCapture).toHaveBeenCalledWith('activity_export_started', event)
         expect(mockCapture).toHaveBeenCalledWith('activity_export_saved', event)
     })
@@ -86,7 +86,6 @@ describe('useStatementDownload', () => {
         expect(prepare).toHaveBeenCalledWith({ format: 'csv', locale: 'es-AR', fromIso: undefined, toIso: undefined })
         expect(mockCapture).toHaveBeenCalledWith('activity_export_started', {
             format: 'csv',
-            platform: 'web',
             range_preset: 'allTime',
             range_days: null,
         })
@@ -116,9 +115,10 @@ describe('useStatementDownload', () => {
         expect(onSaved).toHaveBeenLastCalledWith(FILE, true)
         expect(prepare).toHaveBeenCalledTimes(1)
         expect(result.current.isPrepared).toBe(true)
+        // `platform` comes from the super property, never the event
         expect(mockCapture).toHaveBeenCalledWith(
             'activity_export_saved',
-            expect.objectContaining({ platform: 'native' })
+            expect.not.objectContaining({ platform: expect.anything() })
         )
     })
 
@@ -205,7 +205,6 @@ describe('useStatementDownload', () => {
         expect(onSaved).not.toHaveBeenCalled()
         expect(mockCapture).toHaveBeenCalledWith('activity_export_failed', {
             format: 'csv',
-            platform: 'web',
             range_preset: 'custom',
             range_days: 12,
             reason: 'EXPORT_UNVERIFIED',

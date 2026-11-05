@@ -15,6 +15,7 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { personFrom } from '@/lib/person/person'
 import TransactionCard from '../TransactionCard'
 import { type TransactionDetails } from '../transactionTransformer'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
@@ -388,7 +389,12 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
 
     it('renders the "≈ CODE x" line for a real converted amount', () => {
         renderCard(currencyTx({ amount: '105.9', code: 'EUR' }))
-        expect(screen.getByText('≈ EUR 105.9')).toBeInTheDocument()
+        expect(screen.getByText('≈ EUR 105.90')).toBeInTheDocument()
+    })
+
+    it('shows no ".00" on a round converted amount', () => {
+        renderCard(currencyTx({ amount: '20.00', code: 'EUR' }))
+        expect(screen.getByText('≈ EUR 20')).toBeInTheDocument()
     })
 
     it('hides the line for a blanked (pending, unconverted) amount', () => {
@@ -399,6 +405,31 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
     it('hides the line when currency.amount is missing entirely', () => {
         renderCard(currencyTx({ code: 'ARS' } as any)) // deliberately missing `amount`
         expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+})
+
+// TASK-23856: a request asked in euros showed only its dollar figures, so the
+// requester never saw the currency they asked in.
+describe('TransactionCard — a request asked in another currency', () => {
+    function potTx(extra: Record<string, string>): TransactionDetails {
+        const base = eligibleTx()
+        return {
+            ...base,
+            amount: 99.16,
+            totalAmountCollected: 73.65,
+            isRequestPotLink: true,
+            extraDataForDrawer: { ...base.extraDataForDrawer, ...extra },
+        } as TransactionDetails
+    }
+
+    it('adds the asked amount under the dollar figures', () => {
+        renderCard(potTx({ requestedAmount: '88', requestCurrency: 'EUR' }))
+        expect(screen.getByText('€88 requested')).toBeInTheDocument()
+    })
+
+    it('adds nothing for a dollar request, or an API that sends no currency', () => {
+        renderCard(potTx({ requestedAmount: '99.16', requestCurrency: 'USD' }))
+        expect(screen.queryByText(/requested/)).toBeNull()
     })
 })
 
@@ -425,19 +456,28 @@ describe('TransactionCard — counterparty avatar', () => {
     const img = (container: HTMLElement) => container.querySelector('img')
 
     it('renders the picked sticker for a person row', () => {
-        const { container } = renderRow({ ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails)
+        const { container } = renderRow({
+            ...eligibleTx(),
+            peer: personFrom({ username: 'natalia', avatarKey: 'basic.frog' }),
+        } as TransactionDetails)
 
         expect(img(container)).toHaveAttribute('src', '/avatars/basic/frog.webp')
     })
 
     it('falls back to the letter sticker of the displayed name without a pick', () => {
-        const { container } = renderRow({ ...eligibleTx(), avatarKey: null } as TransactionDetails)
+        const { container } = renderRow({
+            ...eligibleTx(),
+            peer: personFrom({ username: 'natalia', avatarKey: null }),
+        } as TransactionDetails)
 
         expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
     })
 
     it('lets a merchant logo win over the sticker', () => {
-        const tx = { ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails
+        const tx = {
+            ...eligibleTx(),
+            peer: personFrom({ username: 'natalia', avatarKey: 'basic.frog' }),
+        } as TransactionDetails
         ;(tx.extraDataForDrawer as Record<string, unknown>).rewardData = { avatarUrl: '/merchant-logo.png' }
 
         const { container } = renderRow(tx)
@@ -453,7 +493,7 @@ describe('TransactionCard — counterparty avatar', () => {
             userName: 'satoshi',
             fullName: 'Hal Finney',
             showFullName: true,
-            avatarKey: null,
+            peer: personFrom({ username: 'satoshi', fullName: 'Hal Finney', showFullName: true, avatarKey: null }),
         } as TransactionDetails
 
         const { container } = renderRow(tx)
@@ -461,20 +501,21 @@ describe('TransactionCard — counterparty avatar', () => {
         expect(img(container)).toHaveAttribute('src', '/avatars/letter/s.webp')
     })
 
-    // A peer with a display name but no handle has an address in `userName`,
-    // which draws no letter — the display name is the only one left.
-    it('falls back to the display name when the handle is an address', () => {
+    // A display name with no handle behind it resolves no Person (TASK-23756):
+    // the row keeps the initials circle, the DS rule for "no real person".
+    it('keeps the initials circle for a display name with no handle', () => {
         const tx = {
             ...eligibleTx(),
             userName: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
             fullName: 'Nancy Drew',
             showFullName: true,
-            avatarKey: null,
+            peer: null,
         } as TransactionDetails
 
         const { container } = renderRow(tx)
 
-        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+        expect(img(container)).toBeNull()
+        expect(container).toHaveTextContent('ND')
     })
 
     // A reaper-failed transfer has its name rewritten to system copy ("Send
@@ -484,7 +525,8 @@ describe('TransactionCard — counterparty avatar', () => {
             ...eligibleTx(),
             userName: "Send didn't complete",
             isPeerActuallyUser: false,
-            avatarKey: null,
+            // isPeer wins even over a person: the name on screen is system copy
+            peer: personFrom({ username: 'natalia', avatarKey: 'basic.frog' }),
         } as TransactionDetails
 
         const { container } = renderRow(tx)
@@ -495,7 +537,10 @@ describe('TransactionCard — counterparty avatar', () => {
     })
 
     it('leaves a bank row on its bank icon', () => {
-        const tx = { ...eligibleTx('bank_request_fulfillment'), avatarKey: 'basic.frog' } as TransactionDetails
+        const tx = {
+            ...eligibleTx('bank_request_fulfillment'),
+            peer: personFrom({ username: 'natalia', avatarKey: 'basic.frog' }),
+        } as TransactionDetails
 
         const { container } = renderRow(tx, 'bank_request_fulfillment')
 

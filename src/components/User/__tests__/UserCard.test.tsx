@@ -5,6 +5,7 @@
  */
 import React from 'react'
 import { screen } from '@testing-library/react'
+import { personFrom } from '@/lib/person/person'
 import { renderWithIntl } from '@/test-utils/intl'
 import UserCard from '../UserCard'
 
@@ -22,7 +23,12 @@ jest.mock('next/image', () => ({
 describe('UserCard avatar', () => {
     it('renders the recipient picked avatar', () => {
         const { container } = renderWithIntl(
-            <UserCard type="send" username="satoshi" recipientType="USERNAME" avatarKey="basic.frog" />
+            <UserCard
+                type="send"
+                username="satoshi"
+                recipientType="USERNAME"
+                person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })}
+            />
         )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
@@ -37,7 +43,12 @@ describe('UserCard avatar', () => {
                 username="satoshi"
                 fullName="Satoshi Nakamoto"
                 recipientType="USERNAME"
-                avatarKey={null}
+                person={personFrom({
+                    username: 'satoshi',
+                    fullName: 'Satoshi Nakamoto',
+                    showFullName: true,
+                    avatarKey: null,
+                })}
             />
         )
 
@@ -46,16 +57,21 @@ describe('UserCard avatar', () => {
     })
 
     it('keeps the wallet bubble for an address recipient', () => {
-        const { container } = renderWithIntl(
-            <UserCard type="send" username="0xf39F…2266" recipientType="ADDRESS" avatarKey="basic.frog" />
-        )
+        const { container } = renderWithIntl(<UserCard type="send" username="0xf39F…2266" recipientType="ADDRESS" />)
 
         expect(container.querySelector('img')).toBeNull()
         expect(container.querySelector('svg')).not.toBeNull()
     })
 
     it('leaves the avatar out of the accessibility tree — the card names the person', () => {
-        renderWithIntl(<UserCard type="send" username="satoshi" recipientType="USERNAME" avatarKey="basic.frog" />)
+        renderWithIntl(
+            <UserCard
+                type="send"
+                username="satoshi"
+                recipientType="USERNAME"
+                person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })}
+            />
+        )
 
         expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })
@@ -65,9 +81,53 @@ describe('UserCard open-amount request', () => {
     // TASK-22123: a request sent with no amount names the requester and tells
     // the payer the amount is theirs to choose.
     it('tells the payer the amount is their choice', () => {
-        renderWithIntl(<UserCard type="request_pay" username="alice" recipientType="USERNAME" isOpenAmount />)
+        renderWithIntl(
+            <UserCard
+                type="request_pay"
+                username="alice"
+                recipientType="USERNAME"
+                person={personFrom({ username: 'alice' })}
+                isOpenAmount
+            />
+        )
 
         expect(screen.getByText('alice is requesting')).toBeInTheDocument()
         expect(screen.getByText('Your choice')).toBeInTheDocument()
+    })
+})
+
+// TASK-23856: "Send the exact amount!" gave no figure in the token, and no
+// word that a wallet fee makes the deposit arrive short.
+describe('UserCard exact-amount note on a deposit', () => {
+    it('names the token amount and the note under it', () => {
+        renderWithIntl(
+            <UserCard
+                type="request_fulfilment"
+                username="ana"
+                recipientType="USERNAME"
+                person={personFrom({ username: 'ana' })}
+                amount={58.51}
+                tokenAmount="58.51 USDC"
+                amountNote="Send a little more if your wallet or network charges a fee."
+            />
+        )
+
+        expect(screen.getByText('Send the exact amount!')).toBeInTheDocument()
+        expect(screen.getByText('58.51 USDC')).toBeInTheDocument()
+        expect(screen.getByText('Send a little more if your wallet or network charges a fee.')).toBeInTheDocument()
+    })
+
+    it('shows neither line when the caller passes none', () => {
+        renderWithIntl(
+            <UserCard
+                type="request_fulfilment"
+                username="ana"
+                recipientType="USERNAME"
+                person={personFrom({ username: 'ana' })}
+                amount={10}
+            />
+        )
+        expect(screen.getByText('Send the exact amount!')).toBeInTheDocument()
+        expect(screen.queryByText(/USDC|a little more/)).toBeNull()
     })
 })

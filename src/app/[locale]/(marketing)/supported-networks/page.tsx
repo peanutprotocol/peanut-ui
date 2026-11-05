@@ -5,6 +5,7 @@ import { SUPPORTED_LOCALES, getBareAlternatesFor, isValidLocale } from '@/i18n/c
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import {
+    contentArticleMetadata,
     availableSingletonLocales,
     readSingletonContentLocalized,
     singletonLocaleFor,
@@ -66,16 +67,7 @@ export default async function SupportedNetworksPage({ params }: PageProps) {
                 { name: i18n.home, href: `/${locale}` },
                 { name: mdxSource.frontmatter.title, href: url },
             ]}
-            article={
-                mdxSource.frontmatter.generated_at
-                    ? {
-                          title: mdxSource.frontmatter.title,
-                          description: mdxSource.frontmatter.description,
-                          url,
-                          datePublished: mdxSource.frontmatter.generated_at,
-                      }
-                    : undefined
-            }
+            article={contentArticleMetadata(mdxSource, url)}
         >
             {content}
         </ContentPage>

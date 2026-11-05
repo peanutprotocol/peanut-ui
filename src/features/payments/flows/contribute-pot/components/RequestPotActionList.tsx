@@ -30,6 +30,7 @@ import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.const
 import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaymentMethodLabels'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
 import { EInviteType } from '@/services/services.types'
+import type { Person } from '@/lib/person/person.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
@@ -46,8 +47,8 @@ interface RequestPotActionListProps {
     isAmountEntered: boolean
     usdAmount: string
     recipientUserId?: string
-    recipientUsername?: string
-    recipientAvatarKey?: string | null
+    /** The requester (TASK-23756): named in the bank drawer, and the inviter of a signed-out payer. */
+    person?: Person | null
     requestMessage?: string
     /** the request being paid — needed to read its bank details */
     requestId?: string
@@ -69,8 +70,7 @@ export function RequestPotActionList({
     isAmountEntered,
     usdAmount,
     recipientUserId,
-    recipientUsername,
-    recipientAvatarKey,
+    person,
     requestMessage,
     requestId,
     bankPayable = false,
@@ -87,7 +87,7 @@ export function RequestPotActionList({
     const tCommon = useTranslations('common')
     const methodLabels = usePaymentMethodLabels()
     const { user, isFetchingUser } = useAuth()
-    const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
+    const { hasSufficientSpendableBalance: hasSufficientBalance, isSpendableBalanceReady } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
     const isMantecaPayEnabled = useCapabilities().canDo('pay', { provider: 'manteca' })
@@ -102,6 +102,10 @@ export function RequestPotActionList({
     const [unavailableRails, setUnavailableRails] = useState<ReadonlySet<string>>(new Set())
 
     const isLoggedIn = !!user?.user?.userId
+    // The view only pays on a live, sufficient balance, so a Send offered before
+    // that is a tap that silently does nothing. A cached total on screen is not
+    // a live balance.
+    const isBalancePending = isLoggedIn && !isSpendableBalanceReady
 
     // check if verification is required for bank
     const requiresVerification = useMemo(() => {
@@ -112,12 +116,11 @@ export function RequestPotActionList({
     // only show insufficient balance after balance has loaded to avoid flash
     const userHasSufficientPeanutBalance = useMemo(() => {
         if (!user || !usdAmount) return false
-        // wait on BOTH smart + Rain overview (spendable) — using the smart-only
-        // flag would gate on a partial balance and flash a false "insufficient"
-        // for split-funds users during the Rain-overview load window.
-        if (isFetchingSpendableBalance) return true // assume sufficient while loading to avoid flash
+        // wait on BOTH live terms (smart + Rain overview) — a partial or cached
+        // balance would flash a false "insufficient" for split-funds users.
+        if (!isSpendableBalanceReady) return true // assume sufficient while loading to avoid flash
         return hasSufficientBalance(usdAmount)
-    }, [user, usdAmount, hasSufficientBalance, isFetchingSpendableBalance])
+    }, [user, usdAmount, hasSufficientBalance, isSpendableBalanceReady])
 
     // filter and sort payment methods
     const { filteredMethods: sortedMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions({
@@ -143,7 +146,12 @@ export function RequestPotActionList({
         }
 
         // if user has sufficient peanut balance and hasn't dismissed the modal, suggest using peanut
-        if (!bypassBalanceModal && !isUsePeanutBalanceModalShown && userHasSufficientPeanutBalance) {
+        if (
+            !bypassBalanceModal &&
+            !isUsePeanutBalanceModalShown &&
+            userHasSufficientPeanutBalance &&
+            !isBalancePending
+        ) {
             setSelectedPaymentMethod(method)
             setShowUsePeanutBalanceModal(true)
             return
@@ -167,8 +175,8 @@ export function RequestPotActionList({
                     router.push('/add-money')
                 } else {
                     const redirectUri = encodeURIComponent('/add-money')
-                    if (recipientUsername) {
-                        const inviteCode = toInviteCode(recipientUsername)
+                    if (person?.username) {
+                        const inviteCode = toInviteCode(person.username)
                         stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
                         router.push(inviteFlowUrl(inviteCode, redirectUri))
                     } else {
@@ -269,7 +277,7 @@ export function RequestPotActionList({
     // settles, in success or in failure.
     const requesterBankRows = !requestId ? null : bankPayable && isPayAmountsLoading ? (
         <div
-            className="h-16 w-full animate-pulse rounded-sm bg-foreground-primary/10"
+            className="h-16 w-full animate-pulse rounded-sm bg-background-skeleton"
             data-testid="bank-rows-loading"
             aria-hidden
         />
@@ -277,8 +285,7 @@ export function RequestPotActionList({
         <BankTransferChooserDrawer
             requestId={requestId}
             rails={bankRails}
-            recipientUsername={recipientUsername}
-            recipientAvatarKey={recipientAvatarKey}
+            person={person}
             requestMessage={requestMessage}
             requestAmount={requestContextAmount}
             bankRowProps={bankRowProps}
@@ -289,24 +296,6 @@ export function RequestPotActionList({
     ) : payAmounts ? null : (
         <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
     )
-
-    // A request asked in euros is paid in dollars on the Peanut and crypto
-    // rails. Say so once, with the asked amount, instead of leaving the payer
-    // to wonder why the screen shows dollars.
-    const otherCurrencyNote = useMemo(() => {
-        if (!payAmounts || payAmounts.requestCurrency.toUpperCase() === 'USD') return undefined
-        const currency = payAmounts.requestCurrency.toUpperCase()
-        const show = (value: number) => formatBankAmount(value, currency)
-        const asked = Number(payAmounts.requestAmount)
-        const left = Number(payAmounts.remainingAmount)
-        if (!(asked > 0)) return undefined
-        // A part-paid request states what is left: that is what a payer can still
-        // send. Not where the API's remainder missed a payment: the screen has
-        // no figure of its own in this currency, so it states none.
-        return serverCountsAllPayments && left > 0 && left < asked
-            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left) })
-            : t('requestCurrencyNote', { amount: show(asked) })
-    }, [payAmounts, serverCountsAllPayments, t])
 
     if (isGeoLoading) {
         return (
@@ -330,15 +319,13 @@ export function RequestPotActionList({
 
     return (
         <div className="space-y-2">
-            {otherCurrencyNote && <Callout priority="helper">{otherCurrencyNote}</Callout>}
-
             {/* pay with peanut button */}
             <SendWithPeanutCta
                 onClick={onPayWithPeanut}
-                disabled={!isAmountEntered || isPaymentLoading || isExternalWalletLoading}
+                disabled={!isAmountEntered || isPaymentLoading || isExternalWalletLoading || isBalancePending}
                 loading={isPaymentLoading}
                 insufficientBalance={!userHasSufficientPeanutBalance}
-                inviterUsername={recipientUsername}
+                inviterUsername={person?.username}
             />
 
             <Divider text={tCommon('or')} />
