@@ -1928,13 +1928,18 @@
         },
         "physical": {
             "navTitle": "Cartão físico",
-            "onListTitle": "Você está na lista!",
-            "onListBody": "Você é o #{position} da lista. Avisamos quando os cartões estiverem prontos para envio.",
-            "comingSoonTitle": "Em breve!",
-            "comingSoonBody": "Entre na nossa lista de espera e seja um dos primeiros a ter.",
+            "onListTitle": "Você está na lista de espera",
+            "onListBody": "Avisamos assim que você puder pedir.",
+            "comingSoonTitle": "O cartão físico está a caminho",
+            "comingSoonBody": "Ainda não dá para pedir. Veja como vai funcionar:",
             "joinCta": "Entrar na lista de espera",
             "joinFailed": "Não foi possível entrar na lista de espera",
-            "onListBodyPending": "Você está na lista. Avisamos quando os cartões estiverem prontos para envio."
+            "stepJoin": "Entre na lista de espera hoje",
+            "stepNotify": "Avisamos quando os pedidos abrirem",
+            "stepShip": "Peça e enviamos para você",
+            "notAvailableBadge": "Ainda não disponível",
+            "positionBadge": "Você é o #{position} da lista",
+            "onListBadge": "Você está na lista"
         },
         "yourCard": {
             "navTitle": "Cartão",
