@@ -389,7 +389,12 @@ const SignTestTransaction = ({
             }
             // Otherwise the login flow's account-exists effect owns navigation; loading stays on until it redirects.
         } catch (e) {
-            console.error('[SignTestTransaction] Test transaction failed:', e)
+            /*
+             * console.info, not error: captureConsoleIntegration turned an error log into an
+             * "unhandled" event without this step's tags, and Sentry's dedupe then dropped
+             * the tagged capture below as its duplicate.
+             */
+            console.info('[SignTestTransaction] Test transaction failed:', e)
 
             // Browser capability probes must not delay recovery from a failed signature.
             void capturePasskeyDebugInfo('test-transaction-failed').catch((debugError) => {
@@ -400,18 +405,21 @@ const SignTestTransaction = ({
             // to NotAllowedError in place, so read error_name after it
             const failure = classifySignupTestTxFailure(e)
             const record = readSignupTestTransaction(userId)
-            Sentry.captureException(e, {
-                tags: { feature: 'signup-test-transaction', failure_mode: failure.mode },
-                extra: {
-                    address,
-                    accountExists,
-                    testTransactionCompleted,
-                    phase: failure.phase,
-                    submissionKind: failure.submissionKind,
-                    errorMessage: failure.rootCause.message,
-                    errorName: failure.rootCause.name,
-                },
-            })
+            // A failed passkey prompt was already reported, rate-limited, by the signing hook.
+            if (!(failure.mode === 'passkey' && failure.phase === 'sign')) {
+                Sentry.captureException(e, {
+                    tags: { feature: 'signup-test-transaction', failure_mode: failure.mode },
+                    extra: {
+                        address,
+                        accountExists,
+                        testTransactionCompleted,
+                        phase: failure.phase,
+                        submissionKind: failure.submissionKind,
+                        errorMessage: failure.rootCause.message,
+                        errorName: failure.rootCause.name,
+                    },
+                })
+            }
             const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
             const deferrable = failure.mode === 'bundler_transient' && canDeferSignupTestTransaction(record)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {
