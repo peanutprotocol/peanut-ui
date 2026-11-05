@@ -198,6 +198,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '07-d-notification-settings': { journey: 'Account setup', step: 54 },
     '07-b-advantage-control': { journey: 'Account setup', step: 55 },
     '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
+    '05-b-signtesttransaction-network-busy': { journey: 'Account setup', step: 61 },
     '07-e-setup-celebration': { journey: 'Account setup', step: 65 },
     '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },

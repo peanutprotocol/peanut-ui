@@ -21,7 +21,7 @@
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 404,
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 127,
         "app/(mobile-ui)/withdraw/manteca/page.tsx": 627,
-        "app/(setup)/setup/finish/page.tsx": 68,
+        "app/(setup)/setup/finish/page.tsx": 70,
         "app/[...recipient]/page.tsx": 177,
         "app/invite/page.tsx": 91,
         "app/receipt/[entryId]/OwnerReceiptView.tsx": 765,

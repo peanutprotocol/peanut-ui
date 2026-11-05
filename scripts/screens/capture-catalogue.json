@@ -96,6 +96,12 @@
         "source": "Setup/Views/SignTestTransaction.tsx"
     },
     {
+        "id": "05-b-signtesttransaction-network-busy",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=05-b-signtesttransaction-network-busy",
+        "source": "Setup/Views/SignTestTransaction.tsx"
+    },
+    {
         "id": "07-e-setup-celebration",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-e-setup-celebration",

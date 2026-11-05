@@ -20,6 +20,7 @@ import React from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
@@ -177,6 +178,19 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
     step: 'first_payment',
 }
 const noop = () => {}
+
+/** The final step after repeated network failures: retry copy and the "confirm later" link. */
+function NetworkBusyConfirmation() {
+    const t = useTranslations('setup')
+    return (
+        <SetupConfirmationView
+            merged
+            onConfirm={noop}
+            error={t('testTransaction.errors.networkBusy')}
+            secondary={<LinkButton onClick={noop}>{t('testTransaction.finishLater')}</LinkButton>}
+        />
+    )
+}
 
 /** The residence step's comparison, as its Next opens it when the nationality differs. */
 function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
@@ -428,6 +442,14 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <SetupScreen screenId="advantage-control">
                 <SetupConfirmationView merged onConfirm={noop} />
+            </SetupScreen>
+        ),
+    },
+    '05-b-signtesttransaction-network-busy': {
+        ...SURFACE_META['05-b-signtesttransaction-network-busy'],
+        render: () => (
+            <SetupScreen screenId="advantage-control">
+                <NetworkBusyConfirmation />
             </SetupScreen>
         ),
     },
