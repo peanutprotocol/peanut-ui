@@ -98,7 +98,7 @@ export const SumsubWebSdkModal = ({
                             </button>
                         </div>
                         {validationError && (
-                            <p role="alert" className="px-4 py-2 text-sm text-foreground-primary">
+                            <p role="alert" className="px-4 py-2 text-body-s text-foreground-primary">
                                 {validationError}
                             </p>
                         )}
