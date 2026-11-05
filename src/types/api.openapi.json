@@ -12850,6 +12850,100 @@
 				],
 				"responses": {
 					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"properties": {
+										"extraData": {
+											"additionalProperties": true,
+											"properties": {
+												"aveniaRecovery": {
+													"anyOf": [
+														{
+															"description": "An Avenia Pix withdrawal’s recovery, on an Avenia OFFRAMP only (null when it has none). `awaiting-key`: the bank refused the key or account, and the user names another own Pix key with POST /avenia/withdraw/:intentId/recovery-key.",
+															"properties": {
+																"failureCode": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"reason": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"payout-failed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"payout-reversed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"late-deposit"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"deposit-delivery-failed"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"state": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"awaiting-key"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"in-progress"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"done"
+																			],
+																			"type": "string"
+																		}
+																	]
+																}
+															},
+															"required": [
+																"state",
+																"reason",
+																"failureCode"
+															],
+															"type": "object"
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"type": "object"
+										}
+									},
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
