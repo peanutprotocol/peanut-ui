@@ -17,8 +17,8 @@ export function HomePersonaCard({ persona, withAvatar = true, className }: HomeP
                     <Image
                         src={avatarSrc(persona.avatar)!}
                         alt=""
-                        width={176}
-                        height={176}
+                        width={288}
+                        height={288}
                         unoptimized
                         className="size-12 shrink-0 object-contain"
                     />

@@ -93,6 +93,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 isLoadingTos={flow.isLoadingTos}
                 preparingTimedOut={flow.preparingTimedOut}
                 preparingStage={flow.preparingStage}
+                completionNotice={flow.completionNotice}
             />
 
             {flow.tosLink && <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={closeTosPage} />}

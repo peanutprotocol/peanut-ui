@@ -130,7 +130,14 @@ export function SelfCustodyLanding() {
                 {/* inside the band's top padding, clear of the marquee above */}
                 <Wiggle kind="wobble" className="pointer-events-none absolute -top-10 right-0 w-11 md:-top-14 md:w-14">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                    <img
+                        src={Sparkle.src}
+                        width={Sparkle.width}
+                        height={Sparkle.height}
+                        alt=""
+                        aria-hidden
+                        loading="lazy"
+                    />
                 </Wiggle>
                 {/* Konrad's pick (self-custody fold picker, 20 Oct): type only, no cards.
                     "Money" is the hero's word; the card carve-out stays in the FAQ (security.md). */}

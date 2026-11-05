@@ -387,8 +387,6 @@ export interface TillStickerProps {
     slot: StarLpQrSlot
     /** Width classes; the sticker scales with its width. */
     className?: string
-    /** Load the mark eagerly; set only where the sticker is in the first screen. */
-    priority?: boolean
     /** Passed to StarLpQrCode: the registered QR of a page other than the star LPs. */
     qrContext?: MarketingQrContext
 }
