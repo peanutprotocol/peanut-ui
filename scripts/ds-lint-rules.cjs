@@ -184,7 +184,7 @@ function countWeightStacksByRegex(text) {
  *
  * Invalid syntax uses the legacy regex fallback. Unsupported CVA and analysis
  * limits throw with a diagnostic instead of returning a misleading count.
- * See ds-lint-contract.md for conservative policies and cardinality limits.
+ * See https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md for conservative policies and cardinality limits.
  */
 function countWeightStacks(text, filename = 'file.tsx') {
     const sites = weightStackSites(text, filename, {

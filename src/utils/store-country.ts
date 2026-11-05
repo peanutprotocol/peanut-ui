@@ -1,3 +1,5 @@
+// What the store country is and is not, and where it may be used:
+// https://github.com/peanutprotocol/mono/blob/main/engineering/native/store-country.md
 import { isIOSNative } from './capacitor'
 import { nativeCapability } from './native-capability'
 

@@ -1,4 +1,4 @@
-// Bounded, same-file class-expression evaluation. See ds-lint-contract.md.
+// Bounded, same-file class-expression evaluation. See https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md
 const ts = require('typescript')
 const BUILDERS = new Set(['twMerge', 'clsx', 'cn', 'classNames', 'tw'])
 const OPAQUE = Symbol('opaque-binding')

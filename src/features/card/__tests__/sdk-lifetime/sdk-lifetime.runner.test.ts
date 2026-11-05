@@ -1,4 +1,6 @@
-/** Frozen assertions registered against the actual web SDK integration. */
+/** Frozen assertions registered against the actual web SDK integration.
+ * Contract: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/card-sdk-lifetime-contract.md
+ * Wiring: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/card-sdk-lifetime-wiring.md */
 jest.mock('vitest', () => ({ describe, it, expect }), { virtual: true })
 import { sdkLifetimeAcceptance } from './acceptance.assertions'
 import { webAdapter } from './web.production-adapter'
