@@ -30,6 +30,34 @@ if (!existsSync(resolve(top, 'node_modules'))) {
     process.exit(0)
 }
 
+// The typecheck reads the checked-out tree, so it can only vouch for a push of that tree:
+// `git push [remote] [src[:dst]]` with src left out, HEAD, or the branch checked out here.
+// A push of another branch, or a delete (`:dst`), is left to CI.
+const pushArgs = command
+    .slice(command.search(/\bpush\b/) + 4)
+    .split(/&&|;|\|/)[0]
+    .split(/\s+/)
+    .filter((arg) => arg && !arg.startsWith('-'))
+const refspec = (pushArgs[1] ?? 'HEAD').replace(/^\+/, '')
+if (refspec.startsWith(':')) process.exit(0)
+const commitOf = (ref) => {
+    try {
+        return execFileSync('git', ['-C', top, 'rev-parse', '--verify', '-q', `${ref}^{commit}`], {
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+        }).trim()
+    } catch {
+        return null
+    }
+}
+const source = refspec.split(':')[0]
+if (source !== 'HEAD' && commitOf(source) !== commitOf('HEAD')) {
+    console.error(
+        `typecheck-before-push: this push sends ${source}, not the checked-out tree, so it was not typechecked here; CI still runs it.`
+    )
+    process.exit(0)
+}
+
 // Only pushes that change types pay for the typecheck: api's runs tsc twice with 6 GB each. The range is the
 // commits not yet on the upstream (or on origin/dev for a new branch); if git cannot tell, check anyway.
 const changed = (range) => {
