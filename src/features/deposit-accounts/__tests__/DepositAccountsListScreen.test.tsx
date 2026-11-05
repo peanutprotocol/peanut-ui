@@ -25,6 +25,7 @@ import { capabilityStateForProfile, deriveGate, type GateState } from '@/utils/c
 import type { IUserProfile } from '@/interfaces/interfaces'
 import type { BankRowsInput } from '@/utils/unlock-payments.utils'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { closeRefusedCorridors } from '../reportClosures'
 import { accountEntry, entryChip } from '@/features/kyc-features/report'
 import type { BankRowKey } from '@/utils/unlock-payments.utils'
 import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
@@ -838,6 +839,35 @@ describe('a rejected identity', () => {
                 expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
                 expect(row.queryByText(messages.common.contactSupport)).not.toBeInTheDocument()
             }
+        })
+
+        /*
+         * Chip on ui#3979: useDepositAccounts lays the feature report over these
+         * answers, and a refusal with no action in it used to turn every row into
+         * a residence closure: Not available, and the residence explanation.
+         */
+        it('keeps Action needed once the feature report is laid over the answers', () => {
+            mockIdentity = { status: 'failed', reason: { code: 'duplicate_account', userMessage: '' } }
+            const { features } = withFeatureReport({ rails: [], nextActions: [] }, { identity: mockIdentity })
+            const { claimable, unavailable } = closeRefusedCorridors(features, [], {
+                accounts: NONE,
+                claimable: emptyCorridorRecord<ClaimableCorridor>(),
+                unavailable: { ...emptyCorridorRecord<UnavailableCorridor>(), ...identityRejected() },
+            })
+            const { container } = list(false, {
+                gates: reportGates(mockIdentity),
+                claimable: claimable as Partial<Record<DepositCorridor, ClaimableCorridor>>,
+                unavailable: unavailable as Partial<Record<DepositCorridor, UnavailableCorridor>>,
+            })
+
+            for (const corridor of ACCOUNT_CORRIDORS) {
+                expect(unavailable[corridor]?.cause).toBe('identity-rejected')
+                const row = inRow(container, corridor)
+                expect(row.getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+                expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+            }
+            fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+            expect(drawer().getByText(messages.identity.reasons.duplicate_account)).toBeInTheDocument()
         })
 
         it('opens the rejection drawer, and support gets the reason', () => {
