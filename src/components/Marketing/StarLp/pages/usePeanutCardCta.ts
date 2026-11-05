@@ -20,8 +20,9 @@ import type { PeanutCardCtaPlacement } from './peanutCard.types'
  */
 export function usePeanutCardCta(placement: PeanutCardCtaPlacement) {
     const router = useRouter()
-    // Star LPs render in the marketing tree, which has no AuthProvider: every
-    // visitor there is a guest and never waits on auth.
+    // /peanut-card renders on the app tree (see marketing-routes.ts), so auth
+    // is real there. Without an AuthProvider every visitor is a guest and
+    // never waits on auth.
     const auth = useOptionalAuth()
     const user = auth?.user ?? null
     const isFetchingUser = auth?.isFetchingUser ?? false

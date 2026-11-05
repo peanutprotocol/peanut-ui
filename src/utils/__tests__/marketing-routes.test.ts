@@ -30,13 +30,16 @@ describe('isMarketingRoute', () => {
     })
 
     it('treats the root-level star LPs, /lp and /request-links as marketing', () => {
-        const routes = [...Object.values(STAR_LP_ROUTES), '/lp', '/request-links']
+        const routes = [
+            ...Object.values(STAR_LP_ROUTES).filter((route) => route !== STAR_LP_ROUTES.peanutCard),
+            '/lp',
+            '/request-links',
+        ]
         expect(routes).toEqual(
             expect.arrayContaining([
                 '/us-europe-accounts',
                 '/qr-payments/argentina',
                 '/qr-payments/brazil',
-                '/peanut-card',
                 '/self-custody',
             ])
         )
@@ -44,6 +47,14 @@ describe('isMarketingRoute', () => {
             expect(isMarketingRoute(route)).toBe(true)
             expect(isMarketingRoute(`${route}/`)).toBe(true)
         }
+    })
+
+    it('keeps /peanut-card on the app tree so its CTA can read auth', () => {
+        // Signed-in visitors must go straight to /card, which needs the
+        // AuthProvider that only the app tree mounts.
+        expect(STAR_LP_ROUTES.peanutCard).toBe('/peanut-card')
+        expect(isMarketingRoute('/peanut-card')).toBe(false)
+        expect(isMarketingRoute('/peanut-card/')).toBe(false)
     })
 
     it('matches the root-level marketing pages by exact path, never by prefix', () => {

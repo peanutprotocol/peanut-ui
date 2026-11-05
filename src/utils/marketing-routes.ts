@@ -4,8 +4,14 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 const LOCALE_PREFIXES = new Set(SUPPORTED_LOCALES.map((locale) => locale.toLowerCase()))
 
 /** Unprefixed marketing pages at the app root: the star LPs (which include
- *  /request-links) and /lp, the English landing alias. Matched as whole paths. */
-const ROOT_MARKETING_PATHS: ReadonlySet<string> = new Set(['/lp', ...Object.values(STAR_LP_ROUTES)])
+ *  /request-links) and /lp, the English landing alias. Matched as whole paths.
+ *  /peanut-card is left out on purpose: its CTA sends signed-in visitors
+ *  straight to /card, which needs the AuthProvider that only the app tree
+ *  mounts. Without it every visitor there would get the guest store hand-off. */
+const ROOT_MARKETING_PATHS: ReadonlySet<string> = new Set([
+    '/lp',
+    ...Object.values(STAR_LP_ROUTES).filter((route) => route !== STAR_LP_ROUTES.peanutCard),
+])
 
 /**
  * True for the marketing site — the landing page and the localized marketing
