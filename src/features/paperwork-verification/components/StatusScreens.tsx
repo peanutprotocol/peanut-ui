@@ -179,13 +179,7 @@ export function ReviewScreen({
                     }
                     secondary={
                         onRetry || logIn || support
-                            ? primary(
-                                  t('failed.cta'),
-                                  home,
-                                  'verify-review-home',
-                                  false,
-                                  logIn ? 'secondary' : undefined
-                              )
+                            ? primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
                             : undefined
                     }
                 >

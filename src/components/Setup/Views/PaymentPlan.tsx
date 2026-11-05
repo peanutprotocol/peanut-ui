@@ -27,8 +27,8 @@ import SetupFooter from '../components/SetupFooter'
 
 // xs fits the picker button's 24px icon slot; s is the list-row bubble in the drawer
 function ChannelIcon({ channel, size }: { channel: SetupChannel | null; size: 'xs' | 's' }) {
-    // Nothing chosen yet: an empty gray bubble (design.md: gray = nothing selected).
-    if (!channel) return <IconBubble icon={<span />} size={size} color="gray" />
+    // Nothing chosen yet: gray (design.md); an empty bubble read as a broken image
+    if (!channel) return <IconBubble icon="question-mark" size={size} color="gray" />
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
     return (
         <IconBubble
