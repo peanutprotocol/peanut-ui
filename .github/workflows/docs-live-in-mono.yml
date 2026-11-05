@@ -1,0 +1,38 @@
+name: Docs live in mono
+
+# Documentation about this code lives in mono (peanutprotocol/mono, engineering/ and ops/), so there is
+# one source (mono CONTRIBUTING: "Docs live in mono"). This fails a PR that adds a Markdown file here.
+# Allowed: a README.md of 20 lines or fewer that points to mono, and files under paths that tools own.
+# A PR write-up goes in the PR body.
+
+on:
+    pull_request:
+        paths:
+            - '**/*.md'
+            - '**/*.mdx'
+
+permissions:
+    contents: read
+
+jobs:
+    no-new-docs:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: No new Markdown docs outside mono
+              env:
+                  BASE: ${{ github.event.pull_request.base.sha }}
+              run: |
+                  set -euo pipefail
+                  bad=0
+                  while IFS= read -r f; do
+                    case "$f" in
+                      .github/*|ios/*|android/*|public/*|src/content/*|node_modules/*) continue ;;
+                    esac
+                    if [ "$(basename "$f")" = README.md ] && [ "$(wc -l < "$f")" -le 20 ]; then continue; fi
+                    echo "::error file=$f::New docs go in mono (engineering/, ops/ or product/), not in this repo. Link to them from a code comment; put a PR write-up in the PR body."
+                    bad=1
+                  done < <(git diff --name-only --diff-filter=A "$BASE"...HEAD -- '*.md' '*.mdx')
+                  exit $bad
