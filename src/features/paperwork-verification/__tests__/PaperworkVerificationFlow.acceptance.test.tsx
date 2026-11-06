@@ -261,6 +261,7 @@ describe('canonical identity recovery acceptance', () => {
         renderFlow()
         const choose = await screen.findByRole('button', { name: 'Use a different ID' })
         await waitFor(() => expect(choose).toBeEnabled())
+        expect(screen.getByTestId('verify-replacement-document')).toBe(choose)
         fireEvent.click(choose)
         expect(screen.getByText('We can’t verify you with this document.')).toBeInTheDocument()
         expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
@@ -276,6 +277,7 @@ describe('canonical identity recovery acceptance', () => {
             'href',
             'https://peanut.me/support'
         )
+        expect(screen.queryByTestId('verify-replacement-document')).not.toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
         expect(mockToken).not.toHaveBeenCalled()
     })
