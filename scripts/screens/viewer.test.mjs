@@ -59,6 +59,7 @@ const elementIds = [
     'auth-gate',
     'google-sign-in',
     'comment-feed',
+    'comment-activity',
     'comment-panel',
     'votes',
     'votes-control',

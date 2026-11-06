@@ -284,6 +284,8 @@ async function selectThreadFromFeed(page, threadId, label) {
         await page.keyboard.press('Escape')
         await dialog.waitFor({ state: 'hidden', timeout: 5000 })
     }
+    const disclosure = page.locator('#comment-activity')
+    if ((await disclosure.getAttribute('open')) === null) await disclosure.locator('summary').click()
     const matchingFeedItems = page.locator(`#comment-feed [data-thread-id="${threadId}"]`)
     let feedItem
     try {
@@ -358,6 +360,7 @@ async function openReportPage(context, origin, reportUrl, label) {
     page.on('pageerror', (error) => console.error(`${label} browser error: ${error.message}`))
     await page.goto(reportUrl, { waitUntil: 'domcontentloaded' })
     await waitVisible(page.locator('#screen-home'), `${label} comparison screen`)
+    await page.locator('#comment-activity > summary').click()
     await openComments(page)
     return page
 }
@@ -458,6 +461,41 @@ async function main() {
         const reportUrl = `${origin}/screens/${reportRelativePath}/?source=synthetic&locale=en`
         await alicePage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
         await waitVisible(alicePage.locator('#screen-home'), 'comparison screen #screen-home')
+        const activity = alicePage.locator('#comment-activity')
+        const summary = activity.locator('summary')
+        assert.equal(await activity.getAttribute('open'), null, 'activity starts collapsed')
+        assert.equal(await activity.locator('#comment-feed').isVisible(), false)
+        const title = alicePage.locator('#title')
+        const filters = alicePage.locator('#filters-row')
+        const mobileActivity = await summary.boundingBox()
+        const mobileTitle = await title.boundingBox()
+        const mobileFilters = await filters.boundingBox()
+        assert.ok(mobileActivity.y > mobileTitle.y + mobileTitle.height)
+        assert.ok(mobileActivity.y + mobileActivity.height <= mobileFilters.y)
+        await alicePage.setViewportSize({ width: 1024, height: 844 })
+        const desktopActivity = await summary.boundingBox()
+        const desktopTitle = await title.boundingBox()
+        assert.ok(desktopActivity.x >= desktopTitle.x + desktopTitle.width)
+        assert.ok(desktopActivity.y < desktopTitle.y + desktopTitle.height)
+        await alicePage.setViewportSize({ width: 390, height: 844 })
+        await summary.press('Enter')
+        assert.notEqual(await activity.getAttribute('open'), null, 'activity opens from the keyboard')
+        assert.deepEqual(
+            await summary.evaluate((element) => {
+                const { outlineColor, outlineWidth } = getComputedStyle(element)
+                return { outlineColor, outlineWidth }
+            }),
+            { outlineColor: 'rgb(37, 99, 235)', outlineWidth: '3px' },
+            'activity summary uses the standard keyboard focus outline'
+        )
+        const intro = alicePage.locator('.library-intro')
+        await alicePage.getByRole('button', { name: 'View history for Home' }).click()
+        assert.equal(await intro.isVisible(), false, 'History hides the library intro')
+        assert.equal(await activity.isVisible(), false, 'History hides expanded activity')
+        await alicePage.locator('#history-close').click()
+        assert.equal(await intro.isVisible(), true, 'closing History restores the library intro')
+        assert.equal(await activity.isVisible(), true, 'closing History restores activity')
+        assert.notEqual(await activity.getAttribute('open'), null, 'closing History preserves expanded activity')
         await openComments(alicePage)
         await waitVisible(alicePage.getByLabel('Add a comment'), 'Add a comment composer')
         await alicePage.getByLabel('Add a comment').fill(rootBody)
@@ -782,7 +820,7 @@ async function main() {
             await route.continue()
         })
         holdAliceFeed = true
-        await late401Page.evaluate(() => window.dispatchEvent(new Event('focus')))
+        await late401Page.locator('#comment-feed .comment-refresh').evaluate((refresh) => refresh.click())
         await waitForSignal(aliceFeedCaptured, 'an in-flight Alice feed request')
         assert.equal((await delayedAliceFeed.request().allHeaders())['x-test-actor'], 'alice')
         await late401Identity.setActor('bob')

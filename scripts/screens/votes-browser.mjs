@@ -463,6 +463,7 @@ async function main() {
         assert.equal(await alicePage.locator('#screen-home .screen-votes [data-vote-count="down"]').textContent(), '1')
 
         // Vote activity reaches the feed; a vote item opens its screen without a discussion.
+        await alicePage.locator('#comment-activity > summary').click()
         const voteItems = alicePage.locator('#comment-feed .vote-feed-item')
         await voteItems.first().waitFor({ state: 'visible', timeout: 8000 })
         assert.deepEqual(
