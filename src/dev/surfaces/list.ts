@@ -436,6 +436,13 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['phase=idle', 'lockedAfterInit=true', 'error=quoteExpired'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
+    '94-l-avenia-withdraw-stuck': {
+        name: 'Avenia Pix withdrawal — funded, but the withdrawal ended with no recovery',
+        path: 'features/avenia/components/AveniaWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=CANCELLED', 'outcome=stuck'],
+        shotFixture: 'avenia-withdraw-not-sent',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',
         path: 'Home/FirstPaymentChooser.tsx',

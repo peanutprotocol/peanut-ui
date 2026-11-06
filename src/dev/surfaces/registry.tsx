@@ -1353,6 +1353,11 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['94-k-avenia-review-after-init'],
         render: () => <AveniaWithdrawReviewSurface variant="after-init" />,
     },
+    // the shot fixture's entry ended CANCELLED after this session funded it: support, never "on its way"
+    '94-l-avenia-withdraw-stuck': {
+        ...SURFACE_META['94-l-avenia-withdraw-stuck'],
+        render: () => <AveniaWithdrawOutcomeSurface />,
+    },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
         // human) clicks the row; needs a fixture granting card access

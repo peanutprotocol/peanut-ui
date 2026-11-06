@@ -1897,6 +1897,57 @@ export const FIXTURES: Record<string, Fixture> = {
             }),
         }),
     },
+    'avenia-deposit-processing': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: "The Pix left the payer's bank: the code screen waits while Avenia credits the deposit.",
+        isLoadingState: true,
+        responses: aveniaResponses('enabled', {
+            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ ticketStatus: 'PAID' }),
+        }),
+    },
+    'avenia-deposit-received': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'The Avenia Pix deposit is credited: received, and the balance is updated.',
+        responses: aveniaResponses('enabled', {
+            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                status: 'COMPLETED',
+                ticketStatus: 'PAID',
+            }),
+        }),
+    },
+    'avenia-deposit-quote-failed': {
+        route: '/add-money/pix',
+        about: 'The deposit amount step when the Pix quote fails: the rate is unavailable, with a retry.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /pix/quote'],
+    },
+    'avenia-withdraw-amount': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&step=amount`,
+        about: 'Avenia Pix withdrawal: the amount in reais, estimated with the Pix quote, R$20 minimum.',
+        responses: aveniaResponses('enabled'),
+    },
+    'avenia-withdraw-quote-failed': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&step=amount`,
+        about: 'The withdraw amount step when the Pix quote fails: the rate is unavailable, with a retry.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /pix/quote'],
+    },
+    'pix-route-paused-deposit': {
+        route: '/add-money/pix',
+        about: 'The Pix deposit route is paused: the provider-outage screen, no provider flow.',
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
+    'pix-route-paused-withdraw': {
+        route: '/withdraw/pix',
+        about: 'The Pix withdraw route is paused: the provider-outage screen, no provider flow.',
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
     'avenia-receipt-pay-code': {
         route: `/history?tx=${AVENIA_DEPOSIT_ID}`,
         about: 'The receipt of a Pix deposit whose code can still be paid opens that code again.',
@@ -2064,6 +2115,16 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'An opened withdrawal that was never signed: it did not go through, the balance is unchanged.',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('CANCELLED'),
+        }),
+    },
+    'avenia-withdraw-not-signed': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'After a reload, an opened withdrawal this device never signed: it did not go through, try again.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: {
+                ...aveniaWithdrawal('PENDING'),
+                extraData: { ...aveniaWithdrawal('PENDING').extraData, intentStatus: 'AWAITING_USER_ACTION' },
+            },
         }),
     },
     'avenia-withdraw-needs-key': {

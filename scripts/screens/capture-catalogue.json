@@ -1014,6 +1014,26 @@
         "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
     },
     {
+        "id": "fixture-avenia-deposit-processing",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
+    },
+    {
+        "id": "fixture-avenia-deposit-received",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
+    },
+    {
+        "id": "fixture-avenia-deposit-quote-failed",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-route-paused-deposit",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-avenia-receipt-pay-code",
         "flow": "Add money",
         "route": "/history?tx=fixture-avenia-deposit"
@@ -2005,6 +2025,21 @@
         "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal"
     },
     {
+        "id": "fixture-avenia-withdraw-amount",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?destination=09579927189&step=amount"
+    },
+    {
+        "id": "fixture-avenia-withdraw-quote-failed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?destination=09579927189&step=amount"
+    },
+    {
+        "id": "fixture-pix-route-paused-withdraw",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
         "id": "fixture-pix-route-not-offered",
         "flow": "Withdraw",
         "route": "/withdraw/pix"
@@ -2056,6 +2091,11 @@
     },
     {
         "id": "fixture-avenia-withdraw-not-sent",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
+    },
+    {
+        "id": "fixture-avenia-withdraw-not-signed",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
     },
@@ -2265,6 +2305,12 @@
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-k-avenia-review-after-init",
         "source": "features/avenia/components/AveniaWithdrawReview.tsx"
+    },
+    {
+        "id": "94-l-avenia-withdraw-stuck",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-l-avenia-withdraw-stuck",
+        "source": "features/avenia/components/AveniaWithdrawOutcome.tsx"
     },
     {
         "id": "fixture-rewards",
