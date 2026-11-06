@@ -2,10 +2,9 @@
  * @jest-environment jsdom
  */
 /**
- * Pending card applications: POST /rain/cards answers `{ status: 'pending' }` with no
- * `rainUserId` when another attempt holds the application claim (the approval
- * job or an earlier tap is mid-call to Rain, or an ambiguous failure is inside
- * its 15-minute lease). The card flow then shows the pending screen
+ * Durable one-shot card applications: POST /rain/cards answers `{ status: 'pending' }`
+ * with no `rainUserId` while a job owns the retry of a held Rain claim.
+ * The card flow then shows the pending screen
  * (`pendingApplication && state === 'add-card'`, CardPage.tsx).
  *
  * The screen can only move on when the card overview is read again. This keeps
@@ -31,7 +30,7 @@ jest.mock('@/services/rain', () => ({
 jest.mock('@/services/consent', () => ({ cardConsentDocuments: jest.fn(() => []) }))
 const mockUser = {
     user: { userId: 'user-1' },
-    identityVerification: { status: 'verified' },
+    identityVerification: { status: 'verified', oneShot: true },
     capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
 }
 jest.mock('@/context/authContext', () => ({
@@ -56,6 +55,9 @@ jest.mock('@/hooks/useCapabilities', () => ({
         nextActionsForRail: () => [],
         isLoading: false,
     }),
+}))
+jest.mock('@/features/paperwork-verification/useKycFeatureActivation', () => ({
+    useKycFeatureActivation: () => ({ allowed: true, activate: async () => true }),
 }))
 jest.mock('@/hooks/useHostedVerification', () => ({ useHostedVerification: () => ({ start: jest.fn(), error: null }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))

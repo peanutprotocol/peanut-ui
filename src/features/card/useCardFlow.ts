@@ -361,9 +361,9 @@ export function useCardFlow() {
     // by the user-initiated apply path and the post-Sumsub poll, since both
     // need the same main-kyc-required / terms-required / default fan-out.
     // The `incomplete` branch is caller-specific (open Sumsub vs keep polling)
-    // and stays inline.
+    // and stays inline. A held claim is not a successful application.
     const advanceFromApplyResponse = useCallback(
-        (res: ApplyForCardResponse) => {
+        (res: ApplyForCardResponse): boolean => {
             const pendingWithoutProvider = res.status === 'pending' && !('rainUserId' in res && res.rainUserId)
             if (pendingWithoutProvider && user?.identityVerification?.oneShot !== true) {
                 // An older API uses this response for a held legacy claim.
@@ -379,10 +379,10 @@ export function useCardFlow() {
             if (res.status === 'pending-identity' || pendingWithoutProvider) {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
-                setPendingApplication(res.status)
+                setPendingApplication(res.status === 'pending-identity' ? 'pending-identity' : 'pending')
                 awaitingIssuanceRef.current = false
                 invalidateOverview()
-                return
+                return !pendingWithoutProvider
             }
             setPendingApplication(null)
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
@@ -390,10 +390,10 @@ export function useCardFlow() {
             // MAIN level — Sumsub asks only for the missing step. Same
             // wrapper handles both action and main-level tokens.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
-                if (blockIfFinal()) return
+                if (blockIfFinal()) return true
                 setSumsubToken(res.sumsubAccessToken)
                 posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
-                return
+                return true
             }
             // Conflicting residence evidence — collect the user's pick before
             // anything reaches Rain. Cleared once a later response advances
@@ -401,12 +401,12 @@ export function useCardFlow() {
             if (res.status === 'country-confirmation-required' && 'candidates' in res) {
                 setPendingTerms(null)
                 setPendingCountryConfirmation({ candidates: res.candidates })
-                return
+                return true
             }
             if (res.status === 'terms-required' && 'isUsResident' in res) {
                 setPendingCountryConfirmation(null)
                 setPendingTerms({ isUsResident: res.isUsResident })
-                return
+                return true
             }
             // Terminal regulatory block from the BE gate. This can fire
             // mid-funnel for Sumsub-only users whose country is unknown until
@@ -421,20 +421,20 @@ export function useCardFlow() {
                 setPendingResidenceBlocked(false)
                 setGeoBlocked(true)
                 void refetchCardInfo()
-                return
+                return true
             }
             if (res.status === 'pending-residence-blocked') {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
                 setGeoBlocked(false)
                 setPendingResidenceBlocked(true)
-                return
+                return true
             }
             if (res.status === 'questions-required' && 'step' in res) {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
                 setPendingQuestions(res.step)
-                return
+                return true
             }
             if (res.status === 'provider-not-in-plan' && 'message' in res) {
                 setPendingTerms(null)
@@ -445,7 +445,7 @@ export function useCardFlow() {
                     setPlanRefusal(reason)
                     void fetchUser()
                 } else setApplyError(res.message)
-                return
+                return true
             }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
@@ -458,6 +458,7 @@ export function useCardFlow() {
             // surfaces a retryable error instead (effect below).
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
+            return true
         },
         [
             invalidateOverview,
@@ -571,7 +572,7 @@ export function useCardFlow() {
                     })
                     if (changed()) return undefined
                     const needsSumsub = res.status === 'incomplete' && 'sumsubAccessToken' in res
-                    if (!needsSumsub && advanceFromApplyResponse(res) === false) return undefined
+                    if (!needsSumsub && !advanceFromApplyResponse(res)) return undefined
                     if (termsAccepted && res.status === 'pending' && userId) {
                         writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
                     }
@@ -791,7 +792,7 @@ export function useCardFlow() {
                 setApplyError(t('page.verificationSlow'))
                 return
             }
-            if (advanceFromApplyResponse(res) !== false)
+            if (advanceFromApplyResponse(res))
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
         } catch (e) {
             if (controller.signal.aborted || changed()) return

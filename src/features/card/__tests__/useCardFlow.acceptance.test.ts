@@ -5,6 +5,7 @@ import { act, renderHook } from '@testing-library/react'
 import { rainApi } from '@/services/rain'
 import { ApiError } from '@/services/api-error'
 import { useCardFlow } from '../useCardFlow'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { RailCapability } from '@/types/capabilities'
 
@@ -157,6 +158,10 @@ describe('Rain identity waiting acceptance', () => {
         })
         expect(result.current.applyError).toBeNull()
         expect(result.current.sumsubToken).toBeNull()
+        if (oneShot) {
+            expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, expect.anything())
+            expect(window.localStorage.getItem('card_issuance_celebration_pending_v1:user-1')).toBeNull()
+        }
         mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
         rerender()
         expect(result.current.applyError).toBeNull()
@@ -173,6 +178,7 @@ describe('Rain identity waiting acceptance', () => {
 
         expect(result.current.pendingApplication).toBeNull()
         expect(result.current.applyError).toBe('page.applyFailed')
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, expect.anything())
         expect(window.localStorage.getItem('card_issuance_celebration_pending_v1:user-1')).toBeNull()
 
         await act(async () => {
@@ -181,6 +187,7 @@ describe('Rain identity waiting acceptance', () => {
 
         expect(result.current.applyError).toBeNull()
         expect(mockApplyForCard).toHaveBeenCalledTimes(2)
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: 'pending' })
         expect(window.localStorage.getItem('card_issuance_celebration_pending_v1:user-1')).toBe('1')
     })
 

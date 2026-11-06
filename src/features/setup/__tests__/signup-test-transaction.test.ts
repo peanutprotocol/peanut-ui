@@ -84,7 +84,7 @@ function fakeClient({
         send: jest.fn(async (): Promise<Hash> => `0x${'00'.repeat(32)}` as Hash),
         waitForReceipt: jest.fn(async () => mined),
         getReceipt: jest.fn(async () => null),
-        nonceSpent: jest.fn(async () => false),
+        nonceSpent: jest.fn(async (): Promise<boolean> => false),
     } satisfies SignupTestTxClient
     return client
 }
