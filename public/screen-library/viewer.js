@@ -413,10 +413,13 @@ let rows = [],
     filteredRows = [],
     renderedCount = 0
 let commentsReportPath = ''
+const activityPanel = $('comment-activity')
+const activityToggle = $('activity-toggle')
+const activityClose = $('activity-close')
 const comments =
     !offline && window.ScreenComments
         ? window.ScreenComments.create({
-              activity: $('comment-activity'),
+              activity: activityPanel,
               feed: $('comment-feed'),
               panel: $('comment-panel'),
               dialog: $('zoom'),
@@ -428,6 +431,23 @@ const comments =
               onVotesRefresh: voteTotalsRefreshed,
           })
         : null
+function setActivityOpen(open) {
+    activityPanel.hidden = !open
+    activityToggle.setAttribute('aria-expanded', String(open))
+    comments.activityChanged?.()
+    if (open) activityClose.focus()
+    else activityToggle.focus()
+}
+if (comments && activityPanel && activityToggle && activityClose) {
+    activityToggle.onclick = () => setActivityOpen(activityPanel.hidden)
+    activityClose.onclick = () => setActivityOpen(false)
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented || activityPanel.hidden || historyState || $('zoom').open)
+            return
+        event.preventDefault()
+        setActivityOpen(false)
+    })
+}
 function commentScopes(row) {
     if (!comments || !commentsReportPath) return []
     const manifest = activeComparison ?? report
@@ -1942,8 +1962,9 @@ async function start() {
     const collectionMatch = /^\/collections\/([a-z0-9][a-z0-9-]{0,119})\/?$/.exec(pathname)
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (comments) {
-        const activity = $('comment-activity') ?? $('comment-feed')
-        activity.hidden = false
+        if (activityToggle) activityToggle.hidden = false
+        else if (activityPanel) activityPanel.hidden = false
+        else if ($('comment-feed')) $('comment-feed').hidden = false
         comments.setContext({ prNumber: Number(/^\d{4}-\d{2}-\d{2}\/pr-([1-9]\d*)\//.exec(path)?.[1]) || undefined })
     }
     if (!offline && !path) {

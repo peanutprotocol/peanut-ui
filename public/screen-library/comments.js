@@ -203,7 +203,12 @@ window.ScreenComments = {
             return n
         }
         function activityVisible() {
-            return activity?.open && !activity.hidden && document.visibilityState === 'visible'
+            return (
+                activity &&
+                !activity.hidden &&
+                (activity.tagName !== 'DETAILS' || activity.open) &&
+                document.visibilityState === 'visible'
+            )
         }
         function scheduleActivity() {
             clearTimeout(activityTimer)
@@ -218,7 +223,8 @@ window.ScreenComments = {
             scheduleActivity()
         }
         if (activity) {
-            activity.addEventListener('toggle', activityChanged)
+            // An older gallery document can still contain the native activity disclosure.
+            if (activity.tagName === 'DETAILS') activity.addEventListener('toggle', activityChanged)
             document.addEventListener('visibilitychange', activityChanged)
         }
 
@@ -818,6 +824,7 @@ window.ScreenComments = {
         }
         return {
             setContext,
+            activityChanged,
             badge,
             open,
             close,

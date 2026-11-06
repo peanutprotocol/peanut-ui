@@ -12,7 +12,7 @@ import assert from 'node:assert/strict'
  * - readPage(id) -> persisted page { id, url?, title, description?, locales?,
  *   manifests: [{ title, steps: [{ id, note?, assetId? }] }] }.
  * - publishedManifestCount() -> integer count of newly published page manifests.
- * - maxTotalSteps -> positive integer configured product limit.
+ * - maxRequestBytes -> positive integer configured request body limit.
  * - discoverTools({ protocolVersion: '2026-07-28' }) -> discovery result; the
  *   result should expose tool name `create_flow_page`.
  * - callTool({ protocolVersion: '2026-07-28', name: 'create_flow_page',
@@ -117,8 +117,8 @@ export async function runFlowPageContract(adapter) {
     ])
         assert.equal(typeof adapter?.[method], 'function', `adapter.${method} is required`)
     assert.ok(
-        Number.isInteger(adapter.maxTotalSteps) && adapter.maxTotalSteps > 0,
-        'adapter.maxTotalSteps must be a positive integer'
+        Number.isInteger(adapter.maxRequestBytes) && adapter.maxRequestBytes > 0,
+        'adapter.maxRequestBytes must be a positive integer'
     )
 
     const countersBefore = typeof adapter.counters === 'function' ? await adapter.counters() : null
@@ -186,13 +186,14 @@ export async function runFlowPageContract(adapter) {
             inputFor({ locales: ['pt'], flows: [{ title: 'Missing locale', items: [{ id: 'screen-a' }] }] }),
         ],
         [
-            'excessive total steps',
+            'oversized flow request',
             inputFor({
                 flows: [
                     {
                         title: 'Too many',
-                        items: Array.from({ length: adapter.maxTotalSteps + 1 }, (_, i) => ({
+                        items: Array.from({ length: Math.ceil(adapter.maxRequestBytes / 1000) }, (_, i) => ({
                             id: knownScreenIds[i % knownScreenIds.length],
+                            note: 'a'.repeat(1000),
                         })),
                     },
                 ],

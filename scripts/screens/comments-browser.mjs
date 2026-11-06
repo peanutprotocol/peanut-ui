@@ -10,6 +10,7 @@ import { once } from 'node:events'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { DatabaseSync } from 'node:sqlite'
+import { acceptActivitySidebar } from './activity-sidebar-contract.mjs'
 import { assertScreenLibraryPreviewContract } from './preview-contract.mjs'
 import worker from './worker/index.mjs'
 
@@ -302,8 +303,8 @@ async function closePreview(page) {
 
 async function selectThreadFromFeed(page, threadId, label) {
     await closePreview(page)
-    const disclosure = page.locator('#comment-activity')
-    if ((await disclosure.getAttribute('open')) === null) await disclosure.locator('summary').click()
+    const activity = page.getByRole('complementary', { name: 'Latest activity' })
+    if (!(await activity.isVisible())) await page.getByRole('button', { name: 'Latest activity', exact: true }).click()
     const matchingFeedItems = page.locator(`#comment-feed [data-thread-id="${threadId}"]`)
     let feedItem
     try {
@@ -378,7 +379,7 @@ async function openReportPage(context, origin, reportUrl, label) {
     page.on('pageerror', (error) => console.error(`${label} browser error: ${error.message}`))
     await page.goto(reportUrl, { waitUntil: 'domcontentloaded' })
     await waitVisible(page.locator('#screen-home'), `${label} comparison screen`)
-    await page.locator('#comment-activity > summary').click()
+    await page.getByRole('button', { name: 'Latest activity', exact: true }).click()
     await openComments(page)
     return page
 }
@@ -537,32 +538,25 @@ async function main() {
         await equalAssetPreview.close()
         await alicePage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
         await waitVisible(alicePage.locator('#screen-home'), 'comparison screen #screen-home')
-        const activity = alicePage.locator('#comment-activity')
-        const summary = activity.locator('summary')
-        assert.equal(await activity.getAttribute('open'), null, 'activity starts collapsed')
-        assert.equal(await activity.locator('#comment-feed').isVisible(), false)
-        const title = alicePage.locator('#title')
-        const filters = alicePage.locator('#filters-row')
-        const mobileActivity = await summary.boundingBox()
-        const mobileTitle = await title.boundingBox()
-        const mobileFilters = await filters.boundingBox()
-        assert.ok(mobileActivity.y > mobileTitle.y + mobileTitle.height)
-        assert.ok(mobileActivity.y + mobileActivity.height <= mobileFilters.y)
-        await alicePage.setViewportSize({ width: 1024, height: 844 })
-        const desktopActivity = await summary.boundingBox()
-        const desktopTitle = await title.boundingBox()
-        assert.ok(desktopActivity.x >= desktopTitle.x + desktopTitle.width)
-        assert.ok(desktopActivity.y < desktopTitle.y + desktopTitle.height)
+        await acceptActivitySidebar(alicePage, {
+            openPreview: (page) =>
+                page.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, After' }).click(),
+        })
+        await closePreview(alicePage)
         await alicePage.setViewportSize({ width: 390, height: 844 })
-        await summary.press('Enter')
-        assert.notEqual(await activity.getAttribute('open'), null, 'activity opens from the keyboard')
+        const activity = alicePage.getByRole('complementary', { name: 'Latest activity' })
+        const activityToggle = alicePage.getByRole('button', { name: 'Latest activity', exact: true })
+        await activityToggle.focus()
+        await alicePage.keyboard.press('Enter')
+        const activityClose = activity.getByRole('button', { name: 'Close activity' })
+        assert.equal(await activityClose.evaluate((element) => element === document.activeElement), true)
         assert.deepEqual(
-            await summary.evaluate((element) => {
+            await activityClose.evaluate((element) => {
                 const { outlineColor, outlineWidth } = getComputedStyle(element)
                 return { outlineColor, outlineWidth }
             }),
             { outlineColor: 'rgb(37, 99, 235)', outlineWidth: '3px' },
-            'activity summary uses the standard keyboard focus outline'
+            'activity close uses the standard keyboard focus outline'
         )
         const intro = alicePage.locator('.library-intro')
         await alicePage.getByRole('button', { name: 'View history for Home' }).click()
@@ -571,7 +565,11 @@ async function main() {
         await alicePage.locator('#history-close').click()
         assert.equal(await intro.isVisible(), true, 'closing History restores the library intro')
         assert.equal(await activity.isVisible(), true, 'closing History restores activity')
-        assert.notEqual(await activity.getAttribute('open'), null, 'closing History preserves expanded activity')
+        assert.equal(
+            await activityToggle.getAttribute('aria-expanded'),
+            'true',
+            'closing History preserves expanded activity'
+        )
         await openComments(alicePage)
         await waitVisible(alicePage.getByLabel('Add a comment'), 'Add a comment composer')
         await alicePage.getByLabel('Add a comment').fill(rootBody)

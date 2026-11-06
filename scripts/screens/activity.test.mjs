@@ -40,7 +40,7 @@ function row(id) {
     }
 }
 
-async function mount() {
+async function mount({ legacyDisclosure = false } = {}) {
     let now = 0
     const tasks = new Map()
     const requests = []
@@ -61,6 +61,8 @@ async function mount() {
         await flush()
     }
     const activity = new Element()
+    activity.tagName = legacyDisclosure ? 'DETAILS' : 'ASIDE'
+    activity.hidden = !legacyDisclosure
     activity.open = false
     const feed = new Element()
     const panel = new Element()
@@ -117,8 +119,13 @@ async function mount() {
         flush,
         ids,
         open(open) {
-            activity.open = open
-            activity.dispatchEvent(new Event('toggle'))
+            if (legacyDisclosure) {
+                activity.open = open
+                activity.dispatchEvent(new Event('toggle'))
+            } else {
+                activity.hidden = !open
+                comments.activityChanged()
+            }
         },
         visible(visible) {
             document.visibilityState = visible ? 'visible' : 'hidden'
@@ -150,6 +157,18 @@ test('activity refresh runs once on reopening and on visibility recovery, and st
     assert.equal(h.feeds().length, 4)
     h.visible(true)
     assert.equal(h.feeds().length, 5)
+})
+
+test('a cached gallery disclosure refreshes on its native toggle and stops when closed', async () => {
+    const h = await mount({ legacyDisclosure: true })
+    await h.tick(60_000)
+    assert.equal(h.feeds().length, 1)
+    h.open(true)
+    assert.equal(h.feeds().length, 2)
+    h.last().response({ items: [row(3), row(2)], nextCursor: 'old' })
+    h.open(false)
+    await h.tick(60_000)
+    assert.equal(h.feeds().length, 2)
 })
 
 test('a transient poll failure retains older rows, their cursor, and the draft UI', async () => {

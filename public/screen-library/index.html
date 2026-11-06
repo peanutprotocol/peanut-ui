@@ -13,7 +13,19 @@
     <body>
         <header>
             <a class="brand" href="/screens/">peanut <span>Screen library</span></a>
-            <a class="copy-nav" href="/screen-library/copy.html">Copy coverage</a>
+            <div class="gallery-header-actions">
+                <a class="copy-nav" href="/screen-library/copy.html">Copy coverage</a>
+                <button
+                    id="activity-toggle"
+                    class="activity-button"
+                    type="button"
+                    aria-controls="comment-activity"
+                    aria-expanded="false"
+                    hidden
+                >
+                    Latest activity
+                </button>
+            </div>
         </header>
         <main>
             <div class="library-intro">
@@ -25,10 +37,6 @@
                         <div id="provenance"></div>
                     </details>
                 </div>
-                <details id="comment-activity" class="comment-activity" hidden>
-                    <summary>Latest activity</summary>
-                    <div id="comment-feed" class="comment-feed"></div>
-                </details>
             </div>
             <p id="coverage" role="status">Loading library…</p>
             <p id="history-unavailable" class="history-meta" hidden></p>
@@ -234,6 +242,15 @@
                 </div>
             </div>
         </main>
+        <aside id="comment-activity" class="comment-activity" aria-labelledby="activity-title" hidden>
+            <div class="activity-heading">
+                <h2 id="activity-title">Latest activity</h2>
+                <button id="activity-close" class="activity-button" type="button" aria-label="Close activity">
+                    Close
+                </button>
+            </div>
+            <div id="comment-feed" class="comment-feed"></div>
+        </aside>
         <dialog id="zoom" aria-labelledby="zoom-title">
             <div id="zoom-preview" class="zoom-preview">
                 <div class="dialog-head">

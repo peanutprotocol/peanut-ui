@@ -1465,29 +1465,83 @@ summary {
 }
 
 /* Compact discussions keep full thread text readable and feed excerpts scannable. */
-.library-intro {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(255px, 340px);
-    align-items: start;
-    gap: 28px;
+.gallery-header-actions,
+.activity-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
-.library-intro:has(:where(.comment-activity[hidden])) {
-    display: block;
+.gallery-header-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+.activity-heading {
+    padding: 12px 16px;
+}
+.activity-heading h2 {
+    margin: 0;
+    font-size: 16px;
+}
+.activity-button {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.activity-button:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
 }
 .comment-activity {
+    align-self: start;
+    min-width: 0;
     border: 1px solid var(--rule);
     border-radius: 16px;
     background: #fff;
 }
-.comment-activity > summary {
-    padding: 12px 16px;
-    font-size: 14px;
-    font-weight: 700;
+.history-open > .comment-activity,
+.history-open #activity-toggle,
+.auth-required > .comment-activity {
+    display: none;
 }
-.comment-activity > summary:focus-visible {
-    outline: 3px solid #2563eb;
-    outline-offset: 2px;
-    border-radius: inherit;
+body:not(.history-open, .auth-required):has(> .comment-activity:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(255px, 26vw, 340px) 5vw;
+    grid-template-areas:
+        'header header header'
+        'gallery activity .'
+        'footer footer footer';
+}
+body:has(> .comment-activity) > header {
+    grid-area: header;
+}
+body:has(> .comment-activity) > main {
+    grid-area: gallery;
+    width: 100%;
+    min-width: 0;
+}
+body:has(> .comment-activity) > footer {
+    grid-area: footer;
+}
+.comment-activity {
+    grid-area: activity;
+    margin-block-start: 48px;
+}
+@media (max-width: 800px) {
+    body:not(.history-open, .auth-required):has(> .comment-activity:not([hidden])) {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: 'header' 'activity' 'gallery' 'footer';
+    }
+    .comment-activity {
+        margin: 12px 18px 0;
+    }
 }
 .comment-feed {
     padding: 0 12px 12px;
@@ -2056,11 +2110,6 @@ dialog.comments-open {
 .comment-count:focus-visible {
     outline: 3px solid #dc8de9;
     outline-offset: 2px;
-}
-@media (max-width: 800px) {
-    .library-intro {
-        display: block;
-    }
 }
 @media (width < 700px) {
     .comments-open .zoom-preview {
