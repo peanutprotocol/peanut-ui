@@ -33,5 +33,5 @@ export function PixAddMoney() {
         }
         return <MantecaAddMoney countryPath="brazil" />
     }
-    return <PixUnavailableScreen title={t('title')} />
+    return <PixUnavailableScreen title={t('title')} route={route} />
 }

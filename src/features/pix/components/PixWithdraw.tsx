@@ -55,5 +55,5 @@ export function PixWithdraw() {
             </KycFeatureActivationGate>
         )
     }
-    return <PixUnavailableScreen title={t('withdraw')} />
+    return <PixUnavailableScreen title={t('withdraw')} route={route} />
 }

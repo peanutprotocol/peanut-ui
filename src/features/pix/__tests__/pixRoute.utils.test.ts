@@ -1,4 +1,4 @@
-import { findPixRoute, pixScreen } from '../pixRoute.utils'
+import { findPixRoute, pixRefusalCopy, pixScreen } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
 import type { CapabilityRoute } from '@/types/capabilities'
 
@@ -26,12 +26,11 @@ describe('pixScreen', () => {
         expect(pixScreen(route({ provider: 'manteca', candidates: [] }), false)).toBe('manteca')
     })
 
-    it("lets a refused route's best candidate explain the refusal", () => {
+    it("shows a refused route as not available, never its candidates' screens", () => {
         const refused = (provider: 'avenia' | 'manteca') =>
             route({ provider: null, state: 'refused', candidates: [{ provider, state: 'refused' }] })
-        expect(pixScreen(refused('avenia'), false)).toBe('avenia')
-        expect(pixScreen(refused('manteca'), false)).toBe('manteca')
-        expect(pixScreen(route({ provider: null, state: 'refused', candidates: [] }), false)).toBe('unavailable')
+        expect(pixScreen(refused('avenia'), false)).toBe('unavailable')
+        expect(pixScreen(refused('manteca'), false)).toBe('unavailable')
     })
 
     it('shows the outage screen for a paused route, and waits while capabilities load', () => {
@@ -44,5 +43,20 @@ describe('pixScreen', () => {
 describe('pixDepositCodeUrl', () => {
     it("opens one deposit's code on the neutral page", () => {
         expect(pixDepositCodeUrl('d 1')).toBe('/add-money/pix?step=showQR&intentId=d+1')
+    })
+})
+
+describe('pixRefusalCopy', () => {
+    const reason = (code: string, userMessage = 'From the API.') => ({ code, userMessage })
+
+    it("localizes the reasons this build knows, and shows the route's own text for the rest", () => {
+        expect(pixRefusalCopy(reason('provider_rejected'))).toBe('rejected')
+        expect(pixRefusalCopy(reason('provider_setup_failed'))).toBe('setup-failed')
+        for (const code of ['residence_not_served', 'rollout_closed', 'provider_unavailable', 'method_not_served']) {
+            expect(pixRefusalCopy(reason(code))).toBe('not-offered')
+        }
+        expect(pixRefusalCopy(reason('manteca_us_nationality'))).toBe('reason')
+        expect(pixRefusalCopy(reason('manteca_us_nationality', ''))).toBe('not-offered')
+        expect(pixRefusalCopy(undefined)).toBe('not-offered')
     })
 })

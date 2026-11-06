@@ -97,6 +97,19 @@ describe('the neutral Pix screens', () => {
         expect(screen.getByText('brazil paused')).toBeInTheDocument()
     })
 
+    it('show a refused route as not available, even when its best candidate is Manteca', () => {
+        mockRoutes = [
+            route('deposit', {
+                provider: null,
+                state: 'refused',
+                candidates: [{ provider: 'manteca', state: 'refused' }],
+            }),
+        ]
+        render(<PixAddMoney />)
+        expect(screen.getByText('unavailable')).toBeInTheDocument()
+        expect(screen.queryByText(/manteca deposit/)).toBeNull()
+    })
+
     it('show the outage screen on a paused route, and never fall back to another provider', () => {
         mockRoutes = [route('withdraw', { state: 'paused' })]
         const { unmount } = render(<PixWithdraw />)
