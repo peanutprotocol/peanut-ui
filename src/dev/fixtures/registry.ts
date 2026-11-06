@@ -275,12 +275,21 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
         },
     },
     'GET /avenia/deposit/eligibility': { minAmountBrl: '20', blockedBanks: [] },
+    // the amount step's estimate: Avenia's indicative quote for the reais on screen
+    'GET /pix/quote': {
+        provider: 'avenia',
+        operation: 'deposit',
+        amountBrl: '100.00',
+        usdcAmount: '18.237000',
+        rate: '5.442342',
+        fixedFeeBrl: '0.75',
+    },
     ...overrides,
 })
 
 const AVENIA_OWN_KEY = '09579927189'
 const AVENIA_OTHER_KEY = '+5511987654321'
-const AVENIA_WITHDRAW_ROUTE = '/withdraw/manteca?method=bank-transfer&country=brazil'
+const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
 const AVENIA_OWN_KEY_INFO = {
     holderName: 'Ana Souza',
     holderTaxIdMasked: '095.***.***-89',
@@ -1700,12 +1709,12 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaResponses('first-use'),
     },
     'avenia-deposit-amount': {
-        route: '/add-money/brazil/manteca',
+        route: '/add-money/pix',
         about: 'Avenia Pix deposit: the amount in reais, R$20 minimum, the provider under the button.',
         responses: aveniaResponses('enabled'),
     },
     'avenia-withdraw-key': {
-        route: `${AVENIA_WITHDRAW_ROUTE}&destination=${AVENIA_OWN_KEY}`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
         about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
@@ -1720,7 +1729,7 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'avenia-withdraw-key-other': {
-        route: `${AVENIA_WITHDRAW_ROUTE}&destination=${encodeURIComponent(AVENIA_OTHER_KEY)}`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(AVENIA_OTHER_KEY)}`,
         about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
@@ -1735,7 +1744,7 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'avenia-withdraw-review': {
-        route: `${AVENIA_WITHDRAW_ROUTE}&destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
         about: 'Avenia Pix withdrawal review: reais as the headline, the rate with the fees in, the flat fee apart.',
         responses: aveniaResponses('enabled', {
             'POST /avenia/withdraw/preview': {

@@ -895,6 +895,18 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
     {
         method: 'GET',
+        pattern: '/pix/quote',
+        handler: () => ({
+            provider: 'avenia',
+            operation: 'deposit',
+            amountBrl: '100.00',
+            usdcAmount: '18.237000',
+            rate: '5.442342',
+            fixedFeeBrl: '0.75',
+        }),
+    },
+    {
+        method: 'GET',
         pattern: '/avenia/deposit/eligibility',
         handler: () => ({ minAmountBrl: '20', blockedBanks: [] }),
     },

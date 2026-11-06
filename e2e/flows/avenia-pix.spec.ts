@@ -12,7 +12,7 @@ import { dismissModals } from '../utils/dismiss-modals'
 
 test.use({ viewport: { width: 375, height: 667 } })
 
-const WITHDRAW = '/withdraw/manteca?method=bank-transfer&country=brazil'
+const WITHDRAW = '/withdraw/pix'
 const NEW_KEY = '/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal'
 
 async function open(page: Page, url: string) {
@@ -22,9 +22,9 @@ async function open(page: Page, url: string) {
 }
 
 test.describe('Avenia Pix', () => {
-    test("first use names Avenia and its terms before Avenia's verification opens", async ({ page }) => {
-        await open(page, '/add-money/brazil/manteca?__fixture=avenia-first-use')
-        await expect(page.getByText('Verify identity for Pix')).toBeVisible({ timeout: 60_000 })
+    test("the terms step names and links Avenia's terms before the user accepts them", async ({ page }) => {
+        await open(page, '/add-money/pix?__fixture=avenia-first-use')
+        await expect(page.getByText('Set up Pix')).toBeVisible({ timeout: 60_000 })
         const terms = page.getByRole('link', { name: 'Avenia terms and conditions' })
         await expect(terms).toHaveAttribute('href', 'https://app.avenia.io/Avenia-TC.pdf')
         await expect(terms).toHaveAttribute('target', '_blank')
@@ -33,7 +33,7 @@ test.describe('Avenia Pix', () => {
     })
 
     test('a deposit under R$20 says the minimum and cannot continue', async ({ page }) => {
-        await open(page, '/add-money/brazil/manteca?__fixture=avenia-deposit-amount')
+        await open(page, '/add-money/pix?__fixture=avenia-deposit-amount')
         const input = page.locator('input[inputmode="decimal"]').first()
         await expect(input).toBeVisible({ timeout: 60_000 })
         await input.fill('10')
@@ -48,7 +48,7 @@ test.describe('Avenia Pix', () => {
     })
 
     test("the user's own key resolves to holder and bank, and continues", async ({ page }) => {
-        await open(page, `${WITHDRAW}&destination=09579927189&__fixture=avenia-withdraw-key`)
+        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=avenia-withdraw-key`)
         const holder = page.getByTestId('avenia-pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Ana Souza')
@@ -58,7 +58,7 @@ test.describe('Avenia Pix', () => {
     })
 
     test("someone else's key shows as such, with the field error, and cannot continue", async ({ page }) => {
-        await open(page, `${WITHDRAW}&destination=%2B5511987654321&__fixture=avenia-withdraw-key-other`)
+        await open(page, `${WITHDRAW}?destination=%2B5511987654321&__fixture=avenia-withdraw-key-other`)
         const holder = page.getByTestId('avenia-pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText("Someone else's")
@@ -71,7 +71,7 @@ test.describe('Avenia Pix', () => {
     }) => {
         await open(
             page,
-            `${WITHDRAW}&destination=09579927189&destinationAmount=503&step=review&__fixture=avenia-withdraw-review`
+            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=avenia-withdraw-review`
         )
         await expect(page.getByText('R$503')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('to Banco Inter · Ana Souza')).toBeVisible()

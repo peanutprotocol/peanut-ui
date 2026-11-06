@@ -1429,7 +1429,10 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             setParams({ country })
             renderWithProviders(<OnrampBankPage />)
 
-            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            // Brazil's Pix has one page, where the backend's route picks the provider
+            expect(mockRouterReplace).toHaveBeenCalledWith(
+                country === 'brazil' ? '/add-money/pix' : `/add-money/${country}/manteca`
+            )
             expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
             expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         }
@@ -1681,16 +1684,13 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
         mockBrazilPaused = false
     })
 
-    // The Brazil pause, and the provider, are decided on the neutral page (features/pix/__tests__).
-    test('BR + manteca opens the neutral Pix page, query kept', () => {
-        mockBrazilPaused = true
-        window.history.replaceState(null, '', '/add-money/brazil/manteca?amount=100&currency=BRL')
+    // Brazil's Pix lives on /add-money/pix only (features/pix/__tests__): the old URL mounts no BRL flow.
+    test('BR + manteca mounts no flow: Manteca is never chosen here for BRL', () => {
         setParams({ country: 'brazil', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix?amount=100&currency=BRL')
         expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
-        window.history.replaceState(null, '', '/')
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
     test('AR + manteca stays open during the Brazil pause', () => {

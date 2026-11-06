@@ -951,12 +951,12 @@
     {
         "id": "fixture-avenia-first-use",
         "flow": "Add money",
-        "route": "/add-money/brazil/manteca"
+        "route": "/add-money/pix"
     },
     {
         "id": "fixture-avenia-deposit-amount",
         "flow": "Add money",
-        "route": "/add-money/brazil/manteca"
+        "route": "/add-money/pix"
     },
     {
         "id": "fixture-get-paid",
@@ -1902,17 +1902,17 @@
     {
         "id": "fixture-avenia-withdraw-key",
         "flow": "Withdraw",
-        "route": "/withdraw/manteca?method=bank-transfer&country=brazil&destination=09579927189"
+        "route": "/withdraw/pix?destination=09579927189"
     },
     {
         "id": "fixture-avenia-withdraw-key-other",
         "flow": "Withdraw",
-        "route": "/withdraw/manteca?method=bank-transfer&country=brazil&destination=%2B5511987654321"
+        "route": "/withdraw/pix?destination=%2B5511987654321"
     },
     {
         "id": "fixture-avenia-withdraw-review",
         "flow": "Withdraw",
-        "route": "/withdraw/manteca?method=bank-transfer&country=brazil&destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
         "id": "fixture-avenia-new-key",

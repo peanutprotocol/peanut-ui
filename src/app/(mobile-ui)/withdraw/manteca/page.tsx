@@ -9,8 +9,6 @@ import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
-import RouteAlias from '@/components/Global/RouteAlias'
-import { PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
@@ -27,8 +25,8 @@ export default function MantecaWithdrawFlow() {
         if (pixPaused) return <BrazilPausedScreen />
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }
-    // A BRL withdrawal to the user's own account mounts on the neutral page, where the backend's route picks the provider.
-    if (searchParams.get('country') === 'brazil') return <RouteAlias to={PIX_WITHDRAW_PATH} />
+    // A BRL withdrawal to the user's own account lives on /withdraw/pix only, where the backend's route picks the provider.
+    if (searchParams.get('country') === 'brazil') return null
     // Manteca provider outage — block the offramp only for currencies still
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
     // ride the QR-payment endpoint, not Manteca offramp) stay open.

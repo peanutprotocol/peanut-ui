@@ -14,6 +14,7 @@ import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
+import { pixWithdrawUrl } from '@/features/pix/pix.routes'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
@@ -267,16 +268,19 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             // Manteca saved accounts skip the shared amount step — the
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
+                            const ownBrazilWithdrawal = countryPath === 'brazil' && !isBankFromSend
                             router.push(
-                                mantecaWithdrawUrl({
-                                    country: countryPath,
-                                    destination: account.identifier,
-                                    isSavedAccount: 'true',
-                                    // A saved Brazil key in Send pays over PIX (the key screen),
-                                    // not the first-party BRL offramp a withdrawal uses.
-                                    method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
-                                    sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
-                                })
+                                // Brazil's own-account withdrawal has one page, where the backend's route
+                                // picks the provider; a saved Brazil key in Send pays over Pix (the key screen).
+                                ownBrazilWithdrawal
+                                    ? pixWithdrawUrl({ destination: account.identifier, isSavedAccount: 'true' })
+                                    : mantecaWithdrawUrl({
+                                          country: countryPath,
+                                          destination: account.identifier,
+                                          isSavedAccount: 'true',
+                                          method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
+                                          sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                      })
                             )
                             return
                         }

@@ -81,7 +81,7 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     title: 'Pix',
                     description: 'Instant transfers',
                     icon: 'pix',
-                    path: '/add-money/brazil/manteca',
+                    path: '/add-money/pix',
                 },
             ],
             withdraw: [],
@@ -121,7 +121,7 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     title: 'Pix',
                     description: 'Instant transfers',
                     icon: 'pix',
-                    path: '/add-money/brazil/manteca',
+                    path: '/add-money/pix',
                 },
             ],
             // id contains 'default-bank-withdraw' → routes through checkBridgeGate
@@ -528,7 +528,7 @@ describe('AddWithdrawCountriesList — the Brazil pause', () => {
 
         fireEvent.click(screen.getByTestId('method-pix'))
         expect(isBrazilPausedDrawerOpen()).toBe(false)
-        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
     })
 })
 
@@ -558,7 +558,7 @@ describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
 
         // warn-only: still navigates into the deposit flow
         fireEvent.click(pixCard)
-        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
     })
 
     it('shows no maintenance tag when the flag is off, and never tags non-Pix methods', () => {
@@ -1193,7 +1193,7 @@ describe('AddWithdrawCountriesList — a tap made while capabilities are still l
         settle(rerender, 'add', 'ready')
 
         expect(mockPush).toHaveBeenCalledTimes(1)
-        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
     })
 
     it('withdraw flow: the bank rail is held, then opens the bank form once the gate is ready', async () => {

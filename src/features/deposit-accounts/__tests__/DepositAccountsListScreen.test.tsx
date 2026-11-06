@@ -1109,7 +1109,7 @@ describe('the other ways in', () => {
         list(false)
 
         fireEvent.click(bankRow('brl'))
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/brazil/manteca', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/pix', HUB_RETURN))
     })
 
     it('opens the Brazil paused drawer instead of the BRL transfer while the pause covers the user', () => {
