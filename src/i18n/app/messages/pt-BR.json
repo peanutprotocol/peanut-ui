@@ -968,6 +968,14 @@
             },
             "signUp": "Não tenho conta, criar uma"
         },
+        "passkeyProvider": {
+            "title": "Este celular salvou a passkey em um formato que o Peanut não consegue verificar",
+            "steps": {
+                "openSettings": "Abra Configurações → Senhas, chaves de acesso e contas.",
+                "chooseGoogle": "Defina o Gerenciador de senhas do Google como serviço preferencial e tente de novo."
+            },
+            "signUpInChrome": "Crie sua conta em peanut.me no Chrome"
+        },
         "waitlist": {
             "loginCanceled": "O login foi cancelado. Tente de novo.",
             "noPasskey": "Nenhuma passkey encontrada. Primeiro crie uma carteira.",

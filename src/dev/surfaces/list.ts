@@ -115,6 +115,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/Views/LoginRecoveryDrawer.tsx',
         captureState: ['platform=web', 'signup=omitted'],
     },
+    '08-d-passkeyproviderunsupporteddrawer': {
+        name: 'PasskeyProviderUnsupportedDrawer',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+    },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
     '11-a-earlyusermodal': {

@@ -116,6 +116,24 @@ describe('installPasskeyVerifyCapture', () => {
         await expect(window.fetch('/passkeys/login/options', { method: 'POST' })).resolves.toBe(response)
     })
 
+    it('turns the API refusal of a passkey layout into the typed signup error (TASK-24498)', async () => {
+        mockUnderlyingFetch.mockResolvedValueOnce(
+            jsonResponse({ error: 'Unsupported passkey', code: 'PASSKEY_PROVIDER_UNSUPPORTED' }, 400)
+        )
+
+        await expect(window.fetch('/passkeys/register/verify', { method: 'POST' })).rejects.toMatchObject({
+            name: 'PasskeyProviderUnsupportedError',
+            code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+        })
+    })
+
+    it('leaves any other register/verify 400 to the existing classification', async () => {
+        const response = jsonResponse({ error: 'Invalid userId' }, 400)
+        mockUnderlyingFetch.mockResolvedValueOnce(response)
+
+        await expect(window.fetch('/passkeys/register/verify', { method: 'POST' })).resolves.toBe(response)
+    })
+
     it('preserves non-auth login failures for the existing server/network classification', async () => {
         const response = jsonResponse({ error: 'Login unavailable' }, 500)
         mockUnderlyingFetch.mockResolvedValueOnce(response)
