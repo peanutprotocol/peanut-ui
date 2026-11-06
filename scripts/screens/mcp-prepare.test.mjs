@@ -24,6 +24,8 @@ test('MCP Worker preparation emits the access helper beside the generated entry 
     try {
         prepareMcpWorker(target, mcpWorkerEnv)
         assert.equal(existsSync(join(target, 'access.mjs')), true)
+        assert.equal(existsSync(join(target, 'collection-core.mjs')), true)
+        assert.equal(existsSync(join(target, 'capture-profiles.mjs')), true)
         assert.equal(existsSync(join(target, 'mcp', 'index.mjs')), true)
         assert.match(readFileSync(join(target, 'mcp', 'index.mjs'), 'utf8'), /\.\.\/access\.mjs/)
     } finally {

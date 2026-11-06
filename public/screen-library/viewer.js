@@ -420,6 +420,8 @@ const comments =
               feed: $('comment-feed'),
               panel: $('comment-panel'),
               dialog: $('zoom'),
+              toggle: $('zoom-comments'),
+              preview: $('zoom-preview'),
               onNavigate: navigateComment,
               onVotesReset: voteTotalsReset,
               onVotesChange: voteTotalsChanged,
@@ -436,7 +438,7 @@ function commentScopes(row) {
         return [
             {
                 reportPath: commentsReportPath,
-                screenId: row.id,
+                screenId: row.sourceScreenId ?? row.id,
                 name: row.name,
                 locale: capture?.locale ?? manifest?.locale ?? $('locale').value ?? 'en',
                 profile:
@@ -451,10 +453,13 @@ function commentScopes(row) {
 }
 function openComments(row, scope, threadId) {
     zoom(row, 'screen')
-    $('zoom-images').replaceChildren(
-        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    const preview = phonePreview(
+        image(scope.image, `${row.name} screen preview`, { preview: false }),
+        scope.side === 'before' ? 'Before' : 'After',
+        { side: scope.side }
     )
-    previewFeedback([scope])
+    $('zoom-images').replaceChildren(preview)
+    previewVerdict(scope, preview)
     comments?.open(scope, threadId, commentScopes(row))
 }
 function openRetainedComment(scope, threadId) {
@@ -464,14 +469,17 @@ function openRetainedComment(scope, threadId) {
         [scope.side]: { image: scope.image, status: 'captured' },
     }
     zoom(row, 'screen')
-    $('zoom-images').replaceChildren(
-        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    const preview = phonePreview(
+        image(scope.image, `${row.name} screen preview`, { preview: false }),
+        scope.side === 'before' ? 'Before' : 'After'
     )
+    $('zoom-images').replaceChildren(preview)
+    previewVerdict(scope, preview)
     $('zoom-position').textContent = 'No longer in this report'
     $('zoom-prev').disabled = true
     $('zoom-next').disabled = true
+    previewDiscussion([scope])
     if (threadId) comments.open(scope, threadId, [scope])
-    previewFeedback([scope])
 }
 // Comment feed items carry a threadId; vote activity opens the screen without a discussion.
 function navigateComment(scope, threadId) {
@@ -508,12 +516,13 @@ function navigateComment(scope, threadId) {
             [scope.side]: { image: scope.image, status: 'captured' },
         }
     zoom(row, scope.side === 'before' ? 'side' : 'screen')
-    if (scope.side === 'before')
+    if (scope.side === 'before') {
         $('zoom-images').replaceChildren(
-            phonePreview(image(scope.image, row.name, { preview: false }), `Before · ${version}`)
+            phonePreview(image(scope.image, `${row.name} screen preview`, { preview: false }), `Before · ${version}`)
         )
-    if (threadId) comments.open(scope, threadId, [scope])
-    previewFeedback([scope])
+        previewVerdict(undefined)
+    }
+    if (threadId) comments.open(scope, threadId, commentScopes(row))
     const url = new URL(location.href)
     if (threadId) url.searchParams.set('comments', threadId)
     else url.searchParams.delete('comments')
@@ -741,7 +750,7 @@ function renderHistory(state) {
         thumbnail.onclick = () => choose('.history-thumbnail')
         thumbnail.append(
             version.image
-                ? phonePreview(image(version.image, version.name), '')
+                ? phonePreview(image(version.image, version.name), '', { capture: version.device })
                 : el('div', 'Confirmed absence in this revision', 'missing')
         )
         const reportLink = el('a', (version.commit || 'Report').slice(0, 8), 'history-report-link')
@@ -765,7 +774,7 @@ function renderHistory(state) {
 }
 function historyFrame(version, label) {
     if (!version.image) return el('div', 'Confirmed absence in this revision', 'missing')
-    return phonePreview(image(version.image, version.name), label)
+    return phonePreview(image(version.image, version.name), label, { capture: version.device })
 }
 function renderHistoryDetail(state) {
     const index = state.versions.findIndex((version) => historyVersionKey(version) === state.selected)
@@ -801,7 +810,7 @@ function renderHistoryDetail(state) {
             image(previous.image, 'Previous visual version'),
             image(version.image, 'Selected visual version')
         )
-        images.append(phonePreview(overlay, 'Previous / selected version'))
+        images.append(phonePreview(overlay, 'Previous / selected version', { capture: version.device, chrome: false }))
         $('history-slider').value = '50'
     } else if (previous && mode !== 'single')
         images.append(
@@ -875,8 +884,8 @@ const singleScreenLayout = () =>
 const availableScreen = (row) =>
     [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
     (report?.type === 'collection' ? row?.after : undefined)
-const collectionRows = (collection, locale, comparison) =>
-    collection.items.map((item) => {
+function collectionRows(collection, locale, comparison) {
+    const items = collection.items.map((item) => {
         if (comparison) {
             const matched = comparison.screens.find((screen) => screen.id === item.id)
             return {
@@ -895,6 +904,23 @@ const collectionRows = (collection, locale, comparison) =>
         }
         return { ...item, status: screen.status, after: screen }
     })
+    if (!Array.isArray(collection.flows)) return items
+    const byId = new Map(items.map((item) => [item.id, item]))
+    const seen = new Set()
+    let order = 0
+    return collection.flows.flatMap((flow, flowIndex) =>
+        flow.items.flatMap((step, stepIndex) => {
+            const item = byId.get(step.id)
+            if (!item) return []
+            // Keep the first link canonical for feed and vote scopes, while every occurrence has its own anchor.
+            const id = seen.has(step.id) ? `${step.id}~${flowIndex + 1}-${stepIndex + 1}` : step.id
+            seen.add(step.id)
+            return [
+                { ...item, id, sourceScreenId: step.id, flow: flow.title, flowIndex, note: step.note, order: order++ },
+            ]
+        })
+    )
+}
 const requestedCollectionLocale = (collection) => {
     const requested = requestedFilter('locale')
     return collection.locales.includes(requested) ? requested : collection.locales[0]
@@ -990,8 +1016,8 @@ function syncShareableUrl() {
     if (!offline && typeof history !== 'undefined' && typeof history.replaceState === 'function')
         history.replaceState(null, '', shareableHref())
 }
-function previewDevice() {
-    const capture = activeComparison?.after ?? (report?.type === 'comparison' ? report.after : report)
+function previewDevice(side = 'after', source) {
+    const capture = source ?? activeComparison?.[side] ?? (report?.type === 'comparison' ? report[side] : report)
     const profile = `${capture?.profile ?? report?.profile ?? ''}`.toLowerCase()
     const profileSize = /(\d{3,4})x(\d{3,4})/.exec(profile)
     const width = Number(capture?.width ?? report?.width ?? profileSize?.[1] ?? 393)
@@ -1009,7 +1035,10 @@ function previewDevice() {
         ['ios', 'android'].includes(declared?.platform) &&
         ['dynamic-island', 'punch-hole'].includes(declared?.cutout) &&
         ['top', 'right', 'bottom', 'left'].every(
-            (edge) => Number.isInteger(safeArea?.[edge]) && safeArea[edge] >= 0 && safeArea[edge] < height
+            (edge) =>
+                Number.isInteger(safeArea?.[edge]) &&
+                safeArea[edge] >= 0 &&
+                safeArea[edge] < (edge === 'top' || edge === 'bottom' ? height : width)
         )
     return {
         width,
@@ -1021,20 +1050,41 @@ function previewDevice() {
         verified,
     }
 }
-function phonePreview(content, label) {
-    const device = previewDevice()
+function phonePreview(content, label, { side, capture, chrome = Boolean(side || capture) } = {}) {
+    const device = previewDevice(side, capture)
+    const showChrome = chrome && device.verified
     const preview = el('figure', undefined, 'device-preview')
     const frame = el(
         'div',
         undefined,
-        `device-frame ${device.platform} ${device.verified ? `device-safe device-${device.cutout}` : 'device-legacy'}`
+        `device-frame ${device.platform} ${showChrome ? `device-safe device-${device.cutout}` : 'device-legacy'}`
     )
     frame.style.aspectRatio = `${device.width} / ${device.height}`
+    preview.style.setProperty?.('--device-ratio', String(device.width / device.height))
+    if (side) preview.dataset.previewSide = side
     frame.setAttribute(
         'aria-label',
-        `${device.label} preview at ${device.width} by ${device.height}${device.verified ? ', safe areas simulated in capture' : ', legacy capture without safe-area simulation'}`
+        `${device.label} preview at ${device.width} by ${device.height}${showChrome ? ', safe areas simulated in capture' : ''}`
     )
-    if (device.safeArea) frame.dataset.safeArea = Object.values(device.safeArea).join(',')
+    if (showChrome) {
+        const { top, right, bottom, left } = device.safeArea
+        frame.dataset.safeArea = [top, right, bottom, left].join(',')
+        const availableWidth = Math.max(0, device.width - left - right)
+        const ios = device.platform === 'iphone'
+        const cameraHeight = Math.min(ios ? 24 : 12, top * 0.65)
+        const homeHeight = Math.min(ios ? 4 : 3, bottom * 0.4)
+        const percent = (value, size) => `${(100 * value) / size}%`
+        for (const [name, value] of Object.entries({
+            'chrome-center': percent(left + availableWidth / 2, device.width),
+            'camera-width': percent(Math.min(ios ? 88 : cameraHeight, availableWidth), device.width),
+            'camera-height': percent(cameraHeight, device.height),
+            'camera-top': percent((top - cameraHeight) / 2, device.height),
+            'home-width': percent(Math.min(ios ? 104 : 88, availableWidth), device.width),
+            'home-height': percent(homeHeight, device.height),
+            'home-bottom': percent((bottom - homeHeight) / 2, device.height),
+        }))
+            frame.style.setProperty?.(`--${name}`, value)
+    }
     const screen = el('div', undefined, 'device-screen')
     screen.append(content)
     frame.append(
@@ -1062,40 +1112,45 @@ function updatePreviewPosition() {
 }
 // Votes are a verdict on the change, so only the After screenshot carries them.
 const verdictControls = (scope) => (scope?.side === 'after' ? comments?.voteControls?.(scope) : undefined)
-function feedback(scope, action) {
-    const group = el('div', undefined, 'screen-feedback')
-    const votes = verdictControls(scope)
-    if (votes) group.append(votes)
-    group.append(comments.badge(scope, action))
-    return group
-}
-function previewFor(scope) {
-    return [...$('zoom-images').querySelectorAll('.device-preview')].find((preview) => {
-        const images = preview.querySelectorAll('img')
-        return images.length === 1 && images[0].getAttribute('src') === asset(scope.image)
-    })
-}
-function previewFeedback(scopes) {
-    if (!comments) return
-    let fallback = $('zoom-feedback')
-    if (!fallback) {
-        fallback = el('div')
-        fallback.id = 'zoom-feedback'
-        $('zoom-images').after(fallback)
-    }
-    fallback.replaceChildren()
-    for (const scope of scopes) {
-        const item = feedback(scope, () => comments.open(scope, undefined, scopes))
-        const preview = previewFor(scope)
-        if (preview) {
-            preview.append(item)
-            continue
+function previewDiscussion(scopes) {
+    const toggle = $('zoom-comments')
+    const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
+    if (!comments || !toggle) return
+    toggle.hidden = !primary
+    if (!primary) {
+        if (comments.isOpen()) {
+            comments.close({ restoreFocus: false })
+            $('close').focus()
         }
-        if (scopes.length > 1) item.prepend(el('span', scope.side === 'before' ? 'Before' : 'After', 'feedback-side'))
-        fallback.append(item)
+        return
     }
+    toggle.onclick = () => (comments.isOpen() ? comments.close() : comments.open(primary, undefined, scopes))
+    if (comments.isOpen()) {
+        const previous = comments.current()
+        const selected = scopes.find(
+            (scope) =>
+                scope.side === previous.side &&
+                scope.screenId === previous.screenId &&
+                scope.reportPath === previous.reportPath &&
+                scope.image === previous.image &&
+                scope.locale === previous.locale &&
+                scope.profile === previous.profile
+        )
+        if (!selected) comments.open(primary, undefined, scopes)
+    }
+}
+function previewVerdict(scope, afterPreview) {
+    const fallback = $('zoom-feedback')
+    fallback?.replaceChildren()
+    const votes = verdictControls(scope)
+    if (!votes) return
+    const group = el('div', undefined, 'screen-feedback')
+    group.append(votes)
+    const target = afterPreview ?? fallback
+    target?.append(group)
 }
 function zoom(row, mode = 'side') {
+    comments?.invalidateNavigation?.()
     active = row
     const single = mode === 'screen' || singleScreenLayout()
     if (single) mode = 'screen'
@@ -1115,18 +1170,29 @@ function zoom(row, mode = 'side') {
     for (const name of ['side', 'overlay', 'difference']) $(name).setAttribute('aria-pressed', String(name === mode))
     const before = row.before,
         after = row.after
+    let afterPreview
     if (mode === 'screen') {
         const screen = availableScreen(row)
-        if (screen?.image)
-            $('zoom-images').append(phonePreview(image(screen.image, row.name, { preview: false }), 'Screen'))
-        else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
+        if (screen?.image) {
+            const side = screen === before ? 'before' : 'after'
+            const preview = phonePreview(
+                image(screen.image, `${row.name} screen preview`, { preview: false }),
+                'Screen',
+                { side }
+            )
+            $('zoom-images').append(preview)
+            if (side === 'after') afterPreview = preview
+        } else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
         if (row.diff)
             $('zoom-images').append(phonePreview(image(row.diff, 'Pixel difference', { preview: false }), 'Difference'))
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
         const n = el('div', undefined, 'overlay')
-        n.append(image(before.image, 'Before', { preview: false }), image(after.image, 'After', { preview: false }))
+        n.append(
+            image(before.image, 'Before screen preview', { preview: false }),
+            image(after.image, 'After screen preview', { preview: false })
+        )
         $('zoom-images').append(phonePreview(n, 'Before / after'))
         $('slider').value = '50'
     } else {
@@ -1134,34 +1200,22 @@ function zoom(row, mode = 'side') {
             ['Before', before],
             ['After', after],
         ])
-            if (s?.image) $('zoom-images').append(phonePreview(image(s.image, label, { preview: false }), label))
-            else if (label === 'Before' && newScreen(row)) {
+            if (s?.image) {
+                const side = label.toLowerCase()
+                const preview = phonePreview(image(s.image, `${label} screen preview`, { preview: false }), label, {
+                    side,
+                })
+                $('zoom-images').append(preview)
+                if (side === 'after') afterPreview = preview
+            } else if (label === 'Before' && newScreen(row)) {
                 const fig = el('figure', undefined, 'device-preview new-screen-shot')
                 fig.append(newScreenPlaceholder(row), el('figcaption', label))
                 $('zoom-images').append(fig)
             }
     }
     const scopes = commentScopes(row)
-    const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
-    previewFeedback(
-        mode === 'screen'
-            ? scopes.filter(
-                  (scope) =>
-                      scope.image === availableScreen(row)?.image &&
-                      scope.side === (availableScreen(row) === row.before ? 'before' : 'after')
-              )
-            : scopes
-    )
-    if (comments && primary) {
-        let toggle = $('zoom-comments')
-        if (!toggle) {
-            toggle = el('button', 'Comments')
-            toggle.id = 'zoom-comments'
-            $('zoom-controls').after(toggle)
-        }
-        toggle.onclick = () => (comments.isOpen() ? comments.close() : comments.open(primary, undefined, scopes))
-        if (comments.isOpen()) comments.open(primary, undefined, scopes)
-    }
+    previewVerdict(!single || afterPreview ? scopes.find((scope) => scope.side === 'after') : undefined, afterPreview)
+    previewDiscussion(scopes)
     updatePreviewPosition()
     if (!$('zoom').open) {
         $('zoom').showModal()
@@ -1323,7 +1377,7 @@ function renderTile(row) {
                   .join(' · ')
     head.append(
         el('span', row.status === 'new' ? 'New screen' : row.status, `tag ${row.status}`),
-        el('h2', row.name),
+        el(row.flowIndex === undefined ? 'h2' : 'h3', row.name),
         el('div', detail, 'meta')
     )
     if (row.note) head.append(el('p', row.note, 'collection-note'))
@@ -1390,7 +1444,24 @@ function appendNextPage() {
         return
     }
     const next = filteredRows.slice(renderedCount, renderedCount + PAGE_SIZE)
-    $('screens').append(...next.map(renderTile))
+    const screens = $('screens')
+    if (report?.type === 'collection' && Array.isArray(report.flows)) {
+        for (const row of next) {
+            const flowIndex = String(row.flowIndex)
+            let section = screens.lastElementChild
+            if (section?.dataset.flowIndex !== flowIndex) {
+                section = el('section', undefined, 'collection-flow')
+                section.dataset.flowIndex = flowIndex
+                const heading = el('h2', row.flow)
+                heading.id = `collection-flow:${flowIndex}`
+                section.setAttribute('aria-labelledby', heading.id)
+                const layout = singleScreenLayout() ? 'single' : 'paired'
+                section.append(heading, el('div', undefined, `collection-flow-screens ${layout}`))
+                screens.append(section)
+            }
+            section.lastElementChild.append(renderTile(row))
+        }
+    } else screens.append(...next.map(renderTile))
     renderedCount += next.length
     $('screen-load-more').hidden = renderedCount >= filteredRows.length
 }
@@ -1403,11 +1474,13 @@ function render() {
     filteredRows = voted.rows
     renderedCount = 0
     $('screens').className =
-        report?.type === 'journeys'
-            ? 'all-screens journey-screens'
-            : changedMode || (report?.type === 'comparison' && pairedLayout)
-              ? 'changed-screens'
-              : 'all-screens'
+        report?.type === 'collection' && Array.isArray(report.flows)
+            ? 'flow-page'
+            : report?.type === 'journeys'
+              ? 'all-screens journey-screens'
+              : changedMode || (report?.type === 'comparison' && pairedLayout)
+                ? 'changed-screens'
+                : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
         const clearVotes = [
@@ -2131,7 +2204,7 @@ $('variations-mode').addEventListener('change', () => {
 })
 $('close').onclick = () => $('zoom').close()
 $('zoom').addEventListener('close', () => {
-    comments?.close()
+    if (!$('zoom').open) comments?.close({ restoreFocus: false })
     if (voteFilter.stale) refreshVoteFilter()
 })
 $('side').onclick = () => zoom(active, 'side')
@@ -2143,8 +2216,10 @@ $('zoom').addEventListener('keydown', (event) => {
     if (!$('zoom').open) return
     if (event.key === 'Escape') {
         event.preventDefault()
-        $('zoom').close()
+        if (comments?.isOpen()) comments.close()
+        else $('zoom').close()
     } else if (
+        !$('comment-panel')?.contains?.(event.target) &&
         event.target !== $('slider') &&
         !event.target?.matches?.('input,textarea,select,[contenteditable]') &&
         (event.key === 'ArrowLeft' || event.key === 'ArrowRight')

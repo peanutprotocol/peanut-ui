@@ -104,6 +104,34 @@ for (const viewport of VIEWPORTS) {
     })
 }
 
+test('the residence capture paints its safe area and positions the top bar once', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 852 })
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
+    await page.goto('/dev/surfaces?s=03-b-residence-compare&__fixture=profile-edit')
+    const hero = page.locator('[data-setup-hero]')
+    await expect(hero).toBeVisible()
+    await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
+
+    const shell = page.locator('#scrollable-content')
+    const strip = shell.locator('xpath=preceding-sibling::*[1]')
+    await expect(strip).toHaveCSS('height', '59px')
+    await expect(strip).toHaveCSS(
+        'background-color',
+        await hero.evaluate((node) => getComputedStyle(node).backgroundColor)
+    )
+    expect(await hero.evaluate((node) => node.getBoundingClientRect().top)).toBe(59)
+    expect(await page.locator('[data-setup-top-bar]').evaluate((node) => node.getBoundingClientRect().top)).toBe(75)
+
+    await page.goto('/dev/surfaces?s=84-f-choice-public-profile-guest&__fixture=profile-edit')
+    await expect(shell.getByText('Create your wallet')).toBeVisible()
+    await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
+    await expect(strip).toHaveCSS('height', '59px')
+    await expect(strip).toHaveCSS('background-color', 'rgb(250, 244, 240)')
+    await expect(shell).toHaveCSS('position', 'relative')
+})
+
 // Every sign-up step, as /setup renders it (the surfaces gallery mounts each step in the real wrapper).
 const STEP_SURFACES = [
     '01-a-landing',

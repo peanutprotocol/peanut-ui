@@ -97,6 +97,9 @@ class Element {
     append(...children) {
         this.children.push(...children)
     }
+    get lastElementChild() {
+        return this.children.at(-1) ?? null
+    }
     replaceChildren(...children) {
         this.children = children
         if (this.id === 'date-strip') this.scrollWidth = children.length * 70
@@ -1449,6 +1452,49 @@ test('curated collection pages preserve order, notes and switch locale in place'
     elements.get('locale').dispatch('change')
     assert.ok(imageSources(elements.get('screens')).includes(`/screen-data/assets/${portuguese}`))
     assert.equal(elements.location.search, '?locale=pt-BR')
+})
+
+test('flow pages keep section and step order with distinct links for reused images', async () => {
+    const image = (letter) => `${letter.repeat(64)}.png`
+    const report = {
+        schema: 1,
+        type: 'collection',
+        title: 'Review flows',
+        locales: ['en'],
+        complete: true,
+        items: ['home', 'profile'].map((id, order) => ({
+            id,
+            name: id,
+            flow: 'Catalogue label',
+            order,
+            variants: { en: { status: 'captured', image: image(order ? 'b' : 'a') } },
+        })),
+        flows: [
+            { title: 'Getting started', items: [{ id: 'profile' }, { id: 'home', note: 'First visit' }] },
+            { title: '<script>Returning</script>', items: [{ id: 'home', note: 'Same image, different step' }] },
+        ],
+    }
+    const elements = await loadLanding('/collections/review-flows/', { report })
+    const sections = elements.get('screens').children
+    assert.deepEqual(
+        sections.map((section) => section.children[0].textContent),
+        ['Getting started', '<script>Returning</script>']
+    )
+    const [first, second] = sections.map((section) => section.lastElementChild.children)
+    assert.deepEqual(
+        first.map((tile) => tile.id),
+        ['profile', 'home']
+    )
+    assert.equal(second.length, 1)
+    assert.notEqual(second[0].id, 'home')
+    assert.match(elementText(second[0]), /Same image, different step/)
+    assert.deepEqual(imageSources(first[1]), imageSources(second[0]))
+    assert.equal(second[0].lastElementChild.children[0].href, `#${second[0].id}`)
+
+    elements.get('flow').value = 'Getting started'
+    elements.get('flow').dispatch('input')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].children[0].textContent, 'Getting started')
 })
 
 test('a custom collection can show its selected screens side by side across two revisions', async () => {

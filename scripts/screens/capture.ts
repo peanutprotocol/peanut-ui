@@ -21,7 +21,7 @@ import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
 import { COPY_EVIDENCE_SCRIPT, COPY_RECORDER_MARKER, installCopyRecorder } from './copy-recorder.mjs'
 import { shownCopyKeys } from './copy-coverage.mjs'
-import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
+import { remoteOptimizedCaptureImage } from './capture-images.mjs'
 import {
     CAPTURE_STATIC_CSS,
     FIXTURE_BANNER_CANDIDATE_SELECTOR,
@@ -399,14 +399,14 @@ async function main() {
                             }
                             return
                         }
-                        if (isRemoteOptimizedImage(url.href, base.origin)) {
+                        const captureImage = remoteOptimizedCaptureImage(url.href, base.origin)
+                        if (captureImage) {
                             // Next's same-origin optimizer otherwise reaches the public internet on behalf of
                             // remote image URLs. Keep capture independent of third-party CDN latency/failures.
                             return await route.fulfill({
                                 status: 200,
-                                contentType: 'image/svg+xml',
                                 headers: { 'cache-control': 'public, max-age=31536000, immutable' },
-                                body: REMOTE_IMAGE_PLACEHOLDER,
+                                ...captureImage,
                             })
                         }
                         if (

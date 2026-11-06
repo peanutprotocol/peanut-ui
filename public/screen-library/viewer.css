@@ -563,6 +563,29 @@ button {
 #screens.changed-screens {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
+#screens.flow-page {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+}
+.collection-flow {
+    border-top: 1px solid var(--rule);
+    padding-top: 18px;
+}
+.collection-flow > h2 {
+    font-size: 20px;
+    line-height: 1.3;
+    margin: 0 0 14px;
+}
+.collection-flow-screens {
+    display: grid;
+    gap: 16px;
+}
+.collection-flow-screens.single {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 235px), 235px));
+}
+.collection-flow-screens.paired {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
 .load-more {
     padding: 22px 0 8px;
     color: #4f4a54;
@@ -582,7 +605,8 @@ button {
 .tile-head {
     padding: 18px 18px 12px;
 }
-.tile h2 {
+.tile h2,
+.tile h3 {
     font-size: 16px;
     line-height: 1.35;
     margin: 6px 0;
@@ -831,7 +855,7 @@ figcaption {
 dialog {
     border: 0;
     border-radius: 24px;
-    padding: 20px 24px 16px;
+    padding: 0;
     max-width: 1180px;
     width: min(96vw, 1180px);
     max-height: 96vh;
@@ -843,7 +867,15 @@ dialog {
 }
 dialog[open] {
     display: flex;
+}
+.zoom-preview {
+    display: flex;
     flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 20px 24px 16px;
 }
 dialog::backdrop {
     background: rgb(10 8 12 / 88%);
@@ -853,10 +885,39 @@ dialog::backdrop {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
 }
 .dialog-head > div {
     min-width: 0;
+}
+.dialog-actions {
+    display: flex;
+    flex: none;
+    gap: 6px;
+    padding-block: 4px;
+}
+.dialog-actions svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.dialog-head .dialog-actions button {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+}
+.dialog-head .dialog-actions button[hidden] {
+    display: none;
+}
+.dialog-head button[aria-expanded='true'] {
+    border-color: var(--pink);
+    color: var(--pink);
 }
 .dialog-head h2 {
     overflow: hidden;
@@ -887,7 +948,7 @@ dialog::backdrop {
 .dialog-head button:focus-visible,
 .zoom-controls button:focus-visible,
 .preview-nav:focus-visible {
-    outline: 3px solid var(--pink);
+    outline: 3px solid #2563eb;
     outline-offset: 3px;
 }
 .zoom-controls button[aria-pressed='true'] {
@@ -907,7 +968,7 @@ dialog::backdrop {
 }
 .preview-stage {
     display: grid;
-    min-height: 0;
+    min-height: min-content;
     flex: 1 1 auto;
     grid-template-columns: 58px minmax(0, 1fr) 58px;
     grid-template-rows: max-content max-content;
@@ -944,61 +1005,63 @@ dialog::backdrop {
     min-width: 0;
     min-height: 0;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     gap: 20px;
 }
 .device-preview {
     min-width: 0;
     margin: 0;
     text-align: center;
+    container-type: inline-size;
+}
+#zoom-images > .device-preview {
+    --preview-height: min(65dvh, max(180px, calc(100dvh - 220px)), 700px);
+    width: calc(var(--device-ratio, 0.46) * var(--preview-height));
+    max-width: 100%;
+}
+#zoom-images .device-frame {
+    width: 100%;
+    height: auto;
 }
 .device-frame {
+    --frame-radius: clamp(9px, 8cqi, 23px);
     position: relative;
     height: min(67vh, 720px);
     height: min(67dvh, 720px);
     margin: auto;
-    border: 7px solid #050506;
+    border-radius: var(--frame-radius);
     background: #050506;
     box-shadow:
-        0 0 0 1px #5e5c63,
+        0 0 0 3px #050506,
+        0 0 0 4px #5e5c63,
         0 22px 45px rgb(0 0 0 / 42%);
 }
-.device-frame.iphone {
-    border-radius: 46px;
-}
-.device-frame.android {
-    border-width: 5px;
-    border-radius: 27px;
-}
+.device-frame.android,
 .device-frame.neutral {
-    border-width: 5px;
-    border-radius: 24px;
+    --frame-radius: clamp(6px, 5cqi, 14px);
 }
 .device-screen {
     position: absolute;
     inset: 0;
     overflow: hidden;
-    border-radius: 38px;
+    border-radius: calc(var(--frame-radius) - 2px);
     background: #fff;
-}
-.android .device-screen {
-    border-radius: 21px;
 }
 .device-screen > img,
 .device-screen > .overlay {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: contain;
 }
 .device-camera {
     display: none;
     position: absolute;
     z-index: 2;
-    top: 10px;
-    left: 50%;
-    width: 78px;
-    height: 23px;
+    top: var(--camera-top);
+    left: var(--chrome-center);
+    width: var(--camera-width);
+    height: var(--camera-height);
     border-radius: 999px;
     background: #050506;
     transform: translateX(-50%);
@@ -1007,55 +1070,41 @@ dialog::backdrop {
 .device-safe.device-punch-hole .device-camera {
     display: block;
 }
-.device-safe.device-punch-hole .device-camera {
-    top: 8px;
-    width: 10px;
-    height: 10px;
-    box-shadow: 0 0 0 2px rgb(255 255 255 / 10%);
-}
 .device-home {
     display: none;
     position: absolute;
     z-index: 2;
-    bottom: 7px;
-    left: 50%;
-    width: 92px;
-    height: 4px;
+    bottom: var(--home-bottom);
+    left: var(--chrome-center);
+    width: var(--home-width);
+    height: var(--home-height);
     border-radius: 999px;
     background: rgb(255 255 255 / 86%);
-    box-shadow: 0 1px 2px rgb(0 0 0 / 45%);
     transform: translateX(-50%);
 }
 .device-safe .device-home {
     display: block;
 }
-.device-safe.android .device-home {
-    bottom: 5px;
-    width: 72px;
-    height: 3px;
-}
 .device-button {
     position: absolute;
     top: 22%;
-    left: -11px;
-    width: 4px;
-    height: 64px;
+    left: -5px;
+    width: 3px;
+    height: 10%;
     border-radius: 4px 0 0 4px;
     background: #36343a;
 }
 .device-button-bottom {
     top: 32%;
-    height: 42px;
+    height: 7%;
 }
 .android .device-button {
-    right: -9px;
+    right: -5px;
     left: auto;
-    height: 56px;
     border-radius: 0 4px 4px 0;
 }
 .android .device-button-bottom {
     top: 31%;
-    height: 34px;
 }
 .device-label {
     margin-top: 10px;
@@ -1087,7 +1136,7 @@ dialog::backdrop {
     display: block;
     width: 100% !important;
     height: 100%;
-    object-fit: fill;
+    object-fit: contain;
 }
 .overlay img + img {
     position: absolute;
@@ -1372,8 +1421,10 @@ footer {
         width: 100vw;
         max-height: 100vh;
         max-height: 100dvh;
-        padding: 16px 10px 12px;
         border-radius: 0;
+    }
+    .zoom-preview {
+        padding: 12px 10px;
     }
     .dialog-head,
     .zoom-controls {
@@ -1391,17 +1442,6 @@ footer {
     #zoom-images {
         max-width: 100%;
         gap: 8px;
-        overflow-x: auto;
-    }
-    .device-preview {
-        flex: 0 0 auto;
-    }
-    .device-frame {
-        height: min(66vh, 610px);
-        height: min(66dvh, 610px);
-    }
-    #zoom-images:has(.device-preview + .device-preview) {
-        justify-content: flex-start;
     }
 }
 
@@ -1464,8 +1504,7 @@ summary {
     margin: 0 0 6px;
 }
 .comment-feed button,
-.comment-panel button,
-#zoom-comments {
+.comment-panel button {
     font: inherit;
     cursor: pointer;
 }
@@ -1719,9 +1758,6 @@ summary {
 .device-preview > .screen-feedback > * {
     flex: none;
 }
-dialog .screen-feedback .comment-count {
-    white-space: nowrap;
-}
 dialog .screen-votes {
     justify-content: center;
 }
@@ -1734,8 +1770,7 @@ dialog .vote-choice {
 dialog .vote-choice [data-vote='-1'] {
     box-shadow: none;
 }
-dialog .screen-votes button,
-dialog .screen-feedback .comment-count {
+dialog .screen-votes button {
     height: 32px;
     margin: 0;
     padding: 0 12px;
@@ -1749,9 +1784,7 @@ dialog .screen-votes [data-vote-refresh] {
     width: 32px;
     padding: 0;
 }
-dialog .screen-votes button:hover:not(:disabled),
-dialog .screen-feedback .comment-count:hover,
-dialog.comments-open .screen-feedback .comment-count {
+dialog .screen-votes button:hover:not(:disabled) {
     border-color: var(--pink);
     background: rgb(255 144 232 / 14%);
     color: #fff;
@@ -1762,8 +1795,7 @@ dialog .screen-votes [aria-pressed='true']:hover:not(:disabled) {
     background: var(--pink);
     color: var(--ink);
 }
-dialog .screen-votes button:focus-visible,
-dialog .screen-feedback .comment-count:focus-visible {
+dialog .screen-votes button:focus-visible {
     outline: 3px solid var(--pink);
     outline-offset: 3px;
 }
@@ -1805,21 +1837,6 @@ dialog .screen-votes [data-vote-retry] {
     grid-column: 3;
     grid-row: 1;
 }
-.preview-stage:has(#zoom-feedback:not(:empty)) .device-frame {
-    height: min(53vh, calc(100vh - 320px), 600px);
-    height: min(53dvh, calc(100dvh - 320px), 600px);
-}
-@media (min-width: 601px) {
-    .device-preview:has(> .screen-feedback) .device-frame {
-        height: min(62vh, calc(100vh - 320px), 680px);
-        height: min(62dvh, calc(100dvh - 320px), 680px);
-    }
-}
-.feedback-side {
-    padding: 0 5px;
-    font-size: 11px;
-    color: #bdb5c1;
-}
 @media (max-width: 600px) {
     dialog .vote-label {
         display: none;
@@ -1831,38 +1848,44 @@ dialog .screen-votes [data-vote-retry] {
 @media (pointer: coarse) {
     .screen-votes button,
     dialog .screen-votes button,
-    dialog .screen-feedback .comment-count {
+    .dialog-head .dialog-actions button {
         height: 44px;
         min-width: 44px;
     }
 }
-.zoom-body {
-    display: flex;
-    min-height: 0;
-    flex: 1;
-    gap: 20px;
-}
-.zoom-body > .preview-stage {
-    min-width: 0;
-    flex: 1;
+dialog.comments-open {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    overflow: clip;
 }
 .comment-panel {
-    width: 310px;
-    flex: 0 0 310px;
+    flex: 0 0 clamp(290px, 32%, 390px);
+    min-width: 0;
     min-height: 0;
     overflow: auto;
+    overscroll-behavior: contain;
     background: #221e27;
-    border: 1px solid #ffffff16;
-    border-radius: 14px;
-    padding: 12px;
+    border-inline-start: 1px solid #ffffff16;
+    padding: 16px;
     color: #f4eef7;
+    animation: discussion-enter 200ms ease-out;
+}
+@keyframes discussion-enter {
+    from {
+        translate: 100% 0;
+    }
 }
 .comment-panel[hidden] {
     display: none;
 }
 .comment-panel-heading {
     position: sticky;
-    top: -12px;
+    top: -16px;
     background: #221e27;
     z-index: 2;
     padding: 4px 0;
@@ -2010,16 +2033,6 @@ dialog .screen-votes [data-vote-retry] {
     outline-offset: 3px;
     border-radius: 5px;
 }
-#zoom-comments {
-    align-self: flex-end;
-    border: 1px solid #82658c;
-    background: #302636;
-    color: #efd8f5;
-    border-radius: 99px;
-    padding: 6px 12px;
-    font-size: 12px;
-    margin: -8px 0 8px;
-}
 .comments-open .preview-stage {
     grid-template-columns: 36px minmax(0, 1fr) 36px;
     gap: 8px;
@@ -2034,8 +2047,7 @@ dialog .screen-votes [data-vote-retry] {
 }
 .comment-feed button:focus-visible,
 .comment-panel button:focus-visible,
-.comment-count:focus-visible,
-#zoom-comments:focus-visible {
+.comment-count:focus-visible {
     outline: 3px solid #dc8de9;
     outline-offset: 2px;
 }
@@ -2043,25 +2055,21 @@ dialog .screen-votes [data-vote-retry] {
     .library-intro {
         display: block;
     }
-    .comments-open .zoom-body {
-        overflow: auto;
-        flex-direction: column;
-    }
-    .comments-open .preview-stage {
-        flex: none;
-        min-height: 180px;
+}
+@media (width < 700px) {
+    .comments-open .zoom-preview {
+        position: absolute;
+        inset: 0;
+        translate: -100% 0;
     }
     .comment-panel {
-        width: auto;
-        flex: 0 0 auto;
-        overflow: visible;
-        max-height: none;
+        flex-basis: 100%;
+        border-inline-start: 0;
     }
-    .comments-open .device-frame {
-        max-height: 32dvh;
-    }
-    .comments-open .preview-help {
-        display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .comment-panel {
+        animation: none;
     }
 }
 @media (pointer: coarse) {
