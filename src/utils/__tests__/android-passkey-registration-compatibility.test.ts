@@ -186,6 +186,60 @@ describe('Android registration signed-layout compatibility acceptance', () => {
         }
     })
 
+    // CBOR {fmt: "none", attStmt: {}, authData: <37 bytes>} with the given authenticator flags.
+    function noneAttestation(flags: number): string {
+        const authData = [...new Array(32).fill(7), flags, 0, 0, 0, 0]
+        const head = [0xa3, 0x63, ...Buffer.from('fmt'), 0x64, ...Buffer.from('none'), 0x67, ...Buffer.from('attStmt')]
+        return Buffer.from([
+            ...head,
+            0xa0,
+            0x68,
+            ...Buffer.from('authData'),
+            0x58,
+            authData.length,
+            ...authData,
+        ]).toString('base64url')
+    }
+
+    it('carries the layout facts of the refused note, keys only, for telemetry (TASK-24498)', async () => {
+        const result = credential(encode(sorted))
+        result.response.attestationObject = noneAttestation(0x45 /* UP|UV|AT, not backup eligible */)
+        const error = await rejectedRegistration(result)
+
+        expect(error).toMatchObject({
+            code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+            challengeOffset: 41,
+            clientDataKeys: ['androidPackageName', 'challenge', 'origin', 'type'],
+            backupEligible: false,
+        })
+    })
+
+    it('reads a backup-eligible passkey from its attestation flags', async () => {
+        const result = credential(encode(sorted))
+        result.response.attestationObject = noneAttestation(0x5d /* UP|UV|BE|BS|AT */)
+
+        expect(await rejectedRegistration(result)).toMatchObject({ backupEligible: true })
+    })
+
+    it('leaves the facts it cannot read unset instead of guessing', async () => {
+        const result = credential('%%%')
+        const error = await rejectedRegistration(result)
+
+        expect(error).toMatchObject({
+            challengeOffset: undefined,
+            clientDataKeys: undefined,
+            backupEligible: undefined,
+        })
+    })
+
+    it('passes the refusal through the signup error normalisers unchanged', async () => {
+        const error = await rejectedRegistration(credential(encode(sorted)))
+        const { normalizeNativePasskeyError, normalizePasskeyServerError } = require('../webauthn.utils')
+
+        expect(normalizeNativePasskeyError(error)).toBe(error)
+        expect(normalizePasskeyServerError(error)).toBe(error)
+    })
+
     it('releases request ownership after incompatibility so a supported retry can finish', async () => {
         const supported = credential()
         const { plugin, nativeCreate } = pluginFor(credential(encode(sorted)))

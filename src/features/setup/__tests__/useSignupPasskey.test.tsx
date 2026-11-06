@@ -42,7 +42,11 @@ jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockAp
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
 jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ latestCeremony: () => mockCeremony }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({
+    captureException: jest.fn(),
+    captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 /** The username step's use of the hook, without the form: Claim, the messages, Log in, the help drawer state. */
@@ -58,6 +62,12 @@ function Harness() {
             {passkey.preflightWarning && <p data-testid="preflight">{passkey.preflightWarning}</p>}
             {passkey.isHelpOpen && <div role="dialog">{passkey.helpErrorName}</div>}
             {passkey.isHelpOpen && <button onClick={passkey.retryFromHelp}>Retry</button>}
+            {passkey.isProviderUnsupportedOpen && (
+                <div role="dialog" aria-label="Unsupported passkey provider">
+                    <button onClick={passkey.retryFromProviderUnsupported}>Retry with another provider</button>
+                    <button onClick={passkey.signUpInBrowser}>Sign up in Chrome</button>
+                </div>
+            )}
         </div>
     )
 }
@@ -503,20 +513,45 @@ describe('repeated cancels in the iOS app', () => {
  * NotAllowedError name as a dismissal, and a provider crash with no name at all.
  */
 describe('Android failures that are not cancels', () => {
-    it('shows unsupported-provider guidance inline without signup completion or a generic help drawer', async () => {
-        mockHandleRegister.mockRejectedValue(
-            Object.assign(new Error('Unsupported passkey provider'), {
-                name: 'PasskeyProviderUnsupportedError',
-                code: 'PASSKEY_PROVIDER_UNSUPPORTED',
-            })
-        )
+    // TASK-24498: the facts the refusal carries, keys only, never the challenge or the origin.
+    const providerRefusal = () =>
+        Object.assign(new Error('Unsupported passkey provider'), {
+            name: 'PasskeyProviderUnsupportedError',
+            code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+            challengeOffset: 41,
+            clientDataKeys: ['androidPackageName', 'challenge', 'origin', 'type'],
+            backupEligible: false,
+        })
+
+    it('opens the unsupported-provider drawer without signup completion or a generic help drawer', async () => {
+        mockHandleRegister.mockRejectedValue(providerRefusal())
         const view = renderWithIntl(<Harness />)
         claim()
-        expect(await screen.findByRole('alert')).toHaveTextContent(
-            'The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device.'
-        )
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(await screen.findByRole('dialog', { name: 'Unsupported passkey provider' })).toBeInTheDocument()
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
+        expect(failedEvents()).toEqual([
+            [
+                ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED,
+                expect.objectContaining({
+                    error_code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+                    challenge_offset: 41,
+                    backup_eligible: false,
+                    client_data_keys: ['androidPackageName', 'challenge', 'origin', 'type'],
+                }),
+            ],
+        ])
+        // One constant message, so every such phone groups into one Sentry issue.
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'Passkey provider writes an unsupported clientDataJSON layout',
+            {
+                level: 'warning',
+                tags: { error_type: 'passkey_provider_unsupported', challenge_offset: 41 },
+                extra: { clientDataKeys: ['androidPackageName', 'challenge', 'origin', 'type'], backupEligible: false },
+            }
+        )
+        expect(Sentry.captureException).not.toHaveBeenCalled()
         expect(mockHandleRegister).toHaveBeenCalledTimes(1)
         // A delayed address must not turn this rejected attempt into a completed signup.
         mockAddress = '0xlate-after-incompatible-provider'
@@ -524,6 +559,37 @@ describe('Android failures that are not cancels', () => {
         expect(mockNext).not.toHaveBeenCalled()
         expect(mockSetNoBackLock).not.toHaveBeenCalled()
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, expect.anything())
+    })
+
+    it('retries from the unsupported-provider drawer with one more ceremony', async () => {
+        mockHandleRegister.mockRejectedValue(providerRefusal())
+        renderWithIntl(<Harness />)
+        claim()
+        fireEvent.click(await screen.findByRole('button', { name: 'Retry with another provider' }))
+
+        await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(2))
+        expect(failedEvents()).toHaveLength(2)
+    })
+
+    it('opens web signup with the keep-web hatch in the browser, where the browser writes the signed note', async () => {
+        const open = jest.spyOn(window, 'open').mockReturnValue(window)
+        try {
+            mockHandleRegister.mockRejectedValue(providerRefusal())
+            renderWithIntl(<Harness />)
+            claim()
+            fireEvent.click(await screen.findByRole('button', { name: 'Sign up in Chrome' }))
+
+            await waitFor(() =>
+                expect(open).toHaveBeenCalledWith(
+                    expect.stringMatching(/\/setup\?keep-web=walnut-still-cracks$/),
+                    '_blank'
+                )
+            )
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+            expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        } finally {
+            open.mockRestore()
+        }
     })
 
     it('opens the Android help drawer on the first "no create options" failure', async () => {

@@ -27,6 +27,10 @@ const mockPasskey = {
     isHelpOpen: false,
     closeHelp: jest.fn(),
     retryFromHelp: jest.fn(),
+    isProviderUnsupportedOpen: false,
+    closeProviderUnsupported: jest.fn(),
+    retryFromProviderUnsupported: jest.fn(),
+    signUpInBrowser: jest.fn(),
     deviceType: 'web',
 }
 const mockUseSignupPasskey = jest.fn((_username: string) => mockPasskey)
@@ -77,6 +81,7 @@ beforeEach(() => {
         isLoggingIn: false,
         helpErrorName: null,
         isHelpOpen: false,
+        isProviderUnsupportedOpen: false,
     })
     mockApiFetch.mockResolvedValue({ status: 404 })
 })
@@ -297,5 +302,23 @@ describe('Claim username — control analytics', () => {
         expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
         expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
         expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports the unsupported-provider drawer actions (TASK-24498)', () => {
+        Object.assign(mockPasskey, { isProviderUnsupportedOpen: true })
+        renderSignup()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in Chrome' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
+        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+        expect(controls()).toEqual([
+            'passkey_provider_retry:tap',
+            'passkey_provider_web_signup:tap',
+            'passkey_provider_support:tap',
+            'passkey_provider:dismiss',
+        ])
+        expect(mockPasskey.retryFromProviderUnsupported).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.signUpInBrowser).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.closeProviderUnsupported).toHaveBeenCalledTimes(1)
     })
 })

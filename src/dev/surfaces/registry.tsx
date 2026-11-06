@@ -29,6 +29,7 @@ import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
+import { PasskeyProviderUnsupportedDrawer } from '@/components/Setup/Views/PasskeyProviderUnsupportedDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -522,6 +523,18 @@ export const SURFACES: Record<string, Surface> = {
     '08-c-loginrecoverydrawer-web': {
         ...SURFACE_META['08-c-loginrecoverydrawer-web'],
         render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
+    },
+    '08-d-passkeyproviderunsupporteddrawer': {
+        ...SURFACE_META['08-d-passkeyproviderunsupporteddrawer'],
+        render: () => (
+            <PasskeyProviderUnsupportedDrawer
+                visible
+                onClose={noop}
+                onRetry={noop}
+                onSignUpInBrowser={noop}
+                onSupport={noop}
+            />
+        ),
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',

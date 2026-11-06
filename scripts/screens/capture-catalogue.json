@@ -202,6 +202,12 @@
         "source": "Setup/Views/LoginRecoveryDrawer.tsx"
     },
     {
+        "id": "08-d-passkeyproviderunsupporteddrawer",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-d-passkeyproviderunsupporteddrawer",
+        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
+    },
+    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",

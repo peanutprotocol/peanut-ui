@@ -38,6 +38,13 @@ export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
 
+/**
+ * Web signup with the keep-web hatch open, for a phone whose passkey provider
+ * the app cannot use (TASK-24498). In a browser the browser writes the signed
+ * note, so the passkey signs in the layout the wallet validator reads.
+ */
+export const KEEP_WEB_SIGNUP_URL = `${BASE_URL}/setup?${KEEP_WEB_COOKIE}=${KEEP_WEB_TOKEN}`
+
 /** Peanut's App Store id: the store links and Safari's Smart App Banner share it. */
 export const IOS_APP_STORE_ID = '6786373552'
 
