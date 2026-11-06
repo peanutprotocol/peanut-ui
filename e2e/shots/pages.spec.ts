@@ -27,6 +27,8 @@ const FIXTURE = 'profile-edit'
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
 import { PAGE_CAPTURES as CAPTURES } from '../../src/dev/screens/pages'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
+import { blockExternal, waitForLottie } from './fixture-page'
 
 function seenOnceModals(): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
@@ -43,11 +45,8 @@ test.describe.configure({ mode: 'parallel' })
 
 for (const capture of CAPTURES) {
     test(capture.id, async ({ page }, testInfo) => {
-        await page.route('**/*', (route) => {
-            const { hostname } = new URL(route.request().url())
-            return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
-        })
-        await page.clock.setFixedTime(FROZEN_NOW)
+        await blockExternal(page, capture.fixture ?? FIXTURE)
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.addInitScript(seenOnceModals)
 
         const fixture = capture.fixture ?? FIXTURE
@@ -123,6 +122,7 @@ for (const capture of CAPTURES) {
             await expect(page.locator(capture.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
 
         await mkdir(OUT_DIR, { recursive: true })
+        await waitForLottie(page)
         await page.screenshot({
             path: join(OUT_DIR, `${capture.id}@${testInfo.project.name}.png`),
             animations: 'disabled',

@@ -582,12 +582,10 @@ async function main() {
                     screen.expectsLoading ?? false,
                     { timeout: 15000 }
                 )
-                // A hero shows frame 0 until its animation loads, then jumps to the reduced-motion still.
-                await page.waitForFunction(
-                    () => !document.querySelector('[data-onboarding-animation][data-lottie-ready="false"]'),
-                    undefined,
-                    { timeout: 15000 }
-                )
+                // A Lottie (sign-up hero or mascot) shows frame 0 until it loads, then jumps to its reduced-motion still.
+                await page.waitForFunction(() => !document.querySelector('[data-lottie-ready="false"]'), undefined, {
+                    timeout: 15000,
+                })
                 if (new URL(page.url()).pathname !== url.pathname)
                     throw new Error(`Expected ${url.pathname}, reached ${new URL(page.url()).pathname}`)
                 if (/Not capturable|Unknown surface:|Application error:/.test(await page.locator('body').innerText()))
