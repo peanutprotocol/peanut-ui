@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import type { MutableRefObject, ReactNode, RefObject } from 'react'
+import type { MutableRefObject, RefObject } from 'react'
 import { ForceGraph2D } from './ForceGraph2D'
-import { type GraphData, type GraphMode, type GraphOverlayProps } from './types'
+import { type GraphData } from './types'
 
 interface MinimalGraphViewProps {
     containerRef: RefObject<HTMLDivElement>
@@ -14,8 +14,6 @@ interface MinimalGraphViewProps {
     containerWidth: number | null
     width?: number
     backgroundColor: string
-    mode: GraphMode
-    isMinimal: boolean
     selectedUserId: string | null
     nodeCanvasObject: (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => void
     linkCanvasObject: (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => void
@@ -26,11 +24,9 @@ interface MinimalGraphViewProps {
     handleNodeDragEnd: () => void
     handleEngineStop: () => void
     handleResetView: () => void
-    renderOverlays?: (props: GraphOverlayProps) => ReactNode
-    overlayProps: GraphOverlayProps
 }
 
-/** Minimal mode - just the graph canvas, no controls (points page / user graph) */
+/** The graph canvas with no controls (rewards page) */
 export function MinimalGraphView({
     containerRef,
     graphRef,
@@ -39,8 +35,6 @@ export function MinimalGraphView({
     containerWidth,
     width,
     backgroundColor,
-    mode,
-    isMinimal,
     selectedUserId,
     nodeCanvasObject,
     linkCanvasObject,
@@ -51,8 +45,6 @@ export function MinimalGraphView({
     handleNodeDragEnd,
     handleEngineStop,
     handleResetView,
-    renderOverlays,
-    overlayProps,
 }: MinimalGraphViewProps) {
     const t = useTranslations('global')
     const minimalWidth = containerWidth ?? width ?? 350
@@ -72,35 +64,16 @@ export function MinimalGraphView({
                         ref={graphRef}
                         graphData={{
                             nodes: filteredGraphData.nodes,
-                            links: [
-                                // Invite edges (reversed for arrow direction)
-                                ...filteredGraphData.edges.map((edge) => ({
-                                    ...edge,
-                                    source: edge.target,
-                                    target: edge.source,
-                                    isP2P: false,
-                                })),
-                                // P2P payment edges (for clustering visualization)
-                                // P2P payment edges (for clustering visualization)
-                                // Include both full mode (count/totalUsd) and anonymized mode (frequency/volume) fields
-                                ...(filteredGraphData.p2pEdges || []).map((edge, i) => ({
-                                    id: `p2p-${i}`,
-                                    source: edge.source,
-                                    target: edge.target,
-                                    type: edge.type,
-                                    count: edge.count,
-                                    totalUsd: edge.totalUsd,
-                                    frequency: edge.frequency,
-                                    volume: edge.volume,
-                                    bidirectional: edge.bidirectional,
-                                    isP2P: true,
-                                })),
-                            ],
+                            // Invite edges (reversed for arrow direction)
+                            links: filteredGraphData.edges.map((edge) => ({
+                                ...edge,
+                                source: edge.target,
+                                target: edge.source,
+                            })),
                         }}
                         nodeId="id"
                         nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
                             // Draw hit detection area matching actual rendered node size
-                            // In user mode (minimal): fixed size of 12
                             const nodeRadius = 12
                             ctx.fillStyle = color
                             ctx.beginPath()
@@ -121,14 +94,14 @@ export function MinimalGraphView({
                         enableZoomInteraction={true}
                         cooldownTicks={Infinity}
                         warmupTicks={0}
-                        d3AlphaDecay={isMinimal ? 0.03 : 0.005}
-                        d3VelocityDecay={isMinimal ? 0.8 : 0.6}
+                        d3AlphaDecay={0.03}
+                        d3VelocityDecay={0.8}
                         d3AlphaMin={0.001}
                         onEngineStop={handleEngineStop}
                         backgroundColor={backgroundColor}
                         width={minimalWidth}
                         height={graphHeight}
-                        autoPauseRedraw={mode === 'user'}
+                        autoPauseRedraw={true}
                     />
                 )}
                 {/* Reset camera button when focused on a user */}
@@ -143,7 +116,6 @@ export function MinimalGraphView({
                         {t('invitesGraph.resetView')}
                     </Button>
                 )}
-                {renderOverlays?.(overlayProps)}
             </div>
         </>
     )

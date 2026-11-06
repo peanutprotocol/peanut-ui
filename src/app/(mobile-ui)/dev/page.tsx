@@ -160,12 +160,6 @@ const groups: DevToolGroup[] = [
         wip: true,
         tools: [
             {
-                name: 'Full Graph',
-                description: 'Force-directed graph of all users, invites, and P2P activity (admin only)',
-                path: '/dev/full-graph',
-                icon: 'globe-lock',
-            },
-            {
                 name: 'Payment Network Explorer',
                 description: 'Live P2P payment relationships — team-gated, real usernames and KYC regions',
                 path: '/dev/payment-graph',

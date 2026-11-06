@@ -4548,17 +4548,8 @@
             "havingTrouble": "Having trouble?"
         },
         "invitesGraph": {
-            "loadingNetwork": "Loading network...",
-            "goBack": "Go Back",
             "resetView": "Reset View",
-            "back": "Back",
-            "clear": "Clear",
-            "focusedOn": "Focused on:",
-            "searchPlaceholder": "Search username...",
-            "paymentNetwork": "Payment Network",
-            "inviteNetwork": "Invite Network",
-            "nodes": "{count, plural, one {# node} other {# nodes}}",
-            "edges": "{count, plural, one {# edge} other {# edges}}"
+            "clear": "Clear"
         },
         "contactsList": {
             "title": "Contacts"

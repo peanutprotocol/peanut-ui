@@ -227,7 +227,6 @@ export function RewardsPage() {
                         {myGraphResult.data.nodes?.length > 1 && (
                             <Card className="!mt-8 overflow-hidden p-0">
                                 <InvitesGraph
-                                    minimal
                                     data={myGraphResult.data}
                                     height={250}
                                     backgroundColor="var(--color-background-default)"
