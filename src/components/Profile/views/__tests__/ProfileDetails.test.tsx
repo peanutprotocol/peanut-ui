@@ -1,8 +1,8 @@
 /**
  * Profile lists what sign-up and verification collected, read from Sumsub, the
- * address and the tax number included (Slava, 2026-11-05). A value the API did
- * not return says "Not stored at Peanut"; a row shows only for something
- * collected. Residence is the first action on Settings details.
+ * address and the tax number included (Slava, 2026-11-05). Address and tax
+ * rows appear only when the API returns their values. Residence is the
+ * first action on Settings details.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, screen, within } from '@testing-library/react'
@@ -207,6 +207,17 @@ describe('ProfileDetailsView', () => {
         render()
         expect(await screen.findByText('Nationality')).toBeInTheDocument()
         expect(screen.queryByText('Address')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        { returned: { address: { street: 'Example Street' } }, value: 'Example Street', omitted: 'Tax number' },
+        { returned: { taxId: '123456789' }, value: '123456789', omitted: 'Address' },
+    ])('masks the available value when $omitted was named but not returned', async ({ returned, value, omitted }) => {
+        jest.mocked(getKycDetails).mockResolvedValue(details(returned))
+        render()
+        expect(await screen.findByText(value)).toHaveClass('ph-mask', 'ph-sensitive')
+        expect(screen.queryByText(omitted)).not.toBeInTheDocument()
+        expect(screen.queryByText('Not stored at Peanut')).not.toBeInTheDocument()
     })
 })
 
