@@ -9,6 +9,7 @@ import {
     type RpcUserOperation,
     type UserOperation,
 } from 'viem/account-abstraction'
+import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
@@ -20,6 +21,7 @@ import {
     sendSignedUserOperation,
     SIGNUP_TEST_TX_SUBMISSION,
     submitSignedUserOperation,
+    userOperationNonceSpent,
     userOpFailureKind,
     type SubmissionBudget,
     type UserOpReceiptResult,
@@ -57,7 +59,7 @@ export interface SignupTestTxClient {
 
 export interface SignupTestTxResult {
     userOpHash: Hash
-    /** No passkey prompt: an operation signed earlier was sent again. */
+    /** No passkey prompt: an earlier operation was reused or reconciled. */
     reusedSignature: boolean
     sends: number
     recovered: string[]
@@ -121,9 +123,9 @@ async function signTestOperation(
 /**
  * The final signup step's test operation: a zero-value token transfer to the
  * account itself, signed with the new passkey. An operation signed earlier and
- * not yet confirmed is sent again as is, without a passkey prompt; a new
- * signature is asked for only when none exists or the old one can no longer be
- * included (its sponsorship expired or its nonce is spent).
+ * not yet confirmed is retried unchanged or reconciled by receipt, without a
+ * passkey prompt. A new signature is asked for if none exists or the previous
+ * operation has a confirmed failure.
  */
 export async function runSignupTestTransaction({
     userId,
@@ -156,8 +158,10 @@ export async function runSignupTestTransaction({
                 send: () => client.send(op.userOperation, op.entryPoint),
                 waitForReceipt: client.waitForReceipt,
                 getReceipt: client.getReceipt,
-                // Every operation this account can have at this nonce is a signup test operation signed by this passkey.
                 nonceSpent: () => client.nonceSpent(BigInt(op.userOperation.nonce)),
+                reconcileBeforeSend: reusedSignature,
+                receiptOnly: op.receiptOnly,
+                onNonceSpent: (userOpHash) => updateSignupTestTransaction(userId, { receiptOnly: true, userOpHash }),
                 sleep,
                 now,
             },
@@ -167,7 +171,11 @@ export async function runSignupTestTransaction({
             updateSignupTestTransaction(userId, { needsNewSignature: true })
             throw userOpRevertedError(outcome.userOpHash, outcome.success)
         }
-        updateSignupTestTransaction(userId, { mined: true, userOpHash: outcome.userOpHash })
+        updateSignupTestTransaction(userId, {
+            mined: true,
+            userOpHash: outcome.userOpHash,
+            receiptTransactionHash: outcome.receipt.transactionHash,
+        })
         if (op.signatureCheck !== 'valid' && op.signatureCheck !== 'unverifiable') {
             captureMessage('Signup test operation mined although the device signature check rejected it', {
                 level: 'warning',
@@ -241,7 +249,13 @@ export function kernelSignupTestTxClient(client: KernelClient): SignupTestTxClie
                 if ((error as Error)?.name === 'UserOperationReceiptNotFoundError') return null
                 throw error
             }),
-        nonceSpent: async (nonce) => (await account.getNonce()) > nonce,
+        nonceSpent: async (nonce) =>
+            userOperationNonceSpent(
+                PUBLIC_CLIENTS_BY_CHAIN[client.chain.id].client,
+                account.entryPoint.address,
+                account.address,
+                nonce
+            ),
     }
 }
 

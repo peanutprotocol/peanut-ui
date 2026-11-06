@@ -3,35 +3,24 @@ import { APP_LOCALES } from '@/i18n/app/config'
 import { loadMessages } from '@/i18n/app/messages'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
-import { ProfileEditView } from '../ProfileEdit.view'
+import { EmailSettings } from '../../components/EmailSettings'
 import { updateUserById, requestEmailChange } from '@/app/actions/users'
 
-const mockReplace = jest.fn()
+const mockSaved = jest.fn()
 const mockFetchUser = jest.fn()
 const mockResetCrispSessions = jest.fn()
 const mockInvalidateCrispToken = jest.fn()
-let mockVerified = false
 let mockUser: {
-    profileNameLocked?: boolean
     user: { userId: string; username: string; fullName: string; email: string }
 } | null
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn(), requestEmailChange: jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
-jest.mock('@/hooks/useIdentityVerification', () => ({
-    useIdentityVerification: () => ({ isVerified: mockVerified, isLoading: false }),
-}))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/utils/crisp', () => ({
     resetCrispProxySessions: (...args: unknown[]) => mockResetCrispSessions(...args),
 }))
 jest.mock('@/hooks/useCrispTokenId', () => ({
     invalidateCrispTokenId: (...args: unknown[]) => mockInvalidateCrispToken(...args),
 }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('../../components/ProfileHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('../../components/ShowNameToggle', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Settings/DeleteAccountButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 
 const save = () => fireEvent.click(screen.getByRole('button', { name: /Save changes|Send code/ }))
@@ -50,7 +39,6 @@ const change = async (label: string, value: string) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockVerified = false
     mockUser = { user: { userId: 'test-user', username: 'testuser', fullName: 'Test User', email: 'old@example.com' } }
     jest.mocked(updateUserById).mockResolvedValue({})
     jest.mocked(requestEmailChange).mockResolvedValue({})
@@ -58,9 +46,8 @@ beforeEach(() => {
     mockResetCrispSessions.mockResolvedValue(undefined)
 })
 
-test.each([false, true])('email is editable with verified=%s and only the changed email is sent', async (verified) => {
-    mockVerified = verified
-    renderWithIntl(<ProfileEditView />)
+test('only the changed email is sent', async () => {
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
     expect(screen.getByLabelText('Email for notifications')).toBeEnabled()
     await change('Email for notifications', ' new@example.com ')
@@ -75,12 +62,12 @@ test.each([false, true])('email is editable with verified=%s and only the change
     )
     expect(mockResetCrispSessions).toHaveBeenCalledTimes(1)
     expect(mockInvalidateCrispToken).toHaveBeenCalledWith('test-user')
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
+    await waitFor(() => expect(mockSaved).toHaveBeenCalledTimes(1))
 })
 
 test('shows the committed replacement when the old native support session cannot reset', async () => {
     mockResetCrispSessions.mockRejectedValueOnce(new Error('native reset failed'))
-    renderWithIntl(<ProfileEditView />)
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', 'new@example.com')
     save()
     await verify()
@@ -88,56 +75,23 @@ test('shows the committed replacement when the old native support session cannot
     await waitFor(() => expect(mockResetCrispSessions).toHaveBeenCalledTimes(1))
     expect(mockInvalidateCrispToken).toHaveBeenCalledWith('test-user')
     expect(mockFetchUser).toHaveBeenCalledTimes(1)
-    expect(mockReplace).toHaveBeenCalledWith('/profile')
+    expect(mockSaved).toHaveBeenCalledTimes(1)
     expect(mockInvalidateCrispToken.mock.invocationCallOrder[0]).toBeLessThan(
         mockResetCrispSessions.mock.invocationCallOrder[0]
     )
 })
 
-test.each([false, true])('all names are owned by identity verification with verified=%s', async (verified) => {
-    mockVerified = verified
-    renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-readonly', 'true')
-    expect(screen.getByLabelText('Surname')).toHaveAttribute('aria-readonly', 'true')
-    expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
-
-    // the names are shown, not inputs: nothing typed can ride along with an
-    // otherwise legitimate email save, even before identity verification
-    expect(screen.getByRole('textbox', { name: 'Name' }).tagName).not.toBe('INPUT')
-    expect(screen.getByRole('textbox', { name: 'Surname' }).tagName).not.toBe('INPUT')
-    await change('Email for notifications', 'new@example.com')
-    save()
-    await verify()
-    await waitFor(() =>
-        expect(updateUserById).toHaveBeenCalledWith({
-            userId: 'test-user',
-            email: 'new@example.com',
-            emailVerificationCode: '123456',
-        })
-    )
-    expect(jest.mocked(updateUserById).mock.calls[0][0]).not.toHaveProperty('fullName')
-})
-
 test.each(['', 'invalid', 'a@'])('rejects invalid changed email %s inline', async (email) => {
-    renderWithIntl(<ProfileEditView />)
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', email)
     save()
     expect(await screen.findByText('Please enter a valid email address.')).toBeVisible()
     expect(updateUserById).not.toHaveBeenCalled()
 })
 
-test('a user without a name still sees locked identity-owned name fields', () => {
-    mockUser!.user.fullName = ''
-    renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-readonly', 'true')
-    expect(screen.getByLabelText('Surname')).toHaveAttribute('aria-readonly', 'true')
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
-})
-
 test('email-only save does not require a missing name', async () => {
     mockUser!.user.fullName = ''
-    renderWithIntl(<ProfileEditView />)
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', 'new@example.com')
     save()
     await verify()
@@ -152,7 +106,7 @@ test('email-only save does not require a missing name', async () => {
 
 test('setting an email for the first time skips verification and sends only the email', async () => {
     mockUser!.user.email = ''
-    renderWithIntl(<ProfileEditView />)
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
 
     expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
     await change('Email for notifications', 'new@example.com')
@@ -165,27 +119,25 @@ test('setting an email for the first time skips verification and sends only the 
         })
     )
     expect(requestEmailChange).not.toHaveBeenCalled()
-    expect(mockReplace).toHaveBeenCalledWith('/profile')
+    expect(mockSaved).toHaveBeenCalledTimes(1)
 })
 
 test('shows server failures and retains edits without navigating', async () => {
     jest.mocked(updateUserById).mockResolvedValue({ error: 'Could not save your profile' })
-    renderWithIntl(<ProfileEditView />)
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', 'new@example.com')
     save()
     await verify()
     expect(await screen.findByText('Could not save your profile')).toBeVisible()
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('new@example.com')
-    expect(mockReplace).not.toHaveBeenCalled()
+    expect(mockSaved).not.toHaveBeenCalled()
 })
 
 test('background refresh preserves edits and does not send an untouched stale name', async () => {
-    const view = renderWithIntl(<ProfileEditView />)
+    const view = renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', 'new@example.com')
     mockUser = { user: { ...mockUser!.user, fullName: 'New Verified Name' } }
-    mockVerified = true
-    view.rerender(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toHaveTextContent('New Verified')
+    view.rerender(<EmailSettings onSaved={mockSaved} />)
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('new@example.com')
     save()
     await verify()
@@ -201,28 +153,28 @@ test('background refresh preserves edits and does not send an untouched stale na
 test('late auth hydrates without enabling a no-op save', async () => {
     const user = mockUser
     mockUser = null
-    const view = renderWithIntl(<ProfileEditView />)
+    const view = renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     expect(screen.getByLabelText('Email for notifications')).toBeDisabled()
     mockUser = user
-    view.rerender(<ProfileEditView />)
+    view.rerender(<EmailSettings onSaved={mockSaved} />)
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('old@example.com')
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 })
 
 test('an untouched email adopts the signup email from a late profile refresh without making it dirty', () => {
     mockUser!.user.email = ''
-    const view = renderWithIntl(<ProfileEditView />)
+    const view = renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     mockUser = { user: { ...mockUser!.user, email: 'signup@example.com' } }
-    view.rerender(<ProfileEditView />)
+    view.rerender(<EmailSettings onSaved={mockSaved} />)
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('signup@example.com')
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
 })
 
 test('an email refresh preserves a replacement the user is editing', async () => {
-    const view = renderWithIntl(<ProfileEditView />)
+    const view = renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', 'replacement@example.com')
     mockUser = { user: { ...mockUser!.user, email: 'signup@example.com' } }
-    view.rerender(<ProfileEditView />)
+    view.rerender(<EmailSettings onSaved={mockSaved} />)
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('replacement@example.com')
     expect(screen.getByRole('button', { name: 'Send code' })).toBeEnabled()
 })
@@ -231,7 +183,7 @@ test('a duplicate email error is linked to its input and can be corrected', asyn
     jest.mocked(requestEmailChange).mockResolvedValueOnce({
         error: 'This email is already associated with another account',
     })
-    renderWithIntl(<ProfileEditView />)
+    renderWithIntl(<EmailSettings onSaved={mockSaved} />)
     await change('Email for notifications', 'taken@example.com')
     save()
     expect(await screen.findByText('This email is already associated with another account.')).toBeVisible()
@@ -241,27 +193,7 @@ test('a duplicate email error is linked to its input and can be corrected', asyn
     await change('Email for notifications', 'available@example.com')
     save()
     await verify()
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/profile'))
-})
-
-test('a previously verified name stays locked during re-verification', () => {
-    mockUser!.profileNameLocked = true
-    mockVerified = false
-    renderWithIntl(<ProfileEditView />)
-    expect(screen.getByLabelText('Name')).toHaveAttribute('aria-readonly', 'true')
-    expect(screen.getByText(/Your name comes from your identity verification/)).toBeVisible()
-    expect(screen.getByLabelText('Email for notifications')).toBeEnabled()
-})
-test('changing the pending mailbox requires a new code', async () => {
-    renderWithIntl(<ProfileEditView />)
-    await change('Email for notifications', 'first@example.com')
-    save()
-    await screen.findByLabelText('Verification code')
-    await change('Email for notifications', 'second@example.com')
-    expect(screen.queryByLabelText('Verification code')).not.toBeInTheDocument()
-    save()
-    await waitFor(() => expect(requestEmailChange).toHaveBeenLastCalledWith('second@example.com'))
-    expect(updateUserById).not.toHaveBeenCalled()
+    await waitFor(() => expect(mockSaved).toHaveBeenCalledTimes(1))
 })
 
 test.each(APP_LOCALES)('PROFILE_NAME_READ_ONLY is localized in the resolved %s catalog', async (locale) => {
@@ -280,7 +212,7 @@ test.each(APP_LOCALES)('PROFILE_NAME_READ_ONLY is localized in the resolved %s c
     mockUser!.user.email = ''
     renderWithIntl(
         <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
-            <ProfileEditView />
+            <EmailSettings onSaved={mockSaved} />
         </NextIntlClientProvider>
     )
     await act(async () => {
@@ -292,5 +224,5 @@ test.each(APP_LOCALES)('PROFILE_NAME_READ_ONLY is localized in the resolved %s c
     expect(await screen.findByText(expected)).toBeVisible()
     expect(screen.queryByText('PROFILE_NAME_READ_ONLY')).not.toBeInTheDocument()
     if (locale !== 'en') expect(screen.queryByText(serverCopy)).not.toBeInTheDocument()
-    expect(mockReplace).not.toHaveBeenCalled()
+    expect(mockSaved).not.toHaveBeenCalled()
 })

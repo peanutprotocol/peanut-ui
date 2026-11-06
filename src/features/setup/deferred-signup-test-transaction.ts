@@ -41,11 +41,9 @@ export interface DeferredSignupTestTxBundler {
 
 /**
  * The later retry of a confirmation the person finished signup without. It
- * resends the operation signed during signup, unchanged, so it never prompts
- * for the passkey. An operation that can no longer be included (expired
- * sponsorship, spent nonce) ends the retry: its signature already passed the
- * validator's checks on the device, which is what deferring required, and the
- * first real payment deploys the account with the same passkey.
+ * retries the signed operation unchanged or reconciles a spent nonce by
+ * receipt, without prompting for a passkey. An expired sponsorship ends the
+ * retry. The first real payment can deploy the account with the same passkey.
  */
 export async function retryDeferredSignupTestTransaction(
     userId: string,
@@ -72,6 +70,9 @@ export async function retryDeferredSignupTestTransaction(
                 waitForReceipt: bundler.waitForReceipt,
                 getReceipt: bundler.getReceipt,
                 nonceSpent: () => bundler.nonceSpent(record),
+                reconcileBeforeSend: true,
+                receiptOnly: record.receiptOnly,
+                onNonceSpent: (userOpHash) => updateSignupTestTransaction(userId, { receiptOnly: true, userOpHash }),
                 sleep,
             },
             budget

@@ -190,6 +190,7 @@ function discoverRoutes(): Set<string> {
         '/send',
         '/request',
         '/settings',
+        '/settings/details',
         '/history',
         '/points',
         '/recover-funds',

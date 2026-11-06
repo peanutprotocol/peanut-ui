@@ -364,10 +364,19 @@ export function useCardFlow() {
     // and stays inline.
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse) => {
-            if (
-                res.status === 'pending-identity' ||
-                (res.status === 'pending' && !('rainUserId' in res && res.rainUserId))
-            ) {
+            const pendingWithoutProvider = res.status === 'pending' && !('rainUserId' in res && res.rainUserId)
+            if (pendingWithoutProvider && user?.identityVerification?.oneShot !== true) {
+                // An older API uses this response for a held legacy claim.
+                // Keep the current apply or terms screen available for retry.
+                const message = t('page.applyFailed')
+                setPendingApplication(null)
+                setApplyError(message)
+                awaitingIssuanceRef.current = false
+                invalidateOverview()
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
+                return false
+            }
+            if (res.status === 'pending-identity' || pendingWithoutProvider) {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
                 setPendingApplication(res.status)
@@ -450,7 +459,16 @@ export function useCardFlow() {
             if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo, startFlowAction, setPlanRefusal, fetchUser, blockIfFinal]
+        [
+            invalidateOverview,
+            refetchCardInfo,
+            startFlowAction,
+            setPlanRefusal,
+            fetchUser,
+            blockIfFinal,
+            user?.identityVerification?.oneShot,
+            t,
+        ]
     )
 
     // Card-create-after-apply failure detector (see advanceFromApplyResponse).
@@ -552,17 +570,18 @@ export function useCardFlow() {
                         ...(serializedApproval ? { serializedApproval } : {}),
                     })
                     if (changed()) return undefined
+                    const needsSumsub = res.status === 'incomplete' && 'sumsubAccessToken' in res
+                    if (!needsSumsub && advanceFromApplyResponse(res) === false) return undefined
                     if (termsAccepted && res.status === 'pending' && userId) {
                         writeStoredValue(`card_issuance_celebration_pending_v1:${userId}`, '1')
                     }
                     posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
-                    if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                    if (needsSumsub) {
                         if (blockIfFinal()) return undefined
                         setSumsubToken(res.sumsubAccessToken)
                         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
                         return undefined
                     }
-                    advanceFromApplyResponse(res)
                     return res
                 } catch (e) {
                     if (changed()) return undefined
@@ -772,8 +791,8 @@ export function useCardFlow() {
                 setApplyError(t('page.verificationSlow'))
                 return
             }
-            posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
-            advanceFromApplyResponse(res)
+            if (advanceFromApplyResponse(res) !== false)
+                posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
         } catch (e) {
             if (controller.signal.aborted || changed()) return
             const message = e instanceof Error ? e.message : t('page.applyFailed')

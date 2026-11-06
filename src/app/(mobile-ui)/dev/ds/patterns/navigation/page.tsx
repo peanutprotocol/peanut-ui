@@ -200,7 +200,7 @@ export default function NavigationPage() {
   rightElement={
     <Button
       variant="ghost"
-      href="/profile/edit"
+      href="/settings/details"
       icon="edit"
       aria-label={t('menu.personalDetails')}
       className={NAV_CIRCLE_BUTTON_CLASSES}

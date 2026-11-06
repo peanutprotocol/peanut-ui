@@ -106,7 +106,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const tIdentity = useTranslations('identity')
     const tKyc = useTranslations('kyc')
     const locale = useLocale()
-    const onBack = useSafeBack(view === 'bank' ? '/profile/payments' : '/profile', { replace: true })
+    const onBack = useSafeBack(view === 'bank' ? '/profile/payments' : '/settings', { replace: true })
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
     const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)

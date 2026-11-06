@@ -332,7 +332,7 @@ describe('MoneySettings', () => {
     it('sends a residence deep link from an older build to Profile', () => {
         mockOpenView = 'residence'
         render()
-        expect(mockReplace).toHaveBeenCalledWith('/profile?open=residence')
+        expect(mockReplace).toHaveBeenCalledWith('/settings/details?open=residence')
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
@@ -1846,7 +1846,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         fireEvent.click(drawer.getByRole('button', { name: 'Update residence' }))
         act(() => jest.runAllTimers())
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith('/profile?open=residence')
+        expect(mockPush).toHaveBeenCalledWith('/settings/details?open=residence')
     })
 
     // QR needs no account, so it keeps its offer on Payments
