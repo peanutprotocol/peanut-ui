@@ -174,6 +174,7 @@ const ResidenceChangeDrawer = ({
                     <div className="flex w-full flex-col gap-3 text-center">
                         <p className="text-body-s">{t('description')}</p>
                         <CountryCombobox
+                            showFlags
                             options={countryOptions}
                             placeholder={t('countryPlaceholder')}
                             value={selected || undefined}

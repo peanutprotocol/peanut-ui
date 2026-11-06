@@ -105,7 +105,8 @@ export function useKycFeatureActivation(
             }
             setSaved({ scope, result: next })
             if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
-                recovery.current.waiting = true
+                // /verify is the identity's status screen; a failed check is decided, so nothing waits on it.
+                recovery.current.waiting = identityStatus !== 'failed'
                 routerRef.current.push('/verify')
             } else {
                 recovery.current.waiting = false
@@ -122,7 +123,7 @@ export function useKycFeatureActivation(
         })
         inFlight.current = { scope, token, promise }
         return promise
-    }, [scope, userId, oneShot, feature, alreadyOn, enabled])
+    }, [scope, userId, oneShot, feature, alreadyOn, enabled, identityStatus])
 
     useEffect(() => {
         if (enabled && identityStatus === 'verified' && recovery.current.waiting) {

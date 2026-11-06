@@ -60,7 +60,7 @@ export function IdentityCheckIntroScreen({
             aria-modal="true"
             aria-label={t('steps.title')}
             tabIndex={-1}
-            className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom outline-none"
+            className="fixed inset-0 z-30 overflow-y-auto bg-background-page pt-safe-top pb-safe-bottom outline-none"
             data-testid="identity-check-intro"
         >
             <div className="mx-auto w-full max-w-md">

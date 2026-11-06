@@ -35,10 +35,10 @@ export function restoreNativeStatusBar() {
     if (hex) paintNativeStatusBar(hex)
 }
 
-/** Paints the status-bar strip the way the setup flow does: white over questions, blue over a hero. */
+/** Paints the status-bar strip: the page background over questions, blue over a hero. */
 export function useInsetColor(hero: boolean) {
     useLayoutEffect(() => {
-        const token = hero ? '--color-background-setup-hero' : '--color-background-default'
+        const token = hero ? '--color-background-setup-hero' : '--color-background-page'
         document.documentElement.style.setProperty('--setup-hero-background', `var(${token})`)
         const hex = tokenHex(token)
         if (hex) paintNativeStatusBar(hex)

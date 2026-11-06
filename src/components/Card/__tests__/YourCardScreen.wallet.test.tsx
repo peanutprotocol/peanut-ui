@@ -144,11 +144,12 @@ it.each(['android', 'ios'])(
     }
 )
 
-it('lists Lock card under Card management, right after Spending limit', () => {
+it('puts PIN then Freeze beside the card, above Card management', () => {
     renderScreen()
     const order = [
+        screen.getByRole('button', { name: 'PIN' }),
+        screen.getByRole('button', { name: 'Freeze' }),
         screen.getByText('Spending limit'),
-        screen.getByText('Lock card'),
         screen.getByText('Physical card'),
         screen.getByText('Red zone'),
         screen.getByText('Cancel card'),
@@ -156,4 +157,17 @@ it('lists Lock card under Card management, right after Spending limit', () => {
     for (let i = 1; i < order.length; i++) {
         expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     }
+})
+
+it('opens the PIN page from its control', () => {
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'PIN' }))
+    expect(mockPush).toHaveBeenCalledWith('/card/pin')
+})
+
+it('a frozen card offers Unfreeze, pressed', () => {
+    renderWithIntl(<YourCardScreen card={{ ...card, status: 'LOCKED' }} overview={overview} />)
+    const control = screen.getByRole('button', { name: 'Unfreeze' })
+    expect(control).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Freeze' })).toBeNull()
 })

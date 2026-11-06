@@ -108,7 +108,7 @@
             "spendChooser": {
                 "title": "Choose how to spend",
                 "description": "Both count as your first payment.",
-                "payWithCard": "Pay with card",
+                "payWithCard": "Pay with the card",
                 "scanQr": "Scan a QR code"
             }
         },
@@ -1205,19 +1205,20 @@
             "hint": "Options depend on your residence.",
             "funding": {
                 "crypto": "Crypto",
-                "peanut": "Another Peanut user",
+                "peanut": "Receive from a Peanut user",
                 "bank": "Bank transfer",
                 "bankCurrencies": "Bank transfer ({currencies})",
                 "brlBank": "Bank transfer (BRL)",
                 "arsBank": "Bank transfer (ARS)"
             },
             "payment": {
-                "peanut": "Another Peanut user",
+                "peanut": "Pay a Peanut user",
                 "card": "Peanut Card",
                 "bank": "Bank transfer",
                 "crypto": "Crypto",
                 "qr": "QR payments"
             },
+            "peanutCompact": "Another Peanut user",
             "with": "with",
             "unavailable": {
                 "banking": "Bank transfers aren’t available in your country.",
@@ -1898,19 +1899,19 @@
             "failed": "Failed to cancel card"
         },
         "lockModal": {
-            "lockTitle": "Lock card?",
-            "lockBody": "Card will not work for any transactions until you unlock it.",
-            "lockSuccess": "Card locked",
-            "lockSuccessBody": "Come back at any time to unlock it.",
-            "unlockTitle": "Unlock card?",
+            "lockTitle": "Freeze card?",
+            "lockBody": "Your card won't work for any payments until you unfreeze it.",
+            "lockSuccess": "Card frozen",
+            "lockSuccessBody": "Come back any time to unfreeze it.",
+            "unlockTitle": "Unfreeze card?",
             "unlockBody": "Your card will work again for any transactions.",
-            "unlockSuccess": "Card unlocked",
+            "unlockSuccess": "Card unfrozen",
             "unlockSuccessBody": "Your card is active again.",
-            "locking": "Locking…",
-            "slideToLock": "Slide to Lock",
-            "unlockCta": "Unlock",
-            "lockFailed": "Failed to lock card",
-            "unlockFailed": "Failed to unlock card"
+            "locking": "Freezing…",
+            "slideToLock": "Slide to freeze",
+            "unlockCta": "Unfreeze",
+            "lockFailed": "Failed to freeze card",
+            "unlockFailed": "Failed to unfreeze card"
         },
         "stop": {
             "pending": "Stopping payments from your wallet is still in progress. This can take a few minutes.",
@@ -1919,7 +1920,7 @@
             "checkStatus": "Check status",
             "unavailable": "We couldn't confirm that payments from your wallet have stopped. Please contact support.",
             "unlockKept": "Your card is active, but payments from your wallet stay stopped for now. Contact support if this doesn't clear.",
-            "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unlock again."
+            "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unfreeze again."
         },
         "errors": {
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
@@ -2040,12 +2041,12 @@
             "payAsCreditTitle": "Pay as credit",
             "payAsCreditBody": "When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network.",
             "managementTitle": "Card management",
-            "pin": "Pin",
+            "pin": "PIN",
             "spendingLimit": "Spending limit",
             "physicalCard": "Physical card",
             "redZone": "Red zone",
-            "lockCard": "Lock card",
-            "unlockCard": "Unlock card",
+            "lockCard": "Freeze",
+            "unlockCard": "Unfreeze",
             "cancelCard": "Cancel card"
         },
         "funding": {
@@ -3265,7 +3266,6 @@
             "underReview": "Under review",
             "documentNeeded": "Document needed",
             "agreementsNeeded": "Agreements needed",
-            "verifyId": "Verify ID",
             "notAvailable": "Not available",
             "verifyAgain": "Verify again with a {country} ID",
             "verifyAgainPlain": "Verify again",
@@ -3549,6 +3549,34 @@
                 "description": "There was an issue with your verification. Please try again or contact support."
             }
         },
+        "rejectActions": {
+            "retry_document": {
+                "description": "Your ID photo didn’t go through. Try again with a clear photo, or use another document."
+            },
+            "retry_selfie": {
+                "description": "Your selfie didn’t go through. Take a new one in good light, with your whole face in view.",
+                "cta": "Retake selfie"
+            },
+            "check_details": {
+                "description": "Some of your details don’t match your ID. Check them and try again.",
+                "cta": "Check my details"
+            },
+            "try_later": {
+                "description": "We couldn’t finish the check just now. Try again in a little while."
+            },
+            "other_account": {
+                "description": "This ID is already linked to another Peanut account. Log in to that account, or message support and we’ll help you sort it out.",
+                "cta": "Log in to another account",
+                "supportMessage": "Hi! My ID check says my documents are already on another Peanut account. Can you help me sort it out?"
+            },
+            "contact_support": {
+                "description": "We couldn’t finish your ID check in the app. Message support and we’ll take a look.",
+                "supportMessage": "Hi! My ID check didn’t go through and I can’t try again in the app. Can you take a look?"
+            },
+            "not_available": {
+                "description": "We can’t verify you for Peanut right now, and trying again won’t change that. If you think this is a mistake, message support."
+            }
+        },
         "errorStartActionFailed": "Could not start verification. Please try again.",
         "errorInvalidResponse": "Invalid response from server",
         "actionMessageActionRequired": "We need a bit more to verify your identity. Tap below to continue.",
@@ -3617,7 +3645,7 @@
             "card": "Peanut card",
             "passport": "Passport",
             "idCard": "National ID card",
-            "drivers": "Driving licence",
+            "drivers": "Driver's license",
             "residencePermit": "Residence permit",
             "otherDocument": "Supporting document",
             "temporaryProtection": "Temporary protection for Ukrainians"
@@ -3935,7 +3963,7 @@
             },
             "failed": {
                 "title": "We need another look at your ID",
-                "description": "Your ID check needs something from you. Home shows what to do next.",
+                "terminalTitle": "We couldn’t verify your ID",
                 "cta": "Go to Home",
                 "retry": "Try again"
             },
@@ -4033,6 +4061,8 @@
                 "issuedByLimited": "Issued by {country}. {limits}",
                 "other": "Other document",
                 "otherHint": "Like a driver’s license",
+                "close": "Close",
+                "verifyNow": "Verify now",
                 "otherTitle": "Other documents",
                 "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
                 "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
@@ -4040,7 +4070,6 @@
                 "backToList": "Back to the list",
                 "noneFit": "Don’t have any of those?",
                 "changeResidence": "Change residence",
-                "stepDots": "Verify identity, step 1 of 3",
                 "noneAccepted": "We can’t verify documents issued by {countries} yet.",
                 "closesAll": "Issued by {country}. Can’t be used for what you picked.",
                 "closes": {
@@ -4137,7 +4166,7 @@
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
-            "duplicate_account": "Your email is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
+            "duplicate_account": "Your email or ID is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
             "imported_identity_rejected": "Our payment partner couldn't verify the ID from your earlier verification. They need a current government ID, and may also ask for a proof of address. Message support and we'll take it from here.",
             "region_block": "Peanut cards aren't available in your region yet.",
             "compliance_block": "We couldn't approve your card application after a compliance review.",
@@ -4949,7 +4978,7 @@
             "badgeReady": "Ready",
             "badgeActive": "Active",
             "badgeSetUp": "Set up",
-            "badgeVerifyId": "Verify ID",
+            "badgeVerifyId": "Verify",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
             "accountCounter": "{used} of {cap} used",

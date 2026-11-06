@@ -1,8 +1,8 @@
 /**
- * Slava, 2026-10-26: Profile lists what sign-up and verification collected.
- * Peanut's records show their values, every answer included but the address and
- * the tax number; what only Sumsub holds says "Not stored at Peanut"; a row shows
- * only for something collected; no location row.
+ * Profile lists what sign-up and verification collected, read from Sumsub, the
+ * address and the tax number included (Slava, 2026-11-05). A value the API did
+ * not return says "Not stored at Peanut"; a row shows only for something
+ * collected; no location row. The edit button lives here (2026-11-05).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, screen, within } from '@testing-library/react'
@@ -13,7 +13,10 @@ import { normalizeResidence } from '@/utils/residence-profile'
 import { ProfileDetailsView } from '../ProfileDetails.view'
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ rightElement }: { rightElement?: React.ReactNode }) => rightElement ?? null,
+}))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ getKycDetails: jest.fn() }))
 const mockUser = {
     user: { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com' },
@@ -156,7 +159,32 @@ describe('ProfileDetailsView', () => {
         expect(screen.queryByText('Nationality on your ID')).toBeNull()
     })
 
-    it('shows the address only as held by Sumsub, never a value', async () => {
+    it('shows the address and the tax number Sumsub holds as values', async () => {
+        jest.mocked(getKycDetails).mockResolvedValue(
+            details({
+                address: {
+                    street: 'Rua Augusta',
+                    buildingNumber: '12',
+                    town: 'Lisboa',
+                    postCode: '1100-053',
+                    country: 'PT',
+                },
+                taxId: '123456789',
+            })
+        )
+        render()
+        expect(await screen.findByText('Address')).toBeInTheDocument()
+        expect(rowValue('Address')).toBe('Rua Augusta 12, 1100-053 Lisboa, Portugal')
+        expect(rowValue('Tax number')).toBe('123456789')
+        expect(screen.getByText('123456789')).toHaveClass('ph-sensitive')
+    })
+
+    it('links to editing the profile from its header', async () => {
+        render()
+        expect(await screen.findByRole('link', { name: 'Edit profile' })).toHaveAttribute('href', '/profile/edit')
+    })
+
+    it('an older API that only names the address says it is not stored at Peanut', async () => {
         jest.mocked(getKycDetails).mockResolvedValue(details({ heldBySumsub: ['address'] }))
         render()
         expect(await screen.findByText('Address')).toBeInTheDocument()

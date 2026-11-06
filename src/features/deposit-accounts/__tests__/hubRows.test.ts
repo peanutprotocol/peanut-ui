@@ -287,6 +287,83 @@ describe('otherWaysRows', () => {
     })
 })
 
+describe('a refused identity', () => {
+    const identityRefused: GateState = {
+        kind: 'blocked-rejection',
+        userMessage: null,
+        reason: { code: 'identity_rejected', userMessage: '' },
+        byIdentity: true,
+    }
+
+    it('closes every account to open on the identity, not on the corridor', () => {
+        const { open } = virtualAccountRows(input({ gates: gatesAll(identityRefused) }), true)
+
+        expect(open.every((row) => row.identityRefused && !row.openable)).toBe(true)
+        expect(closedOpenRow(open[0], { hasResidence: true, gate: identityRefused })).toEqual({
+            kind: 'identity-rejected',
+            reason: identityRefused.reason,
+        })
+    })
+
+    it('leaves a residence refusal and a provider refusal to the corridor', () => {
+        const gates = {
+            ...gatesAll(identityRefused),
+            SEPA_EU: { kind: 'blocked-rejection', userMessage: null } as GateState,
+            ACH_US: {
+                kind: 'blocked-rejection',
+                userMessage: null,
+                reason: { code: 'identity_region_restricted', userMessage: '' },
+                byIdentity: true,
+            } as GateState,
+        }
+        const { open } = virtualAccountRows(
+            input({ gates, unavailable: { SPEI_MX: withheldFor('SPEI_MX', 'residence-restricted') } }),
+            true,
+            true
+        )
+        const refused = (corridor: DepositCorridor) => open.find((row) => row.corridor === corridor)?.identityRefused
+
+        expect(refused('SEPA_EU')).toBe(false)
+        expect(refused('ACH_US')).toBe(false)
+        expect(refused('SPEI_MX')).toBe(false)
+        expect(refused('FASTER_PAYMENTS_GB')).toBe(true)
+    })
+
+    it('reads a final rejection over a verification the user cannot pass', () => {
+        const { open } = virtualAccountRows(input({ gates: gatesAll({ kind: 'needs-identity' }) }), true, true)
+        expect(open.every((row) => row.identityRefused)).toBe(true)
+    })
+
+    // mono#339 4a: the API refused every corridor on the residence a final rejection ended
+    it('takes the backend at its word when it names the identity', () => {
+        const unavailable = corridorRecord((corridor) => withheldFor(corridor, 'identity-rejected', 'support-required'))
+        const { open } = virtualAccountRows(input({ unavailable }), true)
+
+        expect(open.every((row) => row.identityRefused && !row.openable)).toBe(true)
+        expect(closedOpenRow(open[0], { hasResidence: true, unavailable: unavailable[open[0].corridor] })).toEqual({
+            kind: 'identity-rejected',
+        })
+    })
+
+    it('sends a bank row the identity holds to the same drawer, and leaves a residence refusal alone', () => {
+        const [brl] = buildBankRows({
+            bankChips: { brl: 'attention', ars: 'notAvailable', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
+            closedBecause: { ars: 'residence' },
+            residenceIso2: 'BR',
+            isEuropeResidence: false,
+        })
+        expect(closedBankRow(brl, false, { failed: false, gate: identityRefused })).toEqual({
+            kind: 'identity-rejected',
+            reason: identityRefused.reason,
+        })
+        expect(closedBankRow(brl, false, { failed: true })).toEqual({ kind: 'identity-rejected' })
+        expect(
+            closedBankRow({ ...brl, chip: 'notAvailable', unavailableBecause: 'residence' }, false, { failed: true })
+        ).toEqual({ kind: 'residence', corridor: 'PIX_BR' })
+        expect(closedBankRow({ ...brl, chip: 'active' }, false, { failed: true })).toBeNull()
+    })
+})
+
 describe('closedBankRow', () => {
     const row = (over: Partial<UnlockRow>): UnlockRow => ({
         id: 'ars-bank',

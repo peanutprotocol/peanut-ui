@@ -131,9 +131,9 @@ describe('LockCardModal — lock with spending power', () => {
     it('forces collateral-only routing and delivers the withdrawal to the lock call', async () => {
         setup(OVERVIEW)
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card frozen')
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockLockCard).toHaveBeenCalledWith('card-1', RAIN_WITHDRAWAL)
         // a lock is reversible — it reads no card list beyond the overview
@@ -143,7 +143,7 @@ describe('LockCardModal — lock with spending power', () => {
     it('fails closed before signing when the overview has not loaded', async () => {
         setup(undefined)
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         expect(await screen.findByText(/still loading/)).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockLockCard).not.toHaveBeenCalled()
@@ -152,9 +152,9 @@ describe('LockCardModal — lock with spending power', () => {
     it('locks without signing when there is no spending power to return', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card frozen')
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockLockCard).toHaveBeenCalledWith('card-1', undefined)
     })
@@ -169,7 +169,7 @@ describe('LockCardModal — wallet payment stop', () => {
     const lockNow = async () => {
         setup({ balance: { spendingPower: 0 } })
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
     }
     const STOPPED = /Payments from your wallet to this card are stopped/
     const IN_PROGRESS = /still in progress/
@@ -183,7 +183,7 @@ describe('LockCardModal — wallet payment stop', () => {
         await lockNow()
 
         expect(await screen.findByText(IN_PROGRESS)).toBeInTheDocument()
-        expect(screen.getByText('Card locked')).toBeInTheDocument()
+        expect(screen.getByText('Card frozen')).toBeInTheDocument()
         expect(screen.queryByText(STOPPED)).not.toBeInTheDocument()
         expect(mockOnClose).not.toHaveBeenCalled()
 
@@ -200,7 +200,7 @@ describe('LockCardModal — wallet payment stop', () => {
         await lockNow()
 
         expect(await screen.findByText(/couldn't check yet/)).toBeInTheDocument()
-        expect(screen.getByText('Card locked')).toBeInTheDocument()
+        expect(screen.getByText('Card frozen')).toBeInTheDocument()
         expect(screen.queryByText(/Failed to lock/)).not.toBeInTheDocument()
         expect(screen.queryByText(STOPPED)).not.toBeInTheDocument()
 
@@ -259,7 +259,7 @@ describe('LockCardModal — wallet payment stop', () => {
         await lockNow()
 
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card frozen')
         expect(mockGetCardFunding).not.toHaveBeenCalled()
     })
 
@@ -267,10 +267,10 @@ describe('LockCardModal — wallet payment stop', () => {
         setup(OVERVIEW)
         mockLockCard.mockRejectedValueOnce(new Error('gateway timeout')).mockResolvedValue(stopped('not_applicable'))
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         expect(await screen.findByText('gateway timeout')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockLockCard).toHaveBeenCalledTimes(2)
@@ -281,12 +281,12 @@ describe('LockCardModal — wallet payment stop', () => {
         setup(OVERVIEW)
         mockLockCard.mockRejectedValueOnce(new Error('gateway timeout')).mockResolvedValue(stopped('not_applicable'))
         const { rerender } = renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         expect(await screen.findByText('gateway timeout')).toBeInTheDocument()
 
         rerender(<LockCardModal cardId="card-1" mode="lock" isOpen={false} onClose={mockOnClose} />)
         rerender(<LockCardModal cardId="card-1" mode="lock" isOpen onClose={mockOnClose} />)
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
@@ -298,10 +298,10 @@ describe('LockCardModal — wallet payment stop', () => {
             .mockRejectedValueOnce(new ApiError('expired', { status: 410 }))
             .mockResolvedValue(stopped('not_applicable'))
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         expect(await screen.findByText('expired')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
         expect(mockSignSpend).toHaveBeenCalledTimes(2)
     })
@@ -312,10 +312,10 @@ describe('LockCardModal — unlock', () => {
         setup(OVERVIEW)
         mockActivateCard.mockResolvedValue({ status: 'ACTIVE', fundingStop: { state: 'kept', reason: 'paused' } })
         renderUnlock()
-        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
 
         expect(await screen.findByText(/payments from your wallet stay stopped for now/)).toBeInTheDocument()
-        expect(screen.getByText('Card unlocked')).toBeInTheDocument()
+        expect(screen.getByText('Card unfrozen')).toBeInTheDocument()
         expect(mockOnClose).not.toHaveBeenCalled()
         expect(mockGetCardFunding).not.toHaveBeenCalled()
     })
@@ -326,13 +326,13 @@ describe('LockCardModal — unlock', () => {
             .mockResolvedValueOnce({ status: 'ACTIVE', fundingStop: null })
             .mockResolvedValueOnce({ status: 'ACTIVE', fundingStop: { state: 'resumed', reason: null } })
         renderUnlock()
-        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
 
         expect(await screen.findByText(/couldn't confirm that payments from your wallet resumed/)).toBeInTheDocument()
         expect(mockOnClose).not.toHaveBeenCalled()
         expect(mockToastSuccess).not.toHaveBeenCalled()
 
-        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
         expect(mockActivateCard).toHaveBeenCalledTimes(2)
         expect(mockSignSpend).not.toHaveBeenCalled()
@@ -344,7 +344,7 @@ describe('LockCardModal — unlock', () => {
             setup(OVERVIEW)
             mockActivateCard.mockRejectedValue(new ApiError('backend says wait', { status: 409, code }))
             renderUnlock()
-            fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
 
             expect(await screen.findByText('backend says wait')).toBeInTheDocument()
             expect(mockSignSpend).not.toHaveBeenCalled()
@@ -359,10 +359,10 @@ describe('LockCardModal — unlock', () => {
             )
             .mockResolvedValue(stopped('not_applicable'))
         renderLock()
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         expect(await screen.findByText('another action is running')).toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('Slide to Lock'))
+        fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
     })
@@ -371,10 +371,10 @@ describe('LockCardModal — unlock', () => {
         setup(OVERVIEW)
         mockActivateCard.mockResolvedValue({ status: 'ACTIVE', fundingStop: { state: 'resumed', reason: null } })
         renderUnlock()
-        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
 
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockToastSuccess).toHaveBeenCalledWith('Card unlocked')
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card unfrozen')
         expect(screen.queryByText(/wallet/)).not.toBeInTheDocument()
     })
 
@@ -382,12 +382,12 @@ describe('LockCardModal — unlock', () => {
         setup(OVERVIEW)
         renderUnlock()
 
-        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
 
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
         expect(mockActivateCard).toHaveBeenCalledWith('card-1')
         expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
-        expect(mockToastSuccess).toHaveBeenCalledWith('Card unlocked')
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card unfrozen')
     })
 })
 

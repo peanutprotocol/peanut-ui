@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -20,6 +21,7 @@ import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { twMerge } from '@/utils/tw'
+import { ExitButton } from './ExitButton'
 import { IdCardScanAnimation } from './IdCardScanAnimation'
 import { DOCUMENT_KEYS } from '../paperworkVerification.utils'
 import { useInsetColor } from '../useInsetColor'
@@ -67,7 +69,9 @@ export function IdentityDocumentScreen({
     busy,
     error,
     frozenDocument = null,
+    progress,
     onBack,
+    onExit,
     onContinue,
     onChangeResidence,
 }: {
@@ -83,12 +87,16 @@ export function IdentityDocumentScreen({
     error: string | null
     /** An open replacement can only resume on the document the API already saved. */
     frozenDocument?: PaperworkVerificationDocument | null
+    progress?: { current: number; total: number }
     onBack: () => void
+    /** Leaves the flow; everything up to the ID is already saved. */
+    onExit?: () => void
     onContinue: (document: PaperworkVerificationDocument) => void
     onChangeResidence?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tDocuments = useTranslations('kyc.documents')
+    const tWrapper = useTranslations('kyc.wrapper')
     useInsetColor(true)
     const locale = useLocale()
     const document = identityDocuments(plan?.routes[0])[0]
@@ -124,6 +132,10 @@ export function IdentityDocumentScreen({
         : []
 
     const otherChoices = [...other, ...(protectionInMain ? [] : protectionChoices)]
+    // A sheet holding a single document only hides it.
+    const inlineOther = otherChoices.length === 1
+    const listChoices = [...(protectionInMain ? protectionChoices : []), ...main, ...(inlineOther ? otherChoices : [])]
+    const sheetChoices = inlineOther ? [] : otherChoices
     const asked = FEATURES.filter((f) => plan?.features?.[f])
     // What the issuer closes, plus what this type closes on top: a German licence refuses the card, a German ID card doesn't.
     const closedBy = (c: Choice): Feature[] => [
@@ -141,6 +153,7 @@ export function IdentityDocumentScreen({
         [...new Set([away ?? residence, residence].filter((c): c is string => !!c))].map(countryName)
     )
     const [otherOpen, setOtherOpen] = useState(false)
+    const [exitOpen, setExitOpen] = useState(false)
     const [chosen, setChosen] = useState<string | null>(null)
     // Kept after the drawer closes, so its content stays while it slides away.
     const [limited, setLimited] = useState<{ choice: Choice; source: 'list' | 'other' } | null>(null)
@@ -153,8 +166,8 @@ export function IdentityDocumentScreen({
             step: 'id',
             document_type_count: types.length,
             issuing_country_count: countries.length,
-            main_options: main.length,
-            other_options: otherChoices.length,
+            main_options: listChoices.length,
+            other_options: sheetChoices.length,
             refused_options: refused.length,
             feature_refused_options: featureRefused,
             feature_limited_options: listed.filter((c) => !closesAll(c) && closedBy(c).length > 0).length,
@@ -252,7 +265,7 @@ export function IdentityDocumentScreen({
     )
 
     return (
-        <div className={twMerge('flex w-full flex-col bg-white', SCREEN_HEIGHT)} data-testid="verify-id">
+        <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)} data-testid="verify-id">
             <div className="absolute inset-x-0 top-4 z-20 mx-auto grid w-full max-w-md grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center px-4">
                 <Button
                     variant="ghost"
@@ -266,16 +279,33 @@ export function IdentityDocumentScreen({
                 >
                     <Icon name="chevron-up" size={20} className="-rotate-90" />
                 </Button>
-                <div
-                    role="img"
-                    aria-label={t('documentList.stepDots')}
-                    className="flex items-center justify-center gap-2"
-                >
-                    <span className="h-2 w-7 rounded-full bg-black" />
-                    <span className="size-2 rounded-full bg-black/30" />
-                    <span className="size-2 rounded-full bg-black/30" />
-                </div>
-                <span />
+                {progress ? (
+                    <div
+                        role="progressbar"
+                        aria-label={t('progress', progress)}
+                        aria-valuemin={0}
+                        aria-valuemax={progress.total}
+                        aria-valuenow={progress.current}
+                        className="px-4"
+                    >
+                        <ProgressBar
+                            value={(progress.current / progress.total) * 100}
+                            fillClassName="bg-foreground-primary"
+                        />
+                    </div>
+                ) : (
+                    <span />
+                )}
+                {onExit ? (
+                    <ExitButton
+                        onClick={() => {
+                            controls.track('exit', 'open')
+                            setExitOpen(true)
+                        }}
+                    />
+                ) : (
+                    <span />
+                )}
             </div>
             <div className="setup-hero-background relative h-68 w-full shrink-0 short:h-52">
                 <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 h-51 w-61.5 -translate-x-1/2 short:h-36 short:w-43.5" />
@@ -299,12 +329,9 @@ export function IdentityDocumentScreen({
                 )}
                 {document && (pickable || featureRefused > 0) && (
                     <ListGroup>
-                        {(frozenDocument
-                            ? [frozenDocument]
-                            : [...(protectionInMain ? protectionChoices : []), ...main]
-                        ).map((c) => row(c, 'list'))}
+                        {(frozenDocument ? [frozenDocument] : listChoices).map((c) => row(c, 'list'))}
                         {!frozenDocument && refused.map((c) => refusedRow(c))}
-                        {!frozenDocument && otherChoices.length > 0 && (
+                        {!frozenDocument && sheetChoices.length > 0 && (
                             <ListItem
                                 title={t('documentList.other')}
                                 body={t('documentList.otherHint')}
@@ -359,7 +386,7 @@ export function IdentityDocumentScreen({
                     <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-other-drawer">
                         <DrawerTitle>{t('documentList.otherTitle')}</DrawerTitle>
                         <p className="text-body-s text-foreground-secondary">{t('documentList.otherDescription')}</p>
-                        <ListGroup>{otherChoices.map((c) => row(c, 'other'))}</ListGroup>
+                        <ListGroup>{sheetChoices.map((c) => row(c, 'other'))}</ListGroup>
                         <p className="flex items-start gap-2 text-body-s text-foreground-secondary">
                             <Icon name="info" size={16} className="mt-0.5 shrink-0" />
                             {t('documentList.otherNotAccepted')}
@@ -374,6 +401,44 @@ export function IdentityDocumentScreen({
                             }}
                         >
                             {t('documentList.backToList')}
+                        </Button>
+                    </div>
+                </DrawerContent>
+            </Drawer>
+            <Drawer
+                open={exitOpen}
+                onOpenChange={(open) => {
+                    if (!open) controls.track('exit', 'dismiss')
+                    setExitOpen(open)
+                }}
+            >
+                <DrawerContent>
+                    <div className="flex flex-col gap-4 pb-4" data-testid="verify-id-exit-drawer">
+                        <DrawerTitle>{tWrapper('exitForNowTitle')}</DrawerTitle>
+                        <p className="text-body-s text-foreground-secondary">{tWrapper('exitForNowDescription')}</p>
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => {
+                                controls.track('exit_verify_now', 'tap')
+                                setExitOpen(false)
+                            }}
+                            data-testid="verify-id-exit-stay"
+                        >
+                            {t('documentList.verifyNow')}
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => {
+                                controls.track('exit_confirm', 'tap')
+                                setExitOpen(false)
+                                onExit?.()
+                            }}
+                            data-testid="verify-id-exit-confirm"
+                        >
+                            {tWrapper('exit')}
                         </Button>
                     </div>
                 </DrawerContent>
