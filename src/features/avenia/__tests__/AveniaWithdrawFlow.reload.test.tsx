@@ -20,9 +20,9 @@ jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFr
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
-jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
-    usePixQuoteCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 }, isLoading: false }),
-}))
+const QUOTED = { code: 'BRL', price: { sell: 5.4, buy: 5.5 }, isLoading: false, isError: false, refetch: jest.fn() }
+const mockQuote = jest.fn(() => QUOTED)
+jest.mock('@/features/pix/usePixQuoteCurrency', () => ({ usePixQuoteCurrency: () => mockQuote() }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         spendableBalance: 100_000_000n,
@@ -137,5 +137,21 @@ describe('AveniaWithdrawFlow after a reload', () => {
         expect(await screen.findByText(en.avenia.withdraw.quoteMoved)).toBeInTheDocument()
         await waitFor(() => expect(urls.some((url) => url.includes('intentId=w2'))).toBe(true))
         expect(screen.queryByText(en.avenia.withdraw.unconfirmed)).toBeNull()
+    })
+})
+
+describe('AveniaWithdrawFlow amount step', () => {
+    beforeEach(() => jest.clearAllMocks())
+    afterEach(() => mockQuote.mockReturnValue(QUOTED))
+
+    it('offers a retry, not a spinner, when the quote fails', () => {
+        const refetch = jest.fn()
+        mockQuote.mockReturnValue({ ...QUOTED, price: null, isError: true, refetch } as never)
+        renderAt('?step=amount&destination=09579927189')
+
+        expect(screen.getByText(en.errors.rateUnavailable)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: en.common.continue })).toBeDisabled()
+        fireEvent.click(screen.getByRole('button', { name: en.common.retry }))
+        expect(refetch).toHaveBeenCalledTimes(1)
     })
 })

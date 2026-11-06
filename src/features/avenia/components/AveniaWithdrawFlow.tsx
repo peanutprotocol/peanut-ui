@@ -13,6 +13,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AmountInput from '@/components/Global/AmountInput'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import RateUnavailable from '@/components/Global/RateUnavailable'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     AVENIA_MIN_WITHDRAWAL_BRL,
@@ -166,7 +167,10 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 <NavHeader title={title} onPrev={() => void stepper.goTo('pix-key')} />
                 <PageStack.Center>
                     <div className="text-heading-xs text-foreground-primary">{tWithdraw('amountToWithdraw')}</div>
-                    {brl.isLoading || !brl.price ? (
+                    {/* the quote failed (the route changed, Avenia is down): retry here, not a spinner */}
+                    {brl.isError ? (
+                        <RateUnavailable onRetry={brl.refetch} />
+                    ) : brl.isLoading || !brl.price ? (
                         <Loading />
                     ) : (
                         <Field error={amountError}>
@@ -192,7 +196,7 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                     <Button
                         variant="primary"
                         className="w-full"
-                        disabled={!Number(typedUsd) || !!amountError}
+                        disabled={!Number(typedUsd) || !!amountError || brl.isError}
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
                                 amount_usd: typedUsd,
