@@ -113,6 +113,39 @@ describe('AddFeatureQuestions', () => {
         expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     })
 
+    it('splits five dropdowns into three and two and shows a refused answer on its page', async () => {
+        const questions = cardQuestions()
+        questions.steps[1].fields.push(choice('sourceOfFunds', 'salary'), choice('bankMonthlyPayments', '0_4999'))
+        mockQuestions.mockResolvedValue(questions)
+        mockSave
+            .mockResolvedValueOnce({ kind: 'saved', next: 'money' })
+            .mockResolvedValueOnce({ kind: 'invalid', errors: { annualSalary: 'invalid_option' } })
+        renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={jest.fn()} />)
+        await screen.findByTestId('verify-pick-annualSalary')
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await screen.findByTestId('verify-pick-sourceOfFunds')
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(2)
+        expect(mockSave).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        expect(await screen.findByTestId('verify-error-annualSalary')).not.toBeEmptyDOMElement()
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
+        expect(mockSave).toHaveBeenNthCalledWith(
+            2,
+            'money',
+            {
+                annualSalary: '25k_50k',
+                expectedMonthlyVolume: 'under_1k',
+                sourceOfFunds: 'salary',
+                bankMonthlyPayments: '0_4999',
+            },
+            'card',
+            'user-a'
+        )
+        expect(mockSaveFeatures).not.toHaveBeenCalled()
+    })
+
     it('saves each open step for the feature in order, then adds the feature', async () => {
         mockQuestions.mockResolvedValue(cardQuestions())
         mockSave.mockResolvedValue({ kind: 'saved', next: null })

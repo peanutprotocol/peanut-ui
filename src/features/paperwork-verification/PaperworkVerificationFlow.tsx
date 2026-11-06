@@ -78,6 +78,7 @@ import {
     composeScreens,
     PAYMENT_METHODS_HREF,
     phoneJoinsAddress,
+    questionPages,
     RESIDENCE_CHANGE_HREF,
     resumeStep,
     screenOfStep,
@@ -397,6 +398,8 @@ function PaperworkVerificationSteps({
     const [status, setStatus] = useState(initial.status)
     const [stepParam] = useQueryState('step')
     const [returnToFeature] = useQueryState('returnToFeature')
+    const linkedQuestion = useRef(stepParam)
+    const enterLastPage = useRef<PaperworkVerificationStepId | undefined>(undefined)
     // A replacement hands off before its submission webhook necessarily arrives.
     const [submitted, setSubmitted] = useState(stepParam === 'review')
     const [idError, setIdError] = useState<string | null>(null)
@@ -412,6 +415,15 @@ function PaperworkVerificationSteps({
     const screenOf = (id: VerifyStep): VerifyStep => screenOfStep(screens, id)
 
     const questionIds = useMemo(() => screens.map((ids) => ids[0]), [screens])
+    const pageCounts = useMemo(
+        () =>
+            screens.map((ids) => {
+                const fields = questions.steps.filter((step) => ids.includes(step.id)).flatMap((step) => step.fields)
+                return questionPages(fields).length
+            }),
+        [screens, questions.steps]
+    )
+    const progressTotal = pageCounts.reduce((total, count) => total + count, 2)
     const steps = useMemo<VerifyStep[]>(
         () => [...questionIds, 'saved', 'id', 'review', 'verified', 'address-proof'],
         [questionIds]
@@ -501,12 +513,18 @@ function PaperworkVerificationSteps({
         errors?: Record<string, string>
         formError?: AnswerFormError
         message?: string
+        focus?: boolean
     } | null>(null)
     const [savedBusy, setSavedBusy] = useState(false)
 
     const backThroughQuestions = () => {
         backRevision.current += 1
         reviewingAnswers.current = !stepper.isFirst
+        linkedQuestion.current = null
+        enterLastPage.current =
+            step === 'id' || step === 'saved'
+                ? questionIds.at(-1)
+                : questionIds[questionIds.findIndex((id) => id === step) - 1]
         if (step === 'saved') setSavedBusy(false)
         void stepper.back()
     }
@@ -529,6 +547,7 @@ function PaperworkVerificationSteps({
             errors: outcome.rejected?.errors,
             formError: outcome.formError,
             message: outcome.message,
+            focus: navigate,
         })
         if (outcome.error && outcome.error !== 'retry' && onConflict(outcome.error, outcome.message)) return
         if (navigate) void stepper.goTo(screenOf(refused))
@@ -566,6 +585,8 @@ function PaperworkVerificationSteps({
         const next = reviewing ? screens[at + 1] : screens.slice(at + 1).find(open)
         const following = (next ?? screens.find(open))?.[0]
         reviewingAnswers.current = reviewing && !!following
+        linkedQuestion.current = null
+        enterLastPage.current = undefined
         void stepper.goTo(following ?? 'saved')
 
         const submission = ++submissions.current
@@ -917,12 +938,19 @@ function PaperworkVerificationSteps({
         const shown = (screens.find((ids) => ids[0] === current.id) ?? [current.id])
             .map((id) => questions.steps.find((s) => s.id === id))
             .filter((s): s is PaperworkVerificationStep => !!s)
+        const group = questionIds.indexOf(current.id)
+        const startAtStep = shown.find((s) => s.id === linkedQuestion.current)?.id ?? resumeStep(questions)
         screen = (
             <QuestionStepScreen
                 key={current.id}
                 steps={shown}
                 residence={questions.residence}
-                progress={stepProgress(questionIds, current.id)}
+                progress={{
+                    ...stepProgress(questionIds, current.id, pageCounts),
+                    pages: pageCounts[group],
+                }}
+                startAtStep={startAtStep}
+                startFromEnd={enterLastPage.current === current.id}
                 onBack={backThroughQuestions}
                 onSubmitted={(values, seconds) => submitAnswers(shown, values, seconds)}
                 returned={returned && shown.some((s) => s.id === returned.step) ? returned : undefined}
@@ -943,7 +971,7 @@ function PaperworkVerificationSteps({
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}
-                progress={{ current: questionIds.length + 2, total: questionIds.length + 2 }}
+                progress={{ current: progressTotal, total: progressTotal }}
                 onBack={backThroughQuestions}
                 onExit={exit}
                 onContinue={(document) => void startIdentity(document)}

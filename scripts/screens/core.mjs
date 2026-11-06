@@ -294,6 +294,86 @@ export function storeAsset(dir, data, extension = 'png') {
     if (!existsSync(join(dir, name))) writeFileSync(join(dir, name), data)
     return name
 }
+const MAX_TRANSLATION = 3
+const MAX_TRANSLATION_PATCH_PIXELS = 16_384
+
+function findChangeBounds(diff, width, height) {
+    let left = width
+    let top = height
+    let right = -1
+    let bottom = -1
+    // Pixelmatch writes counted pixels in red, excluded antialiasing in yellow,
+    // and all other pixels in grayscale. Use the same diff that reviewers see.
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const offset = (y * width + x) * 4
+            if (diff[offset] !== 255 || diff[offset + 1] !== 0 || diff[offset + 2] !== 0) continue
+            left = Math.min(left, x)
+            right = Math.max(right, x)
+            top = Math.min(top, y)
+            bottom = Math.max(bottom, y)
+        }
+    }
+    return { x: left, y: top, width: right - left + 1, height: bottom - top + 1 }
+}
+
+function findTranslation(before, after, width, height, bounds) {
+    // Leave room for antialiasing excluded from the counted bounds and a flat
+    // border wide enough that a candidate cannot move content across the patch.
+    const margin = MAX_TRANSLATION + 1
+    const left = Math.max(0, bounds.x - margin)
+    const top = Math.max(0, bounds.y - margin)
+    const right = Math.min(width, bounds.x + bounds.width + margin)
+    const bottom = Math.min(height, bounds.y + bounds.height + margin)
+    if ((right - left) * (bottom - top) > MAX_TRANSLATION_PATCH_PIXELS) return
+
+    const original = new Uint32Array(before.buffer, before.byteOffset, width * height)
+    const current = new Uint32Array(after.buffer, after.byteOffset, width * height)
+    let background
+    for (let y = top; y < bottom; y++) {
+        for (let x = left; x < right; x++) {
+            const border =
+                (left > 0 && x < left + MAX_TRANSLATION) ||
+                (top > 0 && y < top + MAX_TRANSLATION) ||
+                (right < width && x >= right - MAX_TRANSLATION) ||
+                (bottom < height && y >= bottom - MAX_TRANSLATION)
+            if (!border) continue
+            const index = y * width + x
+            background ??= original[index]
+            if (original[index] !== background || current[index] !== background) return
+        }
+    }
+    if (background === undefined) return
+
+    const matches = (dx, dy) => {
+        for (let y = top; y < bottom; y++) {
+            for (let x = left; x < right; x++) {
+                const sourceX = x - dx
+                const sourceY = y - dy
+                const insidePatch = sourceX >= left && sourceX < right && sourceY >= top && sourceY < bottom
+                const expected = insidePatch ? original[sourceY * width + sourceX] : background
+                if (current[y * width + x] !== expected) return false
+                // Check the reverse direction too so clipped content cannot disappear
+                // at a viewport edge and still be reported as an exact translation.
+                const targetX = x + dx
+                const targetY = y + dy
+                const insideTarget = targetX >= left && targetX < right && targetY >= top && targetY < bottom
+                if (!insideTarget && original[y * width + x] !== background) return false
+            }
+        }
+        return true
+    }
+    let translation
+    for (let dy = -MAX_TRANSLATION; dy <= MAX_TRANSLATION; dy++) {
+        for (let dx = -MAX_TRANSLATION; dx <= MAX_TRANSLATION; dx++) {
+            if ((!dx && !dy) || !matches(dx, dy)) continue
+            if (translation) return
+            translation = { dx, dy }
+        }
+    }
+    return translation
+}
+
 export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
     let before = validateCapture(beforeInput),
         after = validateCapture(afterInput)
@@ -358,13 +438,18 @@ export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
         // Match the viewer's two-decimal precision: a difference reported as
         // 0.00% is below the visual-change threshold, not a changed screen.
         const changed = Number(percent.toFixed(2)) > 0
+        const changeBounds = changed ? findChangeBounds(diff.data, after.width, after.height) : undefined
+        const translation = changeBounds
+            ? findTranslation(ap.data, bp.data, after.width, after.height, changeBounds)
+            : undefined
         return {
             ...row,
             status: changed ? 'changed' : 'unchanged',
             pixels,
             percent,
             ...(pixels && !changed ? { belowThreshold: true } : {}),
-            ...(changed ? { diff: storeAsset(assetsDir, PNG.sync.write(diff)) } : {}),
+            ...(changed ? { diff: storeAsset(assetsDir, PNG.sync.write(diff)), changeBounds } : {}),
+            ...(translation ? { translation } : {}),
         }
     })
     assert(before.locale === after.locale, 'Capture locales differ; compare the same locale')

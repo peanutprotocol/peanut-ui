@@ -1,7 +1,18 @@
 /* Private screen discussions. All user content is rendered as literal text. */
 'use strict'
 window.ScreenComments = {
-    create({ activity, feed, panel, dialog, onNavigate, onVotesReset, onVotesChange, onVotesRefresh }) {
+    create({
+        activity,
+        feed,
+        panel,
+        dialog,
+        toggle,
+        preview,
+        onNavigate,
+        onVotesReset,
+        onVotesChange,
+        onVotesRefresh,
+    }) {
         const node = (tag, text, cls) => {
             const n = document.createElement(tag)
             if (text !== undefined) n.textContent = text
@@ -30,7 +41,9 @@ window.ScreenComments = {
             authSequence = 0,
             authPending,
             feedSequence = 0,
-            panelSequence = 0
+            panelSequence = 0,
+            openSequence = 0,
+            navigationSequence = 0
         let context = {},
             current,
             alternatives = [],
@@ -38,6 +51,15 @@ window.ScreenComments = {
             threads = [],
             nextScreen
         const feedPageSize = 30
+        const narrowPreview = window.matchMedia?.('(width < 700px)')
+        function syncPreviewAccess() {
+            if (preview) preview.inert = opened && narrowPreview?.matches === true
+        }
+        narrowPreview?.addEventListener('change', () => {
+            const focusInPreview = preview?.contains(document.activeElement)
+            syncPreviewAccess()
+            if (preview?.inert && focusInPreview) panel.focus()
+        })
         let feedItems = [],
             feedCapacity = feedPageSize,
             nextFeed,
@@ -91,7 +113,8 @@ window.ScreenComments = {
             a.rel = 'noopener'
             feed.append(a)
             if (opened) {
-                panel.replaceChildren(node('p', 'Sign in, then retry. Your drafts are kept.', 'comment-notice'))
+                resetPanel()
+                panel.append(node('p', 'Sign in, then retry. Your drafts are kept.', 'comment-notice'))
                 const login = a.cloneNode(true)
                 panel.append(login, ...pendingForms)
             }
@@ -158,8 +181,10 @@ window.ScreenComments = {
                     voting?.reset({ forgetPending: Boolean(changedActor) })
                     if (changedActor) {
                         feed.replaceChildren(node('p', 'Loading activity…', 'comment-notice'))
-                        if (opened)
-                            panel.replaceChildren(node('p', 'Loading discussion for your account…', 'comment-notice'))
+                        if (opened) {
+                            resetPanel()
+                            notice(panel, 'Loading discussion for your account…')
+                        }
                         for (const b of badges) b.countElement.textContent = '—'
                     }
                 }
@@ -400,7 +425,7 @@ window.ScreenComments = {
         function heading() {
             const head = node('div', undefined, 'comment-panel-heading')
             head.append(node('h3', 'Comments'), button('×', close, 'comment-hide'))
-            head.lastChild.setAttribute('aria-label', 'Hide comments')
+            head.lastChild.setAttribute('aria-label', 'Close discussion')
             panel.append(head)
             panel.append(
                 node(
@@ -420,6 +445,11 @@ window.ScreenComments = {
                 }
                 panel.append(tabs)
             }
+        }
+        function resetPanel() {
+            if (panel.contains?.(document.activeElement)) panel.focus?.({ preventScroll: true })
+            panel.replaceChildren()
+            heading()
         }
         function composer(container, label, submitText, draftId, initialBody, save, cancel) {
             const owner = user.id
@@ -606,6 +636,7 @@ window.ScreenComments = {
                 async () => {
                     resolveButton.disabled = true
                     const actor = user?.id
+                    const submittedPanel = panelSequence
                     const draftKey = `resolve:${thread.id}:${thread.version}:${!thread.resolved}`
                     let requestId = drafts.get(draftKey)
                     if (!requestId) {
@@ -620,7 +651,7 @@ window.ScreenComments = {
                             body: JSON.stringify({ resolved: !thread.resolved, version: thread.version, requestId }),
                         })
                         drafts.delete(draftKey)
-                        await loadPanel()
+                        if (submittedPanel === panelSequence) await loadPanel()
                         await loadFeed()
                     } catch (error) {
                         notice(n, error.message, () => loadPanel())
@@ -652,8 +683,7 @@ window.ScreenComments = {
             return n
         }
         function renderPanel() {
-            panel.replaceChildren()
-            heading()
+            resetPanel()
             const list = node('div', undefined, 'comment-thread-list')
             for (const thread of threads) list.append(renderThread(thread))
             if (!threads.length) notice(list, 'No discussion on this version yet.')
@@ -670,8 +700,7 @@ window.ScreenComments = {
                 actor = epoch,
                 scope = current
             if (!append) {
-                panel.replaceChildren()
-                heading()
+                resetPanel()
                 notice(panel, 'Loading discussion…')
                 threads = []
                 nextScreen = undefined
@@ -702,28 +731,46 @@ window.ScreenComments = {
             }
         }
         async function open(scope, threadId, scopes = [scope]) {
+            const sequence = ++openSequence
+            navigationSequence++
+            const wasOpen = opened
+            const changedScope = !current || key(current) !== key(scope)
+            panelSequence++
             current = scope
-            alternatives = scopes
+            alternatives = scopes.some((candidate) => key(candidate) === key(scope)) ? scopes : [scope]
             opened = true
             panel.hidden = false
             dialog.classList.add('comments-open')
+            toggle?.setAttribute('aria-expanded', 'true')
+            if (!wasOpen) panel.focus?.({ preventScroll: true })
+            syncPreviewAccess()
+            if (changedScope) panel.scrollTop = 0
             if (!user) {
+                resetPanel()
+                notice(panel, 'Loading discussion…')
                 try {
                     await authenticate()
                 } catch (error) {
-                    panel.replaceChildren()
-                    heading()
-                    notice(panel, error.message)
+                    if (sequence === openSequence && error.status !== 401) {
+                        resetPanel()
+                        notice(panel, error.message, () => open(scope, threadId, scopes))
+                    }
                     return
                 }
             }
-            await loadPanel(false, threadId)
+            if (sequence === openSequence) await loadPanel(false, threadId)
         }
-        function close() {
+        function close({ restoreFocus = true } = {}) {
+            const wasOpen = opened
             opened = false
+            openSequence++
+            navigationSequence++
             panelSequence++
+            syncPreviewAccess()
             panel.hidden = true
             dialog.classList.remove('comments-open')
+            toggle?.setAttribute('aria-expanded', 'false')
+            if (wasOpen && restoreFocus && !toggle?.hidden) toggle?.focus()
         }
         async function setContext(next = {}) {
             if (context.prNumber !== next.prNumber) {
@@ -757,15 +804,16 @@ window.ScreenComments = {
             }
         })
         async function navigateThread(id) {
+            const sequence = ++navigationSequence
             try {
                 if (!user) await authenticate()
-                const sequence = panelSequence,
-                    actor = epoch
+                if (sequence !== navigationSequence) return
+                const actor = epoch
                 const data = await api(`/threads/${id}`)
-                if (sequence !== panelSequence || actor !== epoch) return
+                if (sequence !== navigationSequence || actor !== epoch) return
                 onNavigate(data.thread.scope, id)
             } catch (error) {
-                notice(feed, error.message, () => navigateThread(id))
+                if (sequence === navigationSequence) notice(feed, error.message, () => navigateThread(id))
             }
         }
         return {
@@ -774,6 +822,7 @@ window.ScreenComments = {
             open,
             close,
             navigateThread,
+            invalidateNavigation: () => navigationSequence++,
             voteControls: (scope) => voting?.mount(scope),
             votesAvailable: () => Boolean(voting),
             voteTotals: (scope) => voting?.totalsFor(scope),

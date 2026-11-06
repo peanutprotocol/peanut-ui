@@ -166,6 +166,54 @@ const build = (
     progress: { done: 2, total: 5 },
 })
 
+function withUnansweredFinancialChoices() {
+    const questions = build()
+    const money = questions.steps[1]
+    money.fields[0].value = null
+    money.fields.push({
+        key: 'expectedMonthlyVolume',
+        kind: 'choice',
+        required: true,
+        options: ['under_1k', '1k_5k'],
+        value: null,
+    })
+    questions.steps.splice(1, 0, {
+        id: 'work',
+        features: ['bank'],
+        answered: false,
+        fields: [{ key: 'sourceOfFunds', kind: 'choice', required: true, options: ['salary', 'savings'], value: null }],
+    })
+    questions.firstUnanswered = 'work'
+    return questions
+}
+
+function withSixDropdowns() {
+    const questions = withUnansweredFinancialChoices()
+    const [, work, money, tax] = questions.steps
+    return {
+        ...questions,
+        firstUnanswered: 'money' as const,
+        steps: [
+            {
+                ...money,
+                fields: [
+                    ...money.fields,
+                    ...work.fields,
+                    { key: 'bankMonthlyPayments', kind: 'choice', required: true, value: '50000_plus' },
+                    { key: 'actingAsIntermediary', kind: 'choice', required: true, value: 'yes' },
+                ],
+            },
+            {
+                id: 'birth',
+                features: ['base'],
+                answered: false,
+                fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+            },
+            tax,
+        ],
+    } satisfies PaperworkVerificationQuestions
+}
+
 function renderFlow(search = '', client = new QueryClient()) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
@@ -362,6 +410,118 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         // Each step's sentences sit under its own label.
         expect(screen.getByText('Purpose')).toBeInTheDocument()
         expect(screen.getByText('Money')).toBeInTheDocument()
+    })
+
+    it('preselects the three financial choices and writes them only on Continue', async () => {
+        mockQuestions.mockResolvedValue(withUnansweredFinancialChoices())
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        const view = renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
+        expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toHaveTextContent('$1,000–$4,999')
+        expect(screen.getByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My salary')
+        fireEvent.click(screen.getByTestId('verify-back'))
+        view.unmount()
+        expect(mockSave).not.toHaveBeenCalled()
+        expect(window.sessionStorage.getItem('peanut:kycAnswerDraft:user-a')).toBeNull()
+
+        renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My salary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-input-taxId')).toBeInTheDocument()
+        await waitFor(() =>
+            expect(mockSave.mock.calls).toEqual([
+                ['work', { sourceOfFunds: 'salary' }, undefined, 'user-a'],
+                ['money', { annualSalary: '25k_50k', expectedMonthlyVolume: '1k_5k' }, undefined, 'user-a'],
+            ])
+        )
+    })
+
+    it('keeps saved and edited financial choices and requires a choice when a default is unavailable', async () => {
+        const questions = withUnansweredFinancialChoices()
+        const [income, spending] = questions.steps[2].fields
+        income.value = 'under_25k'
+        spending.options = ['under_1k']
+        mockQuestions.mockResolvedValue(questions)
+        const view = renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
+        expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toHaveTextContent('Choose')
+        expect(continueButton()).toBeDisabled()
+        fireEvent.click(screen.getByTestId('verify-pick-sourceOfFunds'))
+        fireEvent.click(await screen.findByRole('button', { name: 'My savings' }))
+        view.unmount()
+
+        renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My savings')
+        expect(mockSave).not.toHaveBeenCalled()
+    })
+
+    it('shows six dropdowns as three plus three and saves the complete Money step once', async () => {
+        mockQuestions.mockResolvedValue(withSixDropdowns())
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        renderFlow('?step=money')
+        const income = await screen.findByTestId('verify-pick-annualSalary')
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
+        expect(screen.getByRole('progressbar', { name: 'Step 2 of 5' })).toBeInTheDocument()
+        fireEvent.click(income)
+        fireEvent.click(await screen.findByRole('button', { name: 'Under $25,000' }))
+
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
+        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(mockSave).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
+
+        fireEvent.click(continueButton())
+        await screen.findByTestId('verify-pick-nationality')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-input-taxId')).toBeInTheDocument()
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        expect(mockSave).toHaveBeenNthCalledWith(
+            1,
+            'money',
+            {
+                annualSalary: 'under_25k',
+                expectedMonthlyVolume: '1k_5k',
+                sourceOfFunds: 'salary',
+                bankMonthlyPayments: '50000_plus',
+                actingAsIntermediary: 'yes',
+            },
+            undefined,
+            'user-a'
+        )
+        expect(mockSave).toHaveBeenNthCalledWith(2, 'birth', { nationality: 'DE' }, undefined, 'user-a')
+
+        await settleStepUrl()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        expect(screen.queryByTestId('verify-pick-annualSalary')).not.toBeInTheDocument()
+    })
+
+    it('opens a linked later dropdown page but sends no answers while an earlier question is incomplete', async () => {
+        const questions = withSixDropdowns()
+        questions.steps[0].fields[0].options = ['under_25k']
+        mockQuestions.mockResolvedValue(questions)
+        renderFlow('?step=birth')
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Choose')
+        expect(continueButton()).toBeDisabled()
+        expect(mockSave).not.toHaveBeenCalled()
+    })
+
+    it('returns to the dropdown page containing a rejected answer and stops later writes', async () => {
+        mockQuestions.mockResolvedValue(withSixDropdowns())
+        mockSave.mockResolvedValueOnce({ kind: 'invalid', errors: { bankMonthlyPayments: 'invalid_option' } })
+        renderFlow('?step=money')
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        await screen.findByTestId('verify-pick-bankMonthlyPayments')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-error-bankMonthlyPayments')).not.toBeEmptyDOMElement()
+        expect(screen.queryByTestId('verify-pick-annualSalary')).not.toBeInTheDocument()
+        expect(mockSave).toHaveBeenCalledTimes(1)
     })
 
     it('a deep link to saved answers walks the applicable questions and still requires unanswered fields', async () => {

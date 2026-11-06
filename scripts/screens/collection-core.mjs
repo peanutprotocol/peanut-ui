@@ -70,6 +70,52 @@ export function normalizeCollectionSpec(input) {
     }
 }
 
+export const FLOW_PAGE_MAX_STEPS = 100
+export const FLOW_PAGE_REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/
+
+function normalizeFlows(input) {
+    if (!Array.isArray(input) || input.length < 1 || input.length > FLOW_PAGE_MAX_STEPS)
+        throw new Error('A flow page needs at least one titled flow')
+    let totalSteps = 0
+    return input.map((flow) => {
+        const title = requiredText(flow?.title, 'flow title', 120)
+        if (!Array.isArray(flow.items) || !flow.items.length) throw new Error('Each flow needs at least one screen')
+        totalSteps += flow.items.length
+        if (totalSteps > FLOW_PAGE_MAX_STEPS)
+            throw new Error(`A flow page needs at most ${FLOW_PAGE_MAX_STEPS} total screens`)
+        return {
+            title,
+            items: flow.items.map((item) => {
+                if (typeof item?.id !== 'string' || !ID.test(item.id)) throw new Error('Invalid flow screen ID')
+                const note = optionalText(item.note, 'flow note', 1000)
+                return { id: item.id, ...(note ? { note } : {}) }
+            }),
+        }
+    })
+}
+
+export function normalizeFlowPageSpec(input) {
+    const flows = normalizeFlows(input?.flows)
+    if (Object.keys(input).some((key) => !['title', 'description', 'locales', 'flows', 'requestId'].includes(key)))
+        throw new Error('Unsupported flow page request field')
+    const requestId = input.requestId
+    if (requestId !== undefined && (typeof requestId !== 'string' || !FLOW_PAGE_REQUEST_ID.test(requestId)))
+        throw new Error('Invalid flow page request ID')
+    if (
+        input.locales !== undefined &&
+        (!Array.isArray(input.locales) || !input.locales.length || input.locales.length > COLLECTION_LOCALES.length)
+    )
+        throw new Error('Invalid flow page locales')
+    const ids = new Set(flows.flatMap((flow) => flow.items.map((item) => item.id)))
+    const spec = normalizeCollectionSpec({
+        title: input.title,
+        description: input.description,
+        locales: input.locales,
+        items: Array.from(ids, (id) => ({ id })),
+    })
+    return { ...spec, flows, requestId }
+}
+
 export function collectionId(title, now = new Date(), entropy = crypto.randomUUID()) {
     const slug = title
         .toLowerCase()
@@ -221,6 +267,12 @@ export function validateCollection(input) {
             .filter((locale) => item.variants[locale].status !== 'captured')
             .map((locale) => ({ id: item.id, locale }))
     )
+    const flows = input.flows === undefined ? undefined : normalizeFlows(input.flows)
+    if (flows) {
+        const referenced = new Set(flows.flatMap((flow) => flow.items.map((item) => item.id)))
+        if (missing.length || referenced.size !== items.length || items.some((item) => !referenced.has(item.id)))
+            throw new Error('Invalid flow page asset references')
+    }
     const presentation = capturePresentation(input)
     return {
         ...input,
@@ -229,6 +281,7 @@ export function validateCollection(input) {
         locales: spec.locales,
         ...(presentation ?? {}),
         items,
+        ...(flows ? { flows } : {}),
         missing,
         complete: missing.length === 0,
     }
