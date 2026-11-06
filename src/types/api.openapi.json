@@ -437,7 +437,7 @@
 									"fixedFeeBrl": "0.75",
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
-									"usdcAmount": "17.940500"
+									"usdcAmount": "17.920175"
 								},
 								"schema": {
 									"properties": {
@@ -468,6 +468,7 @@
 											"type": "string"
 										},
 										"usdcAmount": {
+											"description": "USDC the wallet receives: Avenia’s output less Rhino’s bridge fee, by Rhino’s quote",
 											"type": "string"
 										}
 									},
@@ -731,7 +732,7 @@
 											"payerCpfMasked": "123.***.***-09",
 											"status": "AWAITING_USER_ACTION",
 											"ticketStatus": "UNPAID",
-											"usdcAmount": "17.940500"
+											"usdcAmount": "17.920175"
 										}
 									},
 									"example2": {
@@ -743,7 +744,7 @@
 											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 											"status": "PROCESSING",
 											"ticketStatus": "PROCESSING",
-											"usdcAmount": "17.940500"
+											"usdcAmount": "17.920175"
 										}
 									}
 								},
@@ -810,7 +811,7 @@
 													"type": "null"
 												}
 											],
-											"description": "USDC the wallet receives, from Avenia’s quote"
+											"description": "USDC the wallet receives: Avenia’s output less Rhino’s bridge fee, by Rhino’s quote at the deposit"
 										}
 									},
 									"required": [
@@ -15723,7 +15724,7 @@
 											"type": "string"
 										},
 										"usdcAmount": {
-											"description": "USDC the wallet receives (deposit) or that leaves it, the bridge fee included (withdraw)",
+											"description": "USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw)",
 											"type": "string"
 										}
 									},
