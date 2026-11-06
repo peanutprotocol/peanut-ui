@@ -85,6 +85,25 @@ test('before harness is decided before reuse and base capture runs entirely from
     )
 })
 
+test('fresh base capture retains provenance on a partial failure without suppressing that failure', () => {
+    const steps = screenLibrary.split(/^ {12}- /m)
+    const capture = steps.find((entry) => entry.startsWith('name: Build and capture with base harness\n'))
+    const receipt = steps.find((entry) => entry.startsWith('name: Record base harness provenance\n'))
+    assert.ok(capture)
+    assert.ok(receipt)
+    assert.match(capture, /id: capture_base/)
+    assert.doesNotMatch(capture, /continue-on-error|\|\|/)
+    assert.match(
+        receipt,
+        /if: \$\{\{ !cancelled\(\) && \(steps\.capture_base\.outcome == 'success' \|\| steps\.capture_base\.outcome == 'failure'\)/
+    )
+    assert.match(receipt, /BEFORE: \$\{\{ needs\.refs\.outputs\.before \}\}/)
+    assert.match(
+        receipt,
+        /if \[ -f \.\.\/capture\/capture\.json \]; then\s+node scripts\/screens\/write-before-harness\.mjs \.\.\/capture/
+    )
+})
+
 test('capture workflows run on the standard Ubuntu pool', () => {
     assert.equal((screenLibrary.match(/runs-on: ubuntu-24\.04/g) ?? []).length, 3)
     assert.doesNotMatch(screenLibrary, /runs-on: macos-/)
