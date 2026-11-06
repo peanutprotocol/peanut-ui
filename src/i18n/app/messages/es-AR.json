@@ -543,8 +543,7 @@
             "steps": {
                 "openSettings": "Abrí Configuración → Contraseñas, llaves de acceso y cuentas.",
                 "chooseGoogle": "Elegí el Administrador de contraseñas de Google como servicio preferido y volvé a intentarlo."
-            },
-            "signUpInChrome": "Registrate en peanut.me con Chrome"
+            }
         },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Intentalo de nuevo.",
