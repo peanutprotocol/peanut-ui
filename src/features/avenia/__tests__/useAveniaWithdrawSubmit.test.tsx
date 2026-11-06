@@ -27,6 +27,8 @@ jest.mock('@/constants/zerodev.consts', () => ({
 jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (error: unknown) => `friendly: ${(error as Error).message}`,
 }))
+const mockFetchUser = jest.fn(() => Promise.resolve(null))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
 const mockSendTransactions = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ sendTransactions: (...args: unknown[]) => mockSendTransactions(...args) }),
@@ -229,6 +231,21 @@ describe('useAveniaWithdrawSubmit', () => {
         expect(result.current.lockedAfterInit).toBe(false)
         expect(result.current.phase).toBe('idle')
         expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['ROUTE_NOT_AVAILABLE', true],
+        ['PROVIDER_UNAVAILABLE', true],
+        ['PIX_LIMIT_EXCEEDED', false],
+    ])('reads the route again when init says it moved (%s)', async (code, rereads) => {
+        mockInit.mockRejectedValue(new ApiError('refused', { status: 403, code }))
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(mockFetchUser).toHaveBeenCalledTimes(rereads ? 1 : 0)
     })
 
     it('never signs again once the ticket is open, even when the signature failed', async () => {

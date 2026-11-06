@@ -15,6 +15,7 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: () => Promise.resolve(null) }) }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))

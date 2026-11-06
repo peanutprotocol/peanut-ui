@@ -15,7 +15,8 @@ import {
     type AveniaWithdrawRequest,
     type AveniaWithdrawSign,
 } from '@/services/avenia'
-import { wireErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { useAuth } from '@/context/authContext'
 import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/avenia/aveniaWithdrawSent'
 import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
@@ -94,6 +95,7 @@ export function useAveniaWithdrawSubmit({
     const initError = useAveniaRefusalMessage()
     const toFriendlyError = useFriendlyError()
     const queryClient = useQueryClient()
+    const { fetchUser } = useAuth()
     const { sendTransactions } = useWallet()
     const { hasPendingTransactions } = usePendingTransactions()
     const { mutateAsync: sendDeposit } = useMutation({
@@ -204,6 +206,10 @@ export function useAveniaWithdrawSubmit({
                     if (!code) void captureNetworkTriagedFailure(caught, { tags: flowTags('init') })
                     setError(initError(caught))
                     setPhase('idle')
+                    // the route moved since the screen loaded: the capabilities say where the user stands now
+                    if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) {
+                        void fetchUser().catch(() => undefined)
+                    }
                     return
                 }
                 const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
@@ -233,7 +239,7 @@ export function useAveniaWithdrawSubmit({
                 busyRef.current = false
             }
         },
-        [hasPendingTransactions, initError, onOpened, opened, sign, tShared]
+        [fetchUser, hasPendingTransactions, initError, onOpened, opened, sign, tShared]
     )
 
     const canSignOpened = !!opened && (phase === 'reconfirm' || (phase === 'idle' && resignable))
