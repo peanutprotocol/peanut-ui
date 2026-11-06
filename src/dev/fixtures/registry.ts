@@ -2064,6 +2064,12 @@ export const FIXTURES: Record<string, Fixture> = {
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
         },
     },
+    // design.md, rows the user cannot act on: the row names the action and opens the new-key step
+    'avenia-activity-new-key': {
+        route: '/history',
+        about: 'Activity row of a refused Pix payout: "Action needed", and the tap opens the new-key step.',
+        responses: { 'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false } },
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',

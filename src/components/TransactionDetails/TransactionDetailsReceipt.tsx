@@ -22,6 +22,7 @@ import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
 import { AveniaNewKeyNotice } from '@/features/avenia/components/AveniaNewKeyNotice'
 import { AveniaPayCodeNotice } from '@/features/avenia/components/AveniaPayCodeNotice'
+import { useAveniaActionBadge } from '@/features/avenia/hooks/useAveniaActionBadge'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -66,6 +67,7 @@ export const TransactionDetailsReceipt = ({
     isActive?: boolean
 }) => {
     const t = useAppTranslations('transaction')
+    const userActionBadge = useAveniaActionBadge(transaction)
     const tRequest = useAppTranslations('request')
 
     // Only the transaction details drawer passes setIsModalOpen: it keeps that
@@ -218,6 +220,7 @@ export const TransactionDetailsReceipt = ({
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
                 statusNote={statusNote}
                 isVerificationDeposit={depositKind === 'verification'}
+                userActionBadge={userActionBadge}
             />
 
             {/* Perk eligibility banner */}

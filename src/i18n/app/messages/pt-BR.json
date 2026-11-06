@@ -2560,6 +2560,7 @@
             }
         },
         "recovery": {
+            "actionNeeded": "Ação necessária",
             "intro": "O banco recusou o pagamento para a chave anterior. O dinheiro está aguardando na Avenia. Digite uma chave Pix de outra conta no seu CPF.",
             "notice": "O banco recusou este pagamento. O dinheiro aguarda outra chave no seu CPF.",
             "addKey": "Adicionar chave Pix",

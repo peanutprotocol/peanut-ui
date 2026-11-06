@@ -276,6 +276,11 @@
         "route": "/history"
     },
     {
+        "id": "fixture-avenia-activity-new-key",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
         "id": "fixture-history-pix-key-owner",
         "flow": "Home and shared states",
         "route": "/history"

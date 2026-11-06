@@ -2560,6 +2560,7 @@
             }
         },
         "recovery": {
+            "actionNeeded": "Acción requerida",
             "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresa una clave Pix de otra cuenta con tu CPF.",
             "notice": "El banco rechazó este pago. El dinero espera otra clave con tu CPF.",
             "addKey": "Agregar clave Pix",

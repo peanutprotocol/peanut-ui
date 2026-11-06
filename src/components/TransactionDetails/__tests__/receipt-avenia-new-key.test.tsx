@@ -60,4 +60,20 @@ describe('the receipt of a refused Avenia payout', () => {
         )
         expect(screen.queryByTestId('avenia-new-key-notice')).toBeNull()
     })
+
+    // design.md: the user can act now, so the badge names the action; never Failed,
+    // because the money left the wallet and is paid again on the new key
+    it.each([
+        [true, 'Action needed'],
+        [false, 'Pending'],
+    ])('the header badge (waits for a key=%s) says %s', (awaits, word) => {
+        render(
+            <ToastProvider>
+                <TransactionDetailsReceipt transaction={withdrawal(awaits)} />
+            </ToastProvider>,
+            { wrapper: IntlWrapper }
+        )
+        expect(screen.getByText(word)).toBeInTheDocument()
+        expect(screen.queryByText('Failed')).toBeNull()
+    })
 })

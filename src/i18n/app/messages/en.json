@@ -2560,6 +2560,7 @@
             }
         },
         "recovery": {
+            "actionNeeded": "Action needed",
             "intro": "The bank refused the payout to the previous key. The money is waiting with Avenia. Enter a Pix key of another account under your CPF.",
             "notice": "The bank refused this payout. The money waits for another key under your CPF.",
             "addKey": "Add Pix key",
