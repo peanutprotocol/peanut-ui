@@ -482,8 +482,8 @@ describe('Manteca account rejection during deposit', () => {
             mascot!.compareDocumentPosition(screen.getByRole('alert')) & Node.DOCUMENT_POSITION_FOLLOWING
         ).toBeTruthy()
 
-        expect(screen.getByText(/You can’t deposit or withdraw in Brazil/i)).toBeInTheDocument()
-        expect(screen.getByText(/You can still pay with QR/i)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Brazil/i)).toBeInTheDocument()
+        expect(screen.getByText(/QR payments still work/i)).toBeInTheDocument()
         expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
         expect(screen.queryByTestId('pix-qr')).not.toBeInTheDocument()
         expect(lastKycModalProps).toBeNull()
@@ -507,8 +507,8 @@ describe('Manteca account rejection during deposit', () => {
 
         await act(() => lastInputStepProps!.onSubmit())
 
-        expect(screen.getByText(/You can’t deposit or withdraw in Argentina/i)).toBeInTheDocument()
-        expect(screen.getByText(/You can still pay with QR/i)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        expect(screen.getByText(/QR payments still work/i)).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
@@ -531,7 +531,7 @@ describe('Manteca account rejection during deposit', () => {
 
         await act(() => lastInputStepProps!.onSubmit())
 
-        expect(screen.getByText(/You can’t deposit or withdraw in Argentina/i)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
@@ -553,12 +553,12 @@ describe('Manteca account rejection during deposit', () => {
         })
         const view = render(<MantecaAddMoney />)
         await act(() => lastInputStepProps!.onSubmit())
-        expect(screen.getByText(/You can’t deposit or withdraw in Argentina/i)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
 
         setCountry('brazil')
         view.rerender(<MantecaAddMoney />)
 
-        expect(screen.queryByText(/You can’t deposit or withdraw in .+/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/You can’t add or withdraw money in .+/i)).not.toBeInTheDocument()
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
     })
