@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 const mockDepositStatus = jest.fn()
 jest.mock('@/services/avenia', () => ({ aveniaApi: { depositStatus: (id: string) => mockDepositStatus(id) } }))
 
+import { ApiError } from '@/services/api-error'
 import { useAveniaDeposit } from '../hooks/useAveniaDeposit'
 import { aveniaDepositQueryKey, depositReadFromCreated } from '../aveniaDepositCode'
 
@@ -73,5 +74,23 @@ describe('useAveniaDeposit', () => {
         mockDepositStatus.mockResolvedValue(read({ codePayable: false, brCode: undefined }))
         const { result } = renderHook(() => useAveniaDeposit('d1', jest.fn()), { wrapper })
         await waitFor(() => expect(result.current.phase).toBe('expired'))
+    })
+
+    describe('when the read fails', () => {
+        beforeEach(() => jest.useFakeTimers())
+        afterEach(() => jest.useRealTimers())
+
+        it.each([
+            [404, 1],
+            [500, 2],
+        ])('polls on after a %s only when waiting can change it', async (status, reads) => {
+            mockDepositStatus.mockRejectedValue(new ApiError('read failed', { status }))
+            const { result } = renderHook(() => useAveniaDeposit('d1', jest.fn()), { wrapper })
+            await waitFor(() => expect(result.current.isError).toBe(true))
+
+            await jest.advanceTimersByTimeAsync(6000)
+
+            expect(mockDepositStatus).toHaveBeenCalledTimes(reads)
+        })
     })
 })
