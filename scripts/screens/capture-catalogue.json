@@ -84,6 +84,18 @@
         "source": "Setup/Views/Notifications.tsx"
     },
     {
+        "id": "07-d-notification-settings-flag-signup-notification-switches-switches",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-settings",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
+        "id": "07-d-notification-settings-flag-signup-notification-switches-defaults-on",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-settings",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
         "id": "07-b-advantage-control",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-b-advantage-control",
@@ -310,6 +322,11 @@
     },
     {
         "id": "fixture-home-verify-processing",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-verify-processing-flag-card-promotion-disabled-true",
         "flow": "Home and shared states",
         "route": "/home"
     },

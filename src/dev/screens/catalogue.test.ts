@@ -64,8 +64,15 @@ describe('screen catalogue', () => {
         expect(SCREENS.find(({ id }) => id === 'fixture-rewards-invites')?.flow).toBe('Rewards')
     })
 
-    it('sorts screens by their configured order', () => {
-        expect(SCREENS.every((screen, index) => index === 0 || SCREENS[index - 1].order < screen.order)).toBe(true)
+    it('sorts screens by their configured order; a flag variant shares the order of the screen it follows', () => {
+        expect(
+            SCREENS.every(
+                (screen, index) =>
+                    index === 0 ||
+                    SCREENS[index - 1].order < screen.order ||
+                    (screen.flags !== undefined && SCREENS[index - 1].order === screen.order)
+            )
+        ).toBe(true)
     })
 
     it('keeps the locale-independent trigger for the request bank chooser', () => {

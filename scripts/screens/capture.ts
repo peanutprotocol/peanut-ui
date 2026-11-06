@@ -10,6 +10,7 @@ import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { answerRpc, isChainRpc, isRhinoTokenConfigs } from './rpc'
 import { freezeDate } from './freeze-date.mjs'
+import { FLAG_READERS, FLAG_RECORDER_MARKER, installFlagRecorder } from './flag-recorder.mjs'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
 import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
@@ -87,6 +88,10 @@ async function main() {
         existsSync(intlCore) && readFileSync(intlCore, 'utf8').includes(COPY_RECORDER_MARKER)
             ? 'recorded'
             : 'unavailable'
+    const flagsSettable = FLAG_READERS.every(({ path }) => {
+        const file = join(source, path)
+        return existsSync(file) && readFileSync(file, 'utf8').includes(FLAG_RECORDER_MARKER)
+    })
     const assets = join(out, 'assets')
     mkdirSync(assets, { recursive: true })
     const walk = (p: string): string[] =>
@@ -197,7 +202,8 @@ async function main() {
                 (screen.route.startsWith('/dev/surfaces') &&
                     !knownSurfaces.includes(new URL(screen.route, base).searchParams.get('s') ?? screen.id)) ||
                 (selected.length && !selected.includes(screen.id)) ||
-                (historical && screen.kind === 'component')
+                (historical && screen.kind === 'component') ||
+                (screen.flags && !flagsSettable)
             ) {
                 results.push({
                     ...metadata,
@@ -211,6 +217,9 @@ async function main() {
                         (screen.route.startsWith('/dev/surfaces') &&
                         !knownSurfaces.includes(new URL(screen.route, base).searchParams.get('s') ?? screen.id)
                             ? 'This revision has no compatible scenario harness for this component; no newer product code was copied'
+                            : undefined) ??
+                        (screen.flags && !flagsSettable
+                            ? 'This revision cannot set PostHog flags in a capture'
                             : undefined) ??
                         (selected.length
                             ? 'Not selected in this diagnostic run'
@@ -243,6 +252,7 @@ async function main() {
                 // Freeze Date only: Playwright's clock also replaces the page's timers, which held React
                 // Query's update delivery for seconds and let a screen settle after it was captured.
                 await page.addInitScript(freezeDate, Date.parse('2026-09-01T12:00:00Z'))
+                if (flagsSettable) await page.addInitScript(installFlagRecorder, screen.flags ?? {})
                 await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
                     // A constant draw is independent of unrelated startup call order.
@@ -638,10 +648,27 @@ async function main() {
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
                 const copy =
                     copyRecording === 'recorded' ? shownCopyKeys(await page.evaluate(COPY_EVIDENCE_SCRIPT)) : undefined
+                if (screen.flags) {
+                    const read = await page.evaluate(
+                        () =>
+                            (window as unknown as { __screenCaptureFlagReads: Record<string, unknown> })
+                                .__screenCaptureFlagReads
+                    )
+                    for (const [flag, value] of Object.entries(screen.flags))
+                        if (!(flag in read))
+                            throw new Error(`This state never reads ${flag}, so it cannot show ${flag}: ${value}`)
+                }
                 const image = storeAsset(assets, previous)
                 // Keep the exact PNG as the only CI capture source. The trusted
                 // publisher converts it to a full-resolution WebP after diffing.
-                results.push({ ...metadata, status: 'captured', image, thumbnail: image, ...(copy ? { copy } : {}) })
+                results.push({
+                    ...metadata,
+                    status: 'captured',
+                    image,
+                    thumbnail: image,
+                    ...(copy ? { copy } : {}),
+                    ...(screen.flags ? { flags: screen.flags } : {}),
+                })
                 console.log(`CAPTURED ${screen.id}`)
             } catch (e) {
                 mkdirSync(join(out, 'diagnostics'), { recursive: true })
