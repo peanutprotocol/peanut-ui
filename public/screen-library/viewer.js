@@ -416,6 +416,7 @@ let commentsReportPath = ''
 const comments =
     !offline && window.ScreenComments
         ? window.ScreenComments.create({
+              activity: $('comment-activity'),
               feed: $('comment-feed'),
               panel: $('comment-panel'),
               dialog: $('zoom'),
@@ -1818,7 +1819,8 @@ async function start() {
     const collectionMatch = /^\/collections\/([a-z0-9][a-z0-9-]{0,119})\/?$/.exec(pathname)
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (comments) {
-        $('comment-feed').hidden = false
+        const activity = $('comment-activity') ?? $('comment-feed')
+        activity.hidden = false
         comments.setContext({ prNumber: Number(/^\d{4}-\d{2}-\d{2}\/pr-([1-9]\d*)\//.exec(path)?.[1]) || undefined })
     }
     if (!offline && !path) {
