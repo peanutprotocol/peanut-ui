@@ -1,6 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -16,59 +17,79 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { aveniaSetupState } from '@/features/avenia/avenia.utils'
 import { useAveniaKycStart } from '@/features/avenia/hooks/useAveniaKycStart'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 
 const AVENIA = PROVIDERS['avenia-br']
-/** Avenia's own verdict on the identity. Any other blocked rail is a failure on our side that support lifts. */
-const AVENIA_KYC_REJECTED_REASON = 'avenia_kyc_rejected'
 
 /**
- * Avenia's first use for a Brazilian resident: name Avenia and its terms,
- * open Avenia's hosted verification, and wait for the Pix rail. Renders
- * nothing once the rail is enabled, so the flow under it takes over.
+ * The user's step before Avenia Pix works, as the backend's route names it:
+ * the identity check first, Avenia's first use (name Avenia and its terms,
+ * open its hosted verification), the wait for Avenia's review, or why Pix
+ * is closed. The flow under it renders once the route is ready.
  */
 export function AveniaPixSetup({
     title,
     onBack,
-    rail,
+    route,
 }: {
     /** The flow's own title ("Add money", "Withdraw"): a flow keeps one title across its steps. */
     title: string
     onBack: () => void
-    rail: RailCapability | undefined
+    route: CapabilityRoute | undefined
 }) {
     const t = useTranslations('avenia.setup')
+    const tShared = useTranslations('avenia')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
+    const router = useRouter()
     const { openSupportWithMessage } = useModalsContext()
     const { user } = useAuth()
-    const state = aveniaSetupState(rail)
+    const state = aveniaSetupState(route)
     const kyc = useAveniaKycStart({ railEnabled: state === 'ready' })
 
-    if (state === 'blocked') {
+    if (state === 'rejected' || state === 'support' || state === 'unavailable') {
         return (
             <MantecaAccountUnavailable
                 title={title}
-                description={t(rail?.reason?.code === AVENIA_KYC_REJECTED_REASON ? 'rejected' : 'notAvailable')}
+                description={
+                    state === 'rejected'
+                        ? t('rejected')
+                        : state === 'support'
+                          ? t('notAvailable')
+                          : tShared('unavailable')
+                }
                 onBack={onBack}
-                // the rail's reason and id tell support which case this is (the contact-support action)
+                // the route's reason tells support which case this is
                 onSupport={() =>
                     openSupportWithMessage(
-                        buildContactSupportMessage({
-                            reason: rail?.reason,
-                            railId: rail?.id,
-                            userId: user?.user?.userId,
-                        })
+                        buildContactSupportMessage({ reason: route?.reason, userId: user?.user?.userId })
                     )
                 }
             />
         )
     }
 
+    if (state === 'verify') {
+        return (
+            <PageStack>
+                <NavHeader title={title} onPrev={onBack} />
+                <PageStack.Center>
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <IconBubble {...CONCEPT_ICONS.verification} size="l" />
+                        <TitleBlock align="center" title={t('title')} description={t('verifyBody')} />
+                    </div>
+                    <Button variant="primary" className="w-full" onClick={() => router.push('/verify')}>
+                        {t('verifyCta')}
+                    </Button>
+                </PageStack.Center>
+            </PageStack>
+        )
+    }
+
     // Only the terms step starts Avenia: every start carries the acceptance, so the wait has no
     // "open again". Leaving and coming back shows the terms step, and its Continue opens a new link.
-    if (kyc.isWaiting) {
+    if (state === 'pending' || kyc.isWaiting) {
         return (
             <PageStack>
                 <NavHeader title={title} onPrev={onBack} />

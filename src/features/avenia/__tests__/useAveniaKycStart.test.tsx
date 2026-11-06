@@ -18,10 +18,6 @@ const mockCaptureException = jest.fn()
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: (...args: unknown[]) => mockCaptureException(...args) }))
 const mockStartKyc = jest.fn()
 jest.mock('@/services/avenia', () => ({ aveniaApi: { startKyc: (body: unknown) => mockStartKyc(body) } }))
-const mockMarkUnavailable = jest.fn()
-jest.mock('@/features/avenia/aveniaAvailability', () => ({
-    markAveniaUnavailable: (userId: string) => mockMarkUnavailable(userId),
-}))
 
 import { useAveniaKycStart } from '../hooks/useAveniaKycStart'
 
@@ -69,33 +65,17 @@ describe('useAveniaKycStart', () => {
         expect(hook.result.current.isWaiting).toBe(false)
     })
 
-    it.each(['AVENIA_NOT_AVAILABLE', 'AVENIA_KYC_REQUIRED'])(
-        'hands the user back to the Manteca flow on %s',
-        async (code) => {
-            const tab = reservedTab()
-            mockStartKyc.mockRejectedValue(new ApiError('refused', { status: 403, code }))
-            const hook = renderHook(() => useAveniaKycStart({ railEnabled: false }))
-
-            await act(async () => {
-                await hook.result.current.start()
-            })
-
-            expect(tab.close).toHaveBeenCalled()
-            expect(mockMarkUnavailable).toHaveBeenCalledWith('user-1')
-            expect(hook.result.current.error).toBeNull()
-        }
-    )
-
-    it('falls back to Manteca on an API without the Avenia routes (404)', async () => {
-        reservedTab()
-        mockStartKyc.mockRejectedValue(new ApiError('Route POST:/avenia/kyc/start not found', { status: 404 }))
+    it('reads the capabilities again when the route moved since the screen loaded (403)', async () => {
+        const tab = reservedTab()
+        mockStartKyc.mockRejectedValue(new ApiError('refused', { status: 403, code: 'ROUTE_NOT_AVAILABLE' }))
         const hook = renderHook(() => useAveniaKycStart({ railEnabled: false }))
 
         await act(async () => {
             await hook.result.current.start()
         })
 
-        expect(mockMarkUnavailable).toHaveBeenCalledWith('user-1')
+        expect(tab.close).toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalled()
         expect(hook.result.current.error).toBeNull()
     })
 
@@ -119,7 +99,6 @@ describe('useAveniaKycStart', () => {
             await hook.result.current.start()
         })
         expect(hook.result.current.error).toBe('unavailable')
-        expect(mockMarkUnavailable).not.toHaveBeenCalled()
         // only the unexplained failure reaches Sentry, tagged for prod-watch
         expect(mockCaptureException).toHaveBeenCalledTimes(1)
         expect(mockCaptureException).toHaveBeenCalledWith(expect.any(ApiError), {
@@ -128,7 +107,6 @@ describe('useAveniaKycStart', () => {
     })
 
     it.each([
-        ['no acceptance on record (422)', new ApiError('terms', { status: 422, code: 'AVENIA_TERMS_REQUIRED' })],
         ['a body the API refused (400)', new ApiError('body/termsAccepted must be equal to constant', { status: 400 })],
     ])('says the acceptance was not saved on %s, and starts nothing', async (_case, error) => {
         const tab = reservedTab()
@@ -142,7 +120,6 @@ describe('useAveniaKycStart', () => {
         expect(tab.close).toHaveBeenCalled()
         expect(hook.result.current.error).toBe('setup.termsNotSaved')
         expect(hook.result.current.isWaiting).toBe(false)
-        expect(mockMarkUnavailable).not.toHaveBeenCalled()
     })
 
     it('opens one tab for two fast taps', async () => {

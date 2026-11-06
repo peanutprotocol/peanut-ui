@@ -164,16 +164,22 @@ describe('the Brazil pause', () => {
         )
     }
 
-    test.each(['country=brazil&method=pix', 'country=brazil&method=bank-transfer'])(
-        'shows the paused screen for %s',
-        (params) => {
-            mockBrazilPaused = true
-            mockParams = params
-            render()
-            expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
-            expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-        }
-    )
+    test('shows the paused screen for a Pix send', () => {
+        mockBrazilPaused = true
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    })
+
+    // the pause, and the provider, are decided on the neutral page (features/pix/__tests__)
+    test('opens the neutral Pix page for a BRL withdrawal to the own account', () => {
+        mockBrazilPaused = true
+        mockParams = 'country=brazil&method=bank-transfer'
+        render()
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    })
 
     test('shows the paused screen for a Brazil resident sending to a Pix key once the pause is off', () => {
         mockResidenceIso2s = ['BR']

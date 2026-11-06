@@ -6,82 +6,36 @@ import {
     aveniaWithdrawRefusalKey,
     quoteMovedAgainstUser,
     signMatchesDisplay,
-    brazilPixPath,
     completePixKey,
     maskedTaxIdKind,
     pixKeyVerdict,
     toApiDecimal,
 } from '../avenia.utils'
-import { aveniaRouteState } from '../aveniaAvailability'
 import { awaitsNewPixKey, aveniaNewKeyUrl } from '../aveniaRecovery'
 import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 
-const rail = (status: RailCapability['status'], extra: Partial<RailCapability> = {}): RailCapability => ({
-    id: 'avenia.pix_br',
-    provider: 'avenia',
-    method: 'PIX_BR',
-    channel: 'bank',
-    country: 'BR',
-    currency: 'BRL',
-    status,
-    ...extra,
-})
-// PR B's resolver: the rollout gate and the kill switch block the rail with no action to take
-const closedRail = rail('blocked', { reason: { code: 'avenia_not_available', userMessage: 'Not available yet.' } })
-const pausedRail = rail('blocked', { reason: { code: 'avenia_paused', userMessage: 'Paused.' } })
-// a failure on our side: the same code, with a contact-support action
-const supportRail = rail('blocked', {
-    reason: { code: 'avenia_not_available', userMessage: 'Not available yet.' },
-    blockingActions: ['contact-support:avenia-kyc'],
-})
-
-describe('brazilPixPath', () => {
-    const base = {
-        isLoading: false,
-        aveniaRail: undefined,
-        identityVerified: true,
-        verifiedResidence: 'BR',
-        unavailable: false,
-    }
-
-    it('waits while the capabilities load', () => {
-        expect(brazilPixPath({ ...base, isLoading: true })).toBe('loading')
-    })
-
-    it('sends a user who holds the Avenia rail to Avenia, in any state', () => {
-        for (const status of ['enabled', 'requires-info', 'blocked'] as const) {
-            expect(brazilPixPath({ ...base, aveniaRail: rail(status), identityVerified: false })).toBe('avenia')
-        }
-    })
-
-    it("offers Avenia's first use to a verified Brazilian resident", () => {
-        expect(brazilPixPath(base)).toBe('avenia')
-        expect(brazilPixPath({ ...base, verifiedResidence: 'br' })).toBe('avenia')
-    })
-
-    it("keeps Manteca behind Avenia's rollout gate, and pauses with its kill switch", () => {
-        expect(brazilPixPath({ ...base, aveniaRail: closedRail })).toBe('manteca')
-        expect(brazilPixPath({ ...base, aveniaRail: pausedRail })).toBe('paused')
-        // support lifts a failure on our side: the Avenia setup step shows it
-        expect(brazilPixPath({ ...base, aveniaRail: supportRail })).toBe('avenia')
-    })
-
-    it('keeps Manteca for anyone else, and after the API refused Avenia this session', () => {
-        expect(brazilPixPath({ ...base, identityVerified: false })).toBe('manteca')
-        expect(brazilPixPath({ ...base, verifiedResidence: 'AR' })).toBe('manteca')
-        expect(brazilPixPath({ ...base, verifiedResidence: null })).toBe('manteca')
-        expect(brazilPixPath({ ...base, unavailable: true })).toBe('manteca')
-    })
-})
+const route = (
+    state: CapabilityRoute['state'],
+    extra: Partial<Pick<CapabilityRoute, 'action' | 'reason'>> = {}
+): Pick<CapabilityRoute, 'state' | 'action' | 'reason'> => ({ state, ...extra })
 
 describe('aveniaSetupState', () => {
-    it('is ready only on an enabled rail and blocked on a refused one', () => {
-        expect(aveniaSetupState(rail('enabled'))).toBe('ready')
-        expect(aveniaSetupState(rail('blocked'))).toBe('blocked')
-        expect(aveniaSetupState(rail('requires-info'))).toBe('verify')
-        expect(aveniaSetupState(rail('pending'))).toBe('verify')
-        expect(aveniaSetupState(undefined)).toBe('verify')
+    it("reads the user's step from the backend's route", () => {
+        expect(aveniaSetupState(route('ready'))).toBe('ready')
+        expect(aveniaSetupState(route('pending'))).toBe('pending')
+        expect(aveniaSetupState(route('action_required', { action: 'verify' }))).toBe('verify')
+        // until the API's enrolment replaces it, activate opens Avenia's first use
+        expect(aveniaSetupState(route('action_required', { action: 'activate' }))).toBe('activate')
+        expect(aveniaSetupState(route('action_required', { action: 'contact-support:x' }))).toBe('support')
+    })
+
+    it('names why a refused route is closed', () => {
+        const refused = (code: string) => route('refused', { reason: { code, userMessage: '' } })
+        expect(aveniaSetupState(refused('provider_rejected'))).toBe('rejected')
+        expect(aveniaSetupState(refused('provider_setup_failed'))).toBe('support')
+        expect(aveniaSetupState(refused('rollout_closed'))).toBe('unavailable')
+        expect(aveniaSetupState(undefined)).toBe('unavailable')
     })
 })
 
@@ -91,6 +45,9 @@ describe('aveniaDepositPhase', () => {
         status: s,
         ticketStatus,
         expiresAt: null,
+        amountBrl: '100.00',
+        usdcAmount: '17.94',
+        codePayable: s === 'AWAITING_USER_ACTION' && ticketStatus === 'UNPAID',
     })
 
     it('waits on an unpaid ticket', () => {
@@ -192,13 +149,13 @@ describe('maskedTaxIdKind', () => {
 
 describe('aveniaWithdrawRefusalKey', () => {
     it('names each refusal the preview and the init can send, and nothing else', () => {
-        expect(aveniaWithdrawRefusalKey('AVENIA_LIMIT_EXCEEDED')).toBe('withdraw.errors.limitExceeded')
+        expect(aveniaWithdrawRefusalKey('PIX_LIMIT_EXCEEDED')).toBe('withdraw.errors.limitExceeded')
         expect(aveniaWithdrawRefusalKey('WITHDRAWAL_IN_PROGRESS')).toBe('withdraw.errors.inProgress')
-        expect(aveniaWithdrawRefusalKey('AVENIA_TICKET_WINDOW_SHORT')).toBe('withdraw.errors.quoteExpired')
+        expect(aveniaWithdrawRefusalKey('PIX_QUOTE_EXPIRED')).toBe('withdraw.errors.quoteExpired')
         expect(aveniaWithdrawRefusalKey('PIX_KEY_NOT_OWN')).toBe('withdraw.keyNotOwn')
         expect(aveniaWithdrawRefusalKey('PIX_KEY_BLOCKED')).toBe('withdraw.keyBlocked')
         expect(aveniaWithdrawRefusalKey('PIX_KEY_NOT_FOUND')).toBe('pixKeyNotFound')
-        expect(aveniaWithdrawRefusalKey('AVENIA_QUOTE_CHANGED')).toBe('withdraw.errors.quoteChanged')
+        expect(aveniaWithdrawRefusalKey('PIX_QUOTE_CHANGED')).toBe('withdraw.errors.quoteChanged')
         expect(aveniaWithdrawRefusalKey('PIX_MIN_AMOUNT')).toBe('minimum')
         expect(aveniaWithdrawRefusalKey('PROVIDER_REJECTED')).toBe('providerRejected')
         expect(aveniaWithdrawRefusalKey('PROVIDER_UNAVAILABLE')).toBe('unavailable')
@@ -228,20 +185,6 @@ describe('signMatchesDisplay', () => {
         expect(signMatchesDisplay(display, { payAmount: '92.50431', payAmountUnits: '92504311' })).toBe(false)
         expect(signMatchesDisplay(display, { payAmount: '95', payAmountUnits: '92504310' })).toBe(false)
         expect(signMatchesDisplay(display, { payAmount: 'x', payAmountUnits: 'y' })).toBe(false)
-    })
-})
-
-describe('aveniaRouteState', () => {
-    it('reads the rollout gate and the kill switch off a blocked Avenia rail only', () => {
-        expect(aveniaRouteState(closedRail)).toBe('closed')
-        expect(aveniaRouteState(pausedRail)).toBe('paused')
-        expect(aveniaRouteState(supportRail)).toBe('open')
-        expect(aveniaRouteState(rail('blocked', { reason: { code: 'avenia_kyc_rejected', userMessage: '' } }))).toBe(
-            'open'
-        )
-        expect(aveniaRouteState(rail('enabled'))).toBe('open')
-        expect(aveniaRouteState({ ...closedRail, provider: 'manteca' })).toBe('open')
-        expect(aveniaRouteState(undefined)).toBe('open')
     })
 })
 

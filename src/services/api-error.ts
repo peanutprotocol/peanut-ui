@@ -74,18 +74,14 @@ export const API_ERROR_CODES = {
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
     /** A Pix deposit or withdrawal below the provider's minimum. Sent with 400. */
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
-    /** Avenia Pix is not open to this user: the rollout gate, or a residence outside Brazil. */
-    AVENIA_NOT_AVAILABLE: 'AVENIA_NOT_AVAILABLE',
-    /** The user's Avenia KYC is not done (or their Peanut identity is not verified yet). */
-    AVENIA_KYC_REQUIRED: 'AVENIA_KYC_REQUIRED',
+    /** The backend's route does not serve this operation for this user (the capability route says why). Sent with 403. */
+    ROUTE_NOT_AVAILABLE: 'ROUTE_NOT_AVAILABLE',
     /** No CPF on the user's verification: Avenia matches the user's own bank by it. */
     AVENIA_CPF_REQUIRED: 'AVENIA_CPF_REQUIRED',
-    /** No recorded acceptance of Avenia's terms: POST /avenia/kyc/start needs `termsAccepted: true`. */
-    AVENIA_TERMS_REQUIRED: 'AVENIA_TERMS_REQUIRED',
-    /** The Avenia sub-account's monthly limit has no room for this amount. */
-    AVENIA_LIMIT_EXCEEDED: 'AVENIA_LIMIT_EXCEEDED',
-    /** Avenia's withdrawal ticket had too little time left for the signature. Nothing moved; try again. */
-    AVENIA_TICKET_WINDOW_SHORT: 'AVENIA_TICKET_WINDOW_SHORT',
+    /** The Pix account's monthly limit has no room for this amount. */
+    PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
+    /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */
+    PIX_QUOTE_EXPIRED: 'PIX_QUOTE_EXPIRED',
     /** The Pix key belongs to someone else: Avenia pays out only to the user's own CPF. */
     PIX_KEY_NOT_OWN: 'PIX_KEY_NOT_OWN',
     /** The key's bank is on Avenia's payout deny-list. */
@@ -95,7 +91,7 @@ export const API_ERROR_CODES = {
     /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
     PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
     /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
-    AVENIA_QUOTE_CHANGED: 'AVENIA_QUOTE_CHANGED',
+    PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
     /** Another Pix withdrawal is still waiting for its signature. */
     WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
 } as const

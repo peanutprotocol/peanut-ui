@@ -2505,6 +2505,8 @@
     "avenia": {
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
+            "verifyBody": "Pix needs a verified identity first.",
+            "verifyCta": "Verify identity",
             "title": "Verify identity for Pix",
             "body": "Avenia provides Pix deposits and withdrawals for residents of Brazil. It asks once for a photo of your ID and a selfie.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",

@@ -3,7 +3,7 @@ import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -36,20 +36,18 @@ jest.mock('@/services/avenia', () => ({
 
 import { AveniaAddMoneyFlow } from '../components/AveniaAddMoneyFlow'
 
-const rail: RailCapability = {
-    id: 'avenia.pix_br',
-    provider: 'avenia',
+const route: CapabilityRoute = {
+    operation: 'deposit',
     method: 'PIX_BR',
-    channel: 'bank',
-    country: 'BR',
-    currency: 'BRL',
-    status: 'enabled',
+    provider: 'avenia',
+    state: 'ready',
+    candidates: [{ provider: 'avenia', state: 'ready' }],
 }
 const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) => void) =>
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-                <AveniaAddMoneyFlow searchParams={new URLSearchParams(searchParams)} rail={rail} />
+                <AveniaAddMoneyFlow route={route} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )

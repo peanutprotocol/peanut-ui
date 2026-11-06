@@ -5,20 +5,17 @@ import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycF
 import { countryData } from '@/components/AddMoney/consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
-import { BrazilPixWithdraw } from '@/features/avenia/components/BrazilPixWithdraw'
+import RouteAlias from '@/components/Global/RouteAlias'
+import { PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
     const { disabledMantecaCurrencies } = useKillSwitches()
-    const brazilPaused = useBrazilServicesPaused()
     const pixPaused = useBrazilPixPaused()
-    // Before the Pix delegation below: the pause stops Pix sends and BRL withdrawals alike.
-    if (brazilPaused && searchParams.get('country') === 'brazil') return <BrazilPausedScreen />
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
     // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
     // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
@@ -30,12 +27,16 @@ export default function MantecaWithdrawFlow() {
         if (pixPaused) return <BrazilPausedScreen />
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }
+    // A BRL withdrawal to the user's own account mounts on the neutral page, where the backend's route picks the provider.
+    if (searchParams.get('country') === 'brazil') return <RouteAlias to={PIX_WITHDRAW_PATH} />
     // Manteca provider outage — block the offramp only for currencies still
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
     // ride the QR-payment endpoint, not Manteca offramp) stay open.
     const withdrawCurrency = countryData.find((c) => c.path === searchParams.get('country'))?.currency?.toUpperCase()
-    const mantecaUnavailable = !!withdrawCurrency && (disabledMantecaCurrencies as string[]).includes(withdrawCurrency)
-    const mantecaFlow = (
+    if (withdrawCurrency && (disabledMantecaCurrencies as string[]).includes(withdrawCurrency)) {
+        return <MantecaTransfersMaintenanceView action="withdrawals" />
+    }
+    return (
         <KycFeatureActivationGate
             feature="local"
             scope={{ channel: 'bank', country: countryData.find((c) => c.path === searchParams.get('country'))?.id }}
@@ -43,12 +44,4 @@ export default function MantecaWithdrawFlow() {
             <MantecaBankWithdrawFlow searchParams={searchParams} />
         </KycFeatureActivationGate>
     )
-    // A Brazilian resident withdraws BRL through Avenia; the Manteca flow stays for everyone else.
-    if (searchParams.get('country') === 'brazil') {
-        return <BrazilPixWithdraw mantecaUnavailable={mantecaUnavailable} manteca={mantecaFlow} />
-    }
-    if (mantecaUnavailable) {
-        return <MantecaTransfersMaintenanceView action="withdrawals" />
-    }
-    return mantecaFlow
 }

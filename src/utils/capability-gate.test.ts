@@ -574,48 +574,6 @@ describe('deriveGate — country scoping (the Add Money dead-end class)', () => 
     })
 })
 
-describe('deriveGate — an Avenia rail its rollout gate or kill switch closed', () => {
-    // PR B blocks the rail with these reasons and no action; neither is the user's verification
-    const aveniaRail = (code: string): RailCapability =>
-        bankRail({
-            id: 'avenia.pix_br',
-            provider: 'avenia',
-            method: 'PIX_BR',
-            country: 'BR',
-            currency: 'BRL',
-            status: 'blocked',
-            reason: { code, userMessage: 'Pix with our Brazilian payments partner is not available.' },
-        })
-    const mantecaPending = bankRail({
-        id: 'manteca.pix_br',
-        provider: 'manteca',
-        method: 'PIX_BR',
-        country: 'BR',
-        currency: 'BRL',
-        status: 'pending',
-    })
-    const withoutReport = (rails: RailCapability[]): CapabilityState => ({ ...state(rails), features: undefined })
-
-    test.each(['avenia_not_available', 'avenia_paused'])(
-        '%s is no blocked-rejection: the Manteca rail decides',
-        (code) => {
-            const gate = deriveGate(withoutReport([aveniaRail(code), mantecaPending]), 'deposit', {
-                channel: 'bank',
-                country: 'BR',
-            })
-            expect(gate.kind).toBe('pending')
-        }
-    )
-
-    test("Avenia's own rejection still blocks", () => {
-        const gate = deriveGate(withoutReport([aveniaRail('avenia_kyc_rejected'), mantecaPending]), 'deposit', {
-            channel: 'bank',
-            country: 'BR',
-        })
-        expect(gate.kind).toBe('blocked-rejection')
-    })
-})
-
 describe('deriveGate — advisory pre-empt (future-dated requirement on a ready rail)', () => {
     // A Bridge rail that's ENABLED now but carries a future-dated requirement,
     // surfaced by the BE as a non-blocking hintAction whose NextAction has an

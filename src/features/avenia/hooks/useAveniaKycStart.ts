@@ -6,7 +6,6 @@ import { useAuth } from '@/context/authContext'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { aveniaApi } from '@/services/avenia'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
-import { markAveniaUnavailable } from '@/features/avenia/aveniaAvailability'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { reserveDetachedTab } from '@/utils/reserved-tab'
 import * as Sentry from '@/utils/sentry-lazy'
@@ -36,14 +35,13 @@ export interface AveniaKycStart {
  * review: the user query refetches every few seconds while the screen is
  * open, and the rail push from the KYC webhook refreshes it at once.
  *
- * A 403 means Avenia is not open to this user (the rollout gate, or a Peanut
- * verification still to do), and a 404 an API without the Avenia routes: in
- * both cases the user keeps the Manteca flow this session.
+ * A 403 `ROUTE_NOT_AVAILABLE` means the backend's route moved since the
+ * screen loaded: the capabilities are read again, and the route says what
+ * the user sees now.
  */
 export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): AveniaKycStart {
     const t = useTranslations('avenia')
-    const { user, fetchUser } = useAuth()
-    const userId = user?.user?.userId
+    const { fetchUser } = useAuth()
     const [isStarting, setIsStarting] = useState(false)
     const [isWaiting, setIsWaiting] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -80,18 +78,12 @@ export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): Av
         } catch (caught) {
             reservedTab?.close()
             const code = wireErrorCode(caught)
-            // a 404 is an API without the Avenia routes: the Manteca flow still serves the user
-            if (
-                code === API_ERROR_CODES.AVENIA_NOT_AVAILABLE ||
-                code === API_ERROR_CODES.AVENIA_KYC_REQUIRED ||
-                apiErrorStatus(caught) === 404
-            ) {
-                if (userId) markAveniaUnavailable(userId)
+            if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE) {
+                refresh()
                 return
             }
-            // a schema 400 or a missing record: the acceptance did not reach the ledger, so nothing started
-            if (code === API_ERROR_CODES.AVENIA_TERMS_REQUIRED || apiErrorStatus(caught) === 400)
-                setError(t('setup.termsNotSaved'))
+            // a schema 400: the acceptance did not reach the ledger, so nothing started
+            if (apiErrorStatus(caught) === 400) setError(t('setup.termsNotSaved'))
             else if (code === API_ERROR_CODES.AVENIA_CPF_REQUIRED) setError(t('setup.cpfRequired'))
             else if (apiErrorStatus(caught) === 409) setError(t('setup.settingUp'))
             else {
@@ -102,7 +94,7 @@ export function useAveniaKycStart({ railEnabled }: { railEnabled: boolean }): Av
             setIsStarting(false)
             startingRef.current = false
         }
-    }, [refresh, t, userId])
+    }, [refresh, t])
 
     // Keep the user poller alive while the rail is still waiting on Avenia.
     useEffect(() => {

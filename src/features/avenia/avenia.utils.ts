@@ -1,14 +1,15 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/services/avenia'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
-import { aveniaRouteState } from '@/features/avenia/aveniaAvailability'
+import { ACTIVATE_ACTION, VERIFY_ACTION } from '@/features/kyc-features/report'
 import { awaitsNewPixKey } from '@/features/avenia/aveniaRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** The Avenia rail of a Brazilian resident: Pix deposits and withdrawals (no QR pay before reliance). */
-export const AVENIA_PIX_RAIL_ID = 'avenia.pix_br'
+/** Route reason codes for a refused Avenia route (api `routing/rank.ts`). */
+const PROVIDER_REJECTED_REASON = 'provider_rejected'
+const PROVIDER_SETUP_FAILED_REASON = 'provider_setup_failed'
 
 /** R$0.75 fixed on R$10 is 7.5%, so Avenia deposits start at R$20 (plan H2). The eligibility route has the live value. */
 export const AVENIA_MIN_DEPOSIT_BRL = 20
@@ -16,48 +17,32 @@ export const AVENIA_MIN_DEPOSIT_BRL = 20
 /** PR B refuses a withdrawal that credits less (`PIX_MIN_AMOUNT`, `AVENIA_MIN_WITHDRAWAL_BRL` in its rules). No route sends it. */
 export const AVENIA_MIN_WITHDRAWAL_BRL = 20
 
-export type BrazilPixPath = 'loading' | 'avenia' | 'paused' | 'manteca'
-
 /**
- * Which provider serves a Brazilian Pix deposit or withdrawal for this user.
- *
- * A user who holds the Avenia rail uses Avenia, unless the rollout gate closes
- * it (the Manteca flow, as for a refused first use) or the Avenia kill switch
- * pauses it (`paused`). A verified Brazilian resident without the rail is
- * offered Avenia's first use; the API's rollout gate answers on that step, and
- * a refusal sends the user to the Manteca flow for the rest of the session
- * (`unavailable`). Everyone else keeps the Manteca flow.
+ * What the Avenia setup step shows for the backend's route. `activate` is
+ * Avenia's first use (POST /avenia/kyc/start) until the API's enrolment
+ * replaces it; `verify` is the identity check first. A refused route says
+ * whether Avenia rejected the user (`rejected`), support must finish it
+ * (`support`), or Pix is not offered to them (`unavailable`).
  */
-export function brazilPixPath({
-    isLoading,
-    aveniaRail,
-    identityVerified,
-    verifiedResidence,
-    unavailable,
-}: {
-    isLoading: boolean
-    aveniaRail: RailCapability | undefined
-    identityVerified: boolean
-    verifiedResidence: string | null | undefined
-    unavailable: boolean
-}): BrazilPixPath {
-    if (isLoading) return 'loading'
-    if (aveniaRail) {
-        const route = aveniaRouteState(aveniaRail)
-        if (route === 'paused') return 'paused'
-        return route === 'closed' ? 'manteca' : 'avenia'
+export type AveniaSetupState = 'ready' | 'activate' | 'verify' | 'pending' | 'rejected' | 'support' | 'unavailable'
+
+export function aveniaSetupState(
+    route: Pick<CapabilityRoute, 'state' | 'action' | 'reason'> | undefined
+): AveniaSetupState {
+    switch (route?.state) {
+        case 'ready':
+            return 'ready'
+        case 'pending':
+            return 'pending'
+        case 'action_required':
+            if (route.action === VERIFY_ACTION) return 'verify'
+            return route.action === ACTIVATE_ACTION ? 'activate' : 'support'
+        case 'refused':
+            if (route.reason?.code === PROVIDER_REJECTED_REASON) return 'rejected'
+            return route.reason?.code === PROVIDER_SETUP_FAILED_REASON ? 'support' : 'unavailable'
+        default:
+            return 'unavailable'
     }
-    if (unavailable) return 'manteca'
-    return identityVerified && verifiedResidence?.toUpperCase() === 'BR' ? 'avenia' : 'manteca'
-}
-
-/** What the Avenia setup step shows for the rail's capability status. */
-export type AveniaSetupState = 'ready' | 'verify' | 'blocked'
-
-export function aveniaSetupState(rail: RailCapability | undefined): AveniaSetupState {
-    if (rail?.status === 'enabled') return 'ready'
-    if (rail?.status === 'blocked') return 'blocked'
-    return 'verify'
 }
 
 export type AveniaDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
@@ -163,13 +148,13 @@ export type AveniaWithdrawRefusal =
 
 export function aveniaWithdrawRefusalKey(code: string | undefined): AveniaWithdrawRefusal {
     switch (code) {
-        case API_ERROR_CODES.AVENIA_LIMIT_EXCEEDED:
+        case API_ERROR_CODES.PIX_LIMIT_EXCEEDED:
             return 'withdraw.errors.limitExceeded'
         case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
             return 'withdraw.errors.inProgress'
-        case API_ERROR_CODES.AVENIA_TICKET_WINDOW_SHORT:
+        case API_ERROR_CODES.PIX_QUOTE_EXPIRED:
             return 'withdraw.errors.quoteExpired'
-        case API_ERROR_CODES.AVENIA_QUOTE_CHANGED:
+        case API_ERROR_CODES.PIX_QUOTE_CHANGED:
             return 'withdraw.errors.quoteChanged'
         case API_ERROR_CODES.PIX_KEY_NOT_OWN:
             return 'withdraw.keyNotOwn'

@@ -18,35 +18,27 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { aveniaApi, type AveniaDeposit } from '@/services/avenia'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
-import { readReturnTo } from '@/utils/return-to.utils'
+import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 
 type AveniaDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
 
 /**
  * Add money by Pix for a Brazilian resident on Avenia: the first-use setup
- * while the rail is not enabled, the amount in reais (R$20 minimum), then the
+ * while the route is not ready, the amount in reais (R$20 minimum), then the
  * dynamic Pix code. Same URL contract as the Manteca flow it replaces for
  * these users (`?step=`, `?amount=`, `?currency=`), plus `?intentId=` once
  * the code exists.
  */
-export function AveniaAddMoneyFlow({
-    searchParams,
-    rail,
-}: {
-    searchParams: Pick<URLSearchParams, 'get'>
-    rail: RailCapability | undefined
-}) {
+export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('addMoney')
     const tAvenia = useTranslations('avenia.deposit')
     const tShared = useTranslations('avenia')
     const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
     const { fetchUser } = useAuth()
-    const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
-    const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
     // nuqs default history (replace): the amount is rewritten on every keystroke
     const [urlState, setUrlState] = useQueryStates({
         step: parseAsStringEnum<AveniaDepositStep>(['inputAmount', 'showQR']),
@@ -54,10 +46,16 @@ export function AveniaAddMoneyFlow({
         currency: parseAsStringEnum<Denomination>(['USD', 'BRL']),
         // the deposit the code belongs to: a reload shows its status, not a new amount form
         intentId: parseAsString,
+        [RETURN_TO_PARAM]: parseAsString,
     })
+    const returnTo = readReturnTo(
+        new URLSearchParams(urlState.returnTo ? { [RETURN_TO_PARAM]: urlState.returnTo } : {})
+    )
+    const leaveToHome = useReturnTo(returnTo ?? '/home')
+    const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: AveniaDepositStep = urlState.step ?? 'inputAmount'
     const intentId = urlState.intentId
-    const ready = aveniaSetupState(rail) === 'ready'
+    const ready = aveniaSetupState(route) === 'ready'
 
     const currencyData = useCurrency('BRL')
     const [usdAmount, setUsdAmount] = useState('')
@@ -111,15 +109,15 @@ export function AveniaAddMoneyFlow({
                 country: 'brazil',
                 error_code: code ?? 'unknown',
             })
-            if (code === API_ERROR_CODES.AVENIA_KYC_REQUIRED || code === API_ERROR_CODES.AVENIA_NOT_AVAILABLE) {
-                // the rail moved since the screen loaded: the capabilities say where the user stands now
+            if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE) {
+                // the route moved since the screen loaded: the capabilities say where the user stands now
                 await fetchUser().catch(() => undefined)
                 return
             }
             setError(
                 code === API_ERROR_CODES.PIX_MIN_AMOUNT
                     ? tAvenia('minimum', { amount: formatBankAmount(minBrl, 'BRL') })
-                    : code === API_ERROR_CODES.AVENIA_LIMIT_EXCEEDED
+                    : code === API_ERROR_CODES.PIX_LIMIT_EXCEEDED
                       ? tAvenia('limitExceeded')
                       : code === API_ERROR_CODES.PROVIDER_REJECTED
                         ? tErrors('providerRejected')
@@ -146,7 +144,7 @@ export function AveniaAddMoneyFlow({
         )
     }
 
-    if (!ready) return <AveniaPixSetup title={t('title')} onBack={onBack} rail={rail} />
+    if (!ready) return <AveniaPixSetup title={t('title')} onBack={onBack} route={route} />
 
     // the code is being made: title only, nothing has moved yet
     if (isCreating) {

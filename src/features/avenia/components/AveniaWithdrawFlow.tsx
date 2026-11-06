@@ -37,7 +37,7 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { aveniaApi } from '@/services/avenia'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
 
@@ -48,7 +48,7 @@ import { formatBankAmount } from '@/utils/currency'
  * `?spend=` for the whole balance), so a refresh keeps the step; nothing is
  * opened at Avenia before Confirm.
  */
-export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined }) {
+export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('avenia.withdraw')
     const tShared = useTranslations('avenia')
     const refusalMessage = useAveniaRefusalMessage()
@@ -132,7 +132,7 @@ export function AveniaWithdrawFlow({ rail }: { rail: RailCapability | undefined 
         )
     }
 
-    if (aveniaSetupState(rail) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} rail={rail} />
+    if (aveniaSetupState(route) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} route={route} />
 
     if (step === 'pix-key') {
         return (

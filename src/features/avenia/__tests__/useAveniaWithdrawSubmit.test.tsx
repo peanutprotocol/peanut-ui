@@ -211,9 +211,9 @@ describe('useAveniaWithdrawSubmit', () => {
     })
 
     it.each([
-        ['AVENIA_LIMIT_EXCEEDED', 'withdraw.errors.limitExceeded'],
+        ['PIX_LIMIT_EXCEEDED', 'withdraw.errors.limitExceeded'],
         ['WITHDRAWAL_IN_PROGRESS', 'withdraw.errors.inProgress'],
-        ['AVENIA_TICKET_WINDOW_SHORT', 'withdraw.errors.quoteExpired'],
+        ['PIX_QUOTE_EXPIRED', 'withdraw.errors.quoteExpired'],
         ['PIX_KEY_NOT_OWN', 'withdraw.keyNotOwn'],
         ['PROVIDER_REJECTED', 'providerRejected'],
         ['PROVIDER_UNAVAILABLE', 'unavailable'],

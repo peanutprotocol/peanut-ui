@@ -2505,6 +2505,8 @@
     "avenia": {
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
         "setup": {
+            "verifyBody": "O Pix precisa de uma identidade verificada antes.",
+            "verifyCta": "Verificar identidade",
             "title": "Verificar identidade para o Pix",
             "body": "A Avenia oferece depósitos e saques por Pix para residentes do Brasil. Ela pede uma única vez uma foto do seu documento e uma selfie.",
             "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",

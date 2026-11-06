@@ -211,8 +211,21 @@ const BRAZIL_PAUSED_RESPONSES = {
     },
 }
 
-/** A Brazilian resident on Avenia Pix: verified in Brazil, with the AVENIA × PIX_BR rail. */
-const aveniaResponses = (railStatus: 'enabled' | 'requires-info', overrides: Record<string, unknown> = {}) => ({
+/** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's first use still to do. */
+const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
+    (['deposit', 'withdraw'] as const).map((operation) => {
+        const step = stage === 'enabled' ? { state: 'ready' } : { state: 'action_required', action: 'activate' }
+        return {
+            operation,
+            method: 'PIX_BR',
+            provider: 'avenia',
+            ...step,
+            candidates: [{ provider: 'avenia', ...step }],
+        }
+    })
+
+/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once Avenia's first use is done. */
+const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
     'GET /users/me': {
         user: { fullName: 'Ana Souza' },
         residence: {
@@ -221,31 +234,24 @@ const aveniaResponses = (railStatus: 'enabled' | 'requires-info', overrides: Rec
             secondaryDeclaredCountry: null,
         },
         capabilities: {
-            rails: [
-                {
-                    id: 'avenia.pix_br',
-                    provider: 'avenia',
-                    method: 'PIX_BR',
-                    channel: 'bank',
-                    country: 'BR',
-                    currency: 'BRL',
-                    status: railStatus,
-                    ...(railStatus === 'enabled'
-                        ? { operations: { deposit: 'enabled', withdraw: 'enabled' } }
-                        : {
-                              blockingActions: ['avenia-hosted'],
-                              reason: {
-                                  code: 'avenia_kyc_required',
-                                  userMessage: 'Verify your identity with our Brazilian payments partner to use Pix.',
-                              },
-                          }),
-                },
-            ],
-            nextActions:
-                railStatus === 'enabled'
-                    ? []
-                    : [{ key: 'avenia-hosted', kind: 'avenia-hosted', purpose: 'unlock-avenia-pix' }],
+            rails:
+                stage === 'enabled'
+                    ? [
+                          {
+                              id: 'avenia.pix_br',
+                              provider: 'avenia',
+                              method: 'PIX_BR',
+                              channel: 'bank',
+                              country: 'BR',
+                              currency: 'BRL',
+                              status: 'enabled',
+                              operations: { deposit: 'enabled', withdraw: 'enabled' },
+                          },
+                      ]
+                    : [],
+            nextActions: [],
             restrictions: [],
+            routes: aveniaRoutes(stage),
         },
     },
     'GET /avenia/deposit/eligibility': { minAmountBrl: '20', blockedBanks: [] },
@@ -1671,7 +1677,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-first-use': {
         route: '/add-money/brazil/manteca',
         about: "Avenia's first use: the provider and its terms named before its hosted verification opens.",
-        responses: aveniaResponses('requires-info'),
+        responses: aveniaResponses('first-use'),
     },
     'avenia-deposit-amount': {
         route: '/add-money/brazil/manteca',

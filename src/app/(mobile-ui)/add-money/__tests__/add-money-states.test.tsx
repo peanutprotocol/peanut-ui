@@ -1681,13 +1681,16 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
         mockBrazilPaused = false
     })
 
-    test('BR + manteca shows the Brazil paused screen while the pause covers the user', () => {
+    // The Brazil pause, and the provider, are decided on the neutral page (features/pix/__tests__).
+    test('BR + manteca opens the neutral Pix page, query kept', () => {
         mockBrazilPaused = true
+        window.history.replaceState(null, '', '/add-money/brazil/manteca?amount=100&currency=BRL')
         setParams({ country: 'brazil', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
-        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix?amount=100&currency=BRL')
         expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
+        window.history.replaceState(null, '', '/')
     })
 
     test('AR + manteca stays open during the Brazil pause', () => {

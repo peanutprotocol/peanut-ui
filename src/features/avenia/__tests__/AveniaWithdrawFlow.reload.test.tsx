@@ -5,7 +5,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import type { UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
-import type { RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 
 // general.utils reaches the viem clients, whose RPC-ranking timers keep the worker alive
 jest.mock('@/app/actions/clients', () => ({}))
@@ -44,14 +44,12 @@ jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => mockEntry()
 
 import { AveniaWithdrawFlow } from '../components/AveniaWithdrawFlow'
 
-const rail: RailCapability = {
-    id: 'avenia.pix_br',
-    provider: 'avenia',
+const route: CapabilityRoute = {
+    operation: 'withdraw',
     method: 'PIX_BR',
-    channel: 'bank',
-    country: 'BR',
-    currency: 'BRL',
-    status: 'enabled',
+    provider: 'avenia',
+    state: 'ready',
+    candidates: [{ provider: 'avenia', state: 'ready' }],
 }
 const entry = (status: string) => ({
     data: { uuid: 'w1', status, currency: { amount: '503.00', code: 'BRL' }, extraData: {} },
@@ -62,7 +60,7 @@ const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) =>
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-                <AveniaWithdrawFlow rail={rail} />
+                <AveniaWithdrawFlow route={route} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
