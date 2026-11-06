@@ -176,7 +176,7 @@ const definitions: Screen[] = [
                       : id === 'paperwork-verification-outage'
                         ? '[data-testid="verify-outage"]'
                         : id === 'paperwork-verification-policy-hold'
-                          ? '[data-testid="verify-review-retry"]'
+                          ? '[data-testid="verify-replacement-document"]:enabled'
                           : id === 'paperwork-verification-rejected'
                             ? '[data-testid="verify-review-home"]'
                             : id === 'paperwork-verification-restart-foreign'

@@ -55,6 +55,7 @@ export function ReplacementDocumentAction({
     return (
         <Button
             className="w-full"
+            data-testid={allowed ? 'verify-replacement-document' : undefined}
             loading={checking}
             disabled={checking}
             onClick={() => {

@@ -417,7 +417,19 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
                     rejectLabels: ['DOCUMENT_POLICY_HOLD'],
                 },
             },
-            'GET /users/kyc/profile': profile('ACTION_REQUIRED'),
+            'GET /users/kyc/plan': { ...plan(), activeAttemptId: null },
+            'GET /users/kyc/profile': {
+                ...profile('ACTION_REQUIRED'),
+                attempts: [
+                    {
+                        id: 'vo-attempt',
+                        kind: 'IDENTITY',
+                        verificationId: 'vo-identity',
+                        status: 'ACTION_REQUIRED',
+                        reasonCode: 'document_policy_hold',
+                    },
+                ],
+            },
         },
     },
     'paperwork-verification-rejected': {
