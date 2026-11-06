@@ -12,13 +12,6 @@ let mockLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ capabilities: { routes: mockRoutes }, isLoading: mockLoading }),
 }))
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
-}))
-jest.mock('@/features/kill-switches/useKillSwitches', () => ({
-    useKillSwitches: () => ({ disabledMantecaCurrencies: [] }),
-}))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: ({ action }: { action: string }) => <div>outage {action}</div>,
@@ -65,11 +58,9 @@ describe('the neutral Pix screens', () => {
     beforeEach(() => {
         mockRoutes = undefined
         mockLoading = false
-        mockBrazilPaused = false
     })
 
-    it("mount Avenia's screens when the route names Avenia, even while the Brazil pause is on", () => {
-        mockBrazilPaused = true
+    it("mount Avenia's screens when the route names Avenia", () => {
         mockRoutes = [route('deposit', { state: 'action_required', action: 'activate' }), route('withdraw')]
         const { unmount } = render(<PixAddMoney />)
         expect(screen.getByText('avenia deposit action_required')).toBeInTheDocument()
@@ -87,14 +78,29 @@ describe('the neutral Pix screens', () => {
         expect(screen.getByText('manteca withdraw brazil')).toBeInTheDocument()
     })
 
-    it('keep the Brazil pause on the Manteca screens', () => {
-        mockBrazilPaused = true
-        mockRoutes = [route('deposit', { provider: 'manteca' }), route('withdraw', { provider: 'manteca' })]
+    // the router reads the pause switches: the paused route is the only pause these pages show
+    it('show the residence pause in its own words, for either provider', () => {
+        const residencePaused = { state: 'paused' as const, reason: { code: 'residence_paused', userMessage: '' } }
+        mockRoutes = [route('deposit', { provider: 'manteca', ...residencePaused }), route('withdraw', residencePaused)]
         const { unmount } = render(<PixAddMoney />)
         expect(screen.getByText('brazil paused')).toBeInTheDocument()
+        expect(screen.queryByText(/manteca deposit/)).toBeNull()
         unmount()
         render(<PixWithdraw />)
         expect(screen.getByText('brazil paused')).toBeInTheDocument()
+        expect(screen.queryByText(/avenia withdraw/)).toBeNull()
+    })
+
+    it("show the outage for a provider's or a currency's pause", () => {
+        mockRoutes = [
+            route('deposit', {
+                provider: 'manteca',
+                state: 'paused',
+                reason: { code: 'provider_paused', userMessage: '' },
+            }),
+        ]
+        render(<PixAddMoney />)
+        expect(screen.getByText('outage deposits')).toBeInTheDocument()
     })
 
     it('show a refused route as not available, even when its best candidate is Manteca', () => {

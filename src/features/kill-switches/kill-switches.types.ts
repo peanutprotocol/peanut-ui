@@ -21,7 +21,8 @@ export interface KillSwitches {
     disableXchainSend: boolean
     /** Warn-only "Maintenance" tag on the Pix option in /add-money/brazil. */
     pixBrazilOnrampMaintenance: boolean
-    /** Brazil users get the paused drawer on every BRL deposit, withdraw and Pix entry (useBrazilServicesPaused). */
+    /** The Brazil pause. The API's router pauses a Brazil resident's deposit and withdraw routes;
+     *  the app pauses Pix payments and Pix-key sends itself (useBrazilPixPaused). */
     brazilServicesPaused: boolean
     /** Identity verification is down: every KYC entry point shows "temporarily down" instead of its CTA. */
     kycVerificationDown: boolean

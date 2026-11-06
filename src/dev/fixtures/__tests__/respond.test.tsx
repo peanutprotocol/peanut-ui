@@ -132,7 +132,7 @@ describe('fixtureRespond capability report', () => {
         expect(body.capabilities.features.local.accounts.BRL).toMatchObject({ state: 'refused' })
     })
 
-    it.each(['add-money-brazil-paused', 'withdraw-brazil-paused'])(
+    it.each(['withdraw-brazil-paused'])(
         '%s supplies the Brazil residence used by the pause and capability report',
         async (name) => {
             activateFixture(name)

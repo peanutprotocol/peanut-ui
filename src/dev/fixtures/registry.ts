@@ -1626,12 +1626,6 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
-    // TASK-24197: tap the BRL row. The Brazil pause opens its drawer instead of the transfer.
-    'add-money-brazil-paused': {
-        route: '/add-money?method=bank',
-        about: 'Add money by bank during the Brazil pause: the BRL row opens the paused drawer.',
-        responses: BRAZIL_PAUSED_RESPONSES,
-    },
     // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
     // screen, so the country offers one row.
     'add-money-argentina': {
@@ -1938,6 +1932,18 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaRouteResponses({
             state: 'paused',
             reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
+    // the router pauses every route of a Brazil resident while brazilServicesPaused is on
+    'pix-route-residence-paused': {
+        route: '/withdraw/pix',
+        about: "The residence pause on a Pix route: the residence's own words, no provider flow.",
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: {
+                code: 'residence_paused',
+                userMessage: 'Deposits and withdrawals are paused where you live for now.',
+            },
         }),
     },
     'pix-route-paused-withdraw': {

@@ -24,7 +24,6 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
-import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 const killSwitches = getKillSwitches()
 import { addBankAccount } from '@/app/actions/users'
@@ -52,11 +51,6 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockPush }),
     useParams: () => mockParams,
     useSearchParams: () => mockSearchParams,
-}))
-
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
 }))
 
 // ---- consts: one country ('testland', id 'US') with a bank add-method and a
@@ -501,37 +495,6 @@ describe('AddWithdrawCountriesList — crypto is offered once per flow', () => {
  * maintenance" (config: pixBrazilOnrampMaintenance) — warn-only: it stays
  * visible and clickable.
  */
-// TASK-24197: with the Brazil pause on, every Brazil method opens the paused drawer
-describe('AddWithdrawCountriesList — the Brazil pause', () => {
-    afterEach(() => {
-        mockBrazilPaused = false
-        closeBrazilPausedDrawer()
-        mockParams.country = 'testland'
-    })
-
-    it('a Brazil method opens the paused drawer and goes nowhere', () => {
-        mockBrazilPaused = true
-        mockParams.country = 'brazil'
-        mockPush.mockClear()
-        render(<AddWithdrawCountriesList flow="add" />)
-
-        fireEvent.click(screen.getByTestId('method-pix'))
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
-        expect(mockPush).not.toHaveBeenCalled()
-    })
-
-    it('the same Pix method listed under another country is not stopped', () => {
-        mockBrazilPaused = true
-        mockPush.mockClear()
-        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
-        render(<AddWithdrawCountriesList flow="add" />)
-
-        fireEvent.click(screen.getByTestId('method-pix'))
-        expect(isBrazilPausedDrawerOpen()).toBe(false)
-        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
-    })
-})
-
 describe('AddWithdrawCountriesList — PIX onramp maintenance tag', () => {
     // snapshot/restore the shipped flag so each test can flip it without leaking
     // state — and without coupling the restore to the committed default
