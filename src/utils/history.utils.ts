@@ -94,6 +94,13 @@ export type AveniaRecoveryView = NonNullable<
     >['aveniaRecovery']
 >
 
+/** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
+export type HistoryIntentStatus = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['intentStatus']
+>
+
 /** An Avenia Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
 export type AveniaDepositView = NonNullable<
     NonNullable<
@@ -126,7 +133,7 @@ export interface HistoryEntryExtraData {
     aveniaDeposit?: AveniaDepositView
     /** The intent's own status, which `status` folds into PENDING (an Avenia withdrawal is
      *  AWAITING_USER_ACTION until its deposit is reported or seen, PROCESSING after). */
-    intentStatus?: string
+    intentStatus?: HistoryIntentStatus
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.

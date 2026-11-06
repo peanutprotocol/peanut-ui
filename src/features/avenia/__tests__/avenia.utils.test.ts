@@ -16,6 +16,7 @@ import {
 } from '../avenia.utils'
 import { awaitsNewPixKey, aveniaNewKeyUrl } from '../aveniaRecovery'
 import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
+import type { HistoryIntentStatus } from '@/utils/history.utils'
 import type { CapabilityRoute } from '@/types/capabilities'
 
 const route = (
@@ -250,7 +251,10 @@ describe('aveniaWithdrawOutcome', () => {
     })
 
     it('after a reload, calls a withdrawal this device never signed not sent while the API waits for it', () => {
-        const waiting = (intentStatus: string) => ({ status: 'PENDING' as never, extraData: { intentStatus } })
+        const waiting = (intentStatus: HistoryIntentStatus) => ({
+            status: 'PENDING' as never,
+            extraData: { intentStatus },
+        })
         expect(aveniaWithdrawOutcome('unsigned', waiting('AWAITING_USER_ACTION'))).toBe('not-sent')
         // the device may have sent it: wait for the API instead
         expect(aveniaWithdrawOutcome('unconfirmed', waiting('AWAITING_USER_ACTION'))).toBe('unconfirmed')
