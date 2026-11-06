@@ -211,10 +211,20 @@ const BRAZIL_PAUSED_RESPONSES = {
     },
 }
 
-/** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's first use still to do. */
+/** Avenia's terms step as capabilities name it: a route action and its accept-tos next action. */
+const AVENIA_TERMS_ACTION = 'accept-tos:avenia'
+
+/** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's terms still to accept. */
 const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
     (['deposit', 'withdraw'] as const).map((operation) => {
-        const step = stage === 'enabled' ? { state: 'ready' } : { state: 'action_required', action: 'activate' }
+        const step =
+            stage === 'enabled'
+                ? { state: 'ready' }
+                : {
+                      state: 'action_required',
+                      action: AVENIA_TERMS_ACTION,
+                      reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
+                  }
         return {
             operation,
             method: 'PIX_BR',
@@ -224,7 +234,7 @@ const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
         }
     })
 
-/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once Avenia's first use is done. */
+/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once Avenia's terms are accepted. */
 const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
     'GET /users/me': {
         user: { fullName: 'Ana Souza' },
@@ -249,7 +259,17 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
                           },
                       ]
                     : [],
-            nextActions: [],
+            nextActions:
+                stage === 'enabled'
+                    ? []
+                    : [
+                          {
+                              key: AVENIA_TERMS_ACTION,
+                              kind: 'accept-tos',
+                              purpose: 'unlock-avenia',
+                              tosUrl: 'https://app.avenia.io/Avenia-TC.pdf',
+                          },
+                      ],
             restrictions: [],
             routes: aveniaRoutes(stage),
         },
@@ -1675,8 +1695,8 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     // ---- Avenia Pix for Brazilian residents (PR C of the Brazil Avenia work) ----
     'avenia-first-use': {
-        route: '/add-money/brazil/manteca',
-        about: "Avenia's first use: the provider and its terms named before its hosted verification opens.",
+        route: '/add-money/pix',
+        about: "Avenia's terms step: the provider and its terms named and linked before the user accepts them.",
         responses: aveniaResponses('first-use'),
     },
     'avenia-deposit-amount': {

@@ -76,8 +76,6 @@ export const API_ERROR_CODES = {
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     /** The backend's route does not serve this operation for this user (the capability route says why). Sent with 403. */
     ROUTE_NOT_AVAILABLE: 'ROUTE_NOT_AVAILABLE',
-    /** No CPF on the user's verification: Avenia matches the user's own bank by it. */
-    AVENIA_CPF_REQUIRED: 'AVENIA_CPF_REQUIRED',
     /** The Pix account's monthly limit has no room for this amount. */
     PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
     /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */

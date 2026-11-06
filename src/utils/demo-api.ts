@@ -926,8 +926,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             payerCpfMasked: '123.***.***-09',
         }),
     },
-    // no hosted page in demo: Avenia "reviews" and the rail stays as the fixture states it
-    { method: 'POST', pattern: '/avenia/kyc/start', handler: () => ({ state: 'pending' }) },
     {
         method: 'GET',
         pattern: '/avenia/pix-key-info',

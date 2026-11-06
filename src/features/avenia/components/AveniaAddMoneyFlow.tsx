@@ -11,7 +11,7 @@ import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
-import { AVENIA_MIN_DEPOSIT_BRL, aveniaSetupState, toApiDecimal } from '@/features/avenia/avenia.utils'
+import { AVENIA_MIN_DEPOSIT_BRL, toApiDecimal } from '@/features/avenia/avenia.utils'
 import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
@@ -57,7 +57,7 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
     const leaveToHome = useReturnTo(returnTo ?? '/home')
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: AveniaDepositStep = urlState.step ?? 'inputAmount'
-    const ready = aveniaSetupState(route) === 'ready'
+    const ready = route.state === 'ready'
     // The deposit the user left for a new one; the capabilities may still name it payable for a moment.
     const [leftIntentId, setLeftIntentId] = useState<string | null>(null)
     const payableIntentId = route.payableDepositIntentId

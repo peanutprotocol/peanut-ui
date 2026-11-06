@@ -17,7 +17,6 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
     AVENIA_MIN_WITHDRAWAL_BRL,
     AVENIA_WITHDRAW_STEPS,
-    aveniaSetupState,
     aveniaWithdrawAmount,
     completePixKey,
 } from '@/features/avenia/avenia.utils'
@@ -132,7 +131,7 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
         )
     }
 
-    if (aveniaSetupState(route) !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} route={route} />
+    if (route.state !== 'ready') return <AveniaPixSetup title={title} onBack={leaveFlow} route={route} />
 
     if (step === 'pix-key') {
         return (

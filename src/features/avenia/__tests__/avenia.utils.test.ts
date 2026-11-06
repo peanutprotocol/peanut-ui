@@ -1,5 +1,6 @@
 import {
     aveniaDepositPhase,
+    aveniaPendingReason,
     aveniaSetupState,
     aveniaWithdrawAmount,
     aveniaWithdrawOutcome,
@@ -17,25 +18,34 @@ import type { CapabilityRoute } from '@/types/capabilities'
 
 const route = (
     state: CapabilityRoute['state'],
-    extra: Partial<Pick<CapabilityRoute, 'action' | 'reason'>> = {}
-): Pick<CapabilityRoute, 'state' | 'action' | 'reason'> => ({ state, ...extra })
+    extra: Partial<Pick<CapabilityRoute, 'action'>> = {}
+): Pick<CapabilityRoute, 'state' | 'action'> => ({ state, ...extra })
 
 describe('aveniaSetupState', () => {
-    it("reads the user's step from the backend's route", () => {
-        expect(aveniaSetupState(route('ready'))).toBe('ready')
-        expect(aveniaSetupState(route('pending'))).toBe('pending')
-        expect(aveniaSetupState(route('action_required', { action: 'verify' }))).toBe('verify')
-        // until the API's enrolment replaces it, activate opens Avenia's first use
-        expect(aveniaSetupState(route('action_required', { action: 'activate' }))).toBe('activate')
-        expect(aveniaSetupState(route('action_required', { action: 'contact-support:x' }))).toBe('support')
+    it("reads the user's step from the backend's route and its next action", () => {
+        expect(aveniaSetupState(route('ready'), undefined)).toBe('ready')
+        expect(aveniaSetupState(route('pending'), undefined)).toBe('pending')
+        expect(aveniaSetupState(route('action_required', { action: 'verify' }), undefined)).toBe('verify')
+        expect(aveniaSetupState(route('action_required', { action: 'accept-tos:avenia' }), 'accept-tos')).toBe(
+            'accept-terms'
+        )
     })
 
-    it('names why a refused route is closed', () => {
-        const refused = (code: string) => route('refused', { reason: { code, userMessage: '' } })
-        expect(aveniaSetupState(refused('provider_rejected'))).toBe('rejected')
-        expect(aveniaSetupState(refused('provider_setup_failed'))).toBe('support')
-        expect(aveniaSetupState(refused('rollout_closed'))).toBe('unavailable')
-        expect(aveniaSetupState(undefined)).toBe('unavailable')
+    it('leaves any other step to support', () => {
+        expect(aveniaSetupState(route('action_required', { action: 'contact-support:x' }), 'contact-support')).toBe(
+            'support'
+        )
+        expect(aveniaSetupState(route('action_required', { action: 'accept-tos:avenia' }), undefined)).toBe('support')
+        expect(aveniaSetupState(undefined, undefined)).toBe('support')
+    })
+})
+
+describe('aveniaPendingReason', () => {
+    it('names why the route waits', () => {
+        expect(aveniaPendingReason('provider_reviewing')).toBe('reviewing')
+        expect(aveniaPendingReason('avenia_import_unavailable')).toBe('import-unavailable')
+        expect(aveniaPendingReason('avenia_cpf_missing')).toBe('cpf-missing')
+        expect(aveniaPendingReason(undefined)).toBe('reviewing')
     })
 })
 

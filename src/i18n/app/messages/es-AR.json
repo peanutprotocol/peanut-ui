@@ -1276,14 +1276,14 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         }
     },
+    "pix": {
+        "rejected": "La verificación no fue aceptada, así que Pix no está disponible. Contactá a soporte si creés que es un error."
+    },
     "avenia": {
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
-            "rejected": "Avenia no pudo verificar tu identidad, así que Pix no está disponible. Contactá a soporte si creés que es un error.",
-            "checkingBody": "Terminá los pasos en la página de Avenia. Esta pantalla avanza cuando Avenia confirme.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
-            "settingUp": "La cuenta Pix se está configurando. Intentá de nuevo en un minuto.",
             "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intentá de nuevo.",
             "notAvailable": "No se pudo configurar Pix para esta cuenta. Contactá a soporte para terminarlo."
         },

@@ -15,8 +15,9 @@ import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { aveniaSetupState } from '@/features/avenia/avenia.utils'
-import { useAveniaKycStart } from '@/features/avenia/hooks/useAveniaKycStart'
+import { aveniaPendingReason, aveniaSetupState } from '@/features/avenia/avenia.utils'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { useRouteTermsAcceptance } from '@/hooks/useRouteTermsAcceptance'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 
@@ -24,9 +25,10 @@ const AVENIA = PROVIDERS['avenia-br']
 
 /**
  * The user's step before Avenia Pix works, as the backend's route names it:
- * the identity check first, Avenia's first use (name Avenia and its terms,
- * open its hosted verification), the wait for Avenia's review, or why Pix
- * is closed. The flow under it renders once the route is ready.
+ * the identity check first; Avenia's terms, which the user accepts here (the
+ * API then shares the Peanut verification with Avenia, so there is no second
+ * check); then the wait while Avenia reviews it. The flow under it renders
+ * once the route is ready.
  */
 export function AveniaPixSetup({
     title,
@@ -39,33 +41,27 @@ export function AveniaPixSetup({
     route: CapabilityRoute | undefined
 }) {
     const t = useTranslations('avenia.setup')
-    const tShared = useTranslations('avenia')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const router = useRouter()
     const { openSupportWithMessage } = useModalsContext()
     const { user } = useAuth()
-    const state = aveniaSetupState(route)
-    const kyc = useAveniaKycStart({ railEnabled: state === 'ready' })
+    const { nextActions } = useCapabilities()
+    const termsAction = nextActions.find((action) => action.key === route?.action)
+    const state = aveniaSetupState(route, termsAction?.kind)
+    const terms = useRouteTermsAcceptance(state === 'accept-terms' ? route?.action : undefined)
+    const pending = aveniaPendingReason(route?.reason?.code)
+    // the route's reason tells support which case this is
+    const contactSupport = () =>
+        openSupportWithMessage(buildContactSupportMessage({ reason: route?.reason, userId: user?.user?.userId }))
 
-    if (state === 'rejected' || state === 'support' || state === 'unavailable') {
+    if (state === 'support' || (state === 'pending' && pending === 'cpf-missing')) {
         return (
             <MantecaAccountUnavailable
                 title={title}
-                description={
-                    state === 'rejected'
-                        ? t('rejected')
-                        : state === 'support'
-                          ? t('notAvailable')
-                          : tShared('unavailable')
-                }
+                description={t(state === 'pending' ? 'cpfRequired' : 'notAvailable')}
                 onBack={onBack}
-                // the route's reason tells support which case this is
-                onSupport={() =>
-                    openSupportWithMessage(
-                        buildContactSupportMessage({ reason: route?.reason, userId: user?.user?.userId })
-                    )
-                }
+                onSupport={contactSupport}
             />
         )
     }
@@ -87,14 +83,15 @@ export function AveniaPixSetup({
         )
     }
 
-    // Only the terms step starts Avenia: every start carries the acceptance, so the wait has no
-    // "open again". Leaving and coming back shows the terms step, and its Continue opens a new link.
-    if (state === 'pending' || kyc.isWaiting) {
+    if (state === 'pending') {
         return (
             <PageStack>
                 <NavHeader title={title} onPrev={onBack} />
                 <PageStack.Center>
-                    <ProcessingScreen title={tLoading('gettingKycStatus')} description={t('checkingBody')} />
+                    <ProcessingScreen
+                        title={tLoading('gettingKycStatus')}
+                        description={t(pending === 'import-unavailable' ? 'importUnavailable' : 'reviewing')}
+                    />
                 </PageStack.Center>
             </PageStack>
         )
@@ -112,20 +109,20 @@ export function AveniaPixSetup({
                     <Button
                         variant="primary"
                         className="w-full"
-                        loading={kyc.isStarting}
-                        disabled={kyc.isStarting}
-                        onClick={() => void kyc.start()}
+                        loading={terms.isAccepting}
+                        disabled={terms.isAccepting}
+                        onClick={() => void terms.accept()}
                     >
                         {tCommon('continue')}
                     </Button>
-                    {/* The terms the tap agrees to, named by their title, under the button
-                        (same shape as the deposit account claim). */}
+                    {/* The terms the tap agrees to, named and linked before the tap (design.md, consent
+                        screens). The link is the document the API versions and hashes. */}
                     <p className="text-center text-body-xs text-foreground-secondary">
                         {t.rich('terms', {
                             termsName: AVENIA.termsName ?? AVENIA.brand,
                             terms: (chunks) => (
                                 <a
-                                    href={AVENIA.termsUrl}
+                                    href={termsAction?.tosUrl ?? AVENIA.termsUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="underline underline-offset-2"
@@ -136,7 +133,7 @@ export function AveniaPixSetup({
                         })}
                     </p>
                     <ProviderFinePrint providerId="avenia-br" label="accountProvider" prospective />
-                    {kyc.error && <Callout priority="error">{kyc.error}</Callout>}
+                    {terms.error && <Callout priority="error">{terms.error}</Callout>}
                 </div>
             </PageStack.Center>
         </PageStack>

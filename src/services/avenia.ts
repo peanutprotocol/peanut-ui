@@ -15,11 +15,6 @@ type Json<T> = T extends { content: { 'application/json': infer Body } } ? Body 
 export type AveniaDepositEligibility = Json<paths['/avenia/deposit/eligibility']['get']['responses'][200]>
 export type AveniaDeposit = Json<paths['/avenia/deposit']['post']['responses'][200]>
 export type AveniaDepositStatus = Json<paths['/avenia/deposit/{intentId}']['get']['responses'][200]>
-export type AveniaKycStart = Json<paths['/avenia/kyc/start']['post']['responses'][200]>
-/** `termsAccepted: true` is the user's acceptance of Avenia's terms; the API records it before anything starts. */
-export type AveniaKycStartBody = NonNullable<
-    paths['/avenia/kyc/start']['post']['requestBody']
->['content']['application/json']
 export type PixKeyInfo = Json<paths['/avenia/pix-key-info']['get']['responses'][200]>
 export type AveniaWithdrawDisplay = Json<paths['/avenia/withdraw/preview']['post']['responses'][200]>
 export type AveniaWithdrawInit = Json<paths['/avenia/withdraw/init']['post']['responses'][200]>
@@ -56,10 +51,6 @@ export const aveniaApi = {
             { method: 'GET' },
             'Could not read the deposit'
         ),
-
-    /** First use: records the terms acceptance, creates the Avenia sub-account once and returns the hosted KYC link. */
-    startKyc: (body: AveniaKycStartBody) =>
-        call<AveniaKycStart>('/avenia/kyc/start', post(body), 'Could not start Pix'),
 
     pixKeyInfo: (key: string) =>
         call<PixKeyInfo>(

@@ -1,15 +1,15 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/services/avenia'
-import type { CapabilityRoute } from '@/types/capabilities'
+import type { CapabilityRoute, NextActionKind } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
-import { ACTIVATE_ACTION, VERIFY_ACTION } from '@/features/kyc-features/report'
+import { VERIFY_ACTION } from '@/features/kyc-features/report'
 import { awaitsNewPixKey } from '@/features/avenia/aveniaRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** Route reason codes for a refused Avenia route (api `routing/rank.ts`). */
-const PROVIDER_REJECTED_REASON = 'provider_rejected'
-const PROVIDER_SETUP_FAILED_REASON = 'provider_setup_failed'
+/** The pending route's reasons while Avenia reviews the shared verification (api `kyc/capabilities`). */
+const AVENIA_IMPORT_UNAVAILABLE_REASON = 'avenia_import_unavailable'
+const AVENIA_CPF_MISSING_REASON = 'avenia_cpf_missing'
 
 /** R$0.75 fixed on R$10 is 7.5%, so Avenia deposits start at R$20 (plan H2). The eligibility route has the live value. */
 export const AVENIA_MIN_DEPOSIT_BRL = 20
@@ -18,16 +18,17 @@ export const AVENIA_MIN_DEPOSIT_BRL = 20
 export const AVENIA_MIN_WITHDRAWAL_BRL = 20
 
 /**
- * What the Avenia setup step shows for the backend's route. `activate` is
- * Avenia's first use (POST /avenia/kyc/start) until the API's enrolment
- * replaces it; `verify` is the identity check first. A refused route says
- * whether Avenia rejected the user (`rejected`), support must finish it
- * (`support`), or Pix is not offered to them (`unavailable`).
+ * What the Avenia setup step shows for the backend's route: the identity
+ * check first (`verify`), Avenia's terms (the route's action is an
+ * `accept-tos` next action), then the wait while Avenia reviews the shared
+ * verification. Refused and paused routes never reach it: the Pix pages show
+ * those. Anything else is a case support finishes.
  */
-export type AveniaSetupState = 'ready' | 'activate' | 'verify' | 'pending' | 'rejected' | 'support' | 'unavailable'
+export type AveniaSetupState = 'ready' | 'verify' | 'accept-terms' | 'pending' | 'support'
 
 export function aveniaSetupState(
-    route: Pick<CapabilityRoute, 'state' | 'action' | 'reason'> | undefined
+    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
+    actionKind: NextActionKind | undefined
 ): AveniaSetupState {
     switch (route?.state) {
         case 'ready':
@@ -36,13 +37,18 @@ export function aveniaSetupState(
             return 'pending'
         case 'action_required':
             if (route.action === VERIFY_ACTION) return 'verify'
-            return route.action === ACTIVATE_ACTION ? 'activate' : 'support'
-        case 'refused':
-            if (route.reason?.code === PROVIDER_REJECTED_REASON) return 'rejected'
-            return route.reason?.code === PROVIDER_SETUP_FAILED_REASON ? 'support' : 'unavailable'
+            return actionKind === 'accept-tos' ? 'accept-terms' : 'support'
         default:
-            return 'unavailable'
+            return 'support'
     }
+}
+
+/** Why the route waits: Avenia reviews, cannot receive the verification yet, or has no CPF for it. */
+export type AveniaPendingReason = 'reviewing' | 'import-unavailable' | 'cpf-missing'
+
+export function aveniaPendingReason(code: string | undefined): AveniaPendingReason {
+    if (code === AVENIA_CPF_MISSING_REASON) return 'cpf-missing'
+    return code === AVENIA_IMPORT_UNAVAILABLE_REASON ? 'import-unavailable' : 'reviewing'
 }
 
 export type AveniaDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'

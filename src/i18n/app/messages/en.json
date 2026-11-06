@@ -2502,17 +2502,19 @@
             "otherCountriesPitch": "Pick a country"
         }
     },
+    "pix": {
+        "rejected": "The verification was not accepted, so Pix is not available. Contact support if this looks wrong."
+    },
     "avenia": {
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
+            "importUnavailable": "Avenia cannot receive your verification yet. We send it again each day.",
+            "reviewing": "Avenia is checking your verification. This screen moves on once it is done.",
             "verifyCta": "Verify identity",
-            "title": "Verify identity for Pix",
-            "body": "Avenia provides Pix deposits and withdrawals for residents of Brazil. It asks once for a photo of your ID and a selfie.",
+            "title": "Set up Pix",
+            "body": "Avenia provides Pix deposits and withdrawals for residents of Brazil. It receives your Peanut verification, so there is no second check.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
-            "rejected": "Avenia could not verify your identity, so Pix is not available. Contact support if this looks wrong.",
-            "checkingBody": "Finish the steps on Avenia's page. This screen moves on once Avenia confirms.",
             "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
-            "settingUp": "The Pix account is being set up. Try again in a minute.",
             "termsNotSaved": "The acceptance of Avenia's terms was not saved. Try again.",
             "notAvailable": "Pix could not be set up for this account. Contact support to finish it."
         },
