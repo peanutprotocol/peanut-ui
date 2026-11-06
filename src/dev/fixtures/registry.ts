@@ -1736,7 +1736,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'avenia-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}&destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
-        about: 'Avenia Pix withdrawal review: reais as the headline, one provider fee, the total in USD.',
+        about: 'Avenia Pix withdrawal review: reais as the headline, the rate with the fees in, the flat fee apart.',
         responses: aveniaResponses('enabled', {
             'POST /avenia/withdraw/preview': {
                 amountBrl: '503.00',
@@ -1745,9 +1745,9 @@ export const FIXTURES: Record<string, Fixture> = {
                 holderName: 'Ana Souza',
                 bankName: 'Banco Inter',
                 withdrawUsd: '92.504310',
-                rate: '5.4900',
-                providerFeeBrl: '4.83',
-                arrivalEstimate: 'About 1 minute',
+                rate: '5.445692',
+                fixedFeeBrl: '0.75',
+                arrivalEstimateSeconds: 60,
                 provider: 'Avenia',
             },
         }),

@@ -54,9 +54,9 @@ const demoAveniaWithdrawDisplay = () => ({
     holderName: 'DEMO RECIPIENT',
     bankName: 'Demo Bank',
     withdrawUsd: '20.020325',
-    rate: '5.416',
-    providerFeeBrl: '1.68',
-    arrivalEstimate: 'About 1 minute',
+    rate: '5.369543',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
     provider: 'Avenia',
 })
 
@@ -906,6 +906,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             brCode: DEMO_AVENIA_BR_CODE,
             amountBrl: '100.00',
             usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
             expiresAt: new Date(Date.now() + 600_000).toISOString(),
             payerCpfMasked: '123.***.***-09',
         }),

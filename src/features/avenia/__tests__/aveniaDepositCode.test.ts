@@ -24,6 +24,7 @@ describe('depositReadFromCreated', () => {
             brCode: 'code',
             amountBrl: '100.00',
             usdcAmount: '17.94',
+            fixedFeeBrl: '0.75',
             expiresAt: '2026-11-06T12:10:00Z',
             payerCpfMasked: '095.***.***-89',
         }
@@ -34,6 +35,7 @@ describe('depositReadFromCreated', () => {
             expiresAt: '2026-11-06T12:10:00Z',
             amountBrl: '100.00',
             usdcAmount: '17.94',
+            fixedFeeBrl: '0.75',
             codePayable: true,
             brCode: 'code',
             payerCpfMasked: '095.***.***-89',

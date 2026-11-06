@@ -2531,6 +2531,8 @@
             "returnedBody": "Pay again from an account under your CPF."
         },
         "withdraw": {
+            "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
+            "aveniaFee": "Avenia fee",
             "keyIntro": "Enter a Pix key of an account under your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
@@ -2540,7 +2542,6 @@
             "ownAccount": "Own account",
             "someoneElses": "Someone else's",
             "toAccount": "to {destination}",
-            "providerFee": "Provider fee",
             "sent": "On its way.",
             "sentTo": "On its way to {destination}.",
             "arrivedTo": "Sent to {destination}.",

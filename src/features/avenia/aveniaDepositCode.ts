@@ -18,6 +18,7 @@ export function depositReadFromCreated(created: AveniaDeposit): AveniaDepositSta
         expiresAt: created.expiresAt,
         amountBrl: created.amountBrl,
         usdcAmount: created.usdcAmount,
+        fixedFeeBrl: created.fixedFeeBrl,
         codePayable: true,
         brCode: created.brCode,
         payerCpfMasked: created.payerCpfMasked,

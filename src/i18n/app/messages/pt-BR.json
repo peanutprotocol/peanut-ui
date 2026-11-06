@@ -2531,6 +2531,8 @@
             "returnedBody": "Pague de novo de uma conta no seu CPF."
         },
         "withdraw": {
+            "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
+            "aveniaFee": "Tarifa da Avenia",
             "keyIntro": "Digite uma chave Pix de uma conta no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
             "lookupFailed": "Não foi possível conferir esta chave. Tente de novo.",
@@ -2540,7 +2542,6 @@
             "ownAccount": "Conta própria",
             "someoneElses": "De outra pessoa",
             "toAccount": "para {destination}",
-            "providerFee": "Tarifa do provedor",
             "sent": "A caminho.",
             "sentTo": "A caminho de {destination}.",
             "arrivedTo": "Enviado para {destination}.",

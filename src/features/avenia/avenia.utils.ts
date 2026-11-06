@@ -51,6 +51,11 @@ export function aveniaPendingReason(code: string | undefined): AveniaPendingReas
     return code === AVENIA_IMPORT_UNAVAILABLE_REASON ? 'import-unavailable' : 'reviewing'
 }
 
+/** The API's arrival estimate in whole minutes, at least one, for the Arrives row. */
+export function arrivalMinutes(seconds: number): number {
+    return Math.max(1, Math.round(seconds / 60))
+}
+
 export type AveniaDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
 
 // Intent statuses after which the Pix went back to the payer.

@@ -1,4 +1,5 @@
 import {
+    arrivalMinutes,
     aveniaDepositPhase,
     aveniaPendingReason,
     aveniaSetupState,
@@ -253,5 +254,13 @@ describe('aveniaWithdrawOutcome', () => {
         expect(aveniaWithdrawOutcome('unconfirmed', entry('COMPLETED'))).toBe('arrived')
         // a mined deposit never reads as not sent: its money moved
         expect(aveniaWithdrawOutcome('funded', entry('FAILED'))).toBe('on-its-way')
+    })
+})
+
+describe('arrivalMinutes', () => {
+    it("rounds the API's estimate to whole minutes, at least one", () => {
+        expect(arrivalMinutes(60)).toBe(1)
+        expect(arrivalMinutes(20)).toBe(1)
+        expect(arrivalMinutes(150)).toBe(3)
     })
 })

@@ -108,9 +108,9 @@ describe('AveniaWithdrawFlow after a reload', () => {
             holderName: 'Ana Souza',
             bankName: 'Banco Inter',
             withdrawUsd: '92.504310',
-            rate: '5.49',
-            providerFeeBrl: '4.83',
-            arrivalEstimate: 'About 1 minute',
+            rate: '5.445692',
+            fixedFeeBrl: '0.75',
+            arrivalEstimateSeconds: 60,
             provider: 'Avenia' as const,
         }
         mockPreview.mockResolvedValue(display)

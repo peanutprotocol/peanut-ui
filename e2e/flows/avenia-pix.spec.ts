@@ -66,15 +66,19 @@ test.describe('Avenia Pix', () => {
         await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
     })
 
-    test('the review leads with the reais and shows one provider fee', async ({ page }) => {
+    test("the review leads with the reais, puts the fees in the rate and shows Avenia's flat fee apart", async ({
+        page,
+    }) => {
         await open(
             page,
             `${WITHDRAW}&destination=09579927189&destinationAmount=503&step=review&__fixture=avenia-withdraw-review`
         )
         await expect(page.getByText('R$503')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('to Banco Inter · Ana Souza')).toBeVisible()
-        await expect(page.getByText('Provider fee')).toHaveCount(1)
-        await expect(page.getByText('R$4.83')).toBeVisible()
+        await expect(page.getByText('Avenia fee')).toHaveCount(1)
+        await expect(page.getByText('R$0.75')).toBeVisible()
+        await expect(page.getByText('1 USD = BRL 5.4457')).toBeVisible()
+        await expect(page.getByText('About 1 minute')).toBeVisible()
         await expect(page.getByText('$92.50')).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
         await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible()

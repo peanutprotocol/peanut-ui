@@ -42,6 +42,7 @@ describe('useAveniaDeposit', () => {
                 brCode: 'code',
                 amountBrl: '100.00',
                 usdcAmount: '17.94',
+                fixedFeeBrl: '0.75',
                 expiresAt: null,
                 payerCpfMasked: '095.***.***-89',
             })

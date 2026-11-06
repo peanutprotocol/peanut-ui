@@ -13,12 +13,14 @@ import { ProviderRow } from '@/components/Provider/ProviderRow'
 import type { AveniaWithdrawDisplay } from '@/services/avenia'
 import { formatBankAmount } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
+import { arrivalMinutes } from '@/features/avenia/avenia.utils'
 
 /**
  * Review of a Pix withdrawal, from POST /avenia/withdraw/preview: the reais
  * the account receives as the headline, the key in its own group, then what
- * leaves the wallet, the rate and one provider fee (Avenia's and Rhino's
- * together). Dumb view: the flow owns the preview and the confirm.
+ * leaves the wallet, the rate with every percentage fee inside (Avenia's and
+ * Rhino's), Avenia's flat fee as its own line, and the API's arrival estimate.
+ * Dumb view: the flow owns the preview and the confirm.
  */
 export function AveniaWithdrawReview({
     title,
@@ -86,9 +88,19 @@ export function AveniaWithdrawReview({
                             value={display ? `1 USD = BRL ${formatCurrency(display.rate, 4)}` : ''}
                             loading={isLoading}
                         />
+                        {/* the rate holds the percentage fees; the flat fee is its own line (Hugo's fees table) */}
                         <DataRow
-                            label={t('providerFee')}
-                            value={display ? formatBankAmount(display.providerFeeBrl, 'BRL') : ''}
+                            label={t('aveniaFee')}
+                            value={display ? formatBankAmount(display.fixedFeeBrl, 'BRL') : ''}
+                            loading={isLoading}
+                        />
+                        <DataRow
+                            label={tWithdraw('bank.arrives')}
+                            value={
+                                display
+                                    ? t('arrivesIn', { minutes: arrivalMinutes(display.arrivalEstimateSeconds) })
+                                    : ''
+                            }
                             loading={isLoading}
                         />
                         <ProviderRow providerId="avenia-br" />

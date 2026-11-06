@@ -285,6 +285,7 @@ function AveniaPixDepositSurface() {
                 brCode: DEMO_AVENIA_BR_CODE,
                 amountBrl: '100.00',
                 usdcAmount: '17.940500',
+                fixedFeeBrl: '0.75',
                 expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
                 payerCpfMasked: '095.***.***-89',
             })
