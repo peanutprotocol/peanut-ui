@@ -1,9 +1,9 @@
 name: Screen library
 on:
     pull_request:
-        branches: [dev]
+        branches: [dev, main]
         # converted_to_draft starts a run that skips refs and so cancels an active capture.
-        types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+        types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited]
     push:
         branches: [dev, main]
     workflow_dispatch:
@@ -23,12 +23,17 @@ permissions:
 # Supersede only older revisions of the same PR. Dev pushes and manual captures
 # keep a unique run-scoped group so integration reports are never cancelled.
 concurrency:
-    group: screen-library-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+    group: screen-library-${{ github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base.ref) && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     # Runs first; every job below waits for it (backdoor-scan.yml).
     backdoor-scan:
+        if: >-
+            github.event_name != 'pull_request' ||
+            ((github.event.action != 'edited' || github.event.changes.base.ref) && (github.base_ref == 'dev' ||
+            (github.base_ref == 'main' && github.head_ref == 'dev' &&
+            github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)))
         uses: ./.github/workflows/backdoor-scan.yml
         secrets:
             TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
@@ -38,7 +43,8 @@ jobs:
         # Drafts capture once they are marked ready for review.
         if: >-
             github.event_name != 'pull_request' ||
-            (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)
+            (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft &&
+            (github.base_ref == 'dev' || (github.base_ref == 'main' && github.head_ref == 'dev')))
         runs-on: ubuntu-24.04
         timeout-minutes: 5
         permissions:
@@ -78,7 +84,12 @@ jobs:
                   after="${PR_HEAD:-$PUSH_HEAD}"
                   [[ "$after" =~ ^[a-f0-9]{40}$ ]]
                   if [ "$EVENT" = pull_request ]; then
-                    before=$(git merge-base "$PR_BASE" "$after")
+                    [[ "$PR_BASE" =~ ^[a-f0-9]{40}$ ]]
+                    if [ "$GITHUB_BASE_REF" = main ]; then
+                      before="$PR_BASE"
+                    else
+                      before=$(git merge-base "$PR_BASE" "$after")
+                    fi
                   else
                     [ "$GITHUB_REF" = refs/heads/dev ] || { echo "Dispatch historical capture on dev" >&2; exit 1; }
                     before=$(git rev-list --first-parent -1 --before=2026-08-28T00:00:00+01:00 origin/main)
@@ -110,7 +121,7 @@ jobs:
               run: node scripts/screens/decide-before-harness.mjs
             - name: Resolve trusted compatible screen scope
               id: impact
-              if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request'
+              if: steps.plan.outputs.mode != 'skip' && github.event_name == 'pull_request' && github.base_ref == 'dev'
               env:
                   BEFORE: ${{ steps.refs.outputs.before }}
                   AFTER: ${{ steps.refs.outputs.after }}
@@ -253,6 +264,8 @@ jobs:
                   PR_NUMBER: ${{ github.event.pull_request.number }}
                   PR_HEAD: ${{ github.event.pull_request.head.sha }}
                   PR_BASE: ${{ github.event.pull_request.base.sha }}
+                  PR_HEAD_REF: ${{ github.head_ref }}
+                  PR_BASE_REF: ${{ github.base_ref }}
               run: node scripts/screens/check-review-current.mjs
             - name: Install capture tools
               if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode != 'base'

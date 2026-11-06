@@ -83,6 +83,7 @@ export async function publishReport({
     assetWrites = new Map(),
     assetConversions = new Map(),
     updateSharedIndexes = true,
+    releasePreview = false,
 } = {}) {
     if (!immutableReportPath.test(reportPath ?? '')) throw new Error('Invalid immutable report path')
     const activeStorage = storage ?? (await createStorage(env))
@@ -272,6 +273,7 @@ export async function publishReport({
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
                 captureAttempt: Number(env.CAPTURE_ATTEMPT ?? 0),
                 ...entryMetadata(publicReport, reportPath, env),
+                ...(releasePreview ? { releasePreview: true } : {}),
             }),
             'application/json'
         )
