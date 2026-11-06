@@ -55,9 +55,12 @@ export function useSumsubReloadResume(
         if (resuming.has(key)) return
         resuming.add(key)
         void (async () => {
-            const reopened = await onResume(persisted).catch(() => false)
+            // Consume the replay before running it: a resume that navigates away (owed card answers go to
+            // /verify) must be the last navigation, or clearing the param afterwards supersedes it. A resume
+            // that reopens the SDK persists its state again through the sync effect below.
+            await setPersisted(null)
+            await onResume(persisted).catch(() => false)
             resuming.delete(key)
-            if (!reopened) void setPersisted(null)
         })()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])

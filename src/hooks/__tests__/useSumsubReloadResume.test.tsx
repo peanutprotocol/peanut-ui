@@ -80,6 +80,23 @@ describe('useSumsubReloadResume', () => {
         expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('kyc')).toBeNull()
     })
 
+    it('clears the persisted state before the resume runs, so a navigation the resume starts is the last one', async () => {
+        const onUrlUpdate = jest.fn()
+        let clearedFirst: boolean | undefined
+        const onResume = jest.fn().mockImplementation(async () => {
+            clearedFirst = onUrlUpdate.mock.calls.some(([update]) => update.searchParams.get('kyc') === null)
+            return false
+        })
+
+        renderHook(() => useSumsubReloadResume(null, onResume), {
+            wrapper: wrapperFor(encode({ intent: 'LATAM' }), onUrlUpdate),
+        })
+
+        await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
+        expect(clearedFirst).toBe(true)
+        expect(onUrlUpdate.mock.calls.filter(([update]) => update.searchParams.get('kyc') === null)).toHaveLength(1)
+    })
+
     it('clears the persisted state when the resume throws', async () => {
         const onUrlUpdate = jest.fn()
         const onResume = jest.fn().mockRejectedValue(new Error('initiate failed'))
