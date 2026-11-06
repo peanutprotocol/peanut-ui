@@ -185,18 +185,6 @@ const YourCardScreen: FC<Props> = ({
         <PageStack gap="6" data-testid="your-card-screen">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
-            {onCompleteVerification && (
-                <Button
-                    variant="primary"
-                    onClick={onCompleteVerification}
-                    disabled={verificationBusy}
-                    data-testid="card-verification-continue"
-                >
-                    {t('completeVerification')}
-                </Button>
-            )}
-            {verificationError && <Callout priority="error">{tCommon('somethingWentWrong')}</Callout>}
-
             {revealError && <Callout priority="error">{revealError}</Callout>}
 
             {/* issuer line reads as the card's caption: inline gap XS/4 (design.md spacing) */}
@@ -222,6 +210,18 @@ const YourCardScreen: FC<Props> = ({
                     setAction(isLocked ? 'unlock' : 'lock')
                 }}
             />
+
+            {onCompleteVerification && (
+                <Button
+                    variant="primary"
+                    onClick={onCompleteVerification}
+                    disabled={verificationBusy}
+                    data-testid="card-verification-continue"
+                >
+                    {t('completeVerification')}
+                </Button>
+            )}
+            {verificationError && <Callout priority="error">{tCommon('somethingWentWrong')}</Callout>}
 
             {/* Card payments come from the wallet; older collateral cannot pay them.
                 The note and its action leave only once a refreshed read shows none. */}

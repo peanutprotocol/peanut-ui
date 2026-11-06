@@ -27,7 +27,7 @@ import {
 } from '../analytics'
 import { isE164 } from '../callingCodes'
 import { useAnswerForm, type AnswerFormError, type SaveOutcome } from '../useAnswerForm'
-import { looksLikeItin, stepComplete, whyKeyOf } from '../paperworkVerification.utils'
+import { looksLikeItin, questionPages, stepComplete, whyKeyOf } from '../paperworkVerification.utils'
 import { isZeroTaxId, taxIdOutcome, taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
@@ -167,6 +167,8 @@ export function QuestionStepScreen({
     residence,
     feature,
     progress,
+    startAtStep,
+    startFromEnd,
     title,
     description,
     continueLabel,
@@ -181,16 +183,24 @@ export function QuestionStepScreen({
     steps: PaperworkVerificationStep[]
     residence: string | null
     feature?: PaperworkVerificationFeature
-    progress?: { current: number; total: number }
+    progress?: { current: number; total: number; pages?: number }
+    startAtStep?: PaperworkVerificationStepId | null
+    startFromEnd?: boolean
     title?: ReactNode
     description?: ReactNode
     continueLabel?: string
     onBack?: () => void
     onSaved?: (next: PaperworkVerificationStepId | null, values: Record<string, string>) => void
     /** Continue hands the answers over and moves on; the caller saves them behind the next screen. */
-    onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void
+    onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void | Promise<void>
     /** a background save of these steps the server refused, shown on arrival */
-    returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
+    returned?: {
+        step?: PaperworkVerificationStepId
+        errors?: Record<string, string>
+        formError?: AnswerFormError
+        message?: string
+        focus?: boolean
+    }
     onConflict?: (error: AnswerFormError, message?: string) => void
     onContinueWithoutLocal?: () => Promise<void>
     /** The locked country row's "Change your country of residence". */
@@ -235,19 +245,46 @@ export function QuestionStepScreen({
         }
     }
     const fields = steps.flatMap((s) => s.fields)
+    const pages = questionPages(fields, form.values)
+    const pageWithField = (keys: string[]) => pages.findIndex((page) => page.some((field) => keys.includes(field.key)))
+    const pageForStep = (id?: PaperworkVerificationStepId | null) =>
+        pageWithField(steps.find((step) => step.id === id)?.fields.map((field) => field.key) ?? [])
+    const pageForRefusal = (refusal?: typeof returned) => {
+        if (refusal?.focus === false) return -1
+        const rejected = pageWithField(Object.keys(refusal?.errors ?? {}))
+        return rejected >= 0 ? rejected : pageForStep(refusal?.step)
+    }
+    const [pageIndex, setPage] = useState(() => {
+        const rejected = pageForRefusal(returned)
+        if (rejected >= 0) return rejected
+        return startFromEnd ? pages.length - 1 : Math.max(0, pageForStep(startAtStep))
+    })
+    const [lastRefusal, setLastRefusal] = useState(returned)
+    if (returned !== lastRefusal) {
+        setLastRefusal(returned)
+        const rejected = pageForRefusal(returned)
+        if (rejected >= 0) setPage(rejected)
+    }
+    const page = Math.min(pageIndex, pages.length - 1)
+    const visibleFields = pages[page]
+    const pageProgress = progress && {
+        current: progress.current + page,
+        total: progress.total - (progress.pages ?? 1) + pages.length,
+    }
     const single = steps.length === 1 ? steps[0] : null
     const heading = useStepHeading(single ?? steps[0])
     const hintKey = single && !heading ? `hints.${single.id}` : null
     const hint = hintKey && t.has(hintKey as never) ? t(hintKey as never) : null
     // Past three sentences the step uses the smaller heading, so its CTA stays on screen.
     const titled = !!title || !!heading
-    const compact = titled || fields.filter(isSentenceField).length > 3
+    const compact = titled || visibleFields.filter(isSentenceField).length > 3
     const tax = fields.find((f) => f.kind === 'taxId')
     const taxCheck = useTaxIdChecker(tax?.checks)
     const taxVerdict = tax ? taxIdVerdict(tax, form.values, taxCheck) : 'valid'
     const [blurred, setBlurred] = useState<ReadonlySet<string>>(() => new Set())
     const taxOutcome = tax ? taxIdOutcome(tax, form.values, taxVerdict, blurred.has(tax.key)) : null
-    const complete = stepComplete(fields, form.values, new Set(tax && taxOutcome?.blocks ? [tax.key] : []))
+    const blocked = new Set(tax && taxOutcome?.blocks ? [tax.key] : [])
+    const complete = stepComplete(visibleFields, form.values, blocked)
     // Shown once the number is whole, or the field is left part-typed; the server's own error wins.
     const shownTaxError = tax && taxOutcome?.error ? { [tax.key]: taxOutcome.error } : {}
     const taxWarning = !!tax && !!taxOutcome?.warning && !form.errors[tax.key]
@@ -259,17 +296,24 @@ export function QuestionStepScreen({
             : {}
     const errors = { ...shownTaxError, ...shownStateError, ...form.errors }
 
+    const previousPage = useRef(page)
     useEffect(() => {
+        if (previousPage.current !== page) {
+            const scrollable = document.getElementById('scrollable-content') ?? document.scrollingElement
+            if (scrollable) scrollable.scrollTop = 0
+            previousPage.current = page
+        }
+        viewedAt.current = Date.now()
         trackPaperworkVerification(tracking, ANALYTICS_EVENTS.KYC_PV_STEP_VIEWED, {
             steps: stepsLabel(steps),
-            screen_index: progress?.current ?? null,
-            screen_total: progress?.total ?? null,
-            field_count: fields.length,
-            prefilled_count: fields.filter((f) => !!f.value).length,
+            screen_index: pageProgress?.current ?? null,
+            screen_total: pageProgress?.total ?? null,
+            field_count: visibleFields.length,
+            prefilled_count: visibleFields.filter((f) => !!f.value).length,
         })
-        // Once per screen: the step's identity, not its values, makes the view.
+        // Once per page visit, independent of changes to its answers.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [page])
 
     /** A field the screen itself flags while typed (an ITIN, a phone the check would refuse), once per field and code. */
     const onFieldBlur = (key: string) => {
@@ -299,15 +343,24 @@ export function QuestionStepScreen({
     const submit = async () => {
         if (!complete || removingRef.current || submitting.current) return
         tapped('continue')
+        if (page < pages.length - 1) {
+            setPage(page + 1)
+            return
+        }
+        // A deep link can open a later page. Check the whole form before saving a server step.
+        const missing = pages.findIndex((fields) => !stepComplete(fields, form.values, blocked))
+        if (missing >= 0) {
+            setPage(missing)
+            return
+        }
         submitting.current = true
         const seconds = secondsSince(viewedAt.current)
         track(ANALYTICS_EVENTS.KYC_PV_STEP_SUBMITTED, { seconds_on_step: seconds, rejected_before: rejections.current })
-        if (onSubmitted) {
-            submitting.current = false
-            onSubmitted(form.values, seconds)
-            return
-        }
         try {
+            if (onSubmitted) {
+                await onSubmitted(form.values, seconds)
+                return
+            }
             const outcome = await form.save()
             trackSaveOutcome(track, outcome, {
                 seconds: secondsSince(viewedAt.current),
@@ -317,19 +370,26 @@ export function QuestionStepScreen({
                 onSaved?.(outcome.next, form.values)
                 return
             }
-            if (outcome.rejected) rejections.current += 1
+            if (outcome.rejected) {
+                rejections.current += 1
+                const rejected = pageForRefusal({ step: outcome.rejected.step, errors: outcome.rejected.errors })
+                if (rejected >= 0) setPage(rejected)
+            }
             if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error, outcome.message)
         } finally {
             submitting.current = false
         }
     }
 
-    const back = onBack
-        ? () => {
-              track(ANALYTICS_EVENTS.KYC_PV_BACK, { seconds_on_step: secondsSince(viewedAt.current) })
-              onBack()
-          }
-        : undefined
+    const back =
+        page > 0 || onBack
+            ? () => {
+                  if (page > 0 && submitting.current) return
+                  track(ANALYTICS_EVENTS.KYC_PV_BACK, { seconds_on_step: secondsSince(viewedAt.current) })
+                  if (page > 0) setPage(page - 1)
+                  else onBack?.()
+              }
+            : undefined
     const changeResidence = onChangeResidence
         ? () => {
               track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED)
@@ -341,7 +401,7 @@ export function QuestionStepScreen({
         <PaperworkVerificationTrackingProvider value={tracking}>
             <KycControlScreenProvider value={screenId}>
                 <VerifyQuestionLayout
-                    progress={progress}
+                    progress={pageProgress}
                     onBack={back}
                     footer={
                         <VerifyFooter
@@ -393,7 +453,8 @@ export function QuestionStepScreen({
                         }}
                     >
                         <QuestionFields
-                            fields={fields}
+                            fields={visibleFields}
+                            formFields={fields}
                             values={form.values}
                             errors={errors}
                             residence={residence}

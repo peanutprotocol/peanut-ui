@@ -21,6 +21,8 @@ export type Fixture = {
      * (the Home checklist's "Add money") says it here.
      */
     balance?: string
+    /** ISO 3166-1 alpha-2 country to seed for IP geolocation in screenshots. */
+    geoCountry?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**

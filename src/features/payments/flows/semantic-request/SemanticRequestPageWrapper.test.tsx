@@ -21,11 +21,20 @@ jest.mock('@/components/Global/Loading', () => () => null)
 jest.mock(
     '@/components/Global/EmptyStates/EmptyState',
     () =>
-        function MockEmptyState({ title, description }: Record<string, string>) {
+        function MockEmptyState({
+            title,
+            description,
+            cta,
+        }: {
+            title: string
+            description: string
+            cta?: React.ReactNode
+        }) {
             return (
                 <div>
                     <p>{title}</p>
                     <p>{description}</p>
+                    {cta}
                 </div>
             )
         }
@@ -108,7 +117,7 @@ it('a real recipient change reparses the payment route', async () => {
 
 // TASK-23850: a request is paid in USDC or USDT only. A link that asks for
 // another token is refused with that token named, never paid in USDC instead.
-it('names the token a request link asks for when requests cannot be paid in it', async () => {
+it('names the unsupported token and offers a way back home', async () => {
     ;(parsePaymentURL as jest.Mock).mockResolvedValue({
         parsedUrl: null,
         error: { message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED, recipient: 'alice', token: 'ETH' },
@@ -116,5 +125,7 @@ it('names the token a request link asks for when requests cannot be paid in it',
     render(<SemanticRequestPageWrapper recipient={['alice', '10eth']} />)
     expect(await screen.findByText('errors.requestTokenNotAccepted {"symbol":"ETH"}')).toBeInTheDocument()
     expect(screen.getByText('errors.invalidPaymentUrlTitle')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'success.backToHome' }))
+    expect(mockReplace).toHaveBeenCalledWith('/home')
     expect(mockPaymentPage).not.toHaveBeenCalled()
 })

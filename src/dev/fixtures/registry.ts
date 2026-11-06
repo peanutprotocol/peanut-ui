@@ -3354,11 +3354,15 @@ export const FIXTURES: Record<string, Fixture> = {
     'arrival-qr-ar': {
         route: '/home',
         about: 'Arrival drawer over home: in Argentina, pay a Mercado Pago QR.',
+        geoCountry: 'AR',
+        waitFor: '[role="dialog"] img[src$="/flags/ar.svg"]',
         responses: { 'POST /users/me/arrival': { prompt: 'qr_ar' } },
     },
     'arrival-pix-br': {
         route: '/home',
         about: 'Arrival drawer over home: in Brazil, pay a Pix QR.',
+        geoCountry: 'BR',
+        waitFor: '[role="dialog"] img[src$="/flags/br.svg"]',
         responses: { 'POST /users/me/arrival': { prompt: 'pix_br' } },
     },
     'arrival-card': {

@@ -116,7 +116,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['platform=web', 'signup=omitted'],
     },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
-    '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
+    '10-a-confirminvitemodal': {
+        name: 'Confirm invite — Bank transfer',
+        path: 'Global/ConfirmInviteModal/index.tsx',
+        captureState: ['selectedMethod=Bank transfer'],
+    },
     '11-a-earlyusermodal': {
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
@@ -270,7 +274,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '67-e-provideemailstep': { name: 'Provide email', path: 'Kyc/ProvideEmailStep.tsx' },
     '68-e-bridgetosstep': { name: 'Bridge terms', path: 'Kyc/BridgeTosStep.tsx' },
     '71-e-kycprepchecklist-hosted': { name: 'Verification checklist — hosted', path: 'Kyc/KycPrepChecklist.tsx' },
-    '72-e-kycfailedcontent-terminal': { name: 'Verification — terminal failure', path: 'Kyc/KycFailedContent.tsx' },
+    '72-e-kycfailedcontent-terminal': {
+        name: 'Verification — terminal failure',
+        path: 'Kyc/modals/KycFailedModal.tsx',
+    },
     '73-e-rejectlabelslist': { name: 'Verification rejection reasons', path: 'Kyc/RejectLabelsList.tsx' },
     '74-e-kycactionrequired': { name: 'Verification — action required', path: 'Kyc/states/KycActionRequired.tsx' },
     '75-e-rateunavailable': { name: 'Exchange rate unavailable', path: 'Global/RateUnavailable/index.tsx' },
@@ -386,13 +393,13 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '92-f-deposit-account-closed': {
         name: 'Manteca deposit — account closed',
         path: 'Common/MantecaAccountUnavailable.tsx',
-        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=deposit', 'kyc=false'],
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=deposit', 'country=BR', 'kyc=false'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '93-f-withdraw-account-closed': {
         name: 'Manteca withdrawal — account closed',
         path: 'Common/MantecaAccountUnavailable.tsx',
-        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'kyc=false'],
+        captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'country=AR', 'kyc=false'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '94-f-avenia-pix-deposit': {

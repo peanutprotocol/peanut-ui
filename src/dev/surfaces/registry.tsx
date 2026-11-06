@@ -192,11 +192,14 @@ const noop = () => {}
 /** The final step after repeated network failures: retry copy and the "confirm later" link. */
 function NetworkBusyConfirmation() {
     const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
     return (
         <SetupConfirmationView
             merged
             onConfirm={noop}
+            buttonText={tCommon('tryAgain')}
             error={t('testTransaction.errors.networkBusy')}
+            errorDetail={t('testTransaction.finishLaterDescription')}
             secondary={<LinkButton onClick={noop}>{t('testTransaction.finishLater')}</LinkButton>}
         />
     )
@@ -269,6 +272,7 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
         <AppPageSurface>
             <MantecaAccountUnavailable
                 title={action === 'deposit' ? tAddMoney('title') : tNav('withdraw')}
+                countryCode={action === 'deposit' ? 'BR' : 'AR'}
                 onBack={noop}
                 onSupport={noop}
             />
@@ -448,7 +452,6 @@ import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
-import { KycFailedContent } from '@/components/Kyc/KycFailedContent'
 import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
 import { KycActionRequired } from '@/components/Kyc/states/KycActionRequired'
 import RateUnavailable from '@/components/Global/RateUnavailable'
@@ -627,7 +630,6 @@ export const SURFACES: Record<string, Surface> = {
                 isOpen
                 onClose={noop}
                 username="maria"
-                method="Google"
                 handleLoseInvite={noop}
                 handleContinueWithPeanut={noop}
             />
@@ -1064,11 +1066,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '72-e-kycfailedcontent-terminal': {
         ...SURFACE_META['72-e-kycfailedcontent-terminal'],
-        render: () => (
-            <div className="p-4">
-                <KycFailedContent isTerminal rejectLabels={['DOCUMENT_DAMAGED']} />
-            </div>
-        ),
+        render: () => <KycFailedModal visible onClose={noop} onRetry={noop} isTerminal />,
     },
     '73-e-rejectlabelslist': {
         ...SURFACE_META['73-e-rejectlabelslist'],
@@ -1244,7 +1242,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['84-f-choice-public-profile-guest'],
         render: () => (
             <AppPageSurface>
-                <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />
+                <PublicProfile username="alice" isLoggedIn={false} onSendClick={noop} />
             </AppPageSurface>
         ),
     },

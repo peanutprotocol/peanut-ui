@@ -546,6 +546,11 @@
         "route": "/verify?feature=bank"
     },
     {
+        "id": "fixture-paperwork-verification-add-bank-money",
+        "flow": "Home and shared states",
+        "route": "/verify?feature=bank"
+    },
+    {
         "id": "p05-home",
         "flow": "Home and shared states",
         "route": "/home"
@@ -944,7 +949,7 @@
         "id": "72-e-kycfailedcontent-terminal",
         "flow": "Verification",
         "route": "/dev/surfaces?s=72-e-kycfailedcontent-terminal",
-        "source": "Kyc/KycFailedContent.tsx"
+        "source": "Kyc/modals/KycFailedModal.tsx"
     },
     {
         "id": "73-e-rejectlabelslist",

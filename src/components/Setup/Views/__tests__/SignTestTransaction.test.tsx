@@ -666,6 +666,31 @@ describe('SignTestTransaction — finishing while the network is down', () => {
         })
     })
 
+    it('offers a single retry while the network is busy and recovers after a second failure', async () => {
+        mockSendUserOp.mockRejectedValueOnce(stalled())
+        renderWithIntl(<SignTestTransaction merged />)
+        fireEvent.click(screen.getByRole('button', { name: en.setup.cta.finish }))
+
+        const retry = await screen.findByRole('button', { name: en.common.tryAgain })
+        let rejectRetry: (error: unknown) => void = () => undefined
+        mockSendUserOp.mockReturnValueOnce(
+            new Promise((_, reject) => {
+                rejectRetry = reject
+            })
+        )
+        fireEvent.click(retry)
+        fireEvent.click(retry)
+        expect(mockSendUserOp).toHaveBeenCalledTimes(2)
+        expect(retry).toBeDisabled()
+        rejectRetry(stalled())
+
+        mockSendUserOp.mockResolvedValueOnce({ userOpHash: HASH, reusedSignature: true, sends: 1, recovered: [] })
+        fireEvent.click(await screen.findByRole('button', { name: en.common.tryAgain }))
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
+        expect(mockSendUserOp).toHaveBeenCalledTimes(3)
+        expect(mockAddAccount).toHaveBeenCalledTimes(1)
+    })
+
     it('after two transient failures the person can finish, and the confirmation stays pending', async () => {
         saveSignupTestTransaction('user-1', pending())
         mockSendUserOp.mockRejectedValueOnce(stalled())
@@ -673,6 +698,7 @@ describe('SignTestTransaction — finishing while the network is down', () => {
         fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
         await screen.findByText(en.setup.testTransaction.errors.networkBusy)
 
+        expect(screen.getByText(en.setup.testTransaction.finishLaterDescription)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: en.setup.testTransaction.finishLater }))
         await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
 

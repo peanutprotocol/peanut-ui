@@ -13,7 +13,6 @@ const renderModal = () => {
                 isOpen
                 onClose={jest.fn()}
                 username="maria"
-                method="Bank transfer"
                 handleContinueWithPeanut={handleContinueWithPeanut}
                 handleLoseInvite={handleLoseInvite}
             />
@@ -26,9 +25,7 @@ test('names the sender, says what signing up gives, and offers the rail without 
     renderModal()
     expect(screen.getByText('maria invited you to Peanut')).toBeInTheDocument()
     expect(
-        screen.getByText(
-            'Sign up to get this money in your own Peanut account. maria gets rewards when you use Peanut. You can also claim to Bank transfer without an account.'
-        )
+        screen.getByText('Sign up to receive the money in Peanut, or continue with the method you chose.')
     ).toBeInTheDocument()
 })
 
@@ -36,6 +33,6 @@ test('the primary button signs up and claims; the secondary claims without signi
     const { handleContinueWithPeanut, handleLoseInvite } = renderModal()
     fireEvent.click(screen.getByRole('button', { name: 'Sign up and claim' }))
     expect(handleContinueWithPeanut).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByRole('button', { name: 'Claim without signing up' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continue without signing up' }))
     expect(handleLoseInvite).toHaveBeenCalledTimes(1)
 })

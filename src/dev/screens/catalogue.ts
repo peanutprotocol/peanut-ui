@@ -19,6 +19,7 @@ export type Screen = {
     actions?: PageCapture['actions']
     expectSelector?: string
     waitFor?: string
+    geoCountry?: string
     routePattern?: string
     fixture: string
     clicks: string[]
@@ -156,6 +157,7 @@ const definitions: Screen[] = [
         entryRoute: f.landsOn ? f.route : undefined,
         fixture: id,
         waitFor: f.waitFor,
+        geoCountry: f.geoCountry,
         clicks: [],
         actions:
             // ready shows the consent screen and on passes through; the other states answer the tap
@@ -174,7 +176,7 @@ const definitions: Screen[] = [
                       : id === 'paperwork-verification-outage'
                         ? '[data-testid="verify-outage"]'
                         : id === 'paperwork-verification-policy-hold'
-                          ? '[data-testid="verify-review-retry"]'
+                          ? '[data-testid="verify-replacement-document"]:enabled'
                           : id === 'paperwork-verification-rejected'
                             ? '[data-testid="verify-review-home"]'
                             : id === 'paperwork-verification-restart-foreign'

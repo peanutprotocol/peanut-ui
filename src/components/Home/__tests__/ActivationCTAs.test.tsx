@@ -21,6 +21,7 @@ let mockRails: Array<{
     id: string
     provider?: string
     channel: string
+    currency?: string
     status: string
     operations?: Record<string, string>
     reason?: { userMessage: string; code?: string }
@@ -634,21 +635,39 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         })
     })
 
-    it('the verification-issue card hides under its rail reason code', () => {
+    it('names the declined currency and hides under its rail reason code', () => {
         mockRails = [
             {
                 id: 'bridge.ach_us',
                 provider: 'bridge',
                 channel: 'bank',
+                currency: 'USD',
                 status: 'blocked',
                 reason: { userMessage: 'declined', code: 'provider_rejected' },
             },
         ]
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={VERIFIED} onHideBlockedCard={onHide} />)
-        expect(screen.getByText('Verification issue')).toBeInTheDocument()
+        expect(screen.getByText('USD bank account declined')).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:provider_rejected')
+    })
+
+    it('does not call a restricted payment method a provider decline', () => {
+        mockRails = [
+            {
+                id: 'bridge.ach_us',
+                provider: 'bridge',
+                channel: 'bank',
+                currency: 'USD',
+                status: 'blocked',
+                reason: { userMessage: 'Unavailable', code: 'verification_blocked' },
+            },
+        ]
+        render(<ActivationCTAs onboarding={VERIFIED} />)
+        expect(screen.getByText('Payment method unavailable')).toBeInTheDocument()
+        expect(screen.queryByText('USD bank account declined')).not.toBeInTheDocument()
     })
 
     it('a hidden region card leaves the list too', () => {

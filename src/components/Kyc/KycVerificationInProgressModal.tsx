@@ -189,8 +189,7 @@ export const KycVerificationInProgressModal = ({
             <ActionModal
                 visible={isOpen}
                 onClose={handleClose}
-                tone="success"
-                icon={'check' as IconName}
+                tone="attention"
                 title={t('bridgeTos.title')}
                 description={tosError || t('bridgeTos.lastStepDescription')}
                 content={tosError ? undefined : <BridgeTermsCard providerId={providerId} />}
@@ -224,8 +223,7 @@ export const KycVerificationInProgressModal = ({
                     track('poa', 'dismiss')
                     skipSupplement()
                 }}
-                tone="success"
-                icon={'check' as IconName}
+                tone="attention"
                 title={t('supplement.proofOfAddressTitle')}
                 description={t('supplement.proofOfAddressDescription')}
                 ctas={[
@@ -254,44 +252,39 @@ export const KycVerificationInProgressModal = ({
         )
     }
 
-    // phase === 'complete'
-    // Deliberately neutral (not "You're unlocked"): home's rich activation
-    // celebration was deleted with TASK-22680 and nothing replaces it yet, so
-    // this terminal is the only KYC-complete surface. It still does not stamp
-    // activationCelebratedAt.
+    const currencies = completionNotice?.currencies ?? []
+    const isActionRequired = completionNotice?.kind === 'action'
+    const noticeValues = { currencies: currencies.join(', '), count: currencies.length }
+    const noticeTitle = isActionRequired
+        ? currencies.length
+            ? t('progress.accountReadyAction', noticeValues)
+            : t('progress.accountReadyActionGeneric')
+        : currencies.length
+          ? t('progress.accountReadyReview', noticeValues)
+          : t('progress.accountReadyReviewGeneric')
+
     return (
         <ActionModal
             visible={isOpen}
             onClose={handleClose}
-            tone="success"
-            icon={'check' as IconName}
-            title={t(completionNotice ? 'progress.accountReadyTitle' : 'progress.completeTitle')}
+            tone={completionNotice ? 'attention' : 'success'}
+            icon={completionNotice?.kind === 'review' ? 'clock' : undefined}
+            title={completionNotice ? noticeTitle : t('progress.completeTitle')}
             description={
                 completionNotice
-                    ? completionNotice.currencies.length
-                        ? t(
-                              completionNotice.kind === 'action'
-                                  ? 'progress.accountReadyAction'
-                                  : 'progress.accountReadyReview',
-                              {
-                                  currencies: completionNotice.currencies.join(', '),
-                                  count: completionNotice.currencies.length,
-                              }
-                          )
-                        : t(
-                              completionNotice.kind === 'action'
-                                  ? 'progress.accountReadyActionGeneric'
-                                  : 'progress.accountReadyReviewGeneric'
-                          )
+                    ? isActionRequired
+                        ? undefined
+                        : t('progress.accountReviewNotification')
                     : t('progress.completeDescription')
             }
             ctas={[
                 {
-                    text: tCommon('continue'),
+                    text: isActionRequired ? t('progress.viewAccounts') : tCommon('continue'),
                     onClick: () => {
                         track('continue', 'tap')
                         if (onContinue) onContinue()
                         else onClose()
+                        if (isActionRequired) router.push('/profile/accounts')
                     },
                     variant: 'primary',
                     className: 'w-full',

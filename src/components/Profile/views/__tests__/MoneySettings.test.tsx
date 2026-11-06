@@ -388,7 +388,7 @@ describe('MoneySettings', () => {
         it('Accounts lists the ways money moves in and out, and no spend or Peanut rows', () => {
             render('accounts')
             expect(screen.getByText('Bank account')).toBeInTheDocument()
-            expect(screen.getByText('Pick a currency to see its account or set it up.')).toBeInTheDocument()
+            expect(screen.queryByText('Pick a currency to see its account or set it up.')).not.toBeInTheDocument()
             // The user holds no account here, so no held section renders — an
             // empty heading would promise details that do not exist.
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()

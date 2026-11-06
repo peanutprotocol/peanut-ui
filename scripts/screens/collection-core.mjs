@@ -44,11 +44,15 @@ function optionalText(value, label, maxLength) {
 }
 
 export function normalizeCollectionSpec(input) {
+    return normalizeSelectionSpec(input, false)
+}
+
+function normalizeSelectionSpec(input, flowPage) {
     if (!input || typeof input !== 'object') throw new Error('Invalid collection request')
     const locales = input.locales?.length ? [...new Set(input.locales)] : ['en']
     if (locales.some((locale) => !COLLECTION_LOCALES.includes(locale))) throw new Error('Invalid collection locale')
-    if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200)
-        throw new Error('A collection needs 1-200 screens')
+    if (!Array.isArray(input.items) || !input.items.length || (!flowPage && input.items.length > 200))
+        throw new Error(flowPage ? 'A flow page needs at least one screen' : 'A collection needs 1-200 screens')
     const seen = new Set()
     const items = input.items.map((item) => {
         if (!item || typeof item !== 'object' || !ID.test(item.id ?? '') || seen.has(item.id))
@@ -68,6 +72,49 @@ export function normalizeCollectionSpec(input) {
         items,
         captureMissing: input.captureMissing === true,
     }
+}
+
+export const FLOW_PAGE_REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/
+
+function normalizeFlows(input) {
+    if (!Array.isArray(input) || input.length < 1) throw new Error('A flow page needs at least one titled flow')
+    return input.map((flow) => {
+        const title = requiredText(flow?.title, 'flow title', 120)
+        if (!Array.isArray(flow.items) || !flow.items.length) throw new Error('Each flow needs at least one screen')
+        return {
+            title,
+            items: flow.items.map((item) => {
+                if (typeof item?.id !== 'string' || !ID.test(item.id)) throw new Error('Invalid flow screen ID')
+                const note = optionalText(item.note, 'flow note', 1000)
+                return { id: item.id, ...(note ? { note } : {}) }
+            }),
+        }
+    })
+}
+
+export function normalizeFlowPageSpec(input) {
+    const flows = normalizeFlows(input?.flows)
+    if (Object.keys(input).some((key) => !['title', 'description', 'locales', 'flows', 'requestId'].includes(key)))
+        throw new Error('Unsupported flow page request field')
+    const requestId = input.requestId
+    if (requestId !== undefined && (typeof requestId !== 'string' || !FLOW_PAGE_REQUEST_ID.test(requestId)))
+        throw new Error('Invalid flow page request ID')
+    if (
+        input.locales !== undefined &&
+        (!Array.isArray(input.locales) || !input.locales.length || input.locales.length > COLLECTION_LOCALES.length)
+    )
+        throw new Error('Invalid flow page locales')
+    const ids = new Set(flows.flatMap((flow) => flow.items.map((item) => item.id)))
+    const spec = normalizeSelectionSpec(
+        {
+            title: input.title,
+            description: input.description,
+            locales: input.locales,
+            items: Array.from(ids, (id) => ({ id })),
+        },
+        true
+    )
+    return { ...spec, flows, requestId }
 }
 
 export function collectionId(title, now = new Date(), entropy = crypto.randomUUID()) {
@@ -97,9 +144,14 @@ function validatePublishedCapture(report, locale) {
     return report
 }
 
-export function composeCollection({ id, spec: input, reports, reportPaths = {}, createdAt, createdBy }) {
+function publishedFlowScreenName(name) {
+    if (typeof name !== 'string' || !name.trim()) throw new Error('Invalid screen name')
+    return name
+}
+
+export function composeCollection({ id, spec: input, reports, reportPaths = {}, createdAt, createdBy, flows }) {
     if (!ID.test(id ?? '')) throw new Error('Invalid collection ID')
-    const spec = normalizeCollectionSpec(input)
+    const spec = normalizeSelectionSpec(input, flows !== undefined)
     const timestamp = new Date(createdAt ?? Date.now())
     if (Number.isNaN(timestamp.getTime())) throw new Error('Invalid collection timestamp')
     const captures = Object.fromEntries(
@@ -140,7 +192,10 @@ export function composeCollection({ id, spec: input, reports, reportPaths = {}, 
         return {
             id: requested.id,
             order,
-            name: optionalText(candidate?.name, 'screen name', 200) ?? requested.id,
+            name:
+                flows && candidate?.name != null && candidate.name !== ''
+                    ? publishedFlowScreenName(candidate.name)
+                    : (optionalText(candidate?.name, 'screen name', 200) ?? requested.id),
             flow: optionalText(candidate?.flow, 'screen flow', 120) ?? 'Selected screens',
             kind: candidate?.kind === 'component' ? 'component' : 'route',
             ...(requested.note ? { note: requested.note } : {}),
@@ -174,6 +229,7 @@ export function composeCollection({ id, spec: input, reports, reportPaths = {}, 
             ])
         ),
         items,
+        ...(flows ? { flows } : {}),
         missing,
         complete: missing.length === 0,
         capture: { status: missing.length ? 'not-requested' : 'not-needed' },
@@ -183,12 +239,8 @@ export function composeCollection({ id, spec: input, reports, reportPaths = {}, 
 export function validateCollection(input) {
     if (input?.schema !== 1 || input.type !== 'collection' || !ID.test(input.id ?? ''))
         throw new Error('Unsupported collection schema')
-    const spec = normalizeCollectionSpec({
-        title: input.title,
-        description: input.description,
-        locales: input.locales,
-        items: input.items,
-    })
+    const flows = input.flows === undefined ? undefined : normalizeFlows(input.flows)
+    const spec = normalizeSelectionSpec(input, flows !== undefined)
     if (!Array.isArray(input.items) || input.items.length !== spec.items.length)
         throw new Error('Invalid collection items')
     const items = input.items.map((item, order) => {
@@ -209,7 +261,7 @@ export function validateCollection(input) {
         return {
             id: item.id,
             order,
-            name: requiredText(item.name, 'screen name', 200),
+            name: flows ? publishedFlowScreenName(item.name) : requiredText(item.name, 'screen name', 200),
             flow: requiredText(item.flow, 'screen flow', 120),
             kind: item.kind === 'component' ? 'component' : 'route',
             ...(optionalText(item.note, 'collection note', 1000) ? { note: item.note.trim() } : {}),
@@ -221,6 +273,11 @@ export function validateCollection(input) {
             .filter((locale) => item.variants[locale].status !== 'captured')
             .map((locale) => ({ id: item.id, locale }))
     )
+    if (flows) {
+        const referenced = new Set(flows.flatMap((flow) => flow.items.map((item) => item.id)))
+        if (missing.length || referenced.size !== items.length || items.some((item) => !referenced.has(item.id)))
+            throw new Error('Invalid flow page asset references')
+    }
     const presentation = capturePresentation(input)
     return {
         ...input,
@@ -229,6 +286,7 @@ export function validateCollection(input) {
         locales: spec.locales,
         ...(presentation ?? {}),
         items,
+        ...(flows ? { flows } : {}),
         missing,
         complete: missing.length === 0,
     }

@@ -100,6 +100,13 @@
                 "description": "We need an updated document before you can add money.",
                 "cta": "Upload document"
             },
+            "providerDeclined": {
+                "unavailableTitle": "Payment method unavailable",
+                "accountTitle": "Bank account declined",
+                "accountCurrencyTitle": "{currency} bank account declined",
+                "qrTitle": "QR payments declined",
+                "description": "Contact support for help with this payment method."
+            },
             "verificationIssue": {
                 "title": "Verification issue",
                 "description": "Contact support for help with your verification.",
@@ -532,6 +539,7 @@
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
                 "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
+                "qrPayArgentina": "Scan a QR code to pay in Argentina. Pix payments in Brazil are unavailable.",
                 "bankAccount": "Add and withdraw money by bank transfer"
             },
             "valueProp": {
@@ -553,7 +561,6 @@
             },
             "qrPayNote": "Brazil and Argentina",
             "pixSendNote": "Send to any Pix key",
-            "bankPick": "Pick a currency to see its account or set it up.",
             "sections": {
                 "active": "Ready to use",
                 "notActive": "Not active yet",
@@ -1151,6 +1158,7 @@
         "testTransaction": {
             "confirmTitle": "One last step",
             "finishLater": "Confirm later",
+            "finishLaterDescription": "Finish signup now. We’ll retry when you reopen the app.",
             "confirmAndFinish": "Confirm & finish",
             "retryAccountSetup": "Retry account setup",
             "errors": {
@@ -1519,7 +1527,7 @@
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed",
             "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support.",
-            "requestTokenNotAccepted": "This link asks for {symbol}. Requests can only be paid in USDC or USDT.",
+            "requestTokenNotAccepted": "{symbol} isn’t supported. Ask the sender for a USDC or USDT link.",
             "requestTokenRetired": "This request can't be paid anymore. Ask for a new one in USDC."
         },
         "bankTransfer": {
@@ -2907,6 +2915,8 @@
         "invitedYou": "invited you.",
         "earnWhenFriendsUse": "You earn rewards whenever your friends use Peanut!",
         "peopleYouInvited": "People invited",
+        "signupPending": "Signup pending",
+        "unnamedInvite": "Unnamed invite",
         "noInvitesYet": "No invites yet",
         "shareInviteLinkPrompt": "Send your invite link to start earning more rewards",
         "shareInviteLink": "Share invite link",
@@ -3229,7 +3239,7 @@
         "resubmitVerification": "Re-submit verification",
         "retryVerification": "Retry verification",
         "rejectLabelsFallbackDescription": "We need a bit more from you to confirm your ID. Please provide the requested details to continue.",
-        "terminalDescription": "Before you can start a new verification, our support team needs to review your account. Message us and we'll help you from there. Your funds stay in your account.",
+        "terminalDescription": "Your account must be reviewed before you can verify again. Your funds stay in your account.",
         "failedTitleTerminal": "Your account needs a review",
         "failedTitleRetry": "Let's try that again",
         "failedDescriptionRetry": "We weren't able to confirm your ID. You can have another go.",
@@ -3300,11 +3310,12 @@
             "preparingConfiguringDescription": "Configuring your regions...",
             "preparingSlowTitle": "Almost there",
             "preparingSlowDescription": "This is taking a bit longer than usual. Hang tight.",
-            "accountReadyTitle": "Your account is ready",
             "accountReadyAction": "{currencies} {count, plural, one {needs} other {need}} one more step.",
-            "accountReadyReview": "{currencies} {count, plural, one {is} other {are}} still under review. We’ll let you know when it’s ready.",
+            "accountReadyReview": "{currencies} {count, plural, one {is} other {are}} still under review.",
             "accountReadyActionGeneric": "Your bank accounts need one more step.",
-            "accountReadyReviewGeneric": "Your bank accounts are still under review. We’ll let you know when they’re ready.",
+            "accountReadyReviewGeneric": "Your bank accounts are under review.",
+            "accountReviewNotification": "We’ll notify you.",
+            "viewAccounts": "View accounts",
             "completeTitle": "All set",
             "completeDescription": "Your account is ready to go.",
             "verifyingStillGoing": "This check needs a closer look. You can close this; we'll notify you when there's a decision.",
@@ -3910,25 +3921,25 @@
                 "bank": {
                     "us_state_unsupported": "Bank accounts aren’t available for New York addresses.",
                     "uk_resident_blocked": "Bank accounts aren’t available for UK residents.",
-                    "default": "Bank accounts aren’t available for your current details.",
+                    "default": "Bank accounts aren’t available.",
                     "residence": "Bank accounts aren’t available where you live.",
                     "nationality": "Bank accounts aren’t available for your nationality.",
                     "taxId": "Bank accounts need a supported tax ID."
                 },
                 "card": {
-                    "default": "Peanut Card isn’t available for your current details.",
+                    "default": "Peanut Card isn’t available.",
                     "residence": "Peanut Card isn’t available where you live.",
                     "nationality": "Peanut Card isn’t available for your nationality.",
                     "taxId": "Peanut Card needs a supported tax ID."
                 },
                 "local": {
-                    "default": "Local bank transfers aren’t available for your current details.",
+                    "default": "Local bank transfers aren’t available.",
                     "residence": "Local bank transfers aren’t available where you live.",
                     "nationality": "Local bank transfers aren’t available for your nationality.",
                     "taxId": "Local bank transfers need a supported tax ID."
                 },
                 "qr": {
-                    "default": "QR payments aren’t available for your current details.",
+                    "default": "QR payments aren’t available.",
                     "residence": "QR payments aren’t available where you live.",
                     "nationality": "QR payments aren’t available for your nationality.",
                     "taxId": "QR payments need a supported tax ID."
@@ -4057,8 +4068,7 @@
                 },
                 "recent": "From the last 3 months",
                 "upload": "Upload document",
-                "skip": "Skip for now",
-                "skipNote": "You can skip this. Your bank account still opens, and our partner may ask for it later."
+                "skip": "Skip for now"
             },
             "addLater": {
                 "title": {
@@ -4066,11 +4076,15 @@
                     "card": "For your card",
                     "local": "For local transfers"
                 },
-                "doneTitle": "We're setting things up",
+                "doneTitle": {
+                    "bank": "Bank account setup in progress",
+                    "card": "Card setup in progress",
+                    "local": "Local transfer setup in progress"
+                },
                 "doneDescription": {
-                    "bank": "We’re setting up your bank account. It usually takes a few minutes, and we’ll let you know when it’s ready.",
-                    "card": "We’re setting up your card. It usually takes a few minutes, and we’ll let you know when it’s ready.",
-                    "local": "We’re setting up your local transfers. It usually takes a few minutes, and we’ll let you know when they’re ready."
+                    "bank": "We’ll let you know when your bank account is ready.",
+                    "card": "We’ll let you know when your card is ready.",
+                    "local": "We’ll let you know when local transfers are ready."
                 },
                 "doneCta": "Done",
                 "actionTitle": "One more step",
@@ -4139,7 +4153,6 @@
                 "verifyNow": "Verify now",
                 "otherTitle": "Other documents",
                 "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
-                "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
                 "notAccepted": "Issued by {country}. Can’t be used. Not accepted.",
                 "backToList": "Back to the list",
                 "noneFit": "Don’t have any of those?",
@@ -4157,13 +4170,25 @@
                 "chooseAnother": "Choose another document"
             },
             "activation": {
-                "title": "Set up this feature",
-                "description": "Continue to start setting up this feature with our partner.",
-                "identityRequired": "Finish your identity verification to continue setting up this feature."
+                "title": {
+                    "bank": "Set up bank accounts",
+                    "card": "Set up your Peanut Card",
+                    "local": "Set up local transfers",
+                    "qr": "Set up QR payments"
+                },
+                "cta": {
+                    "bank": "Set up bank accounts",
+                    "card": "Set up your Peanut Card",
+                    "local": "Set up local transfers",
+                    "qr": "Set up QR payments"
+                },
+                "description": "Our partner will review your setup request.",
+                "identityRequired": "Finish verifying your identity to continue."
             },
             "policyHold": {
-                "description": "This document cannot be used for verification. Please choose another document.",
-                "cta": "Choose another document"
+                "title": "We need a different ID",
+                "description": "We can’t verify you with this document.",
+                "cta": "Use a different ID"
             },
             "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
             "taxConfirm": "I confirm",
@@ -4403,9 +4428,9 @@
         },
         "confirmInviteModal": {
             "title": "{username} invited you to Peanut",
-            "description": "Sign up to get this money in your own Peanut account. {username} gets rewards when you use Peanut. You can also claim to {method} without an account.",
+            "description": "Sign up to receive the money in Peanut, or continue with the method you chose.",
             "joinCta": "Sign up and claim",
-            "claimWithoutSignup": "Claim without signing up"
+            "claimWithoutSignup": "Continue without signing up"
         },
         "earlyUserModal": {
             "title": "Earn from invites",
@@ -4493,7 +4518,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Please wait",
-            "description": "Your card needs a short cool-down between back-to-back spends. To avoid this in the future, you can lower your card limit to be below your wallet balance; the extra will always be available.",
+            "description": "Wait for the timer before trying again. To keep more of your wallet balance available between card payments, set your card spending limit below your wallet balance.",
             "readMore": "Read more"
         },
         "staleCardApprovalModal": {
@@ -4763,6 +4788,7 @@
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "providerRejected": "Our payment partner couldn't accept this for your account. No money moved. Contact support.",
         "mantecaAccountRejected": "Deposits and withdrawals in this country aren’t available for your account. You can still pay with QR. Contact support for help.",
+        "mantecaAccountRejectedForCountry": "You can’t add or withdraw money in {country}. QR payments still work.",
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
@@ -5375,6 +5401,6 @@
     },
     "brazilPause": {
         "title": "Brazil services paused",
-        "body": "Because of regulatory changes at the providers behind our Brazil services, BRL deposits, withdrawals and Pix payments are unavailable for now. We're adding a new provider to bring them back soon."
+        "body": "BRL deposits, withdrawals and Pix payments are currently unavailable."
     }
 }

@@ -710,14 +710,37 @@ describe('a withheld account with the cause the backend names', () => {
         expect(onOpen).toHaveBeenCalledWith('ACH_US')
     })
 
-    it('sends a closed review to support', () => {
+    it('keeps the MXN support action when the feature report refuses a closed review', () => {
+        const { features } = withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } })
+        const report = {
+            ...features!,
+            bank: {
+                ...features!.bank,
+                accounts: {
+                    ...features!.bank.accounts,
+                    MXN: { state: 'refused' as const, reason: 'provider_rejected' },
+                },
+            },
+        }
+        const onOpen = jest.fn()
+        const { unavailable } = closeRefusedCorridors(report, [], {
+            accounts: NONE,
+            claimable: emptyCorridorRecord<ClaimableCorridor>(),
+            unavailable: {
+                ...emptyCorridorRecord<UnavailableCorridor>(),
+                SPEI_MX: withheld('SPEI_MX', 'support-required', 'review-closed'),
+            },
+        })
         const { container } = list(false, {
-            unavailable: { ACH_US: withheld('ACH_US', 'support-required', 'review-closed') },
+            unavailable: { SPEI_MX: unavailable.SPEI_MX },
+            onOpen,
         })
 
-        expect(
-            within(rowOf(container, 'ACH_US') as HTMLElement).getByText(messages.common.contactSupport)
-        ).toBeInTheDocument()
+        const row = rowOf(container, 'SPEI_MX') as HTMLElement
+        expect(within(row).getByText(messages.common.contactSupport)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
 
     it('says a restricted residence plainly, with no support and no "or not yet"', () => {

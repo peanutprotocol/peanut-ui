@@ -27,6 +27,7 @@ import {
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { composeScreens, phoneJoinsAddress, RESIDENCE_CHANGE_HREF } from './paperworkVerification.utils'
 import { FeatureAction } from './FeatureAction'
+import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 
@@ -44,7 +45,13 @@ type State =
     | { kind: 'failed' }
     | { kind: 'refused'; copy: string; feature: string }
     | { kind: 'action-required'; action: string }
-    | { kind: 'asking'; screens: PaperworkVerificationStep[][]; at: number; residence: string | null }
+    | {
+          kind: 'asking'
+          screens: PaperworkVerificationStep[][]
+          at: number
+          residence: string | null
+          fromBack?: boolean
+      }
 
 /** A saved screen keeps its answers, so Back shows them. */
 const withValues = (screen: PaperworkVerificationStep[], values: Record<string, string>) =>
@@ -192,15 +199,19 @@ export function AddFeatureQuestions({
                 footer={
                     <VerifyFooter
                         actions={
-                            <Button
-                                className="w-full"
-                                onClick={() => {
-                                    tapped('done')
-                                    onBack()
-                                }}
-                            >
-                                {t('addLater.doneCta')}
-                            </Button>
+                            state.copy === 'supplement.identityDocumentInsufficient' ? (
+                                <ReplacementDocumentAction onTap={tapped} returnToFeature />
+                            ) : (
+                                <Button
+                                    className="w-full"
+                                    onClick={() => {
+                                        tapped('done')
+                                        onBack()
+                                    }}
+                                >
+                                    {t('addLater.doneCta')}
+                                </Button>
+                            )
                         }
                     />
                 }
@@ -240,13 +251,14 @@ export function AddFeatureQuestions({
                 residence={state.residence}
                 feature={feature}
                 title={t(`addLater.title.${feature}`)}
-                onBack={() => (state.at ? setState({ ...state, at: state.at - 1 }) : onBack())}
+                startFromEnd={state.fromBack}
+                onBack={() => (state.at ? setState({ ...state, at: state.at - 1, fromBack: true }) : onBack())}
                 onSaved={(_next, values) => {
                     if (state.at < state.screens.length - 1) {
                         const screens = state.screens.map((screen, i) =>
                             i === state.at ? withValues(screen, values) : screen
                         )
-                        setState({ ...state, screens, at: state.at + 1 })
+                        setState({ ...state, screens, at: state.at + 1, fromBack: false })
                         return
                     }
                     setState({ kind: 'loading' })

@@ -78,6 +78,7 @@ import {
     composeScreens,
     PAYMENT_METHODS_HREF,
     phoneJoinsAddress,
+    questionPages,
     RESIDENCE_CHANGE_HREF,
     resumeStep,
     screenOfStep,
@@ -86,7 +87,7 @@ import {
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
-import { paperworkVerificationRestartPath, paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 import { useVerificationOpening } from './useVerificationOpening'
 
 const STATUS_POLL_MS = 15_000
@@ -114,9 +115,9 @@ function cachedLoad(queryClient: QueryClient, userId?: string): Loaded | null {
 
 /** The screens a load opens on: a fresh read that differs from the cached one reopens the flow. */
 /** The questions, or null when they cannot be read; a user handed back to today's flow goes to Home. */
-const readQuestions = (router: { replace: (href: string) => void }) =>
+const readQuestions = (router: { replace: (href: string) => void }, current = () => true) =>
     getKycQuestions().catch((error: unknown) => {
-        if (isKycFlowHandedBack(error)) router.replace('/home')
+        if (current() && isKycFlowHandedBack(error)) router.replace('/home')
         return null
     })
 
@@ -177,7 +178,10 @@ function DecidedRejection({ status, onHome }: { status?: SumsubKycStatus; onHome
         // Once per visit.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    return <ReviewScreen rejection={rejection} onHome={onHome} {...exits} />
+    const policyHold =
+        identity?.reason?.code === 'document_policy_hold' ||
+        identity?.rejectLabels?.includes('DOCUMENT_POLICY_HOLD') === true
+    return <ReviewScreen rejection={rejection} onHome={onHome} policyHold={policyHold} {...exits} />
 }
 
 /** A finally rejected identity's own screen, for entry points outside /verify (the card tab). */
@@ -393,6 +397,9 @@ function PaperworkVerificationSteps({
     const [plan, setPlan] = useState(initial.plan)
     const [status, setStatus] = useState(initial.status)
     const [stepParam] = useQueryState('step')
+    const [returnToFeature] = useQueryState('returnToFeature')
+    const linkedQuestion = useRef(stepParam)
+    const enterLastPage = useRef<PaperworkVerificationStepId | undefined>(undefined)
     // A replacement hands off before its submission webhook necessarily arrives.
     const [submitted, setSubmitted] = useState(stepParam === 'review')
     const [idError, setIdError] = useState<string | null>(null)
@@ -408,6 +415,15 @@ function PaperworkVerificationSteps({
     const screenOf = (id: VerifyStep): VerifyStep => screenOfStep(screens, id)
 
     const questionIds = useMemo(() => screens.map((ids) => ids[0]), [screens])
+    const pageCounts = useMemo(
+        () =>
+            screens.map((ids) => {
+                const fields = questions.steps.filter((step) => ids.includes(step.id)).flatMap((step) => step.fields)
+                return questionPages(fields).length
+            }),
+        [screens, questions.steps]
+    )
+    const progressTotal = pageCounts.reduce((total, count) => total + count, 2)
     const steps = useMemo<VerifyStep[]>(
         () => [...questionIds, 'saved', 'id', 'review', 'verified', 'address-proof'],
         [questionIds]
@@ -476,6 +492,8 @@ function PaperworkVerificationSteps({
 
     const stepRef = useRef(step)
     stepRef.current = step
+    const reviewingAnswers = useRef(false)
+    const backRevision = useRef(0)
     // Continue moves on at once; each screen's answers save behind the next one, in order.
     const saves = useRef<Promise<void>>(Promise.resolve())
     const captureSession = useSessionFence()
@@ -495,10 +513,23 @@ function PaperworkVerificationSteps({
         errors?: Record<string, string>
         formError?: AnswerFormError
         message?: string
+        focus?: boolean
     } | null>(null)
     const [savedBusy, setSavedBusy] = useState(false)
 
-    const saveFailed = (sent: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }) => {
+    const backThroughQuestions = () => {
+        backRevision.current += 1
+        reviewingAnswers.current = !stepper.isFirst
+        linkedQuestion.current = null
+        enterLastPage.current =
+            step === 'id' || step === 'saved'
+                ? questionIds.at(-1)
+                : questionIds[questionIds.findIndex((id) => id === step) - 1]
+        if (step === 'saved') setSavedBusy(false)
+        void stepper.back()
+    }
+
+    const saveFailed = (sent: PaperworkVerificationStep[], outcome: SaveOutcome & { ok: false }, navigate: boolean) => {
         saveRefused.current = true
         const refused = outcome.step ?? outcome.rejected?.step ?? sent[0].id
         // Saves stop at the refused step, so it and every step after it are still unsaved.
@@ -516,9 +547,10 @@ function PaperworkVerificationSteps({
             errors: outcome.rejected?.errors,
             formError: outcome.formError,
             message: outcome.message,
+            focus: navigate,
         })
         if (outcome.error && outcome.error !== 'retry' && onConflict(outcome.error, outcome.message)) return
-        void stepper.goTo(screenOf(refused))
+        if (navigate) void stepper.goTo(screenOf(refused))
     }
 
     const submitAnswers = async (
@@ -526,26 +558,35 @@ function PaperworkVerificationSteps({
         values: PaperworkVerificationAnswers,
         seconds: number
     ) => {
+        const back = backRevision.current
+        const generation = queueGeneration.current
         const session = captureSession()
         if (session.ready) await session.ready
+        if (generation !== queueGeneration.current || back !== backRevision.current || stepRef.current !== shown[0].id)
+            return
         if (!session.current() || (session.userId && session.userId !== user?.user.userId)) {
             queueGeneration.current += 1
             router.replace('/home')
             return
         }
-        const generation = queueGeneration.current
         const current = () => generation === queueGeneration.current && session.current()
         const ids = shown.map((s) => s.id)
         // A shared screen also shows steps answered before; only new or edited answers are saved.
         const changed = shown.filter((s) => !stepUnchanged(s, values))
         const updated = ids.reduce((current, id) => markSaved(current, id, values), questions)
         setQuestions(updated)
-        setReturned(null)
+        setReturned((current) => (current && ids.includes(current.step) ? null : current))
         saveRefused.current = false
         const open = (screen: PaperworkVerificationStepId[]) =>
             screen.some((id) => updated.steps.find((s) => s.id === id)?.answered === false)
         const at = screens.findIndex((screen) => screen.includes(ids[0]))
-        const following = (screens.slice(at + 1).find(open) ?? screens.find(open))?.[0]
+        // After Back or a link to saved answers, review the adjacent screens in order.
+        const reviewing = reviewingAnswers.current || shown.every((s) => s.answered)
+        const next = reviewing ? screens[at + 1] : screens.slice(at + 1).find(open)
+        const following = (next ?? screens.find(open))?.[0]
+        reviewingAnswers.current = reviewing && !!following
+        linkedQuestion.current = null
+        enterLastPage.current = undefined
         void stepper.goTo(following ?? 'saved')
 
         const submission = ++submissions.current
@@ -566,17 +607,19 @@ function PaperworkVerificationSteps({
                 // behind it. A later deliberate submit starts a fresh generation.
                 if (outcome.error && outcome.error !== 'retry') queueGeneration.current += 1
                 if (outcome.rejected) rejections.current[ids[0]] = (rejections.current[ids[0]] ?? 0) + 1
-                saveFailed(changed, outcome)
+                saveFailed(changed, outcome, back === backRevision.current)
             })
         if (following) return
         // The last answer reserves the attempt: read it and the ID's documents back before the midpoint needs them.
+        const checkpointCurrent = () =>
+            current() && submission === submissions.current && back === backRevision.current && !saveRefused.current
         settled.current = saves.current.then(async () => {
-            if (!current() || submission !== submissions.current || saveRefused.current) return
+            if (!checkpointCurrent()) return
             const [freshQuestions, freshPlan] = await Promise.all([
-                readQuestions(router),
+                readQuestions(router, checkpointCurrent),
                 findKycDocumentPlan('verify').catch(() => null),
             ])
-            if (!current() || submission !== submissions.current || saveRefused.current) return
+            if (!checkpointCurrent() || stepRef.current !== 'saved') return
             if (freshPlan) setPlan(freshPlan)
             if (!freshQuestions) return
             setQuestions(freshQuestions)
@@ -586,8 +629,11 @@ function PaperworkVerificationSteps({
     }
 
     const continueFromSaved = async () => {
+        const back = backRevision.current
+        const session = captureSession()
         setSavedBusy(true)
         await settled.current
+        if (back !== backRevision.current || !session.current()) return
         setSavedBusy(false)
         if (stepRef.current === 'saved' && !saveRefused.current) void stepper.goTo('id')
     }
@@ -848,7 +894,7 @@ function PaperworkVerificationSteps({
     // Mounted from the first opening on: its restriction fetch only runs for a user who asks to move.
     const [residenceMounted, setResidenceMounted] = useState(false)
 
-    const goHome = () => router.replace('/home')
+    const goHome = () => (returnToFeature === '1' ? exit() : router.replace('/home'))
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''
@@ -880,18 +926,32 @@ function PaperworkVerificationSteps({
             />
         )
     } else if (step === 'saved') {
-        screen = <SavedScreen busy={savedBusy} closed={questions.closed} onContinue={() => void continueFromSaved()} />
+        screen = (
+            <SavedScreen
+                busy={savedBusy}
+                closed={questions.closed}
+                onBack={questionIds.length ? backThroughQuestions : undefined}
+                onContinue={() => void continueFromSaved()}
+            />
+        )
     } else if (current) {
         const shown = (screens.find((ids) => ids[0] === current.id) ?? [current.id])
             .map((id) => questions.steps.find((s) => s.id === id))
             .filter((s): s is PaperworkVerificationStep => !!s)
+        const group = questionIds.indexOf(current.id)
+        const startAtStep = shown.find((s) => s.id === linkedQuestion.current)?.id ?? resumeStep(questions)
         screen = (
             <QuestionStepScreen
                 key={current.id}
                 steps={shown}
                 residence={questions.residence}
-                progress={stepProgress(questionIds, current.id)}
-                onBack={() => void stepper.back()}
+                progress={{
+                    ...stepProgress(questionIds, current.id, pageCounts),
+                    pages: pageCounts[group],
+                }}
+                startAtStep={startAtStep}
+                startFromEnd={enterLastPage.current === current.id}
+                onBack={backThroughQuestions}
                 onSubmitted={(values, seconds) => submitAnswers(shown, values, seconds)}
                 returned={returned && shown.some((s) => s.id === returned.step) ? returned : undefined}
                 onConflict={onConflict}
@@ -911,8 +971,8 @@ function PaperworkVerificationSteps({
                 documentsLoading={documentsLoading}
                 busy={identity.busy}
                 error={idError}
-                progress={{ current: questionIds.length + 2, total: questionIds.length + 2 }}
-                onBack={() => void stepper.back()}
+                progress={{ current: progressTotal, total: progressTotal }}
+                onBack={backThroughQuestions}
                 onExit={exit}
                 onContinue={(document) => void startIdentity(document)}
                 onChangeResidence={() => {
@@ -930,14 +990,12 @@ function PaperworkVerificationSteps({
                 onHome={goHome}
                 policyHold={policyHold}
                 onRetry={
-                    policyHold
-                        ? () => router.push(paperworkVerificationRestartPath())
-                        : retryable && RETRY_ACTIONS.has(rejection.action)
-                          ? () => {
-                                track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
-                                void startIdentity()
-                            }
-                          : undefined
+                    !policyHold && retryable && RETRY_ACTIONS.has(rejection.action)
+                        ? () => {
+                              track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
+                              void startIdentity()
+                          }
+                        : undefined
                 }
                 busy={identity.busy}
                 error={idError}

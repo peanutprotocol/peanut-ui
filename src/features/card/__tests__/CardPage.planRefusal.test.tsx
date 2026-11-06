@@ -90,7 +90,7 @@ describe('CardPage — a card the plan does not send to Rain', () => {
             },
         })
         renderPage()
-        expect(screen.getByText("We're setting things up")).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Card setup in progress' })).toBeInTheDocument()
         expect(screen.queryByText(/acquisition:/)).not.toBeInTheDocument()
     })
     it('shows the identity wait after applying, with no new apply action', () => {

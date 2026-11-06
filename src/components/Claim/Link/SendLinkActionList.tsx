@@ -335,7 +335,6 @@ export default function SendLinkActionList({
 
             <ConfirmInviteModal
                 username={username ?? ''}
-                method={selectedMethod?.title ?? ''}
                 handleContinueWithPeanut={handleContinueWithPeanut}
                 handleLoseInvite={() => {
                     if (selectedMethod) {

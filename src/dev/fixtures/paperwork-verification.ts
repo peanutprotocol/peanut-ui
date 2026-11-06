@@ -74,6 +74,17 @@ const SOURCES = [
     'someone_elses_funds',
 ]
 
+const ADD_BANK_MONEY = {
+    id: 'money',
+    features: ['bank'],
+    answered: false,
+    fields: [
+        choice('sourceOfFunds', SOURCES),
+        choice('bankMonthlyPayments', MONTHLY_PAYMENTS),
+        choice('actingAsIntermediary', YES_NO),
+    ],
+}
+
 const address = (residence: string, cardFeature: boolean) => ({
     id: 'address',
     features: ['base'],
@@ -406,7 +417,19 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
                     rejectLabels: ['DOCUMENT_POLICY_HOLD'],
                 },
             },
-            'GET /users/kyc/profile': profile('ACTION_REQUIRED'),
+            'GET /users/kyc/plan': { ...plan(), activeAttemptId: null },
+            'GET /users/kyc/profile': {
+                ...profile('ACTION_REQUIRED'),
+                attempts: [
+                    {
+                        id: 'vo-attempt',
+                        kind: 'IDENTITY',
+                        verificationId: 'vo-identity',
+                        status: 'ACTION_REQUIRED',
+                        reasonCode: 'document_policy_hold',
+                    },
+                ],
+            },
         },
     },
     'paperwork-verification-rejected': {
@@ -499,7 +522,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
     },
     'paperwork-verification-us': {
         route: '/verify',
-        about: 'Smart Paperwork Verification questions for a US resident with bank + card; open any step with ?step=work|money|birth|address|tax (a step that shares a screen opens it: the pickers share one, the phone joins the address).',
+        about: 'Smart Paperwork Verification questions for a US resident with bank + card. Open a question page with ?step=work|money|birth|address|tax. The phone joins the address.',
         responses: asking('US', US_STEPS),
     },
     'paperwork-verification-ph': {
@@ -602,7 +625,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
     },
     'paperwork-verification-add-bank': {
         route: '/verify?feature=bank',
-        about: 'Add-later: a verified Philippine resident adds the bank account; Bridge’s six answers on one screen.',
+        about: 'Add-later: a verified Philippine resident adds the bank account. The first of two dropdown pages.',
         responses: {
             'GET /users/kyc/questions': questions(
                 'PH',
@@ -629,18 +652,30 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
                             },
                         ],
                     },
-                    {
-                        id: 'money',
-                        features: ['bank'],
-                        answered: false,
-                        fields: [
-                            choice('sourceOfFunds', SOURCES),
-                            choice('bankMonthlyPayments', MONTHLY_PAYMENTS),
-                            choice('actingAsIntermediary', YES_NO),
-                        ],
-                    },
+                    ADD_BANK_MONEY,
                 ],
                 'purpose'
+            ),
+            'GET /users/kyc/plan': approvedPlan(null, { qr: true, bank: false, local: false, card: true }),
+            'GET /users/kyc/profile': profile('APPROVED'),
+        },
+    },
+    'paperwork-verification-add-bank-money': {
+        route: '/verify?feature=bank',
+        about: 'Add-later bank questionnaire with only Money unanswered. The intermediary choice is selected.',
+        waitFor: '[data-testid="verify-pick-actingAsIntermediary"]',
+        responses: {
+            'GET /users/kyc/questions': questions(
+                'PH',
+                [
+                    {
+                        ...ADD_BANK_MONEY,
+                        fields: ADD_BANK_MONEY.fields.map((field) =>
+                            field.key === 'actingAsIntermediary' ? { ...field, value: 'yes' } : field
+                        ),
+                    },
+                ],
+                'money'
             ),
             'GET /users/kyc/plan': approvedPlan(null, { qr: true, bank: false, local: false, card: true }),
             'GET /users/kyc/profile': profile('APPROVED'),

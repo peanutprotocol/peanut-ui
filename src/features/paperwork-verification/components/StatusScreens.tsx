@@ -16,6 +16,7 @@ import type {
 } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { VerifyCelebrationLayout, VerifyFooter, VerifyHeroLayout, VerifyQuestionLayout } from './VerifyLayout'
 import { useKycControl } from '../analytics'
+import { ReplacementDocumentAction } from '../ReplacementDocumentAction'
 
 const primary = (label: string, onClick: () => void, testId: string, loading = false, variant?: ButtonVariant) => (
     <Button
@@ -36,11 +37,13 @@ const primary = (label: string, onClick: () => void, testId: string, loading = f
 export function SavedScreen({
     busy = false,
     closed = [],
+    onBack,
     onContinue,
 }: {
     busy?: boolean
     /** What the residence or an answer closed of the user's pick, said before the ID check. */
     closed?: PaperworkVerificationClosedFeature[]
+    onBack?: () => void
     onContinue: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
@@ -63,6 +66,8 @@ export function SavedScreen({
     return (
         <VerifyCelebrationLayout
             pose="pointing"
+            screenId="answers-saved"
+            onBack={onBack}
             celebrate
             title={t('saved.title')}
             description={t('saved.description')}
@@ -151,16 +156,16 @@ export function ReviewScreen({
     return (
         <VerifyCelebrationLayout
             pose="sad"
-            title={t(onRetry ? 'failed.title' : 'failed.terminalTitle')}
+            title={t(policyHold ? 'policyHold.title' : onRetry ? 'failed.title' : 'failed.terminalTitle')}
             description={policyHold ? t('policyHold.description') : tRoot(rejection.descriptionKey as never)}
             footer={
                 <VerifyFooter
                     actions={
-                        onRetry ? (
+                        policyHold ? (
+                            <ReplacementDocumentAction onTap={(action) => controls.track(action, 'tap')} />
+                        ) : onRetry ? (
                             primary(
-                                policyHold
-                                    ? t('policyHold.cta')
-                                    : tRoot((rejection.ctaKey ?? 'kyc.paperworkVerification.failed.retry') as never),
+                                tRoot((rejection.ctaKey ?? 'kyc.paperworkVerification.failed.retry') as never),
                                 () => {
                                     controls.track('retry', 'tap')
                                     onRetry()
@@ -178,7 +183,7 @@ export function ReviewScreen({
                         )
                     }
                     secondary={
-                        onRetry || logIn || support
+                        policyHold || onRetry || logIn || support
                             ? primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
                             : undefined
                     }
@@ -203,7 +208,7 @@ export function FeatureReadyScreen({ feature, onDone }: { feature: PaperworkVeri
     return (
         <VerifyHeroLayout
             pose="too-cool"
-            title={t('addLater.doneTitle')}
+            title={t(`addLater.doneTitle.${feature}`)}
             description={t(`addLater.doneDescription.${feature}`)}
             footer={
                 <VerifyFooter
@@ -301,7 +306,6 @@ export function ProofOfAddressScreen({
                     />
                 ))}
             </ListGroup>
-            <p className="text-body-s text-foreground-secondary">{t('poa.skipNote')}</p>
         </VerifyQuestionLayout>
     )
 }

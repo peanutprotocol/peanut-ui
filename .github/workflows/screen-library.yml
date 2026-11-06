@@ -297,6 +297,7 @@ jobs:
               working-directory: target
               run: pnpm exec playwright install --with-deps --no-shell chromium
             - name: Build and capture with base harness
+              id: capture_base
               if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
               working-directory: target
               env:
@@ -308,11 +309,15 @@ jobs:
                   if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
                   node scripts/screens/run-capture.mjs . "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}"
             - name: Record base harness provenance
-              if: steps.current.outputs.current != 'false' && steps.reuse.outputs.reused != 'true' && steps.harness.outputs.mode == 'base'
+              # A failed screen can leave a valid partial manifest. Keep the capture step failed.
+              if: ${{ !cancelled() && (steps.capture_base.outcome == 'success' || steps.capture_base.outcome == 'failure') }}
               working-directory: harness
               env:
                   BEFORE: ${{ needs.refs.outputs.before }}
-              run: node scripts/screens/write-before-harness.mjs ../capture
+              run: |
+                  if [ -f ../capture/capture.json ]; then
+                      node scripts/screens/write-before-harness.mjs ../capture
+                  fi
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always() && steps.current.outputs.current != 'false'
               with:

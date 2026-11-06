@@ -171,7 +171,7 @@ public class PushProvisioningPlugin extends Plugin {
         String displayName = call.getString("displayName", "Peanut Card");
         UserAddress userAddress = buildUserAddress(call);
 
-        // A token the wallet already holds cannot be pushed again: pushCard on a
+        // A token the wallet already holds cannot be pushed again: a push on a
         // yellow-path token fails instead of resuming it, which is the only way
         // the user can finish identity verification. Look the token up first and
         // branch; anything we can't classify falls through to the normal push, so
@@ -231,15 +231,10 @@ public class PushProvisioningPlugin extends Plugin {
     }
 
     private static void pushNewCard(PluginCall call, MppCardDataParameters cardParams, String displayName, UserAddress userAddress, Activity activity) {
-        // LEGACY flow on purpose: pushCard(...) is Google's TSP-only Push
-        // Provisioning, push(...) (same signature) is Unified Push Provisioning.
-        // Rain does not support UPP yet (docs.rain.xyz/docs/push-provisioning);
-        // Google deprecates legacy end of 2026, so this becomes push(...) once
-        // Rain confirms UPP support + the Google UPP onboarding is done.
         // Intermediate results come back through onActivityResult —
         // MainActivity forwards them to handleGooglePayActivityResult above.
         try {
-            MeaPushProvisioning.GooglePay.pushCard(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
+            MeaPushProvisioning.GooglePay.push(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
                 @Override
                 public void onSuccess(String tokenReferenceId, String cardLastFourDigits, MppPaymentNetwork cardNetwork) {
                     JSObject out = new JSObject();

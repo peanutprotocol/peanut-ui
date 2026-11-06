@@ -38,6 +38,40 @@ beforeEach(() => {
     save.mockReset().mockResolvedValue({ kind: 'saved', next: null })
 })
 
+it('leaves completed, locked and optional questionnaire fields unanswered', () => {
+    const view = renderHook(() =>
+        useAnswerForm([
+            {
+                ...step('work', 'sourceOfFunds'),
+                answered: true,
+                fields: [{ key: 'sourceOfFunds', kind: 'choice', required: true, options: ['salary'], value: null }],
+            },
+            {
+                ...step('money', 'annualSalary'),
+                fields: [
+                    {
+                        key: 'annualSalary',
+                        kind: 'choice',
+                        required: true,
+                        locked: true,
+                        options: ['25k_50k'],
+                        value: null,
+                    },
+                    {
+                        key: 'expectedMonthlyVolume',
+                        kind: 'choice',
+                        required: false,
+                        options: ['1k_5k'],
+                        value: null,
+                    },
+                ],
+            },
+        ])
+    )
+    expect(view.result.current.values).toEqual({ sourceOfFunds: '', annualSalary: '', expectedMonthlyVolume: '' })
+    expect(save).not.toHaveBeenCalled()
+})
+
 describe('answer writes belong to their initiating account', () => {
     it('forwards the expected user to every answer PUT', async () => {
         await saveSteps(steps, values, 'bank', 'user-a')

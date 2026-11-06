@@ -9,7 +9,6 @@ interface ConfirmInviteModalProps {
     onClose: () => void
     /** the sender, who gets rewards when the recipient signs up through the link */
     username: string
-    method: string
     handleLoseInvite: () => void
     handleContinueWithPeanut: () => void
 }
@@ -18,7 +17,6 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     isOpen,
     onClose,
     username,
-    method,
     handleLoseInvite,
     handleContinueWithPeanut,
 }) => {
@@ -38,7 +36,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
             visible={isOpen}
             onClose={onClose}
             title={t('confirmInviteModal.title', { username })}
-            description={t('confirmInviteModal.description', { username, method })}
+            description={t('confirmInviteModal.description')}
             ctaClassName="sm:flex-col"
             ctas={[
                 {

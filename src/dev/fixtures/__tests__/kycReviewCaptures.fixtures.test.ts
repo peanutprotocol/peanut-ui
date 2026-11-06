@@ -1,5 +1,6 @@
 import { FIXTURES } from '../registry'
 import { SCREENS } from '../../screens/catalogue'
+import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 
 const response = (id: string, key: string): any => FIXTURES[id].responses?.[key]
 
@@ -45,20 +46,44 @@ describe('KYC review screen captures', () => {
             reason: { code: 'document_policy_hold' },
             rejectLabels: ['DOCUMENT_POLICY_HOLD'],
         })
-        expect(response('paperwork-verification-policy-hold', 'GET /users/kyc/profile').identity.canonicalStatus).toBe(
-            'ACTION_REQUIRED'
-        )
-        expect(response('paperwork-verification-rejected', 'GET /users/kyc/profile').identity.canonicalStatus).toBe(
-            'REJECTED'
+        const hold = 'paperwork-verification-policy-hold'
+        expect(SCREENS.find((screen) => screen.fixture === hold)).toMatchObject({
+            route: '/verify',
+            expectSelector: '[data-testid="verify-replacement-document"]:enabled',
+        })
+        const profile = response(hold, 'GET /users/kyc/profile')
+        expect(profile.identity.canonicalStatus).toBe('ACTION_REQUIRED')
+        expect(profile.identity.verificationId).toEqual(expect.any(String))
+        expect(profile.identity.verificationId).not.toBe('')
+        const heldAttempt = expect.objectContaining({
+            kind: 'IDENTITY',
+            verificationId: profile.identity.verificationId,
+            status: 'ACTION_REQUIRED',
+            reasonCode: 'document_policy_hold',
+        })
+        expect(profile.attempts).toEqual(expect.arrayContaining([heldAttempt]))
+        const plan = response(hold, 'GET /users/kyc/plan')
+        expect(plan.available).toBe(true)
+        expect(plan.policyVersion).toEqual(expect.any(String))
+        expect(plan.policyVersion).not.toBe('')
+        expect(identityDocuments(plan.routes[0]).length).toBeGreaterThan(0)
+        const rejected = 'paperwork-verification-rejected'
+        const rejectedProfile = response(rejected, 'GET /users/kyc/profile')
+        expect(FIXTURES[rejected]).not.toEqual(FIXTURES[hold])
+        expect(rejectedProfile.identity.canonicalStatus).toBe('REJECTED')
+        expect(rejectedProfile.attempts).not.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ status: 'ACTION_REQUIRED', reasonCode: 'document_policy_hold' }),
+            ])
         )
         expect(response('paperwork-verification-outage', 'GET /config/kill-switches').kycVerificationDown).toBe(true)
         const id = 'paperwork-verification-restart-foreign'
         expect(response(id, 'GET /users/me').residence.declared).toBe('PT')
         expect(response(id, 'GET /users/kyc/details').nationality).toBe('DE')
-        const profile = response(id, 'GET /users/kyc/profile')
-        expect(profile.attempts).toEqual(
+        const restartProfile = response(id, 'GET /users/kyc/profile')
+        expect(restartProfile.attempts).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ kind: 'IDENTITY', verificationId: profile.identity.verificationId }),
+                expect.objectContaining({ kind: 'IDENTITY', verificationId: restartProfile.identity.verificationId }),
             ])
         )
         for (const suffix of ['policy-hold', 'rejected', 'outage', 'restart-foreign'])

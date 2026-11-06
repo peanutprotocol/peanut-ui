@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { KycFailedContent } from '../KycFailedContent'
@@ -71,17 +72,27 @@ export const KycFailedModal = ({
                             <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
                         </div>
                         {isTerminal ? (
-                            <Button
-                                shadowSize="4"
-                                className="w-full justify-center"
-                                onClick={() => {
-                                    track('support', 'tap')
-                                    onClose()
-                                    setIsSupportModalOpen(true)
-                                }}
-                            >
-                                {tCommon('contactSupport')}
-                            </Button>
+                            <>
+                                <Button
+                                    shadowSize="4"
+                                    className="w-full justify-center"
+                                    onClick={() => {
+                                        track('support', 'tap')
+                                        onClose()
+                                        setIsSupportModalOpen(true)
+                                    }}
+                                >
+                                    {tCommon('contactSupport')}
+                                </Button>
+                                <LinkButton
+                                    onClick={() => {
+                                        track('kyc_status', 'dismiss')
+                                        onClose()
+                                    }}
+                                >
+                                    {tCommon('close')}
+                                </LinkButton>
+                            </>
                         ) : (
                             <Button
                                 icon="retry"
