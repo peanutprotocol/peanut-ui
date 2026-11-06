@@ -1952,11 +1952,38 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-route-not-offered': {
         route: '/withdraw/pix',
-        about: 'A Pix route not offered to the user (the rollout gate): Pix is not available.',
+        about: 'A Pix route not offered to the user (the rollout gate): not on this account yet.',
         responses: aveniaRouteResponses({
             provider: null,
             state: 'refused',
             reason: { code: 'rollout_closed', userMessage: 'Pix is not open to this account yet.' },
+        }),
+    },
+    'pix-route-residence': {
+        route: '/add-money/pix',
+        about: 'A Pix route refused for the residence: not offered where the user lives, no "try again".',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'residence_not_served', userMessage: 'This is not available for your country.' },
+        }),
+    },
+    'pix-route-provider-down': {
+        route: '/withdraw/pix',
+        about: 'A Pix route refused while the provider is down: try again soon.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+        }),
+    },
+    'pix-route-method-not-served': {
+        route: '/add-money/pix',
+        about: 'A Pix route no provider serves: Peanut does not offer it.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'method_not_served', userMessage: 'This is not available.' },
         }),
     },
     'avenia-withdraw-key-code': {

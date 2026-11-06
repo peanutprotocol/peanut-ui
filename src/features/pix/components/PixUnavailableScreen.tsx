@@ -26,7 +26,10 @@ export function PixUnavailableScreen({ title, route }: { title: string; route: C
     const description = {
         rejected: t('pix.rejected'),
         'setup-failed': t('avenia.setup.notAvailable'),
-        'not-offered': t('avenia.unavailable'),
+        residence: t('pix.residenceNotServed'),
+        'not-yet': t('pix.rolloutClosed'),
+        down: t('avenia.unavailable'),
+        'not-served': t('pix.methodNotServed'),
         reason: reason?.userMessage ?? '',
     }[pixRefusalCopy(reason)]
     return (

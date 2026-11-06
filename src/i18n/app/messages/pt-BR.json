@@ -2503,8 +2503,11 @@
         }
     },
     "pix": {
+        "methodNotServed": "O Peanut não oferece isso.",
+        "rolloutClosed": "O Pix ainda não está disponível para a sua conta.",
+        "residenceNotServed": "O Pix não é oferecido onde você mora.",
         "unavailableTitle": "Pix indisponível",
-        "rejected": "A verificação não foi aceita, então o Pix não está disponível. Fale com o suporte se achar que é um engano."
+        "rejected": "A verificação não foi aceita. Fale com o suporte."
     },
     "avenia": {
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
@@ -2517,7 +2520,7 @@
             "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
             "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
             "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo.",
-            "notAvailable": "Não foi possível configurar o Pix para esta conta. Fale com o suporte para concluir."
+            "notAvailable": "Não foi possível configurar o Pix. Fale com o suporte para concluir."
         },
         "deposit": {
             "startNew": "Fazer um novo depósito",

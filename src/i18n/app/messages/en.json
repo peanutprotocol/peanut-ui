@@ -2503,8 +2503,11 @@
         }
     },
     "pix": {
+        "methodNotServed": "Peanut does not offer this.",
+        "rolloutClosed": "Pix is not available for your account yet.",
+        "residenceNotServed": "Pix is not offered where you live.",
         "unavailableTitle": "Pix not available",
-        "rejected": "The verification was not accepted, so Pix is not available. Contact support if this looks wrong."
+        "rejected": "The verification was not accepted. Contact support."
     },
     "avenia": {
         "unavailable": "Pix is not available right now. Try again soon.",
@@ -2517,7 +2520,7 @@
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
             "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
             "termsNotSaved": "The acceptance of Avenia's terms was not saved. Try again.",
-            "notAvailable": "Pix could not be set up for this account. Contact support to finish it."
+            "notAvailable": "Pix could not be set up. Contact support to finish it."
         },
         "deposit": {
             "startNew": "Start a new deposit",

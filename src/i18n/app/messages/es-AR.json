@@ -1277,7 +1277,8 @@
         }
     },
     "pix": {
-        "rejected": "La verificación no fue aceptada, así que Pix no está disponible. Contactá a soporte si creés que es un error."
+        "residenceNotServed": "Pix no se ofrece donde vivís.",
+        "rejected": "La verificación no fue aceptada. Contactá a soporte."
     },
     "avenia": {
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
@@ -1285,7 +1286,7 @@
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
             "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intentá de nuevo.",
-            "notAvailable": "No se pudo configurar Pix para esta cuenta. Contactá a soporte para terminarlo."
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo."
         },
         "deposit": {
             "youGet": "Recibís ≈ {amount}",

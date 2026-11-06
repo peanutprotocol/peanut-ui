@@ -46,8 +46,23 @@ describe('PixUnavailableScreen', () => {
         )
     })
 
-    it('says Pix is not available when the API sent no route', () => {
+    it('says Pix is not offered when the API sent no route', () => {
         renderWithIntl(<PixUnavailableScreen title="Add money" route={undefined} />)
-        expect(screen.getByText(en.avenia.unavailable)).toBeInTheDocument()
+        expect(screen.getByText(en.pix.methodNotServed)).toBeInTheDocument()
+    })
+
+    // only an outage changes by waiting: residence, rollout and an unserved method never say "try again"
+    it.each([
+        ['residence_not_served', en.pix.residenceNotServed],
+        ['rollout_closed', en.pix.rolloutClosed],
+        ['method_not_served', en.pix.methodNotServed],
+        ['provider_unavailable', en.avenia.unavailable],
+        ['provider_paused', en.avenia.unavailable],
+    ])('gives %s its own line', (code, line) => {
+        renderWithIntl(<PixUnavailableScreen title="Withdraw" route={refused(code, 'From the API.')} />)
+        expect(screen.getByText(line)).toBeInTheDocument()
+        if (code !== 'provider_unavailable' && code !== 'provider_paused') {
+            expect(screen.queryByText(/try again/i)).toBeNull()
+        }
     })
 })

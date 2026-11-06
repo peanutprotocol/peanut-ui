@@ -190,6 +190,11 @@
         "route": "/withdraw/pix"
     },
     {
+        "id": "fixture-pix-route-residence",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-profile-accounts-no-residence",
         "flow": "Setup and login",
         "route": "/profile/accounts"
@@ -1012,6 +1017,11 @@
         "id": "fixture-avenia-receipt-pay-code",
         "flow": "Add money",
         "route": "/history?tx=fixture-avenia-deposit"
+    },
+    {
+        "id": "fixture-pix-route-method-not-served",
+        "flow": "Add money",
+        "route": "/add-money/pix"
     },
     {
         "id": "fixture-avenia-withdraw-key-code",
@@ -1996,6 +2006,11 @@
     },
     {
         "id": "fixture-pix-route-not-offered",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-route-provider-down",
         "flow": "Withdraw",
         "route": "/withdraw/pix"
     },

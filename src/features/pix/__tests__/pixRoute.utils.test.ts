@@ -52,11 +52,13 @@ describe('pixRefusalCopy', () => {
     it("localizes the reasons this build knows, and shows the route's own text for the rest", () => {
         expect(pixRefusalCopy(reason('provider_rejected'))).toBe('rejected')
         expect(pixRefusalCopy(reason('provider_setup_failed'))).toBe('setup-failed')
-        for (const code of ['residence_not_served', 'rollout_closed', 'provider_unavailable', 'method_not_served']) {
-            expect(pixRefusalCopy(reason(code))).toBe('not-offered')
-        }
+        expect(pixRefusalCopy(reason('residence_not_served'))).toBe('residence')
+        expect(pixRefusalCopy(reason('rollout_closed'))).toBe('not-yet')
+        expect(pixRefusalCopy(reason('provider_unavailable'))).toBe('down')
+        expect(pixRefusalCopy(reason('provider_paused'))).toBe('down')
+        expect(pixRefusalCopy(reason('method_not_served'))).toBe('not-served')
         expect(pixRefusalCopy(reason('manteca_us_nationality'))).toBe('reason')
-        expect(pixRefusalCopy(reason('manteca_us_nationality', ''))).toBe('not-offered')
-        expect(pixRefusalCopy(undefined)).toBe('not-offered')
+        expect(pixRefusalCopy(reason('manteca_us_nationality', ''))).toBe('not-served')
+        expect(pixRefusalCopy(undefined)).toBe('not-served')
     })
 })
