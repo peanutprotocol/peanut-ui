@@ -114,11 +114,11 @@ describe.each([
         }
     })
 
-    it('renders both rows; the unnamed one has no initials and no name', () => {
+    it('renders both rows and labels the unnamed one as signup pending', () => {
         render(<Screen />)
 
         expect(screen.getAllByTestId('initials').map((el) => el.textContent)).toEqual(['BO', ''])
-        expect(screen.getAllByTestId('invitee-name').map((el) => el.textContent)).toEqual(['bob', ''])
+        expect(screen.getAllByTestId('invitee-name').map((el) => el.textContent)).toEqual(['bob', 'signupPending'])
     })
 
     it('opens a profile only for the invitee who has one', () => {

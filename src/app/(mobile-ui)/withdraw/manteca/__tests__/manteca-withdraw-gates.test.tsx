@@ -35,13 +35,15 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('next-intl', () => ({
-    useTranslations: (ns: string) => (key: string) => {
+    useTranslations: (ns: string) => (key: string, values?: { country: string }) => {
         const messages = jest.requireActual('@/i18n/app/messages/en.json')
         if (ns === 'withdraw' && key === 'errors.completeAccountSetup')
             return messages.withdraw.errors.completeAccountSetup
         if (ns === 'errors' && ['mantecaAccountRejected', 'completeAccountSetup'].includes(key)) {
             return messages.errors[key]
         }
+        if (ns === 'errors' && key === 'mantecaAccountRejectedForCountry')
+            return messages.errors[key].replace('{country}', values?.country ?? '')
         if (ns === 'common' && key === 'contactSupport') return messages.common.contactSupport
         return `${ns}.${key}`
     },
@@ -417,9 +419,6 @@ jest.mock('@/hooks/useSafeBack', () => ({
 jest.mock('@/constants/countryCurrencyMapping', () => ({
     getFlagUrl: () => '/flag.png',
 }))
-jest.mock('@/utils/country-name.utils', () => ({
-    localizedCountryTitle: () => 'Argentina',
-}))
 jest.mock('@/i18n/app/loading-states', () => ({
     loadingStateKey: (s: string) => s,
 }))
@@ -551,7 +550,7 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         fireEvent.click(screen.getByText('common.continue'))
 
         await waitFor(() =>
-            expect(screen.getByText(/Deposits and withdrawals in this country aren’t available/i)).toBeInTheDocument()
+            expect(screen.getByText(/Deposits and withdrawals in Argentina aren’t available/i)).toBeInTheDocument()
         )
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
@@ -571,7 +570,7 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         clickConfirm()
 
         await waitFor(() =>
-            expect(screen.getByText(/Deposits and withdrawals in this country aren’t available/i)).toBeInTheDocument()
+            expect(screen.getByText(/Deposits and withdrawals in Argentina aren’t available/i)).toBeInTheDocument()
         )
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
@@ -590,9 +589,7 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         clickConfirm()
 
         await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
-        expect(
-            await screen.findByText(/Deposits and withdrawals in this country aren’t available/i)
-        ).toBeInTheDocument()
+        expect(await screen.findByText(/Deposits and withdrawals in Argentina aren’t available/i)).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
         expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()

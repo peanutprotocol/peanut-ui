@@ -7,7 +7,8 @@ import en from '@/i18n/app/messages/en.json'
 import es from '@/i18n/app/messages/es-419.json'
 import pt from '@/i18n/app/messages/pt-BR.json'
 
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: null }),
     useOptionalAuth: () => ({ user: null }),
@@ -15,11 +16,12 @@ jest.mock('@/context/authContext', () => ({
 
 describe('post-KYC account-ready notice', () => {
     it.each([
-        ['en', en, 'Your account is ready', 'ARS needs one more step.'],
-        ['es-419', es, 'Tu cuenta está lista', 'ARS necesita un paso más.'],
-        ['es-AR', es, 'Tu cuenta está lista', 'ARS necesita un paso más.'],
-        ['pt-BR', pt, 'Sua conta está pronta', 'ARS precisa de mais uma etapa.'],
-    ] as const)('names the remaining currency in %s without a timeout warning', (locale, messages, title, copy) => {
+        ['en', en, 'ARS needs one more step.'],
+        ['es-419', es, 'ARS necesita un paso más.'],
+        ['es-AR', es, 'ARS necesita un paso más.'],
+        ['pt-BR', pt, 'ARS precisa de mais uma etapa.'],
+    ] as const)('names the remaining currency in %s without showing success', (locale, messages, title) => {
+        mockPush.mockClear()
         const onContinue = jest.fn()
         render(
             <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
@@ -34,10 +36,12 @@ describe('post-KYC account-ready notice', () => {
             </NextIntlClientProvider>
         )
         expect(screen.getByText(title)).toBeInTheDocument()
-        expect(screen.getByText(copy)).toBeInTheDocument()
+        expect(screen.queryByText(messages.kyc.progress.completeTitle)).not.toBeInTheDocument()
+        expect(document.querySelector('.bg-background-icon-bubble-green')).not.toBeInTheDocument()
         expect(screen.queryByText('Taking longer than expected')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: /continue|continuar/i }))
+        fireEvent.click(screen.getByRole('button', { name: messages.kyc.progress.viewAccounts }))
         expect(onContinue).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
     })
 
     it('describes review as outstanding rather than an enabled bank account', () => {
@@ -51,8 +55,19 @@ describe('post-KYC account-ready notice', () => {
                 />
             </NextIntlClientProvider>
         )
-        expect(screen.getByText('Your account is ready')).toBeInTheDocument()
-        expect(screen.getByText('EUR is still under review. We’ll let you know when it’s ready.')).toBeInTheDocument()
+        expect(screen.getByText('EUR is still under review.')).toBeInTheDocument()
+        expect(screen.getByText('We’ll let you know when the review is complete.')).toBeInTheDocument()
         expect(screen.queryByText('Your account is ready to go.')).not.toBeInTheDocument()
+        expect(document.querySelector('.bg-background-icon-bubble-green')).not.toBeInTheDocument()
+    })
+
+    it('uses success for confirmed completion without an outstanding requirement', () => {
+        render(
+            <NextIntlClientProvider locale="en" messages={en} timeZone="UTC">
+                <KycVerificationInProgressModal isOpen onClose={jest.fn()} phase="complete" />
+            </NextIntlClientProvider>
+        )
+        expect(screen.getByText('All set')).toBeInTheDocument()
+        expect(document.querySelector('.bg-background-icon-bubble-green')).toBeInTheDocument()
     })
 })

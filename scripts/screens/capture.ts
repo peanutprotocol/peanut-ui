@@ -253,30 +253,33 @@ async function main() {
                 // Query's update delivery for seconds and let a screen settle after it was captured.
                 await page.addInitScript(freezeDate, Date.parse('2026-09-01T12:00:00Z'))
                 if (flagsSettable) await page.addInitScript(installFlagRecorder, screen.flags ?? {})
-                await page.addInitScript((locale) => {
-                    ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
-                    // A constant draw is independent of unrelated startup call order.
-                    Math.random = () => 0.42
-                    document.addEventListener(
-                        'play',
-                        (event) => {
-                            const video = event.target
-                            if (video instanceof HTMLVideoElement && !video.srcObject) video.pause()
-                        },
-                        true
-                    )
-                    sessionStorage.removeItem('showNoMoreJailModal')
-                    localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00Z')
-                    localStorage.setItem(
-                        'demo-user:user-preferences',
-                        JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
-                    )
-                    sessionStorage.setItem('user_geo_country_code', 'DE')
-                    sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
-                    document.cookie = 'jwt-token=fixture; path=/'
-                    document.cookie = `app-locale=${locale}; path=/`
-                    document.cookie = `NEXT_LOCALE=${locale}; path=/`
-                }, captureLocale)
+                await page.addInitScript(
+                    ({ locale, geoCountry }) => {
+                        ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
+                        // A constant draw is independent of unrelated startup call order.
+                        Math.random = () => 0.42
+                        document.addEventListener(
+                            'play',
+                            (event) => {
+                                const video = event.target
+                                if (video instanceof HTMLVideoElement && !video.srcObject) video.pause()
+                            },
+                            true
+                        )
+                        sessionStorage.removeItem('showNoMoreJailModal')
+                        localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00Z')
+                        localStorage.setItem(
+                            'demo-user:user-preferences',
+                            JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
+                        )
+                        sessionStorage.setItem('user_geo_country_code', geoCountry)
+                        sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
+                        document.cookie = 'jwt-token=fixture; path=/'
+                        document.cookie = `app-locale=${locale}; path=/`
+                        document.cookie = `NEXT_LOCALE=${locale}; path=/`
+                    },
+                    { locale: captureLocale, geoCountry: screen.geoCountry ?? 'DE' }
+                )
                 if (screen.camera)
                     await page.addInitScript((mode) => {
                         // A stationary synthetic camera frame keeps app-owned scanner UI
@@ -307,6 +310,12 @@ async function main() {
                     try {
                         const request = route.request(),
                             url = new URL(request.url())
+                        if (screen.geoCountry && url.pathname.endsWith('/api/geo-country')) {
+                            return await route.fulfill({
+                                json: { country: screen.geoCountry },
+                                headers: { 'access-control-allow-origin': '*' },
+                            })
+                        }
                         if (url.origin === base.origin && url.pathname === '/crisp-proxy')
                             return await route.fulfill({
                                 status: 200,

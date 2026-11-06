@@ -303,7 +303,8 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR."
+                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
+                "qrPayArgentina": "Escaneá un código QR para pagar en Argentina. Los pagos con Pix en Brasil no están disponibles."
             },
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
@@ -666,6 +667,7 @@
         "testTransaction": {
             "confirmTitle": "Un último paso",
             "finishLater": "Confirmar después",
+            "finishLaterDescription": "Podés terminar de registrarte ahora. Volveremos a intentar la confirmación cuando abras la app de nuevo.",
             "errors": {
                 "loadUserFailed": "No pudimos cargar tus datos. Recargá la página.",
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intentá recargar la página.",
@@ -1373,7 +1375,7 @@
     },
     "kyc": {
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
-        "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escribinos y te ayudamos desde ahí. Tus fondos siguen en tu cuenta.",
+        "terminalDescription": "Primero necesitamos revisar tu cuenta. Tus fondos siguen en tu cuenta.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
         "errorSdkUnavailable": "La verificación no está disponible. Actualizá la app.",
         "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
@@ -1724,8 +1726,7 @@
             },
             "failed": {},
             "poa": {
-                "title": "Agregá un comprobante de domicilio",
-                "skipNote": "Podés omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."
+                "title": "Agregá un comprobante de domicilio"
             },
             "loadFailed": {
                 "description": "Revisá tu conexión e intentá de nuevo. Tus respuestas hasta ahora están guardadas."
@@ -1769,12 +1770,25 @@
                 "noneFit": "¿No tenés ninguno de estos?"
             },
             "activation": {
-                "title": "Configurá esta función",
-                "description": "Continuá para empezar a configurar esta función con nuestro socio.",
-                "identityRequired": "Completá la verificación de tu identidad para seguir configurando esta función."
+                "title": {
+                    "bank": "Configurá tus cuentas bancarias",
+                    "card": "Configurá tu Peanut Card",
+                    "local": "Configurá las transferencias locales",
+                    "qr": "Configurá los pagos con QR"
+                },
+                "cta": {
+                    "bank": "Configurá tus cuentas bancarias",
+                    "card": "Configurá tu Peanut Card",
+                    "local": "Configurá las transferencias locales",
+                    "qr": "Configurá los pagos con QR"
+                },
+                "description": "Nuestro socio revisará tu solicitud.",
+                "identityRequired": "Terminá de verificar tu identidad para continuar."
             },
             "policyHold": {
-                "description": "Este documento no se puede usar para verificar tu identidad. Elegí otro documento."
+                "title": "Necesitamos otro documento",
+                "description": "No podemos verificar tu identidad con este documento.",
+                "cta": "Usar otro documento"
             },
             "addLater": {
                 "actionDescription": "Completá la verificación adicional para terminar la configuración."
@@ -1931,7 +1945,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Esperá un momento",
-            "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, podés bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible."
+            "description": "Esperá a que termine el contador antes de volver a intentarlo. Para tener más saldo disponible entre pagos con tarjeta, fijá el límite de gasto de tu tarjeta por debajo del saldo de tu wallet."
         },
         "staleCardApprovalModal": {
             "description": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",

@@ -27,7 +27,7 @@ describe.each(['bank', 'card', 'local', 'qr'] as const)('closed %s', (feature) =
         'keeps unknown %s neutral rather than inventing a residence cause',
         (reason) => {
             renderWithIntl(<SavedScreen closed={[{ feature, reason }]} onContinue={jest.fn()} />)
-            expect(screen.getByText(/(?:aren.t|isn.t) available for your current details/i)).toBeVisible()
+            expect(screen.getByText(/(?:aren.t|isn.t) available\.$/i)).toBeVisible()
             expect(screen.queryByText(/where you live/i)).not.toBeInTheDocument()
             expect(screen.queryByText(/for your nationality/i)).not.toBeInTheDocument()
         }

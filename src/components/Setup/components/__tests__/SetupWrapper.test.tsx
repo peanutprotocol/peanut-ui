@@ -11,7 +11,8 @@ import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import { signupControls } from '@/test-utils/signup-controls'
 import { useSignupControl } from '@/features/setup/useSignupControl'
-import { SetupWrapper, useSetupFullScreen } from '../SetupWrapper'
+import { SetupWrapper } from '../SetupWrapper'
+import { ResidenceCompare } from '../ResidenceCompare'
 
 const mockReducedMotion = { value: true }
 const mockCapacitor = { value: false }
@@ -20,6 +21,7 @@ const mockSetBackgroundColor = jest.fn()
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('@/hooks/useKycIntents', () => ({ useKycIntents: () => ({ settled: false }) }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
@@ -505,27 +507,37 @@ describe('SetupWrapper transitions', () => {
         )
     })
 
-    it('uses a full-page checklist and restores the illustration when leaving the outcome', () => {
-        const FullPage = () => {
-            useSetupFullScreen(true)
-            return <h1>Good news</h1>
-        }
-        const { container, rerender } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="residence" image={{ pose: 'thinking' }}>
-                <FullPage />
+    it('removes the residence animation only while the country comparison is shown', () => {
+        const wrapper = (children: React.ReactNode) => (
+            <SetupWrapper layoutType="signup" screenId="residence" image={{ animation: 'residence' }}>
+                {children}
             </SetupWrapper>
         )
+        const { container, rerender } = renderWithIntl(wrapper(<div>Country picker</div>))
+        expect(screen.getByTestId('loop')).toBeInTheDocument()
+
+        rerender(
+            wrapper(
+                <ResidenceCompare
+                    residence="PT"
+                    nationality="BR"
+                    labelOf={(country) => (country === 'PT' ? 'Portugal' : 'Brazil')}
+                    restrictionSets={null}
+                    busy={false}
+                    onChoose={jest.fn()}
+                />
+            )
+        )
         expect(container.querySelector('.setup-hero-background')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('mascot')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('loop')).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Portugal/ })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /Brazil/ })).toBeInTheDocument()
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-default)'
         )
-        rerender(
-            <SetupWrapper layoutType="signup" screenId="residence" image={{ pose: 'thinking' }}>
-                <div>Country picker</div>
-            </SetupWrapper>
-        )
-        expect(screen.getByTestId('mascot')).toBeInTheDocument()
+
+        rerender(wrapper(<div>Country picker</div>))
+        expect(screen.getByTestId('loop')).toBeInTheDocument()
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-setup-hero)'
         )

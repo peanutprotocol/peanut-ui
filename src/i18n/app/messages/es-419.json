@@ -100,6 +100,13 @@
                 "description": "Necesitamos un documento actualizado antes de que puedas agregar dinero.",
                 "cta": "Subir documento"
             },
+            "providerDeclined": {
+                "unavailableTitle": "Método de pago no disponible",
+                "accountTitle": "Cuenta bancaria rechazada",
+                "accountCurrencyTitle": "Cuenta bancaria en {currency} rechazada",
+                "qrTitle": "Pagos con QR rechazados",
+                "description": "Comunícate con soporte para recibir ayuda con este método de pago."
+            },
             "verificationIssue": {
                 "title": "Problema de verificación",
                 "description": "Contacta a soporte para recibir ayuda con tu verificación.",
@@ -532,6 +539,7 @@
                 "mxn": "Agrega o retira pesos mexicanos por la red SPEI.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
                 "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR.",
+                "qrPayArgentina": "Escanea un código QR para pagar en Argentina. Los pagos con Pix en Brasil no están disponibles.",
                 "bankAccount": "Agrega y retira dinero por transferencia bancaria"
             },
             "valueProp": {
@@ -553,7 +561,6 @@
             },
             "qrPayNote": "Brasil y Argentina",
             "pixSendNote": "Envía a cualquier clave Pix",
-            "bankPick": "Elige una moneda para ver su cuenta o configurarla.",
             "sections": {
                 "active": "Listos para usar",
                 "notActive": "Aún no activos",
@@ -1151,6 +1158,7 @@
         "testTransaction": {
             "confirmTitle": "Un último paso",
             "finishLater": "Confirmar después",
+            "finishLaterDescription": "Puedes terminar de registrarte ahora. Volveremos a intentar la confirmación cuando abras la app de nuevo.",
             "confirmAndFinish": "Confirmar y terminar",
             "retryAccountSetup": "Reintentar la configuración de la cuenta",
             "errors": {
@@ -1519,7 +1527,7 @@
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
             "requestClosedTitle": "Esta solicitud está cerrada",
             "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte.",
-            "requestTokenNotAccepted": "Este enlace pide {symbol}. Las solicitudes solo se pueden pagar en USDC o USDT.",
+            "requestTokenNotAccepted": "Este enlace pide {symbol}. Pídele a quien lo envió un enlace nuevo en USDC o USDT.",
             "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pide una nueva en USDC."
         },
         "bankTransfer": {
@@ -2834,6 +2842,8 @@
         "invitedYou": "te invitó.",
         "earnWhenFriendsUse": "¡Ganas recompensas cada vez que tus amigos usan Peanut!",
         "peopleYouInvited": "Personas invitadas",
+        "signupPending": "Registro pendiente",
+        "unnamedInvite": "Invitación sin nombre",
         "noInvitesYet": "Aún no hay invitaciones",
         "shareInviteLinkPrompt": "Envía tu enlace de invitación para empezar a ganar más recompensas",
         "shareInviteLink": "Compartir enlace de invitación",
@@ -3156,7 +3166,7 @@
         "resubmitVerification": "Volver a enviar la verificación",
         "retryVerification": "Reintentar la verificación",
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Envía los datos solicitados para continuar.",
-        "terminalDescription": "Antes de iniciar una nueva verificación, nuestro equipo de soporte necesita revisar tu cuenta. Escríbenos y te ayudaremos a partir de ahí. Tus fondos siguen en tu cuenta.",
+        "terminalDescription": "Primero necesitamos revisar tu cuenta. Tus fondos siguen en tu cuenta.",
         "failedTitleTerminal": "Tu cuenta necesita una revisión",
         "failedTitleRetry": "Intentémoslo de nuevo",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Puedes intentarlo otra vez.",
@@ -3227,11 +3237,12 @@
             "preparingConfiguringDescription": "Configurando tus regiones...",
             "preparingSlowTitle": "Ya casi",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
-            "accountReadyTitle": "Tu cuenta está lista",
             "accountReadyAction": "{currencies} {count, plural, one {necesita} other {necesitan}} un paso más.",
-            "accountReadyReview": "{currencies} {count, plural, one {sigue} other {siguen}} en revisión. Te avisaremos cuando esté listo.",
+            "accountReadyReview": "{currencies} {count, plural, one {sigue} other {siguen}} en revisión.",
             "accountReadyActionGeneric": "Tus cuentas bancarias necesitan un paso más.",
-            "accountReadyReviewGeneric": "Tus cuentas bancarias siguen en revisión. Te avisaremos cuando estén listas.",
+            "accountReadyReviewGeneric": "Tus cuentas bancarias siguen en revisión.",
+            "accountReviewNotification": "Te avisaremos cuando termine la revisión.",
+            "viewAccounts": "Ver cuentas",
             "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse.",
             "verifyingStillGoing": "Esta verificación necesita una revisión más detallada. Puedes cerrar esta pantalla; te avisaremos cuando haya una decisión.",
@@ -3837,25 +3848,25 @@
                 "bank": {
                     "us_state_unsupported": "Las cuentas bancarias no están disponibles para direcciones en Nueva York.",
                     "uk_resident_blocked": "Las cuentas bancarias no están disponibles para residentes del Reino Unido.",
-                    "default": "Las cuentas bancarias no están disponibles con tus datos actuales.",
+                    "default": "Las cuentas bancarias no están disponibles.",
                     "residence": "Las cuentas bancarias no están disponibles donde vives.",
                     "nationality": "Las cuentas bancarias no están disponibles para tu nacionalidad.",
                     "taxId": "Las cuentas bancarias necesitan un número de identificación fiscal válido."
                 },
                 "card": {
-                    "default": "La Peanut Card no está disponible con tus datos actuales.",
+                    "default": "La Peanut Card no está disponible.",
                     "residence": "La Peanut Card no está disponible donde vives.",
                     "nationality": "La Peanut Card no está disponible para tu nacionalidad.",
                     "taxId": "La Peanut Card necesita un número de identificación fiscal válido."
                 },
                 "local": {
-                    "default": "Las transferencias bancarias locales no están disponibles con tus datos actuales.",
+                    "default": "Las transferencias bancarias locales no están disponibles.",
                     "residence": "Las transferencias bancarias locales no están disponibles donde vives.",
                     "nationality": "Las transferencias bancarias locales no están disponibles para tu nacionalidad.",
                     "taxId": "Las transferencias bancarias locales necesitan un número de identificación fiscal válido."
                 },
                 "qr": {
-                    "default": "Los pagos con QR no están disponibles con tus datos actuales.",
+                    "default": "Los pagos con QR no están disponibles.",
                     "residence": "Los pagos con QR no están disponibles donde vives.",
                     "nationality": "Los pagos con QR no están disponibles para tu nacionalidad.",
                     "taxId": "Los pagos con QR necesitan un número de identificación fiscal válido."
@@ -3984,8 +3995,7 @@
                 },
                 "recent": "De los últimos 3 meses",
                 "upload": "Subir documento",
-                "skip": "Omitir por ahora",
-                "skipNote": "Puedes omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."
+                "skip": "Omitir por ahora"
             },
             "addLater": {
                 "title": {
@@ -3993,11 +4003,15 @@
                     "card": "Para tu tarjeta",
                     "local": "Para transferencias locales"
                 },
-                "doneTitle": "Estamos preparando todo",
+                "doneTitle": {
+                    "bank": "Cuenta bancaria en configuración",
+                    "card": "Tarjeta en configuración",
+                    "local": "Transferencias locales en configuración"
+                },
                 "doneDescription": {
-                    "bank": "Estamos configurando tu cuenta bancaria. Suele tardar unos minutos y te avisaremos cuando esté lista.",
-                    "card": "Estamos configurando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista.",
-                    "local": "Estamos configurando tus transferencias locales. Suele tardar unos minutos y te avisaremos cuando estén listas."
+                    "bank": "Te avisaremos cuando tu cuenta bancaria esté lista.",
+                    "card": "Te avisaremos cuando tu tarjeta esté lista.",
+                    "local": "Te avisaremos cuando las transferencias locales estén listas."
                 },
                 "doneCta": "Listo",
                 "actionTitle": "Un paso más",
@@ -4083,13 +4097,25 @@
                 "chooseAnother": "Elegir otro documento"
             },
             "activation": {
-                "title": "Configura esta función",
-                "description": "Continúa para empezar a configurar esta función con nuestro socio.",
-                "identityRequired": "Completa la verificación de tu identidad para seguir configurando esta función."
+                "title": {
+                    "bank": "Configura tus cuentas bancarias",
+                    "card": "Configura tu Peanut Card",
+                    "local": "Configura las transferencias locales",
+                    "qr": "Configura los pagos con QR"
+                },
+                "cta": {
+                    "bank": "Configura tus cuentas bancarias",
+                    "card": "Configura tu Peanut Card",
+                    "local": "Configura las transferencias locales",
+                    "qr": "Configura los pagos con QR"
+                },
+                "description": "Nuestro socio revisará tu solicitud.",
+                "identityRequired": "Termina de verificar tu identidad para continuar."
             },
             "policyHold": {
-                "description": "Este documento no se puede usar para verificar tu identidad. Elige otro documento.",
-                "cta": "Elegir otro documento"
+                "title": "Necesitamos otro documento",
+                "description": "No podemos verificar tu identidad con este documento.",
+                "cta": "Usar otro documento"
             },
             "taxWarning": "No pudimos verificar este número fiscal. ¿Seguro que es correcto?",
             "taxConfirm": "Lo confirmo",
@@ -4419,7 +4445,7 @@
         },
         "rainCooldownIntroModal": {
             "title": "Espera un momento",
-            "description": "Tu tarjeta necesita un breve tiempo de espera entre gastos seguidos. Para evitar esto en el futuro, puedes bajar el límite de tu tarjeta por debajo del saldo de tu wallet; el resto siempre estará disponible.",
+            "description": "Espera a que termine el contador antes de volver a intentarlo. Para tener más saldo disponible entre pagos con tarjeta, fija el límite de gasto de tu tarjeta por debajo del saldo de tu wallet.",
             "readMore": "Leer más"
         },
         "staleCardApprovalModal": {
@@ -4689,6 +4715,7 @@
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "mantecaAccountRejected": "Los depósitos y retiros en este país no están disponibles para tu cuenta. Los pagos con QR siguen funcionando. El equipo de soporte puede ayudarte.",
+        "mantecaAccountRejectedForCountry": "Los depósitos y retiros en {country} no están disponibles para tu cuenta. Los pagos con QR siguen funcionando. El equipo de soporte puede ayudarte.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
@@ -5299,6 +5326,6 @@
     },
     "brazilPause": {
         "title": "Servicios en Brasil en pausa",
-        "body": "Debido a cambios regulatorios en los proveedores de nuestros servicios en Brasil, los depósitos y retiros en BRL y los pagos con Pix no están disponibles por ahora. Estamos sumando un nuevo proveedor para volver a ofrecerlos pronto."
+        "body": "Los depósitos y retiros en BRL y los pagos con Pix no están disponibles por ahora."
     }
 }

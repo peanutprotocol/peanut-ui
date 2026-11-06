@@ -439,7 +439,13 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // A BRL row that opens this drawer is a bank rail, not the Pix send
     // `withPixSend` makes of it outside Brazil (that row navigates instead).
     const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow && !pixResidenceBlocked
-    const detailDescription = detailsRow ? t(`details.${detailsRow.labelKey}`) : ''
+    const detailDescription = detailsRow
+        ? t(
+              detailsRow.labelKey === 'qrPay' && pixResidenceBlocked
+                  ? 'details.qrPayArgentina'
+                  : `details.${detailsRow.labelKey}`
+          )
+        : ''
     // the user's own BRL rail behind a row that leads with the Pix key send
     const detailsBankRail = detailsRow?.bankChip
         ? { ...detailsRow, chip: detailsRow.bankChip }
@@ -502,16 +508,12 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             {/* The list Add money shows too: accounts held and to open, then
                 the other ways in. The accounts are read only while their
                 rollout flag is on (`VirtualAccountsHub` owns that fetch). */}
-            {view === 'bank' && (
-                <>
-                    <p className="text-body-s text-foreground-secondary">{t('bankPick')}</p>
-                    {depositAccountsEnabled ? (
-                        <VirtualAccountsHub {...hubProps} />
-                    ) : (
-                        <AccountsHubList claimsEnabled={false} {...hubProps} />
-                    )}
-                </>
-            )}
+            {view === 'bank' &&
+                (depositAccountsEnabled ? (
+                    <VirtualAccountsHub {...hubProps} />
+                ) : (
+                    <AccountsHubList claimsEnabled={false} {...hubProps} />
+                ))}
 
             {view === 'methods' &&
                 (['active', 'notActive', 'unavailable'] as const).map(

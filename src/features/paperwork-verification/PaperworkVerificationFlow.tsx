@@ -86,7 +86,7 @@ import {
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
-import { paperworkVerificationRestartPath, paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 import { useVerificationOpening } from './useVerificationOpening'
 
 const STATUS_POLL_MS = 15_000
@@ -177,7 +177,10 @@ function DecidedRejection({ status, onHome }: { status?: SumsubKycStatus; onHome
         // Once per visit.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-    return <ReviewScreen rejection={rejection} onHome={onHome} {...exits} />
+    const policyHold =
+        identity?.reason?.code === 'document_policy_hold' ||
+        identity?.rejectLabels?.includes('DOCUMENT_POLICY_HOLD') === true
+    return <ReviewScreen rejection={rejection} onHome={onHome} policyHold={policyHold} {...exits} />
 }
 
 /** A finally rejected identity's own screen, for entry points outside /verify (the card tab). */
@@ -393,6 +396,7 @@ function PaperworkVerificationSteps({
     const [plan, setPlan] = useState(initial.plan)
     const [status, setStatus] = useState(initial.status)
     const [stepParam] = useQueryState('step')
+    const [returnToFeature] = useQueryState('returnToFeature')
     // A replacement hands off before its submission webhook necessarily arrives.
     const [submitted, setSubmitted] = useState(stepParam === 'review')
     const [idError, setIdError] = useState<string | null>(null)
@@ -869,7 +873,7 @@ function PaperworkVerificationSteps({
     // Mounted from the first opening on: its restriction fetch only runs for a user who asks to move.
     const [residenceMounted, setResidenceMounted] = useState(false)
 
-    const goHome = () => router.replace('/home')
+    const goHome = () => (returnToFeature === '1' ? exit() : router.replace('/home'))
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''
@@ -958,14 +962,12 @@ function PaperworkVerificationSteps({
                 onHome={goHome}
                 policyHold={policyHold}
                 onRetry={
-                    policyHold
-                        ? () => router.push(paperworkVerificationRestartPath())
-                        : retryable && RETRY_ACTIONS.has(rejection.action)
-                          ? () => {
-                                track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
-                                void startIdentity()
-                            }
-                          : undefined
+                    !policyHold && retryable && RETRY_ACTIONS.has(rejection.action)
+                        ? () => {
+                              track(ANALYTICS_EVENTS.KYC_PV_REVIEW_RETRY)
+                              void startIdentity()
+                          }
+                        : undefined
                 }
                 busy={identity.busy}
                 error={idError}

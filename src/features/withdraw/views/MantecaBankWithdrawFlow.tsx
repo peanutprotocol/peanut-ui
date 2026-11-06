@@ -981,6 +981,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             <MantecaAccountUnavailable
                 title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onBack={onBack}
+                countryCode={selectedCountry?.id}
                 onSupport={() => openSupportWithMessage(tErrors('mantecaAccountRejected'))}
             />
         )
