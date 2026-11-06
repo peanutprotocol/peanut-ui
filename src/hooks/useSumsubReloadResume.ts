@@ -35,13 +35,20 @@ const kycResumeParser = parseAsJson<KycResumeState>(parseKycResumeState)
 const resuming = new Set<string>()
 
 /**
+ * The param stays until the replay settles, so a reload mid-replay can still resume. A replay that navigates
+ * away calls `consume` first: clearing the param after it is a navigation back to this page, and Next keeps
+ * only the latest navigation.
+ */
+export type ResumeReplay = { consume: () => Promise<void> }
+
+/**
  * stores an open Sumsub flow in the URL while installed PWAs remain reachable.
  * android can evict the app after the camera or gallery opens. A cold return
  * can then replay the same applicant intent instead of dropping the flow.
  */
 export function useSumsubReloadResume(
     openState: KycResumeState | null,
-    onResume: (state: KycResumeState) => Promise<boolean>,
+    onResume: (state: KycResumeState, replay: ResumeReplay) => Promise<boolean>,
     enabled = true
 ) {
     const [persisted, setPersisted] = useQueryState('kyc', kycResumeParser)
@@ -55,9 +62,14 @@ export function useSumsubReloadResume(
         if (resuming.has(key)) return
         resuming.add(key)
         void (async () => {
-            const reopened = await onResume(persisted).catch(() => false)
+            let consumed = false
+            const consume = async () => {
+                consumed = true
+                await setPersisted(null)
+            }
+            const reopened = await onResume(persisted, { consume }).catch(() => false)
             resuming.delete(key)
-            if (!reopened) void setPersisted(null)
+            if (!reopened && !consumed) void setPersisted(null)
         })()
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])

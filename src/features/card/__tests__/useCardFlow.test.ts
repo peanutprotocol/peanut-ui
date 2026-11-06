@@ -1131,9 +1131,32 @@ describe('card first-use activation', () => {
         renderHook(() => useCardFlow())
         const resume = jest.mocked(useSumsubReloadResume).mock.calls.at(-1)![1]
         await act(async () => {
-            await resume({})
+            await resume({}, { consume: jest.fn().mockResolvedValue(undefined) })
         })
         expect(activateKycFeature).toHaveBeenCalledWith('card')
         expect(mockApplyForCard).not.toHaveBeenCalled()
+    })
+
+    it('a resume that owes card answers clears its replay state before the redirect to them', async () => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing', step: 'tax' })
+        const order: string[] = []
+        mockRouterPush.mockImplementation((path: string) => order.push(`push ${path}`))
+        renderHook(() => useCardFlow())
+        const resume = jest.mocked(useSumsubReloadResume).mock.calls.at(-1)![1]
+        let reopened: boolean | undefined
+        await act(async () => {
+            reopened = await resume(
+                {},
+                {
+                    consume: async () => {
+                        order.push('consume')
+                    },
+                }
+            )
+        })
+        expect(order).toEqual(['consume', 'push /verify?feature=card'])
+        expect(reopened).toBe(false)
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        mockRouterPush.mockReset()
     })
 })
