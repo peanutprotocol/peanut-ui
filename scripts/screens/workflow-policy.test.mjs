@@ -253,3 +253,21 @@ test('gallery uses the checked-in bounded diagnostic helper and retains deployme
     assert.match(helper, /sleep 45/)
     assert.match(helper, /node scripts\/screens\/deploy-diagnostics\.mjs/)
 })
+
+test('gallery setup uses its dedicated Access audience without a fallback', () => {
+    const step = gallery
+        .split(/^ {12}- /m)
+        .find((entry) => entry.startsWith('name: Prepare gallery, R2 and optional D1 comments binding\n'))
+    assert.ok(step)
+    assert.match(step, /^ {18}SCREEN_LIBRARY_ACCESS_AUD: \$\{\{ vars\.SCREEN_LIBRARY_GALLERY_ACCESS_AUD \}\}$/m)
+    assert.doesNotMatch(step, /vars\.SCREEN_LIBRARY_ACCESS_AUD\b/)
+})
+
+test('collection API and MCP setup retain the shared Access audience', () => {
+    const steps = gallery.split(/^ {12}- /m)
+    for (const name of ['Prepare collection API Worker', 'Prepare MCP Worker']) {
+        const step = steps.find((entry) => entry.startsWith(`name: ${name}\n`))
+        assert.ok(step, name)
+        assert.match(step, /^ {18}SCREEN_LIBRARY_ACCESS_AUD: \$\{\{ vars\.SCREEN_LIBRARY_ACCESS_AUD \}\}$/m)
+    }
+})
