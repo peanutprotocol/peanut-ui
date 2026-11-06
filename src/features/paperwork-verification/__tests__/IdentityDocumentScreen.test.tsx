@@ -249,7 +249,7 @@ describe('IdentityDocumentScreen: other documents', () => {
         expect(drawer.getByTestId('verify-id-option-DRIVERS-ES')).toBeInTheDocument()
         expect(drawer.getByTestId('verify-id-option-DRIVERS-DE')).toBeInTheDocument()
         expect(drawer.getByTestId('verify-id-option-PASSPORT-ES')).toBeInTheDocument()
-        expect(drawer.getByText('Visas, work permits and student cards can’t be used to verify your ID.')).toBeVisible()
+        expect(drawer.queryByText(/visas, work permits and student cards/i)).not.toBeInTheDocument()
         fireEvent.click(drawer.getByTestId('verify-id-option-DRIVERS-ES'))
         expect(onContinue).toHaveBeenCalledWith({ type: 'DRIVERS', issuingCountry: 'ES' })
     })

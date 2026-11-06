@@ -377,11 +377,11 @@ export default function WithdrawCryptoPage() {
 
             try {
                 // AmountInput's primary denomination is USD ($), so amountUsd is
-                // what the user spends. A stablecoin delivers it 1:1. ETH and BNB
-                // send "0": the app never prices the destination token, and the
-                // server books the amount that was delivered when the withdrawal
-                // completes (TASK-23850).
+                // what the user spends. A stablecoin delivers it 1:1. For ETH and
+                // BNB the destination amount is unknown, so omit it and let the
+                // API record what actually arrives at completion (TASK-23850).
                 const usdValue = parseFloat(amountUsd)
+                const isNativeDestination = data.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
                 const destinationTokenAmount = isStableCoin(data.token.symbol) ? amountUsd : '0'
 
                 const completeWithdrawData = { ...data, amount: destinationTokenAmount }
@@ -393,12 +393,11 @@ export default function WithdrawCryptoPage() {
                     baseUrl: appBaseUrl(),
                     requestProps: {
                         chainId: completeWithdrawData.chain.chainId.toString(),
-                        tokenAmount: destinationTokenAmount,
+                        ...(isNativeDestination ? {} : { tokenAmount: destinationTokenAmount }),
                         tokenAddress: completeWithdrawData.token.address,
-                        tokenType:
-                            completeWithdrawData.token.address.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase()
-                                ? peanutInterfaces.EPeanutLinkType.native
-                                : peanutInterfaces.EPeanutLinkType.erc20,
+                        tokenType: isNativeDestination
+                            ? peanutInterfaces.EPeanutLinkType.native
+                            : peanutInterfaces.EPeanutLinkType.erc20,
                         tokenSymbol: completeWithdrawData.token.symbol,
                         tokenDecimals: Number(completeWithdrawData.token.decimals),
                         recipientAddress: completeWithdrawData.address,

@@ -38,6 +38,7 @@ import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import { useVerifyShell } from '@/utils/verify-shell'
 import { AttentionProvider } from '@/features/attention/AttentionProvider'
 import { AttentionInterrupt } from '@/features/attention/AttentionInterrupt'
+import { BankWithdrawKycDraftProvider } from '@/features/withdraw/BankWithdrawKycDraft'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -277,7 +278,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         </>
                     }
                 >
-                    {children}
+                    <BankWithdrawKycDraftProvider userId={user?.user.userId}>{children}</BankWithdrawKycDraftProvider>
                 </AppShell>
             </NavHeaderPresenceProvider>
         </AttentionProvider>

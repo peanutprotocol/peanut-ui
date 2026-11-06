@@ -25,6 +25,8 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
+import { BankWithdrawKycDraftProvider } from '@/features/withdraw/BankWithdrawKycDraft'
+import type { DynamicBankAccountFormHandle, OwnIbanDraft } from '../DynamicBankAccountForm'
 
 const killSwitches = getKillSwitches()
 import { addBankAccount } from '@/app/actions/users'
@@ -33,9 +35,9 @@ import { addBankAccount } from '@/app/actions/users'
 // nuqs adapter — and the tests that want the bank form say so by setting it
 let mockNuqsParams: Record<string, string> = {}
 const mockUrlUpdate = jest.fn()
-const withProviders = (ui: React.ReactElement) => (
+const withProviders = (ui: React.ReactElement, hasMemory = false) => (
     <IntlWrapper>
-        <NuqsTestingAdapter searchParams={mockNuqsParams} onUrlUpdate={mockUrlUpdate}>
+        <NuqsTestingAdapter searchParams={mockNuqsParams} onUrlUpdate={mockUrlUpdate} hasMemory={hasMemory}>
             {ui}
         </NuqsTestingAdapter>
     </IntlWrapper>
@@ -52,6 +54,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockPush }),
     useParams: () => mockParams,
     useSearchParams: () => mockSearchParams,
+    usePathname: () => window.location.pathname,
 }))
 
 let mockBrazilPaused = false
@@ -333,12 +336,20 @@ jest.mock('@/components/Global/EmptyStates/EmptyState', () => ({ __esModule: tru
 // capture the props the list hands the bank form — the existing-account
 // handler is the withdraw destination selector (Chip round 9)
 const mockBankFormProps = jest.fn()
-jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => ({
-    DynamicBankAccountForm: (props: unknown) => {
-        mockBankFormProps(props)
-        return <div data-testid="bank-form" />
-    },
-}))
+let mockOwnIbanDraft: OwnIbanDraft | null = null
+jest.mock('@/components/AddWithdraw/DynamicBankAccountForm', () => {
+    const react = jest.requireActual<typeof React>('react')
+    return {
+        DynamicBankAccountForm: react.forwardRef<DynamicBankAccountFormHandle>((props, ref) => {
+            mockBankFormProps(props)
+            react.useImperativeHandle(ref, () => ({
+                handleSubmit: jest.fn(),
+                getOwnIbanDraft: () => mockOwnIbanDraft,
+            }))
+            return <div data-testid="bank-form" />
+        }),
+    }
+})
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
@@ -355,6 +366,7 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({
             <div data-testid="initiate-kyc-modal" data-variant={props.variant} data-reason={props.reasonCode}>
                 {props.providerMessage}
                 <button data-testid="initiate-kyc-verify" onClick={props.onVerify} />
+                <button data-testid="initiate-kyc-dismiss" onClick={props.onClose} />
             </div>
         ) : null,
 }))
@@ -740,6 +752,180 @@ describe('restart cooldown in add and withdraw flows', () => {
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText("I'll try later"))
         expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('EUR own-account withdrawal through verification', () => {
+    const bankUrl = '/withdraw?country=euro-area&step=form'
+    const bankDetails: OwnIbanDraft = {
+        values: {
+            accountNumber: 'DE89 3704 0044 0532 0130 00',
+            accountOwnerName: 'Draft Fixture',
+            street: '12 Teststrasse',
+            city: 'Berlin',
+            postalCode: '10115',
+        },
+        prefilledFields: [],
+    }
+    const verificationRequired = (userId: string) => ({
+        user: { userId },
+        accounts: [],
+        capabilities: withFeatureReport(
+            { rails: [], nextActions: [], restrictions: [] },
+            { identity: { status: 'not_started' } }
+        ),
+        identityVerification: { status: 'not_started' },
+    })
+    const navigate = (url: string) => {
+        window.history.replaceState(null, '', url)
+        mockSearchParams = new URLSearchParams(window.location.search)
+        mockNuqsParams = Object.fromEntries(mockSearchParams)
+        mockParams.country = window.location.pathname.split('/')[2] ?? ''
+    }
+    const formAt = (url: string, userId = 'withdraw-user') => {
+        navigate(url)
+        return withProviders(
+            <BankWithdrawKycDraftProvider userId={userId}>
+                {mockSearchParams.has('country') || mockParams.country ? (
+                    <AddWithdrawCountriesList flow="withdraw" />
+                ) : (
+                    <div>Other screen</div>
+                )}
+            </BankWithdrawKycDraftProvider>,
+            true
+        )
+    }
+    const formProps = () =>
+        mockBankFormProps.mock.calls.at(-1)?.[0] as {
+            onSuccess: (payload: unknown) => Promise<{ error?: string }>
+            restoredOwnIbanDraft?: OwnIbanDraft
+        }
+    const submit = async () => {
+        let result: { error?: string } | undefined
+        await act(async () => {
+            result = await formProps().onSuccess({
+                countryCode: 'DEU',
+                countryName: 'Germany',
+                accountOwnerName: { firstName: 'Draft', lastName: 'Fixture' },
+            })
+        })
+        return result
+    }
+
+    beforeEach(() => {
+        jest.mocked(addBankAccount).mockReset()
+        mockPush.mockClear()
+        mockBankFormProps.mockClear()
+        mockAuthUser = verificationRequired('withdraw-user')
+        mockFetchUser.mockResolvedValue(mockAuthUser)
+        mockOwnIbanDraft = bankDetails
+        mockHandleInitiateKyc.mockImplementation(() => mockPush('/verify'))
+        mockNuqsParams = { step: 'form' }
+        setCapabilities('needs-identity', [])
+    })
+
+    afterEach(() => {
+        navigate('/')
+        mockNuqsParams = {}
+        mockParams.country = 'testland'
+        mockOwnIbanDraft = null
+        mockAuthUser = fetchedProfile([])
+        mockHandleInitiateKyc.mockReset()
+        mockFetchUser.mockReset().mockResolvedValue(undefined)
+        jest.mocked(addBankAccount).mockReset()
+        jest.restoreAllMocks()
+    })
+
+    it.each([bankUrl, '/withdraw/euro-area?step=form'])(
+        'restores %s after verification and enforces the gate',
+        async (url) => {
+            const logs = [jest.spyOn(console, 'log'), jest.spyOn(console, 'warn'), jest.spyOn(console, 'error')]
+            const storageWrite = jest.spyOn(Storage.prototype, 'setItem')
+            const { rerender } = rtlRender(formAt(url))
+            expect(await submit()).toMatchObject({ error: 'gate_blocked' })
+            expect(addBankAccount).not.toHaveBeenCalled()
+            fireEvent.click(screen.getByTestId('initiate-kyc-verify'))
+            expect(mockPush).toHaveBeenCalledWith('/verify')
+
+            rerender(formAt('/verify?step=id'))
+            expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument()
+            rerender(formAt(url))
+            expect(formProps().restoredOwnIbanDraft).toEqual(bankDetails)
+            expect(await submit()).toMatchObject({ error: 'gate_blocked' })
+            expect(addBankAccount).not.toHaveBeenCalled()
+
+            const observable = JSON.stringify([
+                window.location.href,
+                mockPush.mock.calls,
+                storageWrite.mock.calls,
+                logs.map((log) => log.mock.calls),
+            ])
+            for (const value of Object.values(bankDetails.values).filter((value) => value && value.length > 2)) {
+                expect(observable).not.toContain(value)
+            }
+        }
+    )
+
+    it.each([
+        ['/home', 'withdraw-user'],
+        ['/withdraw?country=testland&step=form', 'withdraw-user'],
+        ['/verify', 'different-user'],
+    ])('drops the draft after leaving for %s as %s', async (url, userId) => {
+        const { rerender } = rtlRender(formAt(bankUrl))
+        await submit()
+        rerender(formAt('/verify'))
+        mockAuthUser = verificationRequired(userId)
+        rerender(formAt(url, userId))
+        if (mockSearchParams.has('country')) expect(formProps().restoredOwnIbanDraft).toBeUndefined()
+        mockAuthUser = verificationRequired('withdraw-user')
+        rerender(formAt(bankUrl))
+        expect(formProps().restoredOwnIbanDraft).toBeUndefined()
+    })
+
+    it.each(['nav-header', 'initiate-kyc-dismiss'])('drops the draft on cancellation via %s', async (button) => {
+        const { rerender } = rtlRender(formAt(bankUrl))
+        await submit()
+        fireEvent.click(screen.getByTestId(button))
+        // Reopen the same history entry. Its route still matches, so only
+        // explicit cancellation can retire the draft.
+        rerender(formAt('/verify'))
+        rerender(formAt(bankUrl))
+        expect(formProps().restoredOwnIbanDraft).toBeUndefined()
+    })
+
+    it('drops the draft when the verified user successfully adds the account', async () => {
+        const { rerender } = rtlRender(formAt(bankUrl))
+        await submit()
+        rerender(formAt('/verify'))
+        rerender(formAt(bankUrl))
+        expect(formProps().restoredOwnIbanDraft).toEqual(bankDetails)
+
+        const account = { id: 'draft-account', bridgeAccountId: 'draft-bridge' }
+        mockFetchUser.mockResolvedValue({ ...fetchedProfile([account]), user: { userId: 'withdraw-user' } })
+        jest.mocked(addBankAccount).mockResolvedValue({ data: account } as Awaited<ReturnType<typeof addBankAccount>>)
+        expect(await submit()).toEqual({})
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+        rerender(formAt('/verify'))
+        rerender(formAt(bankUrl))
+        expect(formProps().restoredOwnIbanDraft).toBeUndefined()
+    })
+
+    it('ignores a capability response after browser history has changed before the next form renders', async () => {
+        let resolveProfile!: (profile: unknown) => void
+        mockFetchUser.mockReturnValueOnce(new Promise((resolve) => (resolveProfile = resolve)))
+        const { rerender } = rtlRender(formAt(bankUrl))
+        const pending = formProps().onSuccess({})
+        const nextBankUrl = '/withdraw/euro-area?step=form'
+        navigate(nextBankUrl)
+        await act(async () => {
+            resolveProfile(mockAuthUser)
+            expect(await pending).toMatchObject({ error: 'cancelled', silent: true })
+        })
+        expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
+        expect(addBankAccount).not.toHaveBeenCalled()
+        rerender(formAt('/verify'))
+        rerender(formAt(nextBankUrl))
+        expect(formProps().restoredOwnIbanDraft).toBeUndefined()
     })
 })
 

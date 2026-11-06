@@ -36,11 +36,13 @@ const primary = (label: string, onClick: () => void, testId: string, loading = f
 export function SavedScreen({
     busy = false,
     closed = [],
+    onBack,
     onContinue,
 }: {
     busy?: boolean
     /** What the residence or an answer closed of the user's pick, said before the ID check. */
     closed?: PaperworkVerificationClosedFeature[]
+    onBack?: () => void
     onContinue: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
@@ -63,6 +65,8 @@ export function SavedScreen({
     return (
         <VerifyCelebrationLayout
             pose="pointing"
+            screenId="answers-saved"
+            onBack={onBack}
             celebrate
             title={t('saved.title')}
             description={t('saved.description')}

@@ -387,10 +387,6 @@ export function IdentityDocumentScreen({
                         <DrawerTitle>{t('documentList.otherTitle')}</DrawerTitle>
                         <p className="text-body-s text-foreground-secondary">{t('documentList.otherDescription')}</p>
                         <ListGroup>{sheetChoices.map((c) => row(c, 'other'))}</ListGroup>
-                        <p className="flex items-start gap-2 text-body-s text-foreground-secondary">
-                            <Icon name="info" size={16} className="mt-0.5 shrink-0" />
-                            {t('documentList.otherNotAccepted')}
-                        </p>
                         <Button
                             variant="secondary"
                             shadowSize="4"
