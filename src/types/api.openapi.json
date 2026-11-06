@@ -689,7 +689,7 @@
 		},
 		"/avenia/deposit/{intentId}": {
 			"get": {
-				"description": "Read-only: the webhook and the poller move the deposit; the app polls this behind the code.",
+				"description": "Owner only. Read-only: the webhook and the poller move the deposit. After a reload the app draws the code again from here while `codePayable` is true, and the outcome after that. The deposit route in capabilities names the payable deposit (`payableDepositIntentId`).",
 				"parameters": [
 					{
 						"in": "path",
@@ -713,14 +713,54 @@
 					"200": {
 						"content": {
 							"application/json": {
-								"example": {
-									"expiresAt": "2026-11-04T12:10:00.000Z",
-									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-									"status": "PROCESSING",
-									"ticketStatus": "PROCESSING"
+								"examples": {
+									"example1": {
+										"value": {
+											"amountBrl": "100.00",
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": "2026-11-04T12:10:00.000Z",
+											"fixedFeeBrl": "0.75",
+											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+											"payerCpfMasked": "123.***.***-09",
+											"status": "AWAITING_USER_ACTION",
+											"ticketStatus": "UNPAID",
+											"usdcAmount": "17.940500"
+										}
+									},
+									"example2": {
+										"value": {
+											"amountBrl": "100.00",
+											"codePayable": false,
+											"expiresAt": "2026-11-04T12:10:00.000Z",
+											"fixedFeeBrl": "0.75",
+											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+											"status": "PROCESSING",
+											"ticketStatus": "PROCESSING",
+											"usdcAmount": "17.940500"
+										}
+									}
 								},
 								"schema": {
 									"properties": {
+										"amountBrl": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"brCode": {
+											"description": "The dynamic Pix code (copia e cola)",
+											"type": "string"
+										},
+										"codePayable": {
+											"description": "The code can still be paid: the deposit waits for the payer, the ticket is UNPAID and before expiresAt. brCode and payerCpfMasked are sent only then.",
+											"type": "boolean"
+										},
 										"expiresAt": {
 											"anyOf": [
 												{
@@ -731,7 +771,15 @@
 												}
 											]
 										},
+										"fixedFeeBrl": {
+											"description": "Avenia’s flat fee in reais, when the quote’s fee lines are on file",
+											"type": "string"
+										},
 										"intentId": {
+											"type": "string"
+										},
+										"payerCpfMasked": {
+											"description": "The CPF the Pix must come from",
 											"type": "string"
 										},
 										"status": {
@@ -746,13 +794,27 @@
 													"type": "null"
 												}
 											]
+										},
+										"usdcAmount": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "USDC the wallet receives, from Avenia’s quote"
 										}
 									},
 									"required": [
 										"intentId",
 										"status",
 										"ticketStatus",
-										"expiresAt"
+										"expiresAt",
+										"amountBrl",
+										"usdcAmount",
+										"codePayable"
 									],
 									"type": "object"
 								}
@@ -782,7 +844,7 @@
 						"description": "Default Response"
 					}
 				},
-				"summary": "Pix deposit status",
+				"summary": "Pix deposit: its code while payable, then its status",
 				"tags": [
 					"avenia"
 				]
@@ -995,7 +1057,7 @@
 		},
 		"/avenia/pix-key-info": {
 			"get": {
-				"description": "DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key looks like the user’s own (the masked CPF and the holder name match; DICT shows only part of the CPF, and Avenia checks the full one at payout) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.",
+				"description": "DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key looks like the user’s own (the masked CPF and the holder name match; DICT shows only part of the CPF, and Avenia checks the full one at payout) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user. Open whatever the route says, like recovery-key: it moves no money.",
 				"parameters": [
 					{
 						"in": "query",
@@ -2332,7 +2394,7 @@
 		},
 		"/avenia/withdraw/{intentId}/recovery-key": {
 			"post": {
-				"description": "When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open with the rollout gate or the Avenia kill switch closed, since it only returns the user’s own money.",
+				"description": "When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open whatever the route says (a closed rollout gate, a paused provider), since it only returns the user’s own money.",
 				"parameters": [
 					{
 						"in": "path",
@@ -12864,6 +12926,29 @@
 										"extraData": {
 											"additionalProperties": true,
 											"properties": {
+												"aveniaDeposit": {
+													"description": "An Avenia Pix deposit, on an Avenia ONRAMP only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /avenia/deposit/:intentId).",
+													"properties": {
+														"codePayable": {
+															"type": "boolean"
+														},
+														"expiresAt": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"codePayable",
+														"expiresAt"
+													],
+													"type": "object"
+												},
 												"aveniaRecovery": {
 													"anyOf": [
 														{
@@ -26359,13 +26444,242 @@
 														"type": "object"
 													},
 													"type": "array"
+												},
+												"routes": {
+													"items": {
+														"properties": {
+															"action": {
+																"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																"type": "string"
+															},
+															"candidates": {
+																"description": "Every provider that serves the operation on the method, best first, each with its reason.",
+																"items": {
+																	"properties": {
+																		"action": {
+																			"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																			"type": "string"
+																		},
+																		"provider": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"bridge"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"manteca"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"rain"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		},
+																		"reason": {
+																			"properties": {
+																				"code": {
+																					"type": "string"
+																				},
+																				"details": {
+																					"type": "string"
+																				},
+																				"userMessage": {
+																					"type": "string"
+																				}
+																			},
+																			"required": [
+																				"code",
+																				"userMessage"
+																			],
+																			"type": "object"
+																		},
+																		"state": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"ready"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"action_required"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"pending"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"paused"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"refused"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		}
+																	},
+																	"required": [
+																		"provider",
+																		"state"
+																	],
+																	"type": "object"
+																},
+																"type": "array"
+															},
+															"method": {
+																"description": "Rail method code, e.g. PIX_BR",
+																"type": "string"
+															},
+															"operation": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"deposit"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"withdraw"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"payableDepositIntentId": {
+																"description": "Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another.",
+																"type": "string"
+															},
+															"provider": {
+																"anyOf": [
+																	{
+																		"anyOf": [
+																			{
+																				"enum": [
+																					"bridge"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"manteca"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"rain"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"avenia"
+																				],
+																				"type": "string"
+																			}
+																		]
+																	},
+																	{
+																		"type": "null"
+																	}
+																],
+																"description": "The provider the money routes use. Null when every candidate is refused."
+															},
+															"reason": {
+																"properties": {
+																	"code": {
+																		"type": "string"
+																	},
+																	"details": {
+																		"type": "string"
+																	},
+																	"userMessage": {
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"code",
+																	"userMessage"
+																],
+																"type": "object"
+															},
+															"state": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"ready"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"action_required"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pending"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"paused"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"refused"
+																		],
+																		"type": "string"
+																	}
+																]
+															}
+														},
+														"required": [
+															"operation",
+															"method",
+															"provider",
+															"state",
+															"candidates"
+														],
+														"type": "object"
+													},
+													"type": "array"
 												}
 											},
 											"required": [
 												"rails",
 												"nextActions",
 												"restrictions",
-												"features"
+												"features",
+												"routes"
 											],
 											"type": "object"
 										}
@@ -35977,13 +36291,242 @@
 														"type": "object"
 													},
 													"type": "array"
+												},
+												"routes": {
+													"items": {
+														"properties": {
+															"action": {
+																"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																"type": "string"
+															},
+															"candidates": {
+																"description": "Every provider that serves the operation on the method, best first, each with its reason.",
+																"items": {
+																	"properties": {
+																		"action": {
+																			"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																			"type": "string"
+																		},
+																		"provider": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"bridge"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"manteca"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"rain"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		},
+																		"reason": {
+																			"properties": {
+																				"code": {
+																					"type": "string"
+																				},
+																				"details": {
+																					"type": "string"
+																				},
+																				"userMessage": {
+																					"type": "string"
+																				}
+																			},
+																			"required": [
+																				"code",
+																				"userMessage"
+																			],
+																			"type": "object"
+																		},
+																		"state": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"ready"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"action_required"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"pending"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"paused"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"refused"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		}
+																	},
+																	"required": [
+																		"provider",
+																		"state"
+																	],
+																	"type": "object"
+																},
+																"type": "array"
+															},
+															"method": {
+																"description": "Rail method code, e.g. PIX_BR",
+																"type": "string"
+															},
+															"operation": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"deposit"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"withdraw"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"payableDepositIntentId": {
+																"description": "Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another.",
+																"type": "string"
+															},
+															"provider": {
+																"anyOf": [
+																	{
+																		"anyOf": [
+																			{
+																				"enum": [
+																					"bridge"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"manteca"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"rain"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"avenia"
+																				],
+																				"type": "string"
+																			}
+																		]
+																	},
+																	{
+																		"type": "null"
+																	}
+																],
+																"description": "The provider the money routes use. Null when every candidate is refused."
+															},
+															"reason": {
+																"properties": {
+																	"code": {
+																		"type": "string"
+																	},
+																	"details": {
+																		"type": "string"
+																	},
+																	"userMessage": {
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"code",
+																	"userMessage"
+																],
+																"type": "object"
+															},
+															"state": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"ready"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"action_required"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pending"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"paused"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"refused"
+																		],
+																		"type": "string"
+																	}
+																]
+															}
+														},
+														"required": [
+															"operation",
+															"method",
+															"provider",
+															"state",
+															"candidates"
+														],
+														"type": "object"
+													},
+													"type": "array"
 												}
 											},
 											"required": [
 												"rails",
 												"nextActions",
 												"restrictions",
-												"features"
+												"features",
+												"routes"
 											],
 											"type": "object"
 										},
