@@ -1,7 +1,10 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { pixRefusalCopy } from '@/features/pix/pixRoute.utils'
@@ -27,12 +30,29 @@ export function PixUnavailableScreen({ title, route }: { title: string; route: C
         reason: reason?.userMessage ?? '',
     }[pixRefusalCopy(reason)]
     return (
-        <MantecaAccountUnavailable
-            title={title}
-            description={description}
-            onBack={back}
-            // the route's reason tells support which case this is
-            onSupport={() => openSupportWithMessage(buildContactSupportMessage({ reason, userId: user?.user?.userId }))}
-        />
+        <PageStack>
+            <NavHeader title={title} onPrev={back} />
+            <PageStack.Center>
+                <EmptyState
+                    icon="alert"
+                    title={t('pix.unavailableTitle')}
+                    description={description}
+                    cta={
+                        <Button
+                            variant="primary"
+                            className="mt-4 w-full"
+                            // the route's reason tells support which case this is
+                            onClick={() =>
+                                openSupportWithMessage(
+                                    buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                                )
+                            }
+                        >
+                            {t('common.contactSupport')}
+                        </Button>
+                    }
+                />
+            </PageStack.Center>
+        </PageStack>
     )
 }

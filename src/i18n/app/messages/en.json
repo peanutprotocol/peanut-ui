@@ -2503,6 +2503,7 @@
         }
     },
     "pix": {
+        "unavailableTitle": "Pix not available",
         "rejected": "The verification was not accepted, so Pix is not available. Contact support if this looks wrong."
     },
     "avenia": {

@@ -2503,6 +2503,7 @@
         }
     },
     "pix": {
+        "unavailableTitle": "Pix indisponível",
         "rejected": "A verificação não foi aceita, então o Pix não está disponível. Fale com o suporte se achar que é um engano."
     },
     "avenia": {
