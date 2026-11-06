@@ -360,7 +360,7 @@ export interface paths {
                          *       "fixedFeeBrl": "0.75",
                          *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
                          *       "payerCpfMasked": "123.***.***-09",
-                         *       "usdcAmount": "17.940500"
+                         *       "usdcAmount": "17.920175"
                          *     }
                          */
                         "application/json": {
@@ -371,6 +371,7 @@ export interface paths {
                             fixedFeeBrl: string;
                             intentId: string;
                             payerCpfMasked: string;
+                            /** @description USDC the wallet receives: Avenia’s output less Rhino’s bridge fee, by Rhino’s quote */
                             usdcAmount: string;
                         };
                     };
@@ -557,7 +558,7 @@ export interface paths {
                             payerCpfMasked?: string;
                             status: string;
                             ticketStatus: string | null;
-                            /** @description USDC the wallet receives, from Avenia’s quote */
+                            /** @description USDC the wallet receives: Avenia’s output less Rhino’s bridge fee, by Rhino’s quote at the deposit */
                             usdcAmount: string | null;
                         };
                     };
@@ -8900,7 +8901,7 @@ export interface paths {
                             provider: string;
                             /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
                             rate: string;
-                            /** @description USDC the wallet receives (deposit) or that leaves it, the bridge fee included (withdraw) */
+                            /** @description USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw) */
                             usdcAmount: string;
                         };
                     };
