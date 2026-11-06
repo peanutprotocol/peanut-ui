@@ -1684,13 +1684,13 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
         mockBrazilPaused = false
     })
 
-    // Brazil's Pix lives on /add-money/pix only (features/pix/__tests__): the old URL mounts no BRL flow.
-    test('BR + manteca mounts no flow: Manteca is never chosen here for BRL', () => {
+    // Brazil's Pix lives on /add-money/pix (features/pix/__tests__): the old URL goes there.
+    test('BR + manteca mounts no Manteca flow and goes to the neutral Pix page', () => {
         setParams({ country: 'brazil', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
         expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
-        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix')
     })
 
     test('AR + manteca stays open during the Brazil pause', () => {

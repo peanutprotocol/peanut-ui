@@ -172,13 +172,13 @@ describe('the Brazil pause', () => {
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     })
 
-    // a BRL withdrawal to the own account lives on /withdraw/pix only (features/pix/__tests__)
-    test('mounts no BRL withdrawal here: Manteca is never chosen for it', () => {
+    // a BRL withdrawal to the own account lives on /withdraw/pix (features/pix/__tests__)
+    test('mounts no BRL withdrawal here and goes to the neutral Pix page', () => {
         mockPush.mockClear()
         mockParams = 'country=brazil&method=bank-transfer'
         render()
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-        expect(mockPush).not.toHaveBeenCalled()
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
     })
 
     test('shows the paused screen for a Brazil resident sending to a Pix key once the pause is off', () => {
