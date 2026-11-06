@@ -1,6 +1,7 @@
 import { findPixRoute, pixRefusalCopy, pixScreen } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
 import type { CapabilityRoute } from '@/types/capabilities'
+import { DEMO_USER } from '@/constants/demo-data'
 
 const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     operation: 'deposit',
@@ -60,5 +61,13 @@ describe('pixRefusalCopy', () => {
         expect(pixRefusalCopy(reason('manteca_us_nationality'))).toBe('reason')
         expect(pixRefusalCopy(reason('manteca_us_nationality', ''))).toBe('not-served')
         expect(pixRefusalCopy(undefined)).toBe('not-served')
+    })
+})
+
+describe('demo mode', () => {
+    it('reaches the Avenia Pix screens for both operations', () => {
+        for (const operation of ['deposit', 'withdraw'] as const) {
+            expect(pixScreen(findPixRoute(DEMO_USER.capabilities?.routes, operation), false)).toBe('avenia')
+        }
     })
 })

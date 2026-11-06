@@ -137,6 +137,15 @@ const DEMO_CAPABILITIES: UserCapabilities = {
     ],
     nextActions: [],
     restrictions: [],
+    // The demo user lives in Brazil: the API's router names Avenia for both Pix operations,
+    // so /add-money/pix and /withdraw/pix open the Avenia screens the demo API answers.
+    routes: (['deposit', 'withdraw'] as const).map((operation) => ({
+        operation,
+        method: 'PIX_BR',
+        provider: 'avenia',
+        state: 'ready',
+        candidates: [{ provider: 'avenia', state: 'ready' }],
+    })),
     // The API's report for these rails, written out: the app never computes one (a test keeps them equal).
     features: {
         qr: { state: 'on' },
