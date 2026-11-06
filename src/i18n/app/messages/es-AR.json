@@ -1165,7 +1165,8 @@
             "sendExtraForFees": "Enviá un poco más si tu billetera o la red cobra una comisión."
         },
         "manteca": {
-            "sendOnlyOwnAccountTitle": "Enviá solo desde cuenta propia",
+            "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
+            "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos"
         },
         "pix": {
