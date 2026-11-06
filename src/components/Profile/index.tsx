@@ -8,7 +8,6 @@ import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
-import ResidenceMenuItem from './components/ResidenceMenuItem'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -108,10 +107,6 @@ export const Profile = () => {
                 />
                 {avatarPickerMounted && <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />}
                 <div className="space-y-4">
-                    {/* IA from #2834: identity/products first, then social +
-                        account, then app settings. Payment limits moved inline
-                        into Unlock payments; name visibility moved to
-                        /profile/edit. */}
                     <ListGroup>
                         <ProfileMenuItem
                             icon="wallet"
@@ -122,7 +117,6 @@ export const Profile = () => {
                             // one screen.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        <ResidenceMenuItem />
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
@@ -141,7 +135,7 @@ export const Profile = () => {
                             label={t('menu.inviteFriends')}
                             onClick={openInviteFriendsModal}
                         />
-                        <ProfileMenuItem icon="user" label={t('menu.profile')} href="/profile/details" />
+                        <ProfileMenuItem icon="user" label={t('menu.profile')} href="/settings/details" />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}

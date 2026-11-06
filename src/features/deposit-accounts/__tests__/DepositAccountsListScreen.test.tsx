@@ -1025,7 +1025,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(link)
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/settings/details?open=residence', HUB_RETURN))
         expect(mockOpenSupport).not.toHaveBeenCalled()
     })
 
@@ -1063,7 +1063,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(drawer().getByRole('button', { name: messages.depositAccounts.details.residenceCta }))
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/settings/details?open=residence', HUB_RETURN))
     })
 
     it('says bank transfers and the card are closed where the country of residence closes both', () => {

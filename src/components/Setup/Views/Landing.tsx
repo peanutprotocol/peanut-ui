@@ -87,13 +87,14 @@ const LandingStep = () => {
 
         if (isAndroidNativeBridge) {
             void checkAndroidLandingPasskey(signal)
+                .catch(() => 'unavailable' as const)
                 .then((result) => {
                     if (signal.aborted || Date.now() >= deadline) return
                     if (result !== 'available' && result !== 'unavailable') return
                     clearTimeout(timer)
-                    setNativeLogin(result === 'available' ? 'full' : 'hidden')
+                    // A provider failure can look like an empty result. Keep manual login available.
+                    setNativeLogin(result === 'available' ? 'full' : 'link')
                 })
-                .catch(() => {})
         } else if (isIOSNative && isNativeBridge) {
             iosPreparation.current = check
             void supportsIOSImmediateLogin()
@@ -200,9 +201,12 @@ const LandingStep = () => {
         setAutoLoginPending(false)
     }
 
-    const afterAutoLogin = (next: () => unknown) => {
+    const afterAutoLogin = (next?: () => unknown) => {
+        // Capability discovery can still be pending with no attempt to retire. An active
+        // attempt also needs this signal to stop options loading from opening a late picker.
+        iosPreparation.current?.abort()
         if (!autoLogin.current && !fallbackBusy.current) {
-            next()
+            next?.()
             return
         }
         if (fallbackBusy.current) return
@@ -253,7 +257,7 @@ const LandingStep = () => {
             }}
             onRetry={() => {
                 recover('retry')
-                void login()
+                afterAutoLogin(login)
             }}
             // Signup is app-only on the blocked web layout; the store buttons sit behind the drawer there.
             onSignUp={
@@ -261,7 +265,7 @@ const LandingStep = () => {
                     ? undefined
                     : () => {
                           recover('signup')
-                          signUp()
+                          afterAutoLogin(signUp)
                       }
             }
             onSupport={() => recover('support')}
@@ -273,7 +277,7 @@ const LandingStep = () => {
             kind="account-recovery"
             href="/en/help/account-recovery"
             className={LINK_BUTTON_CLASSES}
-            onBeforeOpen={() => iosPreparation.current?.abort()}
+            onBeforeOpen={afterAutoLogin}
         >
             <Icon name="info" size={16} className="shrink-0" />
             {t('landing.recoverWallet')}

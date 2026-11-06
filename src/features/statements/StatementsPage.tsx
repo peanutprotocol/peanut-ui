@@ -34,7 +34,7 @@ export function StatementsPage() {
     const tCommon = useTranslations('common')
     const formatter = useFormatter()
     const toast = useToast()
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack('/settings', { replace: true })
     const period = useStatementPeriod()
     const { format, setFormat } = useStatementFormat()
     const { generate, share, download, busy, isNative, isPrepared, periodTooLong, error } = useStatementDownload({

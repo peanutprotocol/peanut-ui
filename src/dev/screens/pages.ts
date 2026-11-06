@@ -41,8 +41,14 @@ export const PAGE_CAPTURES: PageCapture[] = [
     },
 
     { id: 'p05-home', name: 'Home', route: '/home' },
-    { id: 'p06-profile', name: 'Profile', route: '/profile' },
-    { id: 'p07-profile-edit', name: 'Profile — edit', route: '/profile/edit' },
+    { id: 'p06-profile', name: 'Settings', route: '/settings' },
+    {
+        id: 'p07-profile-edit',
+        name: 'Profile details - email settings',
+        route: '/settings/details',
+        actions: [{ clickSelector: '[data-testid="profile-email-settings"]' }],
+        expectSelector: '[data-testid="profile-email-settings"][aria-expanded="true"]',
+    },
     { id: 'p08-profile-view', name: 'Profile — public view', route: '/profile/view?username=demo' },
     { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
     { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },

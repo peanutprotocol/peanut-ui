@@ -1,14 +1,19 @@
 'use client'
 
-import { type ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { DataRowGroup } from '@/components/0_Bruddle/DataRowGroup'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
-import { Button } from '@/components/0_Bruddle/Button'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
+import ResidenceMenuItem from '../components/ResidenceMenuItem'
+import ShowNameToggle from '../components/ShowNameToggle'
+import { EmailSettings } from '../components/EmailSettings'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import type { KycCollectedDetails, KycStoredDetail } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -43,7 +48,7 @@ type DetailRow =
 
 const skeleton = 'animate-pulse rounded-full bg-foreground-primary/10 motion-reduce:animate-none'
 
-/** The name as sign-up stored it: the last word is the surname, as on the edit screen. */
+/** The name as sign-up stored it: the last word is the surname. */
 function splitName(fullName: string | null | undefined) {
     const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean)
     const surname = parts.length > 1 ? parts.pop()! : ''
@@ -71,19 +76,42 @@ function birthDate(locale: string, iso: string) {
         : new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(date)
 }
 
+function NameVisibilitySetting({ visible, label }: { visible: boolean; label: string }) {
+    const [preference, setPreference] = useState({ saved: visible, checked: visible })
+    if (preference.saved !== visible) setPreference({ saved: visible, checked: visible })
+    return (
+        <ListItem
+            position="solo"
+            leading={<IconBubble icon="eye" size="s" color="blue" />}
+            title={label}
+            trailing={
+                <ShowNameToggle
+                    checked={preference.saved === visible ? preference.checked : visible}
+                    onChange={(checked) => setPreference({ saved: visible, checked })}
+                />
+            }
+        />
+    )
+}
+
 /**
  * Profile: what the user gave at sign-up and in verification, read from Sumsub,
- * the address and the tax number included (Slava, 2026-11-05). A value the API
- * could not return says it is not stored at Peanut. A row shows only for
- * something collected.
+ * including an address and tax number when the API returns them.
  */
 export const ProfileDetailsView = () => {
+    const { user } = useAuth()
+    return <ProfileDetails key={user?.user.userId} />
+}
+
+function ProfileDetails() {
     const t = useTranslations('profile.details')
     const tDocuments = useTranslations('kyc.documents')
     const tMenu = useTranslations('profile.menu')
+    const tEmail = useTranslations('profile.edit.fields')
     const locale = useLocale()
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack('/settings', { replace: true })
     const { user } = useAuth()
+    const [openSection, setOpenSection] = useState('')
     const { data: details, isPending } = useQuery<KycCollectedDetails>({
         queryKey: [...PROFILE_DETAILS_QUERY_KEY, user?.user.userId],
         queryFn: getKycDetails,
@@ -98,8 +126,7 @@ export const ProfileDetailsView = () => {
     const surname = details?.name?.last ?? signupName.surname
     const email = user?.user.email?.trim()
     const residence = user?.residence
-    // a requested change stays declared until verified: the verified country is still the residence
-    const residenceCountry = residence?.verified?.country ?? residence?.declared?.country ?? null
+    const verifiedResidence = residence?.verified?.country
     const held = new Set(details?.heldBySumsub ?? [])
     const stored = details?.stored ?? {}
     const optionLabel = useOptionLabel()
@@ -146,8 +173,7 @@ export const ProfileDetailsView = () => {
     const sensitive = (value: string) => <span className="ph-mask ph-sensitive">{value}</span>
     const sumsubRow = (key: 'address' | 'taxId') => {
         const value = key === 'address' ? addressText : details?.taxId
-        if (value) return row(key, t(`rows.${key}`), sensitive(value))
-        return held.has(key) ? row(key, t(`rows.${key}`), notStored) : null
+        return value ? row(key, t(`rows.${key}`), sensitive(value)) : null
     }
     const detailRows = (keys: readonly DetailRow[]) =>
         keys.map((key) =>
@@ -163,19 +189,11 @@ export const ProfileDetailsView = () => {
         : null
     return (
         <div className="flex w-full flex-col gap-6">
-            <NavHeader
-                title={t('title')}
-                onPrev={onBack}
-                rightElement={
-                    <Button
-                        variant="ghost"
-                        href="/profile/edit"
-                        icon="edit"
-                        aria-label={tMenu('personalDetails')}
-                        className={NAV_CIRCLE_BUTTON_CLASSES}
-                    />
-                }
-            />
+            <NavHeader title={t('title')} onPrev={onBack} />
+            <ResidenceMenuItem />
+            {!!user?.user.fullName?.trim() && (
+                <NameVisibilitySetting visible={user.user.showFullName ?? false} label={tMenu('showFullName')} />
+            )}
             <Card position="solo" className={receiptDataRowCardClassName} data-testid="profile-details">
                 <DataRowGroup>
                     {name && row('name', t('rows.name'), name)}
@@ -183,12 +201,7 @@ export const ProfileDetailsView = () => {
                     {email && row('email', t('rows.email'), email)}
                 </DataRowGroup>
                 <DataRowGroup>
-                    {residenceCountry &&
-                        row(
-                            'residence',
-                            t(residence?.verified ? 'rows.verifiedResidence' : 'rows.declaredResidence'),
-                            country(residenceCountry)
-                        )}
+                    {verifiedResidence && row('residence', t('rows.verifiedResidence'), country(verifiedResidence))}
                     {residence?.secondaryDeclaredCountry &&
                         row('secondResidence', t('rows.secondResidence'), country(residence.secondaryDeclaredCountry))}
                     {details?.nationality && row('nationality', t('rows.nationality'), country(details.nationality))}
@@ -211,6 +224,19 @@ export const ProfileDetailsView = () => {
                     </>
                 )}
             </Card>
+            {user && (
+                <>
+                    <Accordion type="single" collapsible value={openSection} onValueChange={setOpenSection}>
+                        <Accordion.Item value="email">
+                            <Accordion.Trigger title={tEmail('email')} data-testid="profile-email-settings" />
+                            <Accordion.Content>
+                                <EmailSettings onSaved={() => setOpenSection('')} />
+                            </Accordion.Content>
+                        </Accordion.Item>
+                    </Accordion>
+                    <DeleteAccountButton />
+                </>
+            )}
         </div>
     )
 }

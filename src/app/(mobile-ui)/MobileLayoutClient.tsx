@@ -19,7 +19,7 @@ import SetupNotificationsModal from '@/components/Notifications/SetupNotificatio
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import { isPublicRoute } from '@/constants/routes'
+import { isPublicRoute, isSameRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
@@ -67,10 +67,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const isReceipt = pathName === '/receipt' || pathName === '/receipt/'
-    // The profile menu IS the full-screen menu: the bottom nav and its QR
-    // button used to float over its own list of destinations. Exact match —
-    // /profile/* sub-pages keep the nav.
-    const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
+    // The settings root is a full-screen menu. Subpages keep the bottom nav.
+    const isSettingsMenu = isSameRoute(pathName, '/settings') || isSameRoute(pathName, '/profile')
     const isDev = pathName?.startsWith('/dev') ?? false
     // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
     // Its screens on other routes (a feature's activation on /add-money, /withdraw, /card) hold the same shell.
@@ -221,7 +219,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <AppShell
                     variant="app"
                     banner={!isDev && <ShellBannerFallback />}
-                    nav={!isDev && !isProfileMenu && !isVerify && isUserLoggedIn && <BottomNav />}
+                    nav={!isDev && !isSettingsMenu && !isVerify && isUserLoggedIn && <BottomNav />}
                     // /verify is page-coloured panels under a page-coloured or hero-blue status bar
                     pageClassName={
                         isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-page))]' : undefined
@@ -235,7 +233,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         isReceipt && 'p-0',
                         // the 6rem reservation exists to clear the bottom nav, so a
                         // screen without one takes the same inset as a logged-out one
-                        isUserLoggedIn && !isProfileMenu
+                        isUserLoggedIn && !isSettingsMenu
                             ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
                             : 'pb-[calc(1rem_+_var(--safe-bottom))]',
                         isDev && 'p-0 pb-0',

@@ -39,7 +39,7 @@ const EMAIL_SWITCHES: SwitchRow[] = [{ key: 'emailUpdates', icon: 'mail', label:
 export const NotificationsView = () => {
     const t = useTranslations('settings.notifications')
     const tCommon = useTranslations('common')
-    const onBack = useSafeBack('/profile')
+    const onBack = useSafeBack('/settings')
     const toast = useToast()
     const { requestPermission, afterPermissionAttempt, isPermissionDenied } = useNotifications()
     const [choices, setChoices] = useState<NotificationPreferences | null>(null)

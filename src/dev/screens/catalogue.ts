@@ -47,7 +47,7 @@ const flow = (value: string): string => {
         ['add.money|onramp|deposit', 'Add money'],
         ['withdraw|recover', 'Withdraw'],
         ['send|claim|request|qr|contribut|transaction', 'Payments'],
-        ['profile|language|avatar|support', 'Profile and settings'],
+        ['profile|language|avatar|support|/settings(?:/details)?(?:[?\\s]|$)', 'Profile and settings'],
     ]
     return rules.find(([pattern]) => new RegExp(pattern, 'i').test(value))?.[1] ?? 'Home and shared states'
 }

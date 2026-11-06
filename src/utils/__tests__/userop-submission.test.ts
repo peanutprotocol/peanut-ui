@@ -6,6 +6,7 @@ import {
     SIGNUP_TEST_TX_SUBMISSION,
     submitSignedUserOperation,
     userOpFailureKind,
+    userOperationNonceSpent,
     UserOpSubmissionError,
 } from '../userop-submission'
 
@@ -206,16 +207,30 @@ describe('submitSignedUserOperation', () => {
         expect(deps.sleep).not.toHaveBeenCalled()
     })
 
-    it('"Already known" for a re-signed operation waits until the earlier signature at the same nonce lands', async () => {
-        const nonceSpent = jest.fn().mockResolvedValueOnce(false).mockResolvedValue(true)
+    it.each([true, false])('uses a late receipt with success %s after the nonce is spent', async (success) => {
+        const receipt = { ...mined, success }
         const { deps } = harness({
             send: jest.fn().mockRejectedValue(productionAlreadyKnown()),
             waitForReceipt: jest.fn().mockRejectedValue(receiptTimeout()),
-            nonceSpent,
+            getReceipt: jest.fn().mockResolvedValue(receipt),
+            nonceSpent: jest.fn().mockResolvedValue(true),
         })
         const outcome = await submitSignedUserOperation(HASH, deps)
-        expect(outcome).toMatchObject({ success: true, receipt: null })
-        expect(deps.send).toHaveBeenCalledTimes(2)
+        expect(outcome).toMatchObject(receipt)
+        expect(deps.waitForReceipt).toHaveBeenCalledTimes(SIGNUP_TEST_TX_SUBMISSION.receiptWindows)
+        expect(deps.getReceipt).toHaveBeenCalledWith(HASH)
+        expect(deps.send).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps a spent nonce with no receipt unresolved and stops resubmission', async () => {
+        const { deps } = harness({
+            send: jest.fn().mockRejectedValue(productionAlreadyKnown()),
+            waitForReceipt: jest.fn().mockRejectedValue(receiptTimeout()),
+            nonceSpent: jest.fn().mockResolvedValue(true),
+        })
+        await expect(submitSignedUserOperation(HASH, deps)).rejects.toMatchObject({ kind: 'transient' })
+        expect(deps.send).toHaveBeenCalledTimes(1)
+        expect(deps.getReceipt).toHaveBeenCalledWith(HASH)
     })
 
     it('without a nonce check, a stalled sibling ends as a transient failure', async () => {
@@ -224,6 +239,23 @@ describe('submitSignedUserOperation', () => {
             waitForReceipt: jest.fn().mockRejectedValue(receiptTimeout()),
         })
         await expect(submitSignedUserOperation(HASH, deps)).rejects.toMatchObject({ kind: 'transient' })
+    })
+})
+
+describe('userOperationNonceSpent', () => {
+    it('reads the stored operation key and compares the sequence under that key', async () => {
+        const sender = '0x1111111111111111111111111111111111111111'
+        const entryPoint = '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
+        const nonce = (7n << 64n) + 3n
+        const readContract = jest
+            .fn()
+            .mockResolvedValueOnce(8n << 64n)
+            .mockResolvedValueOnce(nonce + 1n)
+        await expect(userOperationNonceSpent({ readContract }, entryPoint, sender, nonce)).resolves.toBe(false)
+        await expect(userOperationNonceSpent({ readContract }, entryPoint, sender, nonce)).resolves.toBe(true)
+        expect(readContract).toHaveBeenCalledWith(
+            expect.objectContaining({ address: entryPoint, functionName: 'getNonce', args: [sender, 7n] })
+        )
     })
 })
 

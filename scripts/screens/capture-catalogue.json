@@ -2085,17 +2085,17 @@
     {
         "id": "fixture-profile",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "fixture-profile-edit",
         "flow": "Profile and settings",
-        "route": "/profile/edit"
+        "route": "/settings/details"
     },
     {
         "id": "fixture-profile-edit-unverified",
         "flow": "Profile and settings",
-        "route": "/profile/edit"
+        "route": "/settings/details"
     },
     {
         "id": "fixture-settings-language",
@@ -2105,12 +2105,12 @@
     {
         "id": "fixture-hugo-long-username",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "fixture-long-full-name",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "fixture-unverified",
@@ -2135,12 +2135,12 @@
     {
         "id": "fixture-avatar-picker",
         "flow": "Profile and settings",
-        "route": "/profile?avatarPicker=true"
+        "route": "/settings?avatarPicker=true"
     },
     {
         "id": "fixture-profile-details",
         "flow": "Profile and settings",
-        "route": "/profile/details"
+        "route": "/settings/details"
     },
     {
         "id": "fixture-profile-accounts",
@@ -2205,12 +2205,12 @@
     {
         "id": "p06-profile",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "p07-profile-edit",
         "flow": "Profile and settings",
-        "route": "/profile/edit"
+        "route": "/settings/details"
     },
     {
         "id": "p08-profile-view",
@@ -2310,7 +2310,7 @@
     {
         "id": "66-e-avatarpicker",
         "flow": "Profile and settings",
-        "route": "/profile?avatarPicker=true",
+        "route": "/settings?avatarPicker=true",
         "source": "Avatar/AvatarPicker.tsx"
     },
     {

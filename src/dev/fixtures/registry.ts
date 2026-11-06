@@ -1359,15 +1359,15 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
+    profile: { route: '/settings', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {
-        route: '/profile/edit',
-        about: 'Verified name locked, account email editable.',
+        route: '/settings/details',
+        about: 'Account details with email settings.',
         responses: { 'GET /users/me': { profileNameLocked: true }, 'POST /users/email-change': { success: true } },
     },
     'profile-edit-unverified': {
-        route: '/profile/edit',
-        about: 'Name and email editable before identity verification.',
+        route: '/settings/details',
+        about: 'Account details before identity verification.',
         responses: {
             'GET /users/me': { identityVerification: { status: 'not_started' }, profileNameLocked: false },
             'POST /users/email-change': { success: true },
@@ -2281,7 +2281,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // Hazards — user text and numbers that break layouts.
     // ---------------------------------------------------------------------
     'hugo-long-username': {
-        route: '/profile',
+        route: '/settings',
         about: `Hugo's case: the ${LONG_USERNAME.length}-character username "${LONG_USERNAME}" in the header and the share-link pill.`,
         responses: {
             'GET /users/me': { user: { username: LONG_USERNAME, fullName: LONG_USERNAME, showFullName: false } },
@@ -2290,7 +2290,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'long-full-name': {
-        route: '/profile',
+        route: '/settings',
         about: 'Profile header with a 55-character full name shown instead of the username.',
         responses: { 'GET /users/me': { user: { fullName: LONG_FULL_NAME, showFullName: true } } },
     },
@@ -2802,7 +2802,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'profile-details': {
-        route: '/profile/details',
+        route: '/settings/details',
         about: 'Profile details for a verified Portuguese resident: the name and answers read live from Sumsub, the address and tax number kept only there.',
         responses: {
             'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
@@ -2811,7 +2811,14 @@ export const FIXTURES: Record<string, Fixture> = {
                 nationality: 'PT',
                 idNationality: 'PT',
                 document: { country: 'PRT', type: 'PASSPORT' },
-                heldBySumsub: ['address', 'taxId'],
+                address: {
+                    street: 'Rua de Teste',
+                    buildingNumber: '10',
+                    postCode: '1000-001',
+                    town: 'Lisboa',
+                    country: 'PT',
+                },
+                taxId: '000000000',
                 stored: {
                     dateOfBirth: '1990-05-14',
                     countryOfBirth: 'PT',

@@ -10,19 +10,19 @@ describe('HomeTopNav', () => {
         const { container } = renderWithIntl(<HomeTopNav showRewards={false} />)
 
         const menu = screen.getByRole('link', { name: 'Open profile' })
-        expect(menu).toHaveAttribute('href', '/profile')
+        expect(menu).toHaveAttribute('href', '/settings')
         expect(menu).toHaveClass('size-10', 'w-10')
         expect(menu).not.toHaveClass('w-full')
         // one element, one tab stop: a Link wrapping a Button is two, and axe
         // calls that a nested-interactive violation
-        expect(container.querySelectorAll('a[href="/profile"]')).toHaveLength(1)
+        expect(container.querySelectorAll('a[href="/settings"]')).toHaveLength(1)
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
     })
 
     it('carries no avatar and no chevron (TASK-22142)', () => {
         const { container } = renderWithIntl(<HomeTopNav showRewards={false} />)
 
-        const link = container.querySelector('a[href="/profile"]')!
+        const link = container.querySelector('a[href="/settings"]')!
         // the sticker moved to /profile and the picker; nothing here renders it
         expect(link.querySelector('img')).not.toBeInTheDocument()
         expect(link.querySelector('[role="img"]')).not.toBeInTheDocument()

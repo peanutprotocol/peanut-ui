@@ -23,7 +23,7 @@ export default function ExchangeRatePage() {
     const t = useTranslations('exchangeRate')
     const tCommon = useTranslations('common')
     const router = useRouter()
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack('/settings', { replace: true })
     const { spendableBalance, isFetchingSpendableBalance } = useWallet()
     const balancePending = isFetchingSpendableBalance || spendableBalance === undefined
     const { rails } = useCapabilities()
