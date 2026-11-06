@@ -434,6 +434,7 @@
 									"amountBrl": "100.00",
 									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63041D3A",
 									"expiresAt": "2026-11-04T12:10:00.000Z",
+									"fixedFeeBrl": "0.75",
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"usdcAmount": "17.940500"
@@ -456,6 +457,10 @@
 												}
 											]
 										},
+										"fixedFeeBrl": {
+											"description": "Avenia’s flat fee in reais, shown as its own line",
+											"type": "string"
+										},
 										"intentId": {
 											"type": "string"
 										},
@@ -471,6 +476,7 @@
 										"brCode",
 										"amountBrl",
 										"usdcAmount",
+										"fixedFeeBrl",
 										"expiresAt",
 										"payerCpfMasked"
 									],
@@ -845,211 +851,6 @@
 					}
 				},
 				"summary": "Pix deposit: its code while payable, then its status",
-				"tags": [
-					"avenia"
-				]
-			}
-		},
-		"/avenia/kyc/start": {
-			"post": {
-				"description": "For a Brazilian resident with an approved identity and a CPF: records their acceptance of Avenia’s terms, creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Refused without `termsAccepted: true`. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.",
-				"parameters": [
-					{
-						"in": "header",
-						"name": "Authorization",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"properties": {
-									"redirectUrl": {
-										"format": "uri",
-										"type": "string"
-									},
-									"termsAccepted": {
-										"description": "The user accepted Avenia’s terms on this step. Recorded in the consent ledger with the server time and the caller’s IP.",
-										"enum": [
-											true
-										],
-										"type": "boolean"
-									}
-								},
-								"required": [
-									"termsAccepted"
-								],
-								"type": "object"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"example": {
-									"kycUrl": "https://kyc.avenia.io/level-1?session=8f2d1c",
-									"state": "kyc"
-								},
-								"schema": {
-									"properties": {
-										"kycUrl": {
-											"type": "string"
-										},
-										"reason": {
-											"type": "string"
-										},
-										"state": {
-											"anyOf": [
-												{
-													"enum": [
-														"enabled"
-													],
-													"type": "string"
-												},
-												{
-													"enum": [
-														"kyc"
-													],
-													"type": "string"
-												},
-												{
-													"enum": [
-														"pending"
-													],
-													"type": "string"
-												},
-												{
-													"enum": [
-														"rejected"
-													],
-													"type": "string"
-												}
-											]
-										}
-									},
-									"required": [
-										"state"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"400": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"403": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"409": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"422": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"502": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					}
-				},
-				"summary": "Start Pix with Avenia (first use)",
 				"tags": [
 					"avenia"
 				]
@@ -1515,14 +1316,14 @@
 								"example": {
 									"display": {
 										"amountBrl": "106.75",
-										"arrivalEstimate": "About 1 minute",
+										"arrivalEstimateSeconds": 60,
 										"bankName": "Nu Pagamentos S.A.",
+										"fixedFeeBrl": "0.75",
 										"holderName": "Ana Souza",
 										"ownAccount": true,
 										"pixKey": "12345678909",
 										"provider": "Avenia",
-										"providerFeeBrl": "1.68",
-										"rate": "5.416",
+										"rate": "5.369543",
 										"withdrawUsd": "20.020325"
 									},
 									"intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
@@ -1545,8 +1346,9 @@
 													"description": "The headline: reais credited to the account",
 													"type": "string"
 												},
-												"arrivalEstimate": {
-													"type": "string"
+												"arrivalEstimateSeconds": {
+													"description": "About how long from the signature to the Pix paid",
+													"type": "number"
 												},
 												"bankName": {
 													"anyOf": [
@@ -1557,6 +1359,10 @@
 															"type": "null"
 														}
 													]
+												},
+												"fixedFeeBrl": {
+													"description": "Avenia’s flat fee in reais, shown as its own line",
+													"type": "string"
 												},
 												"holderName": {
 													"anyOf": [
@@ -1583,12 +1389,8 @@
 													],
 													"type": "string"
 												},
-												"providerFeeBrl": {
-													"description": "Avenia and Rhino fees together, in reais",
-													"type": "string"
-												},
 												"rate": {
-													"description": "BRL per USDC before fees",
+													"description": "BRL per USDC that leaves the wallet, with Avenia’s percentage fees and Rhino’s fee inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo",
 													"type": "string"
 												},
 												"withdrawUsd": {
@@ -1604,8 +1406,8 @@
 												"bankName",
 												"withdrawUsd",
 												"rate",
-												"providerFeeBrl",
-												"arrivalEstimate",
+												"fixedFeeBrl",
+												"arrivalEstimateSeconds",
 												"provider"
 											],
 											"type": "object"
@@ -1894,14 +1696,14 @@
 							"application/json": {
 								"example": {
 									"amountBrl": "106.75",
-									"arrivalEstimate": "About 1 minute",
+									"arrivalEstimateSeconds": 60,
 									"bankName": "Nu Pagamentos S.A.",
+									"fixedFeeBrl": "0.75",
 									"holderName": "Ana Souza",
 									"ownAccount": true,
 									"pixKey": "12345678909",
 									"provider": "Avenia",
-									"providerFeeBrl": "1.68",
-									"rate": "5.416",
+									"rate": "5.369543",
 									"withdrawUsd": "20.020325"
 								},
 								"schema": {
@@ -1910,8 +1712,9 @@
 											"description": "The headline: reais credited to the account",
 											"type": "string"
 										},
-										"arrivalEstimate": {
-											"type": "string"
+										"arrivalEstimateSeconds": {
+											"description": "About how long from the signature to the Pix paid",
+											"type": "number"
 										},
 										"bankName": {
 											"anyOf": [
@@ -1922,6 +1725,10 @@
 													"type": "null"
 												}
 											]
+										},
+										"fixedFeeBrl": {
+											"description": "Avenia’s flat fee in reais, shown as its own line",
+											"type": "string"
 										},
 										"holderName": {
 											"anyOf": [
@@ -1948,12 +1755,8 @@
 											],
 											"type": "string"
 										},
-										"providerFeeBrl": {
-											"description": "Avenia and Rhino fees together, in reais",
-											"type": "string"
-										},
 										"rate": {
-											"description": "BRL per USDC before fees",
+											"description": "BRL per USDC that leaves the wallet, with Avenia’s percentage fees and Rhino’s fee inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo",
 											"type": "string"
 										},
 										"withdrawUsd": {
@@ -1969,8 +1772,8 @@
 										"bankName",
 										"withdrawUsd",
 										"rate",
-										"providerFeeBrl",
-										"arrivalEstimate",
+										"fixedFeeBrl",
+										"arrivalEstimateSeconds",
 										"provider"
 									],
 									"type": "object"
@@ -15810,6 +15613,267 @@
 				]
 			}
 		},
+		"/pix/quote": {
+			"get": {
+				"description": "For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take, with the percentage fees in the rate and the flat fee apart. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "operation",
+						"required": true,
+						"schema": {
+							"anyOf": [
+								{
+									"enum": [
+										"deposit"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"withdraw"
+									],
+									"type": "string"
+								}
+							]
+						}
+					},
+					{
+						"description": "Reais",
+						"in": "query",
+						"name": "amountBrl",
+						"required": false,
+						"schema": {
+							"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+							"type": "string"
+						}
+					},
+					{
+						"description": "USDC to receive (deposit) or to convert (withdraw)",
+						"in": "query",
+						"name": "amountUsd",
+						"required": false,
+						"schema": {
+							"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+							"type": "string"
+						}
+					},
+					{
+						"description": "Withdraw only: USDC to leave the wallet, the bridge fee included",
+						"in": "query",
+						"name": "spendUsd",
+						"required": false,
+						"schema": {
+							"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "106.75",
+									"fixedFeeBrl": "0.75",
+									"operation": "withdraw",
+									"provider": "avenia",
+									"rate": "5.369543",
+									"usdcAmount": "20.020325"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"type": "string"
+										},
+										"fixedFeeBrl": {
+											"description": "The flat fee in reais, shown as its own line",
+											"type": "string"
+										},
+										"operation": {
+											"anyOf": [
+												{
+													"enum": [
+														"deposit"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"withdraw"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia",
+											"type": "string"
+										},
+										"rate": {
+											"description": "BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo.",
+											"type": "string"
+										},
+										"usdcAmount": {
+											"description": "USDC the wallet receives (deposit) or that leaves it, the bridge fee included (withdraw)",
+											"type": "string"
+										}
+									},
+									"required": [
+										"provider",
+										"operation",
+										"amountBrl",
+										"usdcAmount",
+										"rate",
+										"fixedFeeBrl"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Indicative Pix quote for amount entry",
+				"tags": [
+					"pix"
+				]
+			}
+		},
 		"/points": {
 			"get": {
 				"parameters": [
@@ -25869,12 +25933,6 @@
 																			"questions"
 																		],
 																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"avenia-hosted"
-																		],
-																		"type": "string"
 																	}
 																]
 															},
@@ -26270,12 +26328,6 @@
 																					{
 																						"enum": [
 																							"questions"
-																						],
-																						"type": "string"
-																					},
-																					{
-																						"enum": [
-																							"avenia-hosted"
 																						],
 																						"type": "string"
 																					}
@@ -28410,12 +28462,6 @@
 																"questions"
 															],
 															"type": "string"
-														},
-														{
-															"enum": [
-																"avenia-hosted"
-															],
-															"type": "string"
 														}
 													]
 												},
@@ -30289,6 +30335,124 @@
 						"description": "Default Response"
 					}
 				}
+			}
+		},
+		"/users/kyc/accept-terms": {
+			"post": {
+				"description": "Records the acceptance of the terms the step names (nextActions[].tosUrl) in the consent ledger, then enrols the user with that provider. The capabilities route shows the enrolment from then on. 409 when the user’s route does not name this step now.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"key": {
+										"description": "The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia",
+										"maxLength": 64,
+										"type": "string"
+									}
+								},
+								"required": [
+									"key"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"accepted": true
+								},
+								"schema": {
+									"properties": {
+										"accepted": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"accepted"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Accept a payments partner’s terms",
+				"tags": [
+					"kyc"
+				]
 			}
 		},
 		"/users/kyc/answers/{step}": {
@@ -32938,6 +33102,12 @@
 																					"RAIN"
 																				],
 																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"AVENIA"
+																				],
+																				"type": "string"
 																			}
 																		]
 																	},
@@ -33283,6 +33453,12 @@
 																							"RAIN"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -33386,6 +33562,12 @@
 																					{
 																						"enum": [
 																							"RAIN"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
 																						],
 																						"type": "string"
 																					}
@@ -33493,6 +33675,12 @@
 																	"RAIN"
 																],
 																"type": "string"
+															},
+															{
+																"enum": [
+																	"AVENIA"
+																],
+																"type": "string"
 															}
 														]
 													},
@@ -33570,6 +33758,12 @@
 																							"RAIN"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -33633,6 +33827,12 @@
 																							"RAIN"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -33690,6 +33890,12 @@
 																					{
 																						"enum": [
 																							"RAIN"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
 																						],
 																						"type": "string"
 																					}
@@ -35716,12 +35922,6 @@
 																			"questions"
 																		],
 																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"avenia-hosted"
-																		],
-																		"type": "string"
 																	}
 																]
 															},
@@ -36117,12 +36317,6 @@
 																					{
 																						"enum": [
 																							"questions"
-																						],
-																						"type": "string"
-																					},
-																					{
-																						"enum": [
-																							"avenia-hosted"
 																						],
 																						"type": "string"
 																					}
