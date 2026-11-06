@@ -28,7 +28,7 @@ import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusa
 import { useAveniaWithdrawSubmit } from '@/features/avenia/hooks/useAveniaWithdrawSubmit'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
-import { useCurrency } from '@/hooks/useCurrency'
+import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
@@ -102,8 +102,9 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     })
 
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
-    const brl = useCurrency('BRL')
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
+    // the amount step's estimate is Avenia's quote for the reais on screen, not the /fx rate
+    const brl = usePixQuoteCurrency('withdraw', typedBrl, AVENIA_MIN_WITHDRAWAL_BRL)
     const [typedUsd, setTypedUsd] = useState<string | undefined>(undefined)
     const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
         amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'

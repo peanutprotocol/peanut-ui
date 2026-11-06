@@ -10,7 +10,9 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
-jest.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 } }) }))
+jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
+    usePixQuoteCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 } }),
+}))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
     __esModule: true,

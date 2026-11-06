@@ -20,8 +20,8 @@ jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFr
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
-jest.mock('@/hooks/useCurrency', () => ({
-    useCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 }, isLoading: false }),
+jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
+    usePixQuoteCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 }, isLoading: false }),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({

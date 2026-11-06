@@ -15,7 +15,7 @@ import { AVENIA_MIN_DEPOSIT_BRL, toApiDecimal } from '@/features/avenia/avenia.u
 import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
-import { useCurrency } from '@/hooks/useCurrency'
+import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { aveniaApi } from '@/services/avenia'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -67,7 +67,6 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
             : null
     const intentId = urlState.intentId ?? resumeIntentId
 
-    const currencyData = useCurrency('BRL')
     const [usdAmount, setUsdAmount] = useState('')
     const [brlAmount, setBrlAmount] = useState('')
     const [isCreating, setIsCreating] = useState(false)
@@ -80,6 +79,8 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
         staleTime: 5 * 60_000,
     })
     const minBrl = Number(eligibility.data?.minAmountBrl ?? AVENIA_MIN_DEPOSIT_BRL)
+    // the amount step's estimate is Avenia's quote for the reais on screen, not the /fx rate
+    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minBrl)
     const brlNumber = Number(brlAmount)
     const validationError =
         brlAmount && brlNumber > 0 && brlNumber < minBrl
