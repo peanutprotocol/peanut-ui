@@ -121,7 +121,7 @@
         "js-cookie": "^3.0.5",
         "lottie-web": "^5.13.0",
         "lucide-react": "^1.8.0",
-        "next": "16.3.1",
+        "next": "16.3.8",
         "next-intl": "^4.13.1",
         "next-mdx-remote": "^6.0.0",
         "nuqs": "^2.8.6",
