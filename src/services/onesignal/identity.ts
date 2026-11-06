@@ -87,7 +87,7 @@ const identity = createPushIdentitySync(
             initialized = null
         },
         onReconcileError: (error) => {
-            reportPushIdentityFailure(
+            void reportPushIdentityFailure(
                 'Push identity late-operation reconciliation failed',
                 'push_identity_reconcile',
                 error
@@ -145,7 +145,13 @@ export async function reconcileNotificationIdentity(
             Promise.resolve().then(verifyExternalId),
             new Promise<never>((_, reject) => {
                 timeout = setTimeout(
-                    () => reject(new PushIdentityTimeoutError('Push identity authentication verification timed out')),
+                    () =>
+                        reject(
+                            new PushIdentityTimeoutError(
+                                'Push identity authentication verification timed out',
+                                'verification'
+                            )
+                        ),
                     PUSH_IDENTITY_VERIFICATION_TIMEOUT_MS
                 )
             }),
@@ -182,7 +188,7 @@ export async function logoutNotificationIdentity(): Promise<void> {
             new Promise<never>((_, reject) => {
                 timeout = setTimeout(() => {
                     identity.expirePending()
-                    reject(new PushIdentityTimeoutError('Push identity logout timed out'))
+                    reject(new PushIdentityTimeoutError('Push identity logout timed out', 'logout'))
                 }, PUSH_LOGOUT_TIMEOUT_MS)
             }),
         ])
@@ -212,7 +218,7 @@ if (typeof window !== 'undefined') {
         verificationRevision += 1
         logoutVersion = event.newValue
         void identity.setExternalId(null).catch((error) => {
-            reportPushIdentityFailure('Push identity cross-tab logout failed', 'push_identity_storage', error)
+            void reportPushIdentityFailure('Push identity cross-tab logout failed', 'push_identity_storage', error)
         })
     })
 }

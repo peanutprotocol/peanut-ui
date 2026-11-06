@@ -64,13 +64,41 @@ describe('screen catalogue', () => {
         expect(SCREENS.find(({ id }) => id === 'fixture-rewards-invites')?.flow).toBe('Rewards')
     })
 
-    it('sorts screens by their configured order', () => {
-        expect(SCREENS.every((screen, index) => index === 0 || SCREENS[index - 1].order < screen.order)).toBe(true)
+    it('sorts screens by their configured order; a flag variant shares the order of the screen it follows', () => {
+        expect(
+            SCREENS.every(
+                (screen, index) =>
+                    index === 0 ||
+                    SCREENS[index - 1].order < screen.order ||
+                    (screen.flags !== undefined && SCREENS[index - 1].order === screen.order)
+            )
+        ).toBe(true)
     })
 
     it('keeps the locale-independent trigger for the request bank chooser', () => {
         expect(SCREENS.find(({ id }) => id === '88-f-request-bank-currency')?.clickTestIds).toEqual([
             'bank-transfer-chooser',
         ])
+    })
+
+    it('opens the Brazilian resident details drawers by test id', () => {
+        const clickTestIds = (id: string) => SCREENS.find((screen) => screen.id === id)?.clickTestIds
+        expect(clickTestIds('profile-brazil-bank-details')).toEqual(['bank-row-brl'])
+        expect(clickTestIds('profile-brazil-qr-details')).toEqual(['method-row-qr-pay'])
+    })
+
+    it('waits for the open drawer title, never the first dialog on the page', () => {
+        for (const id of ['profile-brazil-bank-details', 'profile-brazil-qr-details'])
+            expect(SCREENS.find((screen) => screen.id === id)?.expectSelector).toBe(
+                '[role="dialog"][data-state="open"] h2'
+            )
+    })
+
+    // The harness taps `clicks` with getByText, so a selector there never matches.
+    it('lists visible text in clicks, not Playwright selectors', () => {
+        const selectorLike = /^(text|css|xpath|id|data-testid)=|^\w*\[[^\]]+\]|^[.#]\w/
+        expect(SCREENS.flatMap(({ id, clicks }) => clicks.filter((c) => selectorLike.test(c)).map(() => id))).toEqual(
+            []
+        )
     })
 })

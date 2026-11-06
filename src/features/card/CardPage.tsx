@@ -1,4 +1,5 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { type FC, useCallback, useEffect, useState } from 'react'
 import type { StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useTranslations } from 'next-intl'
@@ -19,9 +20,11 @@ import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
+import { IdentityRejectedScreen, isDecidedRejection } from '@/features/paperwork-verification/PaperworkVerificationFlow'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
+import { useCardVerificationContinuation } from './useCardVerificationContinuation'
 
 const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
 
@@ -88,6 +91,14 @@ export const CardPage: FC = () => {
         setIsSupportModalOpen,
         onBack,
     } = useCardFlow()
+    const router = useRouter()
+    const cardVerification = useCardVerificationContinuation(
+        user?.user?.userId,
+        state === 'active' ? overview?.pendingVerification : undefined,
+        state === 'active' ? overview?.verificationContext : { status: 'none' },
+        invalidateOverview,
+        fetchUser
+    )
     // Outlives the card screen: a cancel can remove the last card while the stop is still pending.
     const [stopAttempt, setStopAttempt] = useState<StopAttempt | null>(null)
     const clearStopAttempt = useCallback(() => setStopAttempt(null), [])
@@ -129,6 +140,10 @@ export const CardPage: FC = () => {
     }
 
     const renderState = () => {
+        // A finally rejected identity cannot apply: its reason and the way on, as /verify shows them.
+        if (state !== 'active' && isDecidedRejection(user?.identityVerification)) {
+            return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
+        }
         // Highest priority: show the issuance spinner between "terms accepted"
         // and the overview refetch landing. Keeps the UX from flipping back
         // to Add Card for a split second while the API call is in flight.
@@ -384,7 +399,17 @@ export const CardPage: FC = () => {
                 }
                 const card = findActiveCard(overview)!
                 return (
-                    <YourCardScreen overview={overview!} card={card} onPrev={onBack} onStopAttempt={setStopAttempt} />
+                    <YourCardScreen
+                        overview={overview!}
+                        card={card}
+                        onPrev={onBack}
+                        onStopAttempt={setStopAttempt}
+                        onCompleteVerification={
+                            cardVerification.available ? () => void cardVerification.start() : undefined
+                        }
+                        verificationBusy={cardVerification.busy}
+                        verificationError={cardVerification.error}
+                    />
                 )
             }
             default:
@@ -456,6 +481,14 @@ export const CardPage: FC = () => {
                 onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}
                 onRefreshToken={handleSumsubRefreshToken}
+            />
+            <SumsubKycWrapper
+                visible={!!cardVerification.active}
+                accessToken={cardVerification.active?.token ?? null}
+                sessionKey={cardVerification.active?.action.generation}
+                onClose={cardVerification.finish}
+                onComplete={cardVerification.finish}
+                onRefreshToken={cardVerification.refresh}
             />
         </PageContainer>
     )

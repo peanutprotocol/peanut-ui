@@ -1,3 +1,4 @@
+import type { PixQrHost } from '@/utils/pix-qr-host'
 import { validateNumericResponse } from '@/lib/numeric-response'
 import {
     type MantecaDepositResponseData,
@@ -64,7 +65,7 @@ export type QrPayment = {
 
 /** Client-minted UUID naming one signed payment attempt in `qr_payment_stage`
  *  telemetry. Telemetry only — never an idempotency, auth or funding key. */
-export type ClientPaymentAttemptBody = { clientPaymentAttemptId?: string }
+export type ClientPaymentAttemptBody = { clientPaymentAttemptId?: string; pixQrHost?: PixQrHost }
 
 export type QrPaymentCharge = {
     uuid: string

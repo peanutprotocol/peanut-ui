@@ -26,11 +26,12 @@ beforeEach(() => {
     mockSupported.mockReturnValue(true)
     mockCall.mockImplementation(async (method: string) =>
         method === 'cancelRequest'
-            ? { cancelled: false }
+            ? { cancelled: true, released: true, settled: false }
             : {
                   androidSdk: 36,
                   manufacturer: 'vivo',
                   model: 'V2227A',
+                  pluginVersion: '8.2.2-peanut.2',
                   playServicesStatus: 'unknown',
                   challenge: 'secret',
               }
@@ -40,6 +41,12 @@ afterEach(() => {
     jest.clearAllTimers()
     jest.useRealTimers()
 })
+
+const nativePending = () =>
+    Object.assign(new Error('A passkey request is already pending.'), {
+        code: 'InvalidStateError',
+        data: { name: 'InvalidStateError' },
+    })
 
 it('shares native ownership across get/create and forwards a bounded request ID', async () => {
     const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
@@ -61,6 +68,7 @@ it('shares native ownership across get/create and forwards a bounded request ID'
     const nativeCreate = plugin.createCredential.mockResolvedValue(created)
     installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
     installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+    await jest.advanceTimersByTimeAsync(0)
     const original = plugin.getCredential({ publicKey: { challenge: 'private' } }).catch((error: Error) => error)
     expect(nativeGet).toHaveBeenCalledTimes(1)
     const id = nativeGet.mock.calls[0][0].requestId
@@ -70,13 +78,14 @@ it('shares native ownership across get/create and forwards a bounded request ID'
     cancelActiveAndroidPasskeyRequest()
     await expect(original).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
     expect(mockCall).toHaveBeenCalledWith('cancelRequest', { requestId: id }, expect.any(Function))
-    await jest.advanceTimersByTimeAsync(2000)
-    await expect(plugin.createCredential({})).rejects.toMatchObject({ name: 'PasskeyCleanupPendingError' })
-    expect(nativeCreate).not.toHaveBeenCalled()
-    pending.resolve('late credential')
     await jest.advanceTimersByTimeAsync(0)
+    // The new binary releases its slot on cancel: the next tap starts at once, with no restart.
     await expect(plugin.createCredential({})).resolves.toBe(created)
     expect(nativeCreate).toHaveBeenCalledTimes(1)
+    expect(nativeCreate.mock.calls[0][0].requestId).not.toBe(id)
+    pending.resolve('late credential')
+    await jest.advanceTimersByTimeAsync(0)
+    await expect(original).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
     expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private')
     expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('secret')
 })
@@ -126,7 +135,11 @@ it('bounds diagnostics hangs and tolerates old binaries with missing methods', a
     const result = other.getCredential({}).catch((error: Error) => error)
     cancelActiveAndroidPasskeyRequest()
     await expect(result).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
-    await expect(plugin.getCredential({})).rejects.toMatchObject({ name: 'PasskeyCleanupPendingError' })
+    // Pre-patch binary: nothing to cancel, so the slot frees after the grace and the next tap runs.
+    const next = plugin.getCredential({})
+    await jest.advanceTimersByTimeAsync(2000)
+    await expect(next).resolves.toBe('credential')
+    expect(mockCall.mock.calls.filter(([method]) => method === 'cancelRequest')).toHaveLength(0)
 })
 
 it('does not wrap iOS or web methods', async () => {
@@ -150,13 +163,35 @@ it('fences a late options response after the ceremony deadline before any native
     const operation = options.promise.then(() => plugin.getCredential({})).finally(scope.finish)
     const result = operation.catch((error: Error) => error)
     scope.expire()
-    expect(() => beginAndroidPasskeyScope()).toThrow(expect.objectContaining({ name: 'PasskeyCleanupPendingError' }))
     options.resolve({})
     await expect(result).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
     expect(rawGet).not.toHaveBeenCalled()
     const next = beginAndroidPasskeyScope()!
     await expect(plugin.getCredential({})).resolves.toBe('credential')
     next.finish()
+})
+
+it('a call that waited out an abandoned request does not reach native once its own flow expired', async () => {
+    mockCall.mockImplementation((method: string) =>
+        method === 'cancelRequest' ? new Promise(() => {}) : Promise.resolve({ pluginVersion: '8.2.2-peanut.2' })
+    )
+    const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
+        await import('../android-passkey-control')
+    const { beginAndroidPasskeyScope } = await import('../android-passkey-scope')
+    const plugin = pluginFixture()
+    const rawGet = plugin.getCredential.mockReturnValue(new Promise(() => {}))
+    installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+    await jest.advanceTimersByTimeAsync(0)
+    const abandoned = plugin.getCredential({}).catch((error: Error) => error)
+    cancelActiveAndroidPasskeyRequest()
+    await expect(abandoned).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+    const scope = beginAndroidPasskeyScope()!
+    const waiting = plugin.getCredential({}).catch((error: Error) => error)
+    scope.expire()
+    await jest.advanceTimersByTimeAsync(2000)
+    await expect(waiting).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+    expect(rawGet).toHaveBeenCalledTimes(1)
+    scope.finish()
 })
 
 it('an older ceremony deadline cannot cancel a newer native request', async () => {
@@ -178,4 +213,102 @@ it('an older ceremony deadline cannot cancel a newer native request', async () =
     pending.resolve('second')
     await expect(result).resolves.toBe('second')
     next.finish()
+})
+
+describe('binary contract', () => {
+    it.each([
+        [{ pluginVersion: '8.2.2-peanut.2' }, 'release'],
+        [{ pluginVersion: '8.2.2-peanut.10' }, 'release'],
+        [{ pluginVersion: '8.2.2-peanut.1' }, 'confirm'],
+        [{ pluginVersion: '8.0.0' }, 'none'],
+        [{ pluginVersion: 7 }, 'unknown'],
+        [{}, 'unknown'],
+    ])('%j -> %s', async (facts, expected) => {
+        const { androidPasskeyContract } = await import('../android-passkey-control')
+        expect(androidPasskeyContract(facts)).toBe(expected)
+    })
+
+    const current = (androidSdk: number, cancel: () => Promise<unknown>) =>
+        mockCall.mockImplementation((method: string) =>
+            method === 'cancelRequest' ? cancel() : Promise.resolve({ androidSdk, pluginVersion: '8.2.2-peanut.1' })
+        )
+
+    it('current store binary on Android 14+: native still blocking -> one bounded retry, honest error, next tap probes again', async () => {
+        current(36, () => new Promise(() => {}))
+        const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
+            await import('../android-passkey-control')
+        const plugin = pluginFixture()
+        const old = deferred<unknown>()
+        const rawGet = plugin.getCredential.mockReturnValueOnce(old.promise).mockRejectedValue(nativePending())
+        installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+        await jest.advanceTimersByTimeAsync(0)
+        const first = plugin.getCredential({}).catch((error: Error) => error)
+        cancelActiveAndroidPasskeyRequest()
+        await expect(first).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+        expect(mockCall).toHaveBeenCalledWith('cancelRequest', expect.anything(), expect.any(Function))
+        await jest.advanceTimersByTimeAsync(2000)
+        const second = plugin.getCredential({}).catch((error: Error) => error)
+        await jest.advanceTimersByTimeAsync(2000)
+        await expect(second).resolves.toMatchObject({ name: 'PasskeyCleanupPendingError' })
+        expect(rawGet).toHaveBeenCalledTimes(2)
+        expect(mockCapture).toHaveBeenCalledWith(
+            'passkey_native_lifecycle',
+            expect.objectContaining({ phase: 'native_pending', recovery: 'still_pending', contract: 'confirm' })
+        )
+        old.resolve('late')
+        await jest.advanceTimersByTimeAsync(0)
+        rawGet.mockResolvedValueOnce('credential')
+        await expect(plugin.getCredential({})).resolves.toBe('credential')
+    })
+
+    it('current store binary on Android 13 and older: no cancel is sent, since Play Services would then never call back', async () => {
+        current(33, async () => ({ cancelled: false }))
+        const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
+            await import('../android-passkey-control')
+        const plugin = pluginFixture()
+        plugin.getCredential.mockReturnValueOnce(new Promise(() => {})).mockResolvedValue('credential')
+        installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+        await jest.advanceTimersByTimeAsync(0)
+        const first = plugin.getCredential({}).catch((error: Error) => error)
+        cancelActiveAndroidPasskeyRequest()
+        await expect(first).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+        await jest.advanceTimersByTimeAsync(2000)
+        expect(mockCall.mock.calls.filter(([method]) => method === 'cancelRequest')).toHaveLength(0)
+        await expect(plugin.getCredential({})).resolves.toBe('credential')
+    })
+
+    it('an unnamed provider failure right after an unsettled release is a retryable settling error, once', async () => {
+        const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
+            await import('../android-passkey-control')
+        const plugin = pluginFixture()
+        const unnamed = Object.assign(new Error('Native passkey request failed.'), {
+            code: 'UnknownError',
+            data: { name: 'UnknownError' },
+        })
+        plugin.getCredential.mockReturnValueOnce(new Promise(() => {})).mockRejectedValue(unnamed)
+        installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+        await jest.advanceTimersByTimeAsync(0)
+        void plugin.getCredential({}).catch(() => {})
+        cancelActiveAndroidPasskeyRequest()
+        await jest.advanceTimersByTimeAsync(0)
+        await expect(plugin.getCredential({})).rejects.toMatchObject({
+            name: 'PasskeyRequestSettlingError',
+            cause: unnamed,
+        })
+        await expect(plugin.getCredential({})).rejects.toBe(unnamed)
+    })
+
+    it('a named provider outcome right after a release is passed through unchanged', async () => {
+        const { installAndroidPasskeyControl, cancelActiveAndroidPasskeyRequest } =
+            await import('../android-passkey-control')
+        const plugin = pluginFixture()
+        const cancelled = Object.assign(new Error('User cancelled the selector'), { code: 'NotAllowedError' })
+        plugin.getCredential.mockReturnValueOnce(new Promise(() => {})).mockRejectedValue(cancelled)
+        installAndroidPasskeyControl(plugin as unknown as CapacitorPasskeyPlugin)
+        await jest.advanceTimersByTimeAsync(0)
+        void plugin.getCredential({}).catch(() => {})
+        cancelActiveAndroidPasskeyRequest()
+        await jest.advanceTimersByTimeAsync(0)
+        await expect(plugin.getCredential({})).rejects.toBe(cancelled)
+    })
 })

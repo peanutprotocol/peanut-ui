@@ -11,7 +11,7 @@ import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
-import { captureNativeSdkClosed, createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
+import { captureNativeSdkClosed, createSumsubSdkTracker, nativeErrorProperties } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -104,11 +104,29 @@ export const SumsubNativeSdk = ({
     useEffect(() => {
         if (!visible || !hasAccessToken) return
 
-        const reportFailure = (reason: string, detail: unknown, kind: 'sdk-missing' | 'launch' = 'launch') => {
+        /**
+         * `nativeClose` marks a failed close reported by the SDK itself. Its
+         * text is SDK-authored and can quote applicant input or a token id, so
+         * PostHog gets only codes for it; Sentry keeps the full text.
+         */
+        const reportFailure = (
+            reason: string,
+            detail: unknown,
+            {
+                kind = 'launch',
+                nativeClose,
+            }: {
+                kind?: 'sdk-missing' | 'launch'
+                nativeClose?: { errorDetail?: SNSMobileSDKErrorDetail | null }
+            } = {}
+        ) => {
             console.error('[sumsub] native sdk failure', reason, detail)
+            const nativeError = nativeClose?.errorDetail
+            const nativeProperties = nativeErrorProperties(nativeError)
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
                 reason,
-                message: detail instanceof Error ? detail.message : String(detail),
+                ...(nativeClose ? {} : { message: detail instanceof Error ? detail.message : String(detail) }),
+                ...nativeProperties,
             })
             Sentry.captureException(detail instanceof Error ? detail : new Error(`[sumsub] native ${reason}`), {
                 tags: {
@@ -116,8 +134,11 @@ export const SumsubNativeSdk = ({
                     kyc_step: 'sdk_launch',
                     sumsub_sdk: 'native',
                     sumsub_failure: reason,
+                    ...(nativeProperties.error_root_cause
+                        ? { sumsub_root_cause: nativeProperties.error_root_cause }
+                        : {}),
                 },
-                extra: { detail },
+                extra: { detail, ...(nativeError ? { nativeError } : {}) },
             })
             setFailure(kind)
             onErrorRef.current?.(detail)
@@ -125,7 +146,7 @@ export const SumsubNativeSdk = ({
 
         const sumsub = window.SNSMobileSDK
         if (!sumsub) {
-            reportFailure('sdk-unavailable', new Error('window.SNSMobileSDK is undefined'), 'sdk-missing')
+            reportFailure('sdk-unavailable', new Error('window.SNSMobileSDK is undefined'), { kind: 'sdk-missing' })
             return
         }
 
@@ -168,7 +189,12 @@ export const SumsubNativeSdk = ({
 
         try {
             let builder = sumsub
-                .init(accessTokenRef.current!, () => onRefreshTokenRef.current())
+                .init(accessTokenRef.current!, async () => {
+                    if (cancelled) throw new Error('Verification session changed')
+                    const token = await onRefreshTokenRef.current()
+                    if (cancelled) throw new Error('Verification session changed')
+                    return token
+                })
                 .withHandlers({
                     onStatusChanged: (event) => {
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true
@@ -235,7 +261,13 @@ export const SumsubNativeSdk = ({
                         settled = true
                         clearActiveSumsubInstance(instance)
                         if (result?.success === false) {
-                            reportFailure(result.errorType || 'sdk-failed', new Error(result.errorMsg || result.status))
+                            reportFailure(
+                                result.errorType || 'sdk-failed',
+                                new Error(result.errorMsg || result.status),
+                                {
+                                    nativeClose: { errorDetail: result.errorDetail },
+                                }
+                            )
                             return
                         }
                         handleExit(result?.status)

@@ -21,6 +21,7 @@ import {
     PASSKEY_NOT_SAVED_HELP,
     WebAuthnErrorName,
     classifyPasskeyError,
+    getPasskeyErrorCode,
     getPasskeyErrorSetupKey,
     getPasskeySetupKey,
     withWebAuthnRetry,
@@ -186,6 +187,10 @@ export function useSignupPasskey(username: string) {
                     setInlineError(t('passkey.notReady'))
                 } else if (error.name === 'CeremonyConflictError') {
                     setInlineError(t('passkey.interrupted'))
+                } else if (error.name === 'PasskeyRequestSettlingError') {
+                    setInlineError(t('passkey.settling'))
+                } else if (error.name === 'PasskeyCleanupPendingError') {
+                    setInlineError(t('passkey.stillOpen'))
                 } else {
                     setInlineError(t('passkey.deviceState'))
                 }
@@ -285,6 +290,12 @@ export function useSignupPasskey(username: string) {
             await handleLoginClick()
             // success: useLogin's effect redirects once the user is loaded
         } catch (error) {
+            // The taken username belongs to a deleted account, so only a new username can sign up.
+            if (getPasskeyErrorCode(error) === 'ACCOUNT_DELETED') {
+                setUsernameTaken(false)
+                setInlineError(t('passkey.accountDeletedChooseUsername'))
+                return
+            }
             const i18nKey = getPasskeyErrorSetupKey(error)
             setInlineError(i18nKey ? t(i18nKey) : (error as Error)?.message || t('loginFailed'))
         }

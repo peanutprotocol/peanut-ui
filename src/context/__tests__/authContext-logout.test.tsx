@@ -20,6 +20,7 @@ const mockRefetch = jest.fn().mockResolvedValue({ data: null })
 const mockApiFetch = jest.fn().mockResolvedValue(undefined)
 const mockToastError = jest.fn()
 const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
+const mockLogoutNotificationIdentity = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
@@ -55,6 +56,13 @@ jest.mock('@/i18n/app/locale-store', () => ({
     currentDeviceIdentity: () => ({}),
 }))
 jest.mock('@/services/step-up', () => ({ clearStepUpToken: jest.fn() }))
+jest.mock('@/services/onesignal/identity', () => ({
+    getNotificationLogoutVersion: () => 0,
+    logoutNotificationIdentity: () => mockLogoutNotificationIdentity(),
+    onNotificationIdentityLoginAvailable: () => () => {},
+    reconcileNotificationIdentity: jest.fn().mockResolvedValue(undefined),
+    resumeNotificationIdentity: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: jest.fn(),
     isConfirmedBadgeCampaignClaim: () => false,
@@ -69,6 +77,10 @@ jest.mock('@/utils/signup-attribution', () => ({
 }))
 jest.mock('@/services/pending-invite-attribution', () => ({
     settlePendingInviteAttribution: jest.fn().mockResolvedValue({ status: 'none' }),
+}))
+const mockFlushLedgerSync = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/features/attention/ledgerSync', () => ({
+    flushLedgerSync: (...args: unknown[]) => mockFlushLedgerSync(...args),
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -85,6 +97,7 @@ import { AuthProvider, useAuth } from '../authContext'
 import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
+import { clearAuthToken } from '@/utils/auth-token'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -111,6 +124,7 @@ describe('logoutUser', () => {
         jest.clearAllMocks()
         mockCancelQueries.mockResolvedValue(undefined)
         mockRefetch.mockResolvedValue({ data: null })
+        mockApiFetch.mockReset().mockResolvedValue({ status: 200, ok: true })
         mockClearSignupAttribution.mockResolvedValue(undefined)
         endIntentionalLogout()
         clearRedirectUrl()
@@ -147,6 +161,25 @@ describe('logoutUser', () => {
         expect(mockClear).toHaveBeenCalled()
         expect(storedWhenCacheEmptied).toBeNull()
         expect(getRedirectUrl()).toBeNull()
+    })
+
+    it("sends the user's pending attention-ledger write before the session is revoked", async () => {
+        const order: string[] = []
+        mockFlushLedgerSync.mockImplementationOnce(async () => {
+            order.push('flush')
+        })
+        mockApiFetch.mockImplementationOnce(async () => {
+            order.push('revoke')
+        })
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(mockFlushLedgerSync).toHaveBeenCalledWith('u1')
+        expect(order).toEqual(['flush', 'revoke'])
     })
 
     it('leaves this tab logged out, so a later deep link is intent again', async () => {
@@ -217,7 +250,8 @@ describe('logoutUser', () => {
     })
 
     it('signs out every device through /users/logout/all when asked', async () => {
-        stubLocation()
+        const navigate = jest.fn()
+        stubLocation(navigate)
         const { result } = renderHook(() => useAuth(), { wrapper })
 
         await act(async () => {
@@ -225,11 +259,14 @@ describe('logoutUser', () => {
         })
 
         expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all'])
+        expect(clearAuthToken).toHaveBeenCalledTimes(1)
+        expect(navigate).toHaveBeenCalledTimes(1)
     })
 
     it('falls back to /users/logout, which revokes everything there, on an API without /all', async () => {
-        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
-        stubLocation()
+        mockApiFetch.mockResolvedValueOnce({ status: 404, ok: false }).mockResolvedValueOnce({ status: 200, ok: true })
+        const navigate = jest.fn()
+        stubLocation(navigate)
         const { result } = renderHook(() => useAuth(), { wrapper })
 
         await act(async () => {
@@ -237,6 +274,53 @@ describe('logoutUser', () => {
         })
 
         expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all', '/users/logout'])
+        expect(clearAuthToken).toHaveBeenCalledTimes(1)
+        expect(navigate).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['HTTP 503', 'transport failure', 'legacy HTTP 503'])(
+        'keeps the current session and push identity after %s during all-device logout',
+        async (failure) => {
+            if (failure === 'legacy HTTP 503') mockApiFetch.mockResolvedValueOnce({ status: 404, ok: false })
+            if (failure === 'transport failure') {
+                mockApiFetch.mockRejectedValueOnce(new Error('connection interrupted'))
+            } else {
+                mockApiFetch.mockResolvedValueOnce({ status: 503, ok: false })
+            }
+            const navigate = jest.fn()
+            stubLocation(navigate)
+            const { result } = renderHook(() => useAuth(), { wrapper })
+
+            await act(async () => {
+                await result.current.logoutUser({ allDevices: true })
+            })
+
+            expect(mockToastError).toHaveBeenCalledWith('logoutFailed')
+            expect(result.current.isLoggingOut).toBe(false)
+            expect(clearAuthToken).not.toHaveBeenCalled()
+            expect(mockLogoutNotificationIdentity).not.toHaveBeenCalled()
+            expect(navigate).not.toHaveBeenCalled()
+        }
+    )
+
+    it('still allows logout on this device after all-device revocation fails', async () => {
+        mockApiFetch.mockResolvedValue({ status: 503, ok: false })
+        const navigate = jest.fn()
+        stubLocation(navigate)
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+        expect(clearAuthToken).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all', '/users/logout'])
+        expect(clearAuthToken).toHaveBeenCalledTimes(1)
+        expect(navigate).toHaveBeenCalledTimes(1)
     })
 
     it('awaits signup-attribution cleanup before leaving the account boundary', async () => {

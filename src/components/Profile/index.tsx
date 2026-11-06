@@ -5,11 +5,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
-import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
-import ResidenceMenuItem from './components/ResidenceMenuItem'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
@@ -95,23 +93,7 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background-page">
-            <NavHeader
-                hideLabel
-                onPrev={onBack}
-                rightElement={
-                    // Log Out already has its own button at the bottom of this
-                    // screen (below) — a second one up here was redundant. Edit
-                    // profile earns the top-right slot instead: it's the one
-                    // action worth reaching without scrolling.
-                    <Button
-                        variant="ghost"
-                        href="/profile/edit"
-                        icon="edit"
-                        aria-label={t('menu.personalDetails')}
-                        className={NAV_CIRCLE_BUTTON_CLASSES}
-                    />
-                }
-            />
+            <NavHeader hideLabel onPrev={onBack} />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
                     copy-username icon it used to lean on was removed
@@ -125,10 +107,6 @@ export const Profile = () => {
                 />
                 {avatarPickerMounted && <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />}
                 <div className="space-y-4">
-                    {/* IA from #2834: identity/products first, then social +
-                        account, then app settings. Payment limits moved inline
-                        into Unlock payments; name visibility moved to
-                        /profile/edit. */}
                     <ListGroup>
                         <ProfileMenuItem
                             icon="wallet"
@@ -139,7 +117,6 @@ export const Profile = () => {
                             // one screen.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        <ResidenceMenuItem />
                         {showCardMenuItem && (
                             <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
@@ -158,7 +135,7 @@ export const Profile = () => {
                             label={t('menu.inviteFriends')}
                             onClick={openInviteFriendsModal}
                         />
-                        <ProfileMenuItem icon="user" label={t('menu.profile')} href="/profile/details" />
+                        <ProfileMenuItem icon="user" label={t('menu.profile')} href="/settings/details" />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
                         <ProfileMenuItem
                             icon={<Image src={STAR_STRAIGHT_ICON} alt={t('menu.starAlt')} width={20} height={20} />}

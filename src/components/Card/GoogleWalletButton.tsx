@@ -3,7 +3,10 @@
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { resolveLocale, type AppLocale } from '@/i18n/app/config'
+import { useAppHaptic } from '@/hooks/useAppHaptic'
 
+// Artwork provenance and Google's branding rules:
+// https://github.com/peanutprotocol/mono/blob/main/engineering/ui/wallet-brand-assets.md
 type Artwork = {
     file: string
     oneLineWidth: number
@@ -43,19 +46,25 @@ const ARTWORK: Record<AppLocale, Artwork> = {
 export default function GoogleWalletButton({ isAdding, onClick }: { isAdding: boolean; onClick: () => void }) {
     const t = useTranslations('card.yourCard')
     const artwork = ARTWORK[resolveLocale(useLocale())]
+    const { triggerHaptic } = useAppHaptic()
 
     return (
         // Vendor branding exception: Google's artwork on Google's pill, full width as in
         // Google's Android codelab. Where the one-line artwork doesn't fit, Google's
-        // guidelines call for the two-line badge, which needs >=53dp height.
+        // guidelines call for the two-line badge, which needs >=53dp height. Shadowless,
+        // so pressing never moves it (design.md law 7): the pill fill takes Google's
+        // pressed state layer instead, and holds it while the add runs.
         <div className="@container w-full">
             <button
                 type="button"
                 disabled={isAdding}
                 aria-busy={isAdding}
                 aria-label={t('addToGoogleWallet')}
-                onClick={onClick}
-                className={`flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-background-google-wallet p-0 ring-1 ring-border-google-wallet ring-inset focus-visible:outline-[3px] focus-visible:outline-action-focus ${artwork.fits.pill}`}
+                onClick={() => {
+                    triggerHaptic()
+                    onClick()
+                }}
+                className={`flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-background-google-wallet p-0 ring-1 ring-border-google-wallet transition-colors duration-instant ring-inset focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-google-wallet-press aria-busy:bg-background-google-wallet-press ${artwork.fits.pill}`}
             >
                 <Image
                     src={`/wallet/google/one-line/${artwork.file}.svg`}

@@ -48,6 +48,8 @@ export interface PaperworkVerificationStep {
 
 export interface PaperworkVerificationQuestions {
     available: boolean
+    /** Opaque current-journey guard; absent on APIs predating opening reminders. */
+    entryScope?: string
     attemptId: string | null
     residence: string | null
     steps: PaperworkVerificationStep[]
@@ -93,7 +95,11 @@ export interface KycCollectedDetails {
     document: { type: string; country: string } | null
     /** What Peanut keeps from verification, by row: option codes, ISO-2 countries, an E.164 phone, a YYYY-MM-DD date of birth. */
     stored?: Partial<Record<KycStoredDetail, string>>
-    /** Collected, but only Sumsub holds them (the address and the tax number): the page shows them as not stored at Peanut. */
+    /** The home address as Sumsub holds it; country is ISO-2. Absent from older APIs. */
+    address?: Partial<Record<'street' | 'buildingNumber' | 'town' | 'state' | 'postCode' | 'country', string>> | null
+    /** The tax number as Sumsub holds it. Absent from older APIs. */
+    taxId?: string | null
+    /** What Sumsub holds beyond `stored`, by name: shown as not stored at Peanut when its value did not come back. */
     heldBySumsub: string[]
 }
 

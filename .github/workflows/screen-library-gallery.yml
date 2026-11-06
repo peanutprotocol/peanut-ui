@@ -93,7 +93,7 @@ jobs:
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
                   SCREEN_LIBRARY_COMMENTS_DATABASE_ID: ${{ vars.SCREEN_LIBRARY_COMMENTS_DATABASE_ID }}
                   SCREEN_LIBRARY_COMMENTS_DATABASE_NAME: ${{ vars.SCREEN_LIBRARY_COMMENTS_DATABASE_NAME }}
-                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_GALLERY_ACCESS_AUD }}
                   SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN: ${{ vars.SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN }}
               run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
             - name: Apply additive comments migrations

@@ -2131,6 +2131,7 @@ export interface paths {
                             brazilServicesPaused?: boolean;
                             disableXchainSend?: boolean;
                             disableXchainWithdraw?: boolean;
+                            disabledAttentionAsks?: string[];
                             disabledMantecaCurrencies?: string[];
                             disabledPaymentProviders?: string[];
                             enableFullMaintenance?: boolean;
@@ -6784,6 +6785,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -6988,6 +6990,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -7481,7 +7484,10 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description PerkUsage id to claim */
+                        /**
+                         * Format: uuid
+                         * @description PerkUsage id to claim
+                         */
                         usageId: string;
                     };
                 };
@@ -7929,6 +7935,12 @@ export interface paths {
                                 rainCardId: string;
                                 status: string;
                             }[];
+                            pendingVerification?: {
+                                entryScope: string;
+                                generation: string;
+                                /** @enum {string} */
+                                kind: "card_addon";
+                            };
                             status: {
                                 applicationStatus?: string;
                                 contractAddress?: string;
@@ -7937,6 +7949,13 @@ export interface paths {
                                 issuanceRefusalReason?: string;
                                 railStatus?: string;
                                 rainUserId?: string;
+                            };
+                            verificationContext?: {
+                                status: "none" | "unavailable";
+                            } | {
+                                entryScope: string;
+                                generation: string;
+                                status: "open" | "checking";
                             };
                         };
                     };
@@ -8960,6 +8979,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         amount: string;
+                        /** Format: uuid */
                         chargeId?: string;
                         directTransfer: boolean;
                         /** Format: uuid */
@@ -9108,6 +9128,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         preparationId: string;
                     };
                 };
@@ -9302,6 +9323,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** Format: uuid */
                         preparationId: string;
                         txHash: string;
                     };
@@ -9458,6 +9480,7 @@ export interface paths {
                         executorSalt: string;
                         executorSignature: string;
                         expiresAt: number;
+                        /** Format: uuid */
                         preparationId: string;
                         preparedCoordinatorAddress?: string;
                         recipientAddress: string;
@@ -9787,6 +9810,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -10148,6 +10172,7 @@ export interface paths {
                             executorSalt: string;
                             executorSignature: string;
                             expiresAt: number;
+                            /** Format: uuid */
                             preparationId: string;
                             preparedCoordinatorAddress?: string;
                             recipientAddress: string;
@@ -10858,6 +10883,92 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/verification/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-kyc-entry-user": string;
+                    "x-kyc-entry-scope": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        generation: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "token": "synthetic-sumsub-sdk-token"
+                         *     }
+                         */
+                        "application/json": {
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_task_changed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_task_unavailable";
                         };
                     };
                 };
@@ -11707,7 +11818,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    chargeId?: string;
+                };
                 header?: never;
                 path: {
                     depositAddress: string;
@@ -12292,6 +12405,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        attentionLedger?: {
+                            [key: string]: unknown;
+                        };
                         avatarKey?: string | null;
                         bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
                         bridge_customer_id?: string;
@@ -13245,7 +13361,7 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
-                                cause?: "review-action" | "review-pending" | "not_started" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "not-open";
+                                cause?: "review-action" | "review-pending" | "not_started" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "identity-rejected" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;
@@ -13648,7 +13764,12 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Send 1 only for an explicit initial verification entry. Omit on refresh. Requires x-kyc-entry-user. */
+                    "x-kyc-entry-start"?: string;
+                    /** @description When x-kyc-entry-start is 1, the initiating user ID must match the authenticated user; at most 255 characters. It never selects the owner. */
+                    "x-kyc-entry-user"?: string;
+                };
                 path?: never;
                 cookie?: never;
             };
@@ -14261,6 +14382,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/attempts/{attemptId}/document-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    attemptId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "countryMismatch": true,
+                         *       "picked": {
+                         *         "issuingCountry": "PT",
+                         *         "type": "RESIDENCE_PERMIT"
+                         *       },
+                         *       "recognised": {
+                         *         "issuingCountry": "UA",
+                         *         "type": "PASSPORT"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            countryMismatch: boolean;
+                            picked: {
+                                issuingCountry: string;
+                                type: string;
+                            } | null;
+                            recognised: {
+                                issuingCountry: string;
+                                type: string;
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/attempts/{attemptId}/token": {
         parameters: {
             query?: never;
@@ -14717,6 +14907,83 @@ export interface paths {
                             /** @enum {string} */
                             code: "provider_unavailable";
                             error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-kyc-entry-user": string;
+                    "x-kyc-entry-scope": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        feature?: "bank" | "card" | "local";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_entry_changed";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "verification_entry_unavailable";
                         };
                     };
                 };
@@ -15612,6 +15879,7 @@ export interface paths {
                                 feature: "qr" | "local" | "card" | "bank";
                                 reason: string;
                             }[];
+                            entryScope?: string;
                             firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
                             needs: ("residence" | "features")[];
                             progress: {
@@ -16178,6 +16446,356 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Bearer access token */
+                    authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "catalogue": [
+                         *         {
+                         *           "analyticsKey": "migration_download",
+                         *           "emailMappings": [],
+                         *           "id": "install-app",
+                         *           "policy": {
+                         *             "interrupt": "always",
+                         *             "snoozeDays": 3
+                         *           },
+                         *           "rank": 0,
+                         *           "surfaces": [
+                         *             "interrupt",
+                         *             "zone"
+                         *           ],
+                         *           "tier": 1
+                         *         }
+                         *       ],
+                         *       "catalogueVersion": 1,
+                         *       "explanations": {
+                         *         "invite": {
+                         *           "reason": "show",
+                         *           "unknownSources": [],
+                         *           "verdict": "show"
+                         *         }
+                         *       },
+                         *       "facts": {
+                         *         "bankDepositReceived": false,
+                         *         "canPayQr": null,
+                         *         "canSpendViaCard": null,
+                         *         "consent": {
+                         *           "status": "clear",
+                         *           "versions": []
+                         *         },
+                         *         "firstPeerPaymentAt": null,
+                         *         "hasMadeQrPayment": false,
+                         *         "hasReceivedRequestPayment": false,
+                         *         "lastSpendAt": null,
+                         *         "onboarding": null,
+                         *         "spendHistoryAvailable": true
+                         *       },
+                         *       "nextAsk": "invite",
+                         *       "ranking": [
+                         *         {
+                         *           "id": "install-app",
+                         *           "rank": 0,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "maintenance",
+                         *           "rank": 0,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "legal-reconsent",
+                         *           "rank": 1,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "arrival",
+                         *           "rank": 2,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "balance-backup",
+                         *           "rank": 3,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "verification-due",
+                         *           "rank": 4,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "verification-advisory",
+                         *           "rank": 4.5,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "post-verification-action",
+                         *           "rank": 5,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "finish-card-setup",
+                         *           "rank": 6,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "finish-card-funding",
+                         *           "rank": 7,
+                         *           "tier": 1
+                         *         },
+                         *         {
+                         *           "id": "blocked-card",
+                         *           "rank": 2,
+                         *           "tier": 2
+                         *         },
+                         *         {
+                         *           "id": "checklist",
+                         *           "rank": 3,
+                         *           "tier": 2
+                         *         },
+                         *         {
+                         *           "id": "verification-deadline",
+                         *           "rank": 1,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "virtual-account",
+                         *           "rank": 1,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "qr-payment",
+                         *           "rank": 2,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "cap-nudge",
+                         *           "rank": 2,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "verify-for-qr",
+                         *           "rank": 3,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "card-offer",
+                         *           "rank": 4,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "next-payment",
+                         *           "rank": 5,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "share-bank-details",
+                         *           "rank": 6,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "request-money",
+                         *           "rank": 7,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "send-money",
+                         *           "rank": 8,
+                         *           "tier": 3
+                         *         },
+                         *         {
+                         *           "id": "backup-passkey",
+                         *           "rank": 1,
+                         *           "tier": 4
+                         *         },
+                         *         {
+                         *           "id": "push-home-fallback",
+                         *           "rank": 2,
+                         *           "tier": 4
+                         *         },
+                         *         {
+                         *           "id": "add-email",
+                         *           "rank": 3,
+                         *           "tier": 4
+                         *         },
+                         *         {
+                         *           "id": "user-interview",
+                         *           "rank": 0,
+                         *           "tier": 5
+                         *         },
+                         *         {
+                         *           "id": "invite",
+                         *           "rank": 1,
+                         *           "tier": 5
+                         *         },
+                         *         {
+                         *           "id": "rewards",
+                         *           "rank": 2,
+                         *           "tier": 5
+                         *         },
+                         *         {
+                         *           "id": "complete-profile",
+                         *           "rank": 4,
+                         *           "tier": 5
+                         *         },
+                         *         {
+                         *           "id": "bug-bounty",
+                         *           "rank": 5,
+                         *           "tier": 5
+                         *         },
+                         *         {
+                         *           "id": "early-user",
+                         *           "rank": 1,
+                         *           "tier": 6
+                         *         }
+                         *       ],
+                         *       "settings": {
+                         *         "announcementCooldownDays": 7,
+                         *         "balanceThresholdUsd": 500,
+                         *         "defaultSnoozeDays": 7,
+                         *         "maxConsecutiveSessions": 3,
+                         *         "nextPaymentAfterDays": 14,
+                         *         "quietSessionMinCount": 3,
+                         *         "settleMs": 4000
+                         *       },
+                         *       "verdicts": {
+                         *         "checklist": "done",
+                         *         "invite": "show"
+                         *       },
+                         *       "version": 1
+                         *     }
+                         */
+                        "application/json": {
+                            catalogue: {
+                                analyticsKey: string;
+                                emailMappings: {
+                                    prefix: string;
+                                    when?: "activated" | "not-activated";
+                                }[];
+                                id: string;
+                                policy: {
+                                    anchorsHome?: boolean;
+                                    expiryDays?: number;
+                                    interrupt?: "always" | "session" | "quiet" | "never";
+                                    maxConsecutiveSessions?: number;
+                                    minSessions?: number;
+                                    overAnchor?: boolean;
+                                    routes?: "home" | "any";
+                                    snoozeDays?: number;
+                                };
+                                rank: number;
+                                slots?: ("bank-transfer" | "limits")[];
+                                surfaces: ("interrupt" | "zone" | "inline" | "banner")[];
+                                tier: number;
+                            }[];
+                            /** @enum {number} */
+                            catalogueVersion: 1;
+                            explanations: {
+                                [key: string]: {
+                                    reason: string;
+                                    unknownSources: string[];
+                                    verdict: "show" | "pending" | "done" | "ineligible" | "unknown";
+                                };
+                            };
+                            facts: {
+                                bankDepositReceived: boolean | null;
+                                canPayQr: boolean | null;
+                                canSpendViaCard: boolean | null;
+                                consent: {
+                                    status: "unknown" | "clear" | "needed";
+                                    versions: string[];
+                                };
+                                firstPeerPaymentAt: string | null;
+                                hasMadeQrPayment: boolean | null;
+                                hasReceivedRequestPayment: boolean | null;
+                                lastSpendAt: string | null;
+                                onboarding: {
+                                    addMoneyDone: boolean;
+                                    cardHeld?: boolean;
+                                    firstPaymentDone: boolean;
+                                    firstPaymentRoute: "card_qr" | "card" | "qr" | "none" | "pending";
+                                    step: "verify" | "add_money" | "first_payment" | "completed";
+                                    verify: "todo" | "in_review" | "action_required" | "failed" | "done";
+                                } | null;
+                                spendHistoryAvailable: boolean;
+                            };
+                            nextAsk: string | null;
+                            ranking: {
+                                id: string;
+                                rank: number;
+                                tier: number;
+                            }[];
+                            settings: {
+                                announcementCooldownDays: number;
+                                balanceThresholdUsd: number;
+                                defaultSnoozeDays: number;
+                                maxConsecutiveSessions: number;
+                                nextPaymentAfterDays: number;
+                                quietSessionMinCount: number;
+                                settleMs: number;
+                            };
+                            verdicts: {
+                                [key: string]: "show" | "pending" | "done" | "ineligible" | "unknown";
+                            };
+                            /** @enum {number} */
+                            version: 1;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

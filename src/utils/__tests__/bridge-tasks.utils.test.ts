@@ -274,6 +274,20 @@ describe('selectCardDocumentTask — a card application waiting on the user', ()
         })
         expect(selectCardDocumentTask([tax], cardReport(step(tax)))).toBeUndefined()
     })
+    it('suppresses only bank documents while identity restart takes priority', () => {
+        const tos = action()
+        const report = { ...naming(tos, rainPoa), card: step(rainPoa) }
+        const tasks = [tos, rainPoa]
+        expect(selectHomeTasks(tasks, report).largeTasks.map((task) => task.key)).toEqual([
+            'accept-tos',
+            'bridge-document:sumsub:proof_of_address',
+            'card-document:sumsub:proof_of_address',
+        ])
+        expect(selectHomeTasks(tasks, report, undefined, true).largeTasks.map((task) => task.key)).toEqual([
+            'accept-tos',
+            'card-document:sumsub:proof_of_address',
+        ])
+    })
     it('on Home it joins the large task card, so the carousel and checklist give way', () => {
         const tos = action()
         const report = { ...naming(tos), card: step(rainPoa) }

@@ -55,6 +55,7 @@ import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { clearAccountQueries } from '@/utils/account-query-cache'
+import { flushLedgerSync } from '@/features/attention/ledgerSync'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -270,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (previousUserId && previousUserId !== profile.user.userId) clearAccountQueries(queryClient)
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
             void resumeNotificationIdentity(profile.user.userId).catch((error) => {
-                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
+                void reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return profile
@@ -299,7 +300,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (result.error) throw result.error
                 return result.data?.user?.userId ?? null
             }).catch((error) => {
-                reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
+                void reportPushIdentityFailure('Push identity reconciliation failed', 'push_identity_reconcile', error)
             })
         }
         const unsubscribe = onNotificationIdentityLoginAvailable(reconcile)
@@ -366,7 +367,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         })
         if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
             void resumeNotificationIdentity(userId).catch((error) => {
-                reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
+                void reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
             })
         }
         return outcome
@@ -469,39 +470,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         async (options?: { skipBackendCall?: boolean; allDevices?: boolean }) => {
             if (loggingOut.current) return
 
+            const revokeAllDevices = options?.allDevices && !options.skipBackendCall
             loggingOut.current = true
-            logoutGeneration.current += 1
             setIsLoggingOut(true)
             // Before anything empties the user cache: the auth gate reacts to
             // that by storing the current path as the post-auth destination.
             beginIntentionalLogout()
-            // Start before any auth await; SDK events cannot relink the old user.
-            const pushLogout = logoutNotificationIdentity().catch((error) => {
-                reportPushIdentityFailure('Push identity logout failed or timed out', 'push_identity_logout', error)
-            })
+            const startLocalLogout = () => {
+                logoutGeneration.current += 1
+                return logoutNotificationIdentity().catch((error) => {
+                    void reportPushIdentityFailure(
+                        'Push identity logout failed or timed out',
+                        'push_identity_logout',
+                        error
+                    )
+                })
+            }
+            // Local logout always proceeds, so fence push relinking before any
+            // await. All-device logout keeps the session intact until confirmed.
+            const pushLogout = revokeAllDevices ? undefined : startLocalLogout()
             try {
+                // a pending attention-ledger write still needs this user's token; never wait on it long
+                await Promise.race([
+                    flushLedgerSync(user?.user.userId).catch(() => {}),
+                    new Promise((resolve) => setTimeout(resolve, 3000)),
+                ])
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
                  * /users/logout revokes this device's session, /users/logout/all
                  * bumps the account's tokenVersion so every outstanding JWT
-                 * stops verifying. Best-effort: a dead backend must never trap
-                 * the user in a session, so failures fall through to local logout.
+                 * stops verifying. This-device logout can proceed on failure.
+                 * All-device logout requires confirmation so the user can retry
+                 * with the current credential if remote revocation fails.
                  */
                 if (!options?.skipBackendCall) {
                     try {
-                        const response = await apiFetch(options?.allDevices ? '/users/logout/all' : '/users/logout', {
+                        let response = await apiFetch(revokeAllDevices ? '/users/logout/all' : '/users/logout', {
                             method: 'POST',
                         })
                         // an API without /all still revokes every session on /users/logout
-                        if (options?.allDevices && response?.status === 404) {
-                            await apiFetch('/users/logout', { method: 'POST' })
+                        if (revokeAllDevices && response.status === 404) {
+                            response = await apiFetch('/users/logout', { method: 'POST' })
+                        }
+                        if (revokeAllDevices && !response.ok) {
+                            throw new Error(`All-device session revocation failed (HTTP ${response.status})`)
                         }
                     } catch (e) {
+                        if (revokeAllDevices) throw e
                         console.warn('server-side session revocation failed, continuing local logout:', e)
                     }
                 }
 
-                await pushLogout
+                await (pushLogout ?? startLocalLogout())
                 await clearLocalAuthState()
 
                 // fetch user (should return null after logout) - skip for capacitor
@@ -525,7 +545,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setIsLoggingOut(false)
             }
         },
-        [clearLocalAuthState, fetchUser, toast, tErrors]
+        [clearLocalAuthState, fetchUser, toast, tErrors, user?.user.userId]
     )
 
     return (

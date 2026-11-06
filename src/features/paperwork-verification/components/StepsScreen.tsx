@@ -142,7 +142,7 @@ export function StepsScreen({
     const control = useKycControl(screenId ?? copy.screenId, controlFlow)
     const noteText = note ?? (copy.note ? t(copy.note) : null)
     return (
-        <div className={twMerge('flex w-full flex-col bg-white px-6 pt-4 pb-6', SCREEN_HEIGHT)}>
+        <div className={twMerge('flex w-full flex-col bg-background-page px-6 pt-4 pb-6', SCREEN_HEIGHT)}>
             <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-x-6">
                 <Button
                     variant="ghost"

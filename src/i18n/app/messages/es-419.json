@@ -108,7 +108,7 @@
             "spendChooser": {
                 "title": "Elige cómo gastar",
                 "description": "Ambas cuentan como tu primer pago.",
-                "payWithCard": "Paga con tarjeta",
+                "payWithCard": "Paga con la tarjeta",
                 "scanQr": "Escanea un código QR"
             }
         },
@@ -137,14 +137,19 @@
             "welcomeTitleSpoken": "¡Te damos la bienvenida a Peanut!"
         },
         "fundingSetup": {
+            "updateTitle": "Actualización de pagos con tarjeta",
+            "updateIntro": "Estamos cambiando cómo se procesan los pagos con tarjeta. A partir de ahora, tu tarjeta pagará directamente desde tu saldo de Peanut.",
+            "updateReturn": "Una vez que se confirme la actualización, {amount} de tu tarjeta volverán a tu billetera.",
+            "updateApprove": "Aprueba la actualización con tu passkey.",
             "title": "Termina de configurar la tarjeta",
             "description": "Un toque con tu passkey para empezar a usar tu tarjeta.",
-            "descriptionMigration": "Primero hay que actualizar el permiso de tu tarjeta. Confirma dos veces con tu passkey: una para actualizar y otra para el nuevo permiso.",
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisa el estado en un momento. No autorices dos veces.",
-            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir la próxima vez que abras Inicio.",
-            "descriptionReturn": "Cuando se confirme la configuración, {amount} del saldo de la tarjeta vuelve a tu billetera. Puede requerir más de una confirmación con tu passkey.",
+            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
+            "descriptionUpdateError": "No pudimos terminar la actualización. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
             "descriptionReadyReturn": "Tu tarjeta está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionReturnRetry": "Tu tarjeta está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
+            "descriptionUpdateReadyReturn": "La actualización está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
+            "descriptionUpdateReturnRetry": "La actualización está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionWithdrawalInFlight": "Un retiro de la tarjeta aún se está confirmando. Revisa de nuevo en un momento u omítelo por ahora.",
             "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisa de nuevo en un momento u omítelo por ahora.",
             "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intenta más tarde u omítelo por ahora.",
@@ -182,7 +187,8 @@
             "notifications": {
                 "title": "¡Mantente al tanto!",
                 "description": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
-                "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga."
+                "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga.",
+                "nativeBlockedToast": "Activa las notificaciones de Peanut en la configuración de tu dispositivo."
             },
             "qrPay": {
                 "title": "Paga con <b>códigos QR</b>",
@@ -194,7 +200,8 @@
             },
             "bugBounty": {
                 "title": "Ayúdanos a mejorar y <b>¡gana $5!</b>",
-                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!"
+                "description": "Sé el primero en reportar un error. ¡Recibe una recompensa!",
+                "supportPrefill": "Encontré un error: "
             },
             "userInterview": {
                 "title": "Ayúdanos a construir Peanut",
@@ -219,11 +226,53 @@
                 },
                 "qrPay": {
                     "description": "Obtén el mejor tipo de cambio, paga como un <b>local</b> y gana <b>puntos</b>."
+                },
+                "rewards": {
+                    "title": "Tienes puntos esperando",
+                    "description": "Abre Puntos para ver lo que has ganado."
                 }
             },
             "card": {
                 "title": "Consigue la <b>Peanut Card</b>",
                 "description": "Gasta tu saldo <b>donde acepten Visa</b>."
+            },
+            "virtualAccount": {
+                "title": "Abre tu cuenta bancaria",
+                "description": "Obtén datos de cuenta para recibir transferencias en tu saldo."
+            },
+            "nextPayment": {
+                "title": "Paga con Peanut otra vez",
+                "descriptionQrOrCard": "Tu saldo está listo. Paga con un código QR o con tu Peanut Card.",
+                "descriptionQr": "Tu saldo está listo. Escanea un código QR para pagar.",
+                "descriptionCard": "Tu saldo está listo. Paga con tu Peanut Card."
+            },
+            "shareBankDetails": {
+                "title": "Comparte tus datos bancarios",
+                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar aquí."
+            },
+            "requestMoney": {
+                "title": "Pide dinero",
+                "description": "¿Esperas un pago o divides un gasto? Envía una solicitud."
+            },
+            "sendMoney": {
+                "title": "Envía dinero a un amigo",
+                "description": "Paga a quien quieras en segundos, directo desde tu saldo."
+            },
+            "backupPasskey": {
+                "title": "Respalda tu passkey",
+                "description": "Activa la sincronización de tu passkey para que tu cuenta te acompañe en un teléfono nuevo si pierdes este."
+            },
+            "addEmail": {
+                "title": "Agrega tu correo",
+                "description": "Recibe comprobantes y alertas de tu cuenta por correo."
+            },
+            "rewards": {
+                "title": "Tienes recompensas esperando",
+                "description": "Abre Puntos para ver lo que has ganado."
+            },
+            "completeProfile": {
+                "title": "Completa tu perfil",
+                "description": "Agrega tu nombre para que tus amigos te reconozcan cuando les pagues."
             }
         },
         "pendingTasks": {
@@ -269,6 +318,17 @@
             "shareBankDetails": "Compartir datos bancarios",
             "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
         },
+        "postVerification": {
+            "title": "¡Verificación completa!",
+            "claim": {
+                "description": "Verificamos tu identidad. Ya puedes reclamar el dinero directamente en tu cuenta bancaria.",
+                "cta": "Reclamar a mi banco"
+            },
+            "request": {
+                "description": "Verificamos tu identidad. Ya puedes enviar el dinero que te pidió tu amigo.",
+                "cta": "¡Enviar!"
+            }
+        },
         "arrival": {
             "qr_ar": {
                 "title": "Aterrizaste en Argentina",
@@ -286,6 +346,9 @@
                 "cta": "Ver tarjeta"
             },
             "notNow": "Ahora no"
+        },
+        "attention": {
+            "label": "Próximos pasos"
         }
     },
     "profile": {
@@ -495,7 +558,8 @@
                 "active": "Listos para usar",
                 "notActive": "Aún no activos",
                 "unavailable": "No disponibles"
-            }
+            },
+            "qrPayArgentinaNote": "Argentina"
         },
         "backup": {
             "title": "Respaldo",
@@ -1014,7 +1078,11 @@
             "notReady": "La app todavía se está preparando para las passkeys. Espera un momento e inténtalo de nuevo.",
             "deviceState": "Hubo un problema con la passkey en este dispositivo. Reinicia la app e inténtalo de nuevo.",
             "interrupted": "Algo interrumpió la solicitud de la passkey. Inténtalo de nuevo.",
+            "settling": "La última solicitud de passkey todavía se está cerrando. Espera unos segundos e inténtalo de nuevo.",
+            "stillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cierra cualquier ventana de passkey e inténtalo de nuevo. Si sigue pasando, cierra y vuelve a abrir la app.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
+            "accountDeleted": "Esta cuenta fue eliminada. Regístrate para crear una nueva.",
+            "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elige otro nombre de usuario para crear una nueva.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
             "learnMore": "Aprende más sobre las passkeys",
             "help": {
@@ -1082,6 +1150,7 @@
         },
         "testTransaction": {
             "confirmTitle": "Un último paso",
+            "finishLater": "Confirmar después",
             "confirmAndFinish": "Confirmar y terminar",
             "retryAccountSetup": "Reintentar la configuración de la cuenta",
             "errors": {
@@ -1090,7 +1159,9 @@
                 "userNotLoaded": "Tus datos no se han cargado. Recarga la página.",
                 "setupFailed": "No pudimos completar la configuración de tu cuenta. Inténtalo de nuevo con el botón de abajo.",
                 "supportNeeded": "Estamos teniendo problemas para configurar tu cuenta. Nuestro equipo ya fue notificado. Contacta a soporte para recibir ayuda.",
-                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo."
+                "passkeyProviderUnsupported": "El gestor de contraseñas de este teléfono guardó una passkey que Peanut no puede verificar. Regístrate en otro dispositivo.",
+                "networkBusy": "La red está ocupada y todavía no pudimos confirmar la cuenta. Inténtalo de nuevo en un momento.",
+                "confirmAgain": "Esa confirmación venció. Toca el botón y vuelve a confirmar con la passkey."
             }
         },
         "finish": {
@@ -1134,19 +1205,20 @@
             "hint": "Las opciones dependen de tu residencia.",
             "funding": {
                 "crypto": "Cripto",
-                "peanut": "Otro usuario de Peanut",
+                "peanut": "Recibir de un usuario de Peanut",
                 "bank": "Transferencia bancaria",
                 "bankCurrencies": "Transferencia bancaria ({currencies})",
                 "brlBank": "Transferencia bancaria (BRL)",
                 "arsBank": "Transferencia bancaria (ARS)"
             },
             "payment": {
-                "peanut": "Otro usuario de Peanut",
+                "peanut": "Pagar a un usuario de Peanut",
                 "card": "Tarjeta Peanut",
                 "bank": "Transferencia bancaria",
                 "crypto": "Cripto",
                 "qr": "Pagos QR"
             },
+            "peanutCompact": "Otro usuario de Peanut",
             "with": "con",
             "unavailable": {
                 "banking": "Las transferencias bancarias no están disponibles en tu país.",
@@ -1679,7 +1751,7 @@
             "signFailed": "No pudimos confirmar este pago. No se te cobró nada. Inténtalo de nuevo.",
             "preparationFailed": "Algo salió mal. No se te cobró nada. Inténtalo de nuevo.",
             "passkeyBusy": "Ya hay otra confirmación abierta. Ciérrala y toca Pagar de nuevo. No se te cobró nada.",
-            "passkeyRestart": "La última confirmación no terminó de cerrarse. Reinicia la app y toca Pagar de nuevo. No se te cobró nada.",
+            "passkeyStillOpen": "La última confirmación sigue abierta. Cierra cualquier ventana de passkey y toca Pagar de nuevo. Si sigue pasando, cierra y vuelve a abrir la app. No se te cobró nada.",
             "accountStateChanged": "La transacción falló por un cambio de estado de la cuenta. Inténtalo de nuevo. Si el problema persiste, contacta a soporte.",
             "sessionExpired": "La sesión de pago expiró. Escanea el código QR de nuevo.",
             "restartScan": "No pudimos iniciar este pago. Escanea el código QR de nuevo.",
@@ -1694,7 +1766,9 @@
             "maxTransferAmount": "El monto de la transferencia supera el límite máximo de ${amount}",
             "minTransferAmount": "El monto de la transferencia debe ser de al menos ${amount}",
             "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisa tu actividad antes de volver a intentarlo. Si el estado no está claro, contacta a soporte.",
-            "paymentCancelled": "El proveedor canceló este pago antes de enviar el dinero. Escanea un nuevo código QR para volver a intentarlo."
+            "paymentCancelled": "El proveedor canceló este pago antes de enviar el dinero. Escanea un nuevo código QR para volver a intentarlo.",
+            "payerBlocked": "El proveedor de pagos bloqueó tu cuenta para este pago. Usa otro método de pago o contacta a soporte.",
+            "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usa otro método de pago o pide otro QR al comercio."
         },
         "claim": {
             "navTitle": "Reclamar código QR",
@@ -1825,19 +1899,19 @@
             "failed": "No se pudo cancelar la tarjeta"
         },
         "lockModal": {
-            "lockTitle": "¿Bloquear la tarjeta?",
-            "lockBody": "La tarjeta no servirá para ninguna transacción hasta que la desbloquees.",
-            "lockSuccess": "Tarjeta bloqueada",
-            "lockSuccessBody": "Vuelve cuando quieras para desbloquearla.",
-            "unlockTitle": "¿Desbloquear la tarjeta?",
+            "lockTitle": "¿Congelar la tarjeta?",
+            "lockBody": "La tarjeta no servirá para ningún pago hasta que la descongeles.",
+            "lockSuccess": "Tarjeta congelada",
+            "lockSuccessBody": "Vuelve cuando quieras para descongelarla.",
+            "unlockTitle": "¿Descongelar la tarjeta?",
             "unlockBody": "Tu tarjeta volverá a funcionar para cualquier transacción.",
-            "unlockSuccess": "Tarjeta desbloqueada",
+            "unlockSuccess": "Tarjeta descongelada",
             "unlockSuccessBody": "Tu tarjeta está activa otra vez.",
-            "locking": "Bloqueando…",
-            "slideToLock": "Desliza y bloquea",
-            "unlockCta": "Desbloquear",
-            "lockFailed": "No se pudo bloquear la tarjeta",
-            "unlockFailed": "No se pudo desbloquear la tarjeta"
+            "locking": "Congelando…",
+            "slideToLock": "Desliza y congela",
+            "unlockCta": "Descongelar",
+            "lockFailed": "No se pudo congelar la tarjeta",
+            "unlockFailed": "No se pudo descongelar la tarjeta"
         },
         "stop": {
             "pending": "Aún se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",
@@ -1846,7 +1920,7 @@
             "checkStatus": "Revisar estado",
             "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contacta a soporte.",
             "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contacta a soporte si no se resuelve.",
-            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta desbloquear de nuevo."
+            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta descongelar de nuevo."
         },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
@@ -1926,19 +2000,26 @@
         },
         "physical": {
             "navTitle": "Tarjeta física",
-            "onListTitle": "¡Estás en la lista!",
-            "onListBody": "Eres el #{position} en la lista. Te avisamos cuando las tarjetas estén listas para enviarse.",
-            "comingSoonTitle": "¡Próximamente!",
-            "comingSoonBody": "Únete a nuestra lista de espera y sé de los primeros en tenerla.",
+            "onListTitle": "Estás en la lista de espera",
+            "onListBody": "Te avisamos apenas puedas pedirla.",
+            "comingSoonTitle": "La tarjeta física está en camino",
+            "comingSoonBody": "Todavía no puedes pedirla. Así va a funcionar:",
             "joinCta": "Unirme a la lista de espera",
             "joinFailed": "No se pudo unir a la lista de espera",
-            "onListBodyPending": "Estás en la lista. Te avisamos cuando las tarjetas estén listas para enviarse."
+            "stepJoin": "Únete hoy a la lista de espera",
+            "stepNotify": "Te avisamos cuando se pueda pedir",
+            "stepShip": "Pídela y te la enviamos",
+            "notAvailableBadge": "Aún no disponible",
+            "positionBadge": "Eres el #{position} en la lista",
+            "onListBadge": "Estás en la lista"
         },
         "yourCard": {
             "navTitle": "Tarjeta",
+            "completeVerification": "Completar verificación",
             "addToGoogleWallet": "Agregar a la Billetera de Google",
             "addedToGoogleWallet": "Agregada a la Billetera de Google",
             "addToAppleWallet": "Agregar a Apple Wallet",
+            "addedToAppleWallet": "Agregada a Apple Wallet",
             "walletAddSuccess": "Tarjeta agregada a la billetera",
             "walletAddFailed": "No pudimos agregar la tarjeta a tu billetera. Intenta de nuevo.",
             "cardNumberCopied": "Número de tarjeta copiado",
@@ -1960,12 +2041,12 @@
             "payAsCreditTitle": "Paga como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elige crédito — tu Peanut Card corre en la red de crédito.",
             "managementTitle": "Gestión de la tarjeta",
-            "pin": "Pin",
+            "pin": "PIN",
             "spendingLimit": "Límite de gasto",
             "physicalCard": "Tarjeta física",
             "redZone": "Zona roja",
-            "lockCard": "Bloquear tarjeta",
-            "unlockCard": "Desbloquear tarjeta",
+            "lockCard": "Congelar",
+            "unlockCard": "Descongelar",
             "cancelCard": "Cancelar tarjeta"
         },
         "funding": {
@@ -2126,7 +2207,7 @@
         },
         "manteca": {
             "youreAdding": "Agregando",
-            "sendOnlyOwnAccountTitle": "Envía solo desde cuenta propia",
+            "sendOnlyOwnAccountTitle": "Envía solo desde una cuenta a tu nombre",
             "sendOnlyOwnAccountDescription": "No se admiten depósitos desde cuentas de terceros y los fondos se pueden perder.",
             "accountDetails": "Datos bancarios",
             "depositAddress": "Dirección de depósito",
@@ -2141,6 +2222,7 @@
             "shareAmount": "Monto: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
+            "shareOwnAccountOnly": "Envíalo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}",
             "etaInstant": "Normalmente en minutos"
         },
@@ -2701,9 +2783,8 @@
     },
     "history": {
         "title": "Actividad",
-        "transactions": "Transacciones",
-        "errorTitle": "¡Error al cargar las transacciones!",
-        "errorDescription": "Contacta a soporte.",
+        "errorTitle": "No pudimos cargar la actividad",
+        "errorDescription": "Revisa tu conexión e intenta de nuevo.",
         "empty": "Aún no hay transacciones",
         "loadingMore": "Cargando más...",
         "today": "Hoy",
@@ -3136,8 +3217,9 @@
             "descriptionByDate": "Vence el {deadline}. Las transferencias bancarias siguen funcionando hasta entonces. Complétalo desde Inicio."
         },
         "progress": {
+            "submittedDescription": "Estamos revisando tu ID fiscal. Puedes cerrar esta pantalla; te avisaremos cuando las transferencias estén listas.",
             "verifyingTitle": "Revisando la identificación",
-            "verifyingDescription": "Las verificaciones suelen resolverse rápido. Si un revisor debe verla, de 1 a 3 días hábiles. Puedes esperar aquí o cerrar esto y te enviaremos una notificación.",
+            "verifyingDescription": "La mayoría de las verificaciones son rápidas. Las revisiones manuales tardan de 1 a 3 días hábiles. Puedes cerrar esta pantalla; te avisaremos.",
             "preparingTimedOutTitle": "Está tomando más de lo esperado",
             "preparingTimedOutDescription": "Puedes continuar y te avisaremos cuando esté listo.",
             "preparingTitle": "Configurando la cuenta",
@@ -3145,9 +3227,14 @@
             "preparingConfiguringDescription": "Configurando tus regiones...",
             "preparingSlowTitle": "Ya casi",
             "preparingSlowDescription": "Esto está tardando un poco más de lo habitual. Espera un momento.",
+            "accountReadyTitle": "Tu cuenta está lista",
+            "accountReadyAction": "{currencies} {count, plural, one {necesita} other {necesitan}} un paso más.",
+            "accountReadyReview": "{currencies} {count, plural, one {sigue} other {siguen}} en revisión. Te avisaremos cuando esté listo.",
+            "accountReadyActionGeneric": "Tus cuentas bancarias necesitan un paso más.",
+            "accountReadyReviewGeneric": "Tus cuentas bancarias siguen en revisión. Te avisaremos cuando estén listas.",
             "completeTitle": "Listo",
             "completeDescription": "Tu cuenta está lista para usarse.",
-            "verifyingStillGoing": "Sigue en proceso. La mayoría termina rápido, así que esta probablemente está recibiendo una revisión más detallada. Puedes cerrar esto y te avisaremos cuando haya una decisión.",
+            "verifyingStillGoing": "Esta verificación necesita una revisión más detallada. Puedes cerrar esta pantalla; te avisaremos cuando haya una decisión.",
             "closeAndNotify": "Cerrar y avisarme"
         },
         "wrapper": {
@@ -3180,7 +3267,6 @@
             "underReview": "En revisión",
             "documentNeeded": "Falta un documento",
             "agreementsNeeded": "Faltan los acuerdos",
-            "verifyId": "Verificar ID",
             "notAvailable": "No disponible",
             "verifyAgain": "Verificar de nuevo con documento de {country}",
             "verifyAgainPlain": "Verificar de nuevo",
@@ -3462,6 +3548,34 @@
             "FALLBACK": {
                 "title": "Problema de verificación",
                 "description": "Hubo un problema con tu verificación. Inténtalo de nuevo o contacta a soporte."
+            }
+        },
+        "rejectActions": {
+            "retry_document": {
+                "description": "La foto de tu documento no pasó. Inténtalo de nuevo con una foto nítida o usa otro documento."
+            },
+            "retry_selfie": {
+                "description": "Tu selfie no pasó. Tómate otra con buena luz y con toda la cara a la vista.",
+                "cta": "Tomar otra selfie"
+            },
+            "check_details": {
+                "description": "Algunos de tus datos no coinciden con tu documento. Revísalos e inténtalo de nuevo.",
+                "cta": "Revisar mis datos"
+            },
+            "try_later": {
+                "description": "No pudimos terminar la verificación ahora. Inténtalo de nuevo en un rato."
+            },
+            "other_account": {
+                "description": "Este documento ya está vinculado a otra cuenta de Peanut. Inicia sesión en esa cuenta o escríbele a soporte y te ayudamos a resolverlo.",
+                "cta": "Iniciar sesión en otra cuenta",
+                "supportMessage": "¡Hola! Mi verificación dice que mis documentos ya están en otra cuenta de Peanut. ¿Me ayudan a resolverlo?"
+            },
+            "contact_support": {
+                "description": "No pudimos terminar tu verificación en la app. Escríbele a soporte y lo revisamos.",
+                "supportMessage": "¡Hola! Mi verificación no pasó y no puedo intentarlo de nuevo en la app. ¿Pueden revisarlo?"
+            },
+            "not_available": {
+                "description": "Por ahora no podemos verificarte para Peanut, y volver a intentarlo no lo cambiará. Si crees que es un error, escríbele a soporte."
             }
         },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Inténtalo de nuevo.",
@@ -3850,7 +3964,7 @@
             },
             "failed": {
                 "title": "Necesitamos revisar tu documento otra vez",
-                "description": "Tu verificación necesita algo de ti. En el inicio verás qué hacer.",
+                "terminalTitle": "No pudimos verificar tu documento",
                 "cta": "Ir al inicio",
                 "retry": "Intentar de nuevo"
             },
@@ -3948,6 +4062,8 @@
                 "issuedByLimited": "Emitido en {country}. {limits}",
                 "other": "Otro documento",
                 "otherHint": "Como una licencia de conducir",
+                "close": "Cerrar",
+                "verifyNow": "Verificar ahora",
                 "otherTitle": "Otros documentos",
                 "otherDescription": "También puedes verificarte con uno de estos. Le tomarás fotos y te tomarás una selfie.",
                 "otherNotAccepted": "No se pueden usar visas, permisos de trabajo ni credenciales de estudiante para verificar tu identidad.",
@@ -3955,7 +4071,6 @@
                 "backToList": "Volver a la lista",
                 "noneFit": "¿No tienes ninguno de estos?",
                 "changeResidence": "Cambiar residencia",
-                "stepDots": "Verificar identidad, paso 1 de 3",
                 "noneAccepted": "Todavía no podemos verificar documentos emitidos en {countries}.",
                 "closesAll": "Emitido en {country}. No sirve para lo que elegiste.",
                 "closes": {
@@ -4052,7 +4167,7 @@
             "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si crees que es un error, escribe a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
-            "duplicate_account": "Tu correo ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, inicia sesión en ella. Si no, contacta a soporte y lo resolvemos.",
+            "duplicate_account": "Tu correo o tu documento ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, inicia sesión en ella. Si no, contacta a soporte y lo resolvemos.",
             "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escríbele a soporte y nos encargamos del resto.",
             "region_block": "La Peanut Card todavía no está disponible en tu región.",
             "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
@@ -4590,7 +4705,8 @@
         "passkeyDeviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
         "passkeyBiometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo.",
         "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras.",
-        "passkeyRestartRequired": "La última solicitud de passkey no terminó de cerrarse. Reinicia la app e inténtalo de nuevo."
+        "passkeySettling": "La última solicitud de passkey todavía se está cerrando. Espera unos segundos e inténtalo de nuevo.",
+        "passkeyStillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cierra cualquier ventana de passkey e inténtalo de nuevo. Si sigue pasando, cierra y vuelve a abrir la app."
     },
     "appLock": {
         "title": "¡Hola de nuevo!",
@@ -4735,10 +4851,10 @@
                 "beetle": "Escarabajo de bugs"
             },
             "CARD_ALPHA": {
-                "card": "Carta alfa"
+                "card": "Tarjeta alfa"
             },
             "CARD_FIRST_SWIPE": {
-                "card": "Carta del primer swipe"
+                "card": "Tarjeta del primer swipe"
             },
             "CARD_SPENT_1K": {
                 "stack": "Pila del gastador"
@@ -4863,7 +4979,7 @@
             "badgeReady": "Lista",
             "badgeActive": "Activo",
             "badgeSetUp": "Configurar",
-            "badgeVerifyId": "Verificar ID",
+            "badgeVerifyId": "Verificar",
             "badgeNotOffered": "No disponible",
             "badgeRevoked": "Revocada",
             "accountCounter": "{used} de {cap} usadas",

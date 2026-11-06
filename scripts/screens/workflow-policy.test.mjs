@@ -10,12 +10,37 @@ const gallery = readFileSync('.github/workflows/screen-library-gallery.yml', 'ut
 const collections = readFileSync('.github/workflows/screen-library-collection.yml', 'utf8')
 const publishRun = readFileSync('scripts/screens/publish-run.mjs', 'utf8')
 const baselinePublisher = readFileSync('scripts/screens/publish-baseline-viewports.mjs', 'utf8')
+const captureDecision = readFileSync('scripts/screens/decide-capture.mjs', 'utf8')
+
+test('release reviews route to an exact full preview without changing integration capture rules', () => {
+    assert.match(screenLibrary, /pull_request:\n\s+branches: \[dev, main\]/)
+    assert.match(screenLibrary, /github.base_ref == 'main' && github.head_ref == 'dev'/)
+    assert.match(screenLibrary, /if \[ "\$GITHUB_BASE_REF" = main \]; then\s+before="\$PR_BASE"/)
+    assert.match(screenLibrary, /github.event.action != 'edited' \|\| github.event.changes.base.ref/)
+    assert.match(captureDecision, /!releasePreview && event !== 'workflow_dispatch'/)
+    assert.match(
+        publishRun,
+        /if \(releasePreview\) throw new Error\('Release previews require full capture catalogues'\)/
+    )
+    assert.match(publishRun, /releasePreview \? '\?view=all&layout=paired'/)
+})
 
 test('main updates capture both full catalogues and retain the original push boundary in trusted publishing', () => {
     assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)
     assert.match(screenLibrary, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     assert.match(screenLibrary, /node scripts\/screens\/capture-revisions\.mjs >> "\$GITHUB_OUTPUT"/)
-    assert.equal((screenLibrary.match(/'refs\/heads\/main' && '--full-catalogue'/g) ?? []).length, 3)
+    const fullCatalogue = /'refs\/heads\/main' && '--full-catalogue'/g
+    const after = screenLibrary.slice(
+        screenLibrary.indexOf('    capture_after:'),
+        screenLibrary.indexOf('    capture_before:')
+    )
+    const before = screenLibrary.slice(
+        screenLibrary.indexOf('    capture_before:'),
+        screenLibrary.indexOf('\n    gallery:')
+    )
+    assert.equal((after.match(fullCatalogue) ?? []).length, 1)
+    // The previous main lacks the states a release adds, so its gaps must not fail the run.
+    assert.equal((before.match(fullCatalogue) ?? []).length, 0)
     assert.match(publisher, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     for (const field of ['before', 'after'])
         assert.match(
@@ -227,4 +252,22 @@ test('gallery uses the checked-in bounded diagnostic helper and retains deployme
     assert.match(helper, /WRANGLER_LOG_SANITIZE=true/)
     assert.match(helper, /sleep 45/)
     assert.match(helper, /node scripts\/screens\/deploy-diagnostics\.mjs/)
+})
+
+test('gallery setup uses its dedicated Access audience without a fallback', () => {
+    const step = gallery
+        .split(/^ {12}- /m)
+        .find((entry) => entry.startsWith('name: Prepare gallery, R2 and optional D1 comments binding\n'))
+    assert.ok(step)
+    assert.match(step, /^ {18}SCREEN_LIBRARY_ACCESS_AUD: \$\{\{ vars\.SCREEN_LIBRARY_GALLERY_ACCESS_AUD \}\}$/m)
+    assert.doesNotMatch(step, /vars\.SCREEN_LIBRARY_ACCESS_AUD\b/)
+})
+
+test('collection API and MCP setup retain the shared Access audience', () => {
+    const steps = gallery.split(/^ {12}- /m)
+    for (const name of ['Prepare collection API Worker', 'Prepare MCP Worker']) {
+        const step = steps.find((entry) => entry.startsWith(`name: ${name}\n`))
+        assert.ok(step, name)
+        assert.match(step, /^ {18}SCREEN_LIBRARY_ACCESS_AUD: \$\{\{ vars\.SCREEN_LIBRARY_ACCESS_AUD \}\}$/m)
+    }
 })

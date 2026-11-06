@@ -79,9 +79,12 @@ describe('public card application state', () => {
         expect(computeCardState({ ...base, overview: withApp(status) })).toBe(expected)
     })
 
-    it.each(['needsVerification', 'needsInformation', 'locked'])('preserves manual review for %s', (status) => {
-        expect(computeCardState({ ...base, overview: withApp('PENDING', status) })).toBe('manual-review')
-    })
+    it.each(['needsVerification', 'needsInformation', 'locked', 'manualReview'])(
+        'preserves manual review for %s',
+        (status) => {
+            expect(computeCardState({ ...base, overview: withApp('PENDING', status) })).toBe('manual-review')
+        }
+    )
 
     it('blocks a known prohibited residence before starting an application', () => {
         expect(computeCardState({ ...base, cardInfo: cardInfo({ isEligible: false, geoProhibited: true }) })).toBe(

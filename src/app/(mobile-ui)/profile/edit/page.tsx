@@ -1,17 +1,5 @@
-import { generateMetadata } from '@/app/metadata'
-import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { ProfileEditView } from '@/components/Profile/views/ProfileEdit.view'
+import RouteAlias from '@/components/Global/RouteAlias'
 
-export const metadata = generateMetadata({
-    title: 'Edit profile | Peanut',
-    description: 'Edit your Peanut profile details',
-    image: '/metadata-img.png',
-})
-
-export default function ProfileEditPage() {
-    return (
-        <PageContainer>
-            <ProfileEditView />
-        </PageContainer>
-    )
+export default function LegacyProfileRoute() {
+    return <RouteAlias to="/settings/details" />
 }

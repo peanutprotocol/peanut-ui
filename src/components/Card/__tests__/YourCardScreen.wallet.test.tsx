@@ -77,7 +77,7 @@ it('preserves manual instructions when the Google flag or native SDK is unavaila
 it('replaces the Google action with a status once the card is provisioned', () => {
     mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
     renderScreen()
-    expect(screen.getByText('Added to Google Wallet')).toHaveTextContent('Added to Google Wallet')
+    expect(screen.getByText('Added to Google Wallet')).toHaveAttribute('role', 'status')
     expect(screen.queryByRole('button', { name: 'Add to Google Wallet' })).not.toBeInTheDocument()
 })
 
@@ -87,10 +87,87 @@ it('disables the Google control during provisioning', () => {
     expect(screen.getByRole('button', { name: 'Add to Google Wallet' })).toBeDisabled()
 })
 
-it('keeps Apple on its existing platform control', () => {
+it('replaces the Apple row with a status once the card is in Apple Wallet', () => {
+    mockPlatform = 'ios'
+    mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
+    renderScreen()
+    expect(screen.getByText('Added to Apple Wallet')).toHaveAttribute('role', 'status')
+    expect(screen.queryByRole('button', { name: 'Add to Apple Wallet' })).not.toBeInTheDocument()
+})
+
+it('keeps the manual Apple row while the card is not confirmed in Apple Wallet', () => {
+    mockPlatform = 'ios'
+    mockProvisioning = { nativeAvailable: false, alreadyInWallet: false, isAdding: false }
+    renderScreen()
+    expect(screen.queryByText('Added to Apple Wallet')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
+    expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
+})
+
+it('starts Apple provisioning only from the Apple Pay row', () => {
     mockPlatform = 'ios'
     renderScreen()
     expect(screen.queryByRole('button', { name: 'Add to Google Wallet' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
+    const button = screen.getByRole('button', { name: 'Add to Apple Wallet' })
+    expect(button.querySelector('img')?.getAttribute('src')).toBe('/wallet/apple/apple-pay-mark.svg')
+    expect(screen.getAllByRole('button', { name: 'Add to Apple Wallet' })).toHaveLength(1)
+    fireEvent.click(button)
     expect(mockAdd).toHaveBeenCalledTimes(1)
+    expect(mockPush).not.toHaveBeenCalled()
+})
+
+it('disables the Apple control during provisioning', () => {
+    mockPlatform = 'ios'
+    mockProvisioning.isAdding = true
+    renderScreen()
+    const row = screen.getByRole('button', { name: 'Add to Apple Wallet' })
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(row)
+    expect(mockAdd).not.toHaveBeenCalled()
+})
+
+it.each(['android', 'ios'])(
+    '%s: the button sits below Card management, above Pay as credit and Red zone',
+    (platform) => {
+        mockPlatform = platform
+        renderScreen()
+        const name = platform === 'ios' ? 'Add to Apple Wallet' : 'Add to Google Wallet'
+        const order = [
+            screen.getByText('Card management'),
+            screen.getByRole('button', { name }),
+            screen.getByText('Pay as credit'),
+            screen.getByText('Red zone'),
+        ]
+        for (let i = 1; i < order.length; i++) {
+            expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        }
+    }
+)
+
+it('puts PIN then Freeze beside the card, above Card management', () => {
+    renderScreen()
+    const order = [
+        screen.getByRole('button', { name: 'PIN' }),
+        screen.getByRole('button', { name: 'Freeze' }),
+        screen.getByText('Spending limit'),
+        screen.getByText('Physical card'),
+        screen.getByText('Red zone'),
+        screen.getByText('Cancel card'),
+    ]
+    for (let i = 1; i < order.length; i++) {
+        expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+})
+
+it('opens the PIN page from its control', () => {
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'PIN' }))
+    expect(mockPush).toHaveBeenCalledWith('/card/pin')
+})
+
+it('a frozen card offers Unfreeze, pressed', () => {
+    renderWithIntl(<YourCardScreen card={{ ...card, status: 'LOCKED' }} overview={overview} />)
+    const control = screen.getByRole('button', { name: 'Unfreeze' })
+    expect(control).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'Freeze' })).toBeNull()
 })

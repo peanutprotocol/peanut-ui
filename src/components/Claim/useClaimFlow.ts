@@ -1,6 +1,8 @@
 'use client'
 import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
+import { useChainRegistry } from '@/hooks/useChainRegistry'
+import { needsChainRegistry } from '@/utils/chain-registry'
 
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { fetchTokenPrice } from '@/services/tokens-price'
@@ -20,14 +22,8 @@ import {
     sendLinksApi,
     type ClaimLinkData,
 } from '@/services/sendLinks'
-import {
-    getInitialsFromName,
-    getTokenDetails,
-    isStableCoin,
-    getChainName,
-    getTokenLogo,
-    getChainLogo,
-} from '@/utils/general.utils'
+import { getInitialsFromName, isStableCoin, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getUserById } from '@/app/actions/users'
 import * as Sentry from '@sentry/nextjs'
@@ -116,6 +112,10 @@ export const useClaimFlow = () => {
         refetchOnMount: true,
     })
 
+    // The chain name comes from viem's chain registry: load it when the link's
+    // chain needs it, and re-render the receipt once it is there.
+    useChainRegistry(needsChainRegistry(claimLinkData?.chainId))
+    const claimChainName = claimLinkData ? getChainName(claimLinkData.chainId) : undefined
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
 
@@ -196,11 +196,9 @@ export const useClaimFlow = () => {
             tokenDisplayDetails: tokenDetails
                 ? {
                       tokenSymbol: tokenDetails.symbol,
-                      chainName: getChainName(claimLinkData.chainId),
+                      chainName: claimChainName,
                       tokenIconUrl: getTokenLogo(tokenDetails.symbol),
-                      chainIconUrl: getChainName(claimLinkData.chainId)
-                          ? getChainLogo(getChainName(claimLinkData.chainId)!)
-                          : undefined,
+                      chainIconUrl: claimChainName ? getChainLogo(claimChainName) : undefined,
                   }
                 : undefined,
             peanutFeeDetails: {
@@ -213,7 +211,7 @@ export const useClaimFlow = () => {
         }
 
         return details as TransactionDetails
-    }, [claimLinkData, interactions, senderIsVerified])
+    }, [claimLinkData, interactions, senderIsVerified, claimChainName])
 
     // Enrich the sender with a live verified-badge fetch once we have their userId.
     // Falls back to false on error (the badge is a trust signal — not lying is the

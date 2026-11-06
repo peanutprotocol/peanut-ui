@@ -56,6 +56,7 @@
         "screens:capture": "node --import tsx scripts/screens/capture.ts",
         "screens:collection": "node scripts/screens/collection-cli.mjs",
         "screens:compare": "node scripts/screens/report.mjs",
+        "screens:copy-baseline": "node scripts/screens/copy-coverage-baseline.mjs",
         "test:i18n-overflow:sweep": "NEXT_PUBLIC_VERCEL_ENV=preview pnpm build && pnpm test:i18n-overflow:sweep:run",
         "test:i18n-overflow:sweep:run": "export SWEEP_OUT=${SWEEP_OUT:-e2e/__sweep__}; rm -rf \"$SWEEP_OUT\"; playwright test --config=playwright.sweep.config.ts; PW=$?; node scripts/overflow-sweep-report.mjs \"$SWEEP_OUT\" && [ $PW -eq 0 ]",
         "generate:signup-attribution-paths": "tsx scripts/generate-signup-attribution-paths.ts",
@@ -149,6 +150,7 @@
         "web-vitals": "6.1.1"
     },
     "devDependencies": {
+        "@jest/globals": "29.7.0",
         "@next/bundle-analyzer": "^16.3.1",
         "@next/eslint-plugin-next": "^16.3.1",
         "@playwright/test": "^1.58.0",
@@ -174,6 +176,7 @@
         "eslint-plugin-import-x": "^4.16.2",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^5.2.0",
+        "fast-check": "4.10.2",
         "globals": "^15.15.0",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
@@ -266,7 +269,8 @@
         "patchedDependencies": {
             "@capgo/capacitor-passkey@8.2.2": "patches/@capgo__capacitor-passkey.patch",
             "@capacitor/clipboard": "patches/@capacitor__clipboard.patch",
-            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch"
+            "@zerodev/webauthn-key": "patches/@zerodev__webauthn-key.patch",
+            "@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1": "patches/@sumsub__cordova-idensic-mobile-sdk-plugin@1.46.1.patch"
         }
     },
     "size-limit": [

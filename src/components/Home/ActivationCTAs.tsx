@@ -1,9 +1,10 @@
 'use client'
 
+import { CAROUSEL_CLOSE_BUTTON_POSITION } from '@/constants/carousel.consts'
+import { twMerge } from '@/utils/tw'
 import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type OnboardingState } from '@/utils/activation-step.utils'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
@@ -18,12 +19,8 @@ import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
-import {
-    buildContactSupportMessage,
-    buildSupportCaseMessage,
-    SUPPORT_CASE_MESSAGE_KEYS,
-} from '@/utils/contact-support.utils'
-import { supportCaseOf } from '@/utils/capability-gate'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { identityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
@@ -37,6 +34,8 @@ import { paperworkVerificationFeaturePath } from '@/features/paperwork-verificat
 interface ActivationCTAsProps {
     onboarding: OnboardingState
     showWelcome?: boolean
+    /** false draws the checklist even while a door is shut: the attention manager picked the list over the card */
+    showBlockedCard?: boolean
     /** hides a blocked card by its dismissal key (Home owns the stored choice) */
     onHideBlockedCard?: (ctaId: string) => void
 }
@@ -56,11 +55,17 @@ interface StepConfig {
  * outranks everything; a provider rejection replaces the checklist for a
  * verified user with no other way to move money.
  */
-export default function ActivationCTAs({ onboarding, showWelcome = true, onHideBlockedCard }: ActivationCTAsProps) {
+export default function ActivationCTAs({
+    onboarding,
+    showWelcome = true,
+    showBlockedCard = true,
+    onHideBlockedCard,
+}: ActivationCTAsProps) {
     const t = useTranslations('home.activation')
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
     const tKyc = useTranslations('kyc')
+    const tRoot = useTranslations()
     const tRegion = useTranslations('kyc.regionRestricted')
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
@@ -87,9 +92,11 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
     // Known reason codes render localized identity.reasons.* copy; unknown
     // codes keep the backend's display-ready prose as fallback.
     const primaryRejectionReasonKey = reasonCodeKey(primaryRejectionCode)
-    // an identity held on a block only support lifts names it, here and in the prefill
-    const identitySupportCase = supportCaseOf(identity.reason?.code)
-    const identitySupportCaseKey = identitySupportCase ? reasonCodeKey(identity.reason?.code) : undefined
+    // A final decision: its reject labels say why, and what support is asked.
+    const decidedRejection = useMemo(
+        () => identityRejection({ rejectLabels: identity.rejectLabels, reason: identity.reason, retryable: false }),
+        [identity.rejectLabels, identity.reason]
+    )
     const localizedRejectionMessage = primaryRejectionReasonKey
         ? tIdentity(primaryRejectionReasonKey)
         : primaryRejectionMessage
@@ -166,9 +173,7 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
                 title: t('verificationIssue.title'),
-                description: identitySupportCaseKey
-                    ? tIdentity(identitySupportCaseKey)
-                    : t('verificationIssue.description'),
+                description: tRoot(decidedRejection.descriptionKey as never),
                 ctaLabel: t('verificationIssue.cta'),
                 href: '', // handled in onClick
             }
@@ -228,8 +233,8 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         return null
     }, [
         t,
-        tIdentity,
-        identitySupportCaseKey,
+        tRoot,
+        decidedRejection,
         hasIdentityFailure,
         hasProviderRejection,
         hasFixableRejection,
@@ -244,18 +249,19 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         primaryRejectionCode,
     ])
 
-    if (onboarding.step === 'completed' && !step) return null
+    if (onboarding.step === 'completed' && (!step || !showBlockedCard)) return null
 
     // A fully restricted residence (no bank rails, no card) still gets the
     // list: QR pay is open to every verified user wherever they live (Hugo,
     // 2026-09-26), so its Verify row starts the QR ID check.
-    if (!step)
+    if (!step || !showBlockedCard)
         return (
             <>
                 <GettingStartedChecklist
                     onboarding={onboarding}
                     showWelcome={showWelcome}
                     onStartIdentityCheck={() => void startIdentityCheck()}
+                    signupPaymentChannel={user?.signupPreferences?.paymentChannel}
                 />
                 <InitiateKycModal
                     cooldownActive={!!kycFlow.errorCooldown}
@@ -276,7 +282,25 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
         )
 
     return (
-        <Card position="solo" className="p-0">
+        <Card position="solo" className="relative p-0">
+            {blockedCard && onHideBlockedCard && (
+                // The same close as the Home carousel cards; support stays in Profile → Accounts.
+                <Button
+                    variant="ghost"
+                    icon="cancel"
+                    iconSize={16}
+                    aria-label={tGettingStarted('hide')}
+                    onClick={() => {
+                        posthog.capture(ANALYTICS_EVENTS.HOME_BLOCKED_CARD_HIDDEN, {
+                            card_kind: blockedCard.kind,
+                            reason_code: blockedCard.reasonCode,
+                        })
+                        onHideBlockedCard(blockedCard.ctaId)
+                    }}
+                    className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10 size-6 p-0 after:absolute after:-inset-4')}
+                    data-testid="blocked-card-hide"
+                />
+            )}
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
                 <IconBubble {...step.bubble} />
                 <div className="w-full text-center">
@@ -294,12 +318,14 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                         if (isRegionRestricted) {
                             router.push(REGION_RESTRICTED_CTA_HREF)
                         } else if (hasIdentityFailure) {
+                            const support = decidedRejection.support
                             openSupportWithMessage(
-                                identitySupportCase
-                                    ? buildSupportCaseMessage(
-                                          identitySupportCase,
-                                          tKyc(SUPPORT_CASE_MESSAGE_KEYS[identitySupportCase]),
-                                          identity.reason
+                                support
+                                    ? rejectionSupportMessage(
+                                          support,
+                                          tRoot(support.messageKey as never),
+                                          identity.reason,
+                                          user?.user?.userId
                                       )
                                     : buildContactSupportMessage({
                                           reason: identity.reason,
@@ -349,23 +375,6 @@ export default function ActivationCTAs({ onboarding, showWelcome = true, onHideB
                 >
                     {step.ctaLabel}
                 </Button>
-                {blockedCard && onHideBlockedCard && (
-                    // tertiary dismiss (design.md). mt-3 tops the card's gap-3 up to
-                    // the 24px the LinkButton's hit area needs under the primary.
-                    // The fix or support route stays in Profile → Accounts.
-                    <LinkButton
-                        onClick={() => {
-                            posthog.capture(ANALYTICS_EVENTS.HOME_BLOCKED_CARD_HIDDEN, {
-                                card_kind: blockedCard.kind,
-                                reason_code: blockedCard.reasonCode,
-                            })
-                            onHideBlockedCard(blockedCard.ctaId)
-                        }}
-                        className="mt-3 text-body-s text-foreground-primary"
-                    >
-                        {tGettingStarted('hide')}
-                    </LinkButton>
-                )}
             </div>
             <ProvideEmailStep
                 visible={showProvideEmail}

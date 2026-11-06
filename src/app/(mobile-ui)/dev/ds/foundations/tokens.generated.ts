@@ -106,6 +106,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-google-wallet"
     },
     {
+        "name": "background-google-wallet-press",
+        "value": "#333333",
+        "section": "semantic",
+        "previewClass": "bg-background-google-wallet-press"
+    },
+    {
         "name": "border-google-wallet",
         "value": "#747775",
         "section": "semantic",

@@ -1,12 +1,10 @@
 /**
  * Peanut wallet token config.
  *
- * Split out of zerodev.consts because these are env-only values with no chain
- * dependency, while that module resolves the wallet chain through viem's full
- * ~700-chain registry (596 KB). Consumers that just need the token address,
- * decimals or symbol should import from here so they don't drag the registry
- * into their bundle. zerodev.consts re-exports them, so existing importers are
- * unaffected.
+ * Env-only values with no chain dependency, split out of zerodev.consts so
+ * consumers that just need the token address, decimals or symbol do not pull
+ * in the ZeroDev SDK constants. zerodev.consts re-exports them, so existing
+ * importers are unaffected.
  */
 const SANDBOX_CHAIN_ID = process.env.NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID
 export const USE_SEPOLIA = SANDBOX_CHAIN_ID === '421614'

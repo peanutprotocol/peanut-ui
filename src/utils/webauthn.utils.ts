@@ -89,15 +89,16 @@ export enum WebAuthnErrorName {
  */
 export function isPasskeyBusyError(error: unknown): boolean {
     for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
-        if (e.name === 'CeremonyConflictError' || /already (in progress|pending)/i.test(e.message)) return true
+        if (e.name === 'CeremonyConflictError' || e.name === 'PasskeyRequestSettlingError') return true
+        if (/already (in progress|pending)/i.test(e.message)) return true
     }
     return false
 }
 
 /**
- * true when an abandoned Android passkey request never confirmed cancellation.
- * Unlike a busy prompt, every retry is refused until that request settles or
- * the app restarts, so callers must not offer "try again".
+ * true when native still holds an abandoned Android passkey request after the
+ * controller's bounded wait and one retry (store binaries whose cancel waits for
+ * the provider). The next tap tries native again, so this is not a hard lock.
  */
 export function isPasskeyCleanupPendingError(error: unknown): boolean {
     for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
@@ -124,12 +125,16 @@ const PASSKEY_LOGIN_MESSAGES = {
     PASSKEY_PROVIDER_UNSUPPORTED:
         'The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device.',
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
+    PASSKEY_SETTLING: 'The last passkey prompt is still closing. Wait a few seconds and try again.',
+    PASSKEY_STILL_OPEN:
+        'The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app.',
     PASSKEY_ORIGIN:
         'Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
     // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
     CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
     PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
+    ACCOUNT_DELETED: 'This account was deleted. Sign up to create a new one.',
     LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
 } as const satisfies Record<string, string>
 
@@ -149,11 +154,14 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     CEREMONY_TIMEOUT: 'passkey.tookTooLong',
     PASSKEY_NOT_READY: 'passkey.notReady',
     PASSKEY_STATE: 'passkey.deviceState',
+    PASSKEY_SETTLING: 'passkey.settling',
+    PASSKEY_STILL_OPEN: 'passkey.stillOpen',
     PASSKEY_INTERRUPTED: 'passkey.interrupted',
     NETWORK: 'passkey.serverUnreachable',
     PASSKEY_UNSUPPORTED: 'passkey.unsupported',
     PASSKEY_PROVIDER_UNSUPPORTED: 'testTransaction.errors.passkeyProviderUnsupported',
     PASSKEY_ORIGIN: 'passkey.origin',
+    ACCOUNT_DELETED: 'passkey.accountDeleted',
     LOGIN_ERROR: 'passkey.loginError',
 } as const satisfies Record<PasskeyErrorCode, string>
 
@@ -230,6 +238,7 @@ export class PasskeyServerError extends Error {
 }
 
 export function normalizePasskeyServerError(error: unknown): unknown {
+    if (error instanceof Error && error.name === 'PasskeyOptionsFailedError') return new PasskeyServerError(error)
     if (!(error instanceof TypeError)) return error
     const message = error.message ?? ''
     if (PASSKEY_SERVER_TYPE_ERROR.test(message)) return new PasskeyServerError(error)
@@ -346,17 +355,26 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         case 'CeremonyConflictError':
             code = 'PASSKEY_INTERRUPTED'
             break
+        case 'PasskeyRequestSettlingError':
+            code = 'PASSKEY_SETTLING'
+            break
         case 'PasskeyShimNotReadyError':
             code = 'PASSKEY_NOT_READY'
             break
+        case 'PasskeyCleanupPendingError':
+            code = 'PASSKEY_STILL_OPEN'
+            break
         // install known-dead — only an app restart re-runs it, so send the
         // restart copy instead of the transient "wait a moment" one
-        case 'PasskeyCleanupPendingError':
         case 'PasskeyShimFailedError':
             code = 'PASSKEY_STATE'
             break
         case 'PasskeyServerError':
+        case 'PasskeyOptionsFailedError':
             code = 'NETWORK'
+            break
+        case 'PasskeyAccountDeletedError':
+            code = 'ACCOUNT_DELETED'
             break
         default:
             if (isNetworkError(err)) code = 'NETWORK'

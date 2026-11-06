@@ -3,7 +3,6 @@
 import { AppShell } from '@/components/Global/AppShell'
 import { BottomNav } from '@/components/Global/BottomNav'
 import GuestLoginModal from '@/components/Global/GuestLoginModal'
-import ReConsentModal from '@/components/Global/ReConsentModal'
 import Loading from '@/components/Global/Loading'
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
@@ -20,7 +19,7 @@ import SetupNotificationsModal from '@/components/Notifications/SetupNotificatio
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import { isPublicRoute } from '@/constants/routes'
+import { isPublicRoute, isSameRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
@@ -30,12 +29,15 @@ import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefre
 import { useLongPressGuard } from '@/hooks/useLongPressGuard'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
+import { useDeferredSignupTestTransactionRetry } from '@/features/setup/useDeferredSignupTestTransactionRetry'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
 // Side-effect import: useSafeBack patches history.pushState at module load. Importing here
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import { useVerifyShell } from '@/utils/verify-shell'
+import { AttentionProvider } from '@/features/attention/AttentionProvider'
+import { AttentionInterrupt } from '@/features/attention/AttentionInterrupt'
 
 /**
  * How long the protected auth gate may show the mascot before it gives up.
@@ -48,6 +50,7 @@ const AUTH_GATE_TIMEOUT_MS = 15000
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
+    useDeferredSignupTestTransactionRetry()
     const pathName = usePathname()
 
     // Allow access to public paths without authentication.
@@ -64,10 +67,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
     const isReceipt = pathName === '/receipt' || pathName === '/receipt/'
-    // The profile menu IS the full-screen menu: the bottom nav and its QR
-    // button used to float over its own list of destinations. Exact match —
-    // /profile/* sub-pages keep the nav.
-    const isProfileMenu = pathName === '/profile' || pathName === '/profile/'
+    // The settings root is a full-screen menu. Subpages keep the bottom nav.
+    const isSettingsMenu = isSameRoute(pathName, '/settings') || isSameRoute(pathName, '/profile')
     const isDev = pathName?.startsWith('/dev') ?? false
     // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
     // Its screens on other routes (a feature's activation on /add-money, /withdraw, /card) hold the same shell.
@@ -213,71 +214,73 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <NavHeaderPresenceProvider>
-            <AppShell
-                variant="app"
-                banner={!isDev && <ShellBannerFallback />}
-                nav={!isDev && !isProfileMenu && !isVerify && isUserLoggedIn && <BottomNav />}
-                // /verify is white panels under a white or hero-blue status bar, and white under the nav bar
-                pageClassName={
-                    isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-default))]' : undefined
-                }
-                bottomInsetClassName={isVerify ? 'bg-background-default' : undefined}
-                contentClassName={twMerge(
-                    'pb-[calc(6rem_+_var(--safe-bottom))]',
-                    isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                    // Receipt owns its 16px page inset so the same shell also
-                    // renders correctly on the public web receipt route.
-                    isReceipt && 'p-0',
-                    // the 6rem reservation exists to clear the bottom nav, so a
-                    // screen without one takes the same inset as a logged-out one
-                    isUserLoggedIn && !isProfileMenu
-                        ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
-                        : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                    isDev && 'p-0 pb-0',
-                    isVerify && 'p-0 pb-0'
-                )}
-                innerClassName={twMerge(
-                    alignStart && 'items-start',
-                    isSupport && 'h-full',
-                    // the shell inset now lives on the capped column, so a page that
-                    // owns its own inset opts out here instead of with p-0 above
-                    (isSupport || isReceipt || isDev || isVerify) && 'px-0',
-                    isUserLoggedIn
-                        ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
-                        : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
-                    // the shell above is min-h-dvh WITH pt-safe-top, so this scroll
-                    // box is 100dvh - safe-top tall. a plain min-h-dvh here is taller
-                    // than the box that holds it, so on edge-to-edge iOS/Android the
-                    // scroller overflows by the inset and /dev/ds — which caps itself
-                    // at the same height — drifts its header out of view.
-                    isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start',
-                    isVerify && 'min-h-0 items-stretch'
-                )}
-                modals={
-                    <>
-                        <GuestLoginModal />
-                        <ReConsentModal />
-                        <SupportDrawer />
-                        <BrazilPausedDrawer />
-                        {/* Suspense is required: nuqs reads useSearchParams, which triggers
+        <AttentionProvider>
+            <NavHeaderPresenceProvider>
+                <AppShell
+                    variant="app"
+                    banner={!isDev && <ShellBannerFallback />}
+                    nav={!isDev && !isSettingsMenu && !isVerify && isUserLoggedIn && <BottomNav />}
+                    // /verify is page-coloured panels under a page-coloured or hero-blue status bar
+                    pageClassName={
+                        isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-page))]' : undefined
+                    }
+                    bottomInsetClassName={isVerify ? 'bg-background-page' : undefined}
+                    contentClassName={twMerge(
+                        'pb-[calc(6rem_+_var(--safe-bottom))]',
+                        isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
+                        // Receipt owns its 16px page inset so the same shell also
+                        // renders correctly on the public web receipt route.
+                        isReceipt && 'p-0',
+                        // the 6rem reservation exists to clear the bottom nav, so a
+                        // screen without one takes the same inset as a logged-out one
+                        isUserLoggedIn && !isSettingsMenu
+                            ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
+                            : 'pb-[calc(1rem_+_var(--safe-bottom))]',
+                        isDev && 'p-0 pb-0',
+                        isVerify && 'p-0 pb-0'
+                    )}
+                    innerClassName={twMerge(
+                        alignStart && 'items-start',
+                        isSupport && 'h-full',
+                        // the shell inset now lives on the capped column, so a page that
+                        // owns its own inset opts out here instead of with p-0 above
+                        (isSupport || isReceipt || isDev || isVerify) && 'px-0',
+                        isUserLoggedIn
+                            ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
+                            : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
+                        // the shell above is min-h-dvh WITH pt-safe-top, so this scroll
+                        // box is 100dvh - safe-top tall. a plain min-h-dvh here is taller
+                        // than the box that holds it, so on edge-to-edge iOS/Android the
+                        // scroller overflows by the inset and /dev/ds — which caps itself
+                        // at the same height — drifts its header out of view.
+                        isDev && 'max-w-full min-h-[calc(100dvh_-_var(--safe-top))] items-start justify-start',
+                        isVerify && 'min-h-0 items-stretch'
+                    )}
+                    modals={
+                        <>
+                            <GuestLoginModal />
+                            <AttentionInterrupt />
+                            <SupportDrawer />
+                            <BrazilPausedDrawer />
+                            {/* Suspense is required: nuqs reads useSearchParams, which triggers
                         a client-side-rendering bailout without a boundary. */}
-                        <Suspense fallback={null}>
-                            <SupportDeepLink />
-                        </Suspense>
-                        <QRScannerOverlay />
-                        <SecurityVerificationOverlay />
-                        {/* push pre-prompt for money moments off Home; on Home it
+                            <Suspense fallback={null}>
+                                <SupportDeepLink />
+                            </Suspense>
+                            <QRScannerOverlay />
+                            <SecurityVerificationOverlay />
+                            {/* push pre-prompt for money moments off Home; on Home it
                         renders inside HomeModals' priority chain instead */}
-                        {isUserLoggedIn && !isHome && <SetupNotificationsModal />}
-                        {/* dev fixture warning strip — renders null outside fixture mode */}
-                        <FixtureBanner />
-                    </>
-                }
-            >
-                {children}
-            </AppShell>
-        </NavHeaderPresenceProvider>
+                            {isUserLoggedIn && <SetupNotificationsModal />}
+                            {/* dev fixture warning strip — renders null outside fixture mode */}
+                            <FixtureBanner />
+                        </>
+                    }
+                >
+                    {children}
+                </AppShell>
+            </NavHeaderPresenceProvider>
+        </AttentionProvider>
     )
 }
 

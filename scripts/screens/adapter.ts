@@ -6,7 +6,7 @@ import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
 import type { IUserProfile } from '../../src/interfaces/interfaces'
 import openapi from '../../src/types/api.openapi.json'
 import { exampleFor } from './openapi-example'
-export const ADAPTER_VERSION = 'synthetic-api-v5'
+export const ADAPTER_VERSION = 'synthetic-api-v6'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||

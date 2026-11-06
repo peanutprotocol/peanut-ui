@@ -71,6 +71,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                         ? `${flow.verificationSession.id}:${flow.verificationSession.generation}`
                         : undefined)
                 }
+                validationError={flow.taxIdCorrection ? t('taxId') : undefined}
                 visible={flow.showWrapper}
                 accessToken={flow.accessToken}
                 onClose={flow.handleSdkClose}
@@ -93,6 +94,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 isLoadingTos={flow.isLoadingTos}
                 preparingTimedOut={flow.preparingTimedOut}
                 preparingStage={flow.preparingStage}
+                completionNotice={flow.completionNotice}
             />
 
             {flow.tosLink && <IframeWrapper src={flow.tosLink} visible={flow.showTosIframe} onClose={closeTosPage} />}

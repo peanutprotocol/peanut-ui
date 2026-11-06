@@ -67,7 +67,7 @@
         {
             "date": "2026-09-07",
             "metrics": ["fontWeightOnTypeToken 46 -> 45"],
-            "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
+            "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md."
         },
         {
             "date": "2026-09-15",

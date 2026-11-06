@@ -16,12 +16,15 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
-import { type OnboardingState } from '@/utils/activation-step.utils'
+import { checklistProgress, type OnboardingState } from '@/utils/activation-step.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import type { SignupPreferences } from '@/types/signup-preferences'
+
+type SignupPaymentChannel = SignupPreferences['paymentChannel']
 
 type ChecklistItemId = 'create-account' | 'verify-identity' | 'add-money' | 'first-payment'
 
@@ -44,12 +47,12 @@ interface ChecklistItem {
     onTap?: () => void
 }
 
-const FIRST_PAYMENT_BUBBLE = {
-    card_qr: CONCEPT_ICONS.qrPay,
-    card: CONCEPT_ICONS.card,
-    qr: CONCEPT_ICONS.qrPay,
-    pending: CONCEPT_ICONS.qrPay,
-} as const
+/** card or QR open: the row draws what the user said at signup they would pay with (older accounts never said) */
+const firstPaymentBubble = (
+    route: Exclude<OnboardingState['firstPaymentRoute'], 'none'>,
+    signupPaymentChannel: SignupPaymentChannel | null | undefined
+) =>
+    route === 'card' || (route !== 'qr' && signupPaymentChannel === 'card') ? CONCEPT_ICONS.card : CONCEPT_ICONS.qrPay
 
 const FIRST_PAYMENT_NOTE_KEY = {
     card_qr: 'firstPaymentCardNote',
@@ -91,9 +94,12 @@ const GettingStartedChecklist = ({
     onboarding,
     showWelcome = true,
     onStartIdentityCheck,
+    signupPaymentChannel,
 }: {
     onboarding: OnboardingState
     showWelcome?: boolean
+    /** how the user said at signup they would pay; null on accounts made before the question */
+    signupPaymentChannel?: SignupPaymentChannel | null
     /**
      * Starts the ID check. ActivationCTAs picks the start, by flow and then by
      * residence, so the row itself never routes (Slava via Hugo, 2026-09-26:
@@ -147,8 +153,8 @@ const GettingStartedChecklist = ({
                 inReview: verify === 'in_review',
                 needsAction: verify === 'action_required',
                 opensWhenDone: true,
-                // a final decision has no step for the user (Home shows the
-                // support card instead of this list)
+                // a final decision has no step for the user: support is on
+                // the blocked card this list replaces once it is hidden
                 onTap:
                     verify === 'failed'
                         ? undefined
@@ -184,7 +190,7 @@ const GettingStartedChecklist = ({
         if (firstPaymentRoute === 'pending') {
             rows.push({
                 id: 'first-payment',
-                bubble: FIRST_PAYMENT_BUBBLE.pending,
+                bubble: firstPaymentBubble('pending', signupPaymentChannel),
                 label: t('firstPayment'),
                 sub: null,
                 done: false,
@@ -194,7 +200,7 @@ const GettingStartedChecklist = ({
             const route = firstPaymentRoute
             rows.push({
                 id: 'first-payment',
-                bubble: FIRST_PAYMENT_BUBBLE[route],
+                bubble: firstPaymentBubble(route, signupPaymentChannel),
                 label: t('firstPayment'),
                 sub: t((onboarding.cardHeld ? FIRST_PAYMENT_HELD_CARD_NOTE_KEY : FIRST_PAYMENT_NOTE_KEY)[route]),
                 done: firstPaymentDone,
@@ -214,6 +220,7 @@ const GettingStartedChecklist = ({
         firstPaymentRoute,
         restrictions.banking,
         onStartIdentityCheck,
+        signupPaymentChannel,
         router,
         setHomeDrawer,
         setIsQRScannerOpen,
@@ -224,8 +231,8 @@ const GettingStartedChecklist = ({
 
     // the bar and the count cover every row; the list shows every open row and
     // only the latest done one, so finished steps do not crowd out what is next
-    const doneCount = items.filter((item) => item.done).length
-    const completionPercent = Math.round((doneCount / items.length) * 100)
+    const { done: doneCount, total } = checklistProgress(onboarding)
+    const completionPercent = Math.round((doneCount / total) * 100)
     const latestDoneId = items.filter((item) => item.done).at(-1)?.id
     const visibleItems = items.filter((item) => !item.done || item.id === latestDoneId)
 

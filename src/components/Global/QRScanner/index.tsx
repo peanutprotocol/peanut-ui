@@ -73,6 +73,8 @@ export interface QRScannerProps {
      *  clear anything it floats above the scanner (the my-QR peek sits at
      *  z-60 and would cover the z-50 recovery sheet). */
     onPermissionDenied?: (denied: boolean) => void
+    /** Leaves Pix out of the accepted-method badges, for a user Pix is paused for. */
+    hidePix?: boolean
 }
 
 // ============================================================================
@@ -181,12 +183,14 @@ function ScanRegionOverlay({
     onUseDetected,
     showPasteChip,
     onUsePasteChip,
+    hidePix,
 }: {
     onPaste: () => void
     detectedAddress: string | null
     onUseDetected: () => void
     showPasteChip: boolean
     onUsePasteChip: () => void
+    hidePix?: boolean
 }) {
     const t = useTranslations('global')
     const isShortViewport = useIsShortViewport()
@@ -212,7 +216,7 @@ function ScanRegionOverlay({
                 {!isShortViewport && (
                     <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
                         <div className="grid grid-cols-2 gap-2">
-                            {PAYMENT_METHODS.map((method) => (
+                            {PAYMENT_METHODS.filter((method) => !hidePix || method.name !== 'PIX').map((method) => (
                                 <PaymentMethodBadge
                                     key={method.name ?? 'evm'}
                                     src={method.src}
@@ -297,7 +301,7 @@ function ErrorView({
 // Main Component
 // ============================================================================
 
-export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
+export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true, hidePix }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
     // The scanner is an overlay, not a route: unhandled, Android back falls through to minimizeApp on Home.
@@ -443,6 +447,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
                         onUseDetected={() => scanValue(detectedAddress!)}
                         showPasteChip={showPasteChip}
                         onUsePasteChip={handleUsePasteChip}
+                        hidePix={hidePix}
                     />
                 </>
             )}

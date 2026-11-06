@@ -213,9 +213,12 @@ public class MainActivity extends BridgeActivity {
         // app-local plugin, not auto-discovered — must register before super.onCreate
         registerPlugin(InstallReferrerPlugin.class);
         registerPlugin(StoreCountryPlugin.class);
+        registerPlugin(PasskeyAvailabilityPlugin.class);
         registerPlugin(ReceiptSharePlugin.class);
         registerPushProvisioningPlugin();
         super.onCreate(savedInstanceState);
+        // After Sentry's manifest auto-init, so the guard runs before Sentry's crash handler.
+        SumsubCrashGuard.install(getApplication());
         /*
          * Edge to edge (Android 15+), the OS lays a grey scrim over the page
          * under 3-button navigation, so a white screen ended in a grey band.

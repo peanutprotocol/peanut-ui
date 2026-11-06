@@ -77,6 +77,13 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toEqual({})
     })
 
+    it('answers the attention read with an empty ranking in strict capture mode', async () => {
+        // the attention manager reads it on every authed screen; unmapped, strict mode fails them all
+        const res = await demoRespond('/users/me/attention', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toEqual({ version: 1, ranking: [], verdicts: {}, nextAsk: null })
+    })
+
     it('answers the kill-switch read with an empty map in strict capture mode', async () => {
         // the app reads it on start; unmapped, strict mode fails every screen
         const res = await demoRespond('/config/kill-switches', { method: 'GET' }, { offline: true, strict: true })
@@ -427,15 +434,52 @@ describe('demoRespond — KYC reads in strict capture mode', () => {
     })
 })
 
+describe('Brazil bank funding capture contract', () => {
+    const intentResponse = async (residence: string, idCountry?: string) => {
+        const query = new URLSearchParams({ residence, ...(idCountry ? { idCountry } : {}) })
+        return (await strict(`/config/kyc-intents?${query}`)).json()
+    }
+
+    it('keeps the generic Brazil bank option in regular demo mode', async () => {
+        const { data } = await body('/config/kyc-intents?residence=BR')
+        expect(data.intents.bank).toEqual({ available: true, currencies: [] })
+    })
+
+    it('offers supported currencies for an eligible/default Brazil document', async () => {
+        const result = await intentResponse('BR')
+        expect(result.intents.bank).toEqual({
+            available: true,
+            currencies: ['USD', 'EUR', 'GBP', 'MXN'],
+        })
+    })
+
+    it('keeps bank funding unavailable for a refused issuer', async () => {
+        const result = await intentResponse('BR', 'KP')
+        expect(result.intents.bank).toEqual({
+            available: false,
+            reason: 'document_country_unsupported',
+            currencies: [],
+        })
+    })
+
+    it('preserves the existing empty-currency fallback for Portugal', async () => {
+        const result = await intentResponse('PT')
+        expect(result.intents.bank).toEqual({ available: true, currencies: [] })
+    })
+})
+
 describe('demoRespond — kyc-intents per residence', () => {
     it.each(Object.entries(KYC_INTENTS_BY_COUNTRY))(
-        'answers %s with synthetic availability and no unserved currency promises',
+        'answers %s with synthetic availability and capture currencies',
         async (country, intents) => {
             const res = await strict(`/config/kyc-intents?residence=${country.toLowerCase()}`)
             expect(res.status).toBe(200)
             expect(await res.json()).toEqual({
                 residence: country,
-                intents: { ...intents, bank: { ...intents.bank, currencies: [] } },
+                intents: {
+                    ...intents,
+                    bank: { ...intents.bank, currencies: country === 'BR' ? intents.bank.currencies : [] },
+                },
             })
         }
     )

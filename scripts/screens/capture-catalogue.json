@@ -84,6 +84,18 @@
         "source": "Setup/Views/Notifications.tsx"
     },
     {
+        "id": "07-d-notification-settings-flag-signup-notification-switches-switches",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-settings",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
+        "id": "07-d-notification-settings-flag-signup-notification-switches-defaults-on",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-settings",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
         "id": "07-b-advantage-control",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-b-advantage-control",
@@ -93,6 +105,12 @@
         "id": "05-a-signtesttransaction",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=05-a-signtesttransaction",
+        "source": "Setup/Views/SignTestTransaction.tsx"
+    },
+    {
+        "id": "05-b-signtesttransaction-network-busy",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=05-b-signtesttransaction-network-busy",
         "source": "Setup/Views/SignTestTransaction.tsx"
     },
     {
@@ -308,6 +326,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-home-verify-processing-flag-card-promotion-disabled-true",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-home-verified-unfunded",
         "flow": "Home and shared states",
         "route": "/home"
@@ -383,22 +406,12 @@
         "route": "/limits/manteca"
     },
     {
-        "id": "fixture-paperwork-verification-state-choice-missing",
+        "id": "fixture-paperwork-verification-us-address",
         "flow": "Home and shared states",
         "route": "/verify?step=address"
     },
     {
-        "id": "fixture-paperwork-verification-state-choice-selected",
-        "flow": "Home and shared states",
-        "route": "/verify?step=address"
-    },
-    {
-        "id": "fixture-paperwork-verification-state-select-missing",
-        "flow": "Home and shared states",
-        "route": "/verify?step=address"
-    },
-    {
-        "id": "fixture-paperwork-verification-state-select-selected",
+        "id": "fixture-paperwork-verification-us-address-filled",
         "flow": "Home and shared states",
         "route": "/verify?step=address"
     },
@@ -817,6 +830,24 @@
         "source": "Kyc/KycVerificationInProgressModal.tsx"
     },
     {
+        "id": "24-c-kyctaxidsubmitted",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-c-kyctaxidsubmitted",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
+        "id": "24-c-kyc-ready-ars-action",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-c-kyc-ready-ars-action",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
+        "id": "24-d-kyc-ready-bank-review",
+        "flow": "Verification",
+        "route": "/dev/surfaces?s=24-d-kyc-ready-bank-review",
+        "source": "Kyc/KycVerificationInProgressModal.tsx"
+    },
+    {
         "id": "25-b-kycactionrequiredmodal",
         "flow": "Verification",
         "route": "/dev/surfaces?s=25-b-kycactionrequiredmodal",
@@ -1196,6 +1227,21 @@
         "route": "/card"
     },
     {
+        "id": "fixture-card-verification-open",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-verification-checking",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-verification-unavailable",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
         "id": "fixture-card-holder-collateral",
         "flow": "Card",
         "route": "/card"
@@ -1399,6 +1445,30 @@
         "source": "Card/LockCardModal.tsx"
     },
     {
+        "id": "35-c-googlewalletbutton",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-googlewalletbutton",
+        "source": "Card/GoogleWalletButton.tsx"
+    },
+    {
+        "id": "35-c-googlewalletbutton-adding",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-googlewalletbutton-adding",
+        "source": "Card/GoogleWalletButton.tsx"
+    },
+    {
+        "id": "35-c-applewalletrow",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-applewalletrow",
+        "source": "Card/AppleWalletRow.tsx"
+    },
+    {
+        "id": "35-c-applewalletrow-adding",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=35-c-applewalletrow-adding",
+        "source": "Card/AppleWalletRow.tsx"
+    },
+    {
         "id": "57-d-raincooldownintromodal",
         "flow": "Card",
         "route": "/home",
@@ -1471,7 +1541,22 @@
         "source": "Card/ApplicationStatusScreen.tsx"
     },
     {
+        "id": "profile-brazil-bank-details",
+        "flow": "Payments",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "profile-brazil-qr-details",
+        "flow": "Payments",
+        "route": "/profile/payments"
+    },
+    {
         "id": "qr-camera-permission",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
+    },
+    {
+        "id": "qr-scanner-brazil-resident",
         "flow": "Payments",
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
     },
@@ -1489,6 +1574,21 @@
         "id": "fixture-qr-pay-pix-key-cpf",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126330014br.gov.bcb.pix0111123456789095204000053039865802BR5911123456789096009SAO%20PAULO62070503***63047AC2&type=PIX&pixKey=12345678909&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-payer-blocked",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-merchant-blocked",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-brazil-resident",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
     },
     {
         "id": "fixture-history-request-paid-external",
@@ -1985,17 +2085,17 @@
     {
         "id": "fixture-profile",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "fixture-profile-edit",
         "flow": "Profile and settings",
-        "route": "/profile/edit"
+        "route": "/settings/details"
     },
     {
         "id": "fixture-profile-edit-unverified",
         "flow": "Profile and settings",
-        "route": "/profile/edit"
+        "route": "/settings/details"
     },
     {
         "id": "fixture-settings-language",
@@ -2005,12 +2105,12 @@
     {
         "id": "fixture-hugo-long-username",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "fixture-long-full-name",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "fixture-unverified",
@@ -2035,12 +2135,12 @@
     {
         "id": "fixture-avatar-picker",
         "flow": "Profile and settings",
-        "route": "/profile?avatarPicker=true"
+        "route": "/settings?avatarPicker=true"
     },
     {
         "id": "fixture-profile-details",
         "flow": "Profile and settings",
-        "route": "/profile/details"
+        "route": "/settings/details"
     },
     {
         "id": "fixture-profile-accounts",
@@ -2064,6 +2164,11 @@
     },
     {
         "id": "fixture-profile-accounts-review-causes",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-provider-asks",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },
@@ -2100,12 +2205,12 @@
     {
         "id": "p06-profile",
         "flow": "Profile and settings",
-        "route": "/profile"
+        "route": "/settings"
     },
     {
         "id": "p07-profile-edit",
         "flow": "Profile and settings",
-        "route": "/profile/edit"
+        "route": "/settings/details"
     },
     {
         "id": "p08-profile-view",
@@ -2205,7 +2310,7 @@
     {
         "id": "66-e-avatarpicker",
         "flow": "Profile and settings",
-        "route": "/profile?avatarPicker=true",
+        "route": "/settings?avatarPicker=true",
         "source": "Avatar/AvatarPicker.tsx"
     },
     {

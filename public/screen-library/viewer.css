@@ -37,6 +37,12 @@ a {
     letter-spacing: -1px;
     text-decoration: none;
 }
+.copy-nav {
+    font-size: 14px;
+    font-weight: 650;
+    text-decoration: none;
+    border-bottom: 2px solid var(--pink);
+}
 .brand span {
     font-size: 14px;
     font-weight: 500;
@@ -1413,29 +1419,39 @@ summary {
 }
 
 /* Compact discussions keep full thread text readable and feed excerpts scannable. */
-.library-layout {
+.library-intro {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 290px;
-    gap: 28px;
+    grid-template-columns: minmax(0, 1fr) minmax(255px, 340px);
     align-items: start;
+    gap: 28px;
 }
-.library-layout:has(.comment-feed[hidden]) {
-    grid-template-columns: minmax(0, 1fr);
+.library-intro:has(:where(.comment-activity[hidden])) {
+    display: block;
 }
-.library-content {
-    min-width: 0;
-}
-.comment-feed {
-    position: sticky;
-    top: 20px;
-    border: 1px solid var(--line, #e8e3e9);
+.comment-activity {
+    border: 1px solid var(--rule);
     border-radius: 16px;
     background: #fff;
-    padding: 12px;
-    max-height: calc(100dvh - 40px);
+}
+.comment-activity > summary {
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.comment-activity > summary:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+    border-radius: inherit;
+}
+.comment-feed {
+    padding: 0 12px 12px;
+    max-height: min(55dvh, 520px);
     overflow: auto;
 }
-.comment-feed-heading,
+.comment-feed-heading {
+    display: flex;
+    justify-content: flex-end;
+}
 .comment-panel-heading {
     display: flex;
     align-items: center;
@@ -2023,19 +2039,9 @@ dialog .screen-votes [data-vote-retry] {
     outline: 3px solid #dc8de9;
     outline-offset: 2px;
 }
-@media (max-width: 1050px) {
-    .library-layout {
-        grid-template-columns: minmax(0, 1fr) 255px;
-        gap: 18px;
-    }
-}
 @media (max-width: 800px) {
-    .library-layout {
-        grid-template-columns: minmax(0, 1fr);
-    }
-    .comment-feed {
-        position: static;
-        max-height: 430px;
+    .library-intro {
+        display: block;
     }
     .comments-open .zoom-body {
         overflow: auto;
@@ -2069,8 +2075,7 @@ dialog .screen-votes [data-vote-retry] {
     }
 }
 /* History uses the landing date tile as the marker, centered on its track. */
-.history-open main > #title,
-.history-open main > #description,
+.history-open main > .library-intro,
 .history-open main > details,
 .history-open main > #coverage,
 .history-open main > #history-unavailable,

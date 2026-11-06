@@ -481,7 +481,7 @@ const DEMO_RESTRICTION_SETS = parseResidenceRestrictionSets(DEMO_RESIDENCE_RESTR
  * ones close the card, and local transfers open only in AR and BR. A refused
  * issuer closes everything else; a Russian ID closes the card.
  */
-function demoKycIntents(residence: string, idCountry?: string): KycIntents {
+function demoKycIntents(residence: string, idCountry: string | undefined, offlineCapture: boolean): KycIntents {
     const sets = DEMO_RESTRICTION_SETS
     const restrictions = deriveResidenceRestrictionsFrom(sets, residence)
     const sanctioned = isQrResidenceRestricted(sets, residence)
@@ -493,6 +493,8 @@ function demoKycIntents(residence: string, idCountry?: string): KycIntents {
     const bank = intent(
         residence === 'GB' ? 'uk_resident_blocked' : restrictions.banking ? 'residence_bank_restricted' : null
     )
+    // Match the Brazil signup funding options in Screen Library captures.
+    const bankCurrencies = offlineCapture && residence === 'BR' && bank.available ? ['USD', 'EUR', 'GBP', 'MXN'] : []
     return {
         qr: intent(sanctioned ? 'residence_sanctioned' : null),
         local: intent(
@@ -504,7 +506,7 @@ function demoKycIntents(residence: string, idCountry?: string): KycIntents {
         ),
         // a Russian ID verifies without the card (peanut.russian-document)
         card: intent(restrictions.card ? 'geo-blocked' : null, idCountry === 'RU'),
-        bank: { ...bank, currencies: [] },
+        bank: { ...bank, currencies: bankCurrencies },
     }
 }
 
@@ -538,6 +540,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
     // the app reads kill switches on start; empty keeps the built-in defaults
     { method: 'GET', pattern: '/config/kill-switches', handler: () => ({}) },
+    // the attention manager asks on every authed screen; no ranking and no verdicts leave the app's registry in charge
+    {
+        method: 'GET',
+        pattern: '/users/me/attention',
+        handler: () => ({ version: 1, ranking: [], verdicts: {}, nextAsk: null }),
+    },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -1100,7 +1108,7 @@ export async function demoRespond(
         return json({
             residence,
             ...(idCountry ? { idCountry } : {}),
-            intents: demoKycIntents(residence, idCountry),
+            intents: demoKycIntents(residence, idCountry, capture?.offline === true),
         })
     }
 

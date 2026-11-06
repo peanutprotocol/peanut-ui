@@ -5,6 +5,7 @@ import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import { captureProfile } from './capture-profiles.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
+import { COPY_SHOWN_LIMIT, isCopyKey } from './copy-coverage.mjs'
 import { validateBeforeHarness } from './before-harness-receipt.mjs'
 
 export const hash = (data) => createHash('sha256').update(data).digest('hex')
@@ -63,6 +64,31 @@ export function validateCapture(input) {
             )
             out.image = s.image
             out.thumbnail = s.thumbnail
+            if (s.copy !== undefined) {
+                assert(
+                    Array.isArray(s.copy) &&
+                        s.copy.length <= COPY_SHOWN_LIMIT &&
+                        s.copy.every((key, index) => isCopyKey(key) && (index === 0 || s.copy[index - 1] < key)),
+                    'Invalid shown-copy keys'
+                )
+                out.copy = [...s.copy]
+            }
+            if (s.flags !== undefined) {
+                const entries =
+                    s.flags && typeof s.flags === 'object' && !Array.isArray(s.flags) ? Object.entries(s.flags) : []
+                const name = /^[a-z0-9_-]{1,80}$/
+                assert(
+                    entries.length > 0 &&
+                        entries.length <= 10 &&
+                        entries.every(
+                            ([flag, value]) =>
+                                name.test(flag) &&
+                                (typeof value === 'boolean' || (typeof value === 'string' && name.test(value)))
+                        ),
+                    'Invalid flag overrides'
+                )
+                out.flags = Object.fromEntries(entries)
+            }
         } else out.reason = text(s.reason)
         return out
     })
@@ -88,6 +114,10 @@ export function validateCapture(input) {
         assert(digest.test(entry.before) && digest.test(entry.after), 'Invalid adapter file digest')
         return { path: text(entry.path), before: entry.before, after: entry.after }
     })
+    assert(
+        input.copyRecording === undefined || ['recorded', 'unavailable'].includes(input.copyRecording),
+        'Invalid shown-copy recording status'
+    )
     const scope = input.scope === undefined ? undefined : canonicalScope(input.scope, seen)
     if (scope) assert(scope.screenIds.length === screens.length, 'Scoped catalogue contains omitted states')
     const settled =
@@ -106,6 +136,7 @@ export function validateCapture(input) {
         adapter: text(input.adapter),
         capturedAt: text(input.capturedAt),
         reconstruction: !!input.reconstruction,
+        ...(input.copyRecording ? { copyRecording: input.copyRecording } : {}),
         profile: input.profile,
         width: input.width,
         height: input.height,
@@ -213,18 +244,24 @@ export function validateJourneys(input) {
             screens.every((screen) => screen.status === 'passed'),
     }
 }
+// Hosted runners mix Azure and AWS hosts and roll kernels and Node patches mid-day; neither changes Chromium's pixels.
+export function renderEnvironment(environment) {
+    const [host = '', ...rest] = String(environment).split(';')
+    return [host.split('-').slice(0, 2).join('-'), ...rest.filter((part) => !part.startsWith('node='))].join(';')
+}
 export function sameEnvironment(a, b, beforeHarness) {
     const base = validateBeforeHarness(beforeHarness, a.commit)
     return (
+        renderEnvironment(a.environment) === renderEnvironment(b.environment) &&
         [
             ...(base ? [] : ['harness', 'fixtures', 'adapter']),
-            'environment',
             'profile',
             'locale',
             'publicBase',
             'width',
             'height',
-        ].every((k) => a[k] === b[k]) && JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
+        ].every((k) => a[k] === b[k]) &&
+        JSON.stringify(a.device ?? null) === JSON.stringify(b.device ?? null)
     )
 }
 export function verifyAsset(dir, name, { variableDimensions = false, width = 393, height = 852 } = {}) {

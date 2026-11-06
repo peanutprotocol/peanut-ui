@@ -25,6 +25,8 @@ import ptBR from '../../src/i18n/app/messages/pt-BR.json'
 import { findOverflows } from './overflow-check'
 import { EXTRA_APP_ROUTES, LANDING_TARGETS, MARKETING_TARGETS, OVERLAY_TARGETS } from './sweep-targets'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
+import { blockExternal } from './fixture-page'
 
 const OUT = process.env.SWEEP_OUT ?? 'e2e/__sweep__'
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
@@ -116,13 +118,6 @@ async function settle(page: Page): Promise<void> {
     )
 }
 
-async function blockExternal(page: Page): Promise<void> {
-    await page.route('**/*', (route) => {
-        const { hostname } = new URL(route.request().url())
-        return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
-    })
-}
-
 function seenOnceModals(): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
@@ -184,8 +179,8 @@ for (const locale of APP_LOCALES_SWEEP) {
 
         /** returns the landed pathname when the route bounced, else undefined */
         async function openApp(page: Page, route: string, fixture: string): Promise<string | undefined> {
-            await blockExternal(page)
-            await page.clock.setFixedTime(FROZEN_NOW)
+            await blockExternal(page, fixture)
+            await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
             await page.addInitScript(seenOnceModals)
             await page.goto(fixtureHref(route, fixture), { waitUntil: 'domcontentloaded' })
             await expect
@@ -286,7 +281,7 @@ for (const locale of APP_LOCALES_SWEEP) {
                     },
                 })
                 await blockExternal(page)
-                await page.clock.setFixedTime(FROZEN_NOW)
+                await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
                 // web signup is app-only; the support keep-web cookie reopens the form for this sweep
                 if (route.includes('step=signup'))
                     await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
@@ -347,7 +342,7 @@ for (const { locale, path } of LANDING_TARGETS) {
     test(`landing:${path}`, async ({ page }, testInfo) => {
         const cell = { id: `landing:${path}`, kind: 'landing' as const, width: width(testInfo), locale }
         await blockExternal(page)
-        await page.clock.setFixedTime(FROZEN_NOW)
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.goto(path, { waitUntil: 'domcontentloaded' })
         await page.waitForTimeout(1500)
         // lazy sections mount on scroll — walk the page so the scan sees them

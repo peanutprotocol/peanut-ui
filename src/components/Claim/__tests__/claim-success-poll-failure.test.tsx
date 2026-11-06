@@ -51,8 +51,11 @@ jest.mock('@/hooks/useRecipientDisplay', () => ({
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockTriggerHaptic }) }))
 jest.mock('@/utils/general.utils', () => ({
     formatTokenAmount: (n: number) => String(n),
-    getTokenDetails: () => ({ symbol: 'USDC', decimals: 6 }),
     shortenStringLong: (s: string) => s,
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getTokenDetails: () => ({ symbol: 'USDC', decimals: 6 }),
 }))
 const mockSoundPlayed = jest.fn()
 jest.mock('@/components/Global/SoundPlayer', () => ({

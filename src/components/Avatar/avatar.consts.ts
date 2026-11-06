@@ -8,4 +8,4 @@ export const avatarPickerParser = parseAsBoolean.withDefault(false)
 /** Optional badge code the first hand deals from when opening the picker. */
 export const AVATAR_PICKER_BADGE_PARAM = 'badge'
 export const avatarPickerBadgeParser = parseAsString
-export const AVATAR_PICKER_PATH = `/profile?${AVATAR_PICKER_PARAM}=true`
+export const AVATAR_PICKER_PATH = `/settings?${AVATAR_PICKER_PARAM}=true`

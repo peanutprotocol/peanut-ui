@@ -19,8 +19,7 @@ import { pendingResidenceCountry } from '@/utils/residence-profile'
 import ProfileMenuItem from './ProfileMenuItem'
 
 /**
- * The country Peanut is set up for, and the drawer that changes it (Slava,
- * 2026-10-27: "Move Residence to Profile"). `?open=residence` opens the drawer,
+ * The country Peanut is set up for, and the drawer that changes it. `?open=residence` opens the drawer,
  * as links from card recovery and Add money do.
  */
 export default function ResidenceMenuItem() {
@@ -65,9 +64,10 @@ export default function ResidenceMenuItem() {
     return (
         <>
             <ProfileMenuItem
+                position="solo"
                 icon="globe"
                 label={t('residence.label')}
-                endText={countryName(residenceIso2) ?? undefined}
+                description={countryName(residenceIso2) ?? undefined}
                 badge={status}
                 onClick={() => setOpen(true)}
             />

@@ -246,10 +246,13 @@ let mockBrazilPaused = false
 jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
     useBrazilServicesPaused: () => mockBrazilPaused,
 }))
+let mockResidenceIso2s: string[] = []
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockBrazilPaused = false
+    mockResidenceIso2s = []
     closeBrazilPausedDrawer()
     mockSearchParams.clear()
     safeBackTesting.reset()
@@ -438,6 +441,18 @@ describe('GROUP 4: Method Selection', () => {
 
     test('Pix opens the Brazil paused drawer instead while the pause covers the user', () => {
         mockBrazilPaused = true
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    test('Pix opens the Brazil paused drawer for a Brazil resident once the pause is off', () => {
+        mockResidenceIso2s = ['BR']
         mockUseGeoFilteredPaymentOptions.mockReturnValue({
             filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
         })

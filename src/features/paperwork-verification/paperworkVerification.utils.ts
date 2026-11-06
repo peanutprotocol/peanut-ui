@@ -23,7 +23,7 @@ export const DOCUMENT_KEYS = {
     TEMPORARY_PROTECTION: 'temporaryProtection',
 } as const
 
-export const RESIDENCE_CHANGE_HREF = '/profile?open=residence'
+export const RESIDENCE_CHANGE_HREF = '/settings/details?open=residence'
 export const PAYMENT_METHODS_HREF = '/profile/payments'
 
 /** The server's next step when it names one, else the first one still open. */

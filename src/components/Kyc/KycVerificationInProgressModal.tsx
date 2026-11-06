@@ -9,6 +9,11 @@ import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
 
+export interface KycCompletionNotice {
+    kind: 'action' | 'review'
+    currencies: string[]
+}
+
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
     onClose: () => void
@@ -22,11 +27,13 @@ interface KycVerificationInProgressModalProps {
     isLoadingTos?: boolean
     preparingTimedOut?: boolean
     preparingStage?: 'initial' | 'configuring' | 'slow'
+    completionNotice?: KycCompletionNotice | null
 }
 
 const PHASE_SCREEN: Record<KycModalPhase, string> = {
     preparing: 'account-setup',
     verifying: 'id-checking',
+    submitted: 'id-checking',
     bridge_tos: 'tos',
     supplement: 'poa',
     complete: 'id-confirmed',
@@ -46,6 +53,7 @@ export const KycVerificationInProgressModal = ({
     isLoadingTos,
     preparingTimedOut,
     preparingStage = 'initial',
+    completionNotice,
 }: KycVerificationInProgressModalProps) => {
     const { track } = useKycControl(PHASE_SCREEN[phase], 'kyc_legacy')
     const handleClose = () => {
@@ -73,6 +81,21 @@ export const KycVerificationInProgressModal = ({
         track('home', 'tap')
         onClose()
         router.push('/home')
+    }
+
+    if (phase === 'submitted') {
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={handleClose}
+                tone="attention"
+                icon={'clock' as IconName}
+                title={t('submitted')}
+                description={t('progress.submittedDescription')}
+                ctas={[{ text: t('progress.closeAndNotify'), onClick: handleGoHome, variant: 'primary' }]}
+                footer={<PeanutDoesntStoreAnyPersonalInformation onOpen={() => track('privacy_help', 'tap')} />}
+            />
+        )
     }
 
     if (phase === 'verifying') {
@@ -242,8 +265,26 @@ export const KycVerificationInProgressModal = ({
             onClose={handleClose}
             tone="success"
             icon={'check' as IconName}
-            title={t('progress.completeTitle')}
-            description={t('progress.completeDescription')}
+            title={t(completionNotice ? 'progress.accountReadyTitle' : 'progress.completeTitle')}
+            description={
+                completionNotice
+                    ? completionNotice.currencies.length
+                        ? t(
+                              completionNotice.kind === 'action'
+                                  ? 'progress.accountReadyAction'
+                                  : 'progress.accountReadyReview',
+                              {
+                                  currencies: completionNotice.currencies.join(', '),
+                                  count: completionNotice.currencies.length,
+                              }
+                          )
+                        : t(
+                              completionNotice.kind === 'action'
+                                  ? 'progress.accountReadyActionGeneric'
+                                  : 'progress.accountReadyReviewGeneric'
+                          )
+                    : t('progress.completeDescription')
+            }
             ctas={[
                 {
                     text: tCommon('continue'),

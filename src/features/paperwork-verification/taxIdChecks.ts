@@ -171,6 +171,9 @@ export function taxIdOutcome(
     blurred: boolean
 ): TaxIdOutcome {
     const value = values[field.key]?.trim() ?? ''
+    if (value && !maskedUntouched(field, values) && !/[0-9]/.test(value)) {
+        return { blocks: true, error: blurred ? 'invalid_tax_id' : null, warning: false }
+    }
     if (value && !maskedUntouched(field, values) && isZeroTaxId(value)) {
         // Shown from four zeros, so a number that merely starts with one is not flagged while typed.
         const zeros = value.replace(/\D/g, '').length
