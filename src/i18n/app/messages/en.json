@@ -2207,7 +2207,7 @@
         },
         "manteca": {
             "youreAdding": "Adding",
-            "sendOnlyOwnAccountTitle": "Send only from own account",
+            "sendOnlyOwnAccountTitle": "Send only from an account in your name",
             "sendOnlyOwnAccountDescription": "Deposits from third-party accounts are not supported and funds may be lost.",
             "accountDetails": "Bank details",
             "depositAddress": "Deposit address",
@@ -2222,6 +2222,7 @@
             "shareAmount": "Amount: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
+            "shareOwnAccountOnly": "Send it only from a bank account in my name. Transfers from someone else's account can't be credited.",
             "minDepositAmount": "Deposit amount must be at least ${amount}",
             "etaInstant": "Usually within minutes"
         },

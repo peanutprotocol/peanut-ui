@@ -94,6 +94,7 @@ const MantecaDepositShareDetails = ({
         if (depositAlias) {
             textParts.push(t('manteca.shareAlias', { alias: depositAlias }))
         }
+        textParts.push(t('manteca.shareOwnAccountOnly'))
 
         return textParts.join('\n')
     }

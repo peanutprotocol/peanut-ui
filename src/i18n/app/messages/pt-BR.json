@@ -2207,7 +2207,7 @@
         },
         "manteca": {
             "youreAdding": "Adicionando",
-            "sendOnlyOwnAccountTitle": "Envie somente de conta própria",
+            "sendOnlyOwnAccountTitle": "Envie somente de uma conta no seu nome",
             "sendOnlyOwnAccountDescription": "Depósitos de contas de terceiros não são aceitos e os fundos podem ser perdidos.",
             "accountDetails": "Dados bancários",
             "depositAddress": "Endereço de depósito",
@@ -2222,6 +2222,7 @@
             "shareAmount": "Valor: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
+            "shareOwnAccountOnly": "Envie somente de uma conta bancária no meu nome. Transferências de contas de terceiros não podem ser creditadas.",
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
             "etaInstant": "Normalmente em minutos"
         },
