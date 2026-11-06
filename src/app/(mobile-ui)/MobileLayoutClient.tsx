@@ -71,6 +71,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // The settings root is a full-screen menu. Subpages keep the bottom nav.
     const isSettingsMenu = isSameRoute(pathName, '/settings') || isSameRoute(pathName, '/profile')
     const isDev = pathName?.startsWith('/dev') ?? false
+    const isDevSurface = isSameRoute(pathName, '/dev/surfaces')
     // Smart Paperwork Verification is a full-screen setup-style flow: no bottom nav, its own insets.
     // Its screens on other routes (a feature's activation on /add-money, /withdraw, /card) hold the same shell.
     const verifyScreenOpen = useVerifyShell()
@@ -221,9 +222,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     variant="app"
                     banner={!isDev && <ShellBannerFallback />}
                     nav={!isDev && !isSettingsMenu && !isVerify && isUserLoggedIn && <BottomNav />}
-                    // /verify is page-coloured panels under a page-coloured or hero-blue status bar
+                    // Verification and setup surface previews share the real setup status-bar paint.
                     pageClassName={
-                        isVerify ? 'bg-[color:var(--setup-hero-background,var(--color-background-page))]' : undefined
+                        isVerify || isDevSurface
+                            ? 'bg-[color:var(--setup-hero-background,var(--color-background-page))]'
+                            : undefined
                     }
                     bottomInsetClassName={isVerify ? 'bg-background-page' : undefined}
                     contentClassName={twMerge(
@@ -238,6 +241,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                             ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
                             : 'pb-[calc(1rem_+_var(--safe-bottom))]',
                         isDev && 'p-0 pb-0',
+                        // The setup bar already includes the safe inset in its top offset.
+                        // Use the viewport as its containing block, like the onboarding shell.
+                        isDevSurface && 'has-[[data-setup-top-bar]]:static',
                         isVerify && 'p-0 pb-0'
                     )}
                     innerClassName={twMerge(

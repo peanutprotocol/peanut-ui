@@ -4,6 +4,7 @@ import {
     composeCollection,
     missingByLocale,
     normalizeCollectionSpec,
+    normalizeFlowPageSpec,
     validateCollection,
 } from '../collection-core.mjs'
 import { constantTimeEqual, verifiedAccessIdentity } from '../access.mjs'
@@ -21,14 +22,27 @@ const safeReportPath =
     /^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
 const CAPTURE_STALE_AFTER_MS = 90 * 60 * 1000
 const COMPARISON_SEARCH_LIMIT = 100
+const FLOW_PAGE_MAX_BYTES = 256 * 1024
+const FLOW_PAGE_BODY_TIMEOUT_MS = 5_000
+const FLOW_PAGE_ASSET_HEAD_CONCURRENCY = 6
 
 async function actor(request, env, ctx) {
     const internal = request.headers.get('authorization')
+    const url = new URL(request.url)
+    const flowPage = url.pathname === '/v1/flow-pages'
     if (
+        (!flowPage || url.hostname === 'screen-collections.internal') &&
         env.COLLECTION_SERVICE_TOKEN &&
         (await constantTimeEqual(internal ?? '', `Bearer ${env.COLLECTION_SERVICE_TOKEN}`))
-    )
-        return 'mcp@internal'
+    ) {
+        if (!flowPage) return 'mcp@internal'
+        const forwarded = request.headers.get('X-Screen-Library-Actor')
+        try {
+            return forwarded ? decodeURIComponent(forwarded) : null
+        } catch {
+            return null
+        }
+    }
     return (await verifiedAccessIdentity(ctx, env.SCREEN_LIBRARY_ACCESS_AUD)) ?? null
 }
 
@@ -271,6 +285,131 @@ async function comparisonSearch(url, env) {
     })
 }
 
+async function flowPageBody(request) {
+    if (!request.body) throw new Error('Invalid flow page request body')
+    if (Number(request.headers.get('Content-Length')) > FLOW_PAGE_MAX_BYTES)
+        throw new Error('Flow page request is too large')
+    const reader = request.body.getReader()
+    const decoder = new TextDecoder('utf-8', { fatal: true })
+    let body = ''
+    let length = 0
+    let timeout
+    const timedOut = new Error('Flow page request body timed out')
+    const deadline = new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(timedOut), FLOW_PAGE_BODY_TIMEOUT_MS)
+    })
+    try {
+        while (true) {
+            const { done, value } = await Promise.race([reader.read(), deadline])
+            if (done) break
+            length += value.byteLength
+            if (length > FLOW_PAGE_MAX_BYTES) throw new Error('Flow page request is too large')
+            body += decoder.decode(value, { stream: true })
+        }
+        return JSON.parse(body + decoder.decode())
+    } catch (cause) {
+        void reader.cancel().catch(() => {})
+        if (cause === timedOut || length > FLOW_PAGE_MAX_BYTES) throw cause
+        throw new Error('Invalid flow page request body')
+    } finally {
+        clearTimeout(timeout)
+        reader.releaseLock()
+    }
+}
+
+async function fingerprint(value) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)))
+    return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function ensureFlowPageAssets(collection, bucket) {
+    const assets = new Map()
+    for (const item of collection.items) {
+        for (const [locale, variant] of Object.entries(item.variants)) {
+            if (variant.status !== 'captured')
+                throw new Error(
+                    `Screen ${item.id} is not published in ${locale}. Choose a published screen and locale.`
+                )
+            for (const asset of [variant.image, variant.thumbnail])
+                if (!assets.has(asset)) assets.set(asset, { id: item.id, locale })
+        }
+    }
+    const keys = [...assets.keys()]
+    for (let offset = 0; offset < keys.length; offset += FLOW_PAGE_ASSET_HEAD_CONCURRENCY) {
+        await Promise.all(
+            keys.slice(offset, offset + FLOW_PAGE_ASSET_HEAD_CONCURRENCY).map(async (asset) => {
+                if (!(await bucket.head(`assets/${asset}`))) {
+                    const { id, locale } = assets.get(asset)
+                    throw new Error(
+                        `A screenshot asset for ${id} is not published in ${locale}. Choose another screen or republish the capture.`
+                    )
+                }
+            })
+        )
+    }
+}
+
+function flowPageResult(collection, env, status) {
+    const { id, title, description, locales } = collection
+    return json(
+        {
+            id,
+            title,
+            ...(description ? { description } : {}),
+            locales,
+            url: `${env.SCREEN_LIBRARY_PUBLIC_URL.replace(/\/$/, '')}/collections/${id}/`,
+        },
+        status
+    )
+}
+
+async function createFlowPage(request, authenticated, env) {
+    const origin = request.headers.get('Origin')
+    if (origin !== null && origin !== new URL(request.url).origin) return error('Invalid flow page request origin', 403)
+    const mediaType = request.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase()
+    if (mediaType !== 'application/json') return error('Flow page requests require application/json', 415)
+    const { requestId, ...spec } = normalizeFlowPageSpec(await flowPageBody(request))
+    const id = requestId
+        ? `flow-${(await fingerprint([authenticated, requestId])).slice(0, 40)}`
+        : collectionId(spec.title)
+    const key = `collections/${id}/manifest.json`
+    const requestFingerprint = requestId ? await fingerprint(spec) : null
+    const replay = async () => {
+        const existing = await env.REPORTS.get(key)
+        if (!existing) return null
+        if (!requestFingerprint) return error('Flow page ID already exists. Retry the request.', 409)
+        if (existing.customMetadata?.requestFingerprint !== requestFingerprint)
+            return error('Flow page requestId already used with a different payload', 409)
+        return flowPageResult(validateCollection(await existing.json()), env, 200)
+    }
+    if (requestId) {
+        const existing = await replay()
+        if (existing) return existing
+    }
+    let collection
+    try {
+        const source = await sources(env.REPORTS, spec.locales)
+        collection = { ...composeCollection({ id, spec, ...source }), flows: spec.flows }
+        await ensureFlowPageAssets(collection, env.REPORTS)
+    } catch (cause) {
+        // A concurrent matching request may have published from a previous source.
+        const existing = requestId && (await replay())
+        if (existing) return existing
+        if (cause instanceof Error && /^No complete .* library capture is available$/.test(cause.message))
+            return error(`${cause.message}. Choose a locale with a published capture.`, 400)
+        throw cause
+    }
+
+    // Publish the complete page and its replay fingerprint in a single conditional write.
+    const published = await env.REPORTS.put(key, JSON.stringify(collection), {
+        onlyIf: { etagDoesNotMatch: '*' },
+        ...(requestFingerprint ? { customMetadata: { requestFingerprint } } : {}),
+        httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
+    })
+    if (published === null) return (await replay()) ?? error('Flow page creation changed. Retry the request.', 503)
+    return flowPageResult(collection, env, 201)
+}
+
 async function createCollection(request, actorEmail, env) {
     const spec = normalizeCollectionSpec(await requestBody(request))
     const source = await sources(env.REPORTS, spec.locales)
@@ -473,6 +612,8 @@ export default {
         try {
             if (request.method === 'GET' && url.pathname === '/v1/screens') return await screenSearch(url, env)
             if (request.method === 'GET' && url.pathname === '/v1/comparisons') return await comparisonSearch(url, env)
+            if (request.method === 'POST' && url.pathname === '/v1/flow-pages')
+                return await createFlowPage(request, authenticated, env)
             if (request.method === 'POST' && url.pathname === '/v1/collections')
                 return await createCollection(request, authenticated, env)
             const match = /^\/v1\/collections\/([a-z0-9-]+)(?:\/(capture|compare))?$/.exec(url.pathname)

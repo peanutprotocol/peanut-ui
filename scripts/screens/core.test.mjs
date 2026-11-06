@@ -393,3 +393,31 @@ test('flag overrides on a captured state survive validation; malformed ones are 
     for (const flags of [{}, [], { 'Bad Key': true }, { flag: 3 }, { flag: '<script>' }])
         assert.throws(() => validateCapture(capture([{ ...screen('home'), flags }])), /Invalid flag overrides/)
 })
+
+test('visual evidence uses only counted pixels and distinguishes local movement from a second edit', () => {
+    const image = new PNG({ width: 393, height: 852 })
+    const frame = (offset, secondEdit = false, insideNoise = false) => {
+        image.data.fill(255)
+        for (let y = 80 + offset; y < 100 + offset; y++) {
+            image.data.fill(0, (y * 393 + 60) * 4, (y * 393 + 90) * 4)
+            for (let x = 60; x < 90; x++) image.data[(y * 393 + x) * 4 + 3] = 255
+        }
+        if (offset) image.data[(300 * 393 + 200) * 4] = secondEdit ? 0 : 254
+        if (insideNoise) image.data[(95 * 393 + 65) * 4] = 1
+        return capture([screen('home', storeAsset(dir, PNG.sync.write(image)))])
+    }
+    const before = frame(0)
+    const moved = compare(before, frame(2), dir).screens[0]
+    assert.equal(moved.status, 'changed')
+    assert.equal(moved.pixels, 120)
+    assert.deepEqual(moved.changeBounds, { x: 60, y: 80, width: 30, height: 22 })
+    assert.deepEqual(moved.translation, { dx: 0, dy: 2 })
+    assert.ok(moved.diff)
+
+    const edited = compare(before, frame(2, true), dir).screens[0]
+    assert.equal(edited.pixels, 121)
+    assert.deepEqual(edited.changeBounds, { x: 60, y: 80, width: 141, height: 221 })
+    assert.equal(edited.translation, undefined)
+    assert.equal(compare(before, frame(2, false, true), dir).screens[0].translation, undefined)
+    assert.equal(compare(before, frame(4), dir).screens[0].translation, undefined)
+})

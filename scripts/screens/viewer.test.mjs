@@ -97,6 +97,9 @@ class Element {
     append(...children) {
         this.children.push(...children)
     }
+    get lastElementChild() {
+        return this.children.at(-1) ?? null
+    }
     replaceChildren(...children) {
         this.children = children
         if (this.id === 'date-strip') this.scrollWidth = children.length * 70
@@ -238,6 +241,62 @@ async function loadLanding(
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('changed cards open pixel evidence directly in both layouts, including older reports', async () => {
+    const before = { image: 'a'.repeat(64) + '.png' }
+    const after = { image: 'b'.repeat(64) + '.png' }
+    const diff = 'c'.repeat(64) + '.png'
+    const base = { name: 'Argentina', flow: 'Add money', kind: 'route', before, after, diff, percent: 0.12 }
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852 },
+        screens: [
+            {
+                ...base,
+                id: 'moved',
+                status: 'changed',
+                changeBounds: { x: 140, y: 84, width: 112, height: 24 },
+                translation: { dx: 0, dy: 2 },
+            },
+            { ...base, id: 'old', status: 'changed' },
+            { ...base, id: 'same', status: 'unchanged' },
+            { ...base, id: 'unavailable', status: 'changed', diff: undefined },
+            {
+                ...base,
+                id: 'invalid-region',
+                status: 'changed',
+                changeBounds: { x: 393, y: 0, width: 2, height: 2 },
+                translation: { dx: 0, dy: 2 },
+            },
+        ],
+    }
+    for (const layout of ['', '&layout=paired']) {
+        const elements = await loadLanding('/screens/2026-10-02/pr-3558/en/' + 'b'.repeat(40) + '/', {
+            report,
+            search: '?view=all' + layout,
+        })
+        const cards = elements.get('screens').children
+        assert.match(elementText(cards[0]), /Shifted down 2 px/)
+        assert.doesNotMatch(elementText(cards[1]), /Shifted/)
+        assert.doesNotMatch(elementText(cards[4]), /Shifted/)
+        const action = (card) =>
+            card.lastElementChild.children.find((child) => child.textContent === 'Pixel difference')
+        assert.equal(action(cards[2]), undefined)
+        assert.equal(action(cards[3]), undefined)
+        action(cards[1]).onclick()
+        assert.equal(elements.get('zoom').open, true)
+        assert.equal(elements.get('difference')['aria-pressed'], 'true')
+        assert.ok(imageSources(elements.get('zoom-images')).some((src) => src.endsWith(diff)))
+        elements.get('zoom-next').onclick()
+        elements.get('zoom-next').onclick()
+        assert.equal(elements.get('difference').hidden, true)
+        assert.ok(!imageSources(elements.get('zoom-images')).some((src) => src.endsWith(diff)))
+    }
+})
 
 test('PR report heading and tab title retain PR and branch context across view and filter changes', async () => {
     const path = `2026-10-09/pr-3593/en/${'a'.repeat(40)}/run-37911623740-1`
@@ -1449,6 +1508,49 @@ test('curated collection pages preserve order, notes and switch locale in place'
     elements.get('locale').dispatch('change')
     assert.ok(imageSources(elements.get('screens')).includes(`/screen-data/assets/${portuguese}`))
     assert.equal(elements.location.search, '?locale=pt-BR')
+})
+
+test('flow pages keep section and step order with distinct links for reused images', async () => {
+    const image = (letter) => `${letter.repeat(64)}.png`
+    const report = {
+        schema: 1,
+        type: 'collection',
+        title: 'Review flows',
+        locales: ['en'],
+        complete: true,
+        items: ['home', 'profile'].map((id, order) => ({
+            id,
+            name: id,
+            flow: 'Catalogue label',
+            order,
+            variants: { en: { status: 'captured', image: image(order ? 'b' : 'a') } },
+        })),
+        flows: [
+            { title: 'Getting started', items: [{ id: 'profile' }, { id: 'home', note: 'First visit' }] },
+            { title: '<script>Returning</script>', items: [{ id: 'home', note: 'Same image, different step' }] },
+        ],
+    }
+    const elements = await loadLanding('/collections/review-flows/', { report })
+    const sections = elements.get('screens').children
+    assert.deepEqual(
+        sections.map((section) => section.children[0].textContent),
+        ['Getting started', '<script>Returning</script>']
+    )
+    const [first, second] = sections.map((section) => section.lastElementChild.children)
+    assert.deepEqual(
+        first.map((tile) => tile.id),
+        ['profile', 'home']
+    )
+    assert.equal(second.length, 1)
+    assert.notEqual(second[0].id, 'home')
+    assert.match(elementText(second[0]), /Same image, different step/)
+    assert.deepEqual(imageSources(first[1]), imageSources(second[0]))
+    assert.equal(second[0].lastElementChild.children[0].href, `#${second[0].id}`)
+
+    elements.get('flow').value = 'Getting started'
+    elements.get('flow').dispatch('input')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].children[0].textContent, 'Getting started')
 })
 
 test('a custom collection can show its selected screens side by side across two revisions', async () => {
