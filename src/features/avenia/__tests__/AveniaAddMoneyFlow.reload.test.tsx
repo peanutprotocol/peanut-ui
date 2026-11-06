@@ -4,10 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { CapabilityRoute } from '@/types/capabilities'
+import { aveniaDepositQueryKey } from '../aveniaDepositCode'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
+const mockFetchUser = jest.fn(() => Promise.resolve(null))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
 jest.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 } }) }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
@@ -20,9 +22,10 @@ jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
     ),
 }))
 jest.mock('@/features/avenia/components/AveniaPixQrDeposit', () => ({
-    AveniaPixQrDeposit: ({ intentId, deposit }: { intentId: string; deposit?: { brCode: string } }) => (
+    AveniaPixQrDeposit: ({ intentId, onNewDeposit }: { intentId: string; onNewDeposit: () => void }) => (
         <div data-testid="code-step">
-            {intentId} {deposit ? deposit.brCode : 'no code'}
+            {intentId}
+            <button onClick={onNewDeposit}>new deposit</button>
         </div>
     ),
 }))
@@ -36,28 +39,36 @@ jest.mock('@/services/avenia', () => ({
 
 import { AveniaAddMoneyFlow } from '../components/AveniaAddMoneyFlow'
 
-const route: CapabilityRoute = {
+const route = (payableDepositIntentId?: string): CapabilityRoute => ({
     operation: 'deposit',
     method: 'PIX_BR',
     provider: 'avenia',
     state: 'ready',
     candidates: [{ provider: 'avenia', state: 'ready' }],
-}
-const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) => void) =>
-    renderWithIntl(
-        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    ...(payableDepositIntentId ? { payableDepositIntentId } : {}),
+})
+
+const renderAt = (
+    searchParams: string,
+    { payable, onUrlUpdate }: { payable?: string; onUrlUpdate?: (event: UrlUpdateEvent) => void } = {}
+) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const view = renderWithIntl(
+        <QueryClientProvider client={queryClient}>
             <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-                <AveniaAddMoneyFlow route={route} />
+                <AveniaAddMoneyFlow route={route(payable)} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
+    return { ...view, queryClient }
+}
 
 describe('AveniaAddMoneyFlow and the URL', () => {
     beforeEach(() => jest.clearAllMocks())
 
     it('after a reload on the code step, shows that deposit instead of a new amount form', () => {
         renderAt('?step=showQR&amount=100&currency=BRL&intentId=d1')
-        expect(screen.getByTestId('code-step')).toHaveTextContent('d1 no code')
+        expect(screen.getByTestId('code-step')).toHaveTextContent('d1')
         expect(screen.queryByTestId('amount-step')).toBeNull()
     })
 
@@ -66,23 +77,48 @@ describe('AveniaAddMoneyFlow and the URL', () => {
         expect(await screen.findByTestId('amount-step')).toBeInTheDocument()
     })
 
-    it("writes the new deposit's id to the URL with the code step", async () => {
-        mockCreate.mockResolvedValue({
+    it('seeds the new deposit for the code screen and writes its id to the URL', async () => {
+        const created = {
             intentId: 'd2',
             brCode: 'code-d2',
             amountBrl: '100.00',
             usdcAmount: '17.94',
             expiresAt: null,
             payerCpfMasked: '095.***.***-89',
-        })
+        }
+        mockCreate.mockResolvedValue(created)
         const urls: string[] = []
-        renderAt('', (event) => urls.push(event.queryString))
+        const { queryClient } = renderAt('', { onUrlUpdate: (event) => urls.push(event.queryString) })
 
         fireEvent.click(screen.getByText('type'))
         fireEvent.click(screen.getByText('submit'))
 
-        expect(await screen.findByTestId('code-step')).toHaveTextContent('d2 code-d2')
+        expect(await screen.findByTestId('code-step')).toHaveTextContent('d2')
         await waitFor(() => expect(urls.some((url) => url.includes('intentId=d2'))).toBe(true))
         expect(mockCreate).toHaveBeenCalledWith('100')
+        expect(queryClient.getQueryData(aveniaDepositQueryKey('d2'))).toMatchObject({
+            brCode: 'code-d2',
+            codePayable: true,
+        })
+    })
+
+    it('opens the code that can still be paid instead of the amount step, and names it in the URL', async () => {
+        const urls: string[] = []
+        renderAt('', { payable: 'd3', onUrlUpdate: (event) => urls.push(event.queryString) })
+
+        expect(screen.getByTestId('code-step')).toHaveTextContent('d3')
+        expect(screen.queryByTestId('amount-step')).toBeNull()
+        await waitFor(() => expect(urls.some((url) => url.includes('intentId=d3'))).toBe(true))
+    })
+
+    it('a new deposit from a lapsed code goes to the amount step and reads the route again', async () => {
+        renderAt('?step=showQR&intentId=d3', { payable: 'd3' })
+
+        fireEvent.click(screen.getByText('new deposit'))
+
+        // the capabilities may still name the left code payable: it does not open again
+        expect(await screen.findByTestId('amount-step')).toBeInTheDocument()
+        expect(screen.queryByTestId('code-step')).toBeNull()
+        expect(mockFetchUser).toHaveBeenCalled()
     })
 })

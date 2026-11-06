@@ -18,6 +18,8 @@ import AmountInput from '@/components/Global/AmountInput'
 
 import React, { useState } from 'react'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
+import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
+import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -271,24 +273,31 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
     )
 }
 
-// the code screen right after POST /avenia/deposit, with ten minutes on the clock
+// the code screen right after POST /avenia/deposit, with ten minutes on the clock: the
+// create seeds the deposit's query, as the flow does, so no read is needed to draw it
 function AveniaPixDepositSurface() {
-    const [expiresAt] = useState(() => new Date(Date.now() + 9 * 60_000 + 12_000).toISOString())
+    const queryClient = useQueryClient()
+    useState(() =>
+        queryClient.setQueryData(
+            aveniaDepositQueryKey('demo-avenia-deposit'),
+            depositReadFromCreated({
+                intentId: 'demo-avenia-deposit',
+                brCode: DEMO_AVENIA_BR_CODE,
+                amountBrl: '100.00',
+                usdcAmount: '17.940500',
+                expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
+                payerCpfMasked: '095.***.***-89',
+            })
+        )
+    )
     return (
         <AppPageSurface>
             <AveniaPixQrDeposit
                 intentId="demo-avenia-deposit"
                 blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
-                deposit={{
-                    intentId: 'demo-avenia-deposit',
-                    brCode: DEMO_AVENIA_BR_CODE,
-                    amountBrl: '100.00',
-                    usdcAmount: '17.940500',
-                    expiresAt,
-                    payerCpfMasked: '095.***.***-89',
-                }}
                 onBack={noop}
                 onDone={noop}
+                onNewDeposit={noop}
                 onComplete={noop}
             />
         </AppPageSurface>

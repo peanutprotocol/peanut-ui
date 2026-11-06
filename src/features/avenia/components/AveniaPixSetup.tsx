@@ -77,7 +77,7 @@ export function AveniaPixSetup({
                 <PageStack.Center>
                     <div className="flex flex-col items-center gap-4 text-center">
                         <IconBubble {...CONCEPT_ICONS.verification} size="l" />
-                        <TitleBlock align="center" title={t('title')} description={t('verifyBody')} />
+                        <TitleBlock align="center" title={t('title')} />
                     </div>
                     <Button variant="primary" className="w-full" onClick={() => router.push('/verify')}>
                         {t('verifyCta')}

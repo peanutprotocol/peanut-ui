@@ -71,6 +71,10 @@ describe('aveniaDepositPhase', () => {
         expect(aveniaDepositPhase(status('CANCELLED', 'CANCELED'))).toBe('expired')
         expect(aveniaDepositPhase(status('CANCELLED', 'UNPAID'))).toBe('expired')
     })
+
+    it('reads an unpaid code the API no longer calls payable as expired, before the poller cancels it', () => {
+        expect(aveniaDepositPhase({ ...status('AWAITING_USER_ACTION', 'UNPAID'), codePayable: false })).toBe('expired')
+    })
 })
 
 describe('completePixKey', () => {

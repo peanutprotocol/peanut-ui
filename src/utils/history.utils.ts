@@ -94,6 +94,13 @@ export type AveniaRecoveryView = NonNullable<
     >['aveniaRecovery']
 >
 
+/** An Avenia Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
+export type AveniaDepositView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['aveniaDeposit']
+>
+
 /**
  * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
  * the field was `Record<string, any>` — every consumer did an implicit
@@ -115,6 +122,8 @@ export interface HistoryEntryExtraData {
     /** On an Avenia OFFRAMP only: its recovery after the payout failed or came back, null when it has none.
      *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
     aveniaRecovery?: AveniaRecoveryView | null
+    /** On an Avenia ONRAMP only: whether its code can still be paid. Read it through `aveniaCodePayable`. */
+    aveniaDeposit?: AveniaDepositView
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.

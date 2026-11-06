@@ -19,6 +19,7 @@ import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
 import { awaitsNewPixKey } from '@/features/avenia/aveniaRecovery'
+import { aveniaCodePayable } from '@/features/avenia/aveniaDepositCode'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -445,6 +446,8 @@ export interface TransactionDetails {
         publicReceipt?: boolean
         /** An Avenia withdrawal whose payout the bank refused: the money waits for another own Pix key. */
         awaitsNewPixKey?: boolean
+        /** An Avenia Pix deposit whose code can still be paid: the receipt opens it again. */
+        aveniaCodePayable?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -832,6 +835,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             bridgeFlow: entry.extraData?.bridgeFlow,
             publicReceipt: entry.extraData?.publicReceipt || undefined,
             awaitsNewPixKey: awaitsNewPixKey(entry.extraData) || undefined,
+            aveniaCodePayable: aveniaCodePayable(entry.extraData, Date.now()) || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,

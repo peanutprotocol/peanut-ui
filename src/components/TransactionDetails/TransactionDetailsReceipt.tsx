@@ -21,6 +21,7 @@ import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
 import { AveniaNewKeyNotice } from '@/features/avenia/components/AveniaNewKeyNotice'
+import { AveniaPayCodeNotice } from '@/features/avenia/components/AveniaPayCodeNotice'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -284,6 +285,8 @@ export const TransactionDetailsReceipt = ({
                 always renders as public, and the API sends the recovery to the owner
                 only, so the field itself is the gate. */}
             <AveniaNewKeyNotice transaction={transaction} />
+            {/* A Pix deposit whose code can still be paid: the same field gate, owner only. */}
+            <AveniaPayCodeNotice transaction={transaction} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

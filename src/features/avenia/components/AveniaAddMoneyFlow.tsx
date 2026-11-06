@@ -12,11 +12,12 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { AVENIA_MIN_DEPOSIT_BRL, aveniaSetupState, toApiDecimal } from '@/features/avenia/avenia.utils'
+import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
-import { aveniaApi, type AveniaDeposit } from '@/services/avenia'
+import { aveniaApi } from '@/services/avenia'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
@@ -30,7 +31,9 @@ type Denomination = 'USD' | 'BRL'
  * while the route is not ready, the amount in reais (R$20 minimum), then the
  * dynamic Pix code. Same URL contract as the Manteca flow it replaces for
  * these users (`?step=`, `?amount=`, `?currency=`), plus `?intentId=` once
- * the code exists.
+ * the code exists. While a code can still be paid (the route's
+ * `payableDepositIntentId`), the flow opens that code instead of the amount
+ * step; a new deposit is offered once the code has lapsed or come back.
  */
 export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('addMoney')
@@ -54,13 +57,19 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
     const leaveToHome = useReturnTo(returnTo ?? '/home')
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: AveniaDepositStep = urlState.step ?? 'inputAmount'
-    const intentId = urlState.intentId
     const ready = aveniaSetupState(route) === 'ready'
+    // The deposit the user left for a new one; the capabilities may still name it payable for a moment.
+    const [leftIntentId, setLeftIntentId] = useState<string | null>(null)
+    const payableIntentId = route.payableDepositIntentId
+    const resumeIntentId =
+        !urlState.intentId && step === 'inputAmount' && payableIntentId && payableIntentId !== leftIntentId
+            ? payableIntentId
+            : null
+    const intentId = urlState.intentId ?? resumeIntentId
 
     const currencyData = useCurrency('BRL')
     const [usdAmount, setUsdAmount] = useState('')
     const [brlAmount, setBrlAmount] = useState('')
-    const [deposit, setDeposit] = useState<AveniaDeposit>()
     const [isCreating, setIsCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -79,8 +88,20 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
 
     // the code step belongs to one deposit; without its id there is nothing to show
     useEffect(() => {
-        if (step === 'showQR' && !intentId) void setUrlState({ step: 'inputAmount' })
-    }, [step, intentId, setUrlState])
+        if (step === 'showQR' && !urlState.intentId) void setUrlState({ step: 'inputAmount' })
+    }, [step, urlState.intentId, setUrlState])
+
+    // a code that can still be paid opens on its own; the URL names it, so a reload keeps it
+    useEffect(() => {
+        if (resumeIntentId) void setUrlState({ step: 'showQR', intentId: resumeIntentId })
+    }, [resumeIntentId, setUrlState])
+
+    const startNewDeposit = useCallback(() => {
+        setLeftIntentId(urlState.intentId)
+        void setUrlState({ step: 'inputAmount', intentId: null })
+        // the route's payable deposit is read again
+        void fetchUser().catch(() => undefined)
+    }, [urlState.intentId, setUrlState, fetchUser])
 
     const handleSubmit = useCallback(async () => {
         if (isCreating) return
@@ -100,7 +121,8 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
                 method_type: 'avenia',
                 country: 'brazil',
             })
-            setDeposit(created)
+            // the code screen reads this deposit's query; seeding it shows the code at once
+            queryClient.setQueryData(aveniaDepositQueryKey(created.intentId), depositReadFromCreated(created))
             void setUrlState({ step: 'showQR', intentId: created.intentId })
         } catch (caught) {
             const code = wireErrorCode(caught)
@@ -126,19 +148,19 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
         } finally {
             setIsCreating(false)
         }
-    }, [isCreating, brlAmount, usdAmount, setUrlState, fetchUser, tAvenia, tShared, tErrors, minBrl])
+    }, [isCreating, brlAmount, usdAmount, setUrlState, queryClient, fetchUser, tAvenia, tShared, tErrors, minBrl])
 
-    if (step === 'showQR' && intentId) {
+    if (intentId && (step === 'showQR' || resumeIntentId)) {
         return (
             <AveniaPixQrDeposit
                 intentId={intentId}
-                deposit={deposit?.intentId === intentId ? deposit : undefined}
                 blockedBankNames={
                     eligibility.data?.blockedBanks.flatMap((bank) => (bank.name ? [bank.name] : [])) ?? []
                 }
                 // the code is made; back leaves the flow rather than offering a second code
                 onBack={onBack}
                 onDone={leaveToHome}
+                onNewDeposit={startNewDeposit}
                 onComplete={() => void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )

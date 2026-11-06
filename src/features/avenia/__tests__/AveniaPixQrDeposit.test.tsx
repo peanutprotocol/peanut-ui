@@ -1,39 +1,51 @@
 /** @jest-environment jsdom */
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import type { AveniaDepositPhase } from '../avenia.utils'
+import type { AveniaDepositStatus } from '@/services/avenia'
 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
+jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,
     default: ({ url }: { url: string }) => <div data-testid="qr">{url}</div>,
 }))
 jest.mock('@/components/Global/CopyToClipboard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
-const mockStatus = jest.fn<{ phase: AveniaDepositPhase; expiresAt: string | null }, []>()
-jest.mock('@/features/avenia/hooks/useAveniaDepositStatus', () => ({ useAveniaDepositStatus: () => mockStatus() }))
+const mockDeposit = jest.fn<
+    { deposit: AveniaDepositStatus | undefined; phase: AveniaDepositPhase; isError: boolean },
+    []
+>()
+jest.mock('@/features/avenia/hooks/useAveniaDeposit', () => ({ useAveniaDeposit: () => mockDeposit() }))
 
 import { AveniaPixQrDeposit } from '../components/AveniaPixQrDeposit'
 
 const inTenMinutes = () => new Date(Date.now() + 600_000).toISOString()
-const deposit = () => ({
+const read = (overrides: Partial<AveniaDepositStatus> = {}): AveniaDepositStatus => ({
     intentId: 'd1',
-    brCode: '00020101021226...',
+    status: 'AWAITING_USER_ACTION',
+    ticketStatus: 'UNPAID',
+    expiresAt: inTenMinutes(),
     amountBrl: '100.00',
     usdcAmount: '17.940500',
-    expiresAt: inTenMinutes(),
+    codePayable: true,
+    brCode: '00020101021226...',
     payerCpfMasked: '095.***.***-89',
+    ...overrides,
 })
-const renderScreen = (created: ReturnType<typeof deposit> | undefined, blockedBankNames: string[] = []) =>
+const state = (phase: AveniaDepositPhase, deposit: AveniaDepositStatus | undefined = read()) =>
+    mockDeposit.mockReturnValue({ deposit, phase, isError: false })
+const onNewDeposit = jest.fn()
+const renderScreen = (blockedBankNames: string[] = []) =>
     renderWithIntl(
         <AveniaPixQrDeposit
             intentId="d1"
-            deposit={created}
             blockedBankNames={blockedBankNames}
             onBack={jest.fn()}
             onDone={jest.fn()}
+            onNewDeposit={onNewDeposit}
             onComplete={jest.fn()}
         />
     )
@@ -41,60 +53,68 @@ const renderScreen = (created: ReturnType<typeof deposit> | undefined, blockedBa
 describe('AveniaPixQrDeposit', () => {
     beforeEach(() => jest.clearAllMocks())
 
-    it('shows the code while it can be paid', () => {
-        mockStatus.mockReturnValue({ phase: 'pending', expiresAt: inTenMinutes() })
-        renderScreen(deposit())
+    it('draws the code from the deposit read, with what the balance gets', () => {
+        state('pending')
+        renderScreen()
         expect(screen.getByTestId('qr')).toHaveTextContent('00020101021226...')
         expect(screen.getByText('R$100')).toBeInTheDocument()
-    })
-
-    it('shows what the balance gets, after the fees in the quote', () => {
-        mockStatus.mockReturnValue({ phase: 'pending', expiresAt: inTenMinutes() })
-        renderScreen(deposit())
         expect(screen.getByText('You get ≈ $17.94')).toBeInTheDocument()
     })
 
-    it('names the banks whose Pix Avenia sends back, while the code can be paid', () => {
-        mockStatus.mockReturnValue({ phase: 'pending', expiresAt: inTenMinutes() })
-        renderScreen(deposit(), ['Caixa', 'Sicredi', 'Sicoob'])
+    it("shows Avenia's flat fee when the read carries it", () => {
+        state('pending', read({ fixedFeeBrl: '0.75' }))
+        renderScreen()
+        expect(screen.getByText('Avenia fee R$0.75')).toBeInTheDocument()
+    })
+
+    it('names the banks whose Pix Avenia sends back', () => {
+        state('pending')
+        renderScreen(['Caixa', 'Sicredi', 'Sicoob'])
         expect(screen.getByText('A Pix from Caixa, Sicredi, or Sicoob is returned.')).toBeInTheDocument()
     })
 
-    it('says nothing about banks when none is blocked', () => {
-        mockStatus.mockReturnValue({ phase: 'pending', expiresAt: inTenMinutes() })
-        renderScreen(deposit())
-        expect(screen.queryByText(/is returned/)).toBeNull()
-    })
-
-    it('after a reload, waits on the status instead of offering a new amount', () => {
-        mockStatus.mockReturnValue({ phase: 'pending', expiresAt: inTenMinutes() })
-        renderScreen(undefined)
-        expect(screen.getByText(en.addMoney.processingDepositTitle)).toBeInTheDocument()
+    it('waits for the first read (a reload, a deep link) instead of offering a new amount', () => {
+        mockDeposit.mockReturnValue({ deposit: undefined, phase: 'pending', isError: false })
+        renderScreen()
+        expect(screen.getByText('loading')).toBeInTheDocument()
         expect(screen.queryByTestId('qr')).toBeNull()
     })
 
-    it('after a reload, says the code has expired once its expiry passed', () => {
-        mockStatus.mockReturnValue({ phase: 'pending', expiresAt: new Date(Date.now() - 1000).toISOString() })
-        renderScreen(undefined)
-        expect(screen.getByText(en.addMoney.pix.qrExpired)).toBeInTheDocument()
+    it('says Pix is not available while the read fails, and keeps polling', () => {
+        mockDeposit.mockReturnValue({ deposit: undefined, phase: 'pending', isError: true })
+        renderScreen()
+        expect(screen.getByText(en.avenia.unavailable)).toBeInTheDocument()
     })
 
-    it('reads a code the API cancelled as expired, not as a returned Pix', () => {
-        mockStatus.mockReturnValue({ phase: 'expired', expiresAt: null })
-        renderScreen(deposit())
+    it.each([
+        ['the API says the code lapsed', 'expired' as const, read({ codePayable: false, brCode: undefined })],
+        ['the clock ran out', 'pending' as const, read({ expiresAt: new Date(Date.now() - 1000).toISOString() })],
+    ])('shows no dead code once %s, and offers a new deposit', (_case, phase, deposit) => {
+        state(phase, deposit)
+        renderScreen()
+        expect(screen.queryByTestId('qr')).toBeNull()
         expect(screen.getByText(en.addMoney.pix.qrExpired)).toBeInTheDocument()
-        expect(screen.queryByText(en.avenia.deposit.returnedTitle)).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: en.avenia.deposit.startNew }))
+        expect(onNewDeposit).toHaveBeenCalled()
     })
 
-    it('shows a returned Pix after a reload too', () => {
-        mockStatus.mockReturnValue({ phase: 'returned', expiresAt: null })
-        renderScreen(undefined)
+    it('says a returned Pix came back, and offers a new deposit', () => {
+        state('returned', read({ status: 'FAILED', codePayable: false, brCode: undefined }))
+        renderScreen()
         expect(screen.getByText(en.avenia.deposit.returnedTitle)).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: en.avenia.deposit.startNew }))
+        expect(onNewDeposit).toHaveBeenCalled()
     })
 
-    it('shows the received deposit after a reload', () => {
-        mockStatus.mockReturnValue({ phase: 'completed', expiresAt: null })
-        renderScreen(undefined)
+    it('shows a received deposit, and no new-deposit offer while the Pix is processing', () => {
+        state('completed', read({ status: 'COMPLETED', codePayable: false }))
+        const { unmount } = renderScreen()
         expect(screen.getByText(en.addMoney.pix.depositReceived)).toBeInTheDocument()
+        unmount()
+        state('processing', read({ status: 'PROCESSING', ticketStatus: 'PAID', codePayable: false }))
+        renderScreen()
+        expect(screen.getByText(en.addMoney.processingDepositTitle)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.avenia.deposit.startNew })).toBeNull()
     })
 })

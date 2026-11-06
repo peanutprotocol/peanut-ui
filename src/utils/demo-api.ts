@@ -918,6 +918,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             status: 'AWAITING_USER_ACTION',
             ticketStatus: 'UNPAID',
             expiresAt: soon(),
+            amountBrl: '100.00',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
+            codePayable: true,
+            brCode: DEMO_AVENIA_BR_CODE,
+            payerCpfMasked: '123.***.***-09',
         }),
     },
     // no hosted page in demo: Avenia "reviews" and the rail stays as the fixture states it

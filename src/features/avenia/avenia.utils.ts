@@ -58,6 +58,8 @@ const PAID_TICKET_STATUSES = ['PROCESSING', 'ON-HOLD', 'PAID', 'PARTIAL-FAILED']
  * ticket still reads `processing`. FAILED means Avenia sent the Pix back to
  * the payer (a third-party account, a blocked bank). CANCELLED is a code that
  * lapsed unpaid: the API's poller cancels it after its expiry, and no money moved.
+ * An unpaid deposit whose code the API no longer calls payable is expired too.
+ * No read yet is `pending`.
  */
 export function aveniaDepositPhase(status: AveniaDepositStatus | undefined): AveniaDepositPhase {
     if (!status) return 'pending'
@@ -65,7 +67,8 @@ export function aveniaDepositPhase(status: AveniaDepositStatus | undefined): Ave
     if (status.status === 'CANCELLED') return 'expired'
     if (RETURNED_STATUSES.includes(status.status)) return 'returned'
     if (status.ticketStatus && PAID_TICKET_STATUSES.includes(status.ticketStatus)) return 'processing'
-    return 'pending'
+    // unpaid, and the API no longer sends the code: it lapsed before the poller cancelled it
+    return status.codePayable ? 'pending' : 'expired'
 }
 
 /**

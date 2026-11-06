@@ -2505,19 +2505,21 @@
     "avenia": {
         "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
         "setup": {
-            "verifyBody": "Pix necesita primero una identidad verificada.",
             "verifyCta": "Verificar identidad",
             "title": "Verificar identidad para Pix",
             "body": "Avenia ofrece depósitos y retiros por Pix para residentes de Brasil. Pide una sola vez una foto de tu documento y una selfie.",
             "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
             "rejected": "Avenia no pudo verificar tu identidad, así que Pix no está disponible. Contacta a soporte si crees que es un error.",
-            "checkingBody": "Termina los pasos en la página de Avenia. Esta pantalla avanza cuando Avenia confirme, normalmente en pocos minutos.",
+            "checkingBody": "Termina los pasos en la página de Avenia. Esta pantalla avanza cuando Avenia confirme.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contacta a soporte para agregarlo.",
             "settingUp": "La cuenta Pix se está configurando. Intenta de nuevo en un minuto.",
             "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intenta de nuevo.",
             "notAvailable": "No se pudo configurar Pix para esta cuenta. Contacta a soporte para terminarlo."
         },
         "deposit": {
+            "startNew": "Hacer un nuevo depósito",
+            "fee": "Comisión de Avenia {amount}",
+            "showCode": "Ver código",
             "youGet": "Recibes ≈ {amount}",
             "blockedBanks": "Un Pix desde {banks} se devuelve.",
             "minimum": "El mínimo es {amount}.",
@@ -2555,7 +2557,7 @@
         },
         "recovery": {
             "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresa una clave Pix de otra cuenta con tu CPF.",
-            "notice": "El banco rechazó este pago. El dinero espera otra clave Pix con tu CPF.",
+            "notice": "El banco rechazó este pago. El dinero espera otra clave con tu CPF.",
             "addKey": "Agregar clave Pix",
             "savedTitle": "Clave Pix guardada",
             "savedTo": "El dinero se enviará a {destination}.",

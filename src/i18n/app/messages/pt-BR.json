@@ -2505,19 +2505,21 @@
     "avenia": {
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
         "setup": {
-            "verifyBody": "O Pix precisa de uma identidade verificada antes.",
             "verifyCta": "Verificar identidade",
             "title": "Verificar identidade para o Pix",
             "body": "A Avenia oferece depósitos e saques por Pix para residentes do Brasil. Ela pede uma única vez uma foto do seu documento e uma selfie.",
             "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
             "rejected": "A Avenia não conseguiu verificar sua identidade, então o Pix não está disponível. Fale com o suporte se achar que é um engano.",
-            "checkingBody": "Conclua as etapas na página da Avenia. Esta tela avança quando a Avenia confirmar, normalmente em poucos minutos.",
+            "checkingBody": "Conclua as etapas na página da Avenia. Esta tela avança quando a Avenia confirmar.",
             "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
             "settingUp": "A conta Pix está sendo configurada. Tente de novo em um minuto.",
             "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo.",
             "notAvailable": "Não foi possível configurar o Pix para esta conta. Fale com o suporte para concluir."
         },
         "deposit": {
+            "startNew": "Fazer um novo depósito",
+            "fee": "Tarifa da Avenia {amount}",
+            "showCode": "Mostrar código",
             "youGet": "Você recebe ≈ {amount}",
             "blockedBanks": "Um Pix de {banks} é devolvido.",
             "minimum": "O mínimo é {amount}.",
@@ -2555,7 +2557,7 @@
         },
         "recovery": {
             "intro": "O banco recusou o pagamento para a chave anterior. O dinheiro está aguardando na Avenia. Digite uma chave Pix de outra conta no seu CPF.",
-            "notice": "O banco recusou este pagamento. O dinheiro aguarda outra chave Pix no seu CPF.",
+            "notice": "O banco recusou este pagamento. O dinheiro aguarda outra chave no seu CPF.",
             "addKey": "Adicionar chave Pix",
             "savedTitle": "Chave Pix salva",
             "savedTo": "O dinheiro será enviado para {destination}.",

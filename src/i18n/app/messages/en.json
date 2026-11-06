@@ -2505,19 +2505,21 @@
     "avenia": {
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
-            "verifyBody": "Pix needs a verified identity first.",
             "verifyCta": "Verify identity",
             "title": "Verify identity for Pix",
             "body": "Avenia provides Pix deposits and withdrawals for residents of Brazil. It asks once for a photo of your ID and a selfie.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
             "rejected": "Avenia could not verify your identity, so Pix is not available. Contact support if this looks wrong.",
-            "checkingBody": "Finish the steps on Avenia's page. This screen moves on once Avenia confirms, usually within a few minutes.",
+            "checkingBody": "Finish the steps on Avenia's page. This screen moves on once Avenia confirms.",
             "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
             "settingUp": "The Pix account is being set up. Try again in a minute.",
             "termsNotSaved": "The acceptance of Avenia's terms was not saved. Try again.",
             "notAvailable": "Pix could not be set up for this account. Contact support to finish it."
         },
         "deposit": {
+            "startNew": "Start a new deposit",
+            "fee": "Avenia fee {amount}",
+            "showCode": "Show code",
             "youGet": "You get ≈ {amount}",
             "blockedBanks": "A Pix from {banks} is returned.",
             "minimum": "The minimum is {amount}.",
@@ -2555,7 +2557,7 @@
         },
         "recovery": {
             "intro": "The bank refused the payout to the previous key. The money is waiting with Avenia. Enter a Pix key of another account under your CPF.",
-            "notice": "The bank refused this payout. The money waits for another Pix key under your CPF.",
+            "notice": "The bank refused this payout. The money waits for another key under your CPF.",
             "addKey": "Add Pix key",
             "savedTitle": "Pix key saved",
             "savedTo": "The money will be sent to {destination}.",
