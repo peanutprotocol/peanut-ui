@@ -2516,7 +2516,7 @@
             "reviewing": "Avenia está revisando tu verificación. Esta pantalla avanza cuando termine.",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
-            "body": "Avenia ofrece depósitos y retiros por Pix para residentes de Brasil. Recibe tu verificación de Peanut, así que no hay una segunda verificación.",
+            "body": "Avenia ofrece Pix para residentes de Brasil. Recibe tu verificación de Peanut, así que no hay una segunda verificación.",
             "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contacta a soporte para agregarlo.",
             "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intenta de nuevo.",
@@ -2535,6 +2535,7 @@
             "returnedBody": "Paga de nuevo desde una cuenta con tu CPF."
         },
         "withdraw": {
+            "stuck": "Este retiro no se completó. Contacta a soporte.",
             "arrivesIn": "Unos {minutes, plural, one {# minuto} other {# minutos}}",
             "aveniaFee": "Comisión de Avenia",
             "keyIntro": "Ingresa una clave Pix de una cuenta con tu CPF.",
@@ -2550,9 +2551,9 @@
             "sentTo": "En camino a {destination}.",
             "arrivedTo": "Enviado a {destination}.",
             "arrived": "El dinero se envió.",
-            "refunded": "El banco no aceptó este pago. El dinero volvió a tu saldo.",
+            "refunded": "El banco rechazó este pago. El dinero volvió a tu saldo.",
             "quoteMoved": "La cotización cambió desde la revisión. Revisa los nuevos montos y confirma de nuevo.",
-            "unconfirmed": "Aún sin confirmar. Revisa el Historial en unos minutos antes de intentar de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisa el Historial antes de intentar de nuevo.",
             "notSent": "Este retiro no se completó. Tu saldo no cambió.",
             "errors": {
                 "limitExceeded": "Este retiro supera el límite mensual de Pix.",

@@ -16,6 +16,11 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: () => Promise.resolve(null) }) }))
+const mockOpenSupport = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
+    useModalsContextOptional: () => null,
+}))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
@@ -119,6 +124,16 @@ describe('AveniaWithdrawFlow after a reload', () => {
         renderAt('?step=success&intentId=w1')
 
         expect(screen.getByText(en.avenia.withdraw.notSent)).toBeInTheDocument()
+    })
+
+    it('a withdrawal that ended in a way this build does not know sends the user to support', () => {
+        mockEntry.mockReturnValue(entry('SOMETHING_NEW'))
+        renderAt('?step=success&intentId=w1')
+
+        expect(screen.getByText(en.avenia.withdraw.stuck)).toBeInTheDocument()
+        expect(screen.queryByText(en.avenia.withdraw.sent)).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
+        expect(mockOpenSupport).toHaveBeenCalledWith(true)
     })
 
     it('without an opened withdrawal, the success step falls back to the form', () => {

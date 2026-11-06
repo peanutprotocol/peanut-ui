@@ -2516,7 +2516,7 @@
             "reviewing": "A Avenia está conferindo a sua verificação. Esta tela avança quando terminar.",
             "verifyCta": "Verificar identidade",
             "title": "Configurar o Pix",
-            "body": "A Avenia oferece depósitos e saques por Pix para residentes do Brasil. Ela recebe a sua verificação do Peanut, então não há uma segunda verificação.",
+            "body": "A Avenia oferece Pix para residentes do Brasil. Ela recebe a sua verificação do Peanut, então não há uma segunda verificação.",
             "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
             "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
             "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo.",
@@ -2535,6 +2535,7 @@
             "returnedBody": "Pague de novo de uma conta no seu CPF."
         },
         "withdraw": {
+            "stuck": "Este saque não foi concluído. Fale com o suporte.",
             "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
             "aveniaFee": "Tarifa da Avenia",
             "keyIntro": "Digite uma chave Pix de uma conta no seu CPF.",
@@ -2550,9 +2551,9 @@
             "sentTo": "A caminho de {destination}.",
             "arrivedTo": "Enviado para {destination}.",
             "arrived": "O dinheiro foi enviado.",
-            "refunded": "O banco não aceitou este pagamento. O dinheiro voltou para o seu saldo.",
+            "refunded": "O banco recusou este pagamento. O dinheiro voltou para o seu saldo.",
             "quoteMoved": "A cotação mudou desde a revisão. Confira os novos valores e confirme de novo.",
-            "unconfirmed": "Ainda sem confirmação. Confira o Histórico em alguns minutos antes de tentar de novo.",
+            "unconfirmed": "Ainda sem confirmação. Confira o Histórico antes de tentar de novo.",
             "notSent": "Este saque não foi concluído. Seu saldo não mudou.",
             "errors": {
                 "limitExceeded": "Este saque passa do limite mensal do Pix.",

@@ -237,7 +237,17 @@ export function quoteMovedAgainstUser(
  * still holds for its signature (AWAITING_USER_ACTION) is not sent: this page
  * lost the signature request, so it starts again.
  */
-export type AveniaWithdrawOutcome = 'on-its-way' | 'unconfirmed' | 'arrived' | 'needs-key' | 'refunded' | 'not-sent'
+export type AveniaWithdrawOutcome =
+    | 'on-its-way'
+    | 'unconfirmed'
+    | 'arrived'
+    | 'needs-key'
+    | 'refunded'
+    | 'not-sent'
+    | 'stuck'
+
+/** How the API ends a withdrawal whose deposit never left the wallet. */
+const ENDED_UNFUNDED = ['FAILED', 'CANCELLED', 'EXPIRED']
 
 export function aveniaWithdrawOutcome(
     phase: 'funded' | 'unconfirmed' | 'unsigned',
@@ -246,7 +256,12 @@ export function aveniaWithdrawOutcome(
     if (entry?.status === 'COMPLETED') return 'arrived'
     if (awaitsNewPixKey(entry?.extraData)) return 'needs-key'
     if (entry?.status === 'REFUNDED') return 'refunded'
-    if (phase !== 'funded' && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(entry?.status ?? '')) return 'not-sent'
+    if (entry?.status && entry.status !== 'PENDING') {
+        if (phase !== 'funded' && ENDED_UNFUNDED.includes(entry.status)) return 'not-sent'
+        // a funded deposit whose withdrawal ended with no recovery, or an end this build does not
+        // know: support sorts it out, and the screen never reads as progress
+        return 'stuck'
+    }
     // the API saw the deposit (reported, or found at Rhino): Avenia pays next
     if (entry?.extraData?.intentStatus === 'PROCESSING') return 'on-its-way'
     if (phase === 'unsigned' && entry?.extraData?.intentStatus === 'AWAITING_USER_ACTION') return 'not-sent'

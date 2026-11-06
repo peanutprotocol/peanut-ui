@@ -14,6 +14,7 @@ import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { aveniaWithdrawOutcome } from '@/features/avenia/avenia.utils'
 import { aveniaNewKeyUrl } from '@/features/avenia/aveniaRecovery'
 import { depositMaybeSent } from '@/features/avenia/aveniaWithdrawSent'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import type { AveniaWithdrawDisplay } from '@/services/avenia'
@@ -43,6 +44,7 @@ export function AveniaWithdrawOutcome({
     const tCommon = useTranslations('common')
     const router = useRouter()
     const leaveToHome = useReturnTo('/home')
+    const { setIsSupportModalOpen } = useModalsContext()
     const entry = useHistoryEntry(intentId, 'OFFRAMP')
 
     if (!sent && entry.isLoading) return <Loading variant="mascot" />
@@ -54,7 +56,7 @@ export function AveniaWithdrawOutcome({
         sent?.phase ?? (depositMaybeSent(intentId) ? 'unconfirmed' : 'unsigned'),
         entry.data
     )
-    const failed = outcome === 'not-sent' || outcome === 'refunded'
+    const failed = outcome === 'not-sent' || outcome === 'refunded' || outcome === 'stuck'
     const description = {
         arrived: to ? t('arrivedTo', { destination: to }) : t('arrived'),
         'on-its-way': to ? t('sentTo', { destination: to }) : t('sent'),
@@ -62,6 +64,7 @@ export function AveniaWithdrawOutcome({
         'needs-key': tShared('recovery.notice'),
         refunded: t('refunded'),
         'not-sent': t('notSent'),
+        stuck: t('stuck'),
     }[outcome]
 
     return (
@@ -88,6 +91,13 @@ export function AveniaWithdrawOutcome({
                             onClick={() => router.push(aveniaNewKeyUrl(intentId))}
                         >
                             {tShared('recovery.addKey')}
+                        </Button>
+                        <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
+                    </>
+                ) : outcome === 'stuck' ? (
+                    <>
+                        <Button variant="primary" className="w-full" onClick={() => setIsSupportModalOpen(true)}>
+                            {tCommon('contactSupport')}
                         </Button>
                         <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
                     </>

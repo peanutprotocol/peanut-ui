@@ -1293,11 +1293,12 @@
             "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF."
         },
         "withdraw": {
+            "stuck": "Este retiro no se completó. Contactá a soporte.",
             "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",
             "notACode": "Ingresá una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
             "quoteMoved": "La cotización cambió desde la revisión. Revisá los nuevos montos y confirmá de nuevo.",
-            "unconfirmed": "Aún sin confirmar. Revisá el Historial en unos minutos antes de intentar de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisá el Historial antes de intentar de nuevo.",
             "errors": {
                 "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
                 "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",

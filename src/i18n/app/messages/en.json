@@ -2516,7 +2516,7 @@
             "reviewing": "Avenia is checking your verification. This screen moves on once it is done.",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
-            "body": "Avenia provides Pix deposits and withdrawals for residents of Brazil. It receives your Peanut verification, so there is no second check.",
+            "body": "Avenia provides Pix for residents of Brazil. It receives your Peanut verification, so there is no second check.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
             "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
             "termsNotSaved": "The acceptance of Avenia's terms was not saved. Try again.",
@@ -2535,6 +2535,7 @@
             "returnedBody": "Pay again from an account under your CPF."
         },
         "withdraw": {
+            "stuck": "This withdrawal did not finish. Contact support.",
             "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
             "aveniaFee": "Avenia fee",
             "keyIntro": "Enter a Pix key of an account under your CPF.",
@@ -2550,9 +2551,9 @@
             "sentTo": "On its way to {destination}.",
             "arrivedTo": "Sent to {destination}.",
             "arrived": "The money was sent.",
-            "refunded": "The bank did not accept this payout. The money is back in your balance.",
+            "refunded": "The bank refused this payout. The money is back in your balance.",
             "quoteMoved": "The rate moved since the review. Check the new amounts and confirm again.",
-            "unconfirmed": "Not confirmed yet. Check History in a few minutes before trying again.",
+            "unconfirmed": "Not confirmed yet. Check History before you try again.",
             "notSent": "This withdrawal did not go through. Your balance has not changed.",
             "errors": {
                 "limitExceeded": "This withdrawal is over the monthly Pix limit.",

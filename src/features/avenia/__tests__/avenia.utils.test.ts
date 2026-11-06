@@ -263,7 +263,14 @@ describe('aveniaWithdrawOutcome', () => {
         expect(aveniaWithdrawOutcome('unconfirmed', entry('CANCELLED'))).toBe('not-sent')
         expect(aveniaWithdrawOutcome('unconfirmed', entry('COMPLETED'))).toBe('arrived')
         // a mined deposit never reads as not sent: its money moved
-        expect(aveniaWithdrawOutcome('funded', entry('FAILED'))).toBe('on-its-way')
+        expect(aveniaWithdrawOutcome('funded', entry('FAILED'))).toBe('stuck')
+    })
+
+    it('never reads an ended withdrawal as on its way', () => {
+        for (const status of ['FAILED', 'CANCELLED', 'SOMETHING_NEW']) {
+            expect(aveniaWithdrawOutcome('funded', entry(status))).toBe('stuck')
+        }
+        expect(aveniaWithdrawOutcome('unconfirmed', entry('SOMETHING_NEW'))).toBe('stuck')
     })
 })
 
