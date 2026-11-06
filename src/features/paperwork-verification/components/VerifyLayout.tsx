@@ -138,6 +138,8 @@ export function VerifyHeroLayout({
  */
 export function VerifyCelebrationLayout({
     pose,
+    screenId,
+    onBack,
     title,
     description,
     celebrate = false,
@@ -145,6 +147,8 @@ export function VerifyCelebrationLayout({
     footer,
 }: {
     pose: MascotPose
+    screenId?: string
+    onBack?: () => void
     title: ReactNode
     description?: ReactNode
     celebrate?: boolean
@@ -159,7 +163,12 @@ export function VerifyCelebrationLayout({
         confettiPresets.success()
     }, [celebrate])
     return (
-        <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
+        <div className={twMerge('relative flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
+            {onBack && (
+                <div className="absolute top-4 left-4 z-20">
+                    <BackButton onBack={onBack} screenId={screenId} />
+                </div>
+            )}
             <div className="flex min-h-0 flex-1 flex-col justify-between gap-8 px-6 pt-4 pb-6">
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                     <PeanutMascot pose={pose} alt="" className="h-52 w-auto" />

@@ -4066,7 +4066,6 @@
                 "verifyNow": "Verify now",
                 "otherTitle": "Other documents",
                 "otherDescription": "You can also verify with one of these. You’ll take photos of it and a selfie.",
-                "otherNotAccepted": "Visas, work permits and student cards can’t be used to verify your ID.",
                 "notAccepted": "Issued by {country}. Can’t be used. Not accepted.",
                 "backToList": "Back to the list",
                 "noneFit": "Don’t have any of those?",

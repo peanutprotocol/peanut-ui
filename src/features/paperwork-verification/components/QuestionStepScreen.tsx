@@ -188,7 +188,7 @@ export function QuestionStepScreen({
     onBack?: () => void
     onSaved?: (next: PaperworkVerificationStepId | null, values: Record<string, string>) => void
     /** Continue hands the answers over and moves on; the caller saves them behind the next screen. */
-    onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void
+    onSubmitted?: (values: Record<string, string>, secondsOnStep: number) => void | Promise<void>
     /** a background save of these steps the server refused, shown on arrival */
     returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
     onConflict?: (error: AnswerFormError, message?: string) => void
@@ -302,12 +302,11 @@ export function QuestionStepScreen({
         submitting.current = true
         const seconds = secondsSince(viewedAt.current)
         track(ANALYTICS_EVENTS.KYC_PV_STEP_SUBMITTED, { seconds_on_step: seconds, rejected_before: rejections.current })
-        if (onSubmitted) {
-            submitting.current = false
-            onSubmitted(form.values, seconds)
-            return
-        }
         try {
+            if (onSubmitted) {
+                await onSubmitted(form.values, seconds)
+                return
+            }
             const outcome = await form.save()
             trackSaveOutcome(track, outcome, {
                 seconds: secondsSince(viewedAt.current),

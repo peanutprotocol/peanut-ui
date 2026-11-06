@@ -78,6 +78,16 @@ export type IBankAccountDetails = {
     phoneNumber?: string
 }
 
+export type OwnIbanDraft = {
+    values: Pick<IBankAccountDetails, 'accountNumber' | 'accountOwnerName' | 'street' | 'city' | 'postalCode'>
+    prefilledFields: FieldPath<IBankAccountDetails>[]
+}
+
+export type DynamicBankAccountFormHandle = {
+    handleSubmit: () => void
+    getOwnIbanDraft?: () => OwnIbanDraft | null
+}
+
 interface DynamicBankAccountFormProps {
     country: string
     countryName?: string
@@ -86,6 +96,7 @@ interface DynamicBankAccountFormProps {
         rawData: IBankAccountDetails
     ) => Promise<{ error?: string; silent?: boolean }>
     initialData?: Partial<IBankAccountDetails>
+    restoredOwnIbanDraft?: OwnIbanDraft
     flow?: 'claim' | 'withdraw'
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
     error: string | null
@@ -97,12 +108,13 @@ interface DynamicBankAccountFormProps {
     onExistingAccount?: (account: Account) => void
 }
 
-export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
+export const DynamicBankAccountForm = forwardRef<DynamicBankAccountFormHandle, DynamicBankAccountFormProps>(
     (
         {
             country,
             onSuccess,
             initialData,
+            restoredOwnIbanDraft,
             flow = 'withdraw',
             actionDetailsProps,
             countryName: countryNameFromProps,
@@ -185,6 +197,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 accountCategory: '',
                 phoneNumber: '',
                 ...initialData,
+                ...restoredOwnIbanDraft?.values,
             },
             mode: 'onBlur',
             reValidateMode: 'onSubmit',
@@ -251,14 +264,20 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
          * would then move the page under a thumb that is mid-tap. Only a change
          * the user made may move the viewport.
          */
-        const lastWriteWasPrefill = useRef(false)
+        const lastWriteWasPrefill = useRef(!!restoredOwnIbanDraft)
         const markUserEdit = () => {
             lastWriteWasPrefill.current = false
         }
 
         // What the form wrote, so unticking the box takes back exactly that and
         // nothing else.
-        const writtenByPrefill = useRef<FieldPath<IBankAccountDetails>[]>([])
+        const writtenByPrefill = useRef<FieldPath<IBankAccountDetails>[]>([
+            ...(restoredOwnIbanDraft?.prefilledFields ?? []),
+        ])
+        // Restored values are RHF defaults, so its dirty flags alone cannot tell
+        // a restored answer from an empty form. Preserve both user answers and
+        // previous prefills, and let unticking own account undo the prefills.
+        const restoredFields = useRef(new Set(Object.keys(restoredOwnIbanDraft?.values ?? {})))
         // A hand edit is the person's answer and outranks anything we know. The
         // latest dirty state is read through a ref so the effect below does not
         // re-run on every keystroke and write over the keystroke that caused it.
@@ -271,13 +290,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             if (isOwnAccount) {
                 for (const [name, value] of Object.entries(prefillValues)) {
                     const field = name as FieldPath<IBankAccountDetails>
-                    if (dirtyFieldsRef.current[field]) continue
+                    if (dirtyFieldsRef.current[field] || restoredFields.current.has(field)) continue
                     setValue(field, value as PathValue<IBankAccountDetails, typeof field>, { shouldValidate: true })
                     if (!writtenByPrefill.current.includes(field)) writtenByPrefill.current.push(field)
                 }
                 return
             }
             for (const field of writtenByPrefill.current) {
+                restoredFields.current.delete(field)
                 if (dirtyFieldsRef.current[field]) continue
                 setValue(field, '' as PathValue<IBankAccountDetails, typeof field>, { shouldValidate: true })
             }
@@ -365,6 +385,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
         useImperativeHandle(ref, () => ({
             handleSubmit: handleSubmit(onSubmit),
+            getOwnIbanDraft: () => {
+                if (flow !== 'withdraw' || !isIban || !isOwnAccount) return null
+                const { accountNumber, accountOwnerName, street, city, postalCode } = getValues()
+                return {
+                    values: { accountNumber, accountOwnerName, street, city, postalCode },
+                    prefilledFields: writtenByPrefill.current.filter((field) => !dirtyFieldsRef.current[field]),
+                }
+            },
         }))
 
         // The form is taller than a small phone, and at 375x667 its button rests
@@ -708,7 +736,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             e.preventDefault()
                             handleSubmit(onSubmit)()
                         }}
-                        className="flex flex-col gap-4"
+                        className={twMerge('flex flex-col gap-4', isIban && flow === 'withdraw' && 'ph-mask')}
                     >
                         {/* The account: what the money is paid into. Grouped so the
                             screen reads as two short questions instead of six fields. */}

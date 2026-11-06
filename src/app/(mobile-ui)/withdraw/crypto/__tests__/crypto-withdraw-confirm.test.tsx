@@ -75,8 +75,16 @@ jest.mock('@/constants/analytics.consts', () => ({
     },
 }))
 
-jest.mock('@/utils/token.utils', () => ({
-    NATIVE_TOKEN_ADDRESS: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+jest.mock('@/utils/token.utils', () => jest.requireActual('@/constants/tokens.consts'))
+
+jest.mock('@/utils/api-fetch', () => ({
+    apiFetch: jest.fn(),
+    serverFetch: jest.fn(),
+}))
+
+jest.mock('@/utils/demo', () => ({
+    ...jest.requireActual('@/utils/demo'),
+    isDemoMode: () => false,
 }))
 
 jest.mock('@/utils/cross-chain-fee.utils', () => ({
@@ -411,6 +419,7 @@ import { requestsApi } from '@/services/requests'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
+import { apiFetch } from '@/utils/api-fetch'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -752,31 +761,54 @@ describe('crypto withdraw preparation', () => {
         }
     })
 
-    // TASK-23850: the app never prices ETH or BNB. Their charge carries "0" as
-    // the token amount, and the server books what was delivered at completion.
+    // Keep the real money guard in the path so sending a zero destination
+    // amount cannot look like a successful review in these tests.
     it.each([
-        ['ETH on Base', '8453', 'ETH'],
-        ['BNB on BNB Chain', '56', 'BNB'],
-    ])('sends "0" as the token amount for %s, never a price-based estimate', async (_case, chainId, symbol) => {
+        ['8453', 'ETH', undefined],
+        ['56', 'BNB', undefined],
+        ['42161', 'USDC', '50'],
+        ['1', 'USDT', '50'],
+    ] as const)('posts the correct charge amount for %s %s', async (chainId, symbol, tokenAmount) => {
+        const chain = (await getSupportedChainsAndTokens())[chainId]
+        const token = chain.tokens.find((candidate) => candidate.symbol === symbol)!
         const original = { token: withdrawData.token, chain: withdrawData.chain }
-        withdrawData.token = { address: '0x0000000000000000000000000000000000000000', symbol, decimals: 18 }
-        withdrawData.chain = { chainId: Number(chainId), name: symbol }
+        Object.assign(withdrawData, { token, chain })
         mockStepper.step = 'recipient'
-        jest.mocked(chargesApi.create).mockResolvedValue({ data: { id: CHARGE_UUID } } as never)
+        const realCharges: typeof import('@/services/charges') = jest.requireActual('@/services/charges')
+        jest.mocked(chargesApi.create).mockImplementationOnce(realCharges.chargesApi.create)
         jest.mocked(chargesApi.get).mockResolvedValue(chargeDetails as never)
+        jest.mocked(apiFetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ data: { id: CHARGE_UUID } }),
+        } as Response)
         try {
             render(<WithdrawCryptoPage />)
             selectDestinationAndReview()
-            await waitFor(() => expect(chargesApi.create).toHaveBeenCalledTimes(1))
-            const [payload] = jest.mocked(chargesApi.create).mock.calls[0]
+
+            await waitFor(() => expect(mockWithdrawFlow.setShowCompatibilityModal).toHaveBeenCalledWith(true))
+            expect(apiFetch).toHaveBeenCalledTimes(1)
+            const [url, init] = jest.mocked(apiFetch).mock.calls[0]
+            expect(url).toBe('/charges')
+            expect(init?.method).toBe('POST')
+            const payload = JSON.parse(String(init?.body))
             expect(payload).toMatchObject({
                 transactionType: 'WITHDRAW',
                 local_price: { amount: '50', currency: 'USD' },
-                requestProps: { chainId, tokenSymbol: symbol, tokenDecimals: 18, tokenAmount: '0' },
+                requestProps: {
+                    chainId,
+                    tokenAddress: token.address,
+                    tokenSymbol: symbol,
+                    tokenDecimals: token.decimals,
+                    tokenType: tokenAmount === undefined ? 0 : 1,
+                },
             })
+            if (tokenAmount === undefined) {
+                expect(payload.requestProps).not.toHaveProperty('tokenAmount')
+            } else {
+                expect(payload.requestProps.tokenAmount).toBe(tokenAmount)
+            }
         } finally {
             Object.assign(withdrawData, original)
-            mockStepper.step = 'review'
         }
     })
 })
@@ -1267,14 +1299,32 @@ describe('crypto withdraw — URL amount validation (Chip review round 4)', () =
         chargesApi.get.mockResolvedValue(chargeDetails)
     }
 
-    test.each([['0'], ['abc'], ['-5']])('?amount=%s persists no request and no charge', async (tampered) => {
-        mockUrlAmount = tampered
-        clickReview()
+    describe.each([
+        ['42161', 'USDC'],
+        ['8453', 'ETH'],
+    ])('destination %s %s', (chainId, symbol) => {
+        test.each(['0', 'abc', '-5', 'NaN', 'Infinity'])(
+            '?amount=%s persists no request and no charge',
+            async (tampered) => {
+                const chain = (await getSupportedChainsAndTokens())[chainId]
+                const token = chain.tokens.find((candidate) => candidate.symbol === symbol)!
+                const original = { token: withdrawData.token, chain: withdrawData.chain }
+                Object.assign(withdrawData, { token, chain })
+                mockUrlAmount = tampered
+                try {
+                    clickReview()
 
-        // error surfaced, nothing persisted
-        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalled())
-        expect(requestsApi.create).not.toHaveBeenCalled()
-        expect(chargesApi.create).not.toHaveBeenCalled()
+                    await waitFor(() =>
+                        expect(mockSetPaymentError).toHaveBeenCalledWith('Please enter a valid amount.')
+                    )
+                    expect(requestsApi.create).not.toHaveBeenCalled()
+                    expect(chargesApi.create).not.toHaveBeenCalled()
+                    expect(apiFetch).not.toHaveBeenCalled()
+                } finally {
+                    Object.assign(withdrawData, original)
+                }
+            }
+        )
     })
 
     test('an over-balance ?amount= persists no request and no charge', async () => {

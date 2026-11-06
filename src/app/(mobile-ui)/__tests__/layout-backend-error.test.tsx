@@ -8,6 +8,7 @@
  */
 import React from 'react'
 import { render, screen, act } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 const mockRouterReplace = jest.fn()
 let mockPathname = '/home'
@@ -80,16 +81,20 @@ const authState = (over: Record<string, unknown> = {}) => ({
 
 const renderLayout = () =>
     render(
-        <Layout>
-            <div data-testid="page" />
-        </Layout>
+        <NuqsTestingAdapter>
+            <Layout>
+                <div data-testid="page" />
+            </Layout>
+        </NuqsTestingAdapter>
     )
 
 const rerenderLayout = (rerender: (ui: React.ReactElement) => void) =>
     rerender(
-        <Layout>
-            <div data-testid="page" />
-        </Layout>
+        <NuqsTestingAdapter>
+            <Layout>
+                <div data-testid="page" />
+            </Layout>
+        </NuqsTestingAdapter>
     )
 
 describe('(mobile-ui) layout — no user', () => {
