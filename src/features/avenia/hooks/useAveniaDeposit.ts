@@ -23,6 +23,8 @@ export function useAveniaDeposit(intentId: string, onComplete: () => void) {
     const query = useQuery({
         queryKey: aveniaDepositQueryKey(intentId),
         queryFn: () => aveniaApi.depositStatus(intentId),
+        // the code POST /avenia/deposit seeded is fresh: the first read waits for the next poll
+        staleTime: POLLING_INTERVAL_MS,
         refetchInterval: (current) => {
             const { error, data } = current.state
             if (error instanceof ApiError && error.status === 404) return false

@@ -53,6 +53,14 @@ describe('useAveniaDeposit', () => {
         expect(result.current.phase).toBe('pending')
     })
 
+    it('reads nothing right after the create: the seeded code is fresh until the next poll', async () => {
+        mockDepositStatus.mockResolvedValue(read())
+        queryClient.setQueryData(aveniaDepositQueryKey('d1'), read())
+        renderHook(() => useAveniaDeposit('d1', jest.fn()), { wrapper })
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        expect(mockDepositStatus).not.toHaveBeenCalled()
+    })
+
     it('reads the code from the API when nothing is seeded (a reload, a deep link)', async () => {
         mockDepositStatus.mockResolvedValue(read())
         const { result } = renderHook(() => useAveniaDeposit('d1', jest.fn()), { wrapper })
