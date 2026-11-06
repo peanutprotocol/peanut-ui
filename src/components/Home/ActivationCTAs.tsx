@@ -220,11 +220,19 @@ export default function ActivationCTAs({
                     href: '/profile/accounts',
                 }
             }
-            // blocked
+            // The payment partner's decision does not reverse the verified ID.
+            const isBankAccount = blockedRail?.channel !== 'qr-only'
             return {
                 bubble: { icon: 'globe-lock', color: 'blue' },
-                title: t('verificationIssue.title'),
-                description: t('verificationIssue.description'),
+                title:
+                    primaryRejectionCode !== 'provider_rejected'
+                        ? t('providerDeclined.unavailableTitle')
+                        : !isBankAccount
+                          ? t('providerDeclined.qrTitle')
+                          : blockedRail?.currency
+                            ? t('providerDeclined.accountCurrencyTitle', { currency: blockedRail.currency })
+                            : t('providerDeclined.accountTitle'),
+                description: localizedRejectionMessage || t('providerDeclined.description'),
                 ctaLabel: t('verificationIssue.cta'),
                 href: '', // handled in onClick
             }
@@ -247,6 +255,7 @@ export default function ActivationCTAs({
         tKyc,
         fixableAction,
         primaryRejectionCode,
+        blockedRail,
     ])
 
     if (onboarding.step === 'completed' && (!step || !showBlockedCard)) return null

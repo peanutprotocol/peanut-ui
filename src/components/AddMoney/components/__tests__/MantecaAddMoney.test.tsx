@@ -25,6 +25,7 @@ import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/cap
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
 
@@ -457,13 +458,32 @@ describe('identity gate on arrival', () => {
 })
 
 describe('Manteca account rejection during deposit', () => {
+    test.each([undefined, 'invalid'])('keeps generic closure guidance for country %s', (countryCode) => {
+        render(
+            <MantecaAccountUnavailable
+                title="Add money"
+                countryCode={countryCode}
+                onBack={jest.fn()}
+                onSupport={jest.fn()}
+            />
+        )
+
+        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+    })
+
     test('a report closing the BR local account shows the closure on first render without a deposit attempt', () => {
         setCountry('brazil')
         mockClosedCountries = new Set(['BR'])
-        render(<MantecaAddMoney />)
+        const { container } = render(<MantecaAddMoney />)
 
-        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
-        expect(screen.getByText(/You can still pay with QR/i)).toBeInTheDocument()
+        const mascot = container.querySelector('[data-mascot-pose="sad"]')
+        expect(mascot).toHaveAttribute('aria-hidden', 'true')
+        expect(
+            mascot!.compareDocumentPosition(screen.getByRole('alert')) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
+
+        expect(screen.getByText(/You can’t add or withdraw money in Brazil/i)).toBeInTheDocument()
+        expect(screen.getByText(/QR payments still work/i)).toBeInTheDocument()
         expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
         expect(screen.queryByTestId('pix-qr')).not.toBeInTheDocument()
         expect(lastKycModalProps).toBeNull()
@@ -487,10 +507,8 @@ describe('Manteca account rejection during deposit', () => {
 
         await act(() => lastInputStepProps!.onSubmit())
 
-        expect(
-            screen.getByText(/Deposits and withdrawals in this country aren’t available for your account/i)
-        ).toBeInTheDocument()
-        expect(screen.getByText(/You can still pay with QR/i)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        expect(screen.getByText(/QR payments still work/i)).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
@@ -513,7 +531,7 @@ describe('Manteca account rejection during deposit', () => {
 
         await act(() => lastInputStepProps!.onSubmit())
 
-        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockDeposit).toHaveBeenCalledTimes(1)
@@ -535,12 +553,12 @@ describe('Manteca account rejection during deposit', () => {
         })
         const view = render(<MantecaAddMoney />)
         await act(() => lastInputStepProps!.onSubmit())
-        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
 
         setCountry('brazil')
         view.rerender(<MantecaAddMoney />)
 
-        expect(screen.queryByText(en.errors.mantecaAccountRejected)).not.toBeInTheDocument()
+        expect(screen.queryByText(/You can’t add or withdraw money in .+/i)).not.toBeInTheDocument()
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
         expect(lastKycModalProps!.visible).toBe(false)
     })

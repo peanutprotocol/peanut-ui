@@ -89,6 +89,20 @@ beforeEach(() => {
     mockManagementStatus = 'ready'
 })
 
+it('puts the verification action after PIN and Freeze and keeps it usable', () => {
+    const continueVerification = jest.fn()
+    render(<YourCardScreen overview={overview(null)} card={CARD} onCompleteVerification={continueVerification} />)
+
+    const verify = screen.getByRole('button', { name: 'Complete verification' })
+    for (const control of ['card-control-pin', 'card-control-freeze']) {
+        expect(
+            screen.getByTestId(control).compareDocumentPosition(verify) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
+    }
+    fireEvent.click(verify)
+    expect(continueVerification).toHaveBeenCalledTimes(1)
+})
+
 // On the existing card permission the card balance is what card payments use:
 // moving it out would only start a refill. The note and the move belong to
 // managed funding, and the move waits until managed funding is ready.

@@ -193,7 +193,9 @@ const InvitesPage = () => {
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                         <VerifiedUserLabel
-                                            name={displayName ?? ''}
+                                            name={
+                                                displayName || t(username === null ? 'signupPending' : 'unnamedInvite')
+                                            }
                                             username={username ?? ''}
                                             isVerified={isVerified}
                                         />

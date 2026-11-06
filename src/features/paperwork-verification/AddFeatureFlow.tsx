@@ -27,6 +27,7 @@ import {
 import { QuestionStepScreen } from './components/QuestionStepScreen'
 import { composeScreens, phoneJoinsAddress, RESIDENCE_CHANGE_HREF } from './paperworkVerification.utils'
 import { FeatureAction } from './FeatureAction'
+import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 
@@ -198,15 +199,19 @@ export function AddFeatureQuestions({
                 footer={
                     <VerifyFooter
                         actions={
-                            <Button
-                                className="w-full"
-                                onClick={() => {
-                                    tapped('done')
-                                    onBack()
-                                }}
-                            >
-                                {t('addLater.doneCta')}
-                            </Button>
+                            state.copy === 'supplement.identityDocumentInsufficient' ? (
+                                <ReplacementDocumentAction onTap={tapped} returnToFeature />
+                            ) : (
+                                <Button
+                                    className="w-full"
+                                    onClick={() => {
+                                        tapped('done')
+                                        onBack()
+                                    }}
+                                >
+                                    {t('addLater.doneCta')}
+                                </Button>
+                            )
                         }
                     />
                 }

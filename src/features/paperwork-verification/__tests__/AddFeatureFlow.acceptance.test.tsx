@@ -1,13 +1,19 @@
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
 import { serverFetch } from '@/utils/api-fetch'
-import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
+import { findKycReplacementPlan, getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { AddFeatureFlow, AddFeatureQuestions } from '../AddFeatureFlow'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
-jest.mock('@/app/actions/kyc-workflow', () => ({ getKycDocumentPlan: jest.fn() }))
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    getKycDocumentPlan: jest.fn(),
+    findKycReplacementPlan: jest.fn(async () => null),
+}))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'user-a' } } }),
+}))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 
@@ -109,8 +115,42 @@ describe('added feature outcome acceptance through transport', () => {
         const onDone = jest.fn()
         renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
         expect(await screen.findByText(/different ID document/i)).toBeInTheDocument()
+        expect(await screen.findByRole('link', { name: 'Contact support' })).toBeInTheDocument()
         expect(onDone).not.toHaveBeenCalled()
         expect(screen.queryByText("We're setting things up")).not.toBeInTheDocument()
+    })
+
+    it.each(['bank', 'local'] as const)('offers an authorized replacement from %s setup', async (feature) => {
+        jest.mocked(findKycReplacementPlan).mockResolvedValueOnce({
+            available: true,
+            features,
+            policyVersion: 'v1',
+            activeAttemptId: null,
+            routes: [
+                {
+                    id: 'base',
+                    documents: [
+                        {
+                            key: 'identity',
+                            code: 'IDENTITY',
+                            requiredBy: ['SUMSUB'],
+                            types: ['PASSPORT'],
+                            countries: ['US'],
+                        },
+                    ],
+                },
+            ],
+        })
+        answerSave({ features: { [feature]: { state: 'refused', reason: 'identity_document_insufficient' } } })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature={feature} onBack={jest.fn()} onDone={onDone} />)
+        const replace = await screen.findByRole('button', { name: 'Use a different ID' })
+        await waitFor(() => expect(replace).toBeEnabled())
+        fireEvent.click(replace)
+        fireEvent.click(replace)
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1&returnToFeature=1')
+        expect(onDone).not.toHaveBeenCalled()
     })
 
     it('a successful HTTP save that requires a supplement opens the owed action without claiming completion', async () => {

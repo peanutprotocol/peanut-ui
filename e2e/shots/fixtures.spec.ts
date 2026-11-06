@@ -72,7 +72,7 @@ const FULL_PAGE_CSS = `
 //
 // Keys: demo-api stamps the celebration itself; user preferences hang off
 // `demo-user`, the id every fixture inherits from demo-api.
-function seenOnceModals(): void {
+function seedFixtureSession(geoCountry: string): void {
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
         'demo-user:user-preferences',
@@ -82,7 +82,7 @@ function seenOnceModals(): void {
     // cold, and /add-money's country list sits behind that spinner — in CI the
     // request can hang past the test timeout. Seed the sessionStorage cache so
     // the hook never fetches; timestamp sits just before FROZEN_NOW.
-    window.sessionStorage.setItem('user_geo_country_code', 'DE')
+    window.sessionStorage.setItem('user_geo_country_code', geoCountry)
     window.sessionStorage.setItem(
         'user_geo_country_code_timestamp',
         String(new Date('2026-08-15T11:59:00.000Z').getTime())
@@ -143,8 +143,16 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
             const { hostname } = new URL(route.request().url())
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
         })
+        if (fixture.geoCountry) {
+            await page.route('**/api/geo-country', (route) =>
+                route.fulfill({
+                    json: { country: fixture.geoCountry },
+                    headers: { 'access-control-allow-origin': '*' },
+                })
+            )
+        }
         await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
-        await page.addInitScript(seenOnceModals)
+        await page.addInitScript(seedFixtureSession, fixture.geoCountry ?? 'DE')
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
         // Before the wait, not after: a loading fixture never reaches settle,

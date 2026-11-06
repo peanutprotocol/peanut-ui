@@ -12,7 +12,7 @@ import {
     savePaperworkVerificationFeatures,
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
-import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, findKycReplacementPlan, getKycDocumentStatus } from '@/app/actions/kyc-workflow'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -40,6 +40,7 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
 jest.mock('@/app/actions/kyc-workflow', () => ({
     refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
+    findKycReplacementPlan: jest.fn(),
     getKycDocumentStatus: jest.fn(),
 }))
 let mockIdentityReason: string | undefined
@@ -194,6 +195,7 @@ beforeEach(() => {
         refreshToken: jest.fn(),
     })
     mockPlan.mockResolvedValue(plan)
+    jest.mocked(findKycReplacementPlan).mockResolvedValue(plan)
     mockStatus.mockResolvedValue('NOT_STARTED')
     mockQuestions.mockResolvedValue(build())
 })
@@ -257,11 +259,24 @@ describe('canonical identity recovery acceptance', () => {
         mockIdentityReason = 'document_policy_hold'
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
         renderFlow()
-        fireEvent.click(await screen.findByRole('button', { name: 'Choose another document' }))
-        expect(
-            screen.getByText('This document cannot be used for verification. Please choose another document.')
-        ).toBeInTheDocument()
+        const choose = await screen.findByRole('button', { name: 'Use a different ID' })
+        await waitFor(() => expect(choose).toBeEnabled())
+        fireEvent.click(choose)
+        expect(screen.getByText('We can’t verify you with this document.')).toBeInTheDocument()
         expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
+        expect(mockToken).not.toHaveBeenCalled()
+    })
+
+    it('routes a policy hold to support when no replacement document is available', async () => {
+        mockIdentityReason = 'document_policy_hold'
+        mockStatus.mockResolvedValue('ACTION_REQUIRED')
+        jest.mocked(findKycReplacementPlan).mockRejectedValueOnce(new Error('plan unavailable'))
+        renderFlow()
+        expect(await screen.findByRole('link', { name: 'Contact support' })).toHaveAttribute(
+            'href',
+            'https://peanut.me/support'
+        )
+        expect(mockPush).not.toHaveBeenCalled()
         expect(mockToken).not.toHaveBeenCalled()
     })
 

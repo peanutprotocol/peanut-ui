@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import type { KycActivationFeature, KycFeatureActivationResult } from '@/app/actions/kyc-feature-activation'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { FeatureAction } from './FeatureAction'
+import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { useKycControl } from './analytics'
@@ -32,6 +33,7 @@ export function KycFeatureActivationStatus({
     const identityRequired = result?.kind === 'conflict' && result.code === 'identity_not_approved'
     const consent = !result || identityRequired
     const failed = result?.kind === 'failed'
+    const needsReplacement = report?.state === 'refused' && report.reason === 'identity_document_insufficient'
     const refused =
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
@@ -45,7 +47,7 @@ export function KycFeatureActivationStatus({
             onBack={onBack}
             title={
                 consent
-                    ? t('activation.title')
+                    ? t(`activation.title.${feature}`)
                     : failed
                       ? t('loadFailed.title')
                       : refused && feature !== 'qr'
@@ -66,19 +68,30 @@ export function KycFeatureActivationStatus({
             footer={
                 <VerifyFooter
                     actions={
-                        <Button
-                            data-testid={consent ? 'kyc-activation-continue' : undefined}
-                            className="w-full"
-                            loading={isLoading}
-                            disabled={isLoading}
-                            onClick={() => {
-                                controls.track(consent ? 'continue' : failed ? 'retry' : 'done', 'tap')
-                                if (failed || consent) onRetry()
-                                else onBack()
-                            }}
-                        >
-                            {consent ? t('continue') : failed ? t('loadFailed.retry') : t('addLater.doneCta')}
-                        </Button>
+                        needsReplacement ? (
+                            <ReplacementDocumentAction
+                                onTap={(action) => controls.track(action, 'tap')}
+                                returnToFeature
+                            />
+                        ) : (
+                            <Button
+                                data-testid={consent ? 'kyc-activation-continue' : undefined}
+                                className="w-full"
+                                loading={isLoading}
+                                disabled={isLoading}
+                                onClick={() => {
+                                    controls.track(consent ? 'continue' : failed ? 'retry' : 'done', 'tap')
+                                    if (failed || consent) onRetry()
+                                    else onBack()
+                                }}
+                            >
+                                {consent
+                                    ? t(`activation.cta.${feature}`)
+                                    : failed
+                                      ? t('loadFailed.retry')
+                                      : t('addLater.doneCta')}
+                            </Button>
+                        )
                     }
                 />
             }

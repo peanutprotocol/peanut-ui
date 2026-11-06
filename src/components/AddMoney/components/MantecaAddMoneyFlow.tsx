@@ -345,6 +345,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             <MantecaAccountUnavailable
                 title={t('title')}
                 onBack={onBack}
+                countryCode={selectedCountry?.id}
                 onSupport={() => openSupportWithMessage(tErrors('mantecaAccountRejected'))}
             />
         )

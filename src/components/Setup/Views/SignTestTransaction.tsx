@@ -74,6 +74,7 @@ export function SetupConfirmationView({
     onConfirm,
     isLoading = false,
     error,
+    errorDetail,
     buttonText,
     showTitle = true,
     merged = false,
@@ -82,6 +83,7 @@ export function SetupConfirmationView({
     onConfirm: () => void
     isLoading?: boolean
     error?: string | null
+    errorDetail?: string
     buttonText?: string
     showTitle?: boolean
     merged?: boolean
@@ -104,6 +106,12 @@ export function SetupConfirmationView({
             {buttonText || t(merged ? 'cta.finish' : 'testTransaction.confirmAndFinish')}
         </Button>
     )
+    const errorCallout = error && (
+        <Callout priority="error">
+            <p>{error}</p>
+            {errorDetail && <p className="mt-2">{errorDetail}</p>}
+        </Callout>
+    )
     // In the sign-up flow this is the "Only for you" step: the shared title block
     // at the top, the passkey confirmation on the pinned primary.
     if (merged) {
@@ -113,7 +121,7 @@ export function SetupConfirmationView({
                     title={showTitle ? t('steps.advantage-control.title') : undefined}
                     description={t('steps.advantage-control.description')}
                 />
-                {error && <Callout priority="error">{error}</Callout>}
+                {errorCallout}
                 <SetupFooter actions={button} secondary={secondary} />
             </div>
         )
@@ -122,7 +130,7 @@ export function SetupConfirmationView({
         <PageStack className="flex-1">
             <PageStack.Center>
                 {showTitle && <h1 className="text-heading-s">{t('testTransaction.confirmTitle')}</h1>}
-                {error && <Callout priority="error">{error}</Callout>}
+                {errorCallout}
             </PageStack.Center>
             <SetupFooter actions={button} secondary={secondary}>
                 <p className="text-center text-body-xs text-foreground-secondary">
@@ -174,6 +182,7 @@ const SignTestTransaction = ({
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const [canDefer, setCanDefer] = useState(false)
+    const attemptInFlightRef = useRef(false)
     const deferredRef = useRef(false)
     const creatingAccountRef = useRef(false)
     /*
@@ -315,7 +324,7 @@ const SignTestTransaction = ({
     }, [accountExists, handleRedirect, onComplete])
 
     const handleTestTransaction = async ({ defer = false }: { defer?: boolean } = {}) => {
-        if (redirectingRef.current) return
+        if (redirectingRef.current || attemptInFlightRef.current) return
         const attemptStartedAt = Date.now()
 
         if (!address) {
@@ -330,6 +339,12 @@ const SignTestTransaction = ({
         }
         const userId = user.user.userId
 
+        attemptInFlightRef.current = true
+        const allowRetry = () => {
+            attemptInFlightRef.current = false
+            setIsSigning(false)
+            setSetupLoading(false)
+        }
         setIsSigning(true)
         setErrorKey(null)
         setCanDefer(false)
@@ -341,8 +356,7 @@ const SignTestTransaction = ({
                 const record = readSignupTestTransaction(userId)
                 // Re-checked at the tap: a stale button must not skip a signature the validator rejected.
                 if (!canDeferSignupTestTransaction(record)) {
-                    setIsSigning(false)
-                    setSetupLoading(false)
+                    allowRetry()
                     return
                 }
                 updateSignupTestTransaction(userId, { deferred: true })
@@ -375,8 +389,7 @@ const SignTestTransaction = ({
                     // avoid another console-captured wrapper event here.
                     console.info('[SignTestTransaction] Account setup remains retryable')
                     setErrorKey('testTransaction.errors.setupFailed')
-                    setIsSigning(false)
-                    setSetupLoading(false)
+                    allowRetry()
                     return
                 }
 
@@ -441,8 +454,7 @@ const SignTestTransaction = ({
             })
             setErrorKey(failureErrorKey(failure))
             setCanDefer(deferrable)
-            setIsSigning(false)
-            setSetupLoading(false)
+            allowRetry()
         }
     }
 
@@ -453,6 +465,7 @@ const SignTestTransaction = ({
     const getButtonText = () => {
         if (isFetchingUser || !user) return tCommon('loading')
         if (testTransactionCompleted && displayError) return t('testTransaction.retryAccountSetup')
+        if (errorKey === 'testTransaction.errors.networkBusy') return tCommon('tryAgain')
         return undefined
     }
 
@@ -461,6 +474,7 @@ const SignTestTransaction = ({
             onConfirm={() => void handleTestTransaction()}
             isLoading={isLoading}
             error={displayError}
+            errorDetail={canDefer ? t('testTransaction.finishLaterDescription') : undefined}
             buttonText={getButtonText()}
             merged={merged}
             showTitle={!!onComplete}

@@ -12,8 +12,12 @@ export const paperworkVerificationFeaturePath = (feature: PaperworkVerificationF
 export const paperworkVerificationDocumentPath = () => `/verify?${new URLSearchParams({ step: 'id' })}`
 export const VERIFY_RESTART_PARAM = 'restart'
 /** The ID screen for a verified user's new identity check, on the documents the restart plan offers. */
-export const paperworkVerificationRestartPath = () =>
-    `/verify?${new URLSearchParams({ step: 'id', [VERIFY_RESTART_PARAM]: '1' })}`
+export const paperworkVerificationRestartPath = (returnToFeature = false) =>
+    `/verify?${new URLSearchParams({
+        step: 'id',
+        [VERIFY_RESTART_PARAM]: '1',
+        ...(returnToFeature ? { returnToFeature: '1' } : {}),
+    })}`
 
 /** The feature an entry point unlocks, for the add-later screen: Bridge bank accounts or Manteca local transfers. */
 export function entryFeature({

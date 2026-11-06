@@ -16,6 +16,7 @@ import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.f
 import { VerifySetupPrelude } from '../components/VerifySetupPrelude'
 
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
+    useSetupFullScreen: jest.fn(),
     SetupWrapper: ({ title, onBack, children }: { title?: ReactNode; onBack?: () => void; children: ReactNode }) => (
         <div>
             {title && <h2>{title}</h2>}

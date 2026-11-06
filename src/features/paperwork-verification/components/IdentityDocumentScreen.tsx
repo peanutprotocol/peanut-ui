@@ -273,7 +273,7 @@ export function IdentityDocumentScreen({
                         controls.track('back', 'tap')
                         onBack()
                     }}
-                    className={twMerge(NAV_CIRCLE_BUTTON_CLASSES, 'bg-white')}
+                    className={NAV_CIRCLE_BUTTON_CLASSES}
                     aria-label={t('back')}
                     data-testid="verify-back"
                 >

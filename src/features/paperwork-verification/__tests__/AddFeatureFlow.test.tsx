@@ -460,14 +460,14 @@ describe('AddFeatureFlow', () => {
         const onExit = jest.fn()
         renderWithIntl(<AddFeatureFlow feature="bank" onExit={onExit} />)
         await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1))
-        expect(screen.queryByText("We're setting things up")).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: 'Bank account setup in progress' })).not.toBeInTheDocument()
     })
     it('ends on the provider status for a bank account and returns where the user came from', async () => {
         mockQuestions.mockResolvedValue({ ...cardQuestions(), steps: [] })
         const onExit = jest.fn()
         renderWithIntl(<AddFeatureFlow feature="bank" onExit={onExit} />)
-        expect(await screen.findByText("We're setting things up")).toBeInTheDocument()
-        expect(screen.getByText(/setting up your bank account/)).toBeInTheDocument()
+        expect(await screen.findByRole('heading', { name: 'Bank account setup in progress' })).toBeInTheDocument()
+        expect(screen.getByText('We’ll let you know when your bank account is ready.')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-feature-done'))
         expect(onExit).toHaveBeenCalled()
         expect(jest.mocked(posthog.capture).mock.calls.filter(([event]) => event === 'control_used')).toEqual([

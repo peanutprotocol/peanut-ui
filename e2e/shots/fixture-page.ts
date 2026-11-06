@@ -85,14 +85,14 @@ export async function blockExternal(page: Page, fixture = ''): Promise<void> {
     })
 }
 
-export function seenOnceModals(): void {
+export function seenOnceModals(geoCountry = 'DE'): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
         'demo-user:user-preferences',
         JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
     )
-    window.sessionStorage.setItem('user_geo_country_code', 'DE')
+    window.sessionStorage.setItem('user_geo_country_code', geoCountry)
     window.sessionStorage.setItem(
         'user_geo_country_code_timestamp',
         String(new Date('2026-08-15T11:59:00.000Z').getTime())
@@ -108,7 +108,15 @@ export async function openFixture(page: Page, name: string, locale: string | und
     const fixture = FIXTURES[name]
     await blockExternal(page, name)
     await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
-    await page.addInitScript(seenOnceModals)
+    if (fixture.geoCountry) {
+        await page.route('**/api/geo-country', (route) =>
+            route.fulfill({
+                json: { country: fixture.geoCountry },
+                headers: { 'access-control-allow-origin': '*' },
+            })
+        )
+    }
+    await page.addInitScript(seenOnceModals, fixture.geoCountry ?? 'DE')
 
     await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
     await expect
