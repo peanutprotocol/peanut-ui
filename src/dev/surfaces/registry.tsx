@@ -18,6 +18,9 @@ import AmountInput from '@/components/Global/AmountInput'
 
 import React, { useState } from 'react'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
+import { AveniaWithdrawOutcome } from '@/features/avenia/components/AveniaWithdrawOutcome'
+import { AveniaWithdrawReview } from '@/features/avenia/components/AveniaWithdrawReview'
+import type { AveniaWithdrawDisplay } from '@/services/avenia'
 import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
@@ -300,6 +303,58 @@ function AveniaPixDepositSurface() {
                 onDone={noop}
                 onNewDeposit={noop}
                 onComplete={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the withdrawal this session signed, for the last step's in-memory destination
+const AVENIA_SURFACE_DISPLAY: AveniaWithdrawDisplay = {
+    amountBrl: '503.00',
+    pixKey: '09579927189',
+    ownAccount: true,
+    holderName: 'Ana Souza',
+    bankName: 'Banco Inter',
+    withdrawUsd: '92.504310',
+    rate: '5.445692',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+}
+
+// the last step right after the signature: the destination comes from what was signed
+function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
+    const display = unnamed ? { ...AVENIA_SURFACE_DISPLAY, bankName: null, holderName: null } : AVENIA_SURFACE_DISPLAY
+    return (
+        <AppPageSurface>
+            <AveniaWithdrawOutcome
+                title="Withdraw"
+                intentId="fixture-avenia-withdrawal"
+                sent={{ phase: 'funded', display }}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
+function AveniaWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
+    const t = useTranslations('avenia.withdraw')
+    const error =
+        variant === 'quote-moved'
+            ? { message: t('quoteMoved'), priority: 'attention' as const }
+            : { message: `${t('errors.quoteExpired')} ${t('errors.afterInit')}` }
+    return (
+        <AppPageSurface>
+            <AveniaWithdrawReview
+                title="Withdraw"
+                display={AVENIA_SURFACE_DISPLAY}
+                isLoading={false}
+                isSubmitting={false}
+                error={error}
+                canConfirm={variant === 'quote-moved'}
+                onBack={noop}
+                onConfirm={noop}
+                onCancel={noop}
             />
         </AppPageSurface>
     )
@@ -1276,6 +1331,26 @@ export const SURFACES: Record<string, Surface> = {
     '94-f-avenia-pix-deposit': {
         ...SURFACE_META['94-f-avenia-pix-deposit'],
         render: () => <AveniaPixDepositSurface />,
+    },
+    '94-g-avenia-withdraw-on-its-way': {
+        ...SURFACE_META['94-g-avenia-withdraw-on-its-way'],
+        render: () => <AveniaWithdrawOutcomeSurface />,
+    },
+    '94-h-avenia-withdraw-arrived-to': {
+        ...SURFACE_META['94-h-avenia-withdraw-arrived-to'],
+        render: () => <AveniaWithdrawOutcomeSurface />,
+    },
+    '94-i-avenia-withdraw-sent-unnamed': {
+        ...SURFACE_META['94-i-avenia-withdraw-sent-unnamed'],
+        render: () => <AveniaWithdrawOutcomeSurface unnamed />,
+    },
+    '94-j-avenia-review-quote-moved': {
+        ...SURFACE_META['94-j-avenia-review-quote-moved'],
+        render: () => <AveniaWithdrawReviewSurface variant="quote-moved" />,
+    },
+    '94-k-avenia-review-after-init': {
+        ...SURFACE_META['94-k-avenia-review-after-init'],
+        render: () => <AveniaWithdrawReviewSurface variant="after-init" />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
