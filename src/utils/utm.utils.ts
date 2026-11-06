@@ -59,6 +59,8 @@ export const UTM_SOURCES = {
     GOOGLE: 'google',
     /** Meta ads (Facebook + Instagram). */
     META: 'meta',
+    /** NomadAZ remote-jobs board (jobs.thenomadaz.com), paid sponsorship from 9 Nov 2026. */
+    NOMADAZ: 'nomadaz',
     /** QR codes drawn on the star-feature landing pages (a scan is a new device with no attribution). */
     STAR_LP: 'star-lp',
     /** Registered landing-page download QR codes. */
