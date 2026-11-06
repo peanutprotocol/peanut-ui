@@ -139,8 +139,8 @@ export function QuestionFields({
                     <Sentences
                         className={
                             sentenceSize === 'm'
-                                ? 'text-heading-m leading-[2.75rem] compact:text-heading-s compact:leading-[2.5rem] tight:leading-[2.25rem]'
-                                : 'text-heading-s leading-[2.5rem] compact:leading-[2.25rem]'
+                                ? 'text-heading-m leading-[2.875rem] compact:text-heading-s compact:leading-[2.625rem] tight:leading-[2.375rem]'
+                                : 'text-heading-s leading-[2.625rem] compact:leading-[2.375rem]'
                         }
                     >
                         {sentenceGroups.map((group, groupIndex) => (
@@ -162,11 +162,9 @@ export function QuestionFields({
                                             <span
                                                 aria-hidden="true"
                                                 className={
-                                                    sectioned
-                                                        ? 'block h-1'
-                                                        : sentenceSize === 'm'
-                                                          ? 'block h-4 compact:h-2'
-                                                          : 'block h-1'
+                                                    sectioned || sentenceSize === 's'
+                                                        ? 'block h-2'
+                                                        : 'block h-5 compact:h-3'
                                                 }
                                             />
                                         )}
