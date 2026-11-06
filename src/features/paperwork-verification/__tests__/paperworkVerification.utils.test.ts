@@ -17,6 +17,7 @@ import {
     markSaved,
     nationalityOf,
     phoneJoinsAddress,
+    questionPages,
     resumeStep,
     screenOfStep,
     stepComplete,
@@ -158,14 +159,25 @@ describe('composeScreens', () => {
         ])
     })
 
-    it('opens a new picker screen past six pickers', () => {
+    it('keeps picker-only steps in a shared form for pagination', () => {
         const ph = withSteps(
             picker('purpose', 'choice'),
             picker('work', 'choice', 'occupation'),
             picker('money', 'choice', 'choice', 'choice', 'choice', 'choice'),
             picker('tax', 'taxId')
         )
-        expect(composeScreens(ph, false)).toEqual([['purpose', 'work'], ['money'], ['tax']])
+        expect(composeScreens(ph, false)).toEqual([['purpose', 'work', 'money'], ['tax']])
+    })
+
+    it('keeps declarations before the separate Birth form for a Brazilian card and local user', () => {
+        const br = withSteps(
+            picker('purpose', 'choice'),
+            picker('work', 'occupation'),
+            picker('money', 'choice', 'choice'),
+            picker('declarations', 'toggle', 'toggle'),
+            picker('birth', 'country', 'choice', 'choice')
+        )
+        expect(composeScreens(br, false)).toEqual([['purpose', 'work', 'money'], ['declarations'], ['birth']])
     })
 
     it('rides the joined phone on the address screen and maps every step to its screen', () => {
@@ -183,6 +195,41 @@ describe('composeScreens', () => {
         expect(screenOfStep(screens, 'birth')).toBe('purpose')
         expect(screenOfStep(screens, 'phone')).toBe('address')
         expect(screenOfStep(screens, 'id')).toBe('id')
+    })
+})
+
+describe('questionPages', () => {
+    it.each([
+        [0, [0]],
+        [1, [1]],
+        [2, [2]],
+        [3, [3]],
+        [4, [4]],
+        [5, [3, 2]],
+        [6, [3, 3]],
+        [7, [4, 3]],
+        [8, [3, 3, 2]],
+        [9, [3, 3, 3]],
+        [10, [4, 3, 3]],
+    ])('places %i dropdowns into pages of %j in order', (count, sizes) => {
+        const fields = Array.from({ length: count }, (_, i) => field(`choice${i}`, { kind: 'choice' }))
+        const pages = questionPages(fields)
+        expect(pages.map((page) => page.length)).toEqual(sizes)
+        expect(pages.flat()).toEqual(fields)
+    })
+
+    it('excludes hidden occupation and keeps typed and locked fields in order', () => {
+        const fields = [
+            field('employmentStatus', { kind: 'choice' }),
+            field('occupation', { kind: 'occupation' }),
+            field('annualSalary', { kind: 'choice' }),
+            field('state', { kind: 'select' }),
+            field('country', { kind: 'country', locked: true }),
+            field('street'),
+            field('nationality', { kind: 'country' }),
+        ]
+        const pages = questionPages(fields, { employmentStatus: 'student' })
+        expect(pages).toEqual([fields.filter((item) => item.key !== 'occupation')])
     })
 })
 

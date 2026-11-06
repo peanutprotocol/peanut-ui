@@ -14,6 +14,12 @@ import { initialValues, maskedUntouched, stepPayload, withEmploymentStatus } fro
 import { captureSessionFence } from '@/utils/session-fence'
 import { useSessionFence } from '@/hooks/useSessionFence'
 
+const PRESELECTED_CHOICES: Readonly<Partial<PaperworkVerificationAnswers>> = {
+    annualSalary: '25k_50k',
+    expectedMonthlyVolume: '1k_5k',
+    sourceOfFunds: 'salary',
+}
+
 export type AnswerFormError =
     | 'retry'
     | 'invalid_body'
@@ -112,7 +118,25 @@ export function useAnswerForm(
     const declared = draftResidenceOf(user)
     const [values, setValues] = useState<PaperworkVerificationAnswers>(() => {
         const fields = steps.flatMap((s) => s.fields)
-        return withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId, declared))
+        const initial = withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId, declared))
+        // These choices are only initial form values. Continue submits them alongside any edits.
+        for (const step of steps) {
+            if (step.answered) continue
+            for (const field of step.fields) {
+                const preset = PRESELECTED_CHOICES[field.key]
+                if (
+                    field.kind === 'choice' &&
+                    field.required &&
+                    !field.locked &&
+                    !initial[field.key] &&
+                    typeof preset === 'string' &&
+                    field.options?.includes(preset)
+                ) {
+                    initial[field.key] = preset
+                }
+            }
+        }
+        return initial
     })
     const [errors, setErrors] = useState<Record<string, string>>(() => returned?.errors ?? {})
     const [formError, setFormErrorState] = useState<AnswerFormError | null>(() => returned?.formError ?? null)
