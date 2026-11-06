@@ -1,169 +1,11 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import test from 'node:test'
-import { COLLECTION_LOCALES, FLOW_PAGE_MAX_STEPS } from '../collection-core.mjs'
-import collections from '../collection-worker/index.mjs'
+import { COLLECTION_LOCALES } from '../collection-core.mjs'
 import { runFlowPageContract } from './flow-page-contract.mjs'
-import mcp from './index.mjs'
+import { fixture, identity, legacyVersion, reviewer, version } from './flow-page-fixture.mjs'
 
-const version = '2026-07-28'
-const legacyVersion = '2025-11-25'
-const audience = 'test-audience'
-const digest = (value) => createHash('sha256').update(value).digest('hex')
-const identity = (email) => ({ access: { aud: audience, getIdentity: async () => ({ email }) } })
-const reviewer = identity('reviewer@peanut.me')
 const tool = 'create_flow_page'
 const input = { title: 'Registration', flows: [{ title: 'Start', items: [{ id: 'screen-a' }] }] }
-
-function fixture() {
-    const objects = new Map()
-    let postWriteError = false
-    let dispatches = 0
-    let pendingHeads = 0
-    let peakHeads = 0
-    let headCount = 0
-    const env = {
-        REPORTS: {
-            async get(key) {
-                const object = objects.get(key)
-                return object ? { ...object, json: async () => JSON.parse(object.body) } : null
-            },
-            async head(key) {
-                headCount++
-                pendingHeads++
-                peakHeads = Math.max(peakHeads, pendingHeads)
-                await new Promise((resolve) => setImmediate(resolve))
-                pendingHeads--
-                return objects.get(key) ?? null
-            },
-            async put(key, body, { onlyIf, customMetadata } = {}) {
-                if (onlyIf?.etagDoesNotMatch === '*' && objects.has(key)) return null
-                objects.set(key, { body, customMetadata })
-                if (postWriteError) {
-                    postWriteError = false
-                    throw new Error('Response lost after write')
-                }
-                return objects.get(key)
-            },
-        },
-        COLLECTION_SERVICE_TOKEN: 'test-token',
-        SCREEN_LIBRARY_ACCESS_AUD: audience,
-        SCREEN_LIBRARY_PUBLIC_URL: 'https://gallery.example',
-        SCREEN_LIBRARY_MCP_URL: 'https://mcp.example',
-        GITHUB_REPOSITORY: 'example/example',
-        GITHUB_ACTIONS_TOKEN: 'fixture',
-        GITHUB_FETCH() {
-            dispatches++
-            throw new Error('Unexpected GitHub request')
-        },
-        COLLECTIONS: { fetch: (request) => collections.fetch(request, env) },
-    }
-    function request(path, { body, headers, context = reviewer } = {}) {
-        return collections.fetch(
-            new Request('https://api.example' + path, {
-                method: body === undefined ? 'GET' : 'POST',
-                ...(body === undefined ? {} : { body: typeof body === 'string' ? body : JSON.stringify(body) }),
-                headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
-            }),
-            env,
-            context
-        )
-    }
-    async function call(method, { params = {}, modern = true, authenticated = true, headers = {} } = {}) {
-        const response = await mcp.fetch(
-            new Request('https://mcp.example/mcp', {
-                method: 'POST',
-                headers: {
-                    Host: 'mcp.example',
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json, text/event-stream',
-                    'MCP-Protocol-Version': modern ? version : legacyVersion,
-                    ...(modern ? { 'Mcp-Method': method } : {}),
-                    ...(modern && params.name ? { 'Mcp-Name': params.name } : {}),
-                    ...headers,
-                },
-                body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 1,
-                    method,
-                    params: modern
-                        ? {
-                              ...params,
-                              _meta: {
-                                  'io.modelcontextprotocol/protocolVersion': version,
-                                  'io.modelcontextprotocol/clientInfo': { name: 'contract-harness', version: '1.0.0' },
-                                  'io.modelcontextprotocol/clientCapabilities': {},
-                              },
-                          }
-                        : params,
-                }),
-            }),
-            env,
-            authenticated ? reviewer : undefined
-        )
-        const body = await response.text()
-        const contentType = response.headers.get('Content-Type')
-        const envelope = contentType?.includes('text/event-stream')
-            ? JSON.parse(
-                  body
-                      .split('\n')
-                      .find((line) => line.startsWith('data: '))
-                      .slice(6)
-              )
-            : contentType?.includes('application/json')
-              ? JSON.parse(body)
-              : null
-        return { response, envelope }
-    }
-    function seed({ screenId, locale, sequence = 1, separateThumbnail = false }) {
-        const commit = digest(locale + '-' + sequence).slice(0, 40)
-        const path = ['2026-11-06', 'compare-dev', locale.toLowerCase(), commit].join('/')
-        const reportKey = 'reports/' + path + '/manifest.json'
-        const id = digest([screenId, locale, sequence].join('-')) + '.webp'
-        const thumbnail = separateThumbnail ? digest('thumbnail-' + id) + '.webp' : id
-        const report = JSON.parse(
-            objects.get(reportKey)?.body ??
-                JSON.stringify({
-                    schema: 1,
-                    type: 'capture',
-                    commit,
-                    locale,
-                    screens: [],
-                })
-        )
-        report.screens.push({ id: screenId, status: 'captured', image: id, thumbnail })
-        const entries = JSON.parse(objects.get('index.json')?.body ?? '[]')
-        if (!entries.some((entry) => entry.path === path))
-            entries.push({ path, locale, reportType: 'capture', branch: 'dev', complete: true, sequence })
-        objects.set('index.json', { body: JSON.stringify(entries) })
-        objects.set('reports/' + path + '/manifest.json', { body: JSON.stringify(report) })
-        objects.set('assets/' + id, { body: 'fixture-image' })
-        objects.set('assets/' + thumbnail, { body: 'fixture-thumbnail' })
-        return { id, screenId, locale }
-    }
-    async function read(id) {
-        const response = await request('/v1/collections/' + id)
-        assert.equal(response.status, 200)
-        return (await response.json()).collection
-    }
-    return {
-        objects,
-        request,
-        call,
-        seed,
-        read,
-        manifestCount: () => [...objects.keys()].filter((key) => key.startsWith('collections/')).length,
-        dropWriteResponse() {
-            postWriteError = true
-        },
-        assetChecks: () => ({ headCount, peakHeads }),
-        counters: () => ({
-            dispatches,
-            uploads: [...objects.keys()].filter((key) => key.startsWith('assets/')).length,
-            captures: [...objects.keys()].filter((key) => key.startsWith('collection-requests/')).length,
-        }),
-    }
-}
 
 test('frozen Flow Page contract through collection Worker and actual v2 MCP HTTP handler', async () => {
     const f = fixture()
@@ -186,7 +28,7 @@ test('frozen Flow Page contract through collection Worker and actual v2 MCP HTTP
         return outputFor(page)
     }
     await runFlowPageContract({
-        maxTotalSteps: FLOW_PAGE_MAX_STEPS,
+        maxRequestBytes: 256 * 1024,
         seedPublishedAsset({ screenId, locale }) {
             seedUploads++
             return f.seed({ screenId, locale: toProductLocale(locale) })
@@ -377,9 +219,9 @@ test('Access-authenticated creation rejects cross-origin and non-JSON requests',
     assert.equal(sameOrigin.status, 201)
 })
 
-test('the maximum locale and screen matrix checks all 800 assets with no more than six concurrent heads', async () => {
+test('the four-locale 100-screen matrix checks all 800 assets with no more than six concurrent heads', async () => {
     const f = fixture()
-    const items = Array.from({ length: FLOW_PAGE_MAX_STEPS }, (_, index) => ({ id: 'screen-' + index }))
+    const items = Array.from({ length: 100 }, (_, index) => ({ id: 'screen-' + index }))
     for (const locale of COLLECTION_LOCALES) {
         for (const { id } of items) f.seed({ screenId: id, locale, separateThumbnail: true })
     }
@@ -388,5 +230,85 @@ test('the maximum locale and screen matrix checks all 800 assets with no more th
     })
     assert.equal(response.status, 201)
     assert.deepEqual(f.assetChecks(), { headCount: 800, peakHeads: 6 })
+    assert.equal(f.manifestCount(), 1)
+})
+
+test('more than 100 branches can share a single published screen', async () => {
+    const f = fixture()
+    f.seed({ screenId: 'screen-a', locale: 'en' })
+    const flows = Array.from({ length: 110 }, (_, index) => ({
+        title: 'Branch ' + index,
+        items: [{ id: 'screen-a', note: 'Outcome ' + index }],
+    }))
+    const { envelope } = await f.call('tools/call', {
+        params: { name: tool, arguments: { ...input, flows } },
+    })
+    assert.ok(!envelope.error && !envelope.result.isError, JSON.stringify(envelope))
+    const manifest = await f.read(envelope.result.structuredContent.id)
+    assert.deepEqual(manifest.flows, flows)
+    assert.equal(manifest.items.length, 1)
+    assert.deepEqual(f.assetChecks(), { headCount: 1, peakHeads: 1 })
+})
+
+test('catalogue-scale verification checks exact paginated R2 keys and rejects absent thumbnails', async () => {
+    const f = fixture({
+        listHistory({ prefix, cursor }) {
+            if (prefix === 'assets/ff' && cursor === undefined)
+                return { objects: [{ key: prefix + '0'.repeat(62) + '.webp' }], truncated: true, cursor: '0' }
+        },
+    })
+    const items = Array.from({ length: 505 }, (_, index) => ({ id: 'screen-' + index }))
+    const assets = items.map(({ id }) => f.seed({ screenId: id, locale: 'en', separateThumbnail: true }))
+    const body = { ...input, flows: [{ title: 'Catalogue screens', items }] }
+    const response = await f.request('/v1/flow-pages', { body })
+    assert.equal(response.status, 201)
+    assert.equal(
+        f.assetListings(),
+        new Set([...f.objects.keys()].filter((key) => key.startsWith('assets/')).map((key) => key.slice(0, 9))).size + 1
+    )
+    assert.deepEqual(f.assetChecks(), { headCount: 0, peakHeads: 0 })
+    const page = await f.read((await response.json()).id)
+    const last = page.items.at(-1)
+    assert.equal(last.variants.en.image, assets.at(-1).id)
+    assert.notEqual(last.variants.en.image, last.variants.en.thumbnail)
+
+    f.objects.delete('assets/' + last.variants.en.thumbnail)
+    const rejected = await f.request('/v1/flow-pages', { body })
+    assert.equal(rejected.status, 400)
+    assert.match((await rejected.json()).error, /screen-504.*not published in en/)
+    assert.equal(f.manifestCount(), 1)
+})
+
+test('busy hash prefixes fall back to exact HEADs only when the request budget can cover them', async () => {
+    let allPrefixesBusy = false
+    const f = fixture({
+        listHistory({ prefix, cursor }) {
+            if (allPrefixesBusy || prefix === 'assets/ff') {
+                const page = String(Number(cursor ?? 0) + 1)
+                return {
+                    objects: [{ key: prefix + page.padStart(62, '0') + '.webp' }],
+                    truncated: true,
+                    cursor: page,
+                }
+            }
+        },
+    })
+    const items = Array.from({ length: 505 }, (_, index) => ({ id: 'screen-' + index }))
+    for (const { id } of items) f.seed({ screenId: id, locale: 'en', separateThumbnail: true })
+    const body = { ...input, flows: [{ title: 'Catalogue screens', items }] }
+    const first = await f.request('/v1/flow-pages', { body })
+    assert.equal(first.status, 201)
+    const expectedHeads = [...f.objects.keys()].filter((key) => key.startsWith('assets/ff')).length
+    assert.ok(expectedHeads > 0)
+    assert.equal(f.assetChecks().headCount, expectedHeads)
+    assert.ok(f.assetChecks().peakHeads <= 6)
+
+    allPrefixesBusy = true
+    const listingsBefore = f.assetListings()
+    const overBudget = await f.request('/v1/flow-pages', { body })
+    assert.equal(overBudget.status, 503)
+    assert.match((await overBudget.json()).error, /storage request budget.*split the flow page/)
+    assert.ok(f.assetListings() - listingsBefore <= 512)
+    assert.equal(f.assetChecks().headCount, expectedHeads)
     assert.equal(f.manifestCount(), 1)
 })

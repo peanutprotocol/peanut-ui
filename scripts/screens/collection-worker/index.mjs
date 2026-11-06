@@ -24,7 +24,11 @@ const CAPTURE_STALE_AFTER_MS = 90 * 60 * 1000
 const COMPARISON_SEARCH_LIMIT = 100
 const FLOW_PAGE_MAX_BYTES = 256 * 1024
 const FLOW_PAGE_BODY_TIMEOUT_MS = 5_000
-const FLOW_PAGE_ASSET_HEAD_CONCURRENCY = 6
+const FLOW_PAGE_ASSET_CONCURRENCY = 6
+const FLOW_PAGE_ASSET_LIST_THRESHOLD = 800
+const FLOW_PAGE_ASSET_LIST_PAGES_PER_PREFIX = 2
+// Leave room within the Workers Free 1,000 internal subrequests for source and manifest I/O.
+const FLOW_PAGE_ASSET_REQUEST_BUDGET = 900
 
 async function actor(request, env, ctx) {
     const internal = request.headers.get('authorization')
@@ -330,20 +334,65 @@ async function ensureFlowPageAssets(collection, bucket) {
                 throw new Error(
                     `Screen ${item.id} is not published in ${locale}. Choose a published screen and locale.`
                 )
-            for (const asset of [variant.image, variant.thumbnail])
-                if (!assets.has(asset)) assets.set(asset, { id: item.id, locale })
+            for (const asset of [variant.image, variant.thumbnail]) {
+                const key = `assets/${asset}`
+                if (!assets.has(key)) assets.set(key, { id: item.id, locale })
+            }
         }
     }
+    function missingAsset(asset) {
+        const { id, locale } = assets.get(asset)
+        return new Error(
+            `A screenshot asset for ${id} is not published in ${locale}. Choose another screen or republish the capture.`
+        )
+    }
+
+    let remainingRequests = FLOW_PAGE_ASSET_REQUEST_BUDGET
+    const budgetError = () =>
+        new Error(
+            'Could not verify every screenshot within the storage request budget. Select fewer locales or split the flow page.'
+        )
+    function spendRequest() {
+        if (remainingRequests === 0) throw budgetError()
+        remainingRequests--
+    }
+
+    // Group content hashes to skip unrelated history. Confirm each exact key,
+    // then HEAD any outstanding keys from prefixes with more history.
+    if (assets.size > FLOW_PAGE_ASSET_LIST_THRESHOLD) {
+        const byPrefix = new Map()
+        for (const key of assets.keys()) {
+            const prefix = key.slice(0, 'assets/'.length + 2)
+            if (!byPrefix.has(prefix)) byPrefix.set(prefix, new Set())
+            byPrefix.get(prefix).add(key)
+        }
+        const groups = [...byPrefix]
+        for (let offset = 0; offset < groups.length; offset += FLOW_PAGE_ASSET_CONCURRENCY) {
+            await Promise.all(
+                groups.slice(offset, offset + FLOW_PAGE_ASSET_CONCURRENCY).map(async ([prefix, pending]) => {
+                    let cursor
+                    for (let page = 0; page < FLOW_PAGE_ASSET_LIST_PAGES_PER_PREFIX; page++) {
+                        spendRequest()
+                        const result = await bucket.list({ prefix, limit: 1000, cursor })
+                        for (const { key } of result.objects) {
+                            if (pending.delete(key)) assets.delete(key)
+                        }
+                        if (!pending.size) return
+                        if (!result.truncated) throw missingAsset(pending.values().next().value)
+                        if (!result.cursor || result.cursor === cursor) return
+                        cursor = result.cursor
+                    }
+                })
+            )
+        }
+    }
+    if (assets.size > remainingRequests) throw budgetError()
     const keys = [...assets.keys()]
-    for (let offset = 0; offset < keys.length; offset += FLOW_PAGE_ASSET_HEAD_CONCURRENCY) {
+    for (let offset = 0; offset < keys.length; offset += FLOW_PAGE_ASSET_CONCURRENCY) {
         await Promise.all(
-            keys.slice(offset, offset + FLOW_PAGE_ASSET_HEAD_CONCURRENCY).map(async (asset) => {
-                if (!(await bucket.head(`assets/${asset}`))) {
-                    const { id, locale } = assets.get(asset)
-                    throw new Error(
-                        `A screenshot asset for ${id} is not published in ${locale}. Choose another screen or republish the capture.`
-                    )
-                }
+            keys.slice(offset, offset + FLOW_PAGE_ASSET_CONCURRENCY).map(async (asset) => {
+                spendRequest()
+                if (!(await bucket.head(asset))) throw missingAsset(asset)
             })
         )
     }
@@ -389,7 +438,7 @@ async function createFlowPage(request, authenticated, env) {
     let collection
     try {
         const source = await sources(env.REPORTS, spec.locales)
-        collection = { ...composeCollection({ id, spec, ...source }), flows: spec.flows }
+        collection = composeCollection({ id, spec, ...source, flows: spec.flows })
         await ensureFlowPageAssets(collection, env.REPORTS)
     } catch (cause) {
         // A concurrent matching request may have published from a previous source.

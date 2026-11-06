@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/server'
 import { createMcpHandler } from 'agents/mcp/server'
 import { z } from 'zod'
 import { verifiedAccessIdentity } from '../access.mjs'
-import { COLLECTION_LOCALES, FLOW_PAGE_MAX_STEPS, FLOW_PAGE_REQUEST_ID } from '../collection-core.mjs'
+import { COLLECTION_LOCALES, FLOW_PAGE_REQUEST_ID } from '../collection-core.mjs'
 import { collectionRequest, textResult } from './client.mjs'
 
 function serverFor(env, actor) {
@@ -106,16 +106,10 @@ function serverFor(env, actor) {
                                         note: z.string().max(1000).optional(),
                                     })
                                 )
-                                .min(1)
-                                .max(FLOW_PAGE_MAX_STEPS),
+                                .min(1),
                         })
                     )
-                    .min(1)
-                    .max(FLOW_PAGE_MAX_STEPS)
-                    .refine(
-                        (flows) => flows.reduce((count, flow) => count + flow.items.length, 0) <= FLOW_PAGE_MAX_STEPS,
-                        `A flow page needs at most ${FLOW_PAGE_MAX_STEPS} total screens`
-                    ),
+                    .min(1),
                 requestId: z.string().regex(FLOW_PAGE_REQUEST_ID).optional(),
             }),
             outputSchema: {
