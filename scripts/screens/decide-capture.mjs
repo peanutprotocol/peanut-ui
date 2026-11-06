@@ -21,7 +21,11 @@ const changedFiles = execFileSync('git', ['diff', '--name-only', '--no-renames',
 })
     .split('\0')
     .filter(Boolean)
-let mode = event !== 'workflow_dispatch' && changedFiles.length && changedFiles.every(knownNonvisual) ? 'skip' : 'full'
+const releasePreview = event === 'pull_request' && branch === 'main'
+let mode =
+    !releasePreview && event !== 'workflow_dispatch' && changedFiles.length && changedFiles.every(knownNonvisual)
+        ? 'skip'
+        : 'full'
 let only = ''
 let gallery = false
 let capabilities
@@ -52,7 +56,7 @@ if (
     mode = 'full'
     console.log('Trusted gallery-only workflow unavailable; retaining legacy capture/publication delivery.')
 }
-if (process.argv.includes('--impact') && mode !== 'skip' && event === 'pull_request') {
+if (process.argv.includes('--impact') && mode !== 'skip' && event === 'pull_request' && !releasePreview) {
     const capable = capabilities?.scopedCapture === 1
     if (!capable) {
         console.log('Trusted dev publisher has no scoped-capture capability; retaining full legacy pairs.')

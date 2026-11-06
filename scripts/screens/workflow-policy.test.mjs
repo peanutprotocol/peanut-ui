@@ -10,6 +10,20 @@ const gallery = readFileSync('.github/workflows/screen-library-gallery.yml', 'ut
 const collections = readFileSync('.github/workflows/screen-library-collection.yml', 'utf8')
 const publishRun = readFileSync('scripts/screens/publish-run.mjs', 'utf8')
 const baselinePublisher = readFileSync('scripts/screens/publish-baseline-viewports.mjs', 'utf8')
+const captureDecision = readFileSync('scripts/screens/decide-capture.mjs', 'utf8')
+
+test('release reviews route to an exact full preview without changing integration capture rules', () => {
+    assert.match(screenLibrary, /pull_request:\n\s+branches: \[dev, main\]/)
+    assert.match(screenLibrary, /github.base_ref == 'main' && github.head_ref == 'dev'/)
+    assert.match(screenLibrary, /if \[ "\$GITHUB_BASE_REF" = main \]; then\s+before="\$PR_BASE"/)
+    assert.match(screenLibrary, /github.event.action != 'edited' \|\| github.event.changes.base.ref/)
+    assert.match(captureDecision, /!releasePreview && event !== 'workflow_dispatch'/)
+    assert.match(
+        publishRun,
+        /if \(releasePreview\) throw new Error\('Release previews require full capture catalogues'\)/
+    )
+    assert.match(publishRun, /releasePreview \? '\?view=all&layout=paired'/)
+})
 
 test('main updates capture both full catalogues and retain the original push boundary in trusted publishing', () => {
     assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)

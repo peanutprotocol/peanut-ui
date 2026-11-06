@@ -1,18 +1,27 @@
+import { readFileSync } from 'node:fs'
+
+const validSha = (value) => /^[a-f0-9]{40}$/.test(value ?? '') && value !== '0'.repeat(40)
+
+export function eligibleReviewBranches(headRef, baseRef) {
+    return baseRef === 'dev' || (baseRef === 'main' && headRef === 'dev')
+}
+
 /** Bind an Actions run to one live same-repository PR, even when GitHub omits its PR list. */
 export function reviewProvenance(repository, run, candidates, git) {
     const pr = reviewPullRequest(
         repository,
         run,
-        candidates.filter((pr) => pr.state === 'open' && !pr.merged_at)
+        candidates.filter((pr) => pr.state === 'open' && !pr.merged_at && !pr.draft)
     )
     if (!pr) return null // closed, superseded, or no longer bound to this run
     const snapshot = run.pull_requests?.[0]
     const head = reviewHeadRevision(run)
-    // Preserve the event's base when available. If GitHub omitted it, require
-    // today's exact merge base; a changed base fails publication and needs a rerun.
+    // Releases compare the current main tip captured by the event, even when it diverges from dev.
+    // Feature reviews keep the merge base of the original event's base and head.
     const base = snapshot?.base.sha ?? pr.base.sha
-    if (!/^[a-f0-9]{40}$/.test(base)) throw new Error('Invalid PR revision')
-    return { pr, before: git(['merge-base', base, head]).trim(), after: head }
+    if (!validSha(base)) throw new Error('Invalid PR revision')
+    if (pr.base.ref === 'main' && base !== pr.base.sha) return null
+    return { pr, before: pr.base.ref === 'main' ? base : git(['merge-base', base, head]).trim(), after: head }
 }
 
 /** Resolve exact PR identity independently of whether the review is still live. */
@@ -21,12 +30,16 @@ export function reviewPullRequest(repository, run, candidates) {
     if (origins.length > 1) throw new Error('Ambiguous PR provenance')
     const snapshot = origins[0]
     const head = snapshot?.head.sha ?? run.head_sha
-    if (!/^[a-f0-9]{40}$/.test(head)) throw new Error('Invalid PR revision')
-    if (snapshot && (snapshot.head.ref !== run.head_branch || snapshot.base.ref !== 'dev'))
+    if (!validSha(head)) throw new Error('Invalid PR revision')
+    if (
+        snapshot &&
+        (snapshot.head.ref !== run.head_branch || !eligibleReviewBranches(snapshot.head.ref, snapshot.base.ref))
+    )
         throw new Error('PR snapshot does not match triggering run')
     const matches = candidates.filter(
         (pr) =>
-            pr.base.ref === 'dev' &&
+            eligibleReviewBranches(pr.head.ref, pr.base.ref) &&
+            (!snapshot || pr.base.ref === snapshot.base.ref) &&
             pr.head.repo?.full_name === repository &&
             pr.head.ref === run.head_branch &&
             pr.head.sha === head &&
@@ -41,4 +54,36 @@ export function reviewHeadRevision(run) {
     const origins = run.pull_requests ?? []
     if (origins.length > 1) throw new Error('Ambiguous PR provenance')
     return origins[0]?.head.sha ?? run.head_sha
+}
+
+// Actions can omit its PR snapshot. The original workflow_call event still
+// establishes the release PR number and immutable revision pair.
+export function bindReleaseReviewEvent(repository, run, eventPath = process.env.GITHUB_EVENT_PATH) {
+    if (run.event !== 'pull_request' || !eventPath) return run
+    const { pull_request: eventPr } = JSON.parse(readFileSync(eventPath, 'utf8'))
+    if (eventPr?.base?.ref !== 'main') return run
+    const { number, head, base, draft } = eventPr
+    const snapshots = run.pull_requests ?? []
+    const snapshot = snapshots[0]
+    if (
+        !Number.isSafeInteger(number) ||
+        number < 1 ||
+        draft ||
+        !eligibleReviewBranches(head?.ref, base.ref) ||
+        head.repo?.full_name !== repository ||
+        base.repo?.full_name !== repository ||
+        run.head_branch !== head.ref ||
+        !validSha(head.sha) ||
+        !validSha(base.sha) ||
+        snapshots.length > 1 ||
+        (snapshot
+            ? snapshot.number !== number ||
+              snapshot.head?.ref !== head.ref ||
+              snapshot.head?.sha !== head.sha ||
+              snapshot.base?.ref !== base.ref ||
+              snapshot.base?.sha !== base.sha
+            : run.head_sha !== head.sha)
+    )
+        throw new Error('Release pull request event does not match the triggering run')
+    return { ...run, pull_requests: [{ number, head, base }] }
 }

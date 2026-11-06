@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { bindReleaseReviewEvent, reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 const repository = 'peanutprotocol/peanut-ui'
 const head = 'a'.repeat(40),
     base = 'b'.repeat(40),
@@ -49,4 +52,28 @@ test('snapshot branch and base must match the triggering review', () => {
         { number: 12, head: pr.head, base: { ...pr.base, ref: 'main' } },
     ])
         assert.throws(() => reviewProvenance(repository, { ...run, pull_requests: [snapshot] }, [pr], git), /snapshot/)
+})
+
+test('trusted caller event fills an empty Actions snapshot and preserves exact release identity', (t) => {
+    const directory = mkdtempSync(join(tmpdir(), 'release-review-'))
+    t.after(() => rmSync(directory, { recursive: true, force: true }))
+    const eventPath = join(directory, 'event.json')
+    const release = {
+        ...pr,
+        head: { ...pr.head, ref: 'dev' },
+        base: { ...pr.base, ref: 'main', repo: { full_name: repository } },
+    }
+    writeFileSync(eventPath, JSON.stringify({ pull_request: release }))
+    const releaseRun = { ...run, event: 'pull_request', head_branch: 'dev' }
+    const bound = bindReleaseReviewEvent(repository, releaseRun, eventPath)
+    const other = { ...release, number: release.number + 1 }
+    assert.equal(reviewProvenance(repository, bound, [release, other], git).pr.number, release.number)
+    assert.equal(
+        reviewProvenance(repository, bound, [{ ...release, base: { ...release.base, sha: oldBase } }], git),
+        null
+    )
+    assert.throws(
+        () => bindReleaseReviewEvent(repository, { ...releaseRun, pull_requests: [other] }, eventPath),
+        /does not match the triggering run/
+    )
 })
