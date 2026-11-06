@@ -248,6 +248,16 @@ describe('aveniaWithdrawOutcome', () => {
         expect(aveniaWithdrawOutcome('funded', entry('REFUNDED', 'done'))).toBe('refunded')
     })
 
+    it('after a reload, calls a withdrawal this device never signed not sent while the API waits for it', () => {
+        const waiting = (intentStatus: string) => ({ status: 'PENDING' as never, extraData: { intentStatus } })
+        expect(aveniaWithdrawOutcome('unsigned', waiting('AWAITING_USER_ACTION'))).toBe('not-sent')
+        // the device may have sent it: wait for the API instead
+        expect(aveniaWithdrawOutcome('unconfirmed', waiting('AWAITING_USER_ACTION'))).toBe('unconfirmed')
+        // the API saw the deposit
+        expect(aveniaWithdrawOutcome('unsigned', waiting('PROCESSING'))).toBe('on-its-way')
+        expect(aveniaWithdrawOutcome('unconfirmed', waiting('PROCESSING'))).toBe('on-its-way')
+    })
+
     it('calls an unconfirmed deposit not sent only once the entry ends unfunded', () => {
         expect(aveniaWithdrawOutcome('unconfirmed', undefined)).toBe('unconfirmed')
         expect(aveniaWithdrawOutcome('unconfirmed', entry('CANCELLED'))).toBe('not-sent')

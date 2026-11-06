@@ -121,6 +121,11 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
             <AveniaWithdrawOutcome
                 title={title}
                 intentId={intentId}
+                // nothing left the wallet: the same key and amount, quoted again
+                onStartAgain={() => {
+                    void setIntentId(null)
+                    void stepper.goTo('review')
+                }}
                 sent={
                     isSent && submit.opened
                         ? {
@@ -227,8 +232,13 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const reconfirm = submit.phase === 'reconfirm'
     const fundsShort = !!display && !isAmountWithinBalance(display.withdrawUsd, spendableBalance)
     const reviewError = submit.error
-        ? // once Avenia's ticket is open, a second Confirm could pay twice: no retry here
-          { message: submit.lockedAfterInit ? `${submit.error} ${t('errors.afterInit')}` : submit.error }
+        ? // once Avenia's ticket is open, only a signature that surely sent nothing may be tried again
+          {
+              message:
+                  submit.lockedAfterInit && !submit.canSignOpened
+                      ? `${submit.error} ${t('errors.afterInit')}`
+                      : submit.error,
+          }
         : preview.error
           ? { message: refusalMessage(preview.error), onRetry: () => void preview.refetch() }
           : fundsShort
@@ -250,13 +260,13 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 !fundsShort &&
                 // another balance-decreasing send is still in flight
                 !hasPendingTransactions &&
-                (reconfirm || !submit.lockedAfterInit)
+                (submit.canSignOpened || !submit.lockedAfterInit)
             }
             // an opened ticket keeps its amount: back leaves instead of editing it
             onBack={() => (submit.lockedAfterInit ? leaveFlow() : void stepper.goTo('amount'))}
             onCancel={leaveFlow}
             onConfirm={async () => {
-                if (reconfirm) return submit.confirmOpened()
+                if (submit.canSignOpened) return submit.confirmOpened()
                 if (!request || !preview.data) return
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
                     amount_usd: preview.data.withdrawUsd,

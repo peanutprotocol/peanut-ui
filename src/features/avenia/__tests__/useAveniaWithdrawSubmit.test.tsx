@@ -343,4 +343,92 @@ describe('useAveniaWithdrawSubmit', () => {
         expect(result.current.error).toBe('unavailable')
         expect(result.current.lockedAfterInit).toBe(true)
     })
+
+    describe('a signature that failed after the ticket opened', () => {
+        const dismissed = () => Object.assign(new Error('The operation was not allowed.'), { name: 'NotAllowedError' })
+        const sentMark = () => window.localStorage.getItem('avenia-withdraw-sent:w1')
+        beforeEach(() => window.localStorage.clear())
+
+        it('may be signed once more after a dismissed passkey, while the quote holds', async () => {
+            mockInit.mockResolvedValue(initResponse())
+            mockSendTransactions
+                .mockRejectedValueOnce(dismissed())
+                .mockResolvedValueOnce({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+            const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            expect(result.current.canSignOpened).toBe(true)
+            // nothing went out, so a reload may say so
+            expect(sentMark()).toBeNull()
+
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+            expect(mockSendTransactions).toHaveBeenCalledTimes(2)
+            expect(mockInit).toHaveBeenCalledTimes(1)
+            expect(result.current.phase).toBe('funded')
+            expect(sentMark()).toBe('1')
+        })
+
+        it('may be signed once more after a revert, and only once', async () => {
+            mockInit.mockResolvedValue(initResponse())
+            mockSendTransactions.mockResolvedValue({
+                receipt: { status: 'reverted', transactionHash: MINED, logs: [] },
+            })
+            const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            expect(result.current.canSignOpened).toBe(true)
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+            expect(result.current.canSignOpened).toBe(false)
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+            expect(mockSendTransactions).toHaveBeenCalledTimes(2)
+        })
+
+        it('is never signed again after a failure that may have sent the deposit', async () => {
+            mockInit.mockResolvedValue(initResponse())
+            mockSendTransactions.mockRejectedValue(new Error('bundler said no'))
+            const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+
+            expect(result.current.canSignOpened).toBe(false)
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            // a reload keeps it unconfirmed, not "start again"
+            expect(sentMark()).toBe('1')
+        })
+
+        it('is not signed again once the quote has expired', async () => {
+            mockInit.mockResolvedValue(initResponse({ quoteExpiresAt: new Date(Date.now() + 50).toISOString() }))
+            mockSendTransactions.mockImplementationOnce(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 60))
+                throw dismissed()
+            })
+            const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            expect(result.current.error).toBe('withdraw.errors.quoteExpired')
+            expect(result.current.canSignOpened).toBe(false)
+        })
+    })
 })

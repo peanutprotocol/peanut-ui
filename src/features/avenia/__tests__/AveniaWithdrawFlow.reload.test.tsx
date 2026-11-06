@@ -51,8 +51,8 @@ const route: CapabilityRoute = {
     state: 'ready',
     candidates: [{ provider: 'avenia', state: 'ready' }],
 }
-const entry = (status: string) => ({
-    data: { uuid: 'w1', status, currency: { amount: '503.00', code: 'BRL' }, extraData: {} },
+const entry = (status: string, intentStatus?: string) => ({
+    data: { uuid: 'w1', status, currency: { amount: '503.00', code: 'BRL' }, extraData: { intentStatus } },
     isLoading: false,
 })
 
@@ -77,6 +77,33 @@ describe('AveniaWithdrawFlow after a reload', () => {
         expect(screen.queryByRole('button', { name: en.common.confirm })).toBeNull()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(mockInit).not.toHaveBeenCalled()
+    })
+
+    it('a withdrawal this device never signed reads as not sent, and starts again from the review', async () => {
+        window.localStorage.clear()
+        mockEntry.mockReturnValue(entry('PENDING', 'AWAITING_USER_ACTION'))
+        mockPreview.mockReturnValue(new Promise(() => {}))
+        const urls: string[] = []
+        renderAt('?step=success&destination=09579927189&destinationAmount=503&intentId=w1', (event) =>
+            urls.push(event.queryString)
+        )
+
+        expect(screen.getByText(en.avenia.withdraw.notSent)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.common.tryAgain }))
+
+        await waitFor(() => expect(urls.at(-1)).not.toContain('intentId'))
+        expect(urls.at(-1)).toContain('step=review')
+        expect(mockInit).not.toHaveBeenCalled()
+    })
+
+    it('a withdrawal this device may have signed stays unconfirmed after a reload', () => {
+        window.localStorage.setItem('avenia-withdraw-sent:w1', '1')
+        mockEntry.mockReturnValue(entry('PENDING', 'AWAITING_USER_ACTION'))
+        renderAt('?step=success&intentId=w1')
+
+        expect(screen.getByText(en.avenia.withdraw.unconfirmed)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.tryAgain })).toBeNull()
+        window.localStorage.clear()
     })
 
     it('reads the outcome from the history entry once Avenia paid the Pix', () => {

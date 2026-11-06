@@ -124,6 +124,9 @@ export interface HistoryEntryExtraData {
     aveniaRecovery?: AveniaRecoveryView | null
     /** On an Avenia ONRAMP only: whether its code can still be paid. Read it through `aveniaCodePayable`. */
     aveniaDeposit?: AveniaDepositView
+    /** The intent's own status, which `status` folds into PENDING (an Avenia withdrawal is
+     *  AWAITING_USER_ACTION until its deposit is reported or seen, PROCESSING after). */
+    intentStatus?: string
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.

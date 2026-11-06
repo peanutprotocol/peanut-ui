@@ -331,6 +331,7 @@ function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }
                 title="Withdraw"
                 intentId="fixture-avenia-withdrawal"
                 sent={{ phase: 'funded', display }}
+                onStartAgain={noop}
             />
         </AppPageSurface>
     )

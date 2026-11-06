@@ -17,10 +17,12 @@ import {
 } from '@/services/avenia'
 import { wireErrorCode } from '@/services/api-error'
 import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
+import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/avenia/aveniaWithdrawSent'
 import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { BALANCE_DECREASE, PIX_WITHDRAW, TRANSACTIONS } from '@/constants/query.consts'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
+import { isUserCancellation } from '@/hooks/wallet/spendPreflight'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
@@ -46,8 +48,17 @@ interface OpenedWithdrawal {
 export interface AveniaWithdrawSubmit {
     /** Opens the withdrawal for the reviewed quote; signs at once unless the opened quote is worse. */
     submit: (request: AveniaWithdrawRequest, reviewed: AveniaWithdrawDisplay) => Promise<void>
-    /** Signs the opened withdrawal once the user saw its new amounts (phase `reconfirm`). */
+    /**
+     * Signs the opened withdrawal: after the user saw its new amounts (phase `reconfirm`),
+     * or once more after a signature that surely sent nothing (`canSignOpened`).
+     */
     confirmOpened: () => Promise<void>
+    /**
+     * The opened withdrawal can be signed now: its quote moved and waits for the user, or the
+     * first signature was dismissed or reverted. One such re-sign per ticket, while Rhino's quote
+     * holds; after an unexplained failure the deposit may have gone out, so never.
+     */
+    canSignOpened: boolean
     phase: AveniaWithdrawPhase
     /** The opened withdrawal: what the wallet signs, and what the review and success screens show. */
     opened: { intentId: string; display: AveniaWithdrawDisplay } | null
@@ -108,6 +119,9 @@ export function useAveniaWithdrawSubmit({
     const [phase, setPhase] = useState<AveniaWithdrawPhase>('idle')
     const [opened, setOpened] = useState<OpenedWithdrawal | null>(null)
     const [error, setError] = useState<string | null>(null)
+    // the first signature sent nothing (dismissed, reverted): the open ticket may be signed once more
+    const [resignable, setResignable] = useState(false)
+    const resignUsedRef = useRef(false)
     const busyRef = useRef(false)
 
     const sign = useCallback(
@@ -115,15 +129,20 @@ export function useAveniaWithdrawSubmit({
             // Rhino's quote lives 3 minutes; a deposit on an expired commitment is not bridged
             if (!(Date.parse(request.quoteExpiresAt) > Date.now())) {
                 setError(tShared('withdraw.errors.quoteExpired'))
+                setResignable(false)
                 setPhase('idle')
                 return
             }
             setPhase('signing')
             const amount = BigInt(request.payAmountUnits)
             let minedHash: string | undefined
+            let reverted = false
+            // from here a deposit may leave the wallet; a reload must not read it as never signed
+            markDepositMaybeSent(intentId)
             try {
                 const result = await sendDeposit({ request, amount })
                 if (result.receipt && isTxReverted(result.receipt)) {
+                    reverted = true
                     throw new Error(`Transaction failed (reverted). Hash: ${result.receipt.transactionHash}`)
                 }
                 minedHash = result.receipt?.transactionHash
@@ -138,6 +157,11 @@ export function useAveniaWithdrawSubmit({
                 ) {
                     void captureNetworkTriagedFailure(caught, { tags: flowTags('sign'), extra: { intentId } })
                 }
+                // A dismissed passkey or a reverted transaction moved nothing, so the ticket can be
+                // signed once more. Any other failure may have sent the deposit: never again.
+                const nothingSent = reverted || isUserCancellation(caught)
+                if (nothingSent) clearDepositMaybeSent(intentId)
+                setResignable(nothingSent && !resignUsedRef.current)
                 setError(toFriendlyError(caught))
                 setPhase('idle')
                 return
@@ -212,20 +236,25 @@ export function useAveniaWithdrawSubmit({
         [hasPendingTransactions, initError, onOpened, opened, sign, tShared]
     )
 
+    const canSignOpened = !!opened && (phase === 'reconfirm' || (phase === 'idle' && resignable))
+
     const confirmOpened = useCallback(async () => {
-        if (busyRef.current || phase !== 'reconfirm' || !opened) return
+        if (busyRef.current || !opened || !canSignOpened) return
         busyRef.current = true
+        if (phase === 'idle') resignUsedRef.current = true
+        setResignable(false)
         setError(null)
         try {
             await sign(opened)
         } finally {
             busyRef.current = false
         }
-    }, [opened, phase, sign])
+    }, [canSignOpened, opened, phase, sign])
 
     return {
         submit,
         confirmOpened,
+        canSignOpened,
         phase,
         opened: opened ? { intentId: opened.intentId, display: opened.display } : null,
         error,

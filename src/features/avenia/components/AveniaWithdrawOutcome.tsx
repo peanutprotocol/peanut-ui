@@ -13,6 +13,7 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { aveniaWithdrawOutcome } from '@/features/avenia/avenia.utils'
 import { aveniaNewKeyUrl } from '@/features/avenia/aveniaRecovery'
+import { depositMaybeSent } from '@/features/avenia/aveniaWithdrawSent'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import type { AveniaWithdrawDisplay } from '@/services/avenia'
@@ -21,17 +22,21 @@ import { formatBankAmount } from '@/utils/currency'
 /**
  * The last step of a Pix withdrawal (`?intentId=`). The withdrawal's history
  * entry says whether Avenia paid the Pix. `sent` is what this session signed;
- * after a reload it is null, the screen reads the amount from the entry, and
- * the deposit counts as unconfirmed until the entry says otherwise.
+ * after a reload it is null and the screen reads the amount from the entry.
+ * A deposit this device may have sent counts as unconfirmed until the entry
+ * says otherwise; one it never sent reads as not sent, with a way to start again.
  */
 export function AveniaWithdrawOutcome({
     title,
     intentId,
     sent,
+    onStartAgain,
 }: {
     title: string
     intentId: string
     sent: { phase: 'funded' | 'unconfirmed'; display: AveniaWithdrawDisplay } | null
+    /** Nothing left the wallet: back to the review, quoted again. */
+    onStartAgain: () => void
 }) {
     const t = useTranslations('avenia.withdraw')
     const tShared = useTranslations('avenia')
@@ -45,7 +50,10 @@ export function AveniaWithdrawOutcome({
     const amountBrl =
         sent?.display.amountBrl ?? (entry.data?.currency?.code === 'BRL' ? entry.data.currency.amount : undefined)
     const to = sent ? [sent.display.bankName, sent.display.holderName].filter(Boolean).join(' · ') : ''
-    const outcome = aveniaWithdrawOutcome(sent?.phase ?? 'unconfirmed', entry.data)
+    const outcome = aveniaWithdrawOutcome(
+        sent?.phase ?? (depositMaybeSent(intentId) ? 'unconfirmed' : 'unsigned'),
+        entry.data
+    )
     const failed = outcome === 'not-sent' || outcome === 'refunded'
     const description = {
         arrived: to ? t('arrivedTo', { destination: to }) : t('arrived'),
@@ -80,6 +88,13 @@ export function AveniaWithdrawOutcome({
                             onClick={() => router.push(aveniaNewKeyUrl(intentId))}
                         >
                             {tShared('recovery.addKey')}
+                        </Button>
+                        <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
+                    </>
+                ) : outcome === 'not-sent' ? (
+                    <>
+                        <Button variant="primary" className="w-full" onClick={onStartAgain}>
+                            {tCommon('tryAgain')}
                         </Button>
                         <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
                     </>

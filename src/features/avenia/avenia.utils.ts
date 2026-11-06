@@ -229,16 +229,26 @@ export function quoteMovedAgainstUser(
  * step says "on its way" until the entry completes, and asks for another key
  * when the bank refused the payout. An unconfirmed deposit that ended failed
  * or cancelled never reached Rhino, so nothing left the wallet.
+ *
+ * `phase` is what this device knows of the deposit: `funded` (mined),
+ * `unconfirmed` (it may have gone out: no receipt, or a reload after the
+ * wallet was asked to sign), `unsigned` (a reload, and the wallet was never
+ * asked, or the signature surely sent nothing). An unsigned withdrawal the API
+ * still holds for its signature (AWAITING_USER_ACTION) is not sent: this page
+ * lost the signature request, so it starts again.
  */
 export type AveniaWithdrawOutcome = 'on-its-way' | 'unconfirmed' | 'arrived' | 'needs-key' | 'refunded' | 'not-sent'
 
 export function aveniaWithdrawOutcome(
-    phase: 'funded' | 'unconfirmed',
+    phase: 'funded' | 'unconfirmed' | 'unsigned',
     entry: Pick<HistoryEntry, 'status' | 'extraData'> | undefined
 ): AveniaWithdrawOutcome {
     if (entry?.status === 'COMPLETED') return 'arrived'
     if (awaitsNewPixKey(entry?.extraData)) return 'needs-key'
     if (entry?.status === 'REFUNDED') return 'refunded'
-    if (phase === 'unconfirmed' && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(entry?.status ?? '')) return 'not-sent'
+    if (phase !== 'funded' && ['FAILED', 'CANCELLED', 'EXPIRED'].includes(entry?.status ?? '')) return 'not-sent'
+    // the API saw the deposit (reported, or found at Rhino): Avenia pays next
+    if (entry?.extraData?.intentStatus === 'PROCESSING') return 'on-its-way'
+    if (phase === 'unsigned' && entry?.extraData?.intentStatus === 'AWAITING_USER_ACTION') return 'not-sent'
     return phase === 'funded' ? 'on-its-way' : 'unconfirmed'
 }
