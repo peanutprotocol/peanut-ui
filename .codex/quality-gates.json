@@ -28,6 +28,7 @@
                 "src/services/__tests__/charges-create-transport.test.ts",
                 "src/features/paperwork-verification/__tests__/IdentityDocumentScreen.test.tsx",
                 "src/features/paperwork-verification/__tests__/PaperworkVerificationFlow.test.tsx",
+                "src/features/paperwork-verification/__tests__/useAnswerForm.account.test.ts",
                 "src/app/(mobile-ui)/__tests__/layout-backend-error.test.tsx",
                 "src/components/AddWithdraw/__tests__/AddWithdrawCountriesList.test.tsx",
                 "src/components/AddWithdraw/__tests__/DynamicBankAccountForm.test.tsx"
@@ -51,6 +52,7 @@
                 "src/app/(mobile-ui)/withdraw/crypto/page.tsx",
                 "src/features/paperwork-verification/components/IdentityDocumentScreen.tsx",
                 "src/features/paperwork-verification/PaperworkVerificationFlow.tsx",
+                "src/features/paperwork-verification/useAnswerForm.ts",
                 "src/features/paperwork-verification/components/QuestionStepScreen.tsx",
                 "src/features/paperwork-verification/components/StatusScreens.tsx",
                 "src/features/paperwork-verification/components/VerifyLayout.tsx",

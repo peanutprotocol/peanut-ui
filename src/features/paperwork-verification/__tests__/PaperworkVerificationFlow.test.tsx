@@ -166,6 +166,27 @@ const build = (
     progress: { done: 2, total: 5 },
 })
 
+function withUnansweredFinancialChoices() {
+    const questions = build()
+    const money = questions.steps[1]
+    money.fields[0].value = null
+    money.fields.push({
+        key: 'expectedMonthlyVolume',
+        kind: 'choice',
+        required: true,
+        options: ['under_1k', '1k_5k'],
+        value: null,
+    })
+    questions.steps.splice(1, 0, {
+        id: 'work',
+        features: ['bank'],
+        answered: false,
+        fields: [{ key: 'sourceOfFunds', kind: 'choice', required: true, options: ['salary', 'savings'], value: null }],
+    })
+    questions.firstUnanswered = 'work'
+    return questions
+}
+
 function renderFlow(search = '', client = new QueryClient()) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
@@ -362,6 +383,49 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         // Each step's sentences sit under its own label.
         expect(screen.getByText('Purpose')).toBeInTheDocument()
         expect(screen.getByText('Money')).toBeInTheDocument()
+    })
+
+    it('preselects the three financial choices and writes them only on Continue', async () => {
+        mockQuestions.mockResolvedValue(withUnansweredFinancialChoices())
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        const view = renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
+        expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toHaveTextContent('$1,000–$4,999')
+        expect(screen.getByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My salary')
+        fireEvent.click(screen.getByTestId('verify-back'))
+        view.unmount()
+        expect(mockSave).not.toHaveBeenCalled()
+        expect(window.sessionStorage.getItem('peanut:kycAnswerDraft:user-a')).toBeNull()
+
+        renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My salary')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-input-taxId')).toBeInTheDocument()
+        await waitFor(() =>
+            expect(mockSave.mock.calls).toEqual([
+                ['work', { sourceOfFunds: 'salary' }, undefined, 'user-a'],
+                ['money', { annualSalary: '25k_50k', expectedMonthlyVolume: '1k_5k' }, undefined, 'user-a'],
+            ])
+        )
+    })
+
+    it('keeps saved and edited financial choices and requires a choice when a default is unavailable', async () => {
+        const questions = withUnansweredFinancialChoices()
+        const [income, spending] = questions.steps[2].fields
+        income.value = 'under_25k'
+        spending.options = ['under_1k']
+        mockQuestions.mockResolvedValue(questions)
+        const view = renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
+        expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toHaveTextContent('Choose')
+        expect(continueButton()).toBeDisabled()
+        fireEvent.click(screen.getByTestId('verify-pick-sourceOfFunds'))
+        fireEvent.click(await screen.findByRole('button', { name: 'My savings' }))
+        view.unmount()
+
+        renderFlow('?step=purpose')
+        expect(await screen.findByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My savings')
+        expect(mockSave).not.toHaveBeenCalled()
     })
 
     it('a deep link to saved answers walks the applicable questions and still requires unanswered fields', async () => {
