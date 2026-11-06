@@ -1054,6 +1054,12 @@ dialog::backdrop {
     height: 100%;
     object-fit: contain;
 }
+.diff-bounds {
+    position: absolute;
+    outline: 2px solid #17151a;
+    box-shadow: 0 0 0 4px #ff90e8;
+    pointer-events: none;
+}
 .device-camera {
     display: none;
     position: absolute;

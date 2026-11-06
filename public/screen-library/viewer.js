@@ -1050,7 +1050,7 @@ function previewDevice(side = 'after', source) {
         verified,
     }
 }
-function phonePreview(content, label, { side, capture, chrome = Boolean(side || capture) } = {}) {
+function phonePreview(content, label, { side, capture, bounds, chrome = Boolean(side || capture) } = {}) {
     const device = previewDevice(side, capture)
     const showChrome = chrome && device.verified
     const preview = el('figure', undefined, 'device-preview')
@@ -1087,6 +1087,15 @@ function phonePreview(content, label, { side, capture, chrome = Boolean(side || 
     }
     const screen = el('div', undefined, 'device-screen')
     screen.append(content)
+    if (bounds) {
+        const outline = el('span', undefined, 'diff-bounds')
+        outline.setAttribute('aria-hidden', 'true')
+        outline.style.left = `${(bounds.x / device.width) * 100}%`
+        outline.style.top = `${(bounds.y / device.height) * 100}%`
+        outline.style.width = `${(bounds.width / device.width) * 100}%`
+        outline.style.height = `${(bounds.height / device.height) * 100}%`
+        screen.append(outline)
+    }
     frame.append(
         el('span', undefined, 'device-button device-button-top'),
         el('span', undefined, 'device-button device-button-bottom'),
@@ -1149,11 +1158,37 @@ function previewVerdict(scope, afterPreview) {
     const target = afterPreview ?? fallback
     target?.append(group)
 }
+function diffBounds(row) {
+    const bounds = row.changeBounds
+    if (!bounds) return undefined
+    const { x, y, width, height } = bounds
+    const device = previewDevice()
+    return [x, y, width, height].every(Number.isSafeInteger) &&
+        x >= 0 &&
+        y >= 0 &&
+        width > 0 &&
+        height > 0 &&
+        x + width <= device.width &&
+        y + height <= device.height
+        ? bounds
+        : undefined
+}
+function translationLabel(row) {
+    const { dx, dy } = row.translation ?? {}
+    if (!diffBounds(row) || ![dx, dy].every(Number.isSafeInteger) || Math.max(Math.abs(dx), Math.abs(dy)) > 3) return ''
+    const parts = [
+        dx && `${dx < 0 ? 'left' : 'right'} ${Math.abs(dx)} px`,
+        dy && `${dy < 0 ? 'up' : 'down'} ${Math.abs(dy)} px`,
+    ].filter(Boolean)
+    return parts.length ? `Shifted ${parts.join(', ')}` : ''
+}
 function zoom(row, mode = 'side') {
     comments?.invalidateNavigation?.()
     active = row
-    const single = mode === 'screen' || singleScreenLayout()
-    if (single) mode = 'screen'
+    const hasDiff = row.status === 'changed' && Boolean(asset(row.diff))
+    if (!comparisonMode()) mode = 'screen'
+    else if (mode === 'difference' && !hasDiff) mode = singleScreenLayout() ? 'screen' : 'side'
+    const single = mode === 'screen'
     activeMode = mode
     const historyButton = $('zoom-history')
     if (historyButton) {
@@ -1166,7 +1201,7 @@ function zoom(row, mode = 'side') {
     $('zoom-controls').hidden = single
     $('side').hidden = single
     $('overlay').hidden = single
-    $('difference').hidden = single
+    $('difference').hidden = single || !hasDiff
     for (const name of ['side', 'overlay', 'difference']) $(name).setAttribute('aria-pressed', String(name === mode))
     const before = row.before,
         after = row.after
@@ -1185,7 +1220,13 @@ function zoom(row, mode = 'side') {
         } else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
         if (row.diff)
-            $('zoom-images').append(phonePreview(image(row.diff, 'Pixel difference', { preview: false }), 'Difference'))
+            $('zoom-images').append(
+                phonePreview(
+                    image(row.diff, 'Pixel difference with changed pixels highlighted in red', { preview: false }),
+                    translationLabel(row) || 'Changed pixels in red',
+                    { bounds: diffBounds(row) }
+                )
+            )
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
         const n = el('div', undefined, 'overlay')
@@ -1422,6 +1463,15 @@ function renderTile(row) {
         button.setAttribute('aria-label', `View history for ${row.name}`)
         button.onclick = () => openScreenHistory(row)
         foot.append(button)
+    }
+    if (row.status === 'changed' && asset(row.diff)) {
+        const button = el('button', 'Pixel difference', 'history-link')
+        button.type = 'button'
+        button.setAttribute('aria-label', `View pixel difference for ${row.name}`)
+        button.onclick = () => zoom(row, 'difference')
+        foot.append(button)
+        const label = translationLabel(row)
+        if (label) foot.append(el('span', label))
     }
     if (row.belowThreshold)
         foot.append(

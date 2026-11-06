@@ -242,6 +242,62 @@ async function loadLanding(
     return elements
 }
 
+test('changed cards open pixel evidence directly in both layouts, including older reports', async () => {
+    const before = { image: 'a'.repeat(64) + '.png' }
+    const after = { image: 'b'.repeat(64) + '.png' }
+    const diff = 'c'.repeat(64) + '.png'
+    const base = { name: 'Argentina', flow: 'Add money', kind: 'route', before, after, diff, percent: 0.12 }
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852 },
+        screens: [
+            {
+                ...base,
+                id: 'moved',
+                status: 'changed',
+                changeBounds: { x: 140, y: 84, width: 112, height: 24 },
+                translation: { dx: 0, dy: 2 },
+            },
+            { ...base, id: 'old', status: 'changed' },
+            { ...base, id: 'same', status: 'unchanged' },
+            { ...base, id: 'unavailable', status: 'changed', diff: undefined },
+            {
+                ...base,
+                id: 'invalid-region',
+                status: 'changed',
+                changeBounds: { x: 393, y: 0, width: 2, height: 2 },
+                translation: { dx: 0, dy: 2 },
+            },
+        ],
+    }
+    for (const layout of ['', '&layout=paired']) {
+        const elements = await loadLanding('/screens/2026-10-02/pr-3558/en/' + 'b'.repeat(40) + '/', {
+            report,
+            search: '?view=all' + layout,
+        })
+        const cards = elements.get('screens').children
+        assert.match(elementText(cards[0]), /Shifted down 2 px/)
+        assert.doesNotMatch(elementText(cards[1]), /Shifted/)
+        assert.doesNotMatch(elementText(cards[4]), /Shifted/)
+        const action = (card) =>
+            card.lastElementChild.children.find((child) => child.textContent === 'Pixel difference')
+        assert.equal(action(cards[2]), undefined)
+        assert.equal(action(cards[3]), undefined)
+        action(cards[1]).onclick()
+        assert.equal(elements.get('zoom').open, true)
+        assert.equal(elements.get('difference')['aria-pressed'], 'true')
+        assert.ok(imageSources(elements.get('zoom-images')).some((src) => src.endsWith(diff)))
+        elements.get('zoom-next').onclick()
+        elements.get('zoom-next').onclick()
+        assert.equal(elements.get('difference').hidden, true)
+        assert.ok(!imageSources(elements.get('zoom-images')).some((src) => src.endsWith(diff)))
+    }
+})
+
 test('PR report heading and tab title retain PR and branch context across view and filter changes', async () => {
     const path = `2026-10-09/pr-3593/en/${'a'.repeat(40)}/run-37911623740-1`
     const report = {
