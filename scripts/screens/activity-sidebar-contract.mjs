@@ -35,10 +35,13 @@ export async function acceptActivitySidebar(page, { openPreview } = {}) {
     assert.equal(await trigger.getAttribute('aria-expanded'), 'false')
     assert.equal(await trigger.evaluate((el) => el === document.activeElement), true, 'Escape returns focus')
     await page.setViewportSize({ width: 375, height: 812 })
+    const narrowTrigger = await trigger.boundingBox()
+    assert.ok(narrowTrigger && narrowTrigger.height >= 44, 'activity trigger is at least 44px tall on mobile')
     await trigger.click()
     await assertVisible(panel)
     await assertVisible(close)
     const narrow = await close.boundingBox()
+    assert.ok(narrow && narrow.height >= 44, 'activity close button is at least 44px tall on mobile')
     assert.ok(
         narrow && narrow.x >= 0 && narrow.x + narrow.width <= 375 && narrow.y >= 0 && narrow.y + narrow.height <= 812,
         'narrow-screen close action is within viewport'

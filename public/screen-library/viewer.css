@@ -1484,6 +1484,7 @@ summary {
     font-size: 16px;
 }
 .activity-button {
+    min-height: 44px;
     padding: 8px 12px;
     border: 1px solid var(--rule);
     border-radius: 8px;
