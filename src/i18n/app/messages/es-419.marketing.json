@@ -114,6 +114,7 @@
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
         "mantecaAccountRejected": "Los depósitos y retiros en este país no están disponibles para tu cuenta. Los pagos con QR siguen funcionando. El equipo de soporte puede ayudarte.",
+        "mantecaAccountRejectedForCountry": "Tu cuenta no puede hacer depósitos ni retiros en {country}. Puedes seguir pagando con QR.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",

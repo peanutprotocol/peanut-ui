@@ -44,12 +44,19 @@ export function ReplacementDocumentAction({
         }
     }, [owner])
 
+    if (!allowed && !checking && !modals) {
+        return (
+            <Button className="w-full" href="https://peanut.me/support" onClick={() => onTap?.('support')}>
+                {t('common.contactSupport')}
+            </Button>
+        )
+    }
+
     return (
         <Button
             className="w-full"
             loading={checking}
             disabled={checking}
-            href={!allowed && !checking && !modals ? 'https://peanut.me/support' : undefined}
             onClick={() => {
                 if (allowed) {
                     if (navigating.current) return

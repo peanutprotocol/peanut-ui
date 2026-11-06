@@ -1158,7 +1158,7 @@
         "testTransaction": {
             "confirmTitle": "Só falta um passo",
             "finishLater": "Confirmar depois",
-            "finishLaterDescription": "Você pode terminar o cadastro agora. Vamos tentar confirmar de novo quando você abrir o app.",
+            "finishLaterDescription": "Termine o cadastro agora. Vamos tentar novamente quando você abrir o app.",
             "confirmAndFinish": "Confirmar e concluir",
             "retryAccountSetup": "Tentar configurar a conta de novo",
             "errors": {
@@ -1527,7 +1527,7 @@
             "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou.",
             "requestClosedTitle": "Esta cobrança está encerrada",
             "externalPaymentNotConfirmed": "Não foi possível confirmar este pagamento. Se o dinheiro saiu da sua carteira, fale com o suporte.",
-            "requestTokenNotAccepted": "Este link pede {symbol}. Peça à pessoa que enviou um novo link em USDC ou USDT.",
+            "requestTokenNotAccepted": "{symbol} não é aceito. Peça a quem enviou um link em USDC ou USDT.",
             "requestTokenRetired": "Esta cobrança não pode mais ser paga. Peça uma nova em USDC."
         },
         "bankTransfer": {
@@ -3240,8 +3240,8 @@
             "accountReadyAction": "{currencies} {count, plural, one {precisa} other {precisam}} de mais uma etapa.",
             "accountReadyReview": "{currencies} ainda {count, plural, one {está} other {estão}} em análise.",
             "accountReadyActionGeneric": "Suas contas bancárias precisam de mais uma etapa.",
-            "accountReadyReviewGeneric": "Suas contas bancárias ainda estão em análise.",
-            "accountReviewNotification": "Avisaremos quando a análise for concluída.",
+            "accountReadyReviewGeneric": "Suas contas bancárias estão em análise.",
+            "accountReviewNotification": "Vamos avisar você.",
             "viewAccounts": "Ver contas",
             "completeTitle": "Tudo pronto",
             "completeDescription": "Sua conta está pronta para uso.",
@@ -4715,7 +4715,7 @@
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "providerRejected": "Nosso parceiro de pagamentos não pôde aceitar esta operação na sua conta. Nenhum dinheiro foi movimentado. Fale com o suporte.",
         "mantecaAccountRejected": "Depósitos e saques neste país não estão disponíveis para sua conta. Você pode continuar pagando com QR. O suporte pode ajudar.",
-        "mantecaAccountRejectedForCountry": "Depósitos e saques em {country} não estão disponíveis para sua conta. Você pode continuar pagando com QR. O suporte pode ajudar.",
+        "mantecaAccountRejectedForCountry": "Sua conta não pode fazer depósitos ou saques em {country}. Você ainda pode pagar com QR.",
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",

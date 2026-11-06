@@ -56,7 +56,7 @@ describe('post-KYC account-ready notice', () => {
             </NextIntlClientProvider>
         )
         expect(screen.getByText('EUR is still under review.')).toBeInTheDocument()
-        expect(screen.getByText('We’ll let you know when the review is complete.')).toBeInTheDocument()
+        expect(screen.getByText('We’ll notify you.')).toBeInTheDocument()
         expect(screen.queryByText('Your account is ready to go.')).not.toBeInTheDocument()
         expect(document.querySelector('.bg-background-icon-bubble-green')).not.toBeInTheDocument()
     })

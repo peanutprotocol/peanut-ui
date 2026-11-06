@@ -667,7 +667,7 @@
         "testTransaction": {
             "confirmTitle": "Un último paso",
             "finishLater": "Confirmar después",
-            "finishLaterDescription": "Podés terminar de registrarte ahora. Volveremos a intentar la confirmación cuando abras la app de nuevo.",
+            "finishLaterDescription": "Terminá el registro ahora. Volveremos a intentarlo cuando abras la app.",
             "errors": {
                 "loadUserFailed": "No pudimos cargar tus datos. Recargá la página.",
                 "noWalletAddress": "No se encontró la dirección de la billetera. Intentá recargar la página.",

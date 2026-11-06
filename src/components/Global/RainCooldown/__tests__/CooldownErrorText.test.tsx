@@ -1,9 +1,21 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { RainCooldownProvider } from '@/context/RainCooldownContext'
 import en from '@/i18n/app/messages/en.json'
 import CooldownErrorText from '../CooldownErrorText'
+import RainCooldownIntroModal from '../IntroModal'
+
+jest.mock('@/components/Global/Modal', () => ({
+    __esModule: true,
+    default: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
+        visible ? <div role="dialog">{children}</div> : null,
+}))
+
+jest.mock('@/components/Global/DocsLink', () => ({
+    __esModule: true,
+    default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
 
 // the frozen string useFriendlyError hands every screen for a cooldown
 const COOLDOWN_MESSAGE = en.errors.rainCooldownRetryShortly
@@ -15,7 +27,10 @@ function fireCooldown(retryAfterSec: number) {
 const wrapper = ({ children }: { children: React.ReactNode }) => (
     <IntlWrapper>
         <ToastProvider>
-            <RainCooldownProvider>{children}</RainCooldownProvider>
+            <RainCooldownProvider>
+                {children}
+                <RainCooldownIntroModal />
+            </RainCooldownProvider>
         </ToastProvider>
     </IntlWrapper>
 )
@@ -33,7 +48,12 @@ describe('CooldownErrorText', () => {
         render(<CooldownErrorText message={COOLDOWN_MESSAGE} />, { wrapper })
         act(() => fireCooldown(14))
 
-        // the toast stack is lazy-loaded, so the pill arrives a tick later
+        const intro = within(screen.getByRole('dialog'))
+        expect(intro.getByText('0:14')).toBeInTheDocument()
+        expect(screen.queryByText(/Card cool-down/)).not.toBeInTheDocument()
+        fireEvent.click(intro.getByRole('button', { name: 'Got it' }))
+
+        // The toast stack is lazy-loaded, so the pill arrives a tick later.
         expect(await screen.findByText(/Card cool-down · 0:14/)).toBeInTheDocument()
         expect(screen.getByText('A previous card withdrawal is still active. Try again in 0:14.')).toBeInTheDocument()
 
@@ -47,6 +67,7 @@ describe('CooldownErrorText', () => {
     it('moves the pill and the error together when a retry extends the cooldown', async () => {
         render(<CooldownErrorText message={COOLDOWN_MESSAGE} />, { wrapper })
         act(() => fireCooldown(20))
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Got it' }))
         expect(await screen.findByText(/Card cool-down · 0:20/)).toBeInTheDocument()
 
         act(() => fireCooldown(120))

@@ -549,9 +549,7 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         view.rerender(<MantecaWithdrawFlow />)
         fireEvent.click(screen.getByText('common.continue'))
 
-        await waitFor(() =>
-            expect(screen.getByText(/Deposits and withdrawals in Argentina aren’t available/i)).toBeInTheDocument()
-        )
+        await waitFor(() => expect(screen.getByText(/You can’t deposit or withdraw in Argentina/i)).toBeInTheDocument())
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
         expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
@@ -569,9 +567,7 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         await reachReview()
         clickConfirm()
 
-        await waitFor(() =>
-            expect(screen.getByText(/Deposits and withdrawals in Argentina aren’t available/i)).toBeInTheDocument()
-        )
+        await waitFor(() => expect(screen.getByText(/You can’t deposit or withdraw in Argentina/i)).toBeInTheDocument())
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
         expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
@@ -589,7 +585,7 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         clickConfirm()
 
         await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
-        expect(await screen.findByText(/Deposits and withdrawals in Argentina aren’t available/i)).toBeInTheDocument()
+        expect(await screen.findByText(/You can’t deposit or withdraw in Argentina/i)).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
         expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()

@@ -21,6 +21,7 @@ let mockRails: Array<{
     id: string
     provider?: string
     channel: string
+    currency?: string
     status: string
     operations?: Record<string, string>
     reason?: { userMessage: string; code?: string }

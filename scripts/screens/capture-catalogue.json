@@ -899,7 +899,7 @@
         "id": "72-e-kycfailedcontent-terminal",
         "flow": "Verification",
         "route": "/dev/surfaces?s=72-e-kycfailedcontent-terminal",
-        "source": "Kyc/KycFailedContent.tsx"
+        "source": "Kyc/modals/KycFailedModal.tsx"
     },
     {
         "id": "73-e-rejectlabelslist",
