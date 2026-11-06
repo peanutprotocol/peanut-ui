@@ -16,6 +16,8 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
 import { SURFACE_META } from '../../src/dev/surfaces/list'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
+import { waitForLottie } from './fixture-page'
 
 const OUT_DIR = process.env.SURFACES_OUT ?? 'e2e/__shots__/surfaces'
 
@@ -72,7 +74,7 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
             const { hostname } = new URL(route.request().url())
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
         })
-        await page.clock.setFixedTime(FROZEN_NOW)
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.addInitScript(seenOnceModals)
 
         await page.goto(`/dev/surfaces?s=${id}&__fixture=${surface.shotFixture ?? FIXTURE}`, {
@@ -179,6 +181,7 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         })
         await mkdir(OUT_DIR, { recursive: true })
         await writeFile(join(OUT_DIR, `${id}.gaps.json`), JSON.stringify(gaps))
+        await waitForLottie(page)
         await page.screenshot({
             path: join(OUT_DIR, `${id}@${testInfo.project.name}.png`),
             animations: 'disabled',

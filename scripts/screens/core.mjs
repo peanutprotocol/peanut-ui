@@ -73,6 +73,22 @@ export function validateCapture(input) {
                 )
                 out.copy = [...s.copy]
             }
+            if (s.flags !== undefined) {
+                const entries =
+                    s.flags && typeof s.flags === 'object' && !Array.isArray(s.flags) ? Object.entries(s.flags) : []
+                const name = /^[a-z0-9_-]{1,80}$/
+                assert(
+                    entries.length > 0 &&
+                        entries.length <= 10 &&
+                        entries.every(
+                            ([flag, value]) =>
+                                name.test(flag) &&
+                                (typeof value === 'boolean' || (typeof value === 'string' && name.test(value)))
+                        ),
+                    'Invalid flag overrides'
+                )
+                out.flags = Object.fromEntries(entries)
+            }
         } else out.reason = text(s.reason)
         return out
     })

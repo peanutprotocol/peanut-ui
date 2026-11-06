@@ -2,6 +2,7 @@ import { FIXTURES } from '../fixtures/registry'
 import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
 import { SURFACE_META } from '../surfaces/list'
 import { PAGE_CAPTURES, type PageCapture } from './pages'
+import { FLAG_VARIANTS } from './flag-variants'
 
 export type Screen = {
     id: string
@@ -34,6 +35,8 @@ export type Screen = {
     expectText?: string
     order?: number
     journey?: string
+    /** PostHog flags this capture sets; see flag-variants.ts. */
+    flags?: Record<string, boolean | string>
 }
 const flow = (value: string): string => {
     const rules = [
@@ -266,7 +269,7 @@ const orderedDefinitions = definitions
     })
     .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
 
-export const SCREENS = orderedDefinitions.map((screen) => ({
+const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
     sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
@@ -284,4 +287,18 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
         : undefined,
     expectedHttpStatus: screen.id === 'p59-receipt' ? [200, 404] : 200,
 }))
+const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+for (const { base } of FLAG_VARIANTS)
+    if (!BASE_SCREENS.some((screen) => screen.id === base)) throw new Error(`Flag variant base ${base} is not a screen`)
+/** Each flag variant sits right after the screen it varies. */
+export const SCREENS = BASE_SCREENS.flatMap((screen) => [
+    screen,
+    ...FLAG_VARIANTS.filter((variant) => variant.base === screen.id).map(({ flag, value }) => ({
+        ...screen,
+        id: `${screen.id}-flag-${slug(flag)}-${slug(String(value))}`,
+        name: `${screen.name} · ${flag}: ${String(value)}`,
+        defaultScreen: false,
+        flags: { [flag]: value } as Record<string, boolean | string>,
+    })),
+])
 if (new Set(SCREENS.map((s) => s.id)).size !== SCREENS.length) throw new Error('Duplicate screen IDs')

@@ -382,3 +382,14 @@ test('a forged inventory cannot hide missing scenario coverage', () => {
     input.inventory = [{ route: '/new', status: 'excluded' }]
     assert.throws(() => validateCapture(input), /reason/)
 })
+test('flag overrides on a captured state survive validation; malformed ones are rejected', () => {
+    const variant = { ...screen('home-flag-card-promotion-disabled-true'), flags: { 'card-promotion-disabled': true } }
+    const experiment = { ...screen('settings-flag-switches'), flags: { 'signup-notification-switches': 'defaults_on' } }
+    const valid = validateCapture(capture([screen('home'), variant, experiment]))
+    assert.deepEqual(
+        valid.screens.map((s) => s.flags),
+        [undefined, { 'card-promotion-disabled': true }, { 'signup-notification-switches': 'defaults_on' }]
+    )
+    for (const flags of [{}, [], { 'Bad Key': true }, { flag: 3 }, { flag: '<script>' }])
+        assert.throws(() => validateCapture(capture([{ ...screen('home'), flags }])), /Invalid flag overrides/)
+})
