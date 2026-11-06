@@ -34,7 +34,7 @@ describe('useSumsubReloadResume', () => {
         renderHook(() => useSumsubReloadResume(null, onResume), { wrapper: wrapperFor(encode(persisted)) })
 
         await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
-        expect(onResume).toHaveBeenCalledWith({
+        expect(onResume.mock.calls[0][0]).toEqual({
             intent: 'LATAM',
             levelName: undefined,
             crossRegion: true,
@@ -80,11 +80,29 @@ describe('useSumsubReloadResume', () => {
         expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('kyc')).toBeNull()
     })
 
-    it('clears the persisted state before the resume runs, so a navigation the resume starts is the last one', async () => {
+    it('keeps the persisted state while the replay is pending, so a reload mid-replay can resume', async () => {
         const onUrlUpdate = jest.fn()
-        let clearedFirst: boolean | undefined
-        const onResume = jest.fn().mockImplementation(async () => {
-            clearedFirst = onUrlUpdate.mock.calls.some(([update]) => update.searchParams.get('kyc') === null)
+        let finish!: (reopened: boolean) => void
+        const onResume = jest.fn().mockReturnValue(new Promise<boolean>((done) => (finish = done)))
+
+        renderHook(() => useSumsubReloadResume(null, onResume), {
+            wrapper: wrapperFor(encode({ intent: 'LATAM' }), onUrlUpdate),
+        })
+
+        await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
+        await new Promise((done) => setTimeout(done, 100))
+        expect(onUrlUpdate).not.toHaveBeenCalled()
+        finish(false)
+        await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
+        expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('kyc')).toBeNull()
+    })
+
+    it('a replay that consumes the state before navigating away is not cleared again after it', async () => {
+        const onUrlUpdate = jest.fn()
+        const navigate = jest.fn()
+        const onResume = jest.fn().mockImplementation(async (_state, { consume }) => {
+            await consume()
+            navigate(onUrlUpdate.mock.calls.length)
             return false
         })
 
@@ -92,9 +110,12 @@ describe('useSumsubReloadResume', () => {
             wrapper: wrapperFor(encode({ intent: 'LATAM' }), onUrlUpdate),
         })
 
-        await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
-        expect(clearedFirst).toBe(true)
-        expect(onUrlUpdate.mock.calls.filter(([update]) => update.searchParams.get('kyc') === null)).toHaveLength(1)
+        await waitFor(() => expect(navigate).toHaveBeenCalled())
+        // the clear landed before the navigation, and nothing writes the URL after it
+        expect(navigate).toHaveBeenCalledWith(1)
+        await new Promise((done) => setTimeout(done, 100))
+        expect(onUrlUpdate).toHaveBeenCalledTimes(1)
+        expect(onUrlUpdate.mock.calls[0][0].searchParams.get('kyc')).toBeNull()
     })
 
     it('clears the persisted state when the resume throws', async () => {
@@ -160,7 +181,7 @@ describe('useSumsubReloadResume', () => {
         })
 
         await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
-        expect(onResume).toHaveBeenCalledWith({
+        expect(onResume.mock.calls[0][0]).toEqual({
             intent: undefined,
             levelName: undefined,
             crossRegion: undefined,

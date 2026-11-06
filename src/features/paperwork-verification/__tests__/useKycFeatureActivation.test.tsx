@@ -176,6 +176,22 @@ it('failure stops polling and focus retries until an explicit retry', async () =
     expect(result.current.allowed).toBe(true)
 })
 
+it('a caller URL write runs before the questions redirect, never after it', async () => {
+    jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing' } as Reply)
+    const order: string[] = []
+    mockPush.mockImplementation((path: string) => order.push(`push ${path}`))
+    const { result } = renderHook(() => useKycFeatureActivation('card'))
+    await act(async () => {
+        await result.current.activate({
+            beforeRedirect: async () => {
+                order.push('caller clears its URL state')
+            },
+        })
+    })
+    expect(order).toEqual(['caller clears its URL state', 'push /verify?feature=card'])
+    mockPush.mockReset()
+})
+
 it('questions_missing navigates to the matching verification feature', async () => {
     jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing' } as Reply)
     const { result } = renderActivation(() => useKycFeatureActivation('local'))
