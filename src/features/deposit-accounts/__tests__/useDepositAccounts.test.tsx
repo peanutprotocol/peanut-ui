@@ -181,6 +181,21 @@ describe('useDepositAccounts', () => {
             })
         })
 
+        it("keeps an older API's support-required answer, which has no cause", async () => {
+            mockProductRefusals = bangladesh
+            fetchDepositAccounts.mockResolvedValue({
+                accounts: [],
+                claimable: [],
+                unavailable: [{ ...identityRequired('bridge.ach_us', 'ACH_US', 'USD'), reason: 'support-required' }],
+            })
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.unavailable.ACH_US?.reason).toBe('support-required')
+            expect(result.current.unavailable.ACH_US?.cause).toBeUndefined()
+        })
+
         it('waits for capabilities before listing the reported corridor answers', async () => {
             mockCapabilitiesLoading = true
             mockProductRefusals = bangladesh

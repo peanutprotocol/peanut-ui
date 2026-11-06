@@ -846,13 +846,16 @@ describe('a rejected identity', () => {
          * answers, and a refusal with no action in it used to turn every row into
          * a residence closure: Not available, and the residence explanation.
          */
-        it('keeps Action needed once the feature report is laid over the answers', () => {
+        it.each([
+            ['names the identity', identityRejected],
+            ['predates that cause and asks for support', supportRequired],
+        ])('keeps Action needed under the feature report when the API %s', (_, answers) => {
             mockIdentity = { status: 'failed', reason: { code: 'duplicate_account', userMessage: '' } }
             const { features } = withFeatureReport({ rails: [], nextActions: [] }, { identity: mockIdentity })
             const { claimable, unavailable } = closeRefusedCorridors(features, [], {
                 accounts: NONE,
                 claimable: emptyCorridorRecord<ClaimableCorridor>(),
-                unavailable: { ...emptyCorridorRecord<UnavailableCorridor>(), ...identityRejected() },
+                unavailable: { ...emptyCorridorRecord<UnavailableCorridor>(), ...answers() },
             })
             const { container } = list(false, {
                 gates: reportGates(mockIdentity),
@@ -861,7 +864,7 @@ describe('a rejected identity', () => {
             })
 
             for (const corridor of ACCOUNT_CORRIDORS) {
-                expect(unavailable[corridor]?.cause).toBe('identity-rejected')
+                expect(unavailable[corridor]?.reason).toBe('support-required')
                 const row = inRow(container, corridor)
                 expect(row.getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
                 expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
