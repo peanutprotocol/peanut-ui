@@ -7216,6 +7216,8 @@ export interface paths {
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "awaiting-key" | "in-progress" | "done";
                                 } | null;
+                                /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
+                                intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
                             } & {
                                 [key: string]: unknown;
                             };
