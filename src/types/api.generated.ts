@@ -357,6 +357,7 @@ export interface paths {
                          *       "amountBrl": "100.00",
                          *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63041D3A",
                          *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
                          *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
                          *       "payerCpfMasked": "123.***.***-09",
                          *       "usdcAmount": "17.940500"
@@ -366,6 +367,8 @@ export interface paths {
                             amountBrl: string;
                             brCode: string;
                             expiresAt: string | null;
+                            /** @description Avenia’s flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
                             intentId: string;
                             payerCpfMasked: string;
                             usdcAmount: string;
@@ -575,129 +578,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/kyc/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Pix with Avenia (first use)
-         * @description For a Brazilian resident with an approved identity and a CPF: records their acceptance of Avenia’s terms, creates their Avenia sub-account once and returns Avenia’s hosted KYC link. Refused without `termsAccepted: true`. Approval arrives as a KYC webhook and enables the AVENIA × PIX_BR rail.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** Format: uri */
-                        redirectUrl?: string;
-                        /**
-                         * @description The user accepted Avenia’s terms on this step. Recorded in the consent ledger with the server time and the caller’s IP.
-                         * @enum {boolean}
-                         */
-                        termsAccepted: true;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "kycUrl": "https://kyc.avenia.io/level-1?session=8f2d1c",
-                         *       "state": "kyc"
-                         *     }
-                         */
-                        "application/json": {
-                            kycUrl?: string;
-                            reason?: string;
-                            state: "enabled" | "kyc" | "pending" | "rejected";
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -991,14 +871,14 @@ export interface paths {
                          * @example {
                          *       "display": {
                          *         "amountBrl": "106.75",
-                         *         "arrivalEstimate": "About 1 minute",
+                         *         "arrivalEstimateSeconds": 60,
                          *         "bankName": "Nu Pagamentos S.A.",
+                         *         "fixedFeeBrl": "0.75",
                          *         "holderName": "Ana Souza",
                          *         "ownAccount": true,
                          *         "pixKey": "12345678909",
                          *         "provider": "Avenia",
-                         *         "providerFeeBrl": "1.68",
-                         *         "rate": "5.416",
+                         *         "rate": "5.369543",
                          *         "withdrawUsd": "20.020325"
                          *       },
                          *       "intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
@@ -1018,17 +898,18 @@ export interface paths {
                             display: {
                                 /** @description The headline: reais credited to the account */
                                 amountBrl: string;
-                                arrivalEstimate: string;
+                                /** @description About how long from the signature to the Pix paid */
+                                arrivalEstimateSeconds: number;
                                 bankName: string | null;
+                                /** @description Avenia’s flat fee in reais, shown as its own line */
+                                fixedFeeBrl: string;
                                 holderName: string | null;
                                 /** @enum {boolean} */
                                 ownAccount: true;
                                 pixKey: string;
                                 /** @enum {string} */
                                 provider: "Avenia";
-                                /** @description Avenia and Rhino fees together, in reais */
-                                providerFeeBrl: string;
-                                /** @description BRL per USDC before fees */
+                                /** @description BRL per USDC that leaves the wallet, with Avenia’s percentage fees and Rhino’s fee inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                                 rate: string;
                                 /** @description USDC that leaves the wallet */
                                 withdrawUsd: string;
@@ -1195,31 +1076,32 @@ export interface paths {
                         /**
                          * @example {
                          *       "amountBrl": "106.75",
-                         *       "arrivalEstimate": "About 1 minute",
+                         *       "arrivalEstimateSeconds": 60,
                          *       "bankName": "Nu Pagamentos S.A.",
+                         *       "fixedFeeBrl": "0.75",
                          *       "holderName": "Ana Souza",
                          *       "ownAccount": true,
                          *       "pixKey": "12345678909",
                          *       "provider": "Avenia",
-                         *       "providerFeeBrl": "1.68",
-                         *       "rate": "5.416",
+                         *       "rate": "5.369543",
                          *       "withdrawUsd": "20.020325"
                          *     }
                          */
                         "application/json": {
                             /** @description The headline: reais credited to the account */
                             amountBrl: string;
-                            arrivalEstimate: string;
+                            /** @description About how long from the signature to the Pix paid */
+                            arrivalEstimateSeconds: number;
                             bankName: string | null;
+                            /** @description Avenia’s flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
                             holderName: string | null;
                             /** @enum {boolean} */
                             ownAccount: true;
                             pixKey: string;
                             /** @enum {string} */
                             provider: "Avenia";
-                            /** @description Avenia and Rhino fees together, in reais */
-                            providerFeeBrl: string;
-                            /** @description BRL per USDC before fees */
+                            /** @description BRL per USDC that leaves the wallet, with Avenia’s percentage fees and Rhino’s fee inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                             rate: string;
                             /** @description USDC that leaves the wallet */
                             withdrawUsd: string;
@@ -8963,6 +8845,148 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pix/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicative Pix quote for amount entry
+         * @description For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take, with the percentage fees in the rate and the flat fee apart. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.
+         */
+        get: {
+            parameters: {
+                query: {
+                    operation: "deposit" | "withdraw";
+                    /** @description Reais */
+                    amountBrl?: string;
+                    /** @description USDC to receive (deposit) or to convert (withdraw) */
+                    amountUsd?: string;
+                    /** @description Withdraw only: USDC to leave the wallet, the bridge fee included */
+                    spendUsd?: string;
+                };
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "106.75",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "operation": "withdraw",
+                         *       "provider": "avenia",
+                         *       "rate": "5.369543",
+                         *       "usdcAmount": "20.020325"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string;
+                            /** @description The flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            operation: "deposit" | "withdraw";
+                            /** @description The provider the route names, e.g. avenia */
+                            provider: string;
+                            /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
+                            rate: string;
+                            /** @description USDC the wallet receives (deposit) or that leaves it, the bridge fee included (withdraw) */
+                            usdcAmount: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/points": {
         parameters: {
             query?: never;
@@ -14281,7 +14305,7 @@ export interface paths {
                                     effectiveDate?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "avenia-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -14326,7 +14350,7 @@ export interface paths {
                                             effectiveDate?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "avenia-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -14900,7 +14924,7 @@ export interface paths {
                                 effectiveDate?: string;
                                 feature?: "bank" | "card" | "local";
                                 key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "avenia-hosted";
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
@@ -15646,6 +15670,96 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/accept-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a payments partner’s terms
+         * @description Records the acceptance of the terms the step names (nextActions[].tosUrl) in the consent ledger, then enrols the user with that provider. The capabilities route shows the enrolment from then on. 409 when the user’s route does not name this step now.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia */
+                        key: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "accepted": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            accepted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -16760,7 +16874,7 @@ export interface paths {
                                     code: "IDENTITY";
                                     countries: string[];
                                     key: string;
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                     types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                 }[];
                                 id: string;
@@ -16947,7 +17061,7 @@ export interface paths {
                                         code: "IDENTITY";
                                         countries: string[];
                                         key: string;
-                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                         types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                     }[];
                                     levelName?: string;
@@ -16957,7 +17071,7 @@ export interface paths {
                                         code: string;
                                         key: string;
                                         levelName: string;
-                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN")[];
+                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                     }[];
                                 };
                                 /** Format: date-time */
@@ -16966,7 +17080,7 @@ export interface paths {
                                 id: string;
                                 kind: "IDENTITY" | "SUPPLEMENTAL" | "ONBOARDING";
                                 policyVersion: string;
-                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN";
+                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA";
                                 reasonCode: string | null;
                                 requirements: ({
                                     code: string;
@@ -16977,20 +17091,20 @@ export interface paths {
                                     key: string;
                                     /** @enum {string} */
                                     kind: "DOCUMENT";
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 } | {
                                     code: string;
                                     key: string;
                                     /** @enum {string} */
                                     kind: "QUESTIONNAIRE";
                                     questionnaireKey: string;
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 } | {
                                     code: string;
                                     key: string;
                                     /** @enum {string} */
                                     kind: "CHECK";
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 })[];
                                 reviewedAt: string | null;
                                 revision: number;
@@ -17641,7 +17755,7 @@ export interface paths {
                                     effectiveDate?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "avenia-hosted";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -17686,7 +17800,7 @@ export interface paths {
                                             effectiveDate?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "avenia-hosted";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
