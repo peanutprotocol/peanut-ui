@@ -1,7 +1,7 @@
 /* Private screen discussions. All user content is rendered as literal text. */
 'use strict'
 window.ScreenComments = {
-    create({ feed, panel, dialog, onNavigate, onVotesReset, onVotesChange, onVotesRefresh }) {
+    create({ activity, feed, panel, dialog, onNavigate, onVotesReset, onVotesChange, onVotesRefresh }) {
         const node = (tag, text, cls) => {
             const n = document.createElement(tag)
             if (text !== undefined) n.textContent = text
@@ -37,9 +37,17 @@ window.ScreenComments = {
             opened = false,
             threads = [],
             nextScreen
+        const feedPageSize = 30
         let feedItems = [],
+            feedCapacity = feedPageSize,
             nextFeed,
-            feedBusy = false,
+            feedPending,
+            feedController,
+            feedAppending = false,
+            appendQueued = false,
+            refreshQueued = false,
+            activityTimer,
+            activityBlocked = false,
             countTimer
         const drafts = new Map(),
             badges = new Set(),
@@ -53,21 +61,30 @@ window.ScreenComments = {
             onReset: () => onVotesReset?.(),
             onChange: () => onVotesChange?.(),
         })
+        function invalidateFeed() {
+            feedSequence++
+            feedController?.abort()
+            feedController = undefined
+            feedPending = undefined
+            feedAppending = false
+            appendQueued = false
+            refreshQueued = false
+            feedItems = []
+            feedCapacity = feedPageSize
+            nextFeed = undefined
+        }
         function requireLogin() {
             const pendingForms = [...panel.querySelectorAll('.comment-composer')]
             user = undefined
             epoch++
             voting?.reset()
-            feedSequence++
+            invalidateFeed()
             panelSequence++
             counts.clear()
-            feedItems = []
             threads = []
-            feedBusy = false
-            feed.replaceChildren(
-                node('h2', 'Latest activity'),
-                node('p', 'Sign in to view and add comments.', 'comment-notice')
-            )
+            activityBlocked = true
+            clearTimeout(activityTimer)
+            feed.replaceChildren(node('p', 'Sign in to view and add comments.', 'comment-notice'))
             const a = node('a', 'Sign in')
             a.href = `/screen-data/auth/continue?return=${encodeURIComponent(location.pathname + location.search + location.hash)}`
             a.target = '_blank'
@@ -80,9 +97,8 @@ window.ScreenComments = {
             }
             for (const b of badges) b.countElement.textContent = '—'
         }
-        async function api(path, options = {}) {
+        async function api(path, options = {}, controller = new AbortController()) {
             const requestEpoch = epoch
-            const controller = new AbortController()
             const timer = setTimeout(() => controller.abort(), 8000)
             try {
                 const response = await fetch(`/screen-data/comments${path}`, {
@@ -98,7 +114,7 @@ window.ScreenComments = {
                     response.type === 'opaqueredirect' ||
                     (!isJSON && response.status < 500)
                 ) {
-                    if (requestEpoch === epoch) requireLogin()
+                    if (requestEpoch === epoch && !controller.signal.aborted) requireLogin()
                     throw Object.assign(new Error('Your session expired. Sign in, then retry.'), { status: 401 })
                 }
                 const data = isJSON ? await response.json() : {}
@@ -132,26 +148,22 @@ window.ScreenComments = {
                     const changedActor = draftActor && draftActor !== next.id
                     epoch++
                     panelSequence++
-                    feedSequence++
+                    invalidateFeed()
                     if (changedActor) drafts.clear()
                     draftActor = next.id
                     expanded.clear()
                     counts.clear()
                     threads = []
-                    feedItems = []
-                    feedBusy = false
                     user = next
                     voting?.reset({ forgetPending: Boolean(changedActor) })
                     if (changedActor) {
-                        feed.replaceChildren(
-                            node('h2', 'Latest activity'),
-                            node('p', 'Loading activity…', 'comment-notice')
-                        )
+                        feed.replaceChildren(node('p', 'Loading activity…', 'comment-notice'))
                         if (opened)
                             panel.replaceChildren(node('p', 'Loading discussion for your account…', 'comment-notice'))
                         for (const b of badges) b.countElement.textContent = '—'
                     }
                 }
+                activityBlocked = false
                 return next
             })()
             authPending = pending
@@ -165,32 +177,102 @@ window.ScreenComments = {
             container.append(n)
             return n
         }
-        async function loadFeed(append = false) {
-            if (!user || feedBusy) return
+        function activityVisible() {
+            return activity?.open && !activity.hidden && document.visibilityState === 'visible'
+        }
+        function scheduleActivity() {
+            clearTimeout(activityTimer)
+            if (!activityVisible() || !user || activityBlocked) return
+            activityTimer = setTimeout(() => {
+                if (activityVisible()) void loadFeed(false, true)
+                scheduleActivity()
+            }, 30_000)
+        }
+        function activityChanged() {
+            if (activityVisible()) void loadFeed(false, true)
+            scheduleActivity()
+        }
+        if (activity) {
+            activity.addEventListener('toggle', activityChanged)
+            document.addEventListener('visibilitychange', activityChanged)
+        }
+
+        const feedKey = (item) => `${item.kind || 'comment'}:${item.id}`
+        // Match the API's descending (created_at, id) cursor order.
+        const compareFeed = (a, b) =>
+            a.createdAt === b.createdAt ? (a.id < b.id ? 1 : a.id > b.id ? -1 : 0) : a.createdAt < b.createdAt ? 1 : -1
+
+        function loadFeed(append = false, background = false) {
+            if (!user || (append && !nextFeed)) return
+            if (feedPending) {
+                if (append && !feedAppending) appendQueued = true
+                if (!append && !background) refreshQueued = true
+                return feedPending
+            }
             const seq = ++feedSequence,
-                actor = epoch
-            feedBusy = true
-            if (!append) {
-                feedItems = []
-                nextFeed = undefined
-                feed.replaceChildren(node('h2', 'Latest activity'), node('p', 'Loading activity…', 'comment-notice'))
-            }
-            try {
-                const data = await api(
-                    '/feed?' + query({ pr: context.prNumber, limit: 30, cursor: append ? nextFeed : undefined })
-                )
-                if (seq !== feedSequence || actor !== epoch) return
-                feedItems.push(...data.items)
-                nextFeed = data.nextCursor
-                renderFeed()
-            } catch (error) {
-                if (actor === epoch) {
-                    if (!append) feed.replaceChildren(node('h2', 'Latest activity'))
-                    notice(feed, error.message, () => loadFeed(append))
+                actor = epoch,
+                cursor = append ? nextFeed : undefined
+            const controller = (feedController = new AbortController())
+            feedAppending = append
+            feedPending = (async () => {
+                try {
+                    const data = await api(
+                        '/feed?' + query({ pr: context.prNumber, limit: feedPageSize, cursor }),
+                        {},
+                        controller
+                    )
+                    if (seq !== feedSequence || actor !== epoch) return
+                    const previous = feedItems
+                    const previousCursor = nextFeed
+                    const last = data.items.at(-1)
+                    // Polling may use the space already requested through More activity, but
+                    // only an explicit append can grow it. Keep older rows if a gap opens and
+                    // restart at the fresh cursor so subsequent pages can fill the gap.
+                    const older = append
+                        ? previous
+                        : data.nextCursor && feedCapacity > feedPageSize
+                          ? previous.filter((item) => compareFeed(item, last) > 0)
+                          : []
+                    const overflow = !append && older.length + data.items.length > feedCapacity
+                    const kept = overflow ? older.slice(-(feedCapacity - data.items.length)) : older
+                    const merged = new Map(kept.map((item) => [feedKey(item), item]))
+                    const previousSize = merged.size
+                    for (const item of data.items) merged.set(feedKey(item), item)
+                    if (append) feedCapacity += merged.size - previousSize
+                    feedItems = [...merged.values()].sort(compareFeed)
+                    const overlaps = !append && last && previous.some((item) => feedKey(item) === feedKey(last))
+                    nextFeed = !overflow && overlaps && kept.length ? previousCursor : data.nextCursor
+                    if (
+                        !background ||
+                        !feed.querySelector('.comment-feed-heading') ||
+                        previousCursor !== nextFeed ||
+                        JSON.stringify(previous) !== JSON.stringify(feedItems)
+                    )
+                        renderFeed()
+                } catch (error) {
+                    if (
+                        seq === feedSequence &&
+                        actor === epoch &&
+                        (!background || !feed.querySelector('.comment-feed-heading'))
+                    ) {
+                        feed.querySelector('.comment-feed-error')?.remove()
+                        notice(feed, error.message, () => loadFeed(append)).classList.add('comment-feed-error')
+                    }
+                } finally {
+                    if (controller === feedController) {
+                        feedController = undefined
+                        feedPending = undefined
+                        const appendNext = appendQueued && nextFeed
+                        appendQueued = false
+                        if (appendNext) void loadFeed(true)
+                        else if (refreshQueued) {
+                            refreshQueued = false
+                            void loadFeed()
+                        }
+                    }
                 }
-            } finally {
-                if (seq === feedSequence) feedBusy = false
-            }
+            })()
+            return feedPending
         }
         function renderFeed() {
             feed.replaceChildren(node('div', undefined, 'comment-feed-heading'))
@@ -206,7 +288,7 @@ window.ScreenComments = {
             const icon = window.ScreenVoting?.icon?.('refresh')
             if (icon) refresh.append(icon)
             else refresh.textContent = 'Refresh'
-            feed.firstChild.append(node('h2', 'Latest activity'), refresh)
+            feed.firstChild.append(refresh)
             feed.firstChild.lastChild.setAttribute('aria-label', 'Refresh comments and votes')
             if (!feedItems.length) notice(feed, 'No activity yet. Vote on or discuss a screen.')
             for (const item of feedItems) feed.append(item.kind === 'vote' ? voteFeedItem(item) : commentFeedItem(item))
@@ -644,33 +726,34 @@ window.ScreenComments = {
             dialog.classList.remove('comments-open')
         }
         async function setContext(next = {}) {
+            if (context.prNumber !== next.prNumber) {
+                invalidateFeed()
+                feed.replaceChildren()
+            }
             context = next
             try {
                 await authenticate()
                 await loadFeed()
                 scheduleCounts()
                 voting?.refresh()
+                scheduleActivity()
             } catch (error) {
-                if (error.status !== 401) {
-                    feed.replaceChildren(node('h2', 'Latest activity'))
-                    notice(feed, error.message, () => setContext(context))
-                }
+                if (error.status !== 401) notice(feed, error.message, () => setContext(context))
             }
         }
         window.addEventListener('focus', async () => {
             const previous = user?.id
             try {
                 await authenticate()
-                await loadFeed()
+                if ((!activity || activityVisible()) && user?.id !== previous) void loadFeed(false, true)
+                scheduleActivity()
                 scheduleCounts()
                 voting?.refresh(true)
                 onVotesRefresh?.()
                 if (opened && user?.id !== previous) await loadPanel()
             } catch (error) {
-                if (error.status !== 401) {
-                    feed.replaceChildren(node('h2', 'Latest activity'))
+                if (error.status !== 401 && !feed.querySelector('.comment-feed-heading'))
                     notice(feed, error.message, () => setContext(context))
-                }
             }
         })
         async function navigateThread(id) {
