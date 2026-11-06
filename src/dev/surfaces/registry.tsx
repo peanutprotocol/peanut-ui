@@ -538,7 +538,6 @@ export const SURFACES: Record<string, Surface> = {
                 isOpen
                 onClose={noop}
                 username="maria"
-                method="Google"
                 handleLoseInvite={noop}
                 handleContinueWithPeanut={noop}
             />
@@ -1151,7 +1150,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['84-f-choice-public-profile-guest'],
         render: () => (
             <AppPageSurface>
-                <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />
+                <PublicProfile username="alice" isLoggedIn={false} onSendClick={noop} />
             </AppPageSurface>
         ),
     },

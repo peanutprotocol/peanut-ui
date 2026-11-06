@@ -1910,7 +1910,7 @@
             "shareSheetTitle": "Compartir enlace de invitación"
         },
         "confirmInviteModal": {
-            "description": "Registrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usás Peanut. También podés reclamarlo en {method} sin una cuenta.",
+            "description": "Registrate para recibir el dinero en Peanut o seguí con el método que elegiste.",
             "joinCta": "Registrate y reclamá"
         },
         "earlyUserModal": {

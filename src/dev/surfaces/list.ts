@@ -116,7 +116,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['platform=web', 'signup=omitted'],
     },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
-    '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
+    '10-a-confirminvitemodal': {
+        name: 'Confirm invite — Bank transfer',
+        path: 'Global/ConfirmInviteModal/index.tsx',
+        captureState: ['selectedMethod=Bank transfer'],
+    },
     '11-a-earlyusermodal': {
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',

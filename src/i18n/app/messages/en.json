@@ -4355,9 +4355,9 @@
         },
         "confirmInviteModal": {
             "title": "{username} invited you to Peanut",
-            "description": "Sign up to get this money in your own Peanut account. {username} gets rewards when you use Peanut. You can also claim to {method} without an account.",
+            "description": "Sign up to receive the money in Peanut, or continue with the method you chose.",
             "joinCta": "Sign up and claim",
-            "claimWithoutSignup": "Claim without signing up"
+            "claimWithoutSignup": "Continue without signing up"
         },
         "earlyUserModal": {
             "title": "Earn from invites",

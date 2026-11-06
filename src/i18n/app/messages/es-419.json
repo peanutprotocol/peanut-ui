@@ -4355,9 +4355,9 @@
         },
         "confirmInviteModal": {
             "title": "{username} te invitó a Peanut",
-            "description": "Regístrate para recibir este dinero en tu propia cuenta de Peanut. {username} recibe recompensas cuando usas Peanut. También puedes reclamarlo en {method} sin una cuenta.",
+            "description": "Regístrate para recibir el dinero en Peanut o continúa con el método que elegiste.",
             "joinCta": "Regístrate y reclama",
-            "claimWithoutSignup": "Reclamar sin registrarte"
+            "claimWithoutSignup": "Continuar sin registrarte"
         },
         "earlyUserModal": {
             "title": "Gana con tus invitaciones",

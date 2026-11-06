@@ -4355,9 +4355,9 @@
         },
         "confirmInviteModal": {
             "title": "{username} convidou você para o Peanut",
-            "description": "Cadastre-se para receber este dinheiro na sua própria conta Peanut. {username} ganha recompensas quando você usa o Peanut. Você também pode resgatar em {method} sem uma conta.",
+            "description": "Cadastre-se para receber o dinheiro no Peanut ou continue com o método que você escolheu.",
             "joinCta": "Cadastre-se e resgate",
-            "claimWithoutSignup": "Resgatar sem cadastro"
+            "claimWithoutSignup": "Continuar sem cadastro"
         },
         "earlyUserModal": {
             "title": "Ganhe com convites",
