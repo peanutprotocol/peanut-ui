@@ -4,6 +4,7 @@ import {
     aveniaPendingReason,
     aveniaSetupState,
     aveniaWithdrawAmount,
+    aveniaShownRate,
     aveniaWithdrawOutcome,
     aveniaWithdrawRefusalKey,
     quoteMovedAgainstUser,
@@ -279,5 +280,24 @@ describe('arrivalMinutes', () => {
         expect(arrivalMinutes(60)).toBe(1)
         expect(arrivalMinutes(20)).toBe(1)
         expect(arrivalMinutes(150)).toBe(3)
+    })
+})
+
+describe('aveniaShownRate', () => {
+    // USD × rate − fee = reais holds over the API's exact USD (api routes/avenia/withdraw.ts)
+    const display = (withdrawUsd: string, amountBrl: string) => {
+        const rate = ((Number(amountBrl) + 0.75) / Number(withdrawUsd)).toFixed(6)
+        return { withdrawUsd, amountBrl, fixedFeeBrl: '0.75', rate }
+    }
+
+    it.each([
+        ['92.504310', '503.00'],
+        ['3.552113', '20.00'],
+        ['9183.774512', '50000.00'],
+        ['1.004999', '4.71'],
+    ])('makes the shown USD, rate and fee agree to the centavo (%s USD)', (usd, brl) => {
+        const shownUsd = Math.round(Number(usd) * 100) / 100
+        const shownRate = Number(aveniaShownRate(display(usd, brl)))
+        expect(Math.abs(shownUsd * shownRate - 0.75 - Number(brl))).toBeLessThan(0.005)
     })
 })

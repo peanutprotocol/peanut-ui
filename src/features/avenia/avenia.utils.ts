@@ -267,3 +267,17 @@ export function aveniaWithdrawOutcome(
     if (phase === 'unsigned' && entry?.extraData?.intentStatus === 'AWAITING_USER_ACTION') return 'not-sent'
     return phase === 'funded' ? 'on-its-way' : 'unconfirmed'
 }
+
+/**
+ * The exchange rate the withdraw review shows, in BRL per USD, to 6 decimals: the
+ * reais that arrive plus the flat fee, over the USD as the screen rounds it (half-up
+ * to the cent). The API's all-in rate is over the exact USD; over the rounded one, the
+ * three numbers on screen agree to the centavo (USD × rate − fee = reais).
+ */
+export function aveniaShownRate(
+    display: Pick<AveniaWithdrawDisplay, 'amountBrl' | 'fixedFeeBrl' | 'withdrawUsd' | 'rate'>
+): string {
+    const shownUsd = Math.round(Number(display.withdrawUsd) * 100) / 100
+    if (!(shownUsd > 0)) return display.rate
+    return ((Number(display.amountBrl) + Number(display.fixedFeeBrl)) / shownUsd).toFixed(6)
+}

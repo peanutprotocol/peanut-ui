@@ -77,7 +77,7 @@ test.describe('Avenia Pix', () => {
         await expect(page.getByText('to Banco Inter · Ana Souza')).toBeVisible()
         await expect(page.getByText('Avenia fee')).toHaveCount(1)
         await expect(page.getByText('R$0.75')).toBeVisible()
-        await expect(page.getByText('1 USD = BRL 5.4457')).toBeVisible()
+        await expect(page.getByText('1 USD = BRL 5.445946')).toBeVisible()
         await expect(page.getByText('About 1 minute')).toBeVisible()
         await expect(page.getByText('$92.50')).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()

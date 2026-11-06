@@ -13,7 +13,7 @@ import { ProviderRow } from '@/components/Provider/ProviderRow'
 import type { AveniaWithdrawDisplay } from '@/services/avenia'
 import { formatBankAmount } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
-import { arrivalMinutes } from '@/features/avenia/avenia.utils'
+import { arrivalMinutes, aveniaShownRate } from '@/features/avenia/avenia.utils'
 
 /**
  * Review of a Pix withdrawal, from POST /avenia/withdraw/preview: the reais
@@ -85,7 +85,7 @@ export function AveniaWithdrawReview({
                         />
                         <DataRow
                             label={tCommon('exchangeRate')}
-                            value={display ? `1 USD = BRL ${formatCurrency(display.rate, 4)}` : ''}
+                            value={display ? `1 USD = BRL ${formatCurrency(aveniaShownRate(display), 6)}` : ''}
                             loading={isLoading}
                         />
                         {/* the rate holds the percentage fees; the flat fee is its own line (Hugo's fees table) */}

@@ -38,7 +38,8 @@ describe('AveniaWithdrawReview', () => {
         )
         expect(screen.getByText('R$503')).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
-        expect(screen.getByText('1 USD = BRL 5.4457')).toBeInTheDocument()
+        // $92.50 × 5.445946 − R$0.75 = R$503.00: the three numbers agree to the centavo
+        expect(screen.getByText('1 USD = BRL 5.445946')).toBeInTheDocument()
         expect(screen.getByText(en.avenia.withdraw.aveniaFee)).toBeInTheDocument()
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
         expect(screen.getByText('About 1 minute')).toBeInTheDocument()
