@@ -518,8 +518,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Pix deposit status
-         * @description Read-only: the webhook and the poller move the deposit; the app polls this behind the code.
+         * Pix deposit: its code while payable, then its status
+         * @description Owner only. Read-only: the webhook and the poller move the deposit. After a reload the app draws the code again from here while `codePayable` is true, and the outcome after that. The deposit route in capabilities names the payable deposit (`payableDepositIntentId`).
          */
         get: {
             parameters: {
@@ -540,19 +540,22 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
-                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-                         *       "status": "PROCESSING",
-                         *       "ticketStatus": "PROCESSING"
-                         *     }
-                         */
                         "application/json": {
+                            amountBrl: string | null;
+                            /** @description The dynamic Pix code (copia e cola) */
+                            brCode?: string;
+                            /** @description The code can still be paid: the deposit waits for the payer, the ticket is UNPAID and before expiresAt. brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
                             expiresAt: string | null;
+                            /** @description Avenia’s flat fee in reais, when the quote’s fee lines are on file */
+                            fixedFeeBrl?: string;
                             intentId: string;
+                            /** @description The CPF the Pix must come from */
+                            payerCpfMasked?: string;
                             status: string;
                             ticketStatus: string | null;
+                            /** @description USDC the wallet receives, from Avenia’s quote */
+                            usdcAmount: string | null;
                         };
                     };
                 };
@@ -710,7 +713,7 @@ export interface paths {
         };
         /**
          * Resolve a Pix key to its holder and bank
-         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key looks like the user’s own (the masked CPF and the holder name match; DICT shows only part of the CPF, and Avenia checks the full one at payout) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user.
+         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key looks like the user’s own (the masked CPF and the holder name match; DICT shows only part of the CPF, and Avenia checks the full one at payout) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user. Open whatever the route says, like recovery-key: it moves no money.
          */
         get: {
             parameters: {
@@ -1490,7 +1493,7 @@ export interface paths {
         put?: never;
         /**
          * Name another own Pix key for a refused withdrawal
-         * @description When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open with the rollout gate or the Avenia kill switch closed, since it only returns the user’s own money.
+         * @description When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open whatever the route says (a closed rollout gate, a paused provider), since it only returns the user’s own money.
          */
         post: {
             parameters: {
@@ -7320,6 +7323,11 @@ export interface paths {
                     content: {
                         "application/json": {
                             extraData?: {
+                                /** @description An Avenia Pix deposit, on an Avenia ONRAMP only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /avenia/deposit/:intentId). */
+                                aveniaDeposit?: {
+                                    codePayable: boolean;
+                                    expiresAt: string | null;
+                                };
                                 aveniaRecovery?: {
                                     failureCode: string | null;
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
@@ -14337,6 +14345,35 @@ export interface paths {
                                     code: string;
                                     userMessage: string;
                                 }[];
+                                routes: {
+                                    /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                    action?: string;
+                                    /** @description Every provider that serves the operation on the method, best first, each with its reason. */
+                                    candidates: {
+                                        /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                        action?: string;
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        reason?: {
+                                            code: string;
+                                            details?: string;
+                                            userMessage: string;
+                                        };
+                                        state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                    }[];
+                                    /** @description Rail method code, e.g. PIX_BR */
+                                    method: string;
+                                    operation: "deposit" | "withdraw";
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another. */
+                                    payableDepositIntentId?: string;
+                                    /** @description The provider the money routes use. Null when every candidate is refused. */
+                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    reason?: {
+                                        code: string;
+                                        details?: string;
+                                        userMessage: string;
+                                    };
+                                    state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                }[];
                             };
                         };
                     };
@@ -17667,6 +17704,35 @@ export interface paths {
                                     affectedRailIds: string[];
                                     code: string;
                                     userMessage: string;
+                                }[];
+                                routes: {
+                                    /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                    action?: string;
+                                    /** @description Every provider that serves the operation on the method, best first, each with its reason. */
+                                    candidates: {
+                                        /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                        action?: string;
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        reason?: {
+                                            code: string;
+                                            details?: string;
+                                            userMessage: string;
+                                        };
+                                        state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                    }[];
+                                    /** @description Rail method code, e.g. PIX_BR */
+                                    method: string;
+                                    operation: "deposit" | "withdraw";
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another. */
+                                    payableDepositIntentId?: string;
+                                    /** @description The provider the money routes use. Null when every candidate is refused. */
+                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    reason?: {
+                                        code: string;
+                                        details?: string;
+                                        userMessage: string;
+                                    };
+                                    state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
                             depositAccounts: {
