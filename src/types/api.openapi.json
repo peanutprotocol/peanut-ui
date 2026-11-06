@@ -12830,6 +12830,59 @@
 															"type": "null"
 														}
 													]
+												},
+												"intentStatus": {
+													"anyOf": [
+														{
+															"enum": [
+																"PENDING"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"AWAITING_USER_ACTION"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"AWAITING_SETTLEMENT"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"PROCESSING"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"COMPLETED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"FAILED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"CANCELLED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"REFUNDED"
+															],
+															"type": "string"
+														}
+													],
+													"description": "The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed."
 												}
 											},
 											"type": "object"
