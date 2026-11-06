@@ -80,7 +80,8 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
     })
     const minBrl = Number(eligibility.data?.minAmountBrl ?? AVENIA_MIN_DEPOSIT_BRL)
     // the amount step's estimate is Avenia's quote for the reais on screen, not the /fx rate
-    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minBrl)
+    // only the amount step quotes: the setup and the code screen do not
+    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minBrl, ready && !intentId)
     const brlNumber = Number(brlAmount)
     const validationError =
         brlAmount && brlNumber > 0 && brlNumber < minBrl

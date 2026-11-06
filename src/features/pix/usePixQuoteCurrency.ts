@@ -15,17 +15,20 @@ const TYPING_SETTLE_MS = 400
  * `useCurrency` returns. The price is that quote's BRL per USD, flat fee
  * included, so the estimate on screen is the quote's own number for that
  * amount, the same one the review shows. Before an amount is typed, or below
- * the minimum, it prices the minimum.
+ * the minimum, it prices the minimum. `enabled`: the amount step is on screen;
+ * no other step needs a quote, and one on a route that is not ready is refused.
  */
 export function usePixQuoteCurrency(
     operation: 'deposit' | 'withdraw',
     typedBrl: string | undefined,
-    minimumBrl: number
+    minimumBrl: number,
+    enabled: boolean
 ): ReturnType<typeof useCurrency> {
     const amountBrl = pixQuoteAmountBrl(useDebounce(typedBrl, TYPING_SETTLE_MS), minimumBrl)
     const quote = useQuery({
         queryKey: ['pix-quote', operation, amountBrl],
         queryFn: () => pixApi.quote({ operation, amountBrl }),
+        enabled,
         // the next amount keeps the last price on screen until its quote lands
         placeholderData: keepPreviousData,
         staleTime: 30_000,

@@ -105,7 +105,13 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
     // the amount step's estimate is Avenia's quote for the reais on screen, not the /fx rate
-    const brl = usePixQuoteCurrency('withdraw', typedBrl, AVENIA_MIN_WITHDRAWAL_BRL)
+    // only the amount step quotes: the setup, key, review and last steps do not
+    const brl = usePixQuoteCurrency(
+        'withdraw',
+        typedBrl,
+        AVENIA_MIN_WITHDRAWAL_BRL,
+        route.state === 'ready' && step === 'amount' && !showOutcome
+    )
     const [typedUsd, setTypedUsd] = useState<string | undefined>(undefined)
     const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
         amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'

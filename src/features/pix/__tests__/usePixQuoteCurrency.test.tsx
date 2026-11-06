@@ -26,7 +26,7 @@ describe('usePixQuoteCurrency', () => {
             rate: '5.369543',
             fixedFeeBrl: '0.75',
         })
-        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '106.75', 20), { wrapper })
+        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '106.75', 20, true), { wrapper })
 
         await waitFor(() => expect(result.current.price).not.toBeNull())
         expect(mockQuote).toHaveBeenCalledWith({ operation: 'withdraw', amountBrl: '106.75' })
@@ -37,14 +37,22 @@ describe('usePixQuoteCurrency', () => {
 
     it('prices the minimum before an amount is typed', async () => {
         mockQuote.mockResolvedValue({ amountBrl: '20', usdcAmount: '3.55', rate: '5.4', fixedFeeBrl: '0.75' })
-        renderHook(() => usePixQuoteCurrency('deposit', undefined, 20), { wrapper })
+        renderHook(() => usePixQuoteCurrency('deposit', undefined, 20, true), { wrapper })
         await waitFor(() => expect(mockQuote).toHaveBeenCalledWith({ operation: 'deposit', amountBrl: '20' }))
     })
 
     it('reports a failed quote, so the amount step offers a retry', async () => {
         mockQuote.mockRejectedValue(new Error('403'))
-        const { result } = renderHook(() => usePixQuoteCurrency('deposit', '100', 20), { wrapper })
+        const { result } = renderHook(() => usePixQuoteCurrency('deposit', '100', 20, true), { wrapper })
         await waitFor(() => expect(result.current.isError).toBe(true))
         expect(result.current.price).toBeNull()
+    })
+
+    it('asks for no quote while the amount step is not on screen', async () => {
+        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '100', 20, false), { wrapper })
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        expect(mockQuote).not.toHaveBeenCalled()
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.isError).toBe(false)
     })
 })
