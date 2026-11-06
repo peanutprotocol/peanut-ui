@@ -123,6 +123,7 @@ export const SentencePill = forwardRef<
             data-testid={`verify-pick-${field.key}`}
             className={twMerge(
                 'inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle',
+                field.key === 'actingAsIntermediary' && 'ms-0',
                 (field.kind === 'place' || field.kind === 'text') && 'ph-mask ph-sensitive',
                 props.className
             )}

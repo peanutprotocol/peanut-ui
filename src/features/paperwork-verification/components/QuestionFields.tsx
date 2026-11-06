@@ -61,6 +61,7 @@ function Flag({ country }: { country: string }) {
  */
 export function QuestionFields({
     fields,
+    formFields = fields,
     values,
     errors,
     residence,
@@ -73,6 +74,8 @@ export function QuestionFields({
     onChangeResidence,
 }: {
     fields: PaperworkVerificationField[]
+    /** Dependencies such as employment status can be on a different page. */
+    formFields?: PaperworkVerificationField[]
     /** The steps the fields come from: sentences of two or more steps are set apart under each step's label. */
     sections?: Array<{ id: string; keys: string[] }>
     values: PaperworkVerificationAnswers
@@ -91,9 +94,11 @@ export function QuestionFields({
     const Sentences = sentencesAsHeading ? 'h1' : 'p'
     const id = useId()
     // The work status words the job question, or answers it when Bridge does not need a job of that status.
-    const asksStatus = fields.some((f) => f.key === 'employmentStatus')
-    const jobMode = jobModeOf(fields, values.employmentStatus)
-    const sentences = fields.filter((f) => isSentenceField(f) && !(jobMode === 'none' && f.key === 'occupation'))
+    const asksStatus = formFields.some((f) => f.key === 'employmentStatus')
+    const jobMode = jobModeOf(formFields, values.employmentStatus)
+    const isVisibleSentence = (field: PaperworkVerificationField) =>
+        isSentenceField(field) && !(jobMode === 'none' && field.key === 'occupation')
+    const sentences = fields.filter(isVisibleSentence)
     const sentenceKey = (key: string) =>
         key === 'occupation' && (jobMode === 'last' || jobMode === 'future')
             ? `sentence.occupation_${jobMode}`
@@ -101,7 +106,10 @@ export function QuestionFields({
     const sentenceSections = (sections ?? [])
         .map((section) => ({ id: section.id, fields: sentences.filter((f) => section.keys.includes(f.key)) }))
         .filter((section) => section.fields.length > 0)
-    const sectioned = sentenceSections.length > 1
+    const sectioned =
+        (sections ?? []).filter((section) =>
+            formFields.some((field) => section.keys.includes(field.key) && isVisibleSentence(field))
+        ).length > 1
     const sentenceGroups = sectioned ? sentenceSections : [{ id: null, fields: sentences }]
     const typed = fields.filter((f) => !isSentenceField(f))
     const errorText = (key: string) => (errors[key] ? t(`errors.${fieldErrorKey(errors[key])}` as never) : null)

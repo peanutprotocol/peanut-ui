@@ -187,6 +187,33 @@ function withUnansweredFinancialChoices() {
     return questions
 }
 
+function withSixDropdowns() {
+    const questions = withUnansweredFinancialChoices()
+    const [, work, money, tax] = questions.steps
+    return {
+        ...questions,
+        firstUnanswered: 'money' as const,
+        steps: [
+            {
+                ...money,
+                fields: [
+                    ...money.fields,
+                    ...work.fields,
+                    { key: 'bankMonthlyPayments', kind: 'choice', required: true, value: '50000_plus' },
+                    { key: 'actingAsIntermediary', kind: 'choice', required: true, value: 'yes' },
+                ],
+            },
+            {
+                id: 'birth',
+                features: ['base'],
+                answered: false,
+                fields: [{ key: 'nationality', kind: 'country', required: true, value: 'DE' }],
+            },
+            tax,
+        ],
+    } satisfies PaperworkVerificationQuestions
+}
+
 function renderFlow(search = '', client = new QueryClient()) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
@@ -426,6 +453,75 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         renderFlow('?step=purpose')
         expect(await screen.findByTestId('verify-pick-sourceOfFunds')).toHaveTextContent('My savings')
         expect(mockSave).not.toHaveBeenCalled()
+    })
+
+    it('shows six dropdowns as three plus three and saves the complete Money step once', async () => {
+        mockQuestions.mockResolvedValue(withSixDropdowns())
+        mockSave.mockResolvedValue({ kind: 'saved', next: 'tax' })
+        renderFlow('?step=money')
+        const income = await screen.findByTestId('verify-pick-annualSalary')
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
+        expect(screen.getByRole('progressbar', { name: 'Step 2 of 5' })).toBeInTheDocument()
+        fireEvent.click(income)
+        fireEvent.click(await screen.findByRole('button', { name: 'Under $25,000' }))
+
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
+        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(mockSave).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
+
+        fireEvent.click(continueButton())
+        await screen.findByTestId('verify-pick-nationality')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-input-taxId')).toBeInTheDocument()
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        expect(mockSave).toHaveBeenNthCalledWith(
+            1,
+            'money',
+            {
+                annualSalary: 'under_25k',
+                expectedMonthlyVolume: '1k_5k',
+                sourceOfFunds: 'salary',
+                bankMonthlyPayments: '50000_plus',
+                actingAsIntermediary: 'yes',
+            },
+            undefined,
+            'user-a'
+        )
+        expect(mockSave).toHaveBeenNthCalledWith(2, 'birth', { nationality: 'DE' }, undefined, 'user-a')
+
+        await settleStepUrl()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        expect(screen.queryByTestId('verify-pick-annualSalary')).not.toBeInTheDocument()
+    })
+
+    it('opens a linked later dropdown page but sends no answers while an earlier question is incomplete', async () => {
+        const questions = withSixDropdowns()
+        questions.steps[0].fields[0].options = ['under_25k']
+        mockQuestions.mockResolvedValue(questions)
+        renderFlow('?step=birth')
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Choose')
+        expect(continueButton()).toBeDisabled()
+        expect(mockSave).not.toHaveBeenCalled()
+    })
+
+    it('returns to the dropdown page containing a rejected answer and stops later writes', async () => {
+        mockQuestions.mockResolvedValue(withSixDropdowns())
+        mockSave.mockResolvedValueOnce({ kind: 'invalid', errors: { bankMonthlyPayments: 'invalid_option' } })
+        renderFlow('?step=money')
+        await screen.findByTestId('verify-pick-annualSalary')
+        fireEvent.click(continueButton())
+        await screen.findByTestId('verify-pick-bankMonthlyPayments')
+        fireEvent.click(continueButton())
+        expect(await screen.findByTestId('verify-error-bankMonthlyPayments')).not.toBeEmptyDOMElement()
+        expect(screen.queryByTestId('verify-pick-annualSalary')).not.toBeInTheDocument()
+        expect(mockSave).toHaveBeenCalledTimes(1)
     })
 
     it('a deep link to saved answers walks the applicable questions and still requires unanswered fields', async () => {

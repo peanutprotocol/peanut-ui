@@ -5,6 +5,31 @@ import { maskReplayAttribute, maskReplayTextIn } from '@/utils/replay-privacy'
 import { redactAutocapture } from '@/utils/posthog-autocapture'
 import { SentencePill } from '../components/AnswerPicker'
 
+it.each([
+    ['yes', 'On behalf of others'],
+    ['no', 'Only for myself'],
+])('removes the starting inset for the standalone intermediary pill (%s)', (value, shown) => {
+    const field: PaperworkVerificationField = {
+        key: 'actingAsIntermediary',
+        kind: 'choice',
+        required: true,
+        value,
+    }
+    render(
+        <>
+            <SentencePill field={field} value={value} shown={shown} title="Who you send money for" />
+            <SentencePill
+                field={{ ...field, key: 'annualSalary' }}
+                value="25k_50k"
+                shown="$25,000–$49,999"
+                title="Income"
+            />
+        </>
+    )
+    expect(screen.getByRole('button', { name: `Who you send money for: ${shown}` })).toHaveClass('ms-0')
+    expect(screen.getByRole('button', { name: 'Income: $25,000–$49,999' })).not.toHaveClass('ms-0')
+})
+
 describe('SentencePill typed-place privacy', () => {
     const city = 'Kleindorf'
     const field: PaperworkVerificationField = {

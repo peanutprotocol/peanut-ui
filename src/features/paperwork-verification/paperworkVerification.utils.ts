@@ -50,21 +50,19 @@ export const nationalityOf = (questions: PaperworkVerificationQuestions): string
 
 // Fields answered from a picker. They read as one sentence, so several steps of them share a screen.
 const PICKER_KINDS = new Set<PaperworkVerificationFieldKind>(['choice', 'occupation', 'country', 'place'])
-const MAX_PICKERS_PER_SCREEN = 6
+const PREVIOUS_PICKER_GROUP_LIMIT = 6
 
 /**
- * The question screens, in the server's order, each the ids of the steps it asks.
- * Steps answered only from pickers share a screen, up to six pickers, so the first
- * screen holds every picker step that fits even when inputs or toggle rows sit
- * between them; a step with text inputs or toggle rows keeps a screen of its own,
- * and a joined phone rides on the address screen. A screen is named by its first step.
+ * The question forms, named by their first step. Pagination is visual, so a
+ * server step can span pages while keeping one complete answer payload. Keep
+ * a typed or declaration form ahead of any picker group that followed it before pagination.
  */
 export function composeScreens(
     questions: PaperworkVerificationQuestions,
     phoneJoined: boolean
 ): PaperworkVerificationStepId[][] {
     const screens: PaperworkVerificationStepId[][] = []
-    let pickers: { ids: PaperworkVerificationStepId[]; count: number } | null = null
+    let pickers: { ids: PaperworkVerificationStepId[]; count: number } | undefined
     for (const step of questions.steps) {
         if (phoneJoined && step.id === 'phone') continue
         const pickerOnly =
@@ -73,15 +71,46 @@ export function composeScreens(
             screens.push(phoneJoined && step.id === 'address' ? ['address', 'phone'] : [step.id])
             continue
         }
-        if (pickers && pickers.count + step.fields.length <= MAX_PICKERS_PER_SCREEN) {
-            pickers.ids.push(step.id)
-            pickers.count += step.fields.length
-            continue
+        if (
+            !pickers ||
+            (screens.at(-1) !== pickers.ids && pickers.count + step.fields.length > PREVIOUS_PICKER_GROUP_LIMIT)
+        ) {
+            pickers = { ids: [], count: 0 }
+            screens.push(pickers.ids)
         }
-        pickers = { ids: [step.id], count: step.fields.length }
-        screens.push(pickers.ids)
+        pickers.ids.push(step.id)
+        pickers.count += step.fields.length
     }
     return screens
+}
+
+const isDropdown = (field: PaperworkVerificationField) =>
+    !field.locked && (field.kind === 'select' || PICKER_KINDS.has(field.kind))
+
+/** Group dropdowns in threes, allowing four up front to avoid a single leftover. */
+export function questionPages(
+    fields: PaperworkVerificationField[],
+    values?: PaperworkVerificationAnswers
+): PaperworkVerificationField[][] {
+    const status = values?.employmentStatus ?? fields.find((field) => field.key === 'employmentStatus')?.value
+    const hideOccupation = jobModeOf(fields, status ?? undefined) === 'none'
+    const visible = hideOccupation ? fields.filter((field) => field.key !== 'occupation') : fields
+    const count = visible.filter(isDropdown).length
+    if (count <= 4) return [visible]
+
+    const pages: PaperworkVerificationField[][] = [[]]
+    let remaining = count % 3 === 1 ? 4 : 3
+    for (const field of visible) {
+        if (isDropdown(field)) {
+            if (remaining === 0) {
+                pages.push([])
+                remaining = 3
+            }
+            remaining -= 1
+        }
+        pages[pages.length - 1].push(field)
+    }
+    return pages
 }
 
 /** The picked features less the ones the residence or an answer closed: what the ID check will set up. */
@@ -100,9 +129,16 @@ export const screenOfStep = <S extends string>(
  * "Step n of m": sign-up counts as the done first step and the ID check as the
  * last, so the first question already shows progress made.
  */
-export function stepProgress(screens: PaperworkVerificationStepId[], step: PaperworkVerificationStepId) {
-    const total = screens.length + 2
-    return { current: Math.max(screens.indexOf(step), 0) + 2, total }
+export function stepProgress(
+    screens: PaperworkVerificationStepId[],
+    step: PaperworkVerificationStepId,
+    pageCounts = screens.map(() => 1)
+) {
+    const group = Math.max(screens.indexOf(step), 0)
+    return {
+        current: pageCounts.slice(0, group).reduce((total, count) => total + count, 2),
+        total: pageCounts.reduce((total, count) => total + count, 2),
+    }
 }
 
 /** The server's saved values; an empty phone starts with the residence's calling code, an unset toggle reads no. */
