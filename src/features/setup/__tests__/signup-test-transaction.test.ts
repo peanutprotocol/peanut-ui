@@ -84,7 +84,7 @@ function fakeClient({
         send: jest.fn(async (): Promise<Hash> => `0x${'00'.repeat(32)}` as Hash),
         waitForReceipt: jest.fn(async () => mined),
         getReceipt: jest.fn(async () => null),
-        nonceSpent: jest.fn(async () => false),
+        nonceSpent: jest.fn(async (): Promise<boolean> => false),
     } satisfies SignupTestTxClient
     return client
 }
@@ -108,6 +108,8 @@ describe('runSignupTestTransaction', () => {
         expect(client.sign).toHaveBeenCalledTimes(1)
         expect(result).toMatchObject({ reusedSignature: false, sends: 1 })
         expect(readSignupTestTransaction(USER)).toMatchObject({ mined: true })
+        await expect(run(client)).resolves.toMatchObject({ sends: 0 })
+        expect(client.waitForReceipt).toHaveBeenCalledTimes(1)
     })
 
     it('a reload mid-retry resends the identical operation without a passkey prompt', async () => {
@@ -122,6 +124,42 @@ describe('runSignupTestTransaction', () => {
         expect(afterReload.sign).not.toHaveBeenCalled()
         expect(afterReload.send.mock.calls[0]).toEqual(sentBefore)
         expect(result.reusedSignature).toBe(true)
+    })
+
+    it.each([true, false])(
+        'reconciles a spent nonce after reload using only the receipt with success %s',
+        async (success) => {
+            const initial = fakeClient()
+            initial.waitForReceipt.mockRejectedValue(timeout())
+            initial.nonceSpent.mockResolvedValue(true)
+            await expect(run(initial)).rejects.toBeInstanceOf(SignupTestTxError)
+            const unresolved = readSignupTestTransaction(USER)
+            expect(unresolved).toMatchObject({ mined: false, needsNewSignature: false, transientFailures: 1 })
+
+            const reloaded = fakeClient()
+            reloaded.nonceSpent.mockRejectedValue(timeout())
+            reloaded.waitForReceipt.mockResolvedValue({ ...mined, success })
+            if (success) await expect(run(reloaded)).resolves.toMatchObject({ userOpHash: unresolved?.userOpHash })
+            else await expect(run(reloaded)).rejects.toBeInstanceOf(SignupTestTxError)
+            expect(reloaded.waitForReceipt).toHaveBeenCalledWith(unresolved?.userOpHash, FAST.receiptWindowMs)
+            expect(reloaded.sign).not.toHaveBeenCalled()
+            expect(reloaded.send).not.toHaveBeenCalled()
+            expect(readSignupTestTransaction(USER)).toMatchObject({ mined: success, needsNewSignature: !success })
+        }
+    )
+
+    it('reconciles an earlier mined marker that lacks a receipt', async () => {
+        const initial = fakeClient()
+        initial.send.mockRejectedValue(timeout())
+        await expect(run(initial)).rejects.toBeInstanceOf(SignupTestTxError)
+        updateSignupTestTransaction(USER, { mined: true })
+
+        const reloaded = fakeClient()
+        reloaded.waitForReceipt.mockResolvedValue({ ...mined, success: false })
+        await expect(run(reloaded)).rejects.toBeInstanceOf(SignupTestTxError)
+        expect(reloaded.waitForReceipt).toHaveBeenCalledTimes(1)
+        expect(reloaded.send).not.toHaveBeenCalled()
+        expect(readSignupTestTransaction(USER)).toMatchObject({ mined: false, needsNewSignature: true })
     })
 
     it('"Already known" on the resend waits for the same operation, never signing a second one', async () => {
@@ -252,6 +290,27 @@ describe('retryDeferredSignupTestTransaction', () => {
             'Deferred signup confirmation reverted on chain',
             expect.objectContaining({ tags: { error_type: 'signup_deferred_reverted' } })
         )
+    })
+
+    it('keeps a deferred spent nonce unresolved after a receipt timeout', async () => {
+        await deferAfterTwoTimeouts()
+        const stillUnknown = bundler({
+            nonceSpent: jest.fn(async () => true),
+            waitForReceipt: jest.fn().mockRejectedValue(timeout()),
+        })
+        await expect(retryDeferredSignupTestTransaction(USER, stillUnknown, { sleep: noSleep })).resolves.toBe(
+            'pending'
+        )
+        expect(readSignupTestTransaction(USER)).toMatchObject({ deferred: true, mined: false, deferredRetries: 1 })
+        expect(stillUnknown.send).not.toHaveBeenCalled()
+        expect(posthog.capture).not.toHaveBeenCalled()
+
+        const reloaded = bundler({
+            nonceSpent: jest.fn().mockRejectedValue(timeout()),
+            waitForReceipt: jest.fn(async () => ({ ...mined, success: false })),
+        })
+        await expect(retryDeferredSignupTestTransaction(USER, reloaded, { sleep: noSleep })).resolves.toBe('reverted')
+        expect(reloaded.send).not.toHaveBeenCalled()
     })
 
     it('keeps the marker through a still-stalled bundler, then gives up after the retry limit', async () => {

@@ -359,7 +359,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             <ResidenceRequiredScreen
                 residenceIso2={residenceGatedCountry}
                 qrPayHref="/qr-pay"
-                residenceChangeHref={withReturnTo('/profile?open=residence', '/add-money?method=bank')}
+                residenceChangeHref={withReturnTo('/settings/details?open=residence', '/add-money?method=bank')}
                 onBack={onBack}
             />
         )

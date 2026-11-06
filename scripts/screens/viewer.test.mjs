@@ -524,6 +524,27 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     assert.equal(restored.location.search, '?source=synthetic&locale=en')
 })
 
+test('release previews stay visible with zero changes and open a full paired comparison', async () => {
+    const date = '2026-09-14'
+    const releasePath = `${date}/pr-42/en/${'a'.repeat(40)}`
+    const featurePath = `${date}/pr-43/en/${'b'.repeat(40)}`
+    const entry = { date, locale: 'en', reportType: 'comparison', changedScreens: 0, complete: true }
+    const elements = await loadLanding('/', {
+        index: [
+            { ...entry, path: releasePath, branch: 'dev', prNumber: 42, releasePreview: true },
+            { ...entry, path: featurePath, branch: 'feature', prNumber: 43 },
+        ],
+    })
+    assert.equal(elements.get('screen-updates-only').checked, true)
+    const links = versionLinks(elements)
+    assert.equal(links.length, 1)
+    assert.equal(links[0].children[0].children[1].textContent, 'Release preview')
+    const url = new URL(links[0].href, 'https://screens.example')
+    assert.equal(url.pathname, `/screens/${releasePath}/`)
+    assert.equal(url.searchParams.get('view'), 'all')
+    assert.equal(url.searchParams.get('layout'), 'paired')
+})
+
 test('date navigator pages without exposing a native scrollbar', async () => {
     const elements = await loadLanding('/', {
         index: [
@@ -653,6 +674,20 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.get('screens').children.length, 1)
     assert.equal(elements.get('screens').children[0].id, 'failed')
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
+
+    const paired = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+        search: '?view=all&layout=paired',
+    })
+    assert.equal(paired.get('view-mode').checked, true)
+    assert.equal(paired.get('screens').className, 'changed-screens')
+    const unchanged = paired.get('screens').children.find(({ id }) => id === 'unchanged')
+    assert.equal(unchanged.children[1].className, 'pair')
+    assert.equal(imageSources(unchanged).length, 2)
+    unchanged.children[1].children[0].children[1].onclick()
+    assert.equal(imageSources(paired.get('zoom-images')).length, 2)
+    assert.equal(paired.get('zoom-controls').hidden, false)
+    assert.equal(paired.location.search, '?source=synthetic&locale=en&view=all&layout=paired')
 })
 
 for (const channel of ['pr-3392', 'compare-main'])

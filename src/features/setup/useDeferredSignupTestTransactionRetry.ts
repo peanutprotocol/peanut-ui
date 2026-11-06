@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { http } from 'viem'
-import { createBundlerClient, entryPoint07Abi } from 'viem/account-abstraction'
+import { createBundlerClient } from 'viem/account-abstraction'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { ZERODEV_RPC_TIMEOUT_MS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
@@ -13,7 +13,7 @@ import {
     type DeferredSignupTestTxBundler,
 } from './deferred-signup-test-transaction'
 import { readSignupTestTransaction } from './signup-test-transaction'
-import { sendSignedUserOperation } from '@/utils/userop-submission'
+import { sendSignedUserOperation, userOperationNonceSpent } from '@/utils/userop-submission'
 
 const attempted = new Set<string>()
 
@@ -33,21 +33,18 @@ function bundlerFor(chainId: number): DeferredSignupTestTxBundler | null {
                 if ((error as Error)?.name === 'UserOperationReceiptNotFoundError') return null
                 throw error
             }),
-        nonceSpent: async (record) => {
-            const nonce = BigInt(record.userOperation.nonce)
-            const next = await config.client.readContract({
-                address: record.entryPoint,
-                abi: entryPoint07Abi,
-                functionName: 'getNonce',
-                args: [record.sender, nonce >> 64n],
-            })
-            return next > nonce
-        },
+        nonceSpent: (record) =>
+            userOperationNonceSpent(
+                config.client,
+                record.entryPoint,
+                record.sender,
+                BigInt(record.userOperation.nonce)
+            ),
     }
 }
 
 /**
- * Once per app start, resends a signup confirmation the person finished
+ * Once per app start, retries a signup confirmation the person finished
  * without (the final signup step after repeated network failures). The signed
  * operation is reused, so this never shows a passkey prompt.
  */

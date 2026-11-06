@@ -23,9 +23,8 @@ const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
 
 /**
  * The final signup step's signed test operation, kept on the device from the
- * moment it is signed. A reload, a retry or the later automatic retry resends
- * this exact operation instead of preparing and signing a new one, so the
- * person is not asked for the passkey again and no second operation can exist.
+ * moment it is signed. A reload or retry reuses the operation or reconciles
+ * its receipt instead of preparing and signing a second one.
  */
 export interface SignupTestTransaction {
     chainId: number
@@ -39,8 +38,11 @@ export interface SignupTestTransaction {
     signatureRejected: boolean
     /** The operation can no longer be included; the next attempt must sign again. */
     needsNewSignature: boolean
+    /** The nonce has been spent. Later attempts reconcile the receipt without resending. */
+    receiptOnly?: boolean
     transientFailures: number
     mined: boolean
+    receiptTransactionHash?: Hash
     /** The person finished signup before the operation was confirmed. */
     deferred: boolean
     deferredRetries: number
@@ -89,6 +91,10 @@ export function readSignupTestTransaction(userId: string, now = Date.now()): Sig
             return null
         }
         const count = (value: unknown) => (typeof value === 'number' && value >= 0 ? Math.floor(value) : 0)
+        const receiptTransactionHash =
+            typeof stored.receiptTransactionHash === 'string' && HASH.test(stored.receiptTransactionHash)
+                ? stored.receiptTransactionHash
+                : undefined
         return {
             chainId: stored.chainId,
             sender: stored.sender as Address,
@@ -100,8 +106,11 @@ export function readSignupTestTransaction(userId: string, now = Date.now()): Sig
                 : 'unverifiable',
             signatureRejected: stored.signatureRejected === true,
             needsNewSignature: stored.needsNewSignature === true,
+            // Earlier builds could set mined after seeing only the spent nonce. Reconcile those records by receipt.
+            receiptOnly: stored.receiptOnly === true || (stored.mined === true && !receiptTransactionHash),
             transientFailures: count(stored.transientFailures),
-            mined: stored.mined === true,
+            mined: stored.mined === true && !!receiptTransactionHash,
+            receiptTransactionHash,
             deferred: stored.deferred === true,
             deferredRetries: count(stored.deferredRetries),
             signedAt: stored.signedAt,

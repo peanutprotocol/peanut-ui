@@ -1,5 +1,10 @@
-import type { Address, BaseError, Client, Hash, TransactionReceipt } from 'viem'
-import { getUserOperationError, type RpcUserOperation, type UserOperation } from 'viem/account-abstraction'
+import type { Address, BaseError, Client, Hash, PublicClient, TransactionReceipt } from 'viem'
+import {
+    entryPoint07Abi,
+    getUserOperationError,
+    type RpcUserOperation,
+    type UserOperation,
+} from 'viem/account-abstraction'
 import { isAa24Error } from '@/utils/walletCredential.utils'
 
 /**
@@ -123,21 +128,18 @@ export interface SubmissionDeps {
     waitForReceipt: (hash: Hash, timeoutMs: number) => Promise<UserOpReceiptResult>
     /** One receipt lookup: null when the bundler has none (yet). */
     getReceipt: (hash: Hash) => Promise<UserOpReceiptResult | null>
-    /**
-     * Whether the operation's nonce is spent on chain. Pass it only when any
-     * operation at that nonce is as good as this one: "Already known" can mean
-     * the bundler holds an earlier signature of the same operation, whose hash
-     * differs, so only the nonce shows that one landed.
-     */
+    /** Whether the nonce is spent on chain. This stops resends, but the receipt determines execution success. */
     nonceSpent?: () => Promise<boolean>
+    /** Check the nonce before resending an operation saved by an earlier attempt. */
+    reconcileBeforeSend?: boolean
+    /** A previous attempt already observed the spent nonce. */
+    receiptOnly?: boolean
+    onNonceSpent?: (hash: Hash) => void
     sleep?: (ms: number) => Promise<void>
     now?: () => number
 }
 
-export interface SubmissionOutcome {
-    success: boolean
-    /** Null when only the spent nonce showed that an equivalent operation landed. */
-    receipt: TransactionReceipt | null
+export interface SubmissionOutcome extends UserOpReceiptResult {
     userOpHash: Hash
     sends: number
     /** Failures the submission recovered from, in order. */
@@ -160,6 +162,23 @@ export class UserOpSubmissionError extends Error {
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+/** Read the key encoded in the signed operation. The account SDK may allocate a new key for getNonce(). */
+export async function userOperationNonceSpent(
+    client: Pick<PublicClient, 'readContract'>,
+    entryPoint: Address,
+    sender: Address,
+    nonce: bigint
+): Promise<boolean> {
+    const key = nonce >> 64n
+    const next = await client.readContract({
+        address: entryPoint,
+        abi: entryPoint07Abi,
+        functionName: 'getNonce',
+        args: [sender, key],
+    })
+    return next >> 64n === key && next > nonce
+}
+
 /**
  * Submits ONE signed UserOperation within a budget. Every send repeats the exact
  * same operation (same nonce, gas, paymaster data and signature), so retries can
@@ -179,21 +198,21 @@ export async function submitSignedUserOperation(
     let sends = 0
     let hash = userOpHash
     let accepted = false
+    let receiptOnly = deps.receiptOnly === true
 
     const fail = (kind: UserOpFailureKind, cause: unknown): never => {
         throw new UserOpSubmissionError(kind, hash, sends, accepted, cause)
     }
 
-    const landedAtNonce = async (): Promise<Pick<SubmissionOutcome, 'success' | 'receipt'> | null> =>
-        deps.nonceSpent && (await deps.nonceSpent().catch(() => false)) ? { success: true, receipt: null } : null
-
-    const spentByThisOperation = async (cause: unknown): Promise<Pick<SubmissionOutcome, 'success' | 'receipt'>> => {
-        const receipt = (await deps.getReceipt(hash).catch(() => null)) ?? (await landedAtNonce())
-        return receipt ?? fail('nonce_used', cause)
+    const observeSpentNonce = async () => {
+        if (!receiptOnly && (await deps.nonceSpent?.().catch(() => false))) {
+            receiptOnly = true
+            deps.onNonceSpent?.(hash)
+        }
+        return receiptOnly
     }
 
-    /** One send; resolves to a receipt only when the nonce turned out to be spent by this operation. */
-    const sendOnce = async (): Promise<Pick<SubmissionOutcome, 'success' | 'receipt'> | null> => {
+    const sendOnce = async (): Promise<UserOpReceiptResult | null> => {
         sends++
         try {
             const returned = await deps.send()
@@ -209,7 +228,8 @@ export async function submitSignedUserOperation(
                 return null
             }
             if (kind === 'nonce_used') {
-                const receipt = await spentByThisOperation(error)
+                const receipt = await deps.getReceipt(hash).catch(() => null)
+                if (!receipt && !(await observeSpentNonce())) fail(kind, error)
                 recovered.push(kind)
                 return receipt
             }
@@ -217,15 +237,21 @@ export async function submitSignedUserOperation(
         }
     }
 
-    for (let attempt = 1; !accepted; attempt++) {
+    if (deps.reconcileBeforeSend) await observeSpentNonce()
+    for (let attempt = 1; !accepted && !receiptOnly; attempt++) {
         try {
             const receipt = await sendOnce()
             if (receipt) return { userOpHash: hash, ...receipt, sends, recovered }
         } catch (error) {
             if (error instanceof UserOpSubmissionError) throw error
             const kind = userOpFailureKind(error)
+            if (kind !== 'transient') fail(kind, error)
+            if (await observeSpentNonce()) {
+                recovered.push(kind)
+                break
+            }
             const pause = budget.backoffMs[Math.min(attempt - 1, budget.backoffMs.length - 1)] ?? 0
-            if (kind !== 'transient' || attempt >= budget.sendAttempts || now() + pause >= deadline) fail(kind, error)
+            if (attempt >= budget.sendAttempts || now() + pause >= deadline) fail(kind, error)
             recovered.push(kind)
             await sleep(pause)
         }
@@ -244,9 +270,8 @@ export async function submitSignedUserOperation(
             const kind = userOpFailureKind(error)
             if (kind !== 'transient') fail(kind, error)
             recovered.push(kind)
-            const sibling = await landedAtNonce()
-            if (sibling) return { userOpHash: hash, ...sibling, sends, recovered }
             if (window === budget.receiptWindows || now() >= deadline) break
+            if (await observeSpentNonce()) continue
             // A stalled bundler can drop the operation; the identical resend is a no-op when it still holds it.
             try {
                 const receipt = await sendOnce()
@@ -258,8 +283,9 @@ export async function submitSignedUserOperation(
             }
         }
     }
-    const late = (await deps.getReceipt(hash).catch(() => null)) ?? (await landedAtNonce())
+    const late = await deps.getReceipt(hash).catch(() => null)
     if (late) return { userOpHash: hash, ...late, sends, recovered }
+    await observeSpentNonce()
     return fail('transient', lastError)
 }
 

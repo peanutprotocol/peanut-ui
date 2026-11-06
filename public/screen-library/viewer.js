@@ -381,7 +381,9 @@ const versionDetails = (entry) => {
             ? 'Real journey'
             : entry.reportType === 'capture' || channel === 'dev' || channel === 'main'
               ? 'Full library'
-              : 'Changed screens'
+              : pathPr && entry.releasePreview === true
+                ? 'Release preview'
+                : 'Changed screens'
     return { branch, prNumber, changedScreens, kind }
 }
 const asset = (name) => {
@@ -403,6 +405,7 @@ let rows = [],
     active,
     activeMode = 'screen',
     viewMode = 'all',
+    pairedLayout = false,
     showVariations = true,
     indexEntries = [],
     reportLocaleEntries = [],
@@ -866,6 +869,8 @@ function newScreenPlaceholder(row) {
     return placeholder
 }
 const comparisonMode = () => report?.type === 'comparison' || (report?.type === 'collection' && !!activeComparison)
+const singleScreenLayout = () =>
+    !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all' && !pairedLayout)
 const availableScreen = (row) =>
     [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
     (report?.type === 'collection' ? row?.after : undefined)
@@ -963,8 +968,12 @@ function shareableParams(overrides = {}) {
         if ((up || down) && myVotes()) params.set('by', 'me')
         if (report.type === 'comparison') {
             params.set('view', overrides.view ?? viewMode)
+            if ((overrides.layout ?? (pairedLayout ? 'paired' : '')) === 'paired') params.set('layout', 'paired')
             if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
         }
+    } else if (overrides.view) {
+        params.set('view', overrides.view)
+        if (overrides.layout === 'paired') params.set('layout', overrides.layout)
     }
     const historyId = overrides.history ?? historyState?.id ?? requestedFilter('history')
     if (/^[a-z0-9][a-z0-9-]{0,119}$/.test(historyId)) params.set('history', historyId)
@@ -1087,7 +1096,7 @@ function previewFeedback(scopes) {
 }
 function zoom(row, mode = 'side') {
     active = row
-    const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
+    const single = mode === 'screen' || singleScreenLayout()
     if (single) mode = 'screen'
     activeMode = mode
     const historyButton = $('zoom-history')
@@ -1318,7 +1327,7 @@ function renderTile(row) {
     )
     if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
-    const showSingle = !comparisonMode() || (report.type === 'comparison' && viewMode === 'all')
+    const showSingle = singleScreenLayout()
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
     for (const [label, s] of showSingle
         ? [['Screen', availableScreen(row)]]
@@ -1393,7 +1402,11 @@ function render() {
     filteredRows = voted.rows
     renderedCount = 0
     $('screens').className =
-        report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
+        report?.type === 'journeys'
+            ? 'all-screens journey-screens'
+            : changedMode || (report?.type === 'comparison' && pairedLayout)
+              ? 'changed-screens'
+              : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
         const clearVotes = [
@@ -1670,7 +1683,16 @@ function renderLanding() {
         for (const v of grouped.get(date)) {
             const details = versionDetails(v)
             const a = el('a', undefined, 'version')
-            a.href = shareableHref(`/screens/${v.path}/`, { source: selectedSource, locale: selected, date: '' }, '')
+            a.href = shareableHref(
+                `/screens/${v.path}/`,
+                {
+                    source: selectedSource,
+                    locale: selected,
+                    date: '',
+                    ...(details.kind === 'Release preview' ? { view: 'all', layout: 'paired' } : {}),
+                },
+                ''
+            )
             const top = el('div', undefined, 'version-top')
             top.append(
                 el('span', formatCaptureDate(v.date), 'version-card-date'),
@@ -1873,6 +1895,7 @@ async function start() {
     const before = activeComparison?.before ?? report.before,
         after = activeComparison?.after ?? (report.type === 'comparison' ? report.after : report)
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
+    pairedLayout = report.type === 'comparison' && requestedFilter('layout') === 'paired'
     showVariations = report.type !== 'comparison' || requestedFilter('scope') !== 'default'
     $('view-mode').checked = viewMode === 'all'
     $('variations-mode').checked = showVariations

@@ -2,7 +2,12 @@ import { execFileSync } from 'node:child_process'
 import { ghApiSync } from './gh-api.mjs'
 import { existsSync, readdirSync } from 'node:fs'
 import { repositoryApiPath } from './repository-api.mjs'
-import { reviewHeadRevision, reviewProvenance, reviewPullRequest } from './review-provenance.mjs'
+import {
+    bindReleaseReviewEvent,
+    reviewHeadRevision,
+    reviewProvenance,
+    reviewPullRequest,
+} from './review-provenance.mjs'
 import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { parseCaptureArtifact } from './capture-artifacts.mjs'
 import { CAPTURE_LOCALES } from './capture-locales.mjs'
@@ -21,7 +26,7 @@ const api = (path, args = []) =>
             maxBuffer: 64 * 1024 * 1024,
         })
     )
-const currentRun = api(`actions/runs/${runId}`)
+const currentRun = bindReleaseReviewEvent(repo, api(`actions/runs/${runId}`))
 const currentCaptures = process.argv.includes('--current')
 if (currentCaptures && currentRun.event !== 'pull_request') {
     process.stdout.write('mode=current\n')
@@ -30,7 +35,11 @@ if (currentCaptures && currentRun.event !== 'pull_request') {
 if (currentRun.event !== 'pull_request' || currentRun.head_repository?.full_name !== repo)
     throw new Error('Baseline lookup only supports same-repository pull requests')
 const reviewHead = reviewHeadRevision(currentRun)
-const prCandidates = api(`commits/${reviewHead}/pulls?per_page=100`, ['--paginate', '--slurp']).flat()
+const snapshot = currentRun.pull_requests?.[0]
+const releasePreview = snapshot?.base.ref === 'main'
+const prCandidates = releasePreview
+    ? [api(`pulls/${snapshot.number}`)]
+    : api(`commits/${reviewHead}/pulls?per_page=100`, ['--paginate', '--slurp']).flat()
 const pr = reviewPullRequest(repo, currentRun, prCandidates)
 if (pr?.state === 'closed' || pr?.merged_at) {
     process.stderr.write('::notice::The exact pull request for this run is closed or merged; skipping publication.\n')
@@ -40,6 +49,11 @@ if (pr?.state === 'closed' || pr?.merged_at) {
 const binding = reviewProvenance(repo, currentRun, prCandidates, (args) =>
     execFileSync('git', args, { encoding: 'utf8' })
 )
+if (!binding && releasePreview) {
+    process.stderr.write('::notice::Release pull request is no longer current; skipping publication.\n')
+    process.stdout.write('mode=skip\n')
+    process.exit(0)
+}
 if (!binding) throw new Error('Unable to resolve the pull request base revision')
 const expectedBase = binding.before
 if (!/^[a-f0-9]{40}$/.test(expectedBase)) throw new Error('Unable to resolve the merge-base revision')

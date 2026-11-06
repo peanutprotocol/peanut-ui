@@ -1,8 +1,8 @@
 /**
  * Profile lists what sign-up and verification collected, read from Sumsub, the
- * address and the tax number included (Slava, 2026-11-05). A value the API did
- * not return says "Not stored at Peanut"; a row shows only for something
- * collected; no location row. The edit button lives here (2026-11-05).
+ * address and the tax number included (Slava, 2026-11-05). Address and tax
+ * rows appear only when the API returns their values. Residence is the
+ * first action on Settings details.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, screen, within } from '@testing-library/react'
@@ -17,9 +17,21 @@ jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: ({ rightElement }: { rightElement?: React.ReactNode }) => rightElement ?? null,
 }))
+jest.mock('../../components/ResidenceMenuItem', () => ({
+    __esModule: true,
+    default: () => <button>Residence</button>,
+}))
+jest.mock('@/components/Settings/DeleteAccountButton', () => ({ __esModule: true, default: () => null }))
+jest.mock('../../components/EmailSettings', () => ({ EmailSettings: () => null }))
+jest.mock('../../components/ShowNameToggle', () => ({
+    __esModule: true,
+    default: ({ checked }: { checked: boolean }) => (
+        <button type="button" role="switch" aria-label="Show full name" aria-checked={checked} />
+    ),
+}))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({ getKycDetails: jest.fn() }))
 const mockUser = {
-    user: { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com' },
+    user: { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com', showFullName: false },
     residence: normalizeResidence({ declared: 'PT', declaredSecond: null, verified: 'PT' }),
 }
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
@@ -56,13 +68,13 @@ const rowValue = (label: string) => {
 }
 
 beforeEach(() => {
-    mockUser.user = { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com' }
+    mockUser.user = { userId: 'user-a', fullName: 'Ivan Petrenko', email: 'ivan@example.com', showFullName: false }
     jest.mocked(getKycDetails).mockReset().mockResolvedValue(details())
     mockUser.residence = normalizeResidence({ declared: 'PT', declaredSecond: null, verified: 'PT' })
 })
 
 describe('ProfileDetailsView', () => {
-    it("shows Peanut's records and marks what only Sumsub holds", async () => {
+    it('shows returned records and omits unavailable address and tax values', async () => {
         render()
         expect(await screen.findByText('Nationality')).toBeInTheDocument()
         expect(rowValue('Name')).toBe('Ivan')
@@ -70,7 +82,7 @@ describe('ProfileDetailsView', () => {
         expect(rowValue('Email')).toBe('ivan@example.com')
         expect(rowValue('Verified residence')).toBe('Portugal')
         expect(rowValue('ID document')).toBe('Residence permit, Portugal')
-        for (const label of ['Tax number', 'Address']) expect(rowValue(label)).toBe('Not stored at Peanut')
+        for (const label of ['Tax number', 'Address']) expect(screen.queryByText(label)).not.toBeInTheDocument()
     })
 
     it('shows the answers Peanut keeps in words', async () => {
@@ -106,7 +118,7 @@ describe('ProfileDetailsView', () => {
         expect(rowValue('Name')).toBe('Іван')
         expect(rowValue('Surname')).toBe('Петренко')
         expect(rowValue('Nationality')).toBe('Ukraine')
-        expect(rowValue('Tax number')).toBe('Not stored at Peanut')
+        expect(screen.queryByText('Tax number')).not.toBeInTheDocument()
     })
 
     it('hides what was never collected, the funding and spending methods, and location', async () => {
@@ -118,11 +130,11 @@ describe('ProfileDetailsView', () => {
         expect(screen.queryByText(/funding|spending method/i)).toBeNull()
     })
 
-    it('names an unverified residence as declared', async () => {
+    it('shows the residence action without repeating the declared country as a data row', async () => {
         mockUser.residence = normalizeResidence({ declared: 'ES', declaredSecond: 'PT', verified: null })
         render()
-        expect(await screen.findByText('Declared residence')).toBeInTheDocument()
-        expect(rowValue('Declared residence')).toBe('Spain')
+        expect(await screen.findByRole('button', { name: 'Residence' })).toBeInTheDocument()
+        expect(screen.queryByText('Declared residence')).not.toBeInTheDocument()
         expect(rowValue('Second residence')).toBe('Portugal')
         expect(screen.queryByText('Verified residence')).toBeNull()
     })
@@ -179,16 +191,33 @@ describe('ProfileDetailsView', () => {
         expect(screen.getByText('123456789')).toHaveClass('ph-sensitive')
     })
 
-    it('links to editing the profile from its header', async () => {
+    it('shows residence first and full-name visibility without a profile edit link', async () => {
         render()
-        expect(await screen.findByRole('link', { name: 'Edit profile' })).toHaveAttribute('href', '/profile/edit')
+        expect(await screen.findByRole('button', { name: 'Residence' })).toBeInTheDocument()
+        expect(screen.getByRole('switch', { name: 'Show full name' })).toBeInTheDocument()
+        expect(screen.queryByRole('link', { name: 'Edit profile' })).not.toBeInTheDocument()
+        expect(
+            screen.getByRole('button', { name: 'Residence' }).compareDocumentPosition(screen.getByText('Name')) &
+                Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy()
     })
 
-    it('an older API that only names the address says it is not stored at Peanut', async () => {
+    it('omits an address that an older API names without returning its value', async () => {
         jest.mocked(getKycDetails).mockResolvedValue(details({ heldBySumsub: ['address'] }))
         render()
-        expect(await screen.findByText('Address')).toBeInTheDocument()
-        expect(rowValue('Address')).toBe('Not stored at Peanut')
+        expect(await screen.findByText('Nationality')).toBeInTheDocument()
+        expect(screen.queryByText('Address')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        { returned: { address: { street: 'Example Street' } }, value: 'Example Street', omitted: 'Tax number' },
+        { returned: { taxId: '123456789' }, value: '123456789', omitted: 'Address' },
+    ])('masks the available value when $omitted was named but not returned', async ({ returned, value, omitted }) => {
+        jest.mocked(getKycDetails).mockResolvedValue(details(returned))
+        render()
+        expect(await screen.findByText(value)).toHaveClass('ph-mask', 'ph-sensitive')
+        expect(screen.queryByText(omitted)).not.toBeInTheDocument()
+        expect(screen.queryByText('Not stored at Peanut')).not.toBeInTheDocument()
     })
 })
 
@@ -203,7 +232,7 @@ describe('account-scoped KYC details', () => {
         const first = renderWithIntl(tree())
         await screen.findByText('Odesa')
         first.unmount()
-        mockUser.user = { userId: 'user-b', fullName: 'Maria Silva', email: 'b@example.com' }
+        mockUser.user = { userId: 'user-b', fullName: 'Maria Silva', email: 'b@example.com', showFullName: true }
         let finish!: (value: KycCollectedDetails) => void
         jest.mocked(getKycDetails).mockReturnValueOnce(
             new Promise((resolve) => {
@@ -234,9 +263,11 @@ describe('account-scoped KYC details', () => {
             </QueryClientProvider>
         )
         const view = renderWithIntl(tree())
-        mockUser.user = { userId: 'user-b', fullName: 'Maria Silva', email: 'b@example.com' }
+        expect(screen.getByRole('switch', { name: 'Show full name' })).toHaveAttribute('aria-checked', 'false')
+        mockUser.user = { userId: 'user-b', fullName: 'Maria Silva', email: 'b@example.com', showFullName: true }
         jest.mocked(getKycDetails).mockResolvedValue(details({ stored: { cityOfBirth: 'Lisbon' } }))
         view.rerender(tree())
+        expect(screen.getByRole('switch', { name: 'Show full name' })).toHaveAttribute('aria-checked', 'true')
         expect(await screen.findByText('Lisbon')).toBeInTheDocument()
         await act(async () => finishA(details()))
         expect(screen.queryByText('Odesa')).not.toBeInTheDocument()

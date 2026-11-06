@@ -5,7 +5,8 @@ import { join } from 'node:path'
 import { createStorage } from './cloudflare-storage.mjs'
 import { validateCapture, verifyAsset } from './core.mjs'
 import { mainRevisions, pushRevisions } from './capture-revisions.mjs'
-import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
+import { bindReleaseReviewEvent, reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
+import { currentCaptureReview } from './check-review-current.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { parseCaptureArtifact, selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
 import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
@@ -68,7 +69,7 @@ const api = (path) =>
             maxBuffer: 64 * 1024 * 1024,
         })
     )
-const run = api(`actions/runs/${runId}`)
+const run = bindReleaseReviewEvent(repo, api(`actions/runs/${runId}`))
 verifyRunIdentity(run, repo, Number(runId), Number(attempt))
 const mainRelease = run.head_branch === 'main' && ['push', 'workflow_dispatch'].includes(run.event)
 let expectedBase, pr
@@ -84,11 +85,15 @@ if (mainRelease) {
     expectedHead = refs.after
 } else if (run.event === 'pull_request') {
     const reviewHead = reviewHeadRevision(run)
-    const candidates = JSON.parse(
-        ghApiSync([`repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
-            encoding: 'utf8',
-        })
-    ).flat()
+    const snapshot = run.pull_requests?.[0]
+    const candidates =
+        snapshot?.base.ref === 'main'
+            ? [api(`pulls/${snapshot.number}`)]
+            : JSON.parse(
+                  ghApiSync([`repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
+                      encoding: 'utf8',
+                  })
+              ).flat()
     const binding = reviewProvenance(repo, run, candidates, (args) => execFileSync('git', args, { encoding: 'utf8' }))
     if (!binding) {
         console.log('Superseded or closed PR run; preserving the current report link.')
@@ -116,6 +121,16 @@ if (mainRelease) {
         { encoding: 'utf8' }
     ).trim()
 } else throw new Error('Unsupported triggering event')
+
+const releasePreview = run.event === 'pull_request' && pr.base.ref === 'main'
+const currentReleaseReview = () =>
+    currentCaptureReview(api(`pulls/${pr.number}`), {
+        repository: repo,
+        head: expectedHead,
+        base: expectedBase,
+        headRef: 'dev',
+        baseRef: 'main',
+    })
 
 // Include both sides of a rename so moving a UI file outside src cannot hide its removal.
 const changedFiles =
@@ -272,6 +287,7 @@ for (const capturePair of capturePairs) {
     if (beforeHarness && expectedBeforeHarness() !== 'base')
         throw new Error('Base harness receipt does not match the exact-revision synthetic API change')
     if (after.scope || before.scope) {
+        if (releasePreview) throw new Error('Release previews require full capture catalogues')
         if (run.event !== 'pull_request') throw new Error('Scoped captures cannot replace full integration libraries')
         trustedPlan ??= planRevisionCapture({
             event: run.event,
@@ -384,6 +400,11 @@ for (const capturePair of capturePairs) {
 // are committed.
 const storage = await createStorage()
 const knownAssets = await existingAssetPaths(storage)
+if (releasePreview && !currentReleaseReview()) {
+    console.log('Superseded or closed release PR run; preserving the current report link.')
+    recordPublished(false)
+    process.exit(0)
+}
 const assetWrites = new Map()
 const assetConversions = new Map()
 await mapBounded(publications, ({ inputDir, reportPath, env }) =>
@@ -396,6 +417,7 @@ await mapBounded(publications, ({ inputDir, reportPath, env }) =>
         assetWrites,
         assetConversions,
         updateSharedIndexes: false,
+        releasePreview,
     })
 )
 recordPublished(true)
@@ -505,7 +527,10 @@ if (pr) {
         : ''
     const harnessNote = reports.some((report) => report.beforeHarness) ? `\n\n${BASE_HARNESS_NOTE}` : ''
     const body = `${marker}\n${reports
-        .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
+        .map(
+            ({ locale, path }) =>
+                `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/${releasePreview ? '?view=all&layout=paired' : ''})`
+        )
         .join(
             ' · '
         )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${harnessNote}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}${copySection}`
@@ -515,6 +540,10 @@ if (pr) {
         })
     ).flat()
     const existing = comments.find((c) => c.user.login === 'github-actions[bot]' && c.body.startsWith(marker))
+    if (releasePreview && !currentReleaseReview()) {
+        console.log('Release PR changed during publication; preserving the current report link.')
+        process.exit(0)
+    }
     execFileSync(
         'gh',
         [

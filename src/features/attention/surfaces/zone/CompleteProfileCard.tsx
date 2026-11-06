@@ -15,7 +15,7 @@ export default function CompleteProfileCard({ onDismissed }: ZoneSurfaceProps) {
             description={t('completeProfile.description')}
             icon="user-plus"
             onClose={onDismissed}
-            onClick={() => router.push('/profile/edit')}
+            onClick={() => router.push('/settings/details')}
         />
     )
 }

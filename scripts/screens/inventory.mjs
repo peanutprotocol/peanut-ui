@@ -12,6 +12,9 @@ const ROUTE_EXCLUSIONS = new Map([
     ['/card-payment', 'Routing alias for the card payment destination, which is catalogued separately'],
     ['/request/pay', 'Routing alias for the request payment destination, which is catalogued separately'],
     ['/pay/[...recipient]', 'Routing alias for the send destination, which is catalogued separately'],
+    ['/profile', 'Routing alias for the Settings and Settings details destinations, which are catalogued separately'],
+    ['/profile/details', 'Routing alias for the Settings details destination, which is catalogued separately'],
+    ['/profile/edit', 'Routing alias for the Settings details destination, which is catalogued separately'],
     ['/profile/identity-verification', 'Routing alias for the Accounts destination, which is catalogued separately'],
     [
         '/profile/identity-verification/additional',

@@ -1,0 +1,52 @@
+{
+    "schema_version": 1,
+    "timeout_seconds": 180,
+    "checks": [
+        {
+            "name": "tests",
+            "cwd": ".",
+            "argv": [
+                "node_modules/.bin/jest",
+                "--runInBand",
+                "--runTestsByPath",
+                "src/components/Setup/Views/__tests__/Landing.passkeys.test.tsx",
+                "src/context/__tests__/authContext-logout.test.tsx",
+                "src/utils/__tests__/userop-submission.test.ts",
+                "src/features/setup/__tests__/signup-test-transaction.test.ts",
+                "src/features/card/__tests__/useCardFlow.acceptance.test.ts",
+                "src/components/Profile/views/__tests__/ProfileDetails.test.tsx",
+                "src/components/Profile/views/__tests__/EmailSettings.test.tsx",
+                "src/components/Profile/components/__tests__/ShowNameToggle.test.tsx",
+                "src/components/Global/__tests__/RouteAlias.test.tsx",
+                "src/utils/__tests__/native-routes.test.ts",
+                "src/components/Card/__tests__/ApplicationStatusScreen.test.tsx",
+                "src/components/Profile/views/__tests__/MoneySettings.test.tsx",
+                "src/features/deposit-accounts/__tests__/DepositAccountsListScreen.test.tsx",
+                "src/features/home/views/__tests__/HomeTopNav.test.tsx",
+                "src/features/card/__tests__/useCardFlow.pendingApplication.test.tsx"
+            ]
+        },
+        {
+            "name": "lint",
+            "cwd": ".",
+            "argv": [
+                "node_modules/.bin/eslint",
+                "src/components/Setup/Views/Landing.tsx",
+                "src/context/authContext.tsx",
+                "src/utils/userop-submission.ts",
+                "src/features/setup/useSignupTestTransaction.ts",
+                "src/features/setup/deferred-signup-test-transaction.ts",
+                "src/features/card/useCardFlow.ts",
+                "src/components/Profile/index.tsx",
+                "src/components/Profile/views/ProfileDetails.view.tsx",
+                "src/components/Profile/components/EmailSettings.tsx",
+                "src/components/Global/RouteAlias.tsx"
+            ]
+        },
+        {
+            "name": "format",
+            "cwd": ".",
+            "argv": ["node_modules/.bin/prettier", "--check", ".codex/quality-gates.json"]
+        }
+    ]
+}

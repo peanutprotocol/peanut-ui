@@ -500,6 +500,19 @@ describe('native-routes', () => {
                 }
             )
 
+            it.each([
+                '/profile',
+                '/profile/details',
+                '/profile/edit',
+                '/profile?open=residence&returnTo=%2Fcard',
+                '/settings',
+                '/settings/details',
+                '/settings/language',
+                '/settings/notifications',
+            ])('keeps %s on its exported Settings page or compatibility alias', (route) => {
+                expect(deepLinkToNativePath(route)).toBe(route)
+            })
+
             it.each(['/rewards', '/history', '/badges', '/profile'])(
                 'leaves the reserved route %s alone even with a chargeId param',
                 (route) => {
