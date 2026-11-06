@@ -19,7 +19,7 @@
             },
             "spendChooser": {
                 "title": "Elegí cómo gastar",
-                "payWithCard": "Pagá con tarjeta",
+                "payWithCard": "Pagá con la tarjeta",
                 "scanQr": "Escaneá un código QR"
             }
         },
@@ -1040,14 +1040,14 @@
             "feedbackLabel": "Ayudanos a mejorar"
         },
         "lockModal": {
-            "lockSuccessBody": "Volvé cuando quieras para desbloquearla.",
-            "slideToLock": "Deslizá y bloqueá"
+            "lockSuccessBody": "Volvé cuando quieras para descongelarla.",
+            "slideToLock": "Deslizá y congelá"
         },
         "stop": {
             "pending": "Todavía se están deteniendo los pagos desde tu billetera. Puede tardar unos minutos.",
             "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contactá a soporte.",
             "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contactá a soporte si no se resuelve.",
-            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intentá desbloquear de nuevo."
+            "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intentá descongelar de nuevo."
         },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
@@ -1165,7 +1165,8 @@
             "sendExtraForFees": "Enviá un poco más si tu billetera o la red cobra una comisión."
         },
         "manteca": {
-            "sendOnlyOwnAccountTitle": "Enviá solo desde cuenta propia",
+            "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
+            "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos"
         },
         "pix": {
@@ -1616,6 +1617,29 @@
                 "description": "Hubo un problema con tu verificación. Intentalo de nuevo o contactá a soporte."
             }
         },
+        "rejectActions": {
+            "retry_document": {
+                "description": "La foto de tu documento no pasó. Intentalo de nuevo con una foto nítida o usá otro documento."
+            },
+            "retry_selfie": {
+                "description": "Tu selfie no pasó. Sacate otra con buena luz y con toda la cara a la vista."
+            },
+            "check_details": {
+                "description": "Algunos de tus datos no coinciden con tu documento. Revisalos e intentalo de nuevo."
+            },
+            "try_later": {
+                "description": "No pudimos terminar la verificación ahora. Intentalo de nuevo en un rato."
+            },
+            "other_account": {
+                "description": "Este documento ya está vinculado a otra cuenta de Peanut. Iniciá sesión en esa cuenta o escribile a soporte y te ayudamos a resolverlo."
+            },
+            "contact_support": {
+                "description": "No pudimos terminar tu verificación en la app. Escribile a soporte y lo revisamos."
+            },
+            "not_available": {
+                "description": "Por ahora no podemos verificarte para Peanut, y volver a intentarlo no lo va a cambiar. Si creés que es un error, escribile a soporte."
+            }
+        },
         "errorStartActionFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "actionMessageActionRequired": "Necesitamos un poco más para verificar tu identidad. Tocá abajo para continuar.",
         "actionMessageFailed": "No pudimos verificar tu identidad. Contactá a soporte.",
@@ -1730,9 +1754,7 @@
                 "frozenChoice": "Continuá con el documento que elegiste.",
                 "frozenDocument": "Continuá con el documento que elegiste: {document} de {country}."
             },
-            "failed": {
-                "description": "Tu verificación necesita algo de vos. En el inicio vas a ver qué hacer."
-            },
+            "failed": {},
             "poa": {
                 "title": "Agregá un comprobante de domicilio",
                 "skipNote": "Podés omitirlo. Tu cuenta bancaria se abre igual, y nuestro socio podría pedirlo más adelante."
@@ -1817,7 +1839,7 @@
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si creés que es un error, escribile a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
-            "duplicate_account": "Tu correo ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, iniciá sesión en ella. Si no, contactá a soporte y lo resolvemos.",
+            "duplicate_account": "Tu correo o tu documento ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, iniciá sesión en ella. Si no, contactá a soporte y lo resolvemos.",
             "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escribile a soporte y nos encargamos del resto.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",

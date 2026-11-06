@@ -8,8 +8,8 @@ import type { ZoneSurfaceProps } from '../../types'
 
 /**
  * The getting-started checklist, or the one blocked card that replaces it
- * when a door is shut. ActivationCTAs keeps that branch; the manager's
- * `checklist` / `blocked-card` picks read the same hooks, so they agree.
+ * when a door is shut. The manager picks which: `blocked-card` draws the
+ * card, `checklist` the list, so a hidden blocked card leaves the list.
  */
 export default function ChecklistSurface({ askId, onDismissed }: ZoneSurfaceProps) {
     const { user, isFetchingUser } = useAuth()
@@ -24,6 +24,7 @@ export default function ChecklistSurface({ askId, onDismissed }: ZoneSurfaceProp
         <ActivationCTAs
             onboarding={onboarding}
             showWelcome={showWelcome}
+            showBlockedCard={askId === 'blocked-card'}
             onHideBlockedCard={askId === 'blocked-card' ? onDismissed : undefined}
         />
     )

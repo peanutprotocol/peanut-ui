@@ -85,7 +85,7 @@ export function offersVerification(gate: GateState | undefined): boolean {
 
 /**
  * Gate kinds where the user has no usable identity: the only ones a row may
- * say "Verify ID" for. `fixable-rejection` is a verified user with one more
+ * say "Verify" for. `fixable-rejection` is a verified user with one more
  * thing the provider asked for, so its row names the ask, not the identity.
  */
 const NEEDS_IDENTITY: ReadonlySet<GateState['kind']> = new Set<GateState['kind']>([

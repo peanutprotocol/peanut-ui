@@ -15,6 +15,25 @@ declare global {
         status: string
         errorType?: string | null
         errorMsg?: string | null
+        /** Android only, from our plugin patch: the SDK's last logged error before a failed close. */
+        errorDetail?: SNSMobileSDKErrorDetail | null
+    }
+
+    interface SNSMobileSDKErrorDetail {
+        /** Logger tag of the SDK component that failed, e.g. SNSVerificationStepViewModel. */
+        source?: string | null
+        /** SDK-authored log text. Can quote applicant input, so Sentry only. */
+        message?: string | null
+        /** Exception class names, outermost first. */
+        causes?: string[]
+        /** Classes with messages. Can quote applicant input, so Sentry only. */
+        chain?: string | null
+        httpCode?: number
+        errorCode?: number
+        errorName?: string
+        correlationId?: string
+        ageMs?: number
+        earlier?: SNSMobileSDKErrorDetail[]
     }
 
     /**

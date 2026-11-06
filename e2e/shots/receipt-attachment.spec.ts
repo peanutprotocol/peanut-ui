@@ -3,7 +3,8 @@ import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fixtureHref, FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
-import { blockExternal, FREEZE_CSS, FROZEN_NOW, seenOnceModals } from './fixture-page'
+import { blockExternal, FREEZE_CSS, FROZEN_NOW, seenOnceModals, waitForLottie } from './fixture-page'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
 
 const ATTACHMENT_URL = 'https://peanut-notes.s3.eu-north-1.amazonaws.com/fixture-receipt.pdf'
 const OUT_DIR = process.env.RECEIPT_SHOTS_OUT ?? process.env.SHOTS_OUT ?? 'e2e/__shots__/receipt-attachment'
@@ -37,7 +38,7 @@ test.beforeEach(async ({ page }) => {
     await page.route('**/receipt/fixture-receipt-attachment/pdf?*', (route) =>
         route.fulfill({ status: 200, contentType: 'application/pdf', body: PDF })
     )
-    await page.clock.setFixedTime(FROZEN_NOW)
+    await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
     await page.addInitScript(seenOnceModals)
 })
 
@@ -73,12 +74,14 @@ async function capture(page: Page, state: string, testInfo: TestInfo, detail?: L
     await mkdir(OUT_DIR, { recursive: true })
     const name = `receipt-attachment-${state}@${testInfo.project.name}`
     const path = join(OUT_DIR, `${name}.png`)
+    await waitForLottie(page)
     await page.screenshot({ path, animations: 'disabled', scale: 'css' })
     await testInfo.attach(name, { path, contentType: 'image/png' })
     const box = detail && (await detail.boundingBox())
     if (detail && box && (box.y < 0 || box.y + box.height > (page.viewportSize()?.height ?? 667))) {
         await detail.scrollIntoViewIfNeeded()
         const detailPath = join(OUT_DIR, `receipt-attachment-${state}-detail@${testInfo.project.name}.png`)
+        await waitForLottie(page)
         await page.screenshot({ path: detailPath, animations: 'disabled', scale: 'css' })
         await testInfo.attach(`${name}-detail`, { path: detailPath, contentType: 'image/png' })
     }

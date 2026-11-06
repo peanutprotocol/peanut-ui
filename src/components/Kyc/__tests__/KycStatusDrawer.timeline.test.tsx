@@ -79,6 +79,20 @@ describe('KycStatusDrawer — the timeline of a Smart Paperwork Verification ide
         }
     )
 
+    // /verify shows a rejected one-shot identity's reason and its way on (Smoke 2026-11-05: it bounced Home).
+    it('a rejected one-shot identity goes to its /verify status screen once, without a drawer', async () => {
+        mockOneShot = true
+        identity('failed')
+        const onClose = jest.fn()
+        const view = render(<KycStatusDrawer isOpen onClose={onClose} />)
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+        view.rerender(<KycStatusDrawer isOpen={false} onClose={onClose} />)
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(mockFind).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('status-failed')).toBeNull()
+    })
+
     it('every other identity keeps the status drawer', async () => {
         identity('verified')
         mockFind.mockResolvedValue(false)

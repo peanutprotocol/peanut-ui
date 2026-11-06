@@ -1,5 +1,5 @@
 import posthog from 'posthog-js'
-import { captureNativeSdkClosed, createSumsubSdkTracker } from '../sumsubSdkAnalytics.utils'
+import { captureNativeSdkClosed, createSumsubSdkTracker, nativeErrorProperties } from '../sumsubSdkAnalytics.utils'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -89,6 +89,56 @@ describe('createSumsubSdkTracker', () => {
             event_type: 'StepInitiated',
             step: null,
         })
+    })
+})
+
+describe('nativeErrorProperties', () => {
+    it('keeps codes and class names and drops the SDK text', () => {
+        const props = nativeErrorProperties({
+            source: 'SNSVerificationStepViewModel',
+            message: 'Verification step. Error building state',
+            causes: ['com.sumsub.sns.core.data.model.SNSException$Api'],
+            chain: 'SNSException$Api: phone +5491155550000 is not allowed',
+            httpCode: 400,
+            errorCode: 1003,
+            errorName: 'phone_not_allowed',
+            correlationId: 'req-7f3a',
+            ageMs: 820,
+        })
+
+        expect(props).toEqual({
+            error_source: 'SNSVerificationStepViewModel',
+            error_causes: ['com.sumsub.sns.core.data.model.SNSException$Api'],
+            error_root_cause: 'com.sumsub.sns.core.data.model.SNSException$Api',
+            error_http_code: 400,
+            error_code: 1003,
+            error_name: 'phone_not_allowed',
+            error_correlation_id: 'req-7f3a',
+            error_age_ms: 820,
+        })
+        expect(JSON.stringify(props)).not.toContain('5491155550000')
+    })
+
+    it('reports the innermost cause as the root and drops anything that is not a class name', () => {
+        const props = nativeErrorProperties({
+            causes: [
+                'com.sumsub.sns.core.data.model.SNSException$Network',
+                'not a class name!',
+                'java.net.SocketException',
+            ],
+        })
+
+        expect(props.error_causes).toEqual([
+            'com.sumsub.sns.core.data.model.SNSException$Network',
+            'java.net.SocketException',
+        ])
+        expect(props.error_root_cause).toBe('java.net.SocketException')
+        expect(props.error_http_code).toBeNull()
+    })
+
+    it('adds nothing when the plugin sent no detail', () => {
+        expect(nativeErrorProperties(undefined)).toEqual({})
+        expect(nativeErrorProperties(null)).toEqual({})
     })
 })
 

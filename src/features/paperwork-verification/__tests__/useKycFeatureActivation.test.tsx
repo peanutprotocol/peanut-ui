@@ -176,6 +176,22 @@ it('failure stops polling and focus retries until an explicit retry', async () =
     expect(result.current.allowed).toBe(true)
 })
 
+it('a caller URL write runs before the questions redirect, never after it', async () => {
+    jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing' } as Reply)
+    const order: string[] = []
+    mockPush.mockImplementation((path: string) => order.push(`push ${path}`))
+    const { result } = renderHook(() => useKycFeatureActivation('card'))
+    await act(async () => {
+        await result.current.activate({
+            beforeRedirect: async () => {
+                order.push('caller clears its URL state')
+            },
+        })
+    })
+    expect(order).toEqual(['caller clears its URL state', 'push /verify?feature=card'])
+    mockPush.mockReset()
+})
+
 it('questions_missing navigates to the matching verification feature', async () => {
     jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'questions_missing' } as Reply)
     const { result } = renderActivation(() => useKycFeatureActivation('local'))
@@ -190,6 +206,30 @@ it('identity conflicts remain blocked and navigate to verification', async () =>
     await flush()
     expect(result.current.allowed).toBe(false)
     expect(mockPush).toHaveBeenCalledWith('/verify')
+})
+
+it('a rejected identity is sent to its status screen once, with nothing left waiting to re-activate', async () => {
+    const rejected = (status: string) =>
+        jest.mocked(useAuth).mockReturnValue({
+            user: {
+                user: { userId: 'a' },
+                identityVerification: { oneShot: true, status, canRetry: false, rejectLabels: ['DUPLICATE'] },
+            },
+            isFetchingUser: false,
+        } as ReturnType<typeof useAuth>)
+    rejected('failed')
+    jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' } as Reply)
+    const { result, rerender } = renderActivation(() => useKycFeatureActivation('card'))
+    await flush()
+    expect(result.current.allowed).toBe(false)
+    expect(mockPush).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledWith('/verify')
+    rerender()
+    rejected('verified')
+    rerender()
+    await flush()
+    expect(activateKycFeature).toHaveBeenCalledTimes(1)
+    expect(mockPush).toHaveBeenCalledTimes(1)
 })
 
 it('identity change ignores a prior user response', async () => {

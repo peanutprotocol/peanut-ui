@@ -14745,7 +14745,7 @@ export interface paths {
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                             unavailable: {
-                                cause?: "review-action" | "review-pending" | "not_started" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "not-open";
+                                cause?: "review-action" | "review-pending" | "not_started" | "setup-pending" | "setup-failed" | "review-closed" | "residence-restricted" | "identity-rejected" | "not-open";
                                 country: string;
                                 currency: string;
                                 method: string;

@@ -92,8 +92,8 @@ function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
 
 function Leading({ field, value, size }: { field: PaperworkVerificationField; value: string; size: 'xs' | 's' }) {
     if (field.kind === 'country' && value) return <Flag country={value} size={size} />
-    // gray = nothing chosen yet (design.md)
-    if (!value) return <IconBubble icon={<span />} size={size} color="gray" />
+    // gray = nothing chosen yet (design.md); an empty bubble read as a broken image
+    if (!value) return <IconBubble icon="question-mark" size={size} color="gray" />
     return (
         <IconBubble icon={optionIcon(field.key, value) ?? FIELD_ICONS[field.key] ?? 'check'} size={size} color="blue" />
     )

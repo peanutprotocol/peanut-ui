@@ -817,9 +817,10 @@ export function useCardFlow() {
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
-    useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+    useSumsubReloadResume(sumsubToken !== null ? {} : null, async (_state, { consume }) => {
         const startedFor = { userId, connectedAddress }
-        if (!(await activation.activate()) || !sameIdentity(identityRef.current, startedFor)) return false
+        if (!(await activation.activate({ beforeRedirect: consume })) || !sameIdentity(identityRef.current, startedFor))
+            return false
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if (!sameIdentity(identityRef.current, startedFor)) return false
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {

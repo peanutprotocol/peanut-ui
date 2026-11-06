@@ -96,7 +96,7 @@ export function SetupCountryPicker({
                         isSame ? undefined : value ? (
                             <Flag country={value} size="xs" />
                         ) : (
-                            <IconBubble icon={<span />} size="xs" color="gray" />
+                            <IconBubble icon="question-mark" size="xs" color="gray" />
                         )
                     }
                     iconContainerClassName="size-6"

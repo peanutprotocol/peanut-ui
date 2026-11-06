@@ -92,7 +92,7 @@ test('canonical pages and interactive variants retain distinct gallery classific
 })
 
 test('account setup keeps distinct integer steps in the intended journey order', () => {
-    const setup = screens.filter(({ journey }) => journey === 'Account setup')
+    const setup = screens.filter(({ journey, flags }) => journey === 'Account setup' && !flags)
     assert.equal(new Set(setup.map(({ order }) => order)).size, setup.length)
     assert.ok(setup.every(({ order }) => Number.isInteger(order)))
     assert.deepEqual(

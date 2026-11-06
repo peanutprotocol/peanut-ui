@@ -95,7 +95,7 @@ export function prepareWorker(targetArg = '.screen-worker', env = process.env) {
     )
         throw new Error('Deployment target node_modules must link to the isolated deployment dependencies')
     mkdirSync(join(target, 'assets', 'screen-library'), { recursive: true })
-    for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js'])
+    for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js', 'copy.html', 'copy.js', 'copy.css'])
         copyFileSync(`public/screen-library/${file}`, join(target, 'assets', 'screen-library', file))
     const sourceHtml = readFileSync('public/screen-library/index.html', 'utf8')
     const entryHtml = configuration.d1_databases

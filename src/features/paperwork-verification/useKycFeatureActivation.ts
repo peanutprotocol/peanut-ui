@@ -76,53 +76,63 @@ export function useKycFeatureActivation(
         }
     }, [])
 
-    const activate = useCallback((): Promise<boolean> => {
-        if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
-        if (!oneShot || alreadyOn) return Promise.resolve(true)
-        if (inFlight.current?.scope === scope) return inFlight.current.promise
-        setLoadingScope(scope)
-        const token = {}
-        const promise = (async () => {
-            let next: KycFeatureActivationResult
-            try {
-                next = await activateKycFeature(feature)
-            } catch (error) {
-                Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'feature_activation' } })
-                next = { kind: 'failed' }
-            }
-            if (!mounted.current || currentScope.current !== scope || inFlight.current?.token !== token) return false
-            if (canContinue(feature, next) && fetchUserRef.current) {
+    // beforeRedirect runs before a redirect to /verify, so a caller's own URL write cannot supersede it.
+    const activate = useCallback(
+        (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
+            if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
+            if (!oneShot || alreadyOn) return Promise.resolve(true)
+            if (inFlight.current?.scope === scope) return inFlight.current.promise
+            setLoadingScope(scope)
+            const token = {}
+            const promise = (async () => {
+                let next: KycFeatureActivationResult
                 try {
-                    await fetchUserRef.current({ throwOnError: true })
+                    next = await activateKycFeature(feature)
                 } catch (error) {
                     Sentry.captureException(error, {
-                        tags: { ...criticalFlowTags('kyc'), kyc_step: 'activation_refresh' },
+                        tags: { ...criticalFlowTags('kyc'), kyc_step: 'feature_activation' },
                     })
                     next = { kind: 'failed' }
                 }
                 if (!mounted.current || currentScope.current !== scope || inFlight.current?.token !== token)
                     return false
-            }
-            setSaved({ scope, result: next })
-            if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
-                recovery.current.waiting = true
-                routerRef.current.push('/verify')
-            } else {
-                recovery.current.waiting = false
-            }
-            if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr') {
-                routerRef.current.push(paperworkVerificationFeaturePath(feature))
-            }
-            return canContinue(feature, next)
-        })().finally(() => {
-            if (inFlight.current?.promise === promise) {
-                inFlight.current = null
-                if (mounted.current && currentScope.current === scope) setLoadingScope(null)
-            }
-        })
-        inFlight.current = { scope, token, promise }
-        return promise
-    }, [scope, userId, oneShot, feature, alreadyOn, enabled])
+                if (canContinue(feature, next) && fetchUserRef.current) {
+                    try {
+                        await fetchUserRef.current({ throwOnError: true })
+                    } catch (error) {
+                        Sentry.captureException(error, {
+                            tags: { ...criticalFlowTags('kyc'), kyc_step: 'activation_refresh' },
+                        })
+                        next = { kind: 'failed' }
+                    }
+                    if (!mounted.current || currentScope.current !== scope || inFlight.current?.token !== token)
+                        return false
+                }
+                setSaved({ scope, result: next })
+                if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
+                    // /verify is the identity's status screen; a failed check is decided, so nothing waits on it.
+                    recovery.current.waiting = identityStatus !== 'failed'
+                    await options?.beforeRedirect?.()
+                    routerRef.current.push('/verify')
+                } else {
+                    recovery.current.waiting = false
+                }
+                if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr') {
+                    await options?.beforeRedirect?.()
+                    routerRef.current.push(paperworkVerificationFeaturePath(feature))
+                }
+                return canContinue(feature, next)
+            })().finally(() => {
+                if (inFlight.current?.promise === promise) {
+                    inFlight.current = null
+                    if (mounted.current && currentScope.current === scope) setLoadingScope(null)
+                }
+            })
+            inFlight.current = { scope, token, promise }
+            return promise
+        },
+        [scope, userId, oneShot, feature, alreadyOn, enabled, identityStatus]
+    )
 
     useEffect(() => {
         if (enabled && identityStatus === 'verified' && recovery.current.waiting) {

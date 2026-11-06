@@ -108,7 +108,7 @@
             "spendChooser": {
                 "title": "Escolha como gastar",
                 "description": "As duas contam como seu primeiro pagamento.",
-                "payWithCard": "Pague com cartão",
+                "payWithCard": "Pague com o cartão",
                 "scanQr": "Escaneie um código QR"
             }
         },
@@ -1205,19 +1205,20 @@
             "hint": "As opções dependem da sua residência.",
             "funding": {
                 "crypto": "Cripto",
-                "peanut": "Outro usuário do Peanut",
+                "peanut": "Receber de um usuário do Peanut",
                 "bank": "Transferência bancária",
                 "bankCurrencies": "Transferência bancária ({currencies})",
                 "brlBank": "Transferência bancária (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
             "payment": {
-                "peanut": "Outro usuário do Peanut",
+                "peanut": "Pagar um usuário do Peanut",
                 "card": "Cartão Peanut",
                 "bank": "Transferência bancária",
                 "crypto": "Cripto",
                 "qr": "Pagamentos QR"
             },
+            "peanutCompact": "Outro usuário do Peanut",
             "with": "com",
             "unavailable": {
                 "banking": "As transferências bancárias não estão disponíveis no seu país.",
@@ -1898,19 +1899,19 @@
             "failed": "Não foi possível cancelar o cartão"
         },
         "lockModal": {
-            "lockTitle": "Bloquear o cartão?",
-            "lockBody": "O cartão não vai funcionar em nenhuma transação até você desbloquear.",
-            "lockSuccess": "Cartão bloqueado",
-            "lockSuccessBody": "Volte quando quiser para desbloquear.",
-            "unlockTitle": "Desbloquear o cartão?",
+            "lockTitle": "Congelar o cartão?",
+            "lockBody": "O cartão não vai funcionar em nenhum pagamento até você descongelar.",
+            "lockSuccess": "Cartão congelado",
+            "lockSuccessBody": "Volte quando quiser para descongelar.",
+            "unlockTitle": "Descongelar o cartão?",
             "unlockBody": "Seu cartão vai voltar a funcionar em qualquer transação.",
-            "unlockSuccess": "Cartão desbloqueado",
+            "unlockSuccess": "Cartão descongelado",
             "unlockSuccessBody": "Seu cartão está ativo de novo.",
-            "locking": "Bloqueando…",
-            "slideToLock": "Deslize e bloqueie",
-            "unlockCta": "Desbloquear",
-            "lockFailed": "Não foi possível bloquear o cartão",
-            "unlockFailed": "Não foi possível desbloquear o cartão"
+            "locking": "Congelando…",
+            "slideToLock": "Deslize e congele",
+            "unlockCta": "Descongelar",
+            "lockFailed": "Não foi possível congelar o cartão",
+            "unlockFailed": "Não foi possível descongelar o cartão"
         },
         "stop": {
             "pending": "Ainda estamos interrompendo os pagamentos da sua carteira. Pode levar alguns minutos.",
@@ -1919,7 +1920,7 @@
             "checkStatus": "Verificar status",
             "unavailable": "Não conseguimos confirmar que os pagamentos da sua carteira foram interrompidos. Fale com o suporte.",
             "unlockKept": "Seu cartão está ativo, mas os pagamentos da sua carteira continuam interrompidos por enquanto. Fale com o suporte se não se resolver.",
-            "unlockUnknown": "Seu cartão está ativo, mas não conseguimos confirmar que os pagamentos da sua carteira foram retomados. Tente desbloquear de novo."
+            "unlockUnknown": "Seu cartão está ativo, mas não conseguimos confirmar que os pagamentos da sua carteira foram retomados. Tente descongelar de novo."
         },
         "errors": {
             "balanceReturnFailed": "Não conseguimos devolver o saldo do seu cartão. Tente de novo ou fale com o suporte.",
@@ -2040,12 +2041,12 @@
             "payAsCreditTitle": "Pague como crédito",
             "payAsCreditBody": "Quando a maquininha perguntar débito ou crédito, escolha crédito — seu Peanut Card roda na rede de crédito.",
             "managementTitle": "Gerenciar cartão",
-            "pin": "Pin",
+            "pin": "PIN",
             "spendingLimit": "Limite de gasto",
             "physicalCard": "Cartão físico",
             "redZone": "Zona vermelha",
-            "lockCard": "Bloquear cartão",
-            "unlockCard": "Desbloquear cartão",
+            "lockCard": "Congelar",
+            "unlockCard": "Descongelar",
             "cancelCard": "Cancelar cartão"
         },
         "funding": {
@@ -2206,7 +2207,7 @@
         },
         "manteca": {
             "youreAdding": "Adicionando",
-            "sendOnlyOwnAccountTitle": "Envie somente de conta própria",
+            "sendOnlyOwnAccountTitle": "Envie somente de uma conta no seu nome",
             "sendOnlyOwnAccountDescription": "Depósitos de contas de terceiros não são aceitos e os fundos podem ser perdidos.",
             "accountDetails": "Dados bancários",
             "depositAddress": "Endereço de depósito",
@@ -2221,6 +2222,7 @@
             "shareAmount": "Valor: {currency} {amount}",
             "shareLine": "{label}: {value}",
             "shareAlias": "Alias: {alias}",
+            "shareOwnAccountOnly": "Envie somente de uma conta bancária no meu nome. Transferências de contas de terceiros não podem ser creditadas.",
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
             "etaInstant": "Normalmente em minutos"
         },
@@ -3325,7 +3327,6 @@
             "underReview": "Em análise",
             "documentNeeded": "Falta um documento",
             "agreementsNeeded": "Faltam os acordos",
-            "verifyId": "Verificar ID",
             "notAvailable": "Não disponível",
             "verifyAgain": "Verificar de novo com documento de {country}",
             "verifyAgainPlain": "Verificar de novo",
@@ -3607,6 +3608,34 @@
             "FALLBACK": {
                 "title": "Problema na verificação",
                 "description": "Houve um problema com sua verificação. Tente novamente ou fale com o suporte."
+            }
+        },
+        "rejectActions": {
+            "retry_document": {
+                "description": "A foto do seu documento não passou. Tente de novo com uma foto nítida ou use outro documento."
+            },
+            "retry_selfie": {
+                "description": "Sua selfie não passou. Tire outra com boa luz e com o rosto inteiro aparecendo.",
+                "cta": "Tirar outra selfie"
+            },
+            "check_details": {
+                "description": "Alguns dos seus dados não batem com o seu documento. Confira e tente de novo.",
+                "cta": "Conferir meus dados"
+            },
+            "try_later": {
+                "description": "Não conseguimos terminar a verificação agora. Tente de novo daqui a pouco."
+            },
+            "other_account": {
+                "description": "Este documento já está vinculado a outra conta do Peanut. Entre nessa conta ou fale com o suporte que a gente te ajuda a resolver.",
+                "cta": "Entrar em outra conta",
+                "supportMessage": "Oi! Minha verificação diz que meus documentos já estão em outra conta do Peanut. Vocês podem me ajudar a resolver?"
+            },
+            "contact_support": {
+                "description": "Não conseguimos terminar sua verificação no app. Fale com o suporte que a gente dá uma olhada.",
+                "supportMessage": "Oi! Minha verificação não passou e não consigo tentar de novo no app. Vocês podem dar uma olhada?"
+            },
+            "not_available": {
+                "description": "No momento não conseguimos verificar você para o Peanut, e tentar de novo não vai mudar isso. Se achar que é um erro, fale com o suporte."
             }
         },
         "errorStartActionFailed": "Não conseguimos iniciar a verificação. Tente novamente.",
@@ -3995,7 +4024,7 @@
             },
             "failed": {
                 "title": "Precisamos ver seu documento de novo",
-                "description": "Sua verificação precisa de algo de você. O início mostra o que fazer.",
+                "terminalTitle": "Não conseguimos verificar seu documento",
                 "cta": "Ir para o início",
                 "retry": "Tentar de novo"
             },
@@ -4093,6 +4122,8 @@
                 "issuedByLimited": "Emitido por {country}. {limits}",
                 "other": "Outro documento",
                 "otherHint": "Como uma carteira de habilitação",
+                "close": "Fechar",
+                "verifyNow": "Verificar agora",
                 "otherTitle": "Outros documentos",
                 "otherDescription": "Você também pode se verificar com um destes. Você vai tirar fotos dele e uma selfie.",
                 "otherNotAccepted": "Vistos, autorizações de trabalho e carteiras de estudante não servem para verificar sua identidade.",
@@ -4100,7 +4131,6 @@
                 "backToList": "Voltar à lista",
                 "noneFit": "Não tem nenhum destes?",
                 "changeResidence": "Alterar residência",
-                "stepDots": "Verificar identidade, passo 1 de 3",
                 "noneAccepted": "Ainda não conseguimos verificar documentos emitidos por {countries}.",
                 "closesAll": "Emitido por {country}. Não serve para o que você escolheu.",
                 "closes": {
@@ -4197,7 +4227,7 @@
             "terminal_rejection": "Problema na verificação: fale com o suporte para receber ajuda.",
             "bridge_terminal_rejection": "Nosso parceiro de pagamentos não aprovou as transferências bancárias para esta conta, e o Peanut não pode mudar essa decisão. Seus fundos no Peanut não são afetados. Se você acha que houve um engano, fale com o suporte.",
             "duplicate_customer_detected": "Nosso parceiro de pagamentos marcou sua conta como possível duplicata. Fale com o suporte para verificar e desbloquear.",
-            "duplicate_account": "Seu e-mail já está vinculado a outra conta Peanut, então não conseguimos terminar de configurar esta. Se a outra conta for sua, entre nela. Se não for, fale com o suporte e a gente resolve.",
+            "duplicate_account": "Seu e-mail ou documento já está vinculado a outra conta Peanut, então não conseguimos terminar de configurar esta. Se a outra conta for sua, entre nela. Se não for, fale com o suporte e a gente resolve.",
             "imported_identity_rejected": "Nosso parceiro de pagamentos não conseguiu verificar o documento da sua verificação anterior. Ele precisa de um documento de identidade oficial válido e pode pedir também um comprovante de endereço. Fale com o suporte e a gente cuida do resto.",
             "region_block": "O Peanut Card ainda não está disponível na sua região.",
             "compliance_block": "Não conseguimos aprovar sua solicitação de cartão após uma análise de conformidade.",
@@ -5009,7 +5039,7 @@
             "badgeReady": "Pronta",
             "badgeActive": "Ativo",
             "badgeSetUp": "Configurar",
-            "badgeVerifyId": "Verificar ID",
+            "badgeVerifyId": "Verificar",
             "badgeNotOffered": "Não disponível",
             "badgeRevoked": "Revogada",
             "accountCounter": "{used} de {cap} usadas",

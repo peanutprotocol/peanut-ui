@@ -7,6 +7,8 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { DataRowGroup } from '@/components/0_Bruddle/DataRowGroup'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
+import { Button } from '@/components/0_Bruddle/Button'
 import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { getKycDetails } from '@/app/actions/kyc-paperwork-verification'
 import type { KycCollectedDetails, KycStoredDetail } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -70,14 +72,15 @@ function birthDate(locale: string, iso: string) {
 }
 
 /**
- * Profile: what Peanut collected at sign-up and in verification. Peanut's own
- * records show their values, every answer included but the address and the tax
- * number; what only Sumsub holds says so instead of a value (Slava,
- * 2026-10-26). A row shows only for something collected.
+ * Profile: what the user gave at sign-up and in verification, read from Sumsub,
+ * the address and the tax number included (Slava, 2026-11-05). A value the API
+ * could not return says it is not stored at Peanut. A row shows only for
+ * something collected.
  */
 export const ProfileDetailsView = () => {
     const t = useTranslations('profile.details')
     const tDocuments = useTranslations('kyc.documents')
+    const tMenu = useTranslations('profile.menu')
     const locale = useLocale()
     const onBack = useSafeBack('/profile', { replace: true })
     const { user } = useAuth()
@@ -129,11 +132,29 @@ export const ProfileDetailsView = () => {
         const value = stored[key]
         return value ? row(key, t(`rows.${key}`), shown(key, value)) : null
     }
+    const address = details?.address
+    const addressText = address
+        ? [
+              [address.street, address.buildingNumber].filter(Boolean).join(' '),
+              [address.postCode, address.town].filter(Boolean).join(' '),
+              address.state,
+              address.country && country(address.country),
+          ]
+              .filter(Boolean)
+              .join(', ')
+        : ''
+    const sensitive = (value: string) => <span className="ph-mask ph-sensitive">{value}</span>
+    const sumsubRow = (key: 'address' | 'taxId') => {
+        const value = key === 'address' ? addressText : details?.taxId
+        if (value) return row(key, t(`rows.${key}`), sensitive(value))
+        return held.has(key) ? row(key, t(`rows.${key}`), notStored) : null
+    }
     const detailRows = (keys: readonly DetailRow[]) =>
-        keys.map(
-            (key) =>
-                (key !== 'nationality' && key !== 'address' && key !== 'taxId' && storedRow(key)) ||
-                (held.has(key) ? row(key, t(`rows.${key}`), notStored) : null)
+        keys.map((key) =>
+            key === 'address' || key === 'taxId'
+                ? sumsubRow(key)
+                : (key !== 'nationality' && storedRow(key)) ||
+                  (held.has(key) ? row(key, t(`rows.${key}`), notStored) : null)
         )
 
     const document = details?.document
@@ -142,7 +163,19 @@ export const ProfileDetailsView = () => {
         : null
     return (
         <div className="flex w-full flex-col gap-6">
-            <NavHeader title={t('title')} onPrev={onBack} />
+            <NavHeader
+                title={t('title')}
+                onPrev={onBack}
+                rightElement={
+                    <Button
+                        variant="ghost"
+                        href="/profile/edit"
+                        icon="edit"
+                        aria-label={tMenu('personalDetails')}
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
+                    />
+                }
+            />
             <Card position="solo" className={receiptDataRowCardClassName} data-testid="profile-details">
                 <DataRowGroup>
                     {name && row('name', t('rows.name'), name)}

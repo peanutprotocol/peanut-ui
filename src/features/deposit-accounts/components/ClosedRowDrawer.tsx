@@ -4,7 +4,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useTranslations } from 'next-intl'
 import { DRAWER_CLOSE_MS } from '../drawer'
@@ -13,6 +15,8 @@ import { DEPOSIT_RAILS } from '../rails'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { identityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 
 /** the residence-gated corridors' own copy, keyed by corridor */
 const RESIDENCE_COPY = {
@@ -44,11 +48,15 @@ export function ClosedRowDrawer({
 }) {
     const { t } = useDepositAccountCopy()
     const tCommon = useTranslations('common')
+    const tRoot = useTranslations()
     const tAccounts = useTranslations('profile.unlockPayments')
     const tKyc = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
+    const tActivation = useTranslations('home.activation')
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
+    const { user } = useAuth()
+    const { identity } = useIdentityVerification()
 
     const content = closed ? drawerContent(closed) : null
 
@@ -151,6 +159,35 @@ export function ClosedRowDrawer({
                     body: t('list.uncheckedBody'),
                     cta: { label: t('list.errorRetry'), act: onRetry },
                 }
+            // the Home "Verification issue" card's words and its support prefill
+            // the Home "Verification issue" card's words: why it failed and the way on
+            case 'identity-rejected': {
+                const reason = row.reason ?? identity.reason
+                const rejection = identityRejection({
+                    rejectLabels: identity.rejectLabels,
+                    reason,
+                    retryable: false,
+                })
+                const support = rejection.support
+                return {
+                    title: tActivation('verificationIssue.title'),
+                    body: tRoot(rejection.descriptionKey as never),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        act: () =>
+                            openSupportWithMessage(
+                                support
+                                    ? rejectionSupportMessage(
+                                          support,
+                                          tRoot(support.messageKey as never),
+                                          reason,
+                                          user?.user?.userId
+                                      )
+                                    : buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                            ),
+                    },
+                }
+            }
             case 'verification-down':
                 return {
                     title: tAccounts('degraded.title'),

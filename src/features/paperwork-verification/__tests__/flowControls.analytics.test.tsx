@@ -4,6 +4,7 @@ import { renderWithIntl } from '@/test-utils/intl'
 import { KycControlScreenProvider, PaperworkVerificationTrackingProvider } from '../analytics'
 import { StepsScreen } from '../components/StepsScreen'
 import { SavedScreen, ReviewScreen, FeatureReadyScreen, ProofOfAddressScreen } from '../components/StatusScreens'
+import { identityRejection } from '@/utils/identity-rejection.utils'
 import { LoadFailed, VerificationOutage, VerifyLoading } from '../components/LoadScreens'
 import { IdentityCheckIntroScreen } from '../components/IdentityCheckIntroScreen'
 import { VerifyHeroLayout, VerifyQuestionLayout } from '../components/VerifyLayout'
@@ -148,7 +149,16 @@ it('tracks saved answers Continue', () => {
 })
 
 it('tracks failed review retry and Home without capturing error text', () => {
-    renderWithIntl(inFlow(<ReviewScreen onHome={jest.fn()} onRetry={jest.fn()} error="private-error-text" />))
+    renderWithIntl(
+        inFlow(
+            <ReviewScreen
+                rejection={identityRejection({ retryable: true })}
+                onHome={jest.fn()}
+                onRetry={jest.fn()}
+                error="private-error-text"
+            />
+        )
+    )
     fireEvent.click(screen.getByTestId('verify-review-retry'))
     fireEvent.click(screen.getByTestId('verify-review-home'))
     expectControls('id-failed', [

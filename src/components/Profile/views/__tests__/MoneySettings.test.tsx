@@ -687,8 +687,12 @@ describe('MoneySettings', () => {
         expect(brl.getByText('Send to any Pix key')).toBeInTheDocument()
         expect(brl.getByText('Action needed')).toBeInTheDocument()
         expect(brl.queryByText('Set up')).not.toBeInTheDocument()
+        // the account rows' answer: the Home "Verification issue" card, with support's prefill
         fireEvent.click(screen.getByText('BRL'))
-        expect(screen.getByText('failed-modal-open:terminal')).toBeInTheDocument()
+        expect(
+            within(screen.getByTestId('closed-row-drawer')).getByText(en.home.activation.verificationIssue.title)
+        ).toBeInTheDocument()
+        expect(screen.queryByText('failed-modal-open:terminal')).not.toBeInTheDocument()
     })
 
     // Audit C53: the legacy Bridge-only cohort has no Manteca pay rail, so

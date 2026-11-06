@@ -25,7 +25,14 @@ import type {
     FeatureReportEntry,
 } from '@/types/capabilities'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { entryAction, isUnmappedEntry, reportEntry, VERIFY_ACTION } from '@/features/kyc-features/report'
+import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
+import {
+    entryAction,
+    IDENTITY_ACTION,
+    isUnmappedEntry,
+    reportEntry,
+    VERIFY_ACTION,
+} from '@/features/kyc-features/report'
 import { aveniaRouteState } from '@/features/avenia/aveniaAvailability'
 
 /**
@@ -88,7 +95,8 @@ export type GateState =
           actionKey?: string
           nextAction?: NextAction
       }
-    | { kind: 'blocked-rejection'; userMessage: string | null; reason?: CapabilityReason }
+    /** `byIdentity`: the identity check made the refusal (the report's `identity` action), not a rail or a residence */
+    | { kind: 'blocked-rejection'; userMessage: string | null; reason?: CapabilityReason; byIdentity?: true }
     /**
      * Blocked rail with a self-fix path: re-verify Sumsub IDENTITY with a
      * different document. Triggered today for Manteca country-ineligibility
@@ -377,6 +385,8 @@ export interface CapabilityState {
     identityVerified?: boolean
     /** The identity check's hold, for a fallback that has no report: a hold only support can lift. */
     identityHold?: SupportCase
+    /** Why the identity check failed, once it has: the report's answer for a scope it has no account for. */
+    identityRejection?: CapabilityReason
     /** True until the user query settles. Holds the gate in 'loading'. */
     isLoading: boolean
 }
@@ -415,6 +425,8 @@ export function supportCaseOf(value: string | null | undefined): SupportCase | u
 }
 
 const DUPLICATE_EMAIL_LABEL = 'DUPLICATE_EMAIL'
+// the API's code for a failed identity check that names no reason of its own
+const IDENTITY_REJECTED_CODE = 'identity_rejected'
 
 /** The support case an identity check is held on: a reason code, or an older API's `DUPLICATE_EMAIL` label. */
 function identityHoldOf(identity: IUserProfile['identityVerification'] | undefined): SupportCase | undefined {
@@ -439,6 +451,14 @@ export function capabilityStateForProfile(user: IUserProfile | null | undefined,
         features: user?.capabilities?.features,
         identityVerified: user?.identityVerification?.status === 'verified',
         identityHold: identityHoldOf(user?.identityVerification),
+        identityRejection:
+            user?.identityVerification?.status === 'failed'
+                ? {
+                      ...user.identityVerification.reason,
+                      code: user.identityVerification.reason?.code ?? IDENTITY_REJECTED_CODE,
+                      userMessage: user.identityVerification.reason?.userMessage ?? '',
+                  }
+                : undefined,
         isLoading,
     }
 }
@@ -469,6 +489,17 @@ export function deriveGate(state: CapabilityState, op: RailOperation, scope: Gat
     const entry = reportEntry(state.features, op, scope, state.rails)
     // A verified identity with no account of this kind to open is an enrollment, not a new identity check.
     if (isUnmappedEntry(entry) && state.identityVerified) return { kind: 'needs-enrollment' }
+    // A failed identity has nothing to verify again: the API's identity entry, read where the report has no account.
+    if (isUnmappedEntry(entry) && state.identityRejection)
+        return gateFromEntry(
+            {
+                state: 'refused',
+                reason: state.identityRejection.code,
+                message: state.identityRejection.userMessage || undefined,
+                action: IDENTITY_ACTION,
+            },
+            state
+        )
     return gateFromEntry(entry, state)
 }
 
@@ -648,6 +679,8 @@ export function gateFromEntry(
             const supportCase = supportCaseOf(entry.reason)
             if (supportCase) return supportCaseGate(supportCase, reason, userMessage)
             if (action?.kind === 'restart-identity') return { kind: 'restart-identity', userMessage, reason }
+            if (entry.action === IDENTITY_ACTION)
+                return { kind: 'blocked-rejection', userMessage, reason, byIdentity: true }
             return { kind: 'blocked-rejection', userMessage, reason }
         }
     }
@@ -802,6 +835,19 @@ export function gateRemedy(gate: GateState): GateRemedy {
 /** The support case behind a blocked gate, if it is one. */
 export function gateSupportCase(gate: GateState): SupportCase | undefined {
     return gate.kind === 'blocked-rejection' ? supportCaseOf(gate.reason?.code) : undefined
+}
+
+/**
+ * A refusal that comes from the identity, not from this rail or the residence:
+ * a rejected identity check, or a block only support lifts. The user can act on
+ * it through support, so it is never told "not available". A jurisdictional
+ * rejection of the ID is a residence answer and stays one.
+ */
+export function isIdentityRefusal(gate: GateState | undefined): boolean {
+    if (gate?.kind !== 'blocked-rejection') return false
+    const code = gate.reason?.code
+    if (code === IDENTITY_REGION_RESTRICTED_CODE) return false
+    return !!gate.byIdentity || code === IDENTITY_REJECTED_CODE || !!supportCaseOf(code)
 }
 
 export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'

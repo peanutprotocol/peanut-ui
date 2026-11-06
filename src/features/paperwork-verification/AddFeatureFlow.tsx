@@ -172,7 +172,7 @@ export function AddFeatureQuestions({
 
     if (state.kind === 'loading')
         return (
-            <div className="flex h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full items-center justify-center bg-white">
+            <div className="flex h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] w-full items-center justify-center bg-background-page">
                 <Loading variant="mascot" />
             </div>
         )

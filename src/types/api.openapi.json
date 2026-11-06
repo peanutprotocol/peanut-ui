@@ -27528,6 +27528,12 @@
 															},
 															{
 																"enum": [
+																	"identity-rejected"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
 																	"not-open"
 																],
 																"type": "string"
