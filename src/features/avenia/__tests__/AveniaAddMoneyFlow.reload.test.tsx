@@ -105,6 +105,36 @@ describe('AveniaAddMoneyFlow and the URL', () => {
         })
     })
 
+    it('a re-entry right after a new code opens that code, because the create reads the route again', async () => {
+        mockCreate.mockResolvedValue({
+            intentId: 'd4',
+            brCode: 'code-d4',
+            amountBrl: '100.00',
+            usdcAmount: '17.94',
+            fixedFeeBrl: '0.75',
+            expiresAt: null,
+            payerCpfMasked: '095.***.***-89',
+        })
+        // the API names the new code payable to a user read after the create
+        let payable: string | undefined
+        mockFetchUser.mockImplementationOnce(() => {
+            payable = 'd4'
+            return Promise.resolve(null)
+        })
+        const first = renderAt('')
+        fireEvent.click(screen.getByText('type'))
+        fireEvent.click(screen.getByText('submit'))
+        expect(await screen.findByTestId('code-step')).toHaveTextContent('d4')
+        await waitFor(() => expect(payable).toBe('d4'))
+        first.unmount()
+
+        // back from Home: a fresh mount, no id in the URL
+        renderAt('', { payable })
+        expect(screen.getByTestId('code-step')).toHaveTextContent('d4')
+        expect(screen.queryByTestId('amount-step')).toBeNull()
+        expect(mockCreate).toHaveBeenCalledTimes(1)
+    })
+
     it('opens the code that can still be paid instead of the amount step, and names it in the URL', async () => {
         const urls: string[] = []
         renderAt('', { payable: 'd3', onUrlUpdate: (event) => urls.push(event.queryString) })

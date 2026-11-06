@@ -125,6 +125,8 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
             // the code screen reads this deposit's query; seeding it shows the code at once
             queryClient.setQueryData(aveniaDepositQueryKey(created.intentId), depositReadFromCreated(created))
             void setUrlState({ step: 'showQR', intentId: created.intentId })
+            // the route names this code payable from now on, so a re-entry opens it, not a second code
+            void fetchUser().catch(() => undefined)
         } catch (caught) {
             const code = wireErrorCode(caught)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
