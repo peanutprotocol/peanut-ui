@@ -45,15 +45,15 @@ describe('AveniaWithdrawReview', () => {
         expect(screen.getByText('About 1 minute')).toBeInTheDocument()
     })
 
-    // a refused preview has no numbers: its message stands alone, with no skeleton left waiting
-    it('shows a refused preview with its message and no loading placeholder', () => {
+    // a refused preview has no numbers: its message and action stand alone, no empty rows, no skeleton
+    it('shows a refused preview as its message and its action only', () => {
         const { container } = renderWithIntl(
             <AveniaWithdrawReview
                 title="Withdraw"
                 display={null}
                 isLoading={false}
                 isSubmitting={false}
-                error={{ message: en.avenia.withdraw.errors.limitExceeded }}
+                error={{ message: en.avenia.withdraw.errors.limitExceeded, onRetry: jest.fn() }}
                 canConfirm={false}
                 onBack={jest.fn()}
                 onConfirm={jest.fn()}
@@ -61,6 +61,9 @@ describe('AveniaWithdrawReview', () => {
             />
         )
         expect(screen.getByText(en.avenia.withdraw.errors.limitExceeded)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: en.common.retry })).toBeInTheDocument()
         expect(container.querySelector('.animate-pulse, .animate-spin')).toBeNull()
+        expect(screen.queryByText(en.avenia.withdraw.aveniaFee)).toBeNull()
+        expect(screen.queryByRole('button', { name: en.common.confirm })).toBeNull()
     })
 })

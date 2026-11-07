@@ -49,6 +49,29 @@ export function AveniaWithdrawReview({
     const tWithdraw = useTranslations('withdraw')
     const tCommon = useTranslations('common')
     const destination = display ? [display.bankName, display.holderName].filter(Boolean).join(' · ') : ''
+    const errorCallout = error && (
+        <Callout
+            priority={error.priority ?? 'error'}
+            ctas={error.onRetry ? [{ label: tCommon('retry'), onClick: error.onRetry }] : undefined}
+        >
+            {error.message}
+        </Callout>
+    )
+
+    // a refused preview has no numbers: the message and its action stand alone, no empty rows
+    if (!display && !isLoading) {
+        return (
+            <PageStack>
+                <NavHeader title={title} onPrev={onBack} />
+                <PageStack.Center>
+                    {errorCallout}
+                    <div className="flex flex-col items-center">
+                        <LinkButton onClick={onCancel}>{tCommon('cancel')}</LinkButton>
+                    </div>
+                </PageStack.Center>
+            </PageStack>
+        )
+    }
 
     return (
         <PageStack>
@@ -60,10 +83,10 @@ export function AveniaWithdrawReview({
                         <p className="text-heading-s text-foreground-primary">
                             {formatBankAmount(display.amountBrl, 'BRL')}
                         </p>
-                    ) : isLoading ? (
+                    ) : (
                         // same line height as the amount, so the swap does not move the card
                         <div className="mx-auto my-1 h-6 w-28 animate-pulse rounded bg-background-skeleton" />
-                    ) : null}
+                    )}
                     {destination && (
                         <p className="text-body-s text-foreground-secondary">{t('toAccount', { destination })}</p>
                     )}
@@ -107,14 +130,7 @@ export function AveniaWithdrawReview({
                     </DataRowGroup>
                 </Card>
 
-                {error && (
-                    <Callout
-                        priority={error.priority ?? 'error'}
-                        ctas={error.onRetry ? [{ label: tCommon('retry'), onClick: error.onRetry }] : undefined}
-                    >
-                        {error.message}
-                    </Callout>
-                )}
+                {errorCallout}
 
                 <div className="flex flex-col items-center gap-6">
                     <Button
