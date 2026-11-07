@@ -41,7 +41,10 @@
                 "src/features/paperwork-verification/__tests__/useAnswerForm.account.test.ts",
                 "src/app/(mobile-ui)/__tests__/layout-backend-error.test.tsx",
                 "src/components/AddWithdraw/__tests__/AddWithdrawCountriesList.test.tsx",
-                "src/components/AddWithdraw/__tests__/DynamicBankAccountForm.test.tsx"
+                "src/components/AddWithdraw/__tests__/DynamicBankAccountForm.test.tsx",
+                "src/app/recover-wallet/__tests__/page.test.tsx",
+                "src/features/qr-code/__tests__/QrClaimUnavailableView.test.tsx",
+                "src/features/payments/flows/qr-pay/__tests__/QrPayBlockedView.test.tsx"
             ]
         },
         {
@@ -77,7 +80,10 @@
                 "src/app/(mobile-ui)/MobileLayoutClient.tsx",
                 "src/components/AddWithdraw/AddWithdrawCountriesList.tsx",
                 "src/components/AddWithdraw/DynamicBankAccountForm.tsx",
-                "src/features/withdraw/BankWithdrawKycDraft.tsx"
+                "src/features/withdraw/BankWithdrawKycDraft.tsx",
+                "src/app/recover-wallet/page.tsx",
+                "src/components/Global/EmptyStates/CenteredErrorCard.tsx",
+                "src/features/qr-code/views/QrClaimUnavailableView.tsx"
             ]
         },
         {

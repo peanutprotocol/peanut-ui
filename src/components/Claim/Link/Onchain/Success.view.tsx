@@ -21,7 +21,7 @@ import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
@@ -245,34 +245,39 @@ export const SuccessClaimLinkView = ({
             <PageStack>
                 <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 <PageStack.Center className="gap-4">
-                    <PeanutMascot pose="sad" className={`mx-auto ${MASCOT_STATE_CLASS}`} />
-                    <Callout priority="error" data-testid="error-alert">
-                        {toFriendlyError({ code: claimFailure.code })}
-                    </Callout>
-                    {isRetryable && (
-                        <Button
-                            shadowSize="4"
-                            className="w-full"
-                            onClick={() => {
-                                // the link was rolled back, so INITIAL offers
-                                // the claim again rather than a spent link
-                                setTransactionHash(undefined)
-                                onCustom('INITIAL')
-                            }}
-                        >
-                            {tCommon('tryAgain')}
-                        </Button>
-                    )}
-                    {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
-                    {isRetryable ? (
-                        <div className="mt-2 flex justify-center">
-                            <LinkButton onClick={leaveToHome}>{t('backToHome')}</LinkButton>
-                        </div>
-                    ) : (
-                        <Button shadowSize="4" className="w-full" onClick={leaveToHome}>
-                            {t('backToHome')}
-                        </Button>
-                    )}
+                    <CenteredErrorCard
+                        title={tCommon('claimCouldNotComplete')}
+                        description={
+                            <Callout priority="error" hideIcon className="bg-transparent p-0" data-testid="error-alert">
+                                {toFriendlyError({ code: claimFailure.code })}
+                            </Callout>
+                        }
+                    >
+                        {isRetryable && (
+                            <Button
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={() => {
+                                    // the link was rolled back, so INITIAL offers
+                                    // the claim again rather than a spent link
+                                    setTransactionHash(undefined)
+                                    onCustom('INITIAL')
+                                }}
+                            >
+                                {tCommon('tryAgain')}
+                            </Button>
+                        )}
+                        {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
+                        {isRetryable ? (
+                            <div className="mt-2 flex justify-center">
+                                <LinkButton onClick={leaveToHome}>{t('backToHome')}</LinkButton>
+                            </div>
+                        ) : (
+                            <Button shadowSize="4" className="w-full" onClick={leaveToHome}>
+                                {t('backToHome')}
+                            </Button>
+                        )}
+                    </CenteredErrorCard>
                 </PageStack.Center>
             </PageStack>
         )

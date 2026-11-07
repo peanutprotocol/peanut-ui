@@ -1,5 +1,22 @@
 {
+    "walletRecovery": {
+        "invalidLink": {
+            "title": "Recovery link unavailable",
+            "description": "This recovery link is invalid or has expired."
+        },
+        "walletUnavailable": {
+            "title": "Wallet recovery unavailable",
+            "description": "We could not load this wallet for recovery."
+        }
+    },
     "common": {
+        "claimCouldNotComplete": "Couldn’t claim this payment",
+        "cardCouldNotLoad": "Couldn’t load your card",
+        "cardRecoveryUnavailable": "Card recovery unavailable",
+        "qrPaymentCouldNotStart": "Couldn’t start this QR payment",
+        "withdrawalCouldNotComplete": "Couldn’t complete this withdrawal",
+        "sendCouldNotComplete": "Couldn’t send this payment",
+        "bankTransfersUnavailable": "Bank transfers unavailable",
         "ownAccountOnly": "You can only withdraw to accounts under your name.",
         "exchangeRateInfo": "This is the current exchange rate. It may change slightly before your payment is confirmed.",
         "fundsOnTheWay": "Funds on the way",
@@ -1780,7 +1797,7 @@
         },
         "claim": {
             "navTitle": "Claim QR Code",
-            "unavailableTitle": "QR Code Unavailable",
+            "unavailableTitle": "QR code unavailable",
             "alreadyClaimed": "This QR code has already been claimed by another user.",
             "notAvailable": "This QR code is not available for claiming.",
             "inviteQrTitle": "Invite QR",

@@ -1,6 +1,5 @@
 'use client'
-import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -1070,27 +1069,23 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                    <PeanutMascot pose="sad" className={`mx-auto ${MASCOT_STATE_CLASS}`} />
-                    <Card className="shadow-4">
-                        <Card.Header>
-                            <Card.Title>{t('somethingWentWrong')}</Card.Title>
-                            <Card.Description>{errorMessage}</Card.Description>
-                        </Card.Header>
-                        <Card.Content className="flex flex-col gap-3">
-                            <Button
-                                onClick={() => {
-                                    resetState()
-                                    void stepper.reset()
-                                }}
-                                variant="primary"
-                            >
-                                {tCommon('tryAgain')}
-                            </Button>
-                            <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
-                                {tCommon('contactSupport')}
-                            </LinkButton>
-                        </Card.Content>
-                    </Card>
+                    <CenteredErrorCard
+                        title={tCommon(isFromSendFlow ? 'sendCouldNotComplete' : 'withdrawalCouldNotComplete')}
+                        description={errorMessage}
+                    >
+                        <Button
+                            onClick={() => {
+                                resetState()
+                                void stepper.reset()
+                            }}
+                            variant="primary"
+                        >
+                            {tCommon('tryAgain')}
+                        </Button>
+                        <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
+                            {tCommon('contactSupport')}
+                        </LinkButton>
+                    </CenteredErrorCard>
                 </div>
             </div>
         )

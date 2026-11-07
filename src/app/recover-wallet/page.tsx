@@ -28,8 +28,7 @@ import Card from '@/components/Global/Card'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
-import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
@@ -50,7 +49,8 @@ import { useTranslations } from 'next-intl'
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { type Address, encodeFunctionData, erc20Abi, formatUnits, isAddress } from 'viem'
 
-type Phase = 'loading' | 'invalid' | 'ready' | 'final'
+type RecoveryErrorKind = 'invalidLink' | 'walletUnavailable'
+type Phase = 'loading' | RecoveryErrorKind | 'ready' | 'final'
 type RescueClient = Awaited<ReturnType<typeof createKernelClientForChain>>
 
 // useSearchParams requires a Suspense boundary to keep the route from forcing
@@ -78,7 +78,6 @@ function RecoverWalletInner() {
     }, [blob])
 
     const [phase, setPhase] = useState<Phase>('loading')
-    const [fatal, setFatal] = useState<string>('')
     const [client, setClient] = useState<RescueClient | null>(null)
     const [balance, setBalance] = useState<bigint>(0n)
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
@@ -95,8 +94,7 @@ function RecoverWalletInner() {
     // expected address, and read the on-chain USDC balance.
     useEffect(() => {
         if (!recoveryKey) {
-            setPhase('invalid')
-            setFatal('This recovery link is invalid or has expired.')
+            setPhase('invalidLink')
             return
         }
         // name MUST be undefined, not '' — GeneralRecipientInput shows
@@ -145,8 +143,7 @@ function RecoverWalletInner() {
                 console.error('[recover-wallet] init failed', error)
                 captureException(error, { tags: { error_type: 'wallet_rescue_init' } })
                 if (cancelled) return
-                setPhase('invalid')
-                setFatal('We could not load this wallet for recovery.')
+                setPhase('walletUnavailable')
             }
         })()
         return () => {
@@ -187,7 +184,7 @@ function RecoverWalletInner() {
 
     if (phase === 'loading') return <Loading variant="mascot" />
 
-    if (phase === 'invalid') return <RecoveryError message={fatal} />
+    if (phase === 'invalidLink' || phase === 'walletUnavailable') return <RecoveryError kind={phase} />
 
     if (phase === 'final') {
         return (
@@ -264,15 +261,14 @@ function RecoverWalletInner() {
     )
 }
 
-function RecoveryError({ message }: { message: string }) {
+function RecoveryError({ kind }: { kind: RecoveryErrorKind }) {
+    const t = useTranslations('walletRecovery')
     const tCommon = useTranslations('common')
     const { openSupportWithMessage } = useModalsContext()
     return (
         <>
             <div className="flex min-h-dvh flex-col justify-center gap-6 px-4 pt-[calc(var(--spacing-safe-top)+1.5rem)] pb-[calc(var(--spacing-safe-bottom)+1.5rem)]">
-                <PeanutMascot pose="sad" className={`mx-auto max-w-full ${MASCOT_STATE_CLASS}`} />
-                <h1 className="text-center text-heading-s">Wallet recovery</h1>
-                <Callout priority="error">{message}</Callout>
+                <CenteredErrorCard title={t(`${kind}.title`)} description={t(`${kind}.description`)} />
                 <Button
                     variant="primary"
                     shadowSize="4"

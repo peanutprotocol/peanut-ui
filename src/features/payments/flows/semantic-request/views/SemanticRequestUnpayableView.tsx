@@ -8,7 +8,7 @@
  */
 
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -21,8 +21,7 @@ export function SemanticRequestUnpayableView() {
         <PageStack>
             <NavHeader title={t('headers.pay')} onPrev={onBack} />
             <div className="flex flex-grow flex-col justify-center py-8">
-                <EmptyState
-                    mascot="sad"
+                <CenteredErrorCard
                     title={t('errors.invalidPaymentUrlTitle')}
                     description={t('errors.requestTokenRetired')}
                 />
