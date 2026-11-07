@@ -281,8 +281,8 @@ describe('SignTestTransaction — setup completion', () => {
 
         let finishSigning!: (result: { userOpHash: string }) => void
         mockSendUserOp.mockReturnValueOnce(new Promise((resolve) => (finishSigning = resolve)))
-        // "Only for you": the shared title block on top, the passkey confirmation on Finish
-        expect(screen.getByRole('heading', { level: 1, name: 'Only for you' })).toBeInTheDocument()
+        // "You are in charge": the shared title block on top, the passkey confirmation on Finish
+        expect(screen.getByRole('heading', { level: 1, name: "You're in charge" })).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Finish' }))
         expect(mockSendUserOp).toHaveBeenCalledTimes(1)
         expect(mockAddAccount).not.toHaveBeenCalled()
@@ -354,7 +354,7 @@ describe('SignTestTransaction — setup completion', () => {
         })
         setRedirectUrl('/receipt?id=abc')
         const view = renderWithIntl(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.getByRole('heading', { name: 'Only for you' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: "You're in charge" })).toBeInTheDocument()
         expect(
             screen.getByText(
                 'Only you can use your fingerprint or Face ID to control your account. Peanut can never move or freeze your money. Try it now.'
@@ -364,7 +364,7 @@ describe('SignTestTransaction — setup completion', () => {
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
         jest.useFakeTimers()
         view.rerender(<CompleteSignupStep onComplete={onComplete} />)
-        expect(screen.queryByRole('heading', { name: 'Only for you' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('heading', { name: "You're in charge" })).not.toBeInTheDocument()
         expect(screen.getByRole('heading', { name: 'All set!' })).toBeInTheDocument()
         expect(screen.getByText('Your Peanut account is ready.')).toBeInTheDocument()
         expect(screen.queryByText('Works right now')).not.toBeInTheDocument()

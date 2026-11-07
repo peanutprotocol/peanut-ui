@@ -22,7 +22,7 @@ export function SemanticRequestUnpayableView() {
             <NavHeader title={t('headers.pay')} onPrev={onBack} />
             <div className="flex flex-grow flex-col justify-center py-8">
                 <EmptyState
-                    icon="link"
+                    mascot="sad"
                     title={t('errors.invalidPaymentUrlTitle')}
                     description={t('errors.requestTokenRetired')}
                 />

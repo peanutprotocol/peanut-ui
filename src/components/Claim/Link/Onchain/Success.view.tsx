@@ -21,6 +21,7 @@ import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
@@ -244,6 +245,7 @@ export const SuccessClaimLinkView = ({
             <PageStack>
                 <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 <PageStack.Center className="gap-4">
+                    <PeanutMascot pose="sad" className={`mx-auto ${MASCOT_STATE_CLASS}`} />
                     <Callout priority="error" data-testid="error-alert">
                         {toFriendlyError({ code: claimFailure.code })}
                     </Callout>

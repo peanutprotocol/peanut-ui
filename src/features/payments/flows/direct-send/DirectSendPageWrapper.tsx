@@ -69,7 +69,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
                     <EmptyState
-                        icon="user"
+                        mascot="sad"
                         title={t('errors.userNotFoundTitle')}
                         description={t('errors.userNotFoundDescription', { username })}
                     />

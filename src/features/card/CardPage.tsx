@@ -14,6 +14,8 @@ import CardStopBanner from '@/components/Card/CardStopBanner'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
@@ -130,6 +132,7 @@ export const CardPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                    <PeanutMascot pose="sad" className={MASCOT_STATE_CLASS} />
                     <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
                     <Button onClick={() => refetchCardInfo()} variant="primary" shadowSize="4">
                         {tCommon('retry')}
@@ -262,6 +265,7 @@ export const CardPage: FC = () => {
                     </div>
                 ) : (
                     <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                        <PeanutMascot pose="sad" className={MASCOT_STATE_CLASS} />
                         <p className="text-center text-foreground-primary">{t('page.loadFailed')}</p>
                         <Button onClick={() => void refetchFundingAccess()} variant="primary" shadowSize="4">
                             {tCommon('retry')}

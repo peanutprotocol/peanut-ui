@@ -28,6 +28,10 @@ import Card from '@/components/Global/Card'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import SupportDrawer from '@/components/Global/SupportDrawer'
+import { useModalsContext } from '@/context/ModalsContext'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { createKernelClientForChain, type KernelClientOptions } from '@/context/kernelClient.context'
 import {
@@ -92,7 +96,7 @@ function RecoverWalletInner() {
     useEffect(() => {
         if (!recoveryKey) {
             setPhase('invalid')
-            setFatal('This recovery link is invalid or has expired. Please ask support for a fresh one.')
+            setFatal('This recovery link is invalid or has expired.')
             return
         }
         // name MUST be undefined, not '' — GeneralRecipientInput shows
@@ -142,7 +146,7 @@ function RecoverWalletInner() {
                 captureException(error, { tags: { error_type: 'wallet_rescue_init' } })
                 if (cancelled) return
                 setPhase('invalid')
-                setFatal('We could not load this wallet for recovery. Please contact support.')
+                setFatal('We could not load this wallet for recovery.')
             }
         })()
         return () => {
@@ -183,16 +187,7 @@ function RecoverWalletInner() {
 
     if (phase === 'loading') return <Loading variant="mascot" />
 
-    if (phase === 'invalid') {
-        return (
-            <PageStack>
-                <PageStack.Center>
-                    <h1 className="text-heading-s">Wallet recovery</h1>
-                    <Callout priority="error">{fatal}</Callout>
-                </PageStack.Center>
-            </PageStack>
-        )
-    }
+    if (phase === 'invalid') return <RecoveryError message={fatal} />
 
     if (phase === 'final') {
         return (
@@ -266,5 +261,28 @@ function RecoverWalletInner() {
                 )}
             </PageStack.Center>
         </PageStack>
+    )
+}
+
+function RecoveryError({ message }: { message: string }) {
+    const tCommon = useTranslations('common')
+    const { openSupportWithMessage } = useModalsContext()
+    return (
+        <>
+            <div className="flex min-h-dvh flex-col justify-center gap-6 px-4 pt-[calc(var(--spacing-safe-top)+1.5rem)] pb-[calc(var(--spacing-safe-bottom)+1.5rem)]">
+                <PeanutMascot pose="sad" className={`mx-auto max-w-full ${MASCOT_STATE_CLASS}`} />
+                <h1 className="text-center text-heading-s">Wallet recovery</h1>
+                <Callout priority="error">{message}</Callout>
+                <Button
+                    variant="primary"
+                    shadowSize="4"
+                    className="mt-4 w-full"
+                    onClick={() => openSupportWithMessage('')}
+                >
+                    {tCommon('contactSupport')}
+                </Button>
+            </div>
+            <SupportDrawer />
+        </>
     )
 }

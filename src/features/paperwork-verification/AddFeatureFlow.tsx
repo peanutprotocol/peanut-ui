@@ -250,7 +250,7 @@ export function AddFeatureQuestions({
                 steps={state.screens[state.at]}
                 residence={state.residence}
                 feature={feature}
-                title={t(`addLater.title.${feature}`)}
+                title={feature === 'local' ? t('addLater.title.local') : undefined}
                 startFromEnd={state.fromBack}
                 onBack={() => (state.at ? setState({ ...state, at: state.at - 1, fromBack: true }) : onBack())}
                 onSaved={(_next, values) => {

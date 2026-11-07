@@ -1,5 +1,7 @@
 'use client'
 
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
@@ -45,6 +47,7 @@ export function CardRecoveryPage() {
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <PageStack.Center>
+                {error && !preview && <PeanutMascot pose="sad" className={`mx-auto ${MASCOT_STATE_CLASS}`} />}
                 {error && <Callout priority="error">{error}</Callout>}
 
                 {step === 'done' && txHash ? (

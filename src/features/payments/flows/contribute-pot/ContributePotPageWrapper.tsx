@@ -74,7 +74,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
                     <EmptyState
-                        icon="search"
+                        mascot="sad"
                         title={t('errors.requestNotFoundTitle')}
                         description={error || t('errors.requestNotFoundDescription')}
                     />

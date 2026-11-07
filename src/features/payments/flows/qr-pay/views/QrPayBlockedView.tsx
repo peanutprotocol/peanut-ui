@@ -1,5 +1,7 @@
 'use client'
 
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -53,9 +55,7 @@ export function QrPayBlockedView() {
             <PageStack>
                 <PageStack.Center className="gap-4">
                     <Card className="relative z-10 w-full items-center gap-4 p-4">
-                        {/* terminal init failure — error tone, not the attention yellow
-                            the maintenance/waiting states use */}
-                        <IconBubble icon="alert" color="red" size="m" />
+                        <PeanutMascot pose="sad" className={MASCOT_STATE_CLASS} />
                         <p className="text-body-m">
                             {isVerificationClosed
                                 ? tKyc('terminalDescription')
