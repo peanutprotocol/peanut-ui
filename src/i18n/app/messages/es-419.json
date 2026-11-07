@@ -902,7 +902,7 @@
         "steps": {
             "landing": {
                 "title": "Cobra desde cualquier lugar. Gasta en todo el mundo.",
-                "description": "Recibe pagos en USD o EUR con datos bancarios a tu nombre. Gástalos con tarjeta o QR, estés donde estés."
+                "description": "Recibe pagos en USD o EUR con datos bancarios. Gástalos con tarjeta o QR, estés donde estés."
             },
             "signup": {
                 "title": "Reclamar usuario",

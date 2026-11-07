@@ -507,7 +507,7 @@
         "choicesLater": "Podés cambiar tus opciones más adelante.",
         "steps": {
             "landing": {
-                "description": "Recibí pagos en USD o EUR con datos bancarios a tu nombre. Gastalos con tarjeta o QR, estés donde estés.",
+                "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
                 "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
             },
             "advantage-payments": {
