@@ -2392,3 +2392,82 @@ test('preview links: legacy hash alone does not open a modal', async () => {
     assert.equal(elements.location.hash, '#preview-0')
     assert.ok(renderedIds(elements).includes('preview-0'))
 })
+
+function trackingComments() {
+    const base = fakeComments()
+    const navigated = []
+    return {
+        navigated,
+        create(options) {
+            const client = base.create(options)
+            client.navigateThread = (...args) => {
+                navigated.push(args)
+            }
+            return client
+        },
+    }
+}
+
+test('preview links: moving from a comment-linked screen clears its thread before sharing and reload', async () => {
+    const thread = '11111111-1111-4111-8111-111111111111'
+    const comments = trackingComments()
+    const report = previewCapture()
+    const elements = await loadLanding(previewPath, {
+        report,
+        screenComments: comments,
+        search: `?source=synthetic&locale=en&preview=preview-0&comments=${thread}`,
+    })
+    await settle()
+    assert.equal(previewParams(elements).get('comments'), thread)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 0')
+    assert.equal(comments.navigated.length, 1)
+    elements.get('zoom-next').onclick()
+    assert.equal(previewParams(elements).get('preview'), 'preview-1')
+    assert.equal(previewParams(elements).has('comments'), false)
+    const refreshedComments = trackingComments()
+    const refreshed = await loadLanding(previewPath, {
+        report,
+        screenComments: refreshedComments,
+        search: elements.location.search,
+    })
+    await settle()
+    assert.equal(refreshed.get('zoom-title').textContent, 'Preview 1')
+    assert.equal(refreshedComments.navigated.length, 0)
+})
+
+test('preview links: explicitly opening another tile clears the unrelated comment thread', async () => {
+    const thread = '11111111-1111-4111-8111-111111111111'
+    const elements = await loadLanding(previewPath, {
+        report: previewCapture(),
+        screenComments: trackingComments(),
+        search: `?preview=preview-0&comments=${thread}`,
+    })
+    await settle()
+    assert.equal(previewParams(elements).get('comments'), thread)
+    openCapture(elements.get('screens').children[1])
+    assert.equal(previewParams(elements).get('preview'), 'preview-1')
+    assert.equal(previewParams(elements).has('comments'), false)
+})
+
+test('preview links: explicitly opening another pixel difference clears the unrelated comment thread', async () => {
+    const thread = '11111111-1111-4111-8111-111111111111'
+    const image = previewImage('a')
+    const report = comparisonReportWith(
+        ['first', 'second'].map((id) => ({
+            ...comparisonScreen({ id }),
+            diff: image,
+        }))
+    )
+    const elements = await loadLanding(previewPath, {
+        report,
+        screenComments: trackingComments(),
+        search: `?view=all&preview=first&previewMode=side&comments=${thread}`,
+    })
+    await settle()
+    assert.equal(previewParams(elements).get('comments'), thread)
+    const tile = elements.get('screens').children.find(({ id }) => id === 'second')
+    tile.lastElementChild.children.find((child) => child.textContent === 'Pixel difference').onclick()
+    assert.equal(previewParams(elements).get('preview'), 'second')
+    assert.equal(previewParams(elements).get('previewMode'), 'difference')
+    assert.equal(previewParams(elements).has('comments'), false)
+})

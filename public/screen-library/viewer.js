@@ -472,7 +472,7 @@ function commentScopes(row) {
     })
 }
 function openComments(row, scope, threadId) {
-    zoom(row, scope.side)
+    zoom(row, scope.side, 'auto', threadId)
     const preview = phonePreview(
         image(scope.image, `${row.name} screen preview`, { preview: false }),
         scope.side === 'before' ? 'Before' : 'After',
@@ -488,7 +488,7 @@ function openRetainedComment(scope, threadId) {
         name: `${scope.name || scope.screenId} · No longer in this report`,
         [scope.side]: { image: scope.image, status: 'captured' },
     }
-    zoom(row, 'screen')
+    zoom(row, 'screen', 'auto', threadId)
     const preview = phonePreview(
         image(scope.image, `${row.name} screen preview`, { preview: false }),
         scope.side === 'before' ? 'Before' : 'After'
@@ -535,7 +535,7 @@ function navigateComment(scope, threadId) {
             name: `${row.name} · ${version}`,
             [scope.side]: { image: scope.image, status: 'captured' },
         }
-    zoom(row, scope.side)
+    zoom(row, scope.side, 'auto', threadId)
     if (scope.side === 'before') {
         $('zoom-images').replaceChildren(
             phonePreview(image(scope.image, `${row.name} screen preview`, { preview: false }), `Before · ${version}`)
@@ -952,6 +952,20 @@ const orderRows = (values) =>
         const rightOrder = Number.isSafeInteger(right.order) ? right.order : Number.MAX_SAFE_INTEGER
         return leftOrder - rightOrder
     })
+const requestAmountInputIds = new Set([
+    'numeric-request-amount-4000',
+    'numeric-request-rate-unavailable',
+    'numeric-request-amount-invalid',
+])
+function explicitSurfaceName(row) {
+    const suffix = ' (input only, no navigation)'
+    if (
+        !requestAmountInputIds.has(row.sourceScreenId ?? row.id) ||
+        (typeof row.name === 'string' && row.name.endsWith(suffix))
+    )
+        return row
+    return { ...row, name: `${row.name ?? 'Request amount'}${suffix}` }
+}
 const legacyVariationPageIds = new Set([
     'p02-backup-lose-phone',
     'p03-backup-change-phone',
@@ -988,7 +1002,8 @@ function isDefaultScreen(row) {
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
-    if (requestedFilter('comments')) params.set('comments', requestedFilter('comments'))
+    const threadId = overrides.comments ?? requestedFilter('comments')
+    if (threadId) params.set('comments', threadId)
     const source = overrides.source ?? $('source').value
     const locale = overrides.locale ?? $('locale').value
     const profile = overrides.profile ?? $('profile').value
@@ -1238,10 +1253,10 @@ function closePreview() {
 function restorePreview() {
     const id = requestedFilter('preview')
     const row = id && rows.find((candidate) => candidate.id === id)
-    if (row) zoom(row, requestedFilter('previewMode') || 'screen', 'replace')
+    if (row) zoom(row, requestedFilter('previewMode') || 'screen', 'replace', requestedFilter('comments'))
     else closePreview()
 }
-function zoom(row, mode = 'side', urlAction = 'auto') {
+function zoom(row, mode = 'side', urlAction = 'auto', threadId = '') {
     const wasOpen = $('zoom').open
     comments?.invalidateNavigation?.()
     active = row
@@ -1323,14 +1338,16 @@ function zoom(row, mode = 'side', urlAction = 'auto') {
     }
     if (!offline && typeof history !== 'undefined') {
         // Retained comment images are not necessarily the current manifest's version.
-        if (!rows.includes(row)) clearPreviewUrl()
-        else {
-            const href = shareableHref(location.pathname, { preview: row.id, previewMode: mode })
-            const current = `${location.pathname}${location.search ?? ''}${location.hash ?? ''}`
-            if (href !== current) {
-                const action = urlAction === 'replace' || wasOpen ? 'replaceState' : 'pushState'
-                if (typeof history[action] === 'function') history[action](null, '', href)
-            }
+        const currentVersion = rows.includes(row)
+        const href = shareableHref(location.pathname, {
+            preview: currentVersion ? row.id : '',
+            previewMode: mode,
+            comments: threadId,
+        })
+        const current = `${location.pathname}${location.search ?? ''}${location.hash ?? ''}`
+        if (href !== current) {
+            const action = urlAction === 'replace' || wasOpen || !currentVersion ? 'replaceState' : 'pushState'
+            if (typeof history[action] === 'function') history[action](null, '', href)
         }
     }
 }
@@ -2093,7 +2110,7 @@ async function start() {
                     status: s.status,
                 }))
               : report.screens
-    )
+    ).map(explicitSurfaceName)
     const before = activeComparison?.before ?? report.before,
         after = activeComparison?.after ?? (report.type === 'comparison' ? report.after : report)
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
