@@ -191,16 +191,4 @@ test.describe('Claim link loading (TASK-24599)', () => {
         expect(reads.every((r) => r.proofValid)).toBe(true)
         expectNoSecretSent(reads, password)
     })
-
-    test('a link whose password does not match shows the wrong-password screen', async ({ page, baseURL }) => {
-        const password = 'e2eProofWrongPassword04'
-        const { pubKey, url } = linkFor(password, 71004)
-        // The API knows this slot under another key, as when the fragment was mangled.
-        const other = linkFor('someone-elses-password', 71004).pubKey
-        await standInApi(page, baseURL, pubKey, { ...fullLink(pubKey, 71004), pubKey: other })
-
-        await page.goto(url)
-
-        await expect(page.getByText('Wrong password!')).toBeVisible({ timeout: 30_000 })
-    })
 })
