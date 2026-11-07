@@ -40,14 +40,6 @@ const EXEMPT = new Map<string, string>([
         'features/deposit-accounts/components/ClaimAccountContent.tsx :: link',
         'an explainer bullet about a shareable account link, not a send or request link',
     ],
-    [
-        'features/payments/flows/semantic-request/SemanticRequestPageWrapper.tsx :: link',
-        'the gray error state for a broken payment URL (design decision pending)',
-    ],
-    [
-        'features/payments/flows/semantic-request/views/SemanticRequestUnpayableView.tsx :: link',
-        "the same gray error state, for a request link that can't be paid anymore (TASK-23850)",
-    ],
 ])
 
 function sourceFiles(dir: string): string[] {

@@ -4,6 +4,7 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
+import { StandaloneErrorSurface } from './StandaloneErrorSurface'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -375,6 +376,30 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    'standalone-error-card': {
+        ...SURFACE_META['standalone-error-card'],
+        render: () => <StandaloneErrorSurface kind="card" />,
+    },
+    'standalone-error-card-recovery': {
+        ...SURFACE_META['standalone-error-card-recovery'],
+        render: () => <StandaloneErrorSurface kind="card-recovery" />,
+    },
+    'standalone-error-claim': {
+        ...SURFACE_META['standalone-error-claim'],
+        render: () => <StandaloneErrorSurface kind="claim" />,
+    },
+    'standalone-error-send': {
+        ...SURFACE_META['standalone-error-send'],
+        render: () => <StandaloneErrorSurface kind="send" />,
+    },
+    'standalone-error-withdraw': {
+        ...SURFACE_META['standalone-error-withdraw'],
+        render: () => <StandaloneErrorSurface kind="withdraw" />,
+    },
+    'standalone-error-wallet-recovery': {
+        ...SURFACE_META['standalone-error-wallet-recovery'],
+        render: () => <StandaloneErrorSurface kind="wallet-recovery" />,
+    },
     ...Object.fromEntries(
         Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
             id,
