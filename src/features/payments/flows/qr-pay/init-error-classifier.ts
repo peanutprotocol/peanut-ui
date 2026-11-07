@@ -23,6 +23,9 @@ export const QR_INIT_CODE = {
     NOT_PROVISIONED: 'MANTECA_USER_NOT_PROVISIONED',
     KYC: 'MANTECA_KYC_REQUIRED',
     SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
+    PAYER_BLOCKED: API_ERROR_CODES.PAYER_BLOCKED,
+    MERCHANT_BLOCKED: API_ERROR_CODES.MERCHANT_BLOCKED,
+    PIX_RESIDENCE: API_ERROR_CODES.PIX_RESIDENCE_NOT_SUPPORTED,
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     PIX_RECURRING: 'PIX_RECURRING_NOT_SUPPORTED',
     MISSING_AMOUNT: 'PAYMENT_DESTINATION_MISSING_AMOUNT',
@@ -74,6 +77,9 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
     [QR_INIT_CODE.KYC]: { amountRetryable: false },
     // The id on file is what the provider refuses; only support can change it.
     [QR_INIT_CODE.SENDER_REJECTED]: { amountRetryable: false },
+    [QR_INIT_CODE.PAYER_BLOCKED]: { amountRetryable: false },
+    [QR_INIT_CODE.MERCHANT_BLOCKED]: { amountRetryable: false },
+    [QR_INIT_CODE.PIX_RESIDENCE]: { amountRetryable: false },
     [QR_INIT_CODE.PIX_MIN_AMOUNT]: { amountRetryable: true },
     [QR_INIT_CODE.PIX_RECURRING]: { amountRetryable: false },
     [QR_INIT_CODE.MISSING_AMOUNT]: { amountRetryable: false },
@@ -119,7 +125,7 @@ export function qrInitCode(error: unknown): QrInitCode | undefined {
     const message = error instanceof Error ? error.message : ''
     if (!message) return undefined
     if (message.includes(LEGACY_KYC_MESSAGE)) return QR_INIT_CODE.KYC
-    return ALL_CODES.find((code) => message.includes(code))
+    return ALL_CODES.find((code) => new RegExp(`(^|[^A-Za-z0-9_])${code}($|[^A-Za-z0-9_])`).test(message))
 }
 
 /**
@@ -193,6 +199,7 @@ export type QrScanFailure = QrInitCode | 'offline' | 'auth-missing' | 'provider-
  */
 export const SUPPORT_ACTIONABLE_FAILURES: ReadonlySet<QrScanFailure> = new Set<QrScanFailure>([
     QR_INIT_CODE.SENDER_REJECTED,
+    QR_INIT_CODE.PAYER_BLOCKED,
     'rejected',
 ])
 

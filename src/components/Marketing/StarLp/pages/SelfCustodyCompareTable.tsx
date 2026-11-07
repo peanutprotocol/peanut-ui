@@ -26,10 +26,10 @@ export function SelfCustodyCompareTable() {
             <table className="w-full table-fixed border-collapse text-left text-body-s lg:text-body-l">
                 <thead>
                     <tr className="text-label-m uppercase lg:text-label-l">
-                        <th className="w-[44%] bg-yellow-500 p-2 min-[380px]:w-[40%] md:w-[36%] lg:w-[48%] lg:p-3">
+                        <th className="w-[44%] bg-background-accent-yellow p-2 min-[380px]:w-[40%] md:w-[36%] lg:w-[48%] lg:p-3">
                             <span className="sr-only">Question</span>
                         </th>
-                        <th className="bg-yellow-500 p-2 lg:w-[22%] lg:p-3">Usual app</th>
+                        <th className="bg-background-accent-yellow p-2 lg:w-[22%] lg:p-3">Usual app</th>
                         <th className="bg-background-brand p-2 lg:p-3">Peanut</th>
                     </tr>
                 </thead>

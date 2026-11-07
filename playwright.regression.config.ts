@@ -24,6 +24,8 @@ const BASE = `http://127.0.0.1:${PORT}`
 
 export default defineConfig({
     testDir: './e2e/flows',
+    // They need their own build and target: playwright.marketing-qr.config.ts.
+    testIgnore: /\/marketing-qr[^/]*\.spec\.ts$/,
     outputDir: './e2e/__results__',
 
     fullyParallel: true,

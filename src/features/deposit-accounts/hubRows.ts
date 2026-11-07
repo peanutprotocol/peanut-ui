@@ -1,6 +1,7 @@
 import { countryData } from '@/components/AddMoney/consts'
 import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
-import type { GateState } from '@/utils/capability-gate'
+import type { CapabilityReason } from '@/types/capabilities'
+import { isIdentityRefusal, type GateState } from '@/utils/capability-gate'
 import { dedupeHeldBankRows, type UnlockRow } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
@@ -48,6 +49,8 @@ export interface OpenAccountRow {
     openable: boolean
     /** the backend gave no verdict on this corridor, so nothing is known about it */
     unchecked: boolean
+    /** the identity, not this corridor, is what was refused: only support can help */
+    identityRefused: boolean
 }
 
 /**
@@ -80,7 +83,9 @@ export function canTopUp(corridor: DepositCorridor, gates: Record<DepositCorrido
  */
 export function virtualAccountRows(
     { corridors, accounts, claimable, unavailable, gates }: VirtualAccountsInput,
-    claimsEnabled: boolean
+    claimsEnabled: boolean,
+    /** the identity check ended on a final rejection (`isTerminalFailure`) */
+    identityFailed = false
 ): { held: DepositCorridor[]; open: OpenAccountRow[] } {
     const accountCorridors = DEPOSIT_RAIL_ORDER.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor]))
     const held = accountCorridors.filter((corridor) => isHeld(accounts[corridor]))
@@ -95,11 +100,13 @@ export function virtualAccountRows(
             // the gate alone would call a ready rail openable and a review
             // corridor a residence refusal; with no verdict it is neither
             const unchecked = !corridors.includes(corridor)
+            const identityRefused = refusedByIdentity(gates[corridor], unavailable?.[corridor], identityFailed)
             return {
                 corridor,
                 view,
                 unchecked,
-                openable: !unchecked && isOpenable(corridor, view, unavailable, gates),
+                identityRefused,
+                openable: !unchecked && !identityRefused && isOpenable(corridor, view, unavailable, gates),
             }
         })
         .sort((a, b) => Number(b.openable) - Number(a.openable))
@@ -126,6 +133,7 @@ function isOpenable(
     const withheld = unavailable?.[corridor]
     // the user's own review holds the corridor: the claim step's gate drawer
     // names it and starts the action that clears it
+    if (withheld?.cause === 'not_started') return true
     if (withheld?.reason === 'not-offered') return reviewHolds(withheld.cause)
     if (withheld !== undefined) return true
     return (
@@ -134,6 +142,30 @@ function isOpenable(
         canTopUp(corridor, gates) ||
         offersVerification(gates[corridor])
     )
+}
+
+/**
+ * Was the identity refused, rather than this corridor? The verification behind
+ * "Verify" cannot pass a final decision, and "Not available" tells the user
+ * nothing they can do; support can review it (the Home card's answer). The
+ * backend's own word on the corridor wins: `identity-rejected` says it outright
+ * (a final rejection also ends the residence the corridors were refused on),
+ * and anything else it names, such as a residence rule, is about the corridor.
+ */
+function refusedByIdentity(
+    gate: GateState | undefined,
+    withheld: UnavailableCorridor | undefined,
+    identityFailed: boolean
+): boolean {
+    if (withheld?.cause === 'identity-rejected') return true
+    // the backend's answer for a failed identity is support-required with no cause
+    const withheldForIdentity =
+        !withheld ||
+        withheld.reason === 'identity-required' ||
+        (withheld.reason === 'support-required' && !withheld.cause)
+    if (!withheldForIdentity) return false
+    if (isIdentityRefusal(gate)) return true
+    return identityFailed && (gate?.kind === 'needs-identity' || withheld !== undefined)
 }
 
 /** a review the user can act on or wait for, which the claim step explains */
@@ -183,7 +215,7 @@ export type ClosedRow =
     | { kind: 'not-offered'; corridor: DepositCorridor }
     | { kind: 'residence'; corridor: 'PIX_BR' | 'BANK_TRANSFER_AR' }
     | { kind: 'restricted-country' }
-    | { kind: 'card-restricted' }
+    | { kind: 'card-restricted'; reason?: string }
     | { kind: 'verification-down' }
     /** at the account limit: nothing more opens until support raises it */
     | { kind: 'account-limit'; limit: number }
@@ -201,12 +233,16 @@ export type ClosedRow =
     | { kind: 'residence-restricted'; corridor: DepositCorridor }
     /** nothing about the user: the corridor is not open to them yet */
     | { kind: 'not-open'; corridor: DepositCorridor }
+    /** the identity was refused; support reviews it. `reason` is the gate's, where it names one */
+    | { kind: 'identity-rejected'; reason?: CapabilityReason }
 
 /**
  * Why an account the user does not hold cannot be opened from the list.
  *
  * The limit comes first: at the limit nothing opens, whatever else is true.
- * Then the backend's own signal, never a guess from the gate:
+ * A refused identity is next: it holds every corridor at once, so no row can
+ * say anything truer about itself. Then the backend's own signal, never a
+ * guess from the gate:
  * - no verdict at all (the corridor is in neither list): its provider preview
  *   failed, so the row says only that it could not be checked;
  * - `cause`, where the API sends one: a restricted residence, or a corridor
@@ -224,9 +260,11 @@ export function closedOpenRow(
         reachedLimit?: number
         unavailable?: UnavailableCorridor
         hasResidence: boolean
+        gate?: GateState
     }
 ): ClosedRow {
     if (context.reachedLimit !== undefined) return { kind: 'account-limit', limit: context.reachedLimit }
+    if (row.identityRefused) return identityRejectedRow(context.gate)
     if (row.unchecked) return { kind: 'unchecked', corridor: row.corridor }
     if (context.unavailable?.cause === 'residence-restricted')
         return { kind: 'residence-restricted', corridor: row.corridor }
@@ -238,6 +276,12 @@ export function closedOpenRow(
     return { kind: 'not-offered', corridor: row.corridor }
 }
 
+/** The identity drawer, with the refusal's own reason for the support prefill. */
+export function identityRejectedRow(gate: GateState | undefined): ClosedRow {
+    const reason = gate?.kind === 'blocked-rejection' ? gate.reason : undefined
+    return reason ? { kind: 'identity-rejected', reason } : { kind: 'identity-rejected' }
+}
+
 /**
  * The bank rows under the virtual accounts. A row goes where an active virtual
  * account already covers its currency (`dedupeHeldBankRows`); a row the user
@@ -246,7 +290,7 @@ export function closedOpenRow(
  * One status per currency (TASK-23054): a bank row the user cannot use yet
  * also goes when its corridor is listed to open with the backend's own
  * answer. That row already says where the rail stands and leads to the same
- * fix, so the bank row could only repeat it in other words ("Verify ID" above,
+ * fix, so the bank row could only repeat it in other words ("Verify" above,
  * "Processing" below). A usable bank row stays: a transfer the user sends
  * themselves needs no account and no free account slot.
  */
@@ -261,12 +305,30 @@ export function otherWaysRows(
 }
 
 /**
+ * A bank row held by the identity rather than by its own rail. Its unlock
+ * would start a verification that cannot pass, so the row says Action needed
+ * and the tap goes to support, as the account rows above it do. A residence
+ * refusal stays Not available.
+ */
+export function bankRowRefusedByIdentity(row: UnlockRow, identity: { failed: boolean; gate?: GateState }): boolean {
+    if (row.chip !== 'attention' && row.chip !== 'unlock') return false
+    return identity.failed || isIdentityRefusal(identity.gate)
+}
+
+/**
  * Why a bank row cannot be used right now, or null where the tap goes on.
  * During a verification outage an unlock cannot start, so a row that needs
  * one says so.
  */
-export function closedBankRow(row: UnlockRow, isKycDegraded: boolean): ClosedRow | null {
+export function closedBankRow(
+    row: UnlockRow,
+    isKycDegraded: boolean,
+    identity: { failed: boolean; gate?: GateState } = { failed: false }
+): ClosedRow | null {
+    if (bankRowRefusedByIdentity(row, identity)) return identityRejectedRow(identity.gate)
     if (row.chip === 'notAvailable') {
+        if (row.unavailableBecause === 'account-residence' && row.corridor)
+            return { kind: 'residence-restricted', corridor: row.corridor }
         return row.unavailableBecause === 'residence' &&
             (row.corridor === 'PIX_BR' || row.corridor === 'BANK_TRANSFER_AR')
             ? { kind: 'residence', corridor: row.corridor }

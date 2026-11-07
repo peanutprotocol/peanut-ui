@@ -24,15 +24,18 @@ const NEW_USER: OnboardingState = {
 }
 
 const mockStartIdentityCheck = jest.fn()
-const mockStartQrIdentityCheck = jest.fn()
-const render = (onboarding: Partial<OnboardingState> = {}, showWelcome = true) =>
+const render = (
+    onboarding: Partial<OnboardingState> = {},
+    showWelcome = true,
+    signupPaymentChannel?: 'card' | 'qr' | 'bank' | null
+) =>
     rtlRender(
         <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile">
             <GettingStartedChecklist
                 onboarding={{ ...NEW_USER, ...onboarding }}
                 showWelcome={showWelcome}
                 onStartIdentityCheck={mockStartIdentityCheck}
-                onStartQrIdentityCheck={mockStartQrIdentityCheck}
+                signupPaymentChannel={signupPaymentChannel}
             />
         </NuqsTestingAdapter>,
         { wrapper: IntlWrapper }
@@ -63,6 +66,12 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
+}))
+
+// icons are SVG components; here each one names itself
+jest.mock('@/components/Global/Icons/Icon', () => ({
+    ...jest.requireActual('@/components/Global/Icons/Icon'),
+    Icon: ({ name }: { name: string }) => <span data-icon={name} />,
 }))
 
 // the mascot is a lottie animation; here it is a marker
@@ -124,20 +133,19 @@ describe('GettingStartedChecklist', () => {
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        it('not started, bank rails closed but the card open: the card', () => {
-            mockRestrictions = { banking: true, card: false }
-            render()
-            fireEvent.click(screen.getByText('Verify identity'))
-            expect(mockPush).toHaveBeenCalledWith('/card')
-            expect(mockStartIdentityCheck).not.toHaveBeenCalled()
-        })
-
-        it('not started, bank rails and the card closed: the QR ID check', () => {
-            mockRestrictions = { banking: true, card: true }
-            render()
-            fireEvent.click(screen.getByText('Verify identity'))
-            expect(mockStartQrIdentityCheck).toHaveBeenCalled()
-            expect(mockPush).not.toHaveBeenCalled()
+        it('not started, wherever bank rails or the card are closed: the same start, never a route of its own', () => {
+            for (const restrictions of [
+                { banking: true, card: false },
+                { banking: true, card: true },
+            ]) {
+                mockStartIdentityCheck.mockClear()
+                mockRestrictions = restrictions
+                const { unmount } = render()
+                fireEvent.click(screen.getByText('Verify identity'))
+                expect(mockStartIdentityCheck).toHaveBeenCalledTimes(1)
+                expect(mockPush).not.toHaveBeenCalled()
+                unmount()
+            }
         })
 
         it('in review: "In review", the tap shows the status and starts nothing', () => {
@@ -166,10 +174,14 @@ describe('GettingStartedChecklist', () => {
             expect(screen.queryByText('identity-status-drawer')).not.toBeInTheDocument()
         })
 
-        it('done: "ID verified", not tappable', () => {
+        // Staging, 2026-11-03: the card asked for a proof of address after the ID check passed,
+        // and the done row was the way back to the check's status, which names it.
+        it('done: "ID verified", and tapping it opens the check status, never a new check', () => {
             render({ verify: 'done', step: 'add_money' })
             expect(screen.getByText('ID verified')).toBeInTheDocument()
+            expect(screen.getByTestId('checklist-verify-identity')).toHaveAttribute('role', 'button')
             fireEvent.click(screen.getByText('Verify identity'))
+            expect(screen.getByText('identity-status-drawer')).toBeInTheDocument()
             expect(mockStartIdentityCheck).not.toHaveBeenCalled()
         })
     })
@@ -241,6 +253,24 @@ describe('GettingStartedChecklist', () => {
             expect(screen.getByText('Get the Peanut Card')).toBeInTheDocument()
             fireEvent.click(screen.getByText('First payment'))
             expect(mockPush).toHaveBeenCalledWith('/card')
+        })
+
+        const firstPaymentIcon = () =>
+            screen.getByTestId('checklist-first-payment').querySelector('[data-icon]')?.getAttribute('data-icon')
+
+        it.each([
+            ['card_qr', 'card', 'credit-card'],
+            ['card_qr', 'qr', 'qr-code'],
+            // an account made before the signup question
+            ['card_qr', null, 'qr-code'],
+            ['card_qr', undefined, 'qr-code'],
+            ['card', null, 'credit-card'],
+            ['qr', 'card', 'qr-code'],
+            ['pending', 'card', 'credit-card'],
+            ['pending', null, 'qr-code'],
+        ] as const)('route %s with signup choice %s draws %s', (firstPaymentRoute, channel, icon) => {
+            render({ firstPaymentRoute }, true, channel)
+            expect(firstPaymentIcon()).toBe(icon)
         })
 
         it('none: no payment row — 3 of 3 done once verified and funded, one done row shown', () => {
@@ -322,10 +352,17 @@ describe('GettingStartedChecklist — no Hide (TASK-23340)', () => {
 })
 
 describe('GettingStartedChecklist — welcome card and one done row', () => {
+    it('heads the list with the progress: the top card, the first row joined under it', () => {
+        render()
+        expect(screen.getByTestId('onboarding-progress')).toHaveClass('rounded-t-sm')
+        expect(screen.getByTestId('onboarding-progress')).toContainElement(screen.getByTestId('onboarding-welcome'))
+        expect(screen.getAllByTestId(/^checklist-/)[0]).toHaveClass('border-t-0')
+    })
+
     it('keeps the progress and every checklist step after the welcome expires', () => {
         render({}, false)
         expect(screen.queryByTestId('onboarding-welcome')).not.toBeInTheDocument()
-        expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
+        expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 of 4 done')
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
         fireEvent.click(screen.getByText('Add money'))
         expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
@@ -335,13 +372,13 @@ describe('GettingStartedChecklist — welcome card and one done row', () => {
         render()
         // visible title (hidden from screen readers) plus its spoken form
         expect(screen.getAllByText('Welcome to Peanut!')).toHaveLength(2)
-        expect(screen.getByText('4 quick steps to pay, send and receive')).toBeInTheDocument()
+        expect(screen.getByText('3 steps left to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 4 done')).toBeInTheDocument()
     })
 
-    it('says three steps when there is no payment row', () => {
+    it('counts the steps left when there is no payment row', () => {
         render({ firstPaymentRoute: 'none' })
-        expect(screen.getByText('3 quick steps to pay, send and receive')).toBeInTheDocument()
+        expect(screen.getByText('2 steps left to pay, send and receive')).toBeInTheDocument()
         expect(screen.getByText('1 of 3 done')).toBeInTheDocument()
     })
 

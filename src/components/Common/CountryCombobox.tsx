@@ -3,6 +3,8 @@
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
+import Image from 'next/image'
 import { type ResidenceCountryOption } from '@/utils/residence-options'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
@@ -18,6 +20,8 @@ interface CountryComboboxProps {
     /** When set (and a country is picked), the trailing chevron becomes a clear
      *  affordance for that pick. */
     onClear?: () => void
+    /** Options are ISO2 country codes: show each one's round flag. */
+    showFlags?: boolean
 }
 
 const normalize = (text: string) =>
@@ -41,6 +45,7 @@ export const CountryCombobox = ({
     className,
     'aria-label': ariaLabel,
     onClear,
+    showFlags = false,
 }: CountryComboboxProps) => {
     const t = useTranslations('global.countryCombobox')
     const id = useId()
@@ -151,7 +156,7 @@ export const CountryCombobox = ({
                     onClick={openList}
                     onBlur={closeList}
                     onKeyDown={onKeyDown}
-                    className="notranslate pr-10"
+                    className="notranslate pr-10 text-ellipsis"
                 />
                 {open && query ? (
                     <Button
@@ -221,12 +226,21 @@ export const CountryCombobox = ({
                                 onClick={() => select(option)}
                                 onMouseMove={() => setActiveIndex(index)}
                                 className={twMerge(
-                                    'flex w-full cursor-pointer items-center rounded-sm px-3 py-2 text-label-l transition-colors select-none',
+                                    'flex w-full cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-label-l transition-colors select-none',
                                     // same fill as ListItem's pressed state (and BaseSelect's hover)
                                     index === activeIndex && 'bg-background-disabled',
                                     isSelected && 'bg-background-selection text-foreground-over-color-primary'
                                 )}
                             >
+                                {showFlags && (
+                                    <Image
+                                        src={getFlagUrl(option.value.toLowerCase())}
+                                        alt=""
+                                        width={48}
+                                        height={48}
+                                        className="size-6 shrink-0 rounded-full object-cover"
+                                    />
+                                )}
                                 <span>{option.label}</span>
                                 {isSelected && <Icon name="check" size={16} className="ml-auto" />}
                             </li>

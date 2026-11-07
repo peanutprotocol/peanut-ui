@@ -5,24 +5,34 @@
  * ("Euro bank transfers · Unlock"), never to abstract regions, and the tap target
  * stays the existing region-intent KYC machinery.
  *
- * Pure: the view computes per-region chips from the capability model and
- * passes them in, so this stays unit-testable with plain values.
+ * Pure: the view reads each row's chip from the API's feature report and
+ * passes it in, so this stays unit-testable with plain values.
  */
 
 import { DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
-import { gatingResidenceIso2s, residenceCloses } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import { QrKycState } from '@/constants/kyc.consts'
+import type { FeatureReport } from '@/types/capabilities'
 
 export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'attention' | 'notAvailable'
 
-/** Chip for a bank region before residence restrictions are applied. */
-export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
+/** A bank row's chip, from its account's feature report entry. */
+export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn'>
 
 /** Exact key unions so next-intl's typed t() accepts the derived keys. */
-export type UnlockRowLabelKey = 'p2p' | 'card' | 'crypto' | 'qrPay' | 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'
+export type UnlockRowLabelKey =
+    | 'p2p'
+    | 'card'
+    | 'crypto'
+    | 'qrPay'
+    | 'bankAccount'
+    | 'brl'
+    | 'ars'
+    | 'usd'
+    | 'mxn'
+    | 'sepa'
 
 /** The bank corridors, one per currency (2026-09-21). */
 export type BankRowKey = Extract<UnlockRowLabelKey, 'brl' | 'ars' | 'usd' | 'mxn' | 'sepa'>
@@ -40,7 +50,9 @@ export interface UnlockRow {
     /** the card row, and a BRL row that sends to a Pix key: navigate instead of opening a region modal */
     href?: string
     /** the explainer line under the title, as a key under profile.unlockPayments */
-    note?: 'qrPayNote' | 'pixSendNote'
+    note?: 'qrPayNote' | 'qrPayArgentinaNote' | 'pixSendNote'
+    /** the bank account row: the currencies it can hold, named under the title */
+    currencies?: readonly string[]
     /**
      * Which limits apply once the row is active: Manteca per-currency
      * allowances (BRL/ARS) and/or the shared Bridge per-transaction cap.
@@ -65,11 +77,15 @@ export interface UnlockRow {
      * (`withPixSend`): that rail's status, which the row's drawer still shows
      * and opens
      */
-    bankChip?: Exclude<BankRegionChip, 'active'>
+    bankChip?: Exclude<BankRegionChip, 'active' | 'notAvailable'>
     /** bank rows: the deposit corridor the row adds money through */
     corridor?: DepositCorridor
-    /** why a `notAvailable` bank row is closed: the residence country, or the rail's own country rule */
-    unavailableBecause?: 'restricted-country' | 'residence'
+    /**
+     * why a `notAvailable` bank row is closed: the residence country, the
+     * rail's own country rule, or the provider not offering this one account
+     * in the user's residence (the paperwork engine)
+     */
+    unavailableBecause?: 'restricted-country' | 'residence' | 'account-residence'
 }
 
 /** The two lists beside the bank rows: the always-on Peanut rows and the spending methods. */
@@ -80,15 +96,12 @@ export interface UnlockGroup {
     rows: UnlockRow[]
 }
 
-/** What the bank rows are derived from: the per-currency chips, the restrictions and the residence. */
+/** What the bank rows are derived from: the per-currency chips and the residence they are listed for. */
 export interface BankRowsInput {
-    /**
-     * Pre-restriction chip per bank corridor, one per currency. The view
-     * derives each from the rails of that corridor's OWN country, so a chip
-     * can never claim a currency the user cannot move.
-     */
+    /** Per currency, the API's answer for that account (`capabilities.features`). */
     bankChips: Record<BankRowKey, BankRegionChip>
-    restrictions: { banking: boolean; card: boolean }
+    /** Per currency, which sentence explains a `notAvailable` row. */
+    closedBecause: Partial<Record<BankRowKey, NonNullable<UnlockRow['unavailableBecause']>>>
     /** ISO-2 residence (verified preferred, else declared) for the "Your region" order */
     residenceIso2: string | null
     /** second declared residence (device mirror), so both regions sort first */
@@ -97,26 +110,35 @@ export interface BankRowsInput {
     isEuropeResidence: boolean
 }
 
-export interface BuildUnlockGroupsInput extends Pick<BankRowsInput, 'bankChips' | 'restrictions'> {
+export interface BuildUnlockGroupsInput {
     /** the QR-pay gate's answer (`selectQrKycGate`), the one /qr-pay and Home read too */
     qrPay: QrKycState
-    card: 'active' | 'get' | 'notAvailable'
+    card: UnlockChip | 'get'
+    pixResidenceBlocked?: boolean
 }
 
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', concept: 'card' } as const
 
 /**
  * The status of a row that pays through the QR rail (QR payments, the Pix key
- * send), from the QR-pay gate. Available only when a payment would go through.
- * A refusal that a new verification cannot lift (a refused identity region, a
- * provider block) reads Attention, never an Unlock that could only end in that
- * refusal; the tap still opens the modal that explains it. Every other state
- * keeps the LATAM offer chip (`offer`, the BRL corridor's own).
+ * send), from the QR-pay gate: the API's QR answer. Available only when a
+ * payment would go through; a refusal the user can act on, or only support
+ * can lift, reads Attention, never an Unlock that could only end in it.
  */
-export function qrPayChip(qrPay: QrKycState, offer: BankRegionChip): UnlockChip {
-    if (qrPay === QrKycState.PROCEED_TO_PAY) return 'active'
-    if (qrPay === QrKycState.REGION_RESTRICTED || qrPay === QrKycState.PROVIDER_REJECTION_BLOCKED) return 'attention'
-    return offer === 'active' ? 'unlock' : offer
+export function qrPayChip(qrPay: QrKycState): UnlockChip {
+    switch (qrPay) {
+        case QrKycState.PROCEED_TO_PAY:
+            return 'active'
+        case QrKycState.REGION_RESTRICTED:
+        case QrKycState.PROVIDER_REJECTION_BLOCKED:
+        case QrKycState.PROVIDER_RESTART_IDENTITY:
+            return 'attention'
+        case QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS:
+        case QrKycState.PROVIDER_REJECTION_FIXABLE:
+            return 'processing'
+        default:
+            return 'unlock'
+    }
 }
 
 /**
@@ -205,12 +227,8 @@ export const BANK_ROW_COUNTRIES: Record<BankRowKey, string> = Object.fromEntries
  * would claim it for Manteca.
  */
 export function buildBankRows(input: BankRowsInput): UnlockRow[] {
-    const { bankChips, restrictions, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
+    const { bankChips, closedBecause, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
-    // `residenceIso2` is already verified-else-declared; the same derivation
-    // the top-up gates read (`useResidenceIso2s`), so the row and the flow
-    // behind it can never disagree about who lives where.
-    const gatingResidences = gatingResidenceIso2s({ verified: residenceIso2, second: secondResidenceIso2 })
     const isOwnRegion: Record<(typeof BANK_ROWS)[number]['group'], boolean> = {
         southAmerica: residences.has('BR') || residences.has('AR'),
         northAmerica: residences.has('US') || residences.has('MX'),
@@ -218,21 +236,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
     }
 
     const bankRow = (spec: (typeof BANK_ROWS)[number]): UnlockRow => {
-        const railChip = bankChips[spec.key]
-        // A residence-gated corridor is not offered outside its country: the
-        // account behind it is for residents, so an Unlock here could only end
-        // in a refusal — and a Processing chip would narrate a rail the user
-        // can never finish. Fails closed on an unknown residence;
-        // the residence row above is the way to state one. A rail that already
-        // works stays a fact: the user opened it while they lived there.
-        const residenceGated = residenceCloses(spec.corridor, gatingResidences, railChip === 'active')
-        // The banking restriction withdraws OFFERS (useResidenceRestrictions:
-        // it "can only ever remove offers"). A rail that already moves money
-        // is not an offer, so it stays Available, as it does past the
-        // residence gate (all-users replay W3: VE residents with working ARS
-        // rails, once VE is banking-restricted).
-        const bankingClosed = restrictions.banking && railChip !== 'active'
-        const chip: UnlockChip = bankingClosed || residenceGated ? 'notAvailable' : railChip
+        const chip = bankChips[spec.key]
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,
@@ -242,13 +246,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
             flag: DEPOSIT_RAILS[spec.corridor].flagIso2,
             currency: DEPOSIT_RAILS[spec.corridor].currency,
             corridor: spec.corridor,
-            ...(chip === 'notAvailable'
-                ? {
-                      unavailableBecause: restrictions.banking
-                          ? ('restricted-country' as const)
-                          : ('residence' as const),
-                  }
-                : {}),
+            ...(chip === 'notAvailable' ? { unavailableBecause: closedBecause[spec.key] ?? 'restricted-country' } : {}),
             // active and unavailable rows are facts, not actions
             ...(chip === 'active' || chip === 'notAvailable' ? {} : { regionPath: spec.regionPath }),
         }
@@ -259,10 +257,9 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
 }
 
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
-    const { bankChips, qrPay, restrictions, card } = input
+    const { qrPay, card } = input
 
-    const cardChip: UnlockChip =
-        restrictions.card || card === 'notAvailable' ? 'notAvailable' : card === 'active' ? 'active' : 'unlock'
+    const cardChip: UnlockChip = card === 'get' ? 'unlock' : card
     const cardRow: UnlockRow = {
         ...CARD_ROW_BASE,
         chip: cardChip,
@@ -277,19 +274,16 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     // second. Anyone without it gets the LATAM offer chip, and the tap lands
     // on the same region intent the merged bank row uses.
     // The QR row keeps the Manteca offer chip when the user cannot pay yet.
-    // Brazil leads because Pix is the bigger corridor of the two.
-    // A banking restriction does not close it: QR pays through the pool rails,
-    // open to every verified user whatever their residence (hugo, 2026-09-26;
-    // audit C29). Only the QR answer decides it (`qrPayChip`).
-    const qrChip = qrPayChip(qrPay, bankChips.brl)
+    // A Pix residence restriction leaves Mercado Pago QR available.
+    const qrChip = qrPayChip(qrPay)
     const qrRow: UnlockRow = {
         id: 'qr-pay',
         labelKey: 'qrPay',
         concept: 'qrPay',
         chip: qrChip,
-        note: 'qrPayNote',
-        flags: ['BR', 'AR'],
-        limitRefs: ['BRL', 'ARS'],
+        note: input.pixResidenceBlocked ? 'qrPayArgentinaNote' : 'qrPayNote',
+        flags: input.pixResidenceBlocked ? ['AR'] : ['BR', 'AR'],
+        limitRefs: input.pixResidenceBlocked ? ['ARS'] : ['BRL', 'ARS'],
         ...(qrChip === 'active' ? {} : { regionPath: 'latam' as const }),
     }
     // The always-on layer and the spending methods. The bank rows are their
@@ -318,45 +312,81 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     ]
 }
 
-/**
- * Where sending to a Pix key starts. Two doors open it, on the same QR-pay
- * answer: a closed BRL row itself (`withPixSend`), and the BRL row's details
- * drawer for a Brazilian resident (TASK-23054, hugo).
- */
-export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazil' })
+/** Where the one bank account row leads: the currency is picked on that screen. */
+export const BANK_ACCOUNT_HREF = '/profile/accounts'
 
 /**
- * The bank rows as Accounts lists them: a BRL row the user cannot move reais
- * through speaks for sending to a Pix key instead.
- *
- * Adding reais by Pix is for Brazilian residents (a CPF), and not for a
- * residence where bank transfers are restricted, but every verified user can
- * send to any Pix key (hugo, 2026-09-24, QA-12; 2026-09-26, audit C29) — the
- * one way BRL leaves Peanut. So wherever the row is closed, it carries the Pix
- * key send's status and tap target, with a note that says it is for sending.
- * Add money keeps the closed row: adding is the only thing that screen offers.
- *
- * A Brazilian resident's own rail that cannot move money yet (Unlock,
- * Processing, Attention) works the same way once they can pay (hugo,
- * 2026-09-26: Manteca lets any verified user send to any Pix key). The row
- * says Available for the send, and keeps the rail's status in `bankChip` for
- * its drawer, where the rail's own flow still opens. A working rail stays the
- * bank row; its drawer carries the send.
- *
- * Sending to a Pix key rides the QR-payment rail (the method=pix delegation in
- * /withdraw/manteca hands off to /qr-pay), so it reads Available only on the
- * answer /qr-pay itself gives (`selectQrKycGate`), through `qrPayChip`.
+ * Every bank currency as one row (Slava, 2026-10-27: "Bank account should be
+ * one item, currency to select on the next step"). Its chip is the bank and
+ * local features as the API states them (`useBankRows().accountChip`); it
+ * names the currencies the user can still use.
  */
+export function bankAccountRow(
+    bankRows: readonly UnlockRow[],
+    chip: UnlockChip,
+    accounts: {
+        features: FeatureReport
+        heldCorridors?: readonly DepositCorridor[]
+        openableCorridors?: readonly DepositCorridor[]
+    }
+): UnlockRow {
+    const open = bankRows.filter((row) => row.chip !== 'notAvailable')
+    let currencies = open.flatMap((row) => (row.currency ? [row.currency] : []))
+    if (accounts) {
+        const entries = { ...accounts.features.bank.accounts, ...accounts.features.local.accounts }
+        const refused = (currency: string) => {
+            const feature = currency === 'ARS' || currency === 'BRL' ? accounts.features.local : accounts.features.bank
+            return (entries[currency] ?? feature).state === 'refused'
+        }
+        const known = new Set(Object.values(DEPOSIT_RAILS).map((rail) => rail.currency))
+        for (const [currency, entry] of Object.entries(entries))
+            if (known.has(currency) && entry.state !== 'refused') currencies.push(currency)
+        for (const corridor of [...(accounts.heldCorridors ?? []), ...(accounts.openableCorridors ?? [])]) {
+            const rail = DEPOSIT_RAILS[corridor]
+            if (rail && isClaimable(rail)) currencies.push(rail.currency)
+        }
+        currencies = currencies.filter((currency) => !refused(currency))
+    }
+    return {
+        id: 'bank-account',
+        labelKey: 'bankAccount',
+        concept: 'bank',
+        chip,
+        href: BANK_ACCOUNT_HREF,
+        currencies: [...new Set(currencies)],
+    }
+}
+
+export type PaymentMethodSection = 'active' | 'notActive' | 'unavailable'
+
+/** Active methods first, then what the user can still set up or waits on, then what their residence closes. */
+export function paymentMethodSections(rows: readonly UnlockRow[]): Record<PaymentMethodSection, UnlockRow[]> {
+    const sections: Record<PaymentMethodSection, UnlockRow[]> = { active: [], notActive: [], unavailable: [] }
+    for (const row of rows) {
+        const section =
+            row.chip === 'active' || row.chip === 'alwaysOn'
+                ? 'active'
+                : row.chip === 'notAvailable'
+                  ? 'unavailable'
+                  : 'notActive'
+        sections[section].push(row)
+    }
+    return sections
+}
+
+export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazil' })
+
+/** Pix sending and first-party BRL bank access have separate eligibility. */
 export function withPixSend(
     rows: readonly UnlockRow[],
     pixSend: {
         /** the QR-pay gate's answer: the one /qr-pay gives */
         qrPay: QrKycState
-        /** the BRL corridor's chip before the row was closed */
-        brlChip: BankRegionChip
+        pixResidenceBlocked?: boolean
     }
 ): UnlockRow[] {
-    const chip = qrPayChip(pixSend.qrPay, pixSend.brlChip)
+    if (pixSend.pixResidenceBlocked) return [...rows]
+    const chip = qrPayChip(pixSend.qrPay)
     return rows.map((row) => {
         if (row.labelKey !== 'brl' || row.chip === 'active' || row.chip === 'alwaysOn') return row
         if (row.chip !== 'notAvailable') {

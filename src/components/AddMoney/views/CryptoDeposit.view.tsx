@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
@@ -278,7 +280,7 @@ const CryptoDepositView = ({
                                     {t('minDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-label-l">
-                                    {depositAddressData.minDepositLimitUsd.toLocaleString()} USD
+                                    {formatFiniteDisplay(depositAddressData.minDepositLimitUsd)} USD
                                 </p>
                             </div>
                             <div className="flex w-full items-center justify-between">
@@ -286,7 +288,7 @@ const CryptoDepositView = ({
                                     {t('maxDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-label-l">
-                                    {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
+                                    {formatFiniteDisplay(depositAddressData.maxDepositLimitUsd)} USD
                                 </p>
                             </div>
                             <p className="pt-1 text-body-s text-foreground-secondary">

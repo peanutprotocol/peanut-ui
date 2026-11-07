@@ -8,21 +8,25 @@ import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
-import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { isUntouchedNotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import {
+    POST_REGISTRATION_SCREENS,
+    readSignupProgress,
+    resumeScreen,
+    saveSignupProgress,
+} from '@/features/setup/signup-progress'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
-import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
-import { harnessPasskeyBypass } from '@/constants/harness.consts'
-import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
-import { isPwaSunsetOn } from '@/utils/migration.utils'
+import { hasKeepWebCookie, isKeepWebLink } from '@/utils/migration.utils'
+import { KEEP_WEB_COOKIE } from '@/constants/migration.consts'
 import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
-import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
@@ -43,18 +47,6 @@ import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
-
-// The steps after registration; reaching any of them arms the no-back lock.
-const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
-    'residence',
-    'invite',
-    'advantage-fees',
-    'advantage-card',
-    'payment-plan',
-    'notification-email',
-    'notification-permission',
-    'advantage-control',
-]
 
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
@@ -86,6 +78,19 @@ function SetupPageContent() {
         setSignupEntryFlow,
         setSignupCompleted,
         signupCompleted,
+        masterScreenIds,
+        residenceCountry,
+        setResidenceCountry,
+        nationalityCountry,
+        setNationalityCountry,
+        fundingChannel,
+        setFundingChannel,
+        paymentChannel,
+        setPaymentChannel,
+        notificationChoices,
+        setNotificationChoices,
+        inviterAccepted,
+        setInviterAccepted,
     } = useSetupFlowContext()
     const {
         step,
@@ -105,6 +110,7 @@ function SetupPageContent() {
     const stepCopy = useSetupStepCopy(step)
     const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
+    const signedInUserId = user?.user?.userId
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
     const setScreenIdRef = useRef(setScreenId)
@@ -120,12 +126,41 @@ function SetupPageContent() {
     stepsRef.current = steps
     const currentScreenRef = useRef(step?.screenId)
     currentScreenRef.current = step?.screenId
+    const userIdRef = useRef<string | undefined>(undefined)
+    userIdRef.current = signedInUserId
+    const progressRestored = useRef(false)
+    const progressOwned = useRef(false)
+    /*
+     * Where a reloaded or restarted signup continues: the step saved on this
+     * device, with the answers given before it, so a person who reached the
+     * last step is not walked through residence, plan and email again.
+     */
+    const resumeTarget = (): ScreenId => {
+        const userId = userIdRef.current
+        const progress = userId ? readSignupProgress(userId) : null
+        const restore = !progressRestored.current
+        progressRestored.current = true
+        if (progress && restore) {
+            const { answers } = progress
+            if (answers.residenceCountry) setResidenceCountry(answers.residenceCountry)
+            if (answers.nationalityCountry) setNationalityCountry(answers.nationalityCountry)
+            if (answers.fundingChannel) setFundingChannel(answers.fundingChannel)
+            if (answers.paymentChannel) setPaymentChannel(answers.paymentChannel)
+            if (answers.notificationChoices) setNotificationChoices(answers.notificationChoices)
+            if (answers.inviterAccepted) setInviterAccepted(true)
+            if (answers.sellScreensCountry !== undefined) setSellScreensCountry(answers.sellScreensCountry)
+        }
+        return resumeScreen(
+            progress,
+            stepsRef.current.map((entry) => entry.screenId),
+            masterScreenIds
+        )
+    }
+    const resumeTargetRef = useRef(resumeTarget)
+    resumeTargetRef.current = resumeTarget
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
     const initializationExpired = useRef(false)
-    const [showDeviceNotSupportedModal, setShowDeviceNotSupportedModal] = useState(false)
-    const [showBrowserNotSupportedModal, setShowBrowserNotSupportedModal] = useState(false)
-    const { deviceType: detectedDeviceType } = useDeviceType()
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
     // what lets that select render its suggestion already filled in.
@@ -137,6 +172,7 @@ function SetupPageContent() {
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
+    const keepWebParam = searchParams.get(KEEP_WEB_COOKIE)
     const searchParamsString = searchParams.toString()
     const signupEntryFlow = useHydrationSnapshot(
         () => {
@@ -181,10 +217,7 @@ function SetupPageContent() {
 
     const recoveryReason = isLeavingForHome
         ? null
-        : (initializationError ??
-          (!isLoading && sessionChecked && !step && !showDeviceNotSupportedModal && !showBrowserNotSupportedModal
-              ? 'missing_step'
-              : null))
+        : (initializationError ?? (!isLoading && sessionChecked && !step ? 'missing_step' : null))
 
     useEffect(() => {
         if (!recoveryReason) return
@@ -212,15 +245,8 @@ function SetupPageContent() {
         return () => clearTimeout(timeout)
     }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
 
-    // Only count steps that actually render, not while the entry step is being
-    // determined or behind unsupported-device/browser modals.
-    const stepRendered =
-        !!step &&
-        !recoveryReason &&
-        !isLoading &&
-        sessionChecked &&
-        !showDeviceNotSupportedModal &&
-        !showBrowserNotSupportedModal
+    // Only count steps that actually render, not while the entry step is being determined.
+    const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
 
     // Registration happens on the username step and is irreversible: every
     // later step locks the way back at the first step after it, while the steps
@@ -245,6 +271,39 @@ function SetupPageContent() {
         setSellScreensCountry,
         countrySignals,
     ])
+    useEffect(() => {
+        if (!stepRendered || signupCompleted || !step || !signedInUserId) return
+        if (!POST_REGISTRATION_SCREENS.includes(step.screenId)) return
+        // Never overwrite saved answers before this mount has restored them.
+        if (!progressOwned.current) {
+            if (!progressRestored.current && readSignupProgress(signedInUserId)) return
+            progressOwned.current = true
+        }
+        saveSignupProgress(signedInUserId, {
+            screenId: step.screenId,
+            answers: {
+                residenceCountry,
+                nationalityCountry,
+                fundingChannel,
+                paymentChannel,
+                notificationChoices: isUntouchedNotificationChoices(notificationChoices) ? null : notificationChoices,
+                inviterAccepted,
+                sellScreensCountry,
+            },
+        })
+    }, [
+        stepRendered,
+        signupCompleted,
+        step,
+        signedInUserId,
+        residenceCountry,
+        nationalityCountry,
+        fundingChannel,
+        paymentChannel,
+        notificationChoices,
+        inviterAccepted,
+        sellScreensCountry,
+    ])
     const showBackButton =
         !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
 
@@ -255,6 +314,7 @@ function SetupPageContent() {
         signupEntryFlow,
     })
     useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
+    const { track: trackErrorScreen } = useSignupControl('setup-error')
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -304,8 +364,8 @@ function SetupPageContent() {
              * the wallet the last step creates. Leaving for /home skipped the
              * email and every other step after registration, so every exit
              * below resumes instead. Entry never trusts a reloaded ?screen=:
-             * restart at the first step after registration, unless the flow
-             * is already past it.
+             * it continues at the step saved on this device (signup-progress),
+             * else at the first step after registration.
              */
             const resume = !isDemoMode() && unfinishedSignupRoute(user) === '/setup'
             if (resume) resumeSignup.current = true
@@ -315,9 +375,7 @@ function SetupPageContent() {
                     return
                 }
                 if (resolvedEntry.current === null || shownPostRegistration.current) return
-                setScreenIdRef.current(postRegistrationScreen(stepsRef.current.map((entry) => entry.screenId)), {
-                    history: 'replace',
-                })
+                setScreenIdRef.current(resumeTargetRef.current(), { history: 'replace' })
             }
             const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
             const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
@@ -419,7 +477,7 @@ function SetupPageContent() {
                 if (!resumeSignup.current) return target
                 const current = currentScreenRef.current
                 if (shownPostRegistration.current && current) return current
-                return postRegistrationScreen(steps.map((entry) => entry.screenId))
+                return resumeTargetRef.current()
             }
 
             // The entry-step rules (invite code / ?step=signup opening the form
@@ -442,11 +500,13 @@ function SetupPageContent() {
                 stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
             }
             const userInviteCode = readInviteCode()
-            // During the native-app cutover, web signups are closed (Landing hides
-            // Sign up), so the ?step=signup / invite-code jump must not skip
+            // Web signup is closed (Landing hides Sign up), so the
+            // ?step=signup / invite-code jump must not skip
             // past the landing gate — otherwise claim/invite links deep-link
-            // straight into the signup form. Native app keeps the fast path.
-            const webSignupClosed = isPwaSunsetOn() && !isCapacitor()
+            // straight into the signup form. Native app and support's keep-web
+            // browsers keep the fast path.
+            // The link's own visit counts: its cookie is saved after this entry resolves.
+            const webSignupClosed = !isCapacitor() && !hasKeepWebCookie() && !isKeepWebLink(keepWebParam)
             const entryInput = {
                 hasInviteCode: !!userInviteCode,
                 stepParam: legacyStepParam,
@@ -454,104 +514,15 @@ function SetupPageContent() {
                 knownDevice: hasKnownDeviceCredentials(),
             }
 
-            const localDeviceType = detectedDeviceType
-
-            // The web-signup sunset is a product-access decision, not a
-            // capability check. Resolve it before legacy passkey, OS, and
-            // webview gates so every browser can reach Landing's Log In and
-            // native-store actions, including devices that cannot onboard.
-            if (webSignupClosed) {
-                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
-                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
-                resolvedEntry.current = entryKey
-                setScreenIdRef.current(targetStep, { history: 'replace' })
-                setIsLoading(false)
-                return
-            }
-
-            // In Capacitor, passkeys are handled natively. Skip browser, webview, and OS checks.
-            if (isCapacitor()) {
-                const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
-                // replace, not push: the entry step overwrites any stale
-                // ?screen= from a reload or shared link — the URL is only the
-                // source of truth for IN-FLOW navigation (TASK-21460)
-                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
-                resolvedEntry.current = entryKey
-                setScreenIdRef.current(targetStep, { history: 'replace' })
-                setIsLoading(false)
-                return
-            }
-
-            // check if device has a platform authenticator (biometric/pin).
-            // capacitor already returned above — this only runs on web.
-            // The harness browser has no authenticator and signs with its own
-            // key, so the probe there only walls the QA run off its first
-            // screen. Production has neither harness signal.
-            let passkeySupport = true
-            if (!harnessPasskeyBypass()) {
-                try {
-                    if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
-                        passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                    }
-                } catch (e) {
-                    passkeySupport = false
-                    console.error('Error checking passkey support:', e)
-                }
-            }
-
-            if (isObsolete()) return
-
-            const ua = typeof navigator !== 'undefined' ? navigator.userAgent : ''
-            const osSupportedByVersion = isDeviceOsSupported(ua)
-            const webviewByUASignature = isLikelyWebview() // initial webview check based on ua signatures
-
-            // webview detection: if it's an ios device, looks like safari, lacks passkey support,
-            // and wasn't caught by signatures, it's likely a restricted webview (e.g., telegram)
-            let effectiveCurrentlyInWebview = webviewByUASignature
-            if (localDeviceType === 'ios' && /Safari/.test(ua) && !passkeySupport && !webviewByUASignature) {
-                effectiveCurrentlyInWebview = true
-                console.warn(
-                    'INFO: Detected likely iOS webview (Safari-like UA, no passkey support, not caught by signatures).'
-                )
-            }
-
-            let determinedSetupInitialStepId: ScreenId | undefined = undefined
-
-            // main decision logic for showing modals or proceeding with setup
-            if (effectiveCurrentlyInWebview) {
-                // If a webview does not support passkeys, show the unsupported browser modal.
-                if (!passkeySupport) {
-                    setShowBrowserNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                }
-            } else {
-                // not in an effective webview
-                if (!osSupportedByVersion) {
-                    // if os version is too old, show device not supported modal
-                    setShowDeviceNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                } else if (!passkeySupport) {
-                    // if os is fine but passkeys are still not supported (e.g., old browser on supported os),
-                    // show device not supported modal
-                    setShowDeviceNotSupportedModal(true)
-                    setIsLoading(false)
-                    return
-                }
-            }
-
-            // if no modal was triggered, proceed to determine actual setup step
-            determinedSetupInitialStepId = entryScreen(resolveSetupEntryStep(entryInput))
-
-            // Entry always REPLACES — a stale ?screen= must never survive a
-            // fresh load into a step whose prerequisite state is gone.
-            if (!determinedSetupInitialStepId || !steps.some((s) => s.screenId === determinedSetupInitialStepId)) {
-                throw new Error('Setup entry step is missing')
-            }
+            // Web signup is a product-access decision, not a capability check:
+            // every browser reaches Landing's Log In and store actions, and native
+            // handles passkeys itself. replace, not push: the entry step overwrites
+            // any stale ?screen= from a reload or shared link — the URL is only the
+            // source of truth for IN-FLOW navigation (TASK-21460)
+            const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
+            if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
             resolvedEntry.current = entryKey
-            setScreenIdRef.current(determinedSetupInitialStepId, { history: 'replace' })
-
+            setScreenIdRef.current(targetStep, { history: 'replace' })
             setIsLoading(false)
         }
 
@@ -564,7 +535,7 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, legacyStepParam])
+    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam])
 
     if (recoveryReason) {
         return (
@@ -572,8 +543,21 @@ function SetupPageContent() {
                 <h1 className="text-center text-heading-m">{tCommon('somethingWentWrong')}</h1>
                 <p className="text-center">{tCommon('genericError')}</p>
                 <div className="flex w-full max-w-sm flex-col gap-3">
-                    <Button onClick={() => window.location.reload()}>{tCommon('tryAgain')}</Button>
-                    <Button variant="secondary" onClick={() => setIsSupportModalOpen(true)}>
+                    <Button
+                        onClick={() => {
+                            trackErrorScreen('try_again', 'tap', recoveryReason)
+                            window.location.reload()
+                        }}
+                    >
+                        {tCommon('tryAgain')}
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            trackErrorScreen('contact_support', 'tap', recoveryReason)
+                            setIsSupportModalOpen(true)
+                        }}
+                    >
                         {tCommon('contactSupport')}
                     </Button>
                 </div>
@@ -587,10 +571,6 @@ function SetupPageContent() {
                 <Loading variant="mascot" />
             </div>
         )
-
-    if (showBrowserNotSupportedModal || showDeviceNotSupportedModal) {
-        return <UnsupportedBrowserModal visible={true} allowClose={false} />
-    }
 
     if (!step) return null
 

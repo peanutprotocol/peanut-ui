@@ -9,6 +9,7 @@ import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
 import { getCompatibilityModalCopy } from './UnsupportedBrowserModal.utils'
 import { useCopyLinkActions } from './useCopyLinkActions'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 
 const subscribeToStaticBrowserDetection = (): (() => void) => () => {}
 const getServerBrowserDetectionSnapshot = (): boolean => false
@@ -32,7 +33,8 @@ const UnsupportedBrowserModalContent = ({
     )
     const [hasDismissedDetection, setHasDismissedDetection] = useState(false)
     const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
-    const copyLinkActions = useCopyLinkActions(searchParams)
+    const { track } = useSignupControl()
+    const copyLinkActions = useCopyLinkActions(searchParams, () => track('copy_link', 'tap'))
     const modalCopy = getCompatibilityModalCopy({
         showBrowserWarning: visible || isDetectedInAppBrowser,
         passkeySupported: isPasskeySupported,
@@ -42,6 +44,7 @@ const UnsupportedBrowserModalContent = ({
     if (!modalCopy || (hasDismissedDetection && !visible)) return null
 
     const handleModalClose = () => {
+        track('compatibility_notice', 'dismiss', modalCopy.kind)
         // A missing platform authenticator must not trap existing users who can
         // still log in with a roaming authenticator such as a security key.
         // Registration remains gated by the setup flow's capability check.

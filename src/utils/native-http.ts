@@ -32,8 +32,16 @@ export function canUseNativeHttp(url: string, options: RequestInit = {}): boolea
  * leaves the server's work running — the caller has already stopped waiting,
  * which is the whole of what the budget promises.
  */
-export async function nativeHttpRequest(url: string, options: RequestInit = {}, timeoutMs: number): Promise<Response> {
+export async function nativeHttpRequest(
+    url: string,
+    options: RequestInit = {},
+    timeoutMs: number,
+    beforeDispatch?: () => boolean
+): Promise<Response> {
     const { CapacitorHttp } = await import('@capacitor/core')
+
+    if (options.signal?.aborted || (beforeDispatch && !beforeDispatch()))
+        throw Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
 
     const method = (options.method || 'GET').toUpperCase()
     const headers = Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries())

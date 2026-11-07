@@ -42,10 +42,13 @@ jest.mock('@/constants/zerodev.consts', () => ({
 }))
 
 jest.mock('@/utils/general.utils', () => ({
-    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
     ),
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
 }))
 
 jest.mock('@/constants/rhino.consts', () => ({

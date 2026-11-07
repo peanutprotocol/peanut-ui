@@ -1,7 +1,17 @@
 import { BASE_URL } from '@/constants/general.consts'
+import { IOS_APP_STORE_ID } from '@/constants/migration.consts'
+import { isNoindexRoute } from '@/constants/seo-route-policy'
 import { OG_LOCALE_MAP } from '@/i18n/config'
 import { type Locale } from '@/i18n/types'
 import { type Metadata } from 'next'
+
+/**
+ * Safari's Smart App Banner. The app gets the page's canonical URL, never the
+ * request URL: reading the query string would make static pages dynamic.
+ */
+export function smartAppBanner(canonical: string): NonNullable<Metadata['itunes']> {
+    return { appId: IOS_APP_STORE_ID, appArgument: new URL(canonical, BASE_URL).href }
+}
 
 export function generateMetadata({
     title,
@@ -70,5 +80,9 @@ export function generateMetadata({
         },
         applicationName: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
         ...(canonical ? { alternates: { canonical } } : {}),
+        // Public pages only: app routes have no canonical or sit under an app prefix.
+        ...(canonical && !isNoindexRoute(new URL(canonical, BASE_URL).pathname)
+            ? { itunes: smartAppBanner(canonical) }
+            : {}),
     }
 }

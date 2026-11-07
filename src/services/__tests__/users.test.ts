@@ -50,6 +50,24 @@ describe('usersApi.checkUsername', () => {
     })
 })
 
+describe('usersApi.getByUsername', () => {
+    beforeEach(() => mockServerFetch.mockReset())
+
+    it('resolves the public profile', async () => {
+        mockServerFetch.mockResolvedValue(response({ ok: true, body: { userId: 'u1', username: 'alice' } }))
+
+        await expect(usersApi.getByUsername('alice')).resolves.toEqual({ userId: 'u1', username: 'alice' })
+    })
+
+    // an unknown or deactivated handle: resolving with the error body let it
+    // pass as a profile, and the person cache kept it (TASK-23756)
+    it('rejects with the status when the handle is not found', async () => {
+        mockServerFetch.mockResolvedValue(response({ ok: false, status: 404, body: { error: 'User not found' } }))
+
+        await expect(usersApi.getByUsername('ghost')).rejects.toMatchObject({ name: 'ApiError', status: 404 })
+    })
+})
+
 describe('usersApi.requestDeletion', () => {
     beforeEach(() => mockServerFetch.mockReset())
 

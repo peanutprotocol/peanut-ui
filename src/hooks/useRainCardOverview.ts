@@ -13,12 +13,12 @@ export const RAIN_CARD_OVERVIEW_QUERY_KEY = 'rain-card-overview'
  *
  * Polls every 30s and refetches on window focus. `SocketQueryRefresh`, mounted
  * once for the app, invalidates it on `user_rail_status_changed` (rail
- * transitions) and `rain_card_balance_changed` (card txns, auto-balancer
- * deposits, collateral deployment). This hook opens no socket listener of its
- * own: it has dozens of consumers, and one listener each multiplied every
- * event into as many refetches.
+ * transitions) and `rain_card_balance_changed` (card txns, collateral
+ * deployment). This hook opens no socket listener of its own: it has dozens
+ * of consumers, and one listener each multiplied every event into as many
+ * refetches.
  */
-export const useRainCardOverview = () => {
+export const useRainCardOverview = ({ pendingApplication = false }: { pendingApplication?: boolean } = {}) => {
     const { user } = useAuth()
     const userId = user?.user?.userId
 
@@ -34,11 +34,13 @@ export const useRainCardOverview = () => {
         // `hasApplication: false` every time. Card users keep the 30s cadence;
         // everyone else refetches on focus, and the `user_rail_status_changed`
         // invalidation from SocketQueryRefresh resumes polling the moment they apply.
+        // A claim-held application can answer pending before a rail exists, so
+        // the card flow explicitly keeps reads running while that answer is shown.
         refetchInterval: (query) => {
             // A rejected session stays rejected: every 30s poll would only repeat
             // the 401 (PEANUT-UI-R6Y). Focus and socket invalidations still refetch.
             if (query.state.error instanceof ApiError && query.state.error.status === 401) return false
-            return query.state.data?.status?.hasApplication === false ? false : 30_000
+            return !pendingApplication && query.state.data?.status?.hasApplication === false ? false : 30_000
         },
         refetchOnWindowFocus: true,
         retry: 1,

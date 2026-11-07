@@ -15,6 +15,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    PasskeyServerError,
     withIOSPasskeyLoginRecovery,
     type PasskeyErrorCode,
 } from '@/utils/webauthn.utils'
@@ -231,7 +232,13 @@ export const useZeroDev = () => {
                 zeroDevFlowActions.setIsRegistering(false)
                 return
             }
-            const err = normalizeNativePasskeyError(e) as Error
+            // A /register/options error body throws the same decoder TypeError as
+            // login's; the verify-side wording differs, so only the server-request
+            // case is taken from the login normaliser.
+            const serverError = normalizePasskeyServerError(e)
+            const err = normalizeNativePasskeyError(
+                serverError instanceof PasskeyServerError ? serverError : e
+            ) as Error
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
@@ -245,7 +252,11 @@ export const useZeroDev = () => {
     }
 
     // login function
-    const handleLogin = async () => {
+    const handleLogin = async ({
+        immediateSignal,
+        immediateDeadline,
+        cancelSignal,
+    }: { immediateSignal?: AbortSignal; immediateDeadline?: number; cancelSignal?: AbortSignal } = {}) => {
         if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const { code, message } = classifyPasskeyError(new CeremonyConflictError())
             throw new PasskeyError(message, code)
@@ -269,18 +280,22 @@ export const useZeroDev = () => {
             // app kill. Each automatic recovery gets a fresh bounded ceremony
             // window; a late result is discarded and its verify token is not
             // captured after that attempt's window closes.
-            const webAuthnKey = await withCeremonyPurpose('login', () =>
-                withIOSPasskeyLoginRecovery(() =>
-                    guardPasskeyCeremony(() =>
+            const attempt = () =>
+                guardPasskeyCeremony(
+                    () =>
                         toWebAuthnKey({
                             passkeyName: '[]',
                             passkeyServerUrl: PASSKEY_SERVER_URL as string,
                             mode: WebAuthnMode.Login,
                             passkeyServerHeaders,
                             rpID: rpId,
-                        })
-                    )
+                            immediateSignal,
+                            immediateDeadline,
+                        }),
+                    { cancel: cancelSignal }
                 )
+            const webAuthnKey = await withCeremonyPurpose(immediateSignal ? 'login_auto' : 'login', () =>
+                immediateSignal ? attempt() : withIOSPasskeyLoginRecovery(attempt)
             )
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
@@ -299,7 +314,15 @@ export const useZeroDev = () => {
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that
             // tells us WHERE native logins hang.
-            if (isCeremonyGuardError(err)) {
+            if (code === 'ACCOUNT_DELETED') {
+                // Expected state, not a fault: the server minted no session, so local state stays as it was.
+            } else if (
+                immediateSignal &&
+                err instanceof Error &&
+                (err.name === 'AbortError' || err.name === 'CeremonyCancelledError')
+            ) {
+                // Preparation expired before the picker opened, or the user chose another way in.
+            } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
                 // Platform/device outcomes never invalidate an existing session.
@@ -316,7 +339,7 @@ export const useZeroDev = () => {
                     },
                 })
             } else if (code !== 'LOGIN_CANCELED') {
-                await clearAuthState(user?.user.userId)
+                if (!immediateSignal) await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })
             }
             throw new PasskeyError(message, code)
@@ -411,7 +434,8 @@ export const useZeroDev = () => {
                     })
                     zeroDevFlowActions.setIsSendingUserOp(false)
                     if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
-                    logoutUser()
+                    // this device's key is stale; the account's other sessions are fine
+                    logoutUser({ skipBackendCall: true })
                     throw createStaleSessionError(error)
                 }
 

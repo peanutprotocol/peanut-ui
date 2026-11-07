@@ -11,14 +11,10 @@ interface BaseInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
     /** 40px leading slot per the input board */
     leftContent?: React.ReactNode
     rightContent?: React.ReactNode
-    /** visual state, owned by the component per the input board (17360:4441).
-        error paints the border/error border via aria-invalid — callers never
-        pass border classes. the board defines no valid/success state. */
-    state?: 'default' | 'error'
 }
 
 const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
-    ({ className, size = 'md', leftContent, rightContent, state = 'default', ...props }, ref) => {
+    ({ className, size = 'md', leftContent, rightContent, ...props }, ref) => {
         const sizes: Record<BaseInputSize, string> = {
             sm: 'h-10 px-3',
             md: 'h-12 px-4',
@@ -30,7 +26,6 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
             <div className="relative w-full">
                 <input
                     ref={ref}
-                    aria-invalid={state === 'error' ? true : undefined}
                     className={twMerge(c, !!leftContent && 'pl-10', !!rightContent && 'pr-15 md:pr-18')}
                     {...props}
                 />

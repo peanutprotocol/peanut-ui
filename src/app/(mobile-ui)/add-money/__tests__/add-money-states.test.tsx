@@ -317,6 +317,7 @@ jest.mock('@/constants/manteca.consts', () => ({
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
+    ...jest.requireActual('@/constants/analytics.consts'),
     ANALYTICS_EVENTS: {
         DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
         DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
@@ -333,7 +334,6 @@ jest.mock('@/constants/query.consts', () => ({
 // General utils
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v?.toString() ?? '0'),
-    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
     saveRedirectUrl: jest.fn(),
     getRedirectUrl: jest.fn(() => null),
     getStoredRedirect: jest.fn(() => null),
@@ -350,8 +350,13 @@ jest.mock('@/utils/general.utils', () => ({
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
     ),
 }))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
+}))
 
 jest.mock('@/utils/currency', () => ({
+    ...jest.requireActual('@/utils/currency'),
     formatBankAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
     formatAmountNumber: jest.fn((amount: string | number) => String(amount)),
 }))
@@ -641,7 +646,7 @@ jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => <div data-testid="manteca-transfers-maintenance">Manteca Maintenance</div>,
 }))
 
-// AddMoneyBankDetails (for US bank page and bank details step)
+// AddMoneyBankDetails (for the bank details step)
 jest.mock('@/components/AddMoney/components/AddMoneyBankDetails', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -1652,15 +1657,17 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 })
 
 // ============================================================
-// GROUP 6: US Bank Page (static route)
+// GROUP 6: US Bank Page (static route, retired to an alias)
 // ============================================================
 describe('GROUP 6: US Bank Page', () => {
-    test('renders AddMoneyBankDetails with flow=add-money', () => {
-        const USBankPage = require('../us/bank/page').default
-        renderWithProviders(<USBankPage />)
+    test('sends the old US link to the live US bank route, query included', () => {
+        window.history.replaceState(null, '', '/add-money/us/bank?amount=10&currency=USD')
+        const USBankAlias = require('../us/bank/page').default
+        renderWithProviders(<USBankAlias />)
 
-        expect(screen.getByTestId('add-money-bank-details')).toBeInTheDocument()
-        expect(screen.getByText('Bank Details (flow: add-money)')).toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/usa/bank?amount=10&currency=USD')
+        expect(screen.queryByTestId('add-money-bank-details')).not.toBeInTheDocument()
+        window.history.replaceState(null, '', '/')
     })
 })
 

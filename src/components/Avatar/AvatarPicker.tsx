@@ -13,11 +13,9 @@ import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 import { AVATAR_PICKER_BADGE_PARAM, avatarPickerBadgeParser } from './avatar.consts'
 import { badgeAvatarKeys, basicAvatarKeys, dealHand } from './avatar.utils'
-import { isLetterAvatarKey, storeLetterAvatar } from './avatar-letter.storage'
 import { useAvatarArt } from './useAvatarArt'
-import { useAvatarKey } from './useAvatarKey'
 import { roveAvatarTiles } from './avatarPicker.utils'
-import { UserAvatar } from './UserAvatar'
+import { AvatarSticker } from './AvatarSticker'
 
 interface AvatarPickerProps {
     open: boolean
@@ -38,7 +36,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
 
     const userId = user?.user.userId
     const username = user?.user.username ?? undefined
-    const saved = useAvatarKey(user?.user.avatarKey, userId)
+    const saved = user?.user.avatarKey ?? null
     const badges = user?.user.badges ?? []
     const held = badges.map((badge) => badge.code)
     // the served map also unlocks badge art this bundle predates
@@ -55,9 +53,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const draining = useRef(false)
     const pick = pending === undefined ? saved : pending
 
+    const reportSaveFailed = () => toast({ type: 'error', message: t('saveFailed') })
+
     const drain = async () => {
         draining.current = true
-        let serverKey = user?.user.avatarKey ?? null
         try {
             // A tap during refetch queues another write.
             do {
@@ -66,13 +65,9 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                     wanted.current = undefined
                     try {
                         const { error } = await updateUserById({ userId, avatarKey: key })
-                        if (error) rememberOrReport(key, serverKey)
-                        else {
-                            serverKey = key
-                            storeLetterAvatar(userId, null)
-                        }
+                        if (error) reportSaveFailed()
                     } catch {
-                        rememberOrReport(key, serverKey)
+                        reportSaveFailed()
                     }
                 }
                 await fetchUser()
@@ -81,13 +76,6 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
             draining.current = false
             setPending(undefined)
         }
-    }
-
-    // Older APIs reject letter keys. Keep those locally; sticker failures still report an error.
-    const rememberOrReport = (key: string | null, serverKey: string | null) => {
-        // A changed server key invalidates this fallback after a pick on another device.
-        if (isLetterAvatarKey(key)) storeLetterAvatar(userId, key, serverKey)
-        else toast({ type: 'error', message: t('saveFailed') })
     }
 
     const save = (key: string | null) => {
@@ -189,11 +177,14 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                             className="absolute top-1 right-1"
                                         />
                                     )}
-                                    <UserAvatar
-                                        name={initial ? username : undefined}
+                                    <AvatarSticker
+                                        letterOf={initial ? (username ?? '') : ''}
                                         avatarKey={initial ? initialKey : key}
-                                        size="l"
-                                        className="aspect-square h-auto w-3/5"
+                                        size="xl"
+                                        // a chooser tile, not a person avatar: the tile sets the
+                                        // width, and the art-failed fallback keeps the tile's own
+                                        // Heading/S letter and 32 glyph instead of the xl steps
+                                        className="aspect-square h-auto w-3/5 text-heading-s [&_svg]:size-8"
                                     />
                                     {/* Two lines reserved for every name, so a roll that deals only one-line
                                         names keeps the rows as tall as one with a wrapped name (TASK-23054). */}

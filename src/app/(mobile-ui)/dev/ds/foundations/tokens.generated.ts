@@ -40,22 +40,22 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-action-primary"
     },
     {
-        "name": "action-primary-hover",
+        "name": "action-primary-press",
         "value": "#ffa3ec",
         "section": "semantic",
-        "previewClass": "bg-action-primary-hover"
+        "previewClass": "bg-action-primary-press"
     },
     {
-        "name": "action-secondary",
+        "name": "background-accent-yellow",
         "value": "#ffc900",
         "section": "semantic",
-        "previewClass": "bg-action-secondary"
+        "previewClass": "bg-background-accent-yellow"
     },
     {
-        "name": "action-ghost-hover",
+        "name": "action-ghost-press",
         "value": "#bd33a1",
         "section": "semantic",
-        "previewClass": "bg-action-ghost-hover"
+        "previewClass": "bg-action-ghost-press"
     },
     {
         "name": "action-focus",
@@ -104,6 +104,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#1f1f1f",
         "section": "semantic",
         "previewClass": "bg-background-google-wallet"
+    },
+    {
+        "name": "background-google-wallet-press",
+        "value": "#333333",
+        "section": "semantic",
+        "previewClass": "bg-background-google-wallet-press"
     },
     {
         "name": "border-google-wallet",
@@ -170,6 +176,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#fdfdfd",
         "section": "semantic",
         "previewClass": "bg-background-surface-helper"
+    },
+    {
+        "name": "background-skeleton",
+        "value": "color-mix(in oklab, var(--color-foreground-primary) 10%, transparent)",
+        "section": "semantic",
+        "previewClass": "bg-background-skeleton"
     },
     {
         "name": "background-badge-attention",

@@ -16,7 +16,7 @@ export default function MigrationHero({ className }: { className?: string }) {
         <section
             className={twMerge(
                 // pt-safe-top = the --spacing-safe-top token (env safe-area top)
-                'relative flex w-full items-center justify-center overflow-hidden bg-blue-300 px-6 pt-safe-top',
+                'relative flex w-full items-center justify-center overflow-hidden bg-background-marketing-sky px-6 pt-safe-top',
                 className
             )}
         >

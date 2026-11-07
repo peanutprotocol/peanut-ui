@@ -7,6 +7,12 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import { type KycModalPhase } from '@/interfaces/interfaces'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { BridgeTermsCard } from '@/components/Kyc/BridgeTermsCard'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
+
+export interface KycCompletionNotice {
+    kind: 'action' | 'review'
+    currencies: string[]
+}
 
 interface KycVerificationInProgressModalProps {
     isOpen: boolean
@@ -14,11 +20,23 @@ interface KycVerificationInProgressModalProps {
     phase?: KycModalPhase
     onAcceptTerms?: () => void
     onSkipTerms?: () => void
+    onStartSupplement?: () => void
+    onSkipSupplement?: () => void
     onContinue?: () => void
     tosError?: string | null
     isLoadingTos?: boolean
     preparingTimedOut?: boolean
     preparingStage?: 'initial' | 'configuring' | 'slow'
+    completionNotice?: KycCompletionNotice | null
+}
+
+const PHASE_SCREEN: Record<KycModalPhase, string> = {
+    preparing: 'account-setup',
+    verifying: 'id-checking',
+    submitted: 'id-checking',
+    bridge_tos: 'tos',
+    supplement: 'poa',
+    complete: 'id-confirmed',
 }
 
 // multi-phase modal shown during and after kyc verification.
@@ -28,12 +46,20 @@ export const KycVerificationInProgressModal = ({
     onClose,
     phase = 'verifying',
     onAcceptTerms,
+    onStartSupplement,
+    onSkipSupplement,
     onContinue,
     tosError,
     isLoadingTos,
     preparingTimedOut,
     preparingStage = 'initial',
+    completionNotice,
 }: KycVerificationInProgressModalProps) => {
+    const { track } = useKycControl(PHASE_SCREEN[phase], 'kyc_legacy')
+    const handleClose = () => {
+        track('verification', 'dismiss')
+        onClose()
+    }
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -52,8 +78,24 @@ export const KycVerificationInProgressModal = ({
     }, [isOpen, phase])
 
     const handleGoHome = () => {
+        track('home', 'tap')
         onClose()
         router.push('/home')
+    }
+
+    if (phase === 'submitted') {
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={handleClose}
+                tone="attention"
+                icon={'clock' as IconName}
+                title={t('submitted')}
+                description={t('progress.submittedDescription')}
+                ctas={[{ text: t('progress.closeAndNotify'), onClick: handleGoHome, variant: 'primary' }]}
+                footer={<PeanutDoesntStoreAnyPersonalInformation onOpen={() => track('privacy_help', 'tap')} />}
+            />
+        )
     }
 
     if (phase === 'verifying') {
@@ -63,7 +105,7 @@ export const KycVerificationInProgressModal = ({
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
+                onClose={handleClose}
                 tone="attention"
                 icon={'clock' as IconName}
                 title={t('progress.verifyingTitle')}
@@ -79,7 +121,7 @@ export const KycVerificationInProgressModal = ({
                         shadowSize: '4',
                     },
                 ]}
-                footer={<PeanutDoesntStoreAnyPersonalInformation />}
+                footer={<PeanutDoesntStoreAnyPersonalInformation onOpen={() => track('privacy_help', 'tap')} />}
             />
         )
     }
@@ -118,7 +160,7 @@ export const KycVerificationInProgressModal = ({
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
+                onClose={handleClose}
                 tone="attention"
                 isLoadingIcon
                 title={title}
@@ -146,9 +188,8 @@ export const KycVerificationInProgressModal = ({
         return (
             <ActionModal
                 visible={isOpen}
-                onClose={onClose}
-                tone="success"
-                icon={'check' as IconName}
+                onClose={handleClose}
+                tone="attention"
                 title={t('bridgeTos.title')}
                 description={tosError || t('bridgeTos.lastStepDescription')}
                 content={tosError ? undefined : <BridgeTermsCard providerId={providerId} />}
@@ -156,7 +197,11 @@ export const KycVerificationInProgressModal = ({
                     {
                         // Continue, not Accept: the user accepts on Bridge's page
                         text: tCommon('continue'),
-                        onClick: tosError ? onClose : (onAcceptTerms ?? onClose),
+                        onClick: () => {
+                            track('continue', 'tap')
+                            if (!tosError && onAcceptTerms) onAcceptTerms()
+                            else onClose()
+                        },
                         disabled: isLoadingTos,
                         variant: 'primary',
                         className: 'w-full',
@@ -169,23 +214,78 @@ export const KycVerificationInProgressModal = ({
         )
     }
 
-    // phase === 'complete'
-    // Deliberately neutral (not "You're unlocked"): home's rich activation
-    // celebration was deleted with TASK-22680 and nothing replaces it yet, so
-    // this terminal is the only KYC-complete surface. It still does not stamp
-    // activationCelebratedAt.
+    if (phase === 'supplement') {
+        const skipSupplement = onSkipSupplement ?? onClose
+        return (
+            <ActionModal
+                visible={isOpen}
+                onClose={() => {
+                    track('poa', 'dismiss')
+                    skipSupplement()
+                }}
+                tone="attention"
+                title={t('supplement.proofOfAddressTitle')}
+                description={t('supplement.proofOfAddressDescription')}
+                ctas={[
+                    {
+                        text: t('supplement.proofOfAddressCta'),
+                        onClick: () => {
+                            track('continue', 'tap')
+                            if (onStartSupplement) onStartSupplement()
+                            else onClose()
+                        },
+                        variant: 'primary',
+                        className: 'w-full',
+                        shadowSize: '4',
+                        'data-testid': 'kyc-supplement-cta',
+                    },
+                ]}
+                tertiaryCta={{
+                    text: t('supplement.later'),
+                    onClick: () => {
+                        track('not_now', 'tap')
+                        skipSupplement()
+                    },
+                    'data-testid': 'kyc-supplement-later',
+                }}
+            />
+        )
+    }
+
+    const currencies = completionNotice?.currencies ?? []
+    const isActionRequired = completionNotice?.kind === 'action'
+    const noticeValues = { currencies: currencies.join(', '), count: currencies.length }
+    const noticeTitle = isActionRequired
+        ? currencies.length
+            ? t('progress.accountReadyAction', noticeValues)
+            : t('progress.accountReadyActionGeneric')
+        : currencies.length
+          ? t('progress.accountReadyReview', noticeValues)
+          : t('progress.accountReadyReviewGeneric')
+
     return (
         <ActionModal
             visible={isOpen}
-            onClose={onClose}
-            tone="success"
-            icon={'check' as IconName}
-            title={t('progress.completeTitle')}
-            description={t('progress.completeDescription')}
+            onClose={handleClose}
+            tone={completionNotice ? 'attention' : 'success'}
+            icon={completionNotice?.kind === 'review' ? 'clock' : undefined}
+            title={completionNotice ? noticeTitle : t('progress.completeTitle')}
+            description={
+                completionNotice
+                    ? isActionRequired
+                        ? undefined
+                        : t('progress.accountReviewNotification')
+                    : t('progress.completeDescription')
+            }
             ctas={[
                 {
-                    text: tCommon('continue'),
-                    onClick: onContinue ?? onClose,
+                    text: isActionRequired ? t('progress.viewAccounts') : tCommon('continue'),
+                    onClick: () => {
+                        track('continue', 'tap')
+                        if (onContinue) onContinue()
+                        else onClose()
+                        if (isActionRequired) router.push('/profile/accounts')
+                    },
                     variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',

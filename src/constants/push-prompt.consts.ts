@@ -18,6 +18,17 @@ export const PUSH_PROMPT_TRIGGERS = {
 
 export type PushPromptTrigger = (typeof PUSH_PROMPT_TRIGGERS)[keyof typeof PUSH_PROMPT_TRIGGERS]
 
+/** Asks that open the OS dialog without a pre-prompt; the `trigger` on their permission events. */
+export const PERMISSION_REQUEST_SOURCES = {
+    SIGNUP: 'signup',
+    SETTINGS: 'settings',
+    HOME_CAROUSEL: 'home_carousel',
+} as const
+
+export type PermissionRequestTrigger =
+    | PushPromptTrigger
+    | (typeof PERMISSION_REQUEST_SOURCES)[keyof typeof PERMISSION_REQUEST_SOURCES]
+
 // the Home fallback never asks on the first visits: 58% tapped "Not now" when
 // it asked on the first one, before the user had any money with us
 export const HOME_FALLBACK_MIN_SESSION = 3

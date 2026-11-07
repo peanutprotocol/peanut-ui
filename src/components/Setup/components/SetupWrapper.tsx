@@ -9,8 +9,8 @@ import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHead
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
+import { SignupScreenContext, useSignupControl } from '@/features/setup/useSignupControl'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
@@ -161,6 +161,7 @@ const Navigation = memo(function Navigation({
     showLanguageSwitcher: boolean
 }) {
     const t = useTranslations('setup.navigation')
+    const { track } = useSignupControl()
 
     if (!showBackButton && !showSkipButton && !showLanguageSwitcher) return null
 
@@ -178,7 +179,10 @@ const Navigation = memo(function Navigation({
                 {showBackButton && (
                     <Button
                         variant="ghost"
-                        onClick={onBack}
+                        onClick={() => {
+                            track('back', 'tap')
+                            onBack?.()
+                        }}
                         className={NAV_CIRCLE_BUTTON_CLASSES}
                         aria-label={t('goBack')}
                     >
@@ -189,7 +193,10 @@ const Navigation = memo(function Navigation({
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button
-                        onClick={onSkip}
+                        onClick={() => {
+                            track('skip', 'tap')
+                            onSkip?.()
+                        }}
                         variant="ghost"
                         className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
                     >
@@ -434,12 +441,11 @@ export const SetupWrapper = memo(function SetupWrapper({
             cancelled = true
         }
     }, [fullScreen])
-    const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
-    // migration notice window's download-only landing: drop the fixed-height
-    // title block (it left a big gap above the QR) and center the copy on
-    // desktop to match the centered store content. legacy landing untouched.
-    const sunsetLanding = screenId === 'landing' && migrationOn && !nativePlatform.isCapacitor && !hasKeepWebBypass
+    // the web's download-only landing: drop the fixed-height title block (it
+    // left a big gap above the QR) and center the copy on desktop to match the
+    // centered store content. The native landing is untouched.
+    const sunsetLanding = screenId === 'landing' && !nativePlatform.isCapacitor && !hasKeepWebBypass
 
     // Match the server panel first, then start the mobile landing rise after hydration.
     const mountedOnLanding = useRef(screenId === 'landing').current
@@ -462,14 +468,16 @@ export const SetupWrapper = memo(function SetupWrapper({
             )}
         >
             {/* navigation buttons */}
-            <Navigation
-                showBackButton={showBackButton}
-                showSkipButton={showSkipButton}
-                // Hidden on a full-page step without progress (the celebration).
-                showLanguageSwitcher={!fullScreen || showProgress}
-                onBack={onBack}
-                onSkip={onSkip}
-            />
+            <SignupScreenContext.Provider value={screenId}>
+                <Navigation
+                    showBackButton={showBackButton}
+                    showSkipButton={showSkipButton}
+                    // Hidden on a full-page step without progress (the celebration).
+                    showLanguageSwitcher={!fullScreen || showProgress}
+                    onBack={onBack}
+                    onSkip={onSkip}
+                />
+            </SignupScreenContext.Provider>
 
             {/* The hero stays put between steps (its art crossfades); only the white
                 panel below slides. */}
@@ -556,7 +564,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         )}
                                     >
                                         <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
-                                            {children}
+                                            {/* Per slide: AnimatePresence keeps an exiting screen's own value. */}
+                                            <SignupScreenContext.Provider value={screenId}>
+                                                {children}
+                                            </SignupScreenContext.Provider>
                                         </SetupFullScreenContext.Provider>
                                     </div>
                                 </div>

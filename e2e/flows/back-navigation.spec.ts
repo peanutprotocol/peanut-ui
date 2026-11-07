@@ -41,7 +41,7 @@ test.describe('back navigation', () => {
 
     test('accounts → account details → back twice leaves to profile, not details', async ({ page }) => {
         await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
-        await page.locator('a[href="/profile"]').first().click({ timeout: 60_000 })
+        await page.locator('a[href="/settings"]').first().click({ timeout: 60_000 })
         await page.waitForURL(/\/profile$/)
         await page.locator('a[href^="/profile/accounts"]').first().click()
         await page.waitForURL(/\/profile\/accounts/)
@@ -54,7 +54,7 @@ test.describe('back navigation', () => {
         await expect(page.getByTestId('deposit-account-SEPA_EU')).toBeVisible()
 
         await navBack(page)
-        await page.waitForURL((url) => url.pathname === '/profile')
+        await page.waitForURL((url) => url.pathname === '/settings')
         // and browser back from profile goes further out, not into the flow
         await page.goBack()
         await page.waitForURL(/\/home/)
@@ -66,7 +66,7 @@ test.describe('back navigation', () => {
     // duplicate page behind it.
     test('browser Back then Forward, then header back still leaves cleanly', async ({ page }) => {
         await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
-        await page.locator('a[href="/profile"]').first().click({ timeout: 60_000 })
+        await page.locator('a[href="/settings"]').first().click({ timeout: 60_000 })
         await page.waitForURL(/\/profile$/)
         await page.locator('a[href^="/profile/accounts"]').first().click()
         await page.waitForURL(/\/profile\/accounts/)
@@ -81,7 +81,7 @@ test.describe('back navigation', () => {
         await navBack(page)
         await page.waitForURL(/\/profile\/accounts/)
         await navBack(page)
-        await page.waitForURL((url) => url.pathname === '/profile')
+        await page.waitForURL((url) => url.pathname === '/settings')
         await page.goBack()
         await page.waitForURL(/\/home/)
         expect(pathOf(page)).toBe('/home')

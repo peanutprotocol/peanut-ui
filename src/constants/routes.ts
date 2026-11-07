@@ -44,6 +44,7 @@ export const DEDICATED_ROUTES = [
     'card-recovery',
     'recover-wallet',
     'fix-card-signature',
+    'verify',
 
     // Public pages (existing)
     'app', // smart store link (/app) — QR codes point here, redirects by device

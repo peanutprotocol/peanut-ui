@@ -1,3 +1,4 @@
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 import { createElement } from 'react'
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react'
 
@@ -40,6 +41,7 @@ jest.mock('@/services/onesignal', () => ({
 let mockPrefs: Record<string, unknown> | undefined
 const mockUpdateUserPreferences = jest.fn((_userId: string | undefined, partial: Record<string, unknown>) => {
     mockPrefs = { ...mockPrefs, ...partial }
+    return mockPrefs
 })
 jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => mockPrefs,
@@ -47,13 +49,15 @@ jest.mock('@/utils/general.utils', () => ({
         mockUpdateUserPreferences(userId, partial),
 }))
 
-const mockIsPwaSunsetOn = jest.fn(() => false)
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
+let mockInterruptOpen = false
+jest.mock('@/features/attention/interruptState', () => ({ isAttentionInterruptOpen: () => mockInterruptOpen }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 let mockUserId = 'user-1'
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: mockUserId } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: mockUserId } } }),
+    useOptionalAuth: () => ({ user: { user: { userId: mockUserId } } }),
+}))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => false }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 // renders the copy keys, so a test can read which promise the prompt makes
 jest.mock('@/components/Global/ActionModal', () => ({
@@ -74,13 +78,14 @@ import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import SetupNotificationsModal from '@/components/Notifications/SetupNotificationsModal'
 import { offerPushPrompt, resetPushPromptForTests, useNotifications } from '../useNotifications'
+import { readLedger, resetLedgerMemoryForTests } from '@/features/attention/ledger'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS).toISOString()
 const expiredSnooze = () => daysAgo(NOTIF_PROMPT_SNOOZE_DAYS + 6)
 const freshSnooze = () => daysAgo(1)
 
-const { HOME_FALLBACK, DEPOSIT_INTENT, CARD_READY } = PUSH_PROMPT_TRIGGERS
+const { DEPOSIT_INTENT, CARD_READY } = PUSH_PROMPT_TRIGGERS
 const THIRD_SESSION = { sessionCount: 3 }
 
 async function offer(trigger: PushPromptTrigger) {
@@ -105,7 +110,7 @@ async function renderInitialized() {
 async function renderWithShowingBaseline() {
     const rendered = await renderInitialized()
     mockPrefs = { ...THIRD_SESSION }
-    await offer(HOME_FALLBACK)
+    await offer(DEPOSIT_INTENT)
     expect(rendered.result.current.showPermissionModal).toBe(true)
     newSession()
     return rendered
@@ -118,62 +123,35 @@ describe('useNotifications dismissal / snooze logic', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         resetPushPromptForTests()
+        resetLedgerMemoryForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
-        mockIsPwaSunsetOn.mockReturnValue(false)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')
     })
 
-    it('shows the Home fallback from the third session for a user who never dismissed it', async () => {
-        await renderWithShowingBaseline()
-    })
-
-    it('converts legacy notifModalClosed to a timestamp exactly once', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosed: true }
-        await offer(HOME_FALLBACK)
-
-        expect(mockPrefs?.notifModalClosedAt).toEqual(expect.any(String))
-        // legacy dismissal converts to a snooze that starts now → stays closed
-        expect(rendered.result.current.showPermissionModal).toBe(false)
-
-        // re-evaluate: the timestamp is already there, no second write
-        const conversionWrites = () =>
-            mockUpdateUserPreferences.mock.calls.filter(([, partial]) => 'notifModalClosedAt' in partial)
-        expect(conversionWrites()).toHaveLength(1)
-        await offer(HOME_FALLBACK)
-        expect(conversionWrites()).toHaveLength(1)
-    })
-
-    it('flag off: an expired snooze stays closed forever', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: expiredSnooze() }
-        await offer(HOME_FALLBACK)
-
-        expect(rendered.result.current.showPermissionModal).toBe(false)
-    })
-
-    it('flag on: an expired snooze re-asks', async () => {
-        mockIsPwaSunsetOn.mockReturnValue(true)
+    const moneyTriggers = [
+        PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT,
+        PUSH_PROMPT_TRIGGERS.REQUEST_CREATED,
+        PUSH_PROMPT_TRIGGERS.CARD_READY,
+        PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN,
+    ]
+    it.each(
+        moneyTriggers.flatMap((first) =>
+            moneyTriggers.filter((second) => first !== second).map((second) => [first, second])
+        )
+    )('dismissing %s does not snooze %s in the next session', async (first, second) => {
         const rendered = await renderInitialized()
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: expiredSnooze() }
-        await offer(HOME_FALLBACK)
-
+        await offer(first)
         expect(rendered.result.current.showPermissionModal).toBe(true)
-    })
-
-    it('flag on: a fresh snooze stays closed', async () => {
-        mockIsPwaSunsetOn.mockReturnValue(true)
-        const rendered = await renderWithShowingBaseline()
-
-        mockPrefs = { ...THIRD_SESSION, notifModalClosedAt: freshSnooze() }
-        await offer(HOME_FALLBACK)
-
+        act(() => rendered.result.current.closePermissionModal())
+        newSession()
+        await offer(first)
         expect(rendered.result.current.showPermissionModal).toBe(false)
+        await offer(second)
+        expect(rendered.result.current.promptTrigger).toBe(second)
+        expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
     it('granted permission hides an open prompt and no trigger asks again', async () => {
@@ -237,22 +215,13 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         resetPushPromptForTests()
+        resetLedgerMemoryForTests()
         mockPrefs = undefined
         mockUserId = 'user-1'
-        mockIsPwaSunsetOn.mockReturnValue(true)
+        mockInterruptOpen = false
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
         mockAdapter.requestPermission.mockResolvedValue('default')
-    })
-
-    it('does not ask on the first Home visits', async () => {
-        const rendered = await renderWithShowingBaseline()
-
-        for (const sessionCount of [1, 2]) {
-            mockPrefs = { sessionCount }
-            await offer(HOME_FALLBACK)
-            expect(rendered.result.current.showPermissionModal).toBe(false)
-        }
     })
 
     it('counts one session per app load', async () => {
@@ -303,6 +272,18 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(true)
     })
 
+    it('never asks over a manager surface: the moment passes', async () => {
+        const rendered = await renderInitialized()
+        mockPrefs = { ...THIRD_SESSION }
+        mockInterruptOpen = true
+        await offer(DEPOSIT_INTENT)
+        expect(rendered.result.current.showPermissionModal).toBe(false)
+        mockInterruptOpen = false
+        await offer(CARD_READY)
+        expect(rendered.result.current.showPermissionModal).toBe(true)
+        expect(rendered.result.current.promptShownThisSession).toBe(true)
+    })
+
     it('shows at most one pre-prompt per session', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)
@@ -312,11 +293,13 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
-    it('a dismissed trigger stays quiet for 14 days, another trigger may still ask', async () => {
+    it('a contextual dismissal snoozes only that trigger while Home remains snoozed', async () => {
         const rendered = await renderInitialized()
         await offer(DEPOSIT_INTENT)
         act(() => rendered.result.current.closePermissionModal())
         expect(mockPrefs?.notifPromptClosedAt).toEqual({ [DEPOSIT_INTENT]: expect.any(String) })
+        // the Home ask reads the same "Not now" from the ledger
+        expect(readLedger('user-1')['push-home-fallback']?.snoozedUntil).toEqual(expect.any(String))
 
         newSession()
         await offer(DEPOSIT_INTENT)
@@ -325,9 +308,6 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         await offer(CARD_READY)
         expect(rendered.result.current.promptTrigger).toBe(CARD_READY)
         expect(rendered.result.current.showPermissionModal).toBe(true)
-
-        // the deposit snooze survives the card dismissal, and ends after 14 days
-        act(() => rendered.result.current.closePermissionModal())
         newSession()
         await offer(DEPOSIT_INTENT)
         expect(rendered.result.current.showPermissionModal).toBe(false)
@@ -336,17 +316,6 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         newSession()
         await offer(DEPOSIT_INTENT)
         expect(rendered.result.current.showPermissionModal).toBe(true)
-    })
-
-    it('a money-moment dismissal also snoozes the Home fallback', async () => {
-        const rendered = await renderInitialized()
-        mockPrefs = { ...THIRD_SESSION }
-        await offer(DEPOSIT_INTENT)
-        act(() => rendered.result.current.closePermissionModal())
-
-        newSession()
-        await offer(HOME_FALLBACK)
-        expect(rendered.result.current.showPermissionModal).toBe(false)
     })
 
     it('stamps the trigger on the prompt and permission events', async () => {
@@ -362,6 +331,7 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         // an unanswered OS dialog snoozes the moment like "Not now"
         expect(mockPrefs?.notifPromptClosedAt).toEqual({ [CARD_READY]: expect.any(String) })
 
+        mockPrefs = { notifModalClosedAt: expiredSnooze(), notifPromptClosedAt: { [CARD_READY]: expiredSnooze() } }
         newSession()
         await offer(DEPOSIT_INTENT)
         act(() => rendered.result.current.closePermissionModal())
@@ -376,6 +346,9 @@ describe('useNotifications money-moment triggers (TASK-23251)', () => {
         })
         await act(async () => mockPermissionListener?.('granted'))
 
-        expect(capturedWith('notification_permission_granted')).toEqual([{ trigger: DEPOSIT_INTENT }])
+        // the ask got no answer of its own (no Notification API here), so the change event carries its trigger
+        expect(capturedWith('notification_permission_granted')).toEqual([
+            { trigger: DEPOSIT_INTENT, via: 'change', previous_permission: null },
+        ])
     })
 })

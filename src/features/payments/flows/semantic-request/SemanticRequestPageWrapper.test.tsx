@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { parsePaymentURL } from '@/lib/url-parser/parser'
+import { EParseUrlError, parsePaymentURL } from '@/lib/url-parser/parser'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SemanticRequestPageWrapper } from './SemanticRequestPageWrapper'
 
@@ -7,15 +7,38 @@ const mockReplace = jest.fn()
 const mockPaymentPage = jest.fn()
 let mockSearchParams = new URLSearchParams()
 const mockRouter = { replace: mockReplace }
-const mockT = (key: string) => key
+const mockT = (key: string, values?: Record<string, string>) => (values ? `${key} ${JSON.stringify(values)}` : key)
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('next-intl', () => ({ useTranslations: () => mockT }))
-jest.mock('@/lib/url-parser/parser', () => ({ parsePaymentURL: jest.fn() }))
+jest.mock('@/lib/url-parser/parser', () => ({
+    EParseUrlError: jest.requireActual('@/lib/url-parser/parser').EParseUrlError,
+    parsePaymentURL: jest.fn(),
+}))
 const mockGetCharge = jest.fn()
 jest.mock('@/services/charges', () => ({ chargesApi: { get: (id: string) => mockGetCharge(id) } }))
 jest.mock('@/components/Global/Loading', () => () => null)
-jest.mock('@/components/Global/EmptyStates/EmptyState', () => () => null)
+jest.mock(
+    '@/components/Global/EmptyStates/EmptyState',
+    () =>
+        function MockEmptyState({
+            title,
+            description,
+            cta,
+        }: {
+            title: string
+            description: string
+            cta?: React.ReactNode
+        }) {
+            return (
+                <div>
+                    <p>{title}</p>
+                    <p>{description}</p>
+                    {cta}
+                </div>
+            )
+        }
+)
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('./SemanticRequestPage', () => ({
     SemanticRequestPage: (props: unknown) => {
@@ -90,4 +113,19 @@ it('a real recipient change reparses the payment route', async () => {
     await screen.findByText('Payment flow')
     view.rerender(<SemanticRequestPageWrapper recipient={['hugo']} />)
     await waitFor(() => expect(parsePaymentURL).toHaveBeenCalledWith(['hugo']))
+})
+
+// TASK-23850: a request is paid in USDC or USDT only. A link that asks for
+// another token is refused with that token named, never paid in USDC instead.
+it('names the unsupported token and offers a way back home', async () => {
+    ;(parsePaymentURL as jest.Mock).mockResolvedValue({
+        parsedUrl: null,
+        error: { message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED, recipient: 'alice', token: 'ETH' },
+    })
+    render(<SemanticRequestPageWrapper recipient={['alice', '10eth']} />)
+    expect(await screen.findByText('errors.requestTokenNotAccepted {"symbol":"ETH"}')).toBeInTheDocument()
+    expect(screen.getByText('errors.invalidPaymentUrlTitle')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'success.backToHome' }))
+    expect(mockReplace).toHaveBeenCalledWith('/home')
+    expect(mockPaymentPage).not.toHaveBeenCalled()
 })

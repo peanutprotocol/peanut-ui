@@ -1,19 +1,33 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
+import { getFromCookie } from '@/utils/general.utils'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
+import { readSignupProgress, saveSignupProgress } from '@/features/setup/signup-progress'
 
 let mockNoBackLock: string | null = null
+const mockDefaultChoices = { push: false, marketingPush: false, emailUpdates: false, cascaded: false }
 let mockSignupCompleted = false
 const mockSetNoBackLock = jest.fn()
 const mockSetSellScreensCountry = jest.fn()
 let mockSellScreensCountry: string | null | undefined = undefined
 const mockSupport = jest.fn()
+const mockAnswerSetters = {
+    setResidenceCountry: jest.fn(),
+    setNationalityCountry: jest.fn(),
+    setFundingChannel: jest.fn(),
+    setPaymentChannel: jest.fn(),
+    setNotificationChoices: jest.fn(),
+    setInviterAccepted: jest.fn(),
+}
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
 const mockQueuePendingBadgeCampaigns = jest.fn((campaigns: readonly string[]) => [...campaigns])
@@ -33,7 +47,7 @@ const mockFlow = {
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
 type MockAuthUser = {
-    user?: { username?: string; hasAppAccess?: boolean; email?: string }
+    user?: { userId?: string; username?: string; hasAppAccess?: boolean; email?: string }
     accounts?: { type: string }[]
 }
 // The last setup step creates the wallet, so a finished signup always has one.
@@ -46,7 +60,6 @@ const mockAuth = {
     fetchUser: jest.fn().mockResolvedValue(undefined),
 }
 let mockNative = true
-let mockPwaSunsetOn = false
 let mockSearchParams = new URLSearchParams()
 let mockStoredRedirect: {
     destination: string
@@ -55,6 +68,7 @@ let mockStoredRedirect: {
 } | null = null
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
@@ -64,7 +78,27 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
         sellScreensCountry: mockSellScreensCountry,
         setSellScreensCountry: mockSetSellScreensCountry,
         setSignupEntryFlow: jest.fn(),
+        masterScreenIds: [
+            'landing',
+            'signup',
+            'invite',
+            'advantage-fees',
+            'advantage-card',
+            'residence',
+            'payment-plan',
+            'notification-email',
+            'notification-permission',
+            'advantage-control',
+        ],
+        residenceCountry: '',
+        nationalityCountry: '',
+        fundingChannel: null,
+        paymentChannel: null,
+        notificationChoices: mockDefaultChoices,
+        inviterAccepted: false,
+        ...mockAnswerSetters,
     }),
+    isUntouchedNotificationChoices: (choices: unknown) => choices === mockDefaultChoices,
 }))
 jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
@@ -94,7 +128,6 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunsetOn }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     getStoredRedirect: () => mockStoredRedirect,
@@ -107,7 +140,6 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     SetupWrapper: ({
         children,
@@ -126,10 +158,6 @@ jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
-jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
-    __esModule: true,
-    default: () => <div>Unsupported device</div>,
-}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
@@ -151,6 +179,7 @@ const advance = (ms: number) =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    jest.mocked(getFromCookie).mockReset()
     mockNoBackLock = null
     mockSignupCompleted = false
     mockSellScreensCountry = undefined
@@ -169,7 +198,6 @@ beforeEach(() => {
     })
     resetDeepLinkStateForTests()
     mockNative = true
-    mockPwaSunsetOn = false
     mockSearchParams = new URLSearchParams()
     mockStoredRedirect = null
 })
@@ -185,6 +213,16 @@ it('shows retry and support when no current setup step can render', async () => 
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
+    expect(posthog.capture).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.CONTROL_USED,
+        expect.objectContaining({
+            flow: 'signup',
+            screen_id: 'setup-error',
+            control: 'contact_support',
+            action: 'tap',
+            value: 'missing_step',
+        })
+    )
     expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
     )
@@ -235,48 +273,8 @@ it('recovers from an initialization exception', async () => {
     expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
 })
 
-it('ignores an authenticator check that completes after initialization timed out', async () => {
+it('routes web guests to landing without browser capability checks', async () => {
     mockNative = false
-    let resolveSupport!: (supported: boolean) => void
-    Object.defineProperty(window, 'PublicKeyCredential', {
-        configurable: true,
-        value: {
-            isUserVerifyingPlatformAuthenticatorAvailable: () =>
-                new Promise<boolean>((resolve) => {
-                    resolveSupport = resolve
-                }),
-        },
-    })
-    renderWithIntl(<SetupPage />)
-    await advance(15000)
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-        'Setup initialization failed',
-        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_timeout' } })
-    )
-    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
-    await act(async () => {
-        resolveSupport(true)
-    })
-    expect(mockFlow.setScreenId).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-})
-
-it('preserves the unsupported-device recovery on web', async () => {
-    mockNative = false
-    Object.defineProperty(window, 'PublicKeyCredential', {
-        configurable: true,
-        value: { isUserVerifyingPlatformAuthenticatorAvailable: async () => false },
-    })
-    renderWithIntl(<SetupPage />)
-    await advance(100)
-    expect(screen.getByText('Unsupported device')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-})
-
-it('routes sunset web guests to landing before unsupported-browser capability gates', async () => {
-    mockNative = false
-    mockPwaSunsetOn = true
     Object.defineProperty(window, 'PublicKeyCredential', {
         configurable: true,
         value: { isUserVerifyingPlatformAuthenticatorAvailable: jest.fn().mockResolvedValue(false) },
@@ -286,7 +284,6 @@ it('routes sunset web guests to landing before unsupported-browser capability ga
     await advance(100)
 
     expect(screen.getByText('Landing step')).toBeInTheDocument()
-    expect(screen.queryByText('Unsupported device')).not.toBeInTheDocument()
     expect(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable).not.toHaveBeenCalled()
     expect(mockResolve).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -294,6 +291,28 @@ it('routes sunset web guests to landing before unsupported-browser capability ga
         })
     )
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
+it('keeps the signup fast path in a keep-web browser', async () => {
+    mockNative = false
+    jest.mocked(getFromCookie).mockImplementation((key: string) =>
+        key === KEEP_WEB_COOKIE ? KEEP_WEB_TOKEN : undefined
+    )
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
+})
+
+it('keeps the signup fast path on the first visit of a keep-web link', async () => {
+    mockNative = false
+    mockSearchParams = new URLSearchParams(`step=signup&${KEEP_WEB_COOKIE}=${KEEP_WEB_TOKEN}`)
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
 })
 
 it('bounds waiting for session hydration', async () => {
@@ -820,5 +839,102 @@ describe('a signup interrupted after registration', () => {
         await advance(100)
         expect(mockRouter.replace).not.toHaveBeenCalled()
         expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+    })
+
+    describe('with progress saved on this device', () => {
+        const finalStep: ISetupStep = {
+            ...landing,
+            screenId: 'advantage-control',
+            component: () => <div>Final step</div>,
+        }
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        const registered = { user: { userId: 'u-1', username: 'test044', hasAppAccess: true }, accounts: [] }
+
+        beforeEach(() => {
+            localStorage.clear()
+            mockStore.steps = [landing, residence, paymentPlan, finalStep]
+            mockFlow.step = landing
+            mockSearchParams = new URLSearchParams()
+        })
+
+        it('a reload on the final step resumes there with residence and plan kept', async () => {
+            saveSignupProgress('u-1', {
+                screenId: 'advantage-control',
+                answers: {
+                    residenceCountry: 'AR',
+                    nationalityCountry: 'BR',
+                    fundingChannel: 'arsBank',
+                    paymentChannel: 'qr',
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: 'AR',
+                },
+            })
+            mockAuth.user = registered
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('advantage-control', { history: 'replace' })
+            expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', expect.anything())
+            expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('AR')
+            expect(mockAnswerSetters.setNationalityCountry).toHaveBeenCalledWith('BR')
+            expect(mockAnswerSetters.setFundingChannel).toHaveBeenCalledWith('arsBank')
+            expect(mockAnswerSetters.setPaymentChannel).toHaveBeenCalledWith('qr')
+            expect(mockSetSellScreensCountry).toHaveBeenCalledWith('AR')
+            expect(mockRouter.replace).not.toHaveBeenCalled()
+        })
+
+        it('resumes there too when the profile arrives after the entry step resolved', async () => {
+            saveSignupProgress('u-1', {
+                screenId: 'payment-plan',
+                answers: {
+                    residenceCountry: 'MX',
+                    nationalityCountry: '',
+                    fundingChannel: null,
+                    paymentChannel: null,
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: undefined,
+                },
+            })
+            mockAuth.isFetchingUser = true
+            const view = renderWithIntl(<SetupPage />)
+            await advance(100)
+            mockAuth.isFetchingUser = false
+            mockAuth.user = registered
+            await act(async () => {
+                view.rerender(<SetupPage />)
+            })
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('payment-plan', { history: 'replace' })
+            expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('MX')
+        })
+
+        it('saves the step and the answers as the person reaches it', async () => {
+            mockAuth.user = registered
+            mockFlow.step = finalStep
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(readSignupProgress('u-1')).toMatchObject({ screenId: 'advantage-control' })
+        })
+
+        it('progress saved by another account on this device is not used', async () => {
+            saveSignupProgress('someone-else', {
+                screenId: 'advantage-control',
+                answers: {
+                    residenceCountry: 'AR',
+                    nationalityCountry: '',
+                    fundingChannel: null,
+                    paymentChannel: null,
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: undefined,
+                },
+            })
+            mockAuth.user = registered
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('residence', { history: 'replace' })
+            expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalled()
+        })
     })
 })

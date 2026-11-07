@@ -12,6 +12,9 @@ const ROUTE_EXCLUSIONS = new Map([
     ['/card-payment', 'Routing alias for the card payment destination, which is catalogued separately'],
     ['/request/pay', 'Routing alias for the request payment destination, which is catalogued separately'],
     ['/pay/[...recipient]', 'Routing alias for the send destination, which is catalogued separately'],
+    ['/profile', 'Routing alias for the Settings and Settings details destinations, which are catalogued separately'],
+    ['/profile/details', 'Routing alias for the Settings details destination, which is catalogued separately'],
+    ['/profile/edit', 'Routing alias for the Settings details destination, which is catalogued separately'],
     ['/profile/identity-verification', 'Routing alias for the Accounts destination, which is catalogued separately'],
     [
         '/profile/identity-verification/additional',
@@ -22,6 +25,7 @@ const ROUTE_EXCLUSIONS = new Map([
         '/profile/accounts-and-payments/additional',
         'Routing alias for the additional verification destination, which is catalogued separately',
     ],
+    ['/add-money/us/bank', 'Routing alias for the US bank destination, which is catalogued separately'],
 ])
 
 // The star-feature landing pages (StarLp/starLp.consts.ts STAR_LP_ROUTES): marketing, not app UI.
@@ -47,21 +51,19 @@ export function inventory(root, catalogue) {
         const screens = byRoute.get(route) ?? []
         const reason =
             ROUTE_EXCLUSIONS.get(route) ??
-            (route === '/add-money/us/bank'
-                ? 'Legacy standalone bank-details entry with no in-app navigation entry; current bank journeys use /add-money/[country]/bank'
-                : route.startsWith('/dev') || route === '/shhhhh'
-                  ? 'Developer tooling, outside the app catalogue'
-                  : route.startsWith('/quests') ||
-                      route.startsWith('/[locale]') ||
-                      ['/', '/careers', '/lp', '/es-419', '/es-ar', '/pt-br'].includes(route) ||
-                      STAR_LP_ROUTES.has(route) ||
-                      route.startsWith('/m/')
-                    ? 'Marketing, editorial or legal website, outside app-owned mobile UI'
-                    : route === '/app'
-                      ? 'Platform download redirect; destination is outside app-owned UI'
-                      : route === '/crisp-proxy'
-                        ? 'Third-party support iframe; app-owned support drawer is catalogued separately'
-                        : undefined)
+            (route.startsWith('/dev') || route === '/shhhhh'
+                ? 'Developer tooling, outside the app catalogue'
+                : route.startsWith('/quests') ||
+                    route.startsWith('/[locale]') ||
+                    ['/', '/careers', '/lp', '/es-419', '/es-ar', '/pt-br'].includes(route) ||
+                    STAR_LP_ROUTES.has(route) ||
+                    route.startsWith('/m/')
+                  ? 'Marketing, editorial or legal website, outside app-owned mobile UI'
+                  : route === '/app'
+                    ? 'Platform download redirect; destination is outside app-owned UI'
+                    : route === '/crisp-proxy'
+                      ? 'Third-party support iframe; app-owned support drawer is catalogued separately'
+                      : undefined)
         return {
             route,
             status: reason ? 'excluded' : screens.length ? 'catalogued' : 'missing',

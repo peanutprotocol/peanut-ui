@@ -22,6 +22,9 @@ export const API_ERROR_CODES = {
     WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
     WITHDRAWAL_SIGNATURE_EXPIRED: 'WITHDRAWAL_SIGNATURE_EXPIRED',
     WITHDRAWAL_SUBMISSION_FAILED: 'WITHDRAWAL_SUBMISSION_FAILED',
+    /** A withdrawal for this user was sent and has not settled yet. Do not send
+     *  it (or another one) again until it has. */
+    WITHDRAWAL_PENDING_CONFIRMATION: 'WITHDRAWAL_PENDING_CONFIRMATION',
     STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by
@@ -37,10 +40,14 @@ export const API_ERROR_CODES = {
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
+    MANTECA_ACCOUNT_REJECTED: 'MANTECA_ACCOUNT_REJECTED',
     /** The pool-lock sender carried an id the provider refuses. The user is
      *  verified, so a KYC prompt is a dead end: support corrects the id on
      *  file. Deterministic, never retried. */
     MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
+    PAYER_BLOCKED: 'PAYER_BLOCKED',
+    MERCHANT_BLOCKED: 'MERCHANT_BLOCKED',
+    PIX_RESIDENCE_NOT_SUPPORTED: 'PIX_RESIDENCE_NOT_SUPPORTED',
     MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
     /** The provider refused a Manteca deposit or withdrawal for a reason of the
      *  user's account (a document it still needs, a bank account it does not
@@ -82,13 +89,19 @@ export class ApiError extends Error {
     readonly code: string | undefined
     /** Seconds until a rate-limited or cooled-down action can be retried, when the backend sent one. */
     readonly retryAfterSec: number | undefined
+    /** The backend's machine `reason` beside `code`, when it sent one (e.g. a send-gate refusal). */
+    readonly reason: string | undefined
 
-    constructor(message: string, opts: { status: number; code?: string; retryAfterSec?: number; cause?: unknown }) {
+    constructor(
+        message: string,
+        opts: { status: number; code?: string; retryAfterSec?: number; reason?: string; cause?: unknown }
+    ) {
         super(message, { cause: opts.cause })
         this.name = 'ApiError'
         this.status = opts.status
         this.code = opts.code
         this.retryAfterSec = opts.retryAfterSec
+        this.reason = opts.reason
     }
 }
 

@@ -28,6 +28,9 @@ import Card from '@/components/Global/Card'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
+import SupportDrawer from '@/components/Global/SupportDrawer'
+import { useModalsContext } from '@/context/ModalsContext'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { createKernelClientForChain, type KernelClientOptions } from '@/context/kernelClient.context'
 import {
@@ -37,7 +40,8 @@ import {
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
 import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
-import { areEvmAddressesEqual, getExplorerUrl, isTxReverted } from '@/utils/general.utils'
+import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
+import { getExplorerUrl } from '@/utils/token.utils'
 import { decodeRecoveryKey, toRescueWebAuthnKey, type RecoveryKeyInput } from '@/utils/walletRescue.utils'
 import { captureException } from '@sentry/nextjs'
 import { useSearchParams } from 'next/navigation'
@@ -45,7 +49,8 @@ import { useTranslations } from 'next-intl'
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { type Address, encodeFunctionData, erc20Abi, formatUnits, isAddress } from 'viem'
 
-type Phase = 'loading' | 'invalid' | 'ready' | 'final'
+type RecoveryErrorKind = 'invalidLink' | 'walletUnavailable'
+type Phase = 'loading' | RecoveryErrorKind | 'ready' | 'final'
 type RescueClient = Awaited<ReturnType<typeof createKernelClientForChain>>
 
 // useSearchParams requires a Suspense boundary to keep the route from forcing
@@ -73,7 +78,6 @@ function RecoverWalletInner() {
     }, [blob])
 
     const [phase, setPhase] = useState<Phase>('loading')
-    const [fatal, setFatal] = useState<string>('')
     const [client, setClient] = useState<RescueClient | null>(null)
     const [balance, setBalance] = useState<bigint>(0n)
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
@@ -90,8 +94,7 @@ function RecoverWalletInner() {
     // expected address, and read the on-chain USDC balance.
     useEffect(() => {
         if (!recoveryKey) {
-            setPhase('invalid')
-            setFatal('This recovery link is invalid or has expired. Please ask support for a fresh one.')
+            setPhase('invalidLink')
             return
         }
         // name MUST be undefined, not '' — GeneralRecipientInput shows
@@ -140,8 +143,7 @@ function RecoverWalletInner() {
                 console.error('[recover-wallet] init failed', error)
                 captureException(error, { tags: { error_type: 'wallet_rescue_init' } })
                 if (cancelled) return
-                setPhase('invalid')
-                setFatal('We could not load this wallet for recovery. Please contact support.')
+                setPhase('walletUnavailable')
             }
         })()
         return () => {
@@ -182,16 +184,7 @@ function RecoverWalletInner() {
 
     if (phase === 'loading') return <Loading variant="mascot" />
 
-    if (phase === 'invalid') {
-        return (
-            <PageStack>
-                <PageStack.Center>
-                    <h1 className="text-heading-s">Wallet recovery</h1>
-                    <Callout priority="error">{fatal}</Callout>
-                </PageStack.Center>
-            </PageStack>
-        )
-    }
+    if (phase === 'invalidLink' || phase === 'walletUnavailable') return <RecoveryError kind={phase} />
 
     if (phase === 'final') {
         return (
@@ -265,5 +258,29 @@ function RecoverWalletInner() {
                 )}
             </PageStack.Center>
         </PageStack>
+    )
+}
+
+function RecoveryError({ kind }: { kind: RecoveryErrorKind }) {
+    const t = useTranslations('walletRecovery')
+    const tCommon = useTranslations('common')
+    const { openSupportWithMessage } = useModalsContext()
+    return (
+        <>
+            <div className="flex min-h-dvh flex-col pt-safe-top pb-safe-bottom">
+                <div className="flex flex-1 flex-col justify-center gap-6 px-4 py-6">
+                    <CenteredStatusCard title={t(`${kind}.title`)} description={t(`${kind}.description`)} />
+                    <Button
+                        variant="primary"
+                        shadowSize="4"
+                        className="mt-4 w-full"
+                        onClick={() => openSupportWithMessage('')}
+                    >
+                        {tCommon('contactSupport')}
+                    </Button>
+                </div>
+            </div>
+            <SupportDrawer />
+        </>
     )
 }

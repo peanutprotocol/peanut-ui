@@ -87,3 +87,19 @@ test('a rejected reset retains the failed state for another attempt', async () =
     expect(result.current.status).toBe('failed')
     expect(result.current.isResetting).toBe(false)
 })
+
+// TASK-24366: the API clears a request payment's status only with its charge
+// id, since the payer may be signed out; a user's own deposit sends none.
+test.each([
+    ['a request payment', 'charge-1', '/rhino/reset-status/sda-test?chargeId=charge-1'],
+    ['an own deposit', undefined, '/rhino/reset-status/sda-test'],
+])('reset of %s calls the API with the right binding', async (_label, chargeId, url) => {
+    mockFetch.mockImplementation(async (_url, options) =>
+        options?.method === 'POST' ? response(200, { message: 'ok' }) : response(200, { status: 'failed' })
+    )
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), chargeId), { wrapper })
+    await act(async () => {
+        await result.current.resetStatus()
+    })
+    expect(mockFetch).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' }))
+})

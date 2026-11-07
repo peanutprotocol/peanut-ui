@@ -12,7 +12,7 @@
  * genuinely-fixable bank RFI still surfaces in the /add-money bank flow.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { act, render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -21,6 +21,7 @@ let mockRails: Array<{
     id: string
     provider?: string
     channel: string
+    currency?: string
     status: string
     operations?: Record<string, string>
     reason?: { userMessage: string; code?: string }
@@ -35,7 +36,10 @@ let mockRails: Array<{
         nextAction?: { key: string; kind: 'sumsub'; purpose: string; levelKey: string }
     }
 }> = []
-let mockUser: { user?: { isActivated?: boolean; userId?: string } } | null = null
+let mockUser: {
+    user?: { isActivated?: boolean; userId?: string }
+    signupPreferences?: { fundingChannel: string; paymentChannel: string } | null
+} | null = null
 let mockHasCardAccess: boolean | undefined = false
 let mockDisableCardPromotion = false
 jest.mock('@/hooks/useFeatureFlag', () => ({
@@ -72,9 +76,10 @@ jest.mock('@/context/authContext', () => ({
 }))
 let mockRegionRestricted = false
 let mockIdentityReason: { code: string; userMessage: string } | undefined
+let mockRejectLabels: string[] | undefined
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({
-        identity: { status: 'not_started', reason: mockIdentityReason },
+        identity: { status: 'not_started', reason: mockIdentityReason, rejectLabels: mockRejectLabels },
         isProcessing: false,
         needsAction: false,
         isRegionRestricted: mockRegionRestricted,
@@ -90,16 +95,15 @@ jest.mock('@/components/Home/GettingStartedChecklist', () => ({
     __esModule: true,
     default: ({
         onStartIdentityCheck,
-        onStartQrIdentityCheck,
+        signupPaymentChannel,
     }: {
         onStartIdentityCheck?: () => void
-        onStartQrIdentityCheck?: () => void
+        signupPaymentChannel?: string | null
     }) => (
-        <div>
+        <div data-signup-payment-channel={signupPaymentChannel ?? 'none'}>
             getting-started-checklist
             {/* not buttons: the slot suites assert the checklist brings no big-card button */}
             <span onClick={onStartIdentityCheck}>start-identity-check</span>
-            <span onClick={onStartQrIdentityCheck}>start-qr-identity-check</span>
         </div>
     ),
 }))
@@ -121,12 +125,13 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
+let mockShowWrapper = false
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleFixableRejection: mockHeal,
         handleRestartIdentity: mockRestartIdentity,
         handleInitiateKyc: mockInitiateKyc,
-        showWrapper: false,
+        showWrapper: mockShowWrapper,
     }),
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
@@ -135,6 +140,11 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({
 const mockStartQrCheck = jest.fn()
 jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
     useQrIdentityCheck: () => ({ start: mockStartQrCheck, modals: null }),
+}))
+
+let mockPaperworkVerification: () => Promise<boolean> = () => Promise.resolve(false)
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
+    usePaperworkVerificationStart: () => mockPaperworkVerification,
 }))
 
 import ActivationCTAs from '../ActivationCTAs'
@@ -169,6 +179,9 @@ beforeEach(() => {
     mockResidenceRestrictions = { banking: false, card: false }
     mockRegionRestricted = false
     mockIdentityReason = undefined
+    mockRejectLabels = undefined
+    mockShowWrapper = false
+    mockPaperworkVerification = () => Promise.resolve(false)
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
@@ -186,21 +199,78 @@ describe('ActivationCTAs — residence restrictions', () => {
 })
 
 describe('ActivationCTAs — the Verify row starts the ID check in place', () => {
-    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', () => {
+    it('opens the shared start modal, whose Verify starts the one ID check (no corridor)', async () => {
         render(<ActivationCTAs onboarding={NEW_USER} />)
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('start-identity-check'))
-        fireEvent.click(screen.getByText('initiate-kyc-modal'))
+        fireEvent.click(await screen.findByText('initiate-kyc-modal'))
         expect(mockInitiateKyc).toHaveBeenCalledWith()
         expect(mockPush).not.toHaveBeenCalled()
     })
 
-    it('the QR ID check is the shared one (useQrIdentityCheck)', () => {
+    it('a Smart Paperwork Verification user goes straight to the question screens', async () => {
+        mockPaperworkVerification = () => Promise.resolve(true)
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('a tap before the plan loads waits for it instead of opening the start modal', async () => {
+        let answer: (value: boolean) => void = () => {}
+        mockPaperworkVerification = () => new Promise<boolean>((resolve) => (answer = resolve))
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(screen.getByText('start-identity-check'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+        await act(async () => answer(true))
+        expect(mockPush).toHaveBeenCalledTimes(1)
+        expect(mockPush).toHaveBeenCalledWith('/verify')
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('closes the start modal when the SDK opens, so the SDK is the only modal in front', async () => {
+        const { rerender } = render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        fireEvent.click(await screen.findByText('initiate-kyc-modal'))
+        expect(screen.getByText('initiate-kyc-modal')).toBeInTheDocument()
+        mockShowWrapper = true
+        rerender(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('a Smart Paperwork Verification user goes to the questions even where bank rails are closed', async () => {
+        mockPaperworkVerification = () => Promise.resolve(true)
+        for (const restrictions of [
+            { banking: true, card: false },
+            { banking: true, card: true },
+        ]) {
+            mockPush.mockClear()
+            mockResidenceRestrictions = restrictions
+            const { unmount } = render(<ActivationCTAs onboarding={NEW_USER} />)
+            fireEvent.click(screen.getByText('start-identity-check'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+            expect(mockPush).not.toHaveBeenCalledWith('/card')
+            expect(mockStartQrCheck).not.toHaveBeenCalled()
+            unmount()
+        }
+    })
+
+    it('a legacy user where bank rails are closed but the card is open starts at the card', async () => {
+        mockResidenceRestrictions = { banking: true, card: false }
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/card'))
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('a legacy user where bank rails and the card are closed starts the QR ID check', async () => {
         mockResidenceRestrictions = { banking: true, card: true }
         render(<ActivationCTAs onboarding={NEW_USER} />)
-        fireEvent.click(screen.getByText('start-qr-identity-check'))
-        expect(mockStartQrCheck).toHaveBeenCalled()
-        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockStartQrCheck).toHaveBeenCalled())
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
     })
 })
 
@@ -217,14 +287,60 @@ describe('ActivationCTAs — an ID check that ended on a final decision', () => 
         mockIdentityReason = { code: 'identity_rejected', userMessage: 'Your verification was not approved.' }
         render(<ActivationCTAs onboarding={FAILED} />)
         fireEvent.click(screen.getByText('Contact support'))
-        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('Your verification was not approved.'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/^Hi! My ID check didn’t go through[\s\S]*reason: identity_rejected/)
+        )
         expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('a duplicate says the ID is on another account and prefills that case', () => {
+        mockRejectLabels = ['DUPLICATE']
+        render(<ActivationCTAs onboarding={FAILED} />)
+        expect(screen.getByText(/already linked to another Peanut account. Log in to that account/)).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/documents are already on another Peanut account[\s\S]*reason: duplicate_account/)
+        )
+    })
+
+    it('a cause only support can review is not named', () => {
+        mockRejectLabels = ['FORGERY']
+        render(<ActivationCTAs onboarding={FAILED} />)
+        expect(
+            screen.getByText('We couldn’t finish your ID check in the app. Message support and we’ll take a look.')
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/forg|altered/i)).toBeNull()
+    })
+
+    // TASK-24046: the import Bridge rejected is named, and support learns which case it is
+    it('a rejected imported identity says what the payment partner needs and prefills its case', () => {
+        mockIdentityReason = {
+            code: 'imported_identity_rejected',
+            userMessage: "Our banking partner couldn't verify the ID from your earlier verification.",
+        }
+        render(<ActivationCTAs onboarding={FAILED} />)
+
+        expect(screen.getByText(/couldn't verify the ID from your earlier verification/)).toBeInTheDocument()
+        expect(screen.queryByText('Contact support for help with your verification.')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('Contact support'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(
+            expect.stringMatching(/^Hi! My bank transfers are blocked[\s\S]*reason: imported_identity_rejected/)
+        )
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
+    })
+
+    it('once the manager picks the list over the hidden card, draws the list', () => {
+        render(<ActivationCTAs onboarding={FAILED} showBlockedCard={false} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
     })
 
     it('can be hidden under its own key', () => {
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={FAILED} onHideBlockedCard={onHide} />)
-        fireEvent.click(screen.getByText('Hide'))
+        fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:identity_failed')
     })
 
@@ -374,7 +490,7 @@ describe('ActivationCTAs — rejection override respects existing transacting ab
             },
         ]
         render(<ActivationCTAs onboarding={VERIFIED} />)
-        fireEvent.click(screen.getByText('Upload document'))
+        fireEvent.click(screen.getByText('Answer questions'))
         expect(mockHeal).toHaveBeenCalledWith({
             provider: 'MANTECA',
             actionKey: 'sumsub:source_of_funds',
@@ -511,7 +627,7 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         mockRegionRestricted = true
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={onHide} />)
-        fireEvent.click(screen.getByText('Hide'))
+        fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:region-restricted:identity_region_restricted')
         expect(posthog().capture).toHaveBeenCalledWith('home_blocked_card_hidden', {
             card_kind: 'region-restricted',
@@ -519,25 +635,61 @@ describe('ActivationCTAs — a blocked card can be hidden', () => {
         })
     })
 
-    it('the verification-issue card hides under its rail reason code', () => {
+    it('names the declined currency and hides under its rail reason code', () => {
         mockRails = [
             {
                 id: 'bridge.ach_us',
                 provider: 'bridge',
                 channel: 'bank',
+                currency: 'USD',
                 status: 'blocked',
                 reason: { userMessage: 'declined', code: 'provider_rejected' },
             },
         ]
         const onHide = jest.fn()
         render(<ActivationCTAs onboarding={VERIFIED} onHideBlockedCard={onHide} />)
-        expect(screen.getByText('Verification issue')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Hide'))
+        expect(screen.getByText('USD bank account declined')).toBeInTheDocument()
+        expect(screen.queryByText('Verification issue')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Hide' }))
         expect(onHide).toHaveBeenCalledWith('blocked-card:verification-issue:provider_rejected')
+    })
+
+    it('does not call a restricted payment method a provider decline', () => {
+        mockRails = [
+            {
+                id: 'bridge.ach_us',
+                provider: 'bridge',
+                channel: 'bank',
+                currency: 'USD',
+                status: 'blocked',
+                reason: { userMessage: 'Unavailable', code: 'verification_blocked' },
+            },
+        ]
+        render(<ActivationCTAs onboarding={VERIFIED} />)
+        expect(screen.getByText('Payment method unavailable')).toBeInTheDocument()
+        expect(screen.queryByText('USD bank account declined')).not.toBeInTheDocument()
+    })
+
+    it('a hidden region card leaves the list too', () => {
+        mockRegionRestricted = true
+        render(<ActivationCTAs onboarding={NEW_USER} showBlockedCard={false} onHideBlockedCard={jest.fn()} />)
+        expect(screen.getByText('getting-started-checklist')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
     })
 
     it('the checklist itself shows no blocked-card Hide', () => {
         render(<ActivationCTAs onboarding={NEW_USER} onHideBlockedCard={jest.fn()} />)
-        expect(screen.queryByText('Hide')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Hide' })).not.toBeInTheDocument()
+    })
+})
+
+describe('ActivationCTAs — the checklist learns how the user said they would pay', () => {
+    it.each([
+        [{ fundingChannel: 'bank', paymentChannel: 'card' }, 'card'],
+        [null, 'none'],
+    ])('signup preferences %j reach the list as %s', (signupPreferences, expected) => {
+        mockUser = { user: { isActivated: false, userId: 'u1' }, signupPreferences }
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        expect(screen.getByText('getting-started-checklist')).toHaveAttribute('data-signup-payment-channel', expected)
     })
 })

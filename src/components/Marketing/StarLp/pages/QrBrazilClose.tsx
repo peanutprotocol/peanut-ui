@@ -2,7 +2,6 @@ import { Band } from '@/components/Marketing/StarLp/Band'
 import { DropIn } from '@/components/Marketing/StarLp/DropIn'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import { QrBrazilAppLink } from './QrBrazilAppLink'
 import { QrBrazilPixSticker } from './QrBrazilPixSticker'
 import { QrBrazilScanFrame } from './QrBrazilScanFrame'
@@ -28,7 +27,7 @@ export function QrBrazilClose() {
             </QrBrazilScanFrame>
             <p className="mx-auto mt-14 max-w-xl text-body-l">Verify with your passport before you land.</p>
             <div className="mx-auto mt-8 w-fit">
-                <StarLpCta qrPlacement="close" href={STAR_LP_HREF.signup} ground="pink">
+                <StarLpCta qrPlacement="close" ground="pink">
                     Create an account
                 </StarLpCta>
             </div>

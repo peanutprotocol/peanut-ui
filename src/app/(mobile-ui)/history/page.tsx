@@ -2,8 +2,9 @@
 
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
+import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -20,7 +21,7 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -58,6 +59,7 @@ function getLoadedThroughMs(pages: HistoryResponse[] | undefined): number {
  */
 const HistoryPage = () => {
     const t = useTranslations('history')
+    const tCommon = useTranslations('common')
     const format = useFormatter()
     const { user } = useAuth()
     const queryClient = useQueryClient()
@@ -80,10 +82,17 @@ const HistoryPage = () => {
         isLoading,
         error,
         isError,
+        refetch,
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
     })
+
+    useEffect(() => {
+        if (!error) return
+        console.error(error)
+        Sentry.captureException(error)
+    }, [error])
 
     // infinite scroll hook
     const { loaderRef } = useInfiniteScroll({
@@ -252,13 +261,16 @@ const HistoryPage = () => {
     }
 
     if (isError) {
-        console.error(error)
-        Sentry.captureException(error)
         return (
-            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
-                <h2 className="text-heading-card text-foreground-primary">{t('transactions')}</h2>{' '}
-                <EmptyState icon="alert" iconColor="red" title={t('errorTitle')} description={t('errorDescription')} />
-            </div>
+            <PageStack>
+                <NavHeader title={t('title')} />
+                <PageStack.Center className="gap-4">
+                    <CenteredStatusCard title={t('errorTitle')} description={t('errorDescription')} />
+                    <Button variant="primary" shadowSize="4" onClick={() => refetch()} data-testid="history-retry">
+                        {tCommon('tryAgain')}
+                    </Button>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
@@ -266,12 +278,12 @@ const HistoryPage = () => {
     // page can still have older rows behind it
     if (!isLoading && !hasNextPage && combinedAndSortedEntries.length === 0) {
         return (
-            <div className="flex h-[80dvh] flex-col items-center justify-center">
+            <PageStack>
                 <NavHeader title={t('title')} />
-                <div className="flex flex-grow items-center justify-center">
+                <PageStack.Center>
                     <NoDataEmptyState animSize="lg" message={t('empty')} />
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 

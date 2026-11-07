@@ -1,5 +1,6 @@
 'use client'
 
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
@@ -10,7 +11,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
-import { getExplorerUrl } from '@/utils/general.utils'
+import { getExplorerUrl } from '@/utils/token.utils'
 import { Row } from './components/Row'
 import { useCardRecoveryFlow } from './useCardRecoveryFlow'
 import { formatCents, shorten } from './utils'
@@ -36,6 +37,7 @@ import { formatCents, shorten } from './utils'
  */
 export function CardRecoveryPage() {
     const t = useTranslations('card.recovery')
+    const tCommon = useTranslations('common')
     const onBack = useSafeBack('/home')
     const { step, preview, error, txHash, recoveredCents, handleRecover } = useCardRecoveryFlow()
 
@@ -45,7 +47,19 @@ export function CardRecoveryPage() {
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <PageStack.Center>
-                {error && <Callout priority="error">{error}</Callout>}
+                {error &&
+                    (preview ? (
+                        <Callout priority="error">{error}</Callout>
+                    ) : (
+                        <CenteredStatusCard
+                            title={tCommon('cardRecoveryUnavailable')}
+                            description={
+                                <Callout priority="error" hideIcon className="bg-transparent p-0">
+                                    {error}
+                                </Callout>
+                            }
+                        />
+                    ))}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">
@@ -75,10 +89,6 @@ export function CardRecoveryPage() {
                                 {BigInt(preview.dustWei) > 0n && (
                                     <Row label={t('dust')} value={`${preview.dustWei} wei (< $0.01)`} />
                                 )}
-                                <Row
-                                    label={t('autoBalance')}
-                                    value={preview.autoBalanceEnabled ? t('autoBalanceOn') : t('autoBalanceOff')}
-                                />
                             </Card>
 
                             <Button

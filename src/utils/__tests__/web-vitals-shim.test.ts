@@ -9,6 +9,7 @@
 
 import {
     createWebVitalsReporter,
+    flushWhenHidden,
     postHogCapturesWebVitals,
     postHogWebVitalsSettings,
     type WebVitalsReporter,
@@ -72,14 +73,14 @@ describe('postHogWebVitalsSettings', () => {
         expect(postHogWebVitalsSettings().enabled).toBe(false)
     })
 
-    it('honours a configured metric allowlist, falling back to all four', () => {
+    it('honours a configured metric allowlist, falling back to all five', () => {
         mockGetProperty.mockImplementation((key: string) =>
             key === '$web_vitals_allowed_metrics' ? ['LCP'] : undefined
         )
         expect(postHogWebVitalsSettings().allowed).toEqual(['LCP'])
 
         mockGetProperty.mockReturnValue(undefined)
-        expect(postHogWebVitalsSettings().allowed).toEqual(['CLS', 'FCP', 'INP', 'LCP'])
+        expect(postHogWebVitalsSettings().allowed).toEqual(['CLS', 'FCP', 'INP', 'LCP', 'TTFB'])
     })
 })
 
@@ -209,11 +210,63 @@ describe('createWebVitalsReporter', () => {
         expect(capture).not.toHaveBeenCalled()
     })
 
+    // A visitor who never hides the tab still sends a sample.
+    it('sends a lone metric after the 2 s fallback', () => {
+        reporter.record(metric('FCP', 900))
+        jest.advanceTimersByTime(1999)
+        expect(capture).not.toHaveBeenCalled()
+        jest.advanceTimersByTime(1)
+        expect(capture.mock.calls[0][1]).toEqual(expect.objectContaining({ $web_vitals_FCP_value: 900 }))
+    })
+
     // pagehide calls flush directly; a second flush must not re-send the batch.
     it('does not double-send a batch already flushed', () => {
         reporter.record(metric('FCP', 900))
         reporter.flush()
         jest.advanceTimersByTime(5000)
         expect(capture).toHaveBeenCalledTimes(1)
+    })
+})
+
+/*
+ * LCP, CLS and INP are final only when the page is hidden, and a visitor who
+ * leaves for a store page unloads it right after. Waiting for the timer there
+ * lost the sample.
+ */
+describe('flushWhenHidden', () => {
+    let visibility: DocumentVisibilityState
+    let flush: jest.Mock
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        visibility = 'visible'
+        jest.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility)
+        flush = jest.fn()
+        flushWhenHidden(flush)
+    })
+
+    afterEach(() => {
+        jest.useRealTimers()
+        jest.restoreAllMocks()
+    })
+
+    it('flushes on pagehide', () => {
+        window.dispatchEvent(new Event('pagehide'))
+        expect(flush).toHaveBeenCalledTimes(1)
+    })
+
+    // One task later, so web-vitals' own hidden listener has reported first.
+    it('flushes one task after the page is hidden', () => {
+        visibility = 'hidden'
+        document.dispatchEvent(new Event('visibilitychange'))
+        expect(flush).not.toHaveBeenCalled()
+        jest.advanceTimersByTime(0)
+        expect(flush).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not flush when the page becomes visible', () => {
+        document.dispatchEvent(new Event('visibilitychange'))
+        jest.advanceTimersByTime(0)
+        expect(flush).not.toHaveBeenCalled()
     })
 })

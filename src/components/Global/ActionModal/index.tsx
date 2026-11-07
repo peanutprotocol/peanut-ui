@@ -13,6 +13,7 @@ export interface ActionModalButtonProps extends ButtonProps {
     text: string
     iconPosition?: 'left' | 'right'
     children?: React.ReactNode
+    'data-testid'?: string
 }
 
 /** The tertiary action: an underlined LinkButton under the ctas. Every
@@ -75,6 +76,8 @@ type ActionModalIconProps =
 export type ActionModalProps = ActionModalBaseProps & ActionModalIconProps
 
 interface ActionModalBaseProps {
+    'data-testid'?: string
+    iconColor?: IconBubbleColor
     visible: boolean
     onClose: () => void
     title: string | React.ReactNode
@@ -110,6 +113,8 @@ interface ActionModalBaseProps {
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({
+    'data-testid': testId,
+    iconColor,
     visible,
     onClose,
     title,
@@ -198,7 +203,10 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 its buttons instead of pulling them up under the copy.
                 Margins, not a parent gap: a gap collapses when the body is
                 absent, which silently left half these screens unchanged. */}
-            <div className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}>
+            <div
+                data-testid={testId}
+                className={twMerge('flex flex-col items-center p-6 text-center', contentContainerClassName)}
+            >
                 <div
                     className={twMerge('flex w-full flex-col items-center gap-4', content && 'mb-3')}
                     data-testid="modal-head"
@@ -207,7 +215,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         <IconBubble
                             size="m"
                             icon={iconContent}
-                            color={bubbleStyle?.color}
+                            color={iconColor ?? bubbleStyle?.color}
                             // custom classes AUGMENT the color, never replace it —
                             // the IconBubble board forbids resizing the bubble
                             className={customIconContainerClassName}
@@ -217,7 +225,16 @@ const ActionModal: React.FC<ActionModalProps> = ({
 
                     <div className="flex w-full flex-col gap-1">
                         {/* board head: Heading XS + Body S */}
-                        <h3 className={twMerge('text-heading-xs text-foreground-primary', titleClassName)}>{title}</h3>
+                        {/* with no icon above it, the title shares a row with the close button */}
+                        <h3
+                            className={twMerge(
+                                'text-heading-xs text-foreground-primary',
+                                !iconContent && !hideModalCloseButton && 'px-4',
+                                titleClassName
+                            )}
+                        >
+                            {title}
+                        </h3>
                         {description && (
                             <div className={twMerge('text-body-s text-foreground-secondary', descriptionClassName)}>
                                 {typeof description === 'string' ? <p>{description}</p> : description}

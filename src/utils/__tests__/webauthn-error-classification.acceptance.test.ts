@@ -17,3 +17,20 @@ describe('native passkey error classification contract', () => {
         expect(classifyPasskeyError(error)).toMatchObject({ code: 'LOGIN_CANCELED', message: expect.any(String) })
     })
 })
+
+describe('plugin messages that reach the fallback (TASK-24017)', () => {
+    it.each([
+        ['Request timed out', 'NETWORK'],
+        [
+            'Https exception: java.net.SocketTimeoutException: Read timed out,url=https://peanut.me/.well-known/assetlinks.json',
+            'NETWORK',
+        ],
+        ['[50156] Cannot find credential in local KeyStore or database.', 'PASSKEY_NOT_FOUND'],
+        ['User canceled the request', 'LOGIN_CANCELED'],
+        ['No create options available.', 'PASSKEY_UNSUPPORTED'],
+        ['Unsuccessful result from folsom activity.', 'PASSKEY_INTERRUPTED'],
+        ['Passkey registration failed.', 'LOGIN_ERROR'],
+    ])('classifies %s', (message, code) => {
+        expect(classifyPasskeyError(new Error(message))).toMatchObject({ code, message: expect.any(String) })
+    })
+})

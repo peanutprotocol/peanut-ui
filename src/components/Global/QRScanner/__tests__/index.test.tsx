@@ -308,3 +308,15 @@ it('paste actions hang below the scan square', async () => {
     expect(anchored!.className).toContain('mt-6')
     expect(anchored!.className).toContain('absolute')
 })
+
+describe('Pix offer before scan', () => {
+    it('leaves Pix out of the accepted methods when Pix is paused for the user', () => {
+        render(<QRScanner onScan={jest.fn()} hidePix />)
+        expect(screen.queryByAltText('PIX')).not.toBeInTheDocument()
+        expect(screen.getByAltText('Mercado Pago')).toBeInTheDocument()
+    })
+    it('offers Pix otherwise', () => {
+        renderScanner()
+        expect(screen.getByAltText('PIX')).toBeInTheDocument()
+    })
+})

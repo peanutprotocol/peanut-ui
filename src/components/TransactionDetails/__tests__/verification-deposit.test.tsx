@@ -125,13 +125,13 @@ describe('receipt', () => {
     })
 
     it('offers no PDF, share or public link for a verification deposit', () => {
-        const { result } = renderHook(() => useReceiptViewModel(verification, { isPublic: false }))
+        const { result } = renderHook(() => useReceiptViewModel(verification, { isPublic: false, surface: 'drawer' }))
         expect(result.current.shouldShowShareReceipt).toBe(false)
         expect(result.current.shouldShowDownloadPdf).toBe(false)
     })
 
     it('keeps the payer row for the sender name', () => {
-        const { result } = renderHook(() => useReceiptViewModel(verification, { isPublic: false }))
+        const { result } = renderHook(() => useReceiptViewModel(verification, { isPublic: false, surface: 'drawer' }))
         expect(result.current.rowVisibilityConfig.from).toBe(true)
     })
 })

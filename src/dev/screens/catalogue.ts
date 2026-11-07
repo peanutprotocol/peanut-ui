@@ -1,6 +1,8 @@
 import { FIXTURES } from '../fixtures/registry'
+import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
 import { SURFACE_META } from '../surfaces/list'
 import { PAGE_CAPTURES, type PageCapture } from './pages'
+import { FLAG_VARIANTS } from './flag-variants'
 
 export type Screen = {
     id: string
@@ -16,6 +18,8 @@ export type Screen = {
     entryRoute?: string
     actions?: PageCapture['actions']
     expectSelector?: string
+    waitFor?: string
+    geoCountry?: string
     routePattern?: string
     fixture: string
     clicks: string[]
@@ -32,6 +36,8 @@ export type Screen = {
     expectText?: string
     order?: number
     journey?: string
+    /** PostHog flags this capture sets; see flag-variants.ts. */
+    flags?: Record<string, boolean | string>
 }
 const flow = (value: string): string => {
     const rules = [
@@ -42,7 +48,7 @@ const flow = (value: string): string => {
         ['add.money|onramp|deposit', 'Add money'],
         ['withdraw|recover', 'Withdraw'],
         ['send|claim|request|qr|contribut|transaction', 'Payments'],
-        ['profile|language|avatar|support', 'Profile and settings'],
+        ['profile|language|avatar|support|/settings(?:/details)?(?:[?\\s]|$)', 'Profile and settings'],
     ]
     return rules.find(([pattern]) => new RegExp(pattern, 'i').test(value))?.[1] ?? 'Home and shared states'
 }
@@ -60,7 +66,7 @@ const routeOverrides: Record<
     { route: string; fixture: string; event?: Screen['event']; storage?: Record<string, string> }
 > = {
     '11-a-earlyusermodal': { route: '/home', fixture: 'early-user' },
-    '41-c-migrationdownloadmodal': { route: '/home', fixture: 'home', storage: { 'pwa-sunset': 'true' } },
+    '41-c-migrationdownloadmodal': { route: '/home', fixture: DOWNLOAD_PROMPT_FIXTURE },
     '57-d-raincooldownintromodal': { route: '/home', fixture: 'home', event: 'rain:cooldown' },
     '58-d-stalecardapprovalreenablemodal': { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
     '18-a-reconsentmodal': { route: '/home', fixture: 'reconsent' },
@@ -95,6 +101,31 @@ const variationPageIds = new Set([
 ])
 const definitions: Screen[] = [
     {
+        id: 'profile-brazil-bank-details',
+        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/accounts',
+        fixture: 'profile-accounts-br-resident',
+        clicks: [],
+        clickTestIds: ['bank-row-brl'],
+        // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
+        expectSelector: '[role="dialog"][data-state="open"] h2',
+    },
+    {
+        id: 'profile-brazil-qr-details',
+        name: 'Brazilian resident — Argentina QR payments remain available',
+        flow: 'Payments',
+        kind: 'route',
+        defaultScreen: false,
+        route: '/profile/payments',
+        fixture: 'profile-accounts-br-resident',
+        clicks: [],
+        clickTestIds: ['method-row-qr-pay'],
+        expectSelector: '[role="dialog"][data-state="open"] h2',
+    },
+    {
         id: 'qr-camera-permission',
         name: 'QR scanner — camera permission needed',
         flow: 'Payments',
@@ -105,15 +136,52 @@ const definitions: Screen[] = [
         clicks: [],
         camera: 'denied',
     },
+    {
+        id: 'qr-scanner-brazil-resident',
+        name: 'QR scanner — Brazilian resident, Pix hidden',
+        flow: 'Payments',
+        kind: 'component',
+        defaultScreen: false,
+        route: '/dev/surfaces?s=54-d-qrbottomdrawer',
+        fixture: 'qr-pay-brazil-resident',
+        clicks: [],
+        camera: 'synthetic',
+    },
     ...Object.entries(FIXTURES).map(([id, f]) => ({
         id: `fixture-${id}`,
         name: f.about,
         flow: flow(`${id} ${f.route}`),
         kind: 'route' as const,
         defaultScreen: false,
-        route: f.route,
+        route: f.landsOn ?? f.route,
+        entryRoute: f.landsOn ? f.route : undefined,
         fixture: id,
+        waitFor: f.waitFor,
+        geoCountry: f.geoCountry,
         clicks: [],
+        actions:
+            // ready shows the consent screen and on passes through; the other states answer the tap
+            /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
+                ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
+                : undefined,
+        expectSelector:
+            id === 'card-verification-open'
+                ? '[data-testid="card-verification-continue"]'
+                : id === 'card-verification-checking' || id === 'card-verification-unavailable'
+                  ? '[data-testid="your-card-screen"]'
+                  : id.startsWith('paperwork-verification-us-address')
+                    ? '[data-testid="verify-input-state"]'
+                    : id.startsWith('paperwork-verification-closed-')
+                      ? '[data-testid="verify-closed-features"]'
+                      : id === 'paperwork-verification-outage'
+                        ? '[data-testid="verify-outage"]'
+                        : id === 'paperwork-verification-policy-hold'
+                          ? '[data-testid="verify-replacement-document"]:enabled'
+                          : id === 'paperwork-verification-rejected'
+                            ? '[data-testid="verify-review-home"]'
+                            : id === 'paperwork-verification-restart-foreign'
+                              ? '[data-testid="verify-id"]'
+                              : undefined,
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({
@@ -168,6 +236,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 31 },
     '09-a-passkeyinfomodal': { journey: 'Account setup', step: 32 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
+    '03-b-residence-compare': { journey: 'Account setup', step: 41 },
     '04-b-advantage-fees': { journey: 'Account setup', step: 42 },
     '02-b-advantage-card': { journey: 'Account setup', step: 44 },
     '03-c-residence-congrats': { journey: 'Account setup', step: 46 },
@@ -177,6 +246,7 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '07-d-notification-settings': { journey: 'Account setup', step: 54 },
     '07-b-advantage-control': { journey: 'Account setup', step: 55 },
     '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
+    '05-b-signtesttransaction-network-busy': { journey: 'Account setup', step: 61 },
     '07-e-setup-celebration': { journey: 'Account setup', step: 65 },
     '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },
@@ -201,7 +271,7 @@ const orderedDefinitions = definitions
     })
     .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
 
-export const SCREENS = orderedDefinitions.map((screen) => ({
+const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
     sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
@@ -219,4 +289,18 @@ export const SCREENS = orderedDefinitions.map((screen) => ({
         : undefined,
     expectedHttpStatus: screen.id === 'p59-receipt' ? [200, 404] : 200,
 }))
+const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+for (const { base } of FLAG_VARIANTS)
+    if (!BASE_SCREENS.some((screen) => screen.id === base)) throw new Error(`Flag variant base ${base} is not a screen`)
+/** Each flag variant sits right after the screen it varies. */
+export const SCREENS = BASE_SCREENS.flatMap((screen) => [
+    screen,
+    ...FLAG_VARIANTS.filter((variant) => variant.base === screen.id).map(({ flag, value }) => ({
+        ...screen,
+        id: `${screen.id}-flag-${slug(flag)}-${slug(String(value))}`,
+        name: `${screen.name} · ${flag}: ${String(value)}`,
+        defaultScreen: false,
+        flags: { [flag]: value } as Record<string, boolean | string>,
+    })),
+])
 if (new Set(SCREENS.map((s) => s.id)).size !== SCREENS.length) throw new Error('Duplicate screen IDs')

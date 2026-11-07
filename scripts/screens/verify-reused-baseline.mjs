@@ -4,13 +4,32 @@ import { tmpdir } from 'node:os'
 import { hash } from './core.mjs'
 import { canReuseBaseline } from './baseline-reuse.mjs'
 import { verifyBaselineSource } from './baseline-source.mjs'
+import { validateBeforeHarness } from './before-harness-receipt.mjs'
+import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
 
 /** Reauthenticate both provider provenance and actual source bytes in the trusted publisher. */
-export function verifyReusedBaseline({ receipt, beforeBytes, after, expectedCommit, repository, api, download }) {
+export function verifyReusedBaseline({
+    receipt,
+    beforeBytes,
+    after,
+    expectedCommit,
+    repository,
+    api,
+    download,
+    beforeHarness,
+}) {
+    const harnessReceipt = validateBeforeHarness(beforeHarness, expectedCommit)
     if (
         receipt?.schema !== 1 ||
         !/^[1-9]\d*$/.test(receipt.runId ?? '') ||
-        !/^[a-z0-9-]{1,200}$/.test(receipt.artifact ?? '') ||
+        typeof receipt.artifact !== 'string' ||
+        receipt.artifact.length > 200 ||
+        /[^a-zA-Z0-9-]/.test(receipt.artifact) ||
+        !['integration', 'baseline'].some((kind) =>
+            selectBaselineArtifacts([receipt.artifact], kind, expectedCommit).some(
+                (artifact) => artifact.locale === receipt.locale
+            )
+        ) ||
         !/^[a-f0-9]{64}$/.test(receipt.manifestDigest ?? '') ||
         receipt.commit !== expectedCommit ||
         receipt.locale !== after.locale ||
@@ -18,7 +37,14 @@ export function verifyReusedBaseline({ receipt, beforeBytes, after, expectedComm
     )
         throw new Error('Invalid reused baseline receipt or manifest bytes')
     const run = api(`actions/runs/${receipt.runId}`)
-    const verified = verifyBaselineSource({ api, repository, expectedCommit, run, locales: [after.locale] })
+    const verified = verifyBaselineSource({
+        api,
+        repository,
+        expectedCommit,
+        run,
+        locales: [after.locale],
+        beforeHarnessMode: harnessReceipt ? 'base' : 'head',
+    })
     if (!verified || !verified.artifacts.some((artifact) => artifact.name === receipt.artifact))
         throw new Error('Reused baseline source run or artifact is not trusted')
     const directory = mkdtempSync(join(tmpdir(), 'screen-baseline-source-'))
@@ -30,7 +56,10 @@ export function verifyReusedBaseline({ receipt, beforeBytes, after, expectedComm
         const sourceBytes = readFileSync(join(directory, 'capture.json'))
         if (
             hash(sourceBytes) !== receipt.manifestDigest ||
-            !canReuseBaseline(JSON.parse(sourceBytes), after, expectedCommit)
+            !canReuseBaseline(JSON.parse(sourceBytes), after, expectedCommit, {
+                beforeHarness: harnessReceipt,
+                sourceHarnessCommit: verified.harnessCommit,
+            })
         )
             throw new Error('Reused baseline differs from its verified external source or environment')
     } finally {

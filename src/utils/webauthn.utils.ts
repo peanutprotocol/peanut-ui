@@ -23,7 +23,8 @@ const WEBAUTHN_RETRY_CONFIG = {
 }
 
 const IOS_LOGIN_RECOVERY_DELAY_MS = 250
-const IOS_AUTHORIZATION_FAILED = /AuthenticationServices\.AuthorizationError error 1004/
+// The word between the class and the code is localised: "error 1004" (en), "1004)" (es), "erro 1004" (pt).
+const IOS_AUTHORIZATION_FAILED = /AuthenticationServices\.AuthorizationError\D{0,12}1004\b/
 
 type IOSLoginRetryReason = 'authorization_failed' | 'verification_rejected'
 
@@ -88,15 +89,16 @@ export enum WebAuthnErrorName {
  */
 export function isPasskeyBusyError(error: unknown): boolean {
     for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
-        if (e.name === 'CeremonyConflictError' || /already (in progress|pending)/i.test(e.message)) return true
+        if (e.name === 'CeremonyConflictError' || e.name === 'PasskeyRequestSettlingError') return true
+        if (/already (in progress|pending)/i.test(e.message)) return true
     }
     return false
 }
 
 /**
- * true when an abandoned Android passkey request never confirmed cancellation.
- * Unlike a busy prompt, every retry is refused until that request settles or
- * the app restarts, so callers must not offer "try again".
+ * true when native still holds an abandoned Android passkey request after the
+ * controller's bounded wait and one retry (store binaries whose cancel waits for
+ * the provider). The next tap tries native again, so this is not a hard lock.
  */
 export function isPasskeyCleanupPendingError(error: unknown): boolean {
     for (let e: unknown = error, depth = 0; e instanceof Error && depth < 2; e = e.cause, depth++) {
@@ -120,13 +122,19 @@ const PASSKEY_LOGIN_MESSAGES = {
     PASSKEY_BIOMETRY_REQUIRED: 'Use Face ID or Touch ID to verify the passkey, then try again.',
     PASSKEY_INTERRUPTED: 'Something interrupted the passkey prompt. Please try again.',
     PASSKEY_UNSUPPORTED: 'Passkeys aren’t available on this device or browser yet. Please try again on another device.',
+    PASSKEY_PROVIDER_UNSUPPORTED:
+        'The password manager on this phone saved a passkey that Peanut can’t verify. Sign up on another device.',
     PASSKEY_STATE: 'There was a problem with the passkey on this device. Restart the app and try again.',
+    PASSKEY_SETTLING: 'The last passkey prompt is still closing. Wait a few seconds and try again.',
+    PASSKEY_STILL_OPEN:
+        'The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app.',
     PASSKEY_ORIGIN:
         'Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
     // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
     CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
     PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
+    ACCOUNT_DELETED: 'This account was deleted. Sign up to create a new one.',
     LOGIN_ERROR: 'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.',
 } as const satisfies Record<string, string>
 
@@ -146,10 +154,14 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     CEREMONY_TIMEOUT: 'passkey.tookTooLong',
     PASSKEY_NOT_READY: 'passkey.notReady',
     PASSKEY_STATE: 'passkey.deviceState',
+    PASSKEY_SETTLING: 'passkey.settling',
+    PASSKEY_STILL_OPEN: 'passkey.stillOpen',
     PASSKEY_INTERRUPTED: 'passkey.interrupted',
     NETWORK: 'passkey.serverUnreachable',
     PASSKEY_UNSUPPORTED: 'passkey.unsupported',
+    PASSKEY_PROVIDER_UNSUPPORTED: 'testTransaction.errors.passkeyProviderUnsupported',
     PASSKEY_ORIGIN: 'passkey.origin',
+    ACCOUNT_DELETED: 'passkey.accountDeleted',
     LOGIN_ERROR: 'passkey.loginError',
 } as const satisfies Record<PasskeyErrorCode, string>
 
@@ -203,16 +215,18 @@ export function getPasskeySetupKey(code: PasskeyErrorCode): PasskeyErrorSetupKey
  * zerodev's toWebAuthnKey reads passkey-server responses with no HTTP-status
  * check, so a non-2xx surfaces as a raw TypeError thrown from deep inside the
  * SDK. Two shapes, two meanings:
- * - `.replace is not a function` / `evaluating 'e.replace'`: /login/options
- *   returned an error body and @simplewebauthn's base64url decoder got no
- *   challenge. Nothing was authenticated and nothing is known about this
- *   device's passkey, so it must not classify as LOGIN_ERROR (whose handler
- *   wipes the session).
+ * - `.replace is not a function` / `evaluating 'e.replace'` (WebKit) and
+ *   `reading 'replace'` / `reading 'challenge'` (V8): /login/options or
+ *   /register/options returned an error body and @simplewebauthn's base64url
+ *   decoder got no challenge. Nothing was authenticated and nothing is known
+ *   about this device's passkey, so it must not classify as LOGIN_ERROR (whose
+ *   handler wipes the session).
  * - `…verification.verified`: /login/verify rejected this device's assertion
  *   (PEANUT-UI-R0V). That is a real login failure; it keeps the LOGIN_ERROR
  *   path, just with a readable message.
  */
-const PASSKEY_SERVER_TYPE_ERROR = /\.replace is not a function|evaluating '[^']*\.replace'/i
+const PASSKEY_SERVER_TYPE_ERROR =
+    /\.replace is not a function|evaluating '[^']*\.replace'|reading '(?:replace|challenge)'/i
 const LOGIN_NOT_VERIFIED_TYPE_ERROR = /verif(ication|ied)/i
 
 export class PasskeyServerError extends Error {
@@ -224,6 +238,7 @@ export class PasskeyServerError extends Error {
 }
 
 export function normalizePasskeyServerError(error: unknown): unknown {
+    if (error instanceof Error && error.name === 'PasskeyOptionsFailedError') return new PasskeyServerError(error)
     if (!(error instanceof TypeError)) return error
     const message = error.message ?? ''
     if (PASSKEY_SERVER_TYPE_ERROR.test(message)) return new PasskeyServerError(error)
@@ -276,8 +291,9 @@ export function normalizeNativePasskeyError(error: unknown): unknown {
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
     // "Load failed" is WebKit's message for a failed fetch (common when the
-    // request fires right as the app foregrounds from the passkey sheet)
-    return /failed to fetch|load failed|network ?error|timeout|connection|offline/i.test(error.message)
+    // request fires right as the app foregrounds from the passkey sheet);
+    // "Request timed out" is the native HTTP layer's.
+    return /failed to fetch|load failed|network ?error|time(?:out|d out)|connection|offline/i.test(error.message)
 }
 
 /**
@@ -296,6 +312,10 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         biometry_required: 'PASSKEY_BIOMETRY_REQUIRED',
         authorization_failed: 'PASSKEY_INTERRUPTED',
         canceled: 'LOGIN_CANCELED',
+        // The unsupported copy already names the fixes: a Google account, Play Services, a screen lock.
+        setup_required: 'PASSKEY_UNSUPPORTED',
+        provider_failed: 'PASSKEY_INTERRUPTED',
+        credential_missing: 'PASSKEY_NOT_FOUND',
     } as const satisfies Record<NonNullable<ReturnType<typeof nativePasskeyFailure>>, PasskeyErrorCode>
     if (nativeReason) {
         const nativeCode = nativeCodes[nativeReason]
@@ -310,6 +330,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case WebAuthnErrorName.NotSupported:
             code = 'PASSKEY_UNSUPPORTED'
+            break
+        case 'PasskeyProviderUnsupportedError':
+            code = 'PASSKEY_PROVIDER_UNSUPPORTED'
             break
         case WebAuthnErrorName.InvalidState:
             code = 'PASSKEY_STATE'
@@ -332,17 +355,26 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         case 'CeremonyConflictError':
             code = 'PASSKEY_INTERRUPTED'
             break
+        case 'PasskeyRequestSettlingError':
+            code = 'PASSKEY_SETTLING'
+            break
         case 'PasskeyShimNotReadyError':
             code = 'PASSKEY_NOT_READY'
             break
+        case 'PasskeyCleanupPendingError':
+            code = 'PASSKEY_STILL_OPEN'
+            break
         // install known-dead — only an app restart re-runs it, so send the
         // restart copy instead of the transient "wait a moment" one
-        case 'PasskeyCleanupPendingError':
         case 'PasskeyShimFailedError':
             code = 'PASSKEY_STATE'
             break
         case 'PasskeyServerError':
+        case 'PasskeyOptionsFailedError':
             code = 'NETWORK'
+            break
+        case 'PasskeyAccountDeletedError':
+            code = 'ACCOUNT_DELETED'
             break
         default:
             if (isNetworkError(err)) code = 'NETWORK'
@@ -491,7 +523,7 @@ export const PASSKEY_TROUBLESHOOTING_STEPS = {
  */
 export const PASSKEY_WARNINGS = {
     android: {
-        NotAllowedError: 'lowEndAndroid',
+        NotAllowedError: 'androidSecurityUpdates',
     },
 } as const
 

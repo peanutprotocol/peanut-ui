@@ -6,11 +6,17 @@ import { KycProcessing } from './states/KycProcessing'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { isPaperworkVerificationIdentity } from '@/app/actions/kyc-workflow'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useAuth } from '@/context/authContext'
+import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
+import { supportCaseOf } from '@/utils/capability-gate'
+import { profileIdentityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycStatusDrawerProps {
     isOpen: boolean
@@ -26,9 +32,34 @@ interface KycStatusDrawerProps {
 export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDrawerProps) => {
     const { identity, status, isRegionRestricted, isTerminalFailure, isEmailCollision, needsDocumentRestart } =
         useIdentityVerification()
-    const { logoutUser } = useAuth()
+    const { logoutUser, user } = useAuth()
     const t = useTranslations('kyc')
-    const { setIsSupportModalOpen } = useModalsContext()
+    const tRoot = useTranslations()
+    const { setIsSupportModalOpen, openSupportWithMessage } = useModalsContext()
+    const control = useKycControl('kyc-status', 'kyc_status')
+
+    // A block only support lifts gets a prefill naming it, so the agent looks
+    // past this one account (TASK-24046).
+    const supportCase = isEmailCollision ? 'duplicate-account' : supportCaseOf(identity.reason?.code)
+    // A decision is explained, and its support prefill named, by its reject labels.
+    const rejection =
+        !isEmailCollision && (status === 'failed' || isTerminalFailure) ? profileIdentityRejection(identity) : null
+    const rejectionMessage = rejection ? tRoot(rejection.descriptionKey as never) : undefined
+    const contactSupport = () =>
+        rejection?.support
+            ? openSupportWithMessage(
+                  rejectionSupportMessage(
+                      rejection.support,
+                      tRoot(rejection.support.messageKey as never),
+                      identity.reason,
+                      user?.user?.userId
+                  )
+              )
+            : supportCase
+              ? openSupportWithMessage(
+                    buildSupportCaseMessage(supportCase, t(SUPPORT_CASE_MESSAGE_KEYS[supportCase]), identity.reason)
+                )
+              : setIsSupportModalOpen(true)
 
     // close drawer and release the keep-mounted hold
     const handleFlowDone = useCallback(() => {
@@ -40,6 +71,38 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
         onKycSuccess: handleFlowDone,
         onManualClose: handleFlowDone,
     })
+
+    // A Smart Paperwork Verification identity shows its status on the /verify
+    // timeline instead. This drawer opens only once that is ruled out, so the
+    // two never follow each other.
+    const router = useRouter()
+    const handoffRef = useRef({ onClose, router })
+    handoffRef.current = { onClose, router }
+    const checksTimeline = isOpen && !!user?.user?.userId && status !== 'not_started'
+    const [timelineChecked, setTimelineChecked] = useState(false)
+    useEffect(() => {
+        if (!checksTimeline) {
+            setTimelineChecked(false)
+            return
+        }
+        if (user?.identityVerification?.oneShot) {
+            handoffRef.current.onClose()
+            handoffRef.current.router.push('/verify')
+            return
+        }
+        let cancelled = false
+        void isPaperworkVerificationIdentity()
+            .catch(() => false)
+            .then((onTimeline) => {
+                if (cancelled) return
+                if (!onTimeline) return setTimelineChecked(true)
+                handoffRef.current.onClose()
+                handoffRef.current.router.push('/verify')
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [checksTimeline, user?.user?.userId, user?.identityVerification?.oneShot, status])
 
     // close drawer but keep mounted so SumsubKycModals persists, then start kyc
     const resumeKyc = useCallback(async () => {
@@ -73,7 +136,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                             reviewedAt={identity.reviewedAt}
                             onRetry={resumeKyc}
                             isTerminal
-                            onContactSupport={() => setIsSupportModalOpen(true)}
+                            onContactSupport={contactSupport}
+                            terminalMessage={rejectionMessage}
                         />
                     )
                 }
@@ -84,7 +148,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         actionMessage={identity.actionMessage}
                         rejectLabels={identity.rejectLabels}
                         isEmailCollision={isEmailCollision}
-                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onContactSupport={contactSupport}
                         onLogOut={() => {
                             onClose()
                             void logoutUser()
@@ -105,7 +169,8 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
                         onRetry={resumeKyc}
                         isLoading={sumsubFlow.isLoading}
                         isTerminal={isTerminalFailure}
-                        onContactSupport={() => setIsSupportModalOpen(true)}
+                        onContactSupport={contactSupport}
+                        terminalMessage={isTerminalFailure ? rejectionMessage : undefined}
                     />
                 )
             default:
@@ -114,13 +179,19 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     }
 
     // don't render the drawer if identity verification hasn't started.
-    if (status === 'not_started') {
+    if (status === 'not_started' || user?.identityVerification?.oneShot) {
         return null
     }
 
     return (
         <>
-            <Drawer open={isOpen} onOpenChange={onClose}>
+            <Drawer
+                open={isOpen && !user?.identityVerification?.oneShot && (!checksTimeline || timelineChecked)}
+                onOpenChange={(open) => {
+                    if (!open) control.track('kyc_status', 'dismiss')
+                    onClose()
+                }}
+            >
                 <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="pt-4" scrollAreaClassName="pb-12">
                     {renderContent()}
                     {sumsubFlow.error && (

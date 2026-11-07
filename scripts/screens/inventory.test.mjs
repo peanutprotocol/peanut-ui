@@ -17,14 +17,24 @@ test('the current catalogue accounts for every app route', () => {
         '/card-payment',
         '/request/pay',
         '/pay/[...recipient]',
+        '/profile',
+        '/profile/details',
+        '/profile/edit',
         '/profile/identity-verification',
         '/profile/identity-verification/additional',
         '/profile/accounts-and-payments',
         '/profile/accounts-and-payments/additional',
+        '/add-money/us/bank',
     ])
     const aliases = result.filter((entry) => routingAliases.has(entry.route))
     assert.equal(aliases.length, routingAliases.size)
     assert.ok(aliases.every((entry) => entry.status === 'excluded' && entry.reason.includes('Routing alias')))
+
+    for (const route of ['/settings', '/settings/details']) {
+        const destination = result.find((entry) => entry.route === route)
+        assert.equal(destination?.status, 'catalogued')
+        assert.ok(destination.screens.length > 0)
+    }
 
     const setup = result.find((entry) => entry.route === '/setup')
     assert.equal(setup?.status, 'excluded')

@@ -1,16 +1,23 @@
 /** @jest-environment jsdom */
+import { normalizeResidence } from '@/utils/residence-profile'
+
 /**
- * The Accounts and Payments profile pages — one screen, two lists.
+ * Payment methods and its bank account screen — one component, two views.
  *
  * Pins the contracts that motivated the rework: a bank-method tap can never
- * route to /card (the old Europe→card hijack), the residence anchor leads both
- * pages, each page lists only its own rows (Pix and ARS on both), and
- * restricted residences read Not available.
+ * route to /card (the old Europe→card hijack), the methods list is one list
+ * sorted active → not active yet → unavailable with every bank currency as
+ * one row, the bank screen keeps the currency rows, and restricted residences
+ * read Not available. The residence lives in Profile (ResidenceMenuItem).
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { railVerdict } from '@/utils/capability-gate'
+import type { NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
+import en from '@/i18n/app/messages/en.json'
 import MoneySettings from '@/components/Profile/views/MoneySettings.view'
 
 // The view reaches for the query client (residence-change invalidation), so
@@ -18,16 +25,17 @@ import MoneySettings from '@/components/Profile/views/MoneySettings.view'
 const render = (page: 'accounts' | 'payments' = 'accounts') =>
     rtlRender(
         <QueryClientProvider client={new QueryClient()}>
-            <MoneySettings page={page} />
+            <MoneySettings view={page === 'accounts' ? 'bank' : 'methods'} />
         </QueryClientProvider>,
         { wrapper: IntlWrapper }
     )
 
 const mockPush = jest.fn()
+const mockReplace = jest.fn()
 let mockOpenView: string | null = null
 const mockSetOpenView = jest.fn()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
+    useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn() }),
     // NavHeader mounts the maintenance Banner, which reads the pathname
     usePathname: () => '/profile/accounts',
 }))
@@ -41,6 +49,7 @@ let mockDepositEnabled = false
 let mockDepositAccounts: Record<string, unknown> = {}
 let mockDepositCorridors: string[] = []
 let mockDepositClaimable: Record<string, unknown> = {}
+let mockDepositLoading = false
 // a gate for every corridor, as the real read returns: EUR and USD ready, the
 // rest with no rail for this user
 const mockGates = () =>
@@ -49,7 +58,7 @@ const mockGates = () =>
         .corridorRecord((corridor: string) =>
             corridor === 'SEPA_EU' || corridor === 'ACH_US' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
         )
-const mockReadDepositAccounts = jest.fn(() => ({
+const mockReadDepositAccounts = jest.fn((_options?: { enabled?: boolean }) => ({
     corridors: mockDepositCorridors,
     accounts: mockDepositAccounts,
     claimable: mockDepositClaimable,
@@ -57,7 +66,7 @@ const mockReadDepositAccounts = jest.fn(() => ({
     slotsHeld: Object.keys(mockDepositAccounts).length,
     accountLimit: 2,
     gates: mockGates(),
-    isLoading: false,
+    isLoading: mockDepositLoading,
     isError: false,
     refetch: jest.fn(),
 }))
@@ -65,7 +74,7 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockDepositEnabled,
 }))
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
-    useDepositAccounts: () => mockReadDepositAccounts(),
+    useDepositAccounts: (options?: { enabled?: boolean }) => mockReadDepositAccounts(options),
 }))
 
 let mockRails: unknown[] = []
@@ -75,11 +84,12 @@ let mockNextActions: unknown[] = []
 let mockIsKycApproved = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        rails: mockRails,
+        capabilities: mockCapabilityBlock(),
+        rails: mockCapabilityBlock().rails,
         isKycApproved: mockIsKycApproved,
         railsForProvider: (provider: string) =>
             (mockRails as Array<Record<string, any>>).filter((rail) => rail.provider === provider),
-        nextActions: mockNextActions,
+        nextActions: mockCapabilityBlock().nextActions,
         nextActionsForRail: () => [],
         // the real per-operation read: `operations?.[op] ?? status`, so a rail
         // that is enabled for `pay` alone can never answer yes for `deposit`
@@ -97,7 +107,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
             jest
                 .requireActual('@/utils/capability-gate')
                 .deriveGate(
-                    { rails: mockRails, nextActions: [], identityVerified: mockIsKycApproved, isLoading: false },
+                    { ...mockCapabilityBlock(), identityVerified: mockIsKycApproved, isLoading: false },
                     op,
                     scope
                 ),
@@ -108,7 +118,9 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
-let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean } = { status: 'not_started' }
+let mockIdentity: { status: string; submittedAt?: string; reviewPending?: boolean; reason?: { code: string } } = {
+    status: 'not_started',
+}
 let mockRegionRestricted = false
 let mockTerminalFailure = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
@@ -128,15 +140,55 @@ jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegrad
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 
 let mockUser: {
-    residence?: {
-        declared: string | null
-        verified: string | null
-        pending?: string | null
-        declaredSecond?: string | null
-    }
+    residence?: import('@/interfaces/interfaces').ResidenceProfile
     user?: { userId: string }
 } | null = null
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
+const mockCapabilityBlock = () => {
+    const nextActions = [...mockNextActions] as NextAction[]
+    // The API includes descriptors for every resolved action it names.
+    for (const rail of mockRails as RailCapability[]) {
+        const action = rail.resolved?.nextAction
+        if (action && !nextActions.some((candidate) => candidate.key === action.key)) nextActions.push(action)
+    }
+    const currencies: Record<string, string> = { US: 'USD', EU: 'EUR', GB: 'GBP', MX: 'MXN', BR: 'BRL', AR: 'ARS' }
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    const rails = (mockRails as RailCapability[]).map((rail) => ({
+        ...rail,
+        currency: rail.currency ?? currencies[rail.country],
+        resolved: railVerdict(rail, byKey),
+    }))
+    const residence = mockUser?.residence?.verified?.country ?? mockUser?.residence?.declared?.country ?? null
+    const block = withFeatureReport(
+        { rails, nextActions, restrictions: [] },
+        {
+            identity: { ...mockIdentity, status: mockIdentity.status as IdentityVerificationStatus },
+            residence,
+            productRefusals: !residence ? { 'manteca.local': 'local_residence_unsupported' } : {},
+            restrictions: {
+                banking: mockRestrictions.banking
+                    ? {
+                          code: 'residence_bank_restricted',
+                          userMessage: 'Bank transfers are unavailable in your country.',
+                      }
+                    : null,
+                card: mockRestrictions.card,
+            },
+        }
+    )
+    if (mockApiCard && block.features) block.features = { ...block.features, card: mockApiCard }
+    if (mockApiBank && block.features) block.features = { ...block.features, bank: mockApiBank }
+    return block
+}
+let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null
+let mockApiBank: import('@/types/capabilities').FeatureAccountsEntry | null = null
+jest.mock('@/context/authContext', () => {
+    const useAuth = () => ({
+        user: mockUser
+            ? { ...mockUser, capabilities: mockCapabilityBlock(), identityVerification: mockIdentity }
+            : null,
+    })
+    return { useAuth, useOptionalAuth: useAuth }
+})
 
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: () => ({ isEligible: true, hasCardAccess: true }),
@@ -181,29 +233,43 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Kyc/KycVerificationInProgressModal', () => ({ KycVerificationInProgressModal: () => null }))
 jest.mock('@/components/Global/IframeWrapper', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({
-    KycProcessingModal: ({ visible, pendingSince }: { visible: boolean; pendingSince?: string | null }) =>
-        visible ? <div>processing-modal-open:{pendingSince ?? 'fresh'}</div> : null,
+    KycProcessingModal: ({
+        visible,
+        pendingSince,
+        reason,
+    }: {
+        visible: boolean
+        pendingSince?: string | null
+        reason?: { code: string; userMessage: string }
+    }) =>
+        visible ? (
+            <div>
+                processing-modal-open:{pendingSince ?? 'fresh'}
+                <span data-testid="processing-modal-reason">{reason?.code}</span>
+            </div>
+        ) : null,
 }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
     KycFailedModal: ({ visible, isTerminal }: { visible: boolean; isTerminal?: boolean }) =>
         visible ? <div>failed-modal-open:{isTerminal ? 'terminal' : 'retry'}</div> : null,
 }))
-jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
-    __esModule: true,
-    default: ({
+jest.mock('@/features/paperwork-verification/components/IdentityCheckIntroScreen', () => ({
+    IdentityCheckIntroScreen: ({
         visible,
-        methodLabel,
-        onUnlock,
+        providerId,
+        hasQuestions,
+        onContinue,
     }: {
         visible: boolean
-        methodLabel: string | null
-        onUnlock: () => void
+        providerId?: string | null
+        hasQuestions: boolean
+        onContinue: () => void
     }) =>
         visible ? (
             <div>
-                unlock-modal-open:{methodLabel}
-                <button onClick={onUnlock}>unlock now</button>
+                unlock-modal-open:{providerId ?? 'no-provider'}:{hasQuestions ? 'questions' : 'id-only'}
+                <button onClick={onContinue}>unlock now</button>
             </div>
         ) : null,
 }))
@@ -226,38 +292,47 @@ jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
             </div>
         ) : null,
 }))
+// True: the tap belongs to a Smart Paperwork Verification user, whom the hook sends to /verify.
+let mockSendsToVerify = false
+const mockVerifyRedirect = jest.fn()
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationRedirect', () => ({
+    usePaperworkVerificationRedirect: (active: boolean, entry: unknown) => {
+        mockVerifyRedirect(active, entry)
+        return active && mockSendsToVerify
+    },
+}))
+
+beforeEach(() => {
+    mockSendsToVerify = false
+    mockApiCard = null
+    mockApiBank = null
+    mockDepositEnabled = false
+    mockDepositAccounts = {}
+    mockDepositCorridors = []
+    mockDepositClaimable = {}
+    mockDepositLoading = false
+    mockMantecaLimits = null
+    mockBridgeLimits = null
+    jest.clearAllMocks()
+    mockRails = []
+    mockNextActions = []
+    mockIsKycApproved = false
+    mockRestrictions = { banking: false, card: false }
+    mockUser = null
+    mockIdentity = { status: 'not_started' }
+    mockRegionRestricted = false
+    mockTerminalFailure = false
+    mockKycDegraded = false
+    mockFlowError = null
+    mockFlowCooldown = null
+    mockOpenView = null
+})
 
 describe('MoneySettings', () => {
-    beforeEach(() => {
-        mockDepositEnabled = false
-        mockDepositAccounts = {}
-        mockDepositCorridors = []
-        mockDepositClaimable = {}
-        mockMantecaLimits = null
-        mockBridgeLimits = null
-        jest.clearAllMocks()
-        mockRails = []
-        mockNextActions = []
-        mockIsKycApproved = false
-        mockRestrictions = { banking: false, card: false }
-        mockUser = null
-        mockIdentity = { status: 'not_started' }
-        mockRegionRestricted = false
-        mockTerminalFailure = false
-        mockKycDegraded = false
-        mockFlowError = null
-        mockFlowCooldown = null
-        mockOpenView = null
-    })
-
-    it('opens the residence drawer from the card recovery deep link', () => {
+    it('sends a residence deep link from an older build to Profile', () => {
         mockOpenView = 'residence'
-
         render()
-
-        expect(screen.getByText('change-modal-open')).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'close residence' }))
-        expect(mockSetOpenView).toHaveBeenCalledWith(null, { history: 'replace' })
+        expect(mockReplace).toHaveBeenCalledWith('/settings/details?open=residence')
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
@@ -312,7 +387,8 @@ describe('MoneySettings', () => {
     describe('two pages, one screen', () => {
         it('Accounts lists the ways money moves in and out, and no spend or Peanut rows', () => {
             render('accounts')
-            expect(screen.getByText('Accounts')).toBeInTheDocument()
+            expect(screen.getByText('Bank account')).toBeInTheDocument()
+            expect(screen.queryByText('Pick a currency to see its account or set it up.')).not.toBeInTheDocument()
             // The user holds no account here, so no held section renders — an
             // empty heading would promise details that do not exist.
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
@@ -323,34 +399,85 @@ describe('MoneySettings', () => {
             }
         })
 
-        it('Payments lists the spend methods and the Peanut rows, and no bank rows', () => {
+        it('Payment methods is one list: active first, then not active yet, every bank currency as one row', () => {
             render('payments')
-            expect(screen.getByText('Payments')).toBeInTheDocument()
-            expect(screen.getByText('Spend')).toBeInTheDocument()
-            expect(screen.getByText('Peanut card')).toBeInTheDocument()
-            expect(screen.getByText('Peanut to Peanut')).toBeInTheDocument()
-            // P2P and crypto both carry the always-on chip.
-            expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
+            expect(screen.getByText('Payment methods')).toBeInTheDocument()
+            const notActive = screen.getByText('Not active yet')
+            // P2P and crypto need nothing set up, so they lead.
+            for (const title of ['Peanut to Peanut', 'Crypto']) {
+                expect(
+                    screen.getByText(title).compareDocumentPosition(notActive) & Node.DOCUMENT_POSITION_FOLLOWING
+                ).toBeTruthy()
+            }
+            for (const title of ['Bank account', 'Peanut card', 'QR payments']) {
+                expect(
+                    screen.getByText(title).compareDocumentPosition(notActive) & Node.DOCUMENT_POSITION_PRECEDING
+                ).toBeTruthy()
+            }
+            // only the currencies the user can still use: BRL and ARS need a Brazilian or Argentine residence
+            expect(screen.getByText('USD, MXN, EUR, GBP')).toBeInTheDocument()
             expect(screen.queryByText('Other ways to move money with Peanut')).not.toBeInTheDocument()
+            expect(screen.queryByText('Spend')).not.toBeInTheDocument()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN', 'EUR']) {
                 expect(screen.queryByText(title)).not.toBeInTheDocument()
             }
+            fireEvent.click(screen.getByText('Bank account'))
+            expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
         })
 
-        it.each(['accounts', 'payments'] as const)('the %s page leads with the residence row', (page) => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
+        it('names GBP and a held or openable COP corridor while omitting refused report currencies', () => {
+            mockDepositEnabled = true
+            mockApiBank = {
+                state: 'on',
+                accounts: {
+                    USD: { state: 'on' },
+                    EUR: { state: 'ready' },
+                    GBP: { state: 'ready' },
+                    MXN: { state: 'refused', reason: 'account_unavailable_in_residence' },
+                },
+            }
+            mockDepositAccounts = {
+                BANK_TRANSFER_CO: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+            }
+            mockDepositCorridors = ['BANK_TRANSFER_CO', 'FASTER_PAYMENTS_GB', 'SPEI_MX']
+            mockDepositClaimable = {
+                BANK_TRANSFER_CO: { currency: 'COP' },
+                FASTER_PAYMENTS_GB: { currency: 'GBP' },
+                SPEI_MX: { currency: 'MXN' },
+            }
+            render('payments')
+
+            expect(
+                screen.getByText((text) => text.split(', ').sort().join(',') === 'COP,EUR,GBP,USD')
+            ).toBeInTheDocument()
+            expect(screen.queryByText('USD, MXN, EUR, GBP')).not.toBeInTheDocument()
+            expect(mockReadDepositAccounts).toHaveBeenCalledWith({ enabled: true })
+            fireEvent.click(screen.getByText('Bank account'))
+            expect(mockPush).toHaveBeenCalledWith('/profile/accounts')
+        })
+
+        it('a working bank rail makes Bank account Active, above what is not active yet', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render('payments')
+            const bank = screen.getByText('Bank account')
+            expect(
+                bank.compareDocumentPosition(screen.getByText('Not active yet')) & Node.DOCUMENT_POSITION_FOLLOWING
+            ).toBeTruthy()
+        })
+
+        it.each(['accounts', 'payments'] as const)('the %s page has no residence row: Profile has it', (page) => {
+            mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
             render(page)
-            const residence = screen.getByText('Residence')
-            const firstList = screen.getByText(page === 'accounts' ? 'Other ways to move money with Peanut' : 'Spend')
-            expect(residence.compareDocumentPosition(firstList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-            fireEvent.click(screen.getByLabelText('Change'))
-            expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+            expect(screen.queryByText('Residence')).not.toBeInTheDocument()
         })
 
         // Pix: paying a Pix QR or key is spending, sending reais by Pix is
         // moving money. ARS: QR payments are spending, a bank transfer is not.
         it('Pix and ARS show on both pages, each as the thing that page is about', () => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            mockUser = {
+                residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: 'AR' }),
+                user: { userId: 'u1' },
+            }
             const { unmount } = render('accounts')
             expect(screen.getByText('BRL')).toBeInTheDocument()
             expect(screen.getByText('ARS')).toBeInTheDocument()
@@ -358,12 +485,13 @@ describe('MoneySettings', () => {
 
             render('payments')
             expect(screen.getByText('QR payments')).toBeInTheDocument()
-            expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
+            expect(screen.getByText('Argentina')).toBeInTheDocument()
         })
     })
 
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
         mockRegionRestricted = true
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted' } }
         render()
         fireEvent.click(screen.getByText('EUR'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
@@ -371,11 +499,28 @@ describe('MoneySettings', () => {
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {
+    it('a bank-method tap opens the ID check intro and NEVER routes to /card', () => {
         render()
         fireEvent.click(screen.getByText('EUR'))
-        expect(screen.getByText('unlock-modal-open:EUR · Bank transfer')).toBeInTheDocument()
+        expect(screen.getByText('unlock-modal-open:bridge:id-only')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    // Staging, 2026-11-03: this intro listed 5 steps, then its Continue landed on /verify's own intro with 6.
+    it('a Smart Paperwork Verification user goes to /verify without this shorter intro first', () => {
+        mockSendsToVerify = true
+        render()
+        fireEvent.click(screen.getByText('EUR'))
+        expect(mockVerifyRedirect).toHaveBeenLastCalledWith(true, { intent: 'EU', targetCountry: undefined })
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('a Manteca row names its country for that redirect', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }) }
+        render()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(mockVerifyRedirect).toHaveBeenLastCalledWith(true, { intent: 'LATAM', targetCountry: 'BR' })
     })
 
     it('the card row routes to /card and only the card row does', () => {
@@ -384,26 +529,12 @@ describe('MoneySettings', () => {
         expect(mockPush).toHaveBeenCalledWith('/card')
     })
 
-    it("shows the verified residence anchor and floats that region's rows to the top of the merged list", () => {
-        mockUser = { residence: { declared: 'BR', verified: 'BR' } }
+    it("floats the residence's own region's rows to the top of the bank list", () => {
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }) }
         render()
-        // two-line row: the country never shares a truncating line with the pill
-        expect(screen.getByText('Residence')).toBeInTheDocument()
-        expect(screen.getByText('Brazil')).toHaveClass('whitespace-normal')
-        expect(screen.getByText('Verified')).toHaveClass('bg-background-badge-success')
-        // Region headers are gone (2026-09-18 currency-first merge), so the
-        // "floats up" contract now shows in row order: the residence's own
-        // region (South America) sorts before the others in the merged list.
         const brazilRow = screen.getByText('BRL')
         const europeRow = screen.getByText('EUR')
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    })
-
-    it('an unconfirmed residence reads as a neutral badge, beside the verified one', () => {
-        mockUser = { residence: { declared: 'BR', verified: null } }
-        render()
-        expect(screen.getByText('Not confirmed')).toHaveClass('bg-background-badge-helper')
-        expect(screen.getByText('Brazil')).toHaveClass('whitespace-normal')
     })
 
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
@@ -421,7 +552,7 @@ describe('MoneySettings', () => {
 
         render('payments')
         // Both P2P and crypto are always-on and untouched by a bank/card restriction.
-        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
+        expect(screen.getAllByText('Active').length).toBeGreaterThanOrEqual(2)
     })
 
     // hugo, 2026-09-24: "always show the rails, tell the user why" — Spend too
@@ -449,17 +580,20 @@ describe('MoneySettings', () => {
             mockRails = [poolRail]
             render('payments')
             const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
-            expect(qrRow.getByText('Available')).toBeInTheDocument()
+            expect(qrRow.getByText('Active')).toBeInTheDocument()
             expect(qrRow.queryByText('Not available')).not.toBeInTheDocument()
         })
 
         it('keeps sending to a Pix key on BRL, while the other bank rows close', () => {
-            mockUser = { residence: { declared: 'JP', verified: 'JP', declaredSecond: null }, user: { userId: 'u1' } }
+            mockUser = {
+                residence: normalizeResidence({ declared: 'JP', verified: 'JP', declaredSecond: null }),
+                user: { userId: 'u1' },
+            }
             mockRestrictions = { banking: true, card: false }
             mockRails = [poolRail]
             render()
             const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
-            expect(brl.getByText('Available')).toBeInTheDocument()
+            expect(brl.getByText('Active')).toBeInTheDocument()
             expect(brl.getByText('Send to any Pix key')).toBeInTheDocument()
             expect(
                 within(screen.getByText('EUR').closest('.border') as HTMLElement).getByText('Not available')
@@ -490,17 +624,22 @@ describe('MoneySettings', () => {
     // never reads Available here.
     it('QR payments read the /qr-pay answer: a refused identity is not Available', () => {
         mockRegionRestricted = true
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted' } }
         mockRails = [{ id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
         render('payments')
         const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
-        expect(qrRow.queryByText('Available')).not.toBeInTheDocument()
+        expect(qrRow.queryByText('Active')).not.toBeInTheDocument()
     })
 
     // Chip on ui#3506: a refused identity with an older enabled rail is not
     // offered an Unlock that could only end in the region refusal
     it('a refused identity reads Attention on QR and the Pix send, and the tap explains the refusal', () => {
         mockRegionRestricted = true
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         // the pool rail an earlier approval left enabled
         mockRails = [
             {
@@ -514,27 +653,30 @@ describe('MoneySettings', () => {
         ]
         const { unmount } = render('payments')
         const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
-        expect(qrRow.getByText('Attention')).toBeInTheDocument()
-        expect(qrRow.queryByText('Unlock')).not.toBeInTheDocument()
+        expect(qrRow.getByText('Action needed')).toBeInTheDocument()
+        expect(qrRow.queryByText('Set up')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('QR payments'))
         expect(screen.getByText('region-restricted-modal')).toBeInTheDocument()
         unmount()
 
         render()
         const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
-        expect(brl.getByText('Attention')).toBeInTheDocument()
-        expect(brl.queryByText('Unlock')).not.toBeInTheDocument()
+        expect(brl.getByText('Action needed')).toBeInTheDocument()
+        expect(brl.queryByText('Set up')).not.toBeInTheDocument()
     })
 
     // ui#3508 funnel capture: a FINAL rejection read "Send to any Pix key · Unlock"
     it('a finally rejected identity reads Attention on QR and the Pix send, and the tap explains the decision', () => {
         mockTerminalFailure = true
         mockIdentity = { status: 'failed' }
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         const { unmount } = render('payments')
         const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
-        expect(qrRow.getByText('Attention')).toBeInTheDocument()
-        expect(qrRow.queryByText('Unlock')).not.toBeInTheDocument()
+        expect(qrRow.getByText('Action needed')).toBeInTheDocument()
+        expect(qrRow.queryByText('Set up')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('QR payments'))
         expect(screen.getByText('failed-modal-open:terminal')).toBeInTheDocument()
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
@@ -543,10 +685,14 @@ describe('MoneySettings', () => {
         render()
         const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
         expect(brl.getByText('Send to any Pix key')).toBeInTheDocument()
-        expect(brl.getByText('Attention')).toBeInTheDocument()
-        expect(brl.queryByText('Unlock')).not.toBeInTheDocument()
+        expect(brl.getByText('Action needed')).toBeInTheDocument()
+        expect(brl.queryByText('Set up')).not.toBeInTheDocument()
+        // the account rows' answer: the Home "Verification issue" card, with support's prefill
         fireEvent.click(screen.getByText('BRL'))
-        expect(screen.getByText('failed-modal-open:terminal')).toBeInTheDocument()
+        expect(
+            within(screen.getByTestId('closed-row-drawer')).getByText(en.home.activation.verificationIssue.title)
+        ).toBeInTheDocument()
+        expect(screen.queryByText('failed-modal-open:terminal')).not.toBeInTheDocument()
     })
 
     // Audit C53: the legacy Bridge-only cohort has no Manteca pay rail, so
@@ -555,48 +701,7 @@ describe('MoneySettings', () => {
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
         render('payments')
         const qrRow = within(screen.getByText('QR payments').closest('.border') as HTMLElement)
-        expect(qrRow.getByText('Unlock')).toBeInTheDocument()
-    })
-
-    it('the residence Change link opens the change modal', () => {
-        mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
-        render()
-        fireEvent.click(screen.getByLabelText('Change'))
-        expect(screen.getByText('change-modal-open')).toBeInTheDocument()
-    })
-
-    it('a failed residence re-verification reads as retriable, not "Not available yet"', () => {
-        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
-        mockFlowError = 'Not Found'
-        render()
-        expect(screen.getByText('Not available yet')).toBeInTheDocument()
-
-        fireEvent.click(screen.getByLabelText('Change'))
-        fireEvent.click(screen.getByText('reverify'))
-        expect(mockResidenceChange).toHaveBeenNthCalledWith(1, 'PT')
-        expect(mockRestartIdentity).not.toHaveBeenCalled()
-
-        expect(screen.getByText("Verification couldn't start")).toBeInTheDocument()
-        expect(screen.queryByText('Not available yet')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByText('Try again'))
-        expect(mockResidenceChange).toHaveBeenNthCalledWith(2, 'PT')
-        expect(mockInitiateKyc).not.toHaveBeenCalled()
-    })
-
-    // support is the escape after a failed start, so it is the tertiary
-    // LinkButton under "Try again", not a stroke Button beside it
-    it('offers support under the retry as a link, which opens the support sheet', () => {
-        mockFlowError = 'Not Found'
-        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
-        render()
-        fireEvent.click(screen.getByLabelText('Change'))
-        fireEvent.click(screen.getByText('reverify'))
-
-        const support = screen.getByRole('button', { name: 'Contact support' })
-        expect(support).toHaveClass('underline')
-        expect(screen.getByRole('button', { name: 'Try again' })).not.toHaveClass('underline')
-        fireEvent.click(support)
-        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+        expect(qrRow.getByText('Set up')).toBeInTheDocument()
     })
 
     it('shows a dated cooldown with one dismiss button', async () => {
@@ -652,7 +757,7 @@ describe('MoneySettings', () => {
                 screen.getByText('These also add and withdraw money. They are not accounts in your name.')
             ).toBeInTheDocument()
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
-            expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
+            expect(screen.getAllByText('Set up').length).toBeGreaterThan(0)
             // the word that meant two things is gone from the vocabulary
             expect(screen.queryByText('Active')).not.toBeInTheDocument()
         })
@@ -661,8 +766,7 @@ describe('MoneySettings', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
-            expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
-            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+            expect(within(screen.getByTestId('bank-row-usd')).getByText('Active')).toBeInTheDocument()
             expect(screen.queryByTestId('virtual-accounts')).not.toBeInTheDocument()
         })
 
@@ -776,18 +880,7 @@ describe('MoneySettings', () => {
 
     it('holds the bank rows behind skeletons until the accounts load, so the deduped list does not jump', () => {
         mockDepositEnabled = true
-        mockReadDepositAccounts.mockReturnValueOnce({
-            corridors: [],
-            claimable: {},
-            unavailable: {},
-            slotsHeld: 0,
-            accountLimit: 2,
-            accounts: {},
-            gates: mockGates(),
-            isLoading: true,
-            isError: false,
-            refetch: jest.fn(),
-        })
+        mockDepositLoading = true
         render()
 
         expect(screen.getByText('Other ways to move money with Peanut')).toBeInTheDocument()
@@ -862,7 +955,8 @@ describe('MoneySettings', () => {
     it('does not query bank accounts while their rollout flag is off, but still shows the unlock rows', () => {
         mockReadDepositAccounts.mockClear()
         render()
-        expect(mockReadDepositAccounts).not.toHaveBeenCalled()
+        expect(mockReadDepositAccounts).toHaveBeenCalled()
+        for (const [options] of mockReadDepositAccounts.mock.calls) expect(options).toEqual({ enabled: false })
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
@@ -913,6 +1007,7 @@ describe('MoneySettings', () => {
     it('a residence park opens the address step, not the resubmit that 404s for it', () => {
         mockRails = [residenceParkedRail]
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         render()
         fireEvent.click(screen.getByText('EUR'))
         fireEvent.click(screen.getByText('Upload document'))
@@ -923,8 +1018,11 @@ describe('MoneySettings', () => {
         expect(mockSelfHealResubmit).not.toHaveBeenCalled()
     })
 
-    it('every other fixable rejection here still takes resubmit — Manteca is untouched', () => {
-        mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
+    it('a Manteca requirement goes through the same router, which opens its own level', () => {
+        mockUser = {
+            residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         mockRails = [
             {
                 ...residenceParkedRail,
@@ -940,12 +1038,148 @@ describe('MoneySettings', () => {
             },
         ]
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         render()
         fireEvent.click(screen.getByText('BRL'))
         fireEvent.click(screen.getByText('Upload document'))
 
-        expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
-        expect(mockFixableRejection).not.toHaveBeenCalled()
+        expect(mockFixableRejection).toHaveBeenCalledWith(
+            expect.objectContaining({ provider: 'MANTECA', actionKey: 'sumsub:source_of_funds' })
+        )
+        expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    // The send gate's parks for a Smart Paperwork Verification user. The fix button follows
+    // the row's action: a supplement opens through start-action, never the
+    // resubmit route that 404s without a provider rejection.
+    describe('a rail parked for a need the approved identity did not meet', () => {
+        const parked = (code: string, resolved: Record<string, unknown>) => ({
+            ...residenceParkedRail,
+            reason: { code, userMessage: 'Backend English prose' },
+            resolved,
+        })
+
+        it('opens the missing requirement through its supplement action', () => {
+            mockRails = [
+                parked('requirements_missing', {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'requirements_missing',
+                        userMessage: 'Backend English prose',
+                        selfHealable: true,
+                        selfHealKind: 'document-resubmit',
+                    },
+                    nextAction: { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' },
+                }),
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+            expect(
+                screen.getByText(
+                    "To open your bank accounts, our payment partner needs a proof of address, such as a recent bank statement or utility bill. Add it and we'll finish setting them up automatically."
+                )
+            ).toBeInTheDocument()
+            fireEvent.click(screen.getByTestId('kyc-supplement-cta'))
+
+            expect(mockFixableRejection).toHaveBeenCalledWith(
+                expect.objectContaining({ provider: 'BRIDGE', actionKey: 'supplement:bridge' })
+            )
+            expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+        })
+
+        it('shows the proof of address review as waiting, with no second action', () => {
+            const message = "We're checking your proof of address. Bank accounts open once it's approved."
+            mockRails = [
+                {
+                    ...parked('requirements_in_review', {
+                        status: 'pending',
+                        blocking: { code: 'requirements_in_review', userMessage: message, selfHealable: false },
+                    }),
+                    status: 'pending',
+                    reason: { code: 'requirements_in_review', userMessage: message },
+                    blockingActions: [],
+                },
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+            expect(screen.getByTestId('processing-modal-reason')).toHaveTextContent('requirements_in_review')
+            expect(screen.queryByTestId('kyc-supplement-cta')).not.toBeInTheDocument()
+            expect(mockFixableRejection).not.toHaveBeenCalled()
+            expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+        })
+
+        it('asks for another document when the one on file cannot serve the provider', () => {
+            mockRails = [
+                parked('identity_document_insufficient', {
+                    status: 'blocked',
+                    blocking: {
+                        code: 'identity_document_insufficient',
+                        userMessage: 'Backend English prose',
+                        selfHealable: true,
+                        selfHealKind: 'restart-identity',
+                    },
+                    nextAction: {
+                        key: 'restart-identity',
+                        kind: 'restart-identity',
+                        purpose: 'identity_document_insufficient',
+                    },
+                }),
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(
+                screen.getByText(
+                    "The document you verified with can't be used for this account. Verify again with a different ID document."
+                )
+            ).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Verify with a different document' }))
+            expect(mockRestartIdentity).toHaveBeenCalled()
+            expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+            expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        })
+
+        it('sends a need the app cannot collect to support, and says why', () => {
+            mockRails = [
+                parked('requirements_uncollectable', {
+                    status: 'blocked',
+                    blocking: {
+                        code: 'requirements_uncollectable',
+                        userMessage: 'Backend English prose',
+                        selfHealable: false,
+                        selfHealKind: 'contact-support',
+                    },
+                    nextAction: {
+                        key: 'contact-support',
+                        kind: 'contact-support',
+                        purpose: 'requirements_uncollectable',
+                    },
+                }),
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(
+                screen.getByText(
+                    "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
+                )
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Backend English prose')).not.toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+            expect(mockFixableRejection).not.toHaveBeenCalled()
+            expect(mockRestartIdentity).not.toHaveBeenCalled()
+        })
     })
 
     /**
@@ -966,45 +1200,46 @@ describe('MoneySettings', () => {
             operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
         }
 
-        it('a QR-pool user can pay by QR, and is offered the bank unlock', () => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
+        it('a Brazilian QR-pool user keeps QR availability and the bank unlock without Pix sending', () => {
+            mockUser = {
+                residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: null }),
+                user: { userId: 'u1' },
+            }
             mockRails = [qrPoolRail]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             const { unmount } = render()
 
-            // the row leads with the Pix send they hold today (hugo, 2026-09-26)…
             const bankRow = screen.getByText('BRL')
-            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
-            // …and its drawer keeps the bank rail's Unlock, the way into the onboarding
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Set up')).toBeInTheDocument()
+            expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             fireEvent.click(bankRow)
-            const drawer = within(screen.getByRole('dialog'))
-            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-                'href',
-                '/withdraw/manteca?method=pix&country=brazil'
-            )
-            fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
-            expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
             unmount()
 
             render('payments')
             const qrRow = screen.getByText('QR payments')
-            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Active')).toBeInTheDocument()
         })
 
         // api#1776: an approval with no identity document keeps its pool rail,
         // and the one top-level restart action says what is missing. The unlock
         // must restart the identity check, never start Manteca onboarding.
         it('an approval with no identity document is offered the identity restart, not the bank unlock', () => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
+            mockUser = {
+                residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: null }),
+                user: { userId: 'u1' },
+            }
             mockRails = [qrPoolRail]
             mockNextActions = [
                 { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
 
             fireEvent.click(screen.getByText('BRL'))
-            fireEvent.click(within(screen.getByRole('dialog')).getByText('Add and withdraw Brazilian reais with Pix.'))
+            expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
             expect(screen.getByText('Complete your verification')).toBeInTheDocument()
             expect(
@@ -1021,13 +1256,16 @@ describe('MoneySettings', () => {
         // the unlock path would call the start route, which opens nothing for
         // them. The restart still comes first, on Manteca and Bridge rows alike.
         it('the identity restart needs no enabled rail, on a Manteca row and a Bridge row', () => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            mockUser = {
+                residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: 'AR' }),
+                user: { userId: 'u1' },
+            }
             mockNextActions = [
                 { key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_document_missing' },
             ]
             render()
 
-            fireEvent.click(screen.getByText('ARS'))
+            fireEvent.click(screen.getByText('BRL'))
             expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
             fireEvent.click(screen.getByRole('button', { name: 'Verify identity' }))
             fireEvent.click(screen.getByText('EUR'))
@@ -1038,18 +1276,22 @@ describe('MoneySettings', () => {
         })
 
         it('a full Manteca account reads Available on both rows', () => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: null }, user: { userId: 'u1' } }
+            mockUser = {
+                residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: null }),
+                user: { userId: 'u1' },
+            }
             mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             const { unmount } = render()
 
             const bankRow = screen.getByText('BRL')
-            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Active')).toBeInTheDocument()
             unmount()
 
             render('payments')
             const qrRow = screen.getByText('QR payments')
-            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Active')).toBeInTheDocument()
         })
 
         // North America and Europe hold the same class of gap: the rail exists,
@@ -1068,11 +1310,12 @@ describe('MoneySettings', () => {
                 },
             ]
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
             render()
 
             const row = screen.getByText('USD').closest('.border') as HTMLElement
-            expect(within(row).queryByText('Available')).not.toBeInTheDocument()
-            expect(within(row).getByText('Processing')).toBeInTheDocument()
+            expect(within(row).queryByText('Active')).not.toBeInTheDocument()
+            expect(within(row).getByText('Pending')).toBeInTheDocument()
         })
     })
 
@@ -1087,7 +1330,10 @@ describe('MoneySettings', () => {
 
         it('names each currency on its own row, in its own group', () => {
             // a dual resident, so both Manteca rows are offered and no residence note shows
-            mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+            mockUser = {
+                residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: 'AR' }),
+                user: { userId: 'u1' },
+            }
             render()
             for (const title of ['BRL', 'ARS', 'USD', 'MXN']) {
                 expect(screen.getByText(title)).toBeInTheDocument()
@@ -1100,9 +1346,9 @@ describe('MoneySettings', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
-            expect(badgeFor('USD').getByText('Available')).toBeInTheDocument()
-            expect(badgeFor('MXN').queryByText('Available')).not.toBeInTheDocument()
-            expect(badgeFor('MXN').getByText('Unlock')).toBeInTheDocument()
+            expect(badgeFor('USD').getByText('Active')).toBeInTheDocument()
+            expect(badgeFor('MXN').queryByText('Active')).not.toBeInTheDocument()
+            expect(badgeFor('MXN').getByText('Set up')).toBeInTheDocument()
         })
 
         // Konrad, 2026-09-23: "Unlock" is a DS badge in the neutral status,
@@ -1111,7 +1357,7 @@ describe('MoneySettings', () => {
             mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
-            const unlock = badgeFor('MXN').getByText('Unlock')
+            const unlock = badgeFor('MXN').getByText('Set up')
             expect(unlock).toHaveClass('bg-background-badge-helper')
             expect(unlock).not.toHaveClass('bg-background-badge-accent')
         })
@@ -1122,14 +1368,14 @@ describe('MoneySettings', () => {
             ]
             render()
 
-            expect(badgeFor('BRL').getByText('Available')).toBeInTheDocument()
-            expect(badgeFor('ARS').queryByText('Available')).not.toBeInTheDocument()
+            expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
+            expect(badgeFor('ARS').queryByText('Active')).not.toBeInTheDocument()
         })
 
         it('sibling rows still route into the one verification that opens both', () => {
             render()
             fireEvent.click(screen.getByText('MXN'))
-            expect(screen.getByText('unlock-modal-open:MXN · SPEI')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:bridge:id-only')).toBeInTheDocument()
         })
 
         it("a usable row opens that currency's own details drawer", () => {
@@ -1153,7 +1399,6 @@ describe('MoneySettings', () => {
         it('names the card and QR payments, and offers QR to a user without it', () => {
             render('payments')
 
-            expect(screen.getByText('Spend')).toBeInTheDocument()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
             expect(screen.getByText('QR payments')).toBeInTheDocument()
             // the title used to carry the corridor and wrapped over three
@@ -1163,7 +1408,7 @@ describe('MoneySettings', () => {
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
             fireEvent.click(screen.getByText('QR payments'))
-            expect(screen.getByText('unlock-modal-open:QR payments')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:no-provider:questions')).toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
@@ -1224,13 +1469,9 @@ describe('MoneySettings', () => {
         })
     })
 
-    /**
-     * TASK-23054 (hugo): the Pix key row left Payments. Outside Brazil the BRL
-     * row is the Pix send (`withPixSend`); a Brazilian resident's BRL row stays
-     * their bank rail, and its drawer carries the send on the same capability.
-     */
-    describe('a Brazilian resident sends to a Pix key from the BRL drawer', () => {
-        const brazilianRail = (pay: 'enabled' | 'requires-info') => ({
+    /** November residence policy: generic QR capability never authorizes Pix sending for BR residents. */
+    describe('Pix sending follows residence while Brazilian bank options remain available', () => {
+        const brazilianRail = (pay: 'enabled' | 'requires-info' = 'enabled') => ({
             id: 'manteca.pix_br',
             provider: 'manteca',
             channel: 'bank',
@@ -1242,92 +1483,242 @@ describe('MoneySettings', () => {
             fireEvent.click(screen.getByText('BRL'))
             return within(screen.getByRole('dialog'))
         }
+        const assertNoPixSend = () => {
+            expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
+            expect(document.querySelector('a[href="/withdraw/manteca?method=pix&country=brazil"]')).toBeNull()
+            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        }
 
         beforeEach(() => {
-            mockUser = { residence: { declared: 'BR', verified: 'BR' }, user: { userId: 'u1' } }
+            mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
             mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
         })
 
-        it('with the pay capability, the drawer links to Pix key sending and the row keeps its bank status', () => {
-            mockRails = [brazilianRail('enabled')]
+        it('a Brazilian resident with active generic pay capability retains the active bank drawer without Pix sending', () => {
+            mockRails = [brazilianRail()]
             render()
 
             const row = within(screen.getByText('BRL').closest('.border') as HTMLElement)
-            expect(row.getByText('Available')).toBeInTheDocument()
-            expect(row.queryByText('Send to any Pix key')).not.toBeInTheDocument()
-
+            expect(row.getByText('Active')).toBeInTheDocument()
+            assertNoPixSend()
             const drawer = openBrlDrawer()
             expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
-            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-                'href',
-                '/withdraw/manteca?method=pix&country=brazil'
-            )
+            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+            assertNoPixSend()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        // hugo, 2026-09-26: Manteca lets any verified user send to a Pix key,
-        // so a rail still being set up does not hold the send back
-        it('with the pay capability and a bank rail in progress, the row is the Pix send and the drawer keeps Processing', () => {
+        it('a Brazilian resident with active pay and a pending bank rail keeps Pending and its processing action', () => {
             mockRails = [
                 {
-                    ...brazilianRail('enabled'),
+                    ...brazilianRail(),
                     status: 'pending',
                     operations: { pay: 'enabled', deposit: 'pending', withdraw: 'pending' },
                 },
             ]
             render()
-
             const row = within(screen.getByText('BRL').closest('.border') as HTMLElement)
-            expect(row.getByText('Available')).toBeInTheDocument()
-            expect(row.getByText('Send to any Pix key')).toBeInTheDocument()
-
-            const drawer = openBrlDrawer()
-            // the hero opens on the send (Chip on ui#3506), not on moving reais by bank
-            expect(drawer.getByText('Send reais to any Pix key in Brazil.')).toBeInTheDocument()
-            expect(drawer.queryByText('Move reais between your bank and Peanut.')).not.toBeInTheDocument()
-            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-                'href',
-                '/withdraw/manteca?method=pix&country=brazil'
-            )
-            const railRow = within(
-                drawer.getByText('Add and withdraw Brazilian reais with Pix.').closest('.border') as HTMLElement
-            )
-            expect(railRow.getByText('Processing')).toBeInTheDocument()
-            fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
+            expect(row.getByText('Pending')).toBeInTheDocument()
+            expect(row.queryByText('Active')).not.toBeInTheDocument()
+            assertNoPixSend()
+            fireEvent.click(screen.getByText('BRL'))
             expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+            assertNoPixSend()
         })
 
-        it('without it, the drawer offers no Pix send', () => {
-            mockRails = [brazilianRail('requires-info')]
-            render()
-
-            const drawer = openBrlDrawer()
-            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
-            expect(drawer.queryByText('Send to any Pix key')).not.toBeInTheDocument()
-            // a bank-led row keeps the bank hero
-            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
-        })
-
-        it('outside Brazil the row itself is the Pix send, and opens no drawer', () => {
-            mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        it('a Brazilian resident keeps a blocked bank rail actionable without a Pix-send escape', () => {
             mockRails = [
                 {
-                    ...brazilianRail('enabled'),
+                    ...brazilianRail(),
+                    status: 'blocked',
+                    operations: { pay: 'enabled', deposit: 'blocked', withdraw: 'blocked' },
+                    reason: { code: 'requirements_uncollectable', userMessage: 'Backend English prose' },
+                    resolved: {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'requirements_uncollectable',
+                            userMessage: 'Backend English prose',
+                            selfHealable: false,
+                            selfHealKind: 'contact-support',
+                        },
+                        nextAction: {
+                            key: 'contact-support',
+                            kind: 'contact-support',
+                            purpose: 'requirements_uncollectable',
+                        },
+                    },
+                },
+            ]
+            render()
+            const row = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+            expect(row.getByText('Action needed')).toBeInTheDocument()
+            expect(row.queryByText('Active')).not.toBeInTheDocument()
+            assertNoPixSend()
+            fireEvent.click(screen.getByText('BRL'))
+            fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+            assertNoPixSend()
+        })
+
+        it('without pay capability, the Brazilian bank drawer still offers no Pix send', () => {
+            mockRails = [brazilianRail('requires-info')]
+            render()
+            const drawer = openBrlDrawer()
+            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+            expect(drawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+            assertNoPixSend()
+        })
+
+        it.each([
+            { declared: 'PT', verified: 'BR' },
+            { declared: 'BR', verified: null },
+        ])('blocks Pix sending for declared $declared and verified $verified residence', (residence) => {
+            mockUser = { residence: normalizeResidence(residence), user: { userId: 'u1' } }
+            mockRails = [brazilianRail()]
+            render()
+            expect(
+                within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Active')
+            ).toBeInTheDocument()
+            const drawer = openBrlDrawer()
+            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+            assertNoPixSend()
+        })
+
+        it.each([
+            { declared: 'PT', verified: 'PT' },
+            { declared: 'BR', verified: 'PT' },
+            { declared: 'PT', verified: null },
+        ])('keeps the Pix-send row for declared $declared and verified $verified residence', (residence) => {
+            mockUser = { residence: normalizeResidence(residence), user: { userId: 'u1' } }
+            mockRails = [
+                {
+                    ...brazilianRail(),
                     operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
                 },
             ]
             render()
-
+            expect(
+                within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Send to any Pix key')
+            ).toBeInTheDocument()
             fireEvent.click(screen.getByText('BRL'))
             expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         })
-    })
 
-    it('a pending residence verification is surfaced without replacing the active country', () => {
-        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
-        render()
-        expect(screen.getByText('Change to Spain pending verification')).toBeInTheDocument()
+        it('removes the Pix CTA on a residence refresh while retaining the open active bank drawer', () => {
+            mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+            mockRails = [brazilianRail()]
+            const { rerender } = render()
+            const drawer = openBrlDrawer()
+            expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+                'href',
+                '/withdraw/manteca?method=pix&country=brazil'
+            )
+            expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+
+            mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'BR' }), user: { userId: 'u1' } }
+            rerender(
+                <QueryClientProvider client={new QueryClient()}>
+                    <MoneySettings view="bank" />
+                </QueryClientProvider>
+            )
+
+            const refreshedDrawer = within(screen.getByRole('dialog'))
+            expect(refreshedDrawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+            expect(refreshedDrawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+            expect(
+                within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Active')
+            ).toBeInTheDocument()
+            assertNoPixSend()
+        })
+
+        it.each([
+            { bankStatus: 'pending', label: 'Pending' },
+            { bankStatus: 'requires-info', label: 'Set up' },
+            { bankStatus: 'blocked', label: 'Action needed' },
+        ])(
+            'keeps the $label bank action in an open drawer after residence and bank refresh',
+            ({ bankStatus, label }) => {
+                mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+                mockRails = [brazilianRail()]
+                const { rerender } = render()
+                const drawer = openBrlDrawer()
+                expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+                    'href',
+                    '/withdraw/manteca?method=pix&country=brazil'
+                )
+                expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+
+                mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'BR' }), user: { userId: 'u1' } }
+                mockRails = [
+                    {
+                        ...brazilianRail(),
+                        // Match the established QR-pool fixture: the rail is enabled,
+                        // while unopened bank operations still require setup.
+                        status: bankStatus === 'requires-info' ? 'enabled' : bankStatus,
+                        operations: { pay: 'enabled', deposit: bankStatus, withdraw: bankStatus },
+                        ...(bankStatus === 'blocked'
+                            ? {
+                                  reason: { code: 'requirements_uncollectable', userMessage: 'Backend English prose' },
+                                  resolved: {
+                                      status: 'blocked',
+                                      blocking: {
+                                          code: 'requirements_uncollectable',
+                                          userMessage: 'Backend English prose',
+                                          selfHealable: false,
+                                          selfHealKind: 'contact-support',
+                                      },
+                                      nextAction: {
+                                          key: 'contact-support',
+                                          kind: 'contact-support',
+                                          purpose: 'requirements_uncollectable',
+                                      },
+                                  },
+                              }
+                            : {}),
+                    },
+                ]
+                rerender(
+                    <QueryClientProvider client={new QueryClient()}>
+                        <MoneySettings view="bank" />
+                    </QueryClientProvider>
+                )
+
+                const refreshedDrawer = within(screen.getByRole('dialog'))
+                expect(refreshedDrawer.getByText(label)).toBeInTheDocument()
+                expect(refreshedDrawer.queryByText('Active')).not.toBeInTheDocument()
+                expect(refreshedDrawer.getByText('Move reais between your bank and Peanut.')).toBeInTheDocument()
+                assertNoPixSend()
+                fireEvent.click(refreshedDrawer.getByText('Add and withdraw Brazilian reais with Pix.'))
+                if (bankStatus === 'pending') {
+                    expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+                } else if (bankStatus === 'requires-info') {
+                    expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
+                } else {
+                    fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+                    expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+                }
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+                assertNoPixSend()
+            }
+        )
+
+        // The drawer keeps the copy every user sees: the Pix pause is temporary (ui#3963 review).
+        it('keeps the Argentine QR offer active for a Brazilian resident', () => {
+            mockRails = [brazilianRail()]
+            render('payments')
+            const qrRow = screen.getByText('QR payments').closest('.border') as HTMLElement
+            expect(within(qrRow).getByText('Active')).toBeInTheDocument()
+            expect(qrRow.querySelector('img[src="/flags/ar.svg"]')).not.toBeNull()
+            expect(qrRow.querySelector('img[src="/flags/br.svg"]')).toBeNull()
+            expect(within(qrRow).getByText('Argentina')).toBeInTheDocument()
+            expect(within(qrRow).queryByText(/Brazil/)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByText('QR payments'))
+            const drawer = within(screen.getByRole('dialog'))
+            expect(drawer.getByText('Scan and pay where you live.')).toBeVisible()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
     })
 })
 
@@ -1350,8 +1741,12 @@ describe("a row's modal reads the rails of its own country", () => {
         pendingSince: '2026-08-01T00:00:00.000Z',
     }
     const dualResident = () => {
-        mockUser = { residence: { declared: 'BR', verified: 'BR', declaredSecond: 'AR' }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'BR', verified: 'BR', declaredSecond: 'AR' }),
+            user: { userId: 'u1' },
+        }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         mockRails = [argentineGhost]
     }
 
@@ -1359,15 +1754,18 @@ describe("a row's modal reads the rails of its own country", () => {
         dualResident()
         render()
         fireEvent.click(screen.getByText('BRL'))
-        expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+        expect(screen.getByText('unlock-modal-open:manteca-br:questions')).toBeInTheDocument()
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
     })
 
-    it('the Argentine row still owns its pending rail, and hands the drawer when it went pending', () => {
+    it('a second residence does not narrate a pending Argentine rail: the API opens Manteca by the one residence', () => {
         dualResident()
         render()
+        expect(
+            within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Not available')
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByText('ARS'))
-        expect(screen.getByText('processing-modal-open:2026-08-01T00:00:00.000Z')).toBeInTheDocument()
+        expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -1375,21 +1773,33 @@ describe("a row's modal reads the rails of its own country", () => {
         dualResident()
         mockRails = []
         render()
-        fireEvent.click(screen.getByText('ARS'))
+        fireEvent.click(screen.getByText('BRL'))
         fireEvent.click(screen.getByText('unlock now'))
-        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
+        expect(mockInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'BR')
 
         fireEvent.click(screen.getByText('EUR'))
         fireEvent.click(screen.getByText('unlock now'))
         // the backend refuses any non-Manteca target country, so Bridge rows send none
         expect(mockInitiateKyc).toHaveBeenLastCalledWith('EU', undefined, true, undefined)
     })
+
+    it('a second residence opens no new Argentine account', () => {
+        dualResident()
+        mockRails = []
+        render()
+        expect(
+            within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Not available')
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByText('ARS'))
+        expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalledWith('LATAM', undefined, true, 'AR')
+    })
 })
 
 /**
  * The Manteca corridors are for legal residents of Brazil and Argentina: the
  * Argentine account opens to residents alone, and the Brazilian one needs a CPF,
- * checked here through a Brazilian residence (a client-side pre-check). A
+ * reflected in the API's report for a Brazilian residence. A
  * Portuguese resident was offered "BRL · Pix",
  * tapped it, and met the Argentine ghost's drawer; now the ARS row is not
  * offered, and says why. Sending to a Pix key is open to every verified user
@@ -1399,19 +1809,22 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
     const badgeFor = (title: string) => within(screen.getByText(title).closest('.border') as HTMLElement)
 
     it('ARS reads Not available, sorts last and says which residence it needs; BRL offers sending', () => {
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         mockIsKycApproved = true
-        mockRails = [
-            { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status: 'pending' },
-        ]
+        mockIdentity = { status: 'verified' }
+        // The report refuses the unopened local account for this residence;
+        // QR remains ready to set up. Rail arbitration belongs to the API.
         render()
 
-        expect(badgeFor('BRL').getByText('Unlock')).toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Set up')).toBeInTheDocument()
         expect(badgeFor('BRL').getByText('Send to any Pix key')).toBeInTheDocument()
         expect(badgeFor('ARS').getByText('Not available')).toBeInTheDocument()
         // the same neutral pill as the card's "Not available" (Konrad, 2026-09-23)
         expect(badgeFor('ARS').getByText('Not available')).toHaveClass('bg-background-badge-helper')
-        expect(badgeFor('ARS').queryByText('Processing')).not.toBeInTheDocument()
+        expect(badgeFor('ARS').queryByText('Pending')).not.toBeInTheDocument()
         // the rows explain themselves, so no note under the list repeats it
         expect(screen.queryByText(/residents of Brazil and Argentina/)).not.toBeInTheDocument()
         const rows = Array.from(
@@ -1420,7 +1833,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         )
         expect(rows.slice(-1)).toEqual(['bank-row-ars'])
         // the Bridge rows keep their offer, and so does QR — it needs no account
-        expect(badgeFor('EUR').getByText('Unlock')).toBeInTheDocument()
+        expect(badgeFor('EUR').getByText('Set up')).toBeInTheDocument()
 
         fireEvent.click(screen.getByText('ARS'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
@@ -1428,25 +1841,33 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         const drawer = within(screen.getByTestId('closed-row-drawer'))
         expect(drawer.getByText(/Only legal residents of Argentina/)).toBeInTheDocument()
 
-        // the way to change the residence is this screen's own drawer
+        // the residence is changed in Profile
         jest.useFakeTimers()
         fireEvent.click(drawer.getByRole('button', { name: 'Update residence' }))
         act(() => jest.runAllTimers())
         jest.useRealTimers()
-        expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+        expect(mockPush).toHaveBeenCalledWith('/settings/details?open=residence')
     })
 
     // QR needs no account, so it keeps its offer on Payments
     it('keeps the QR payments offer on Payments', () => {
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         render('payments')
-        expect(badgeFor('QR payments').getByText('Unlock')).toBeInTheDocument()
+        expect(badgeFor('QR payments').getByText('Set up')).toBeInTheDocument()
     })
 
     it('a verified non-resident who can pay by Pix reads Available on BRL, and the tap opens Pix key sending', () => {
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         // pool tier: paying is open, adding and own-account withdraw are not
         mockRails = [
             {
@@ -1460,7 +1881,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         ]
         render()
 
-        expect(badgeFor('BRL').getByText('Available')).toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
         fireEvent.click(screen.getByText('BRL'))
         expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
@@ -1470,12 +1891,16 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
     // fallback, but /qr-pay gates on the Manteca pay capability, so the BRL
     // row must not link them into key entry.
     it('a Bridge-only non-resident gets the Pix offer on BRL, never a link', () => {
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
         render()
 
-        expect(badgeFor('BRL').queryByText('Available')).not.toBeInTheDocument()
+        expect(badgeFor('BRL').queryByText('Active')).not.toBeInTheDocument()
         expect(badgeFor('BRL').getByText('Send to any Pix key')).toBeInTheDocument()
         // this describe has no beforeEach of its own, so earlier taps would still count
         mockPush.mockClear()
@@ -1484,8 +1909,12 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
     })
 
     it('a Brazilian rail that already works stays Available after a move', () => {
-        mockUser = { residence: { declared: 'PT', verified: 'PT', declaredSecond: null }, user: { userId: 'u1' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'PT', verified: 'PT', declaredSecond: null }),
+            user: { userId: 'u1' },
+        }
         mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
         mockRails = [
             {
                 id: 'manteca.pix_br',
@@ -1498,7 +1927,79 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
         ]
         render()
 
-        expect(badgeFor('BRL').getByText('Available')).toBeInTheDocument()
+        expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
         expect(badgeFor('ARS').getByText('Not available')).toBeInTheDocument()
+    })
+})
+
+describe('card refusal rows follow the feature report', () => {
+    test.each([
+        ['identity_rejected', 'identity'],
+        ['document_country_unsupported', 'restart-identity'],
+    ])('%s reads Action needed and retains the card route', (reason, action) => {
+        mockUser = { user: { userId: 'card-user' }, residence: normalizeResidence({ declared: 'AR', verified: 'AR' }) }
+        mockIdentity = { status: 'verified' }
+        mockApiCard = { state: 'refused', reason, action }
+        mockNextActions = [
+            {
+                key: 'restart-identity',
+                kind: 'restart-identity',
+                purpose: 'document_country_unsupported',
+            } as NextAction,
+        ]
+        render('payments')
+        const title = screen.getByText('Peanut card')
+        let row = title.parentElement!
+        while (row.parentElement && !/Action needed|Not available/.test(row.textContent ?? '')) row = row.parentElement
+        expect(within(row).getByText('Action needed')).toBeInTheDocument()
+        fireEvent.click(title)
+        expect(mockPush).toHaveBeenCalledWith('/card')
+        expect(
+            screen.queryByText("The Peanut card isn't available for residents of your country.")
+        ).not.toBeInTheDocument()
+    })
+
+    test.each([
+        { state: 'refused', reason: 'duplicate_account' },
+        { state: 'refused', reason: 'verification_blocked', action: 'contact-support' },
+    ] as import('@/types/capabilities').FeatureReportEntry[])(
+        '$reason opens support from its attention row',
+        (entry) => {
+            mockApiCard = entry
+            mockNextActions = [
+                { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' } as NextAction,
+            ]
+            render('payments')
+            fireEvent.click(screen.getByText('Peanut card'))
+            expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+            expect(mockPush).not.toHaveBeenCalled()
+            expect(
+                screen.queryByText("The Peanut card isn't available for residents of your country.")
+            ).not.toBeInTheDocument()
+        }
+    )
+
+    test('geo-blocked keeps the closed residence explanation', () => {
+        mockApiCard = { state: 'refused', reason: 'geo-blocked' }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText("The Peanut card isn't available for residents of your country.")).toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    test('a closed nonresidence refusal shows its own message', () => {
+        mockApiCard = {
+            state: 'refused',
+            reason: 'compliance_block',
+            message: 'Provider English must not replace localized copy.',
+        }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText(en.identity.reasons.compliance_block)).toBeInTheDocument()
+        expect(screen.queryByText(mockApiCard.message!)).not.toBeInTheDocument()
+        expect(
+            screen.queryByText("The Peanut card isn't available for residents of your country.")
+        ).not.toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })

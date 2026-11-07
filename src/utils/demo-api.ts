@@ -11,8 +11,15 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { parseResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
+import { DEMO_RESIDENCE_RESTRICTIONS, KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
+import type { NotificationPreferences } from '@/services/notifications'
+import type { KycIntents } from '@/hooks/useKycIntents'
+import { REQUIRED_API_CONTRACTS } from '@/constants/api-contracts.json'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -21,8 +28,7 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
 // /tokens/price is public too — the canned {} fallback is NOT a valid shape
-// for it. /tokens/wallet-portfolio is owner-only (session required), so it
-// gets a synthetic handler instead of a passthrough that would 401.
+// for it.
 const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
@@ -455,6 +461,55 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
+// Tab-scoped like the avatar: a switch flipped in demo survives the next read.
+let demoNotificationPreferences: NotificationPreferences = {
+    push: true,
+    email: true,
+    marketingPush: false,
+    emailUpdates: true,
+    pushPermission: 'granted',
+}
+
+const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
+
+const DEMO_RESTRICTION_SETS = parseResidenceRestrictionSets(DEMO_RESIDENCE_RESTRICTIONS)!
+
+/**
+ * GET /config/kyc-intents for a residence (and the ID's issuing country), from
+ * the demo backend's own restriction answer: sanctioned residences close
+ * Manteca, the UK and banking-restricted residences close the bank, card-restricted
+ * ones close the card, and local transfers open only in AR and BR. A refused
+ * issuer closes everything else; a Russian ID closes the card.
+ */
+function demoKycIntents(residence: string, idCountry: string | undefined, offlineCapture: boolean): KycIntents {
+    const sets = DEMO_RESTRICTION_SETS
+    const restrictions = deriveResidenceRestrictionsFrom(sets, residence)
+    const sanctioned = isQrResidenceRestricted(sets, residence)
+    const documentRefused = !!idCountry && sets.refusedIdIssuers.has(idCountry)
+    const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null, documentRefusesCard = false) => {
+        const reason = refusal ?? (documentRefused || documentRefusesCard ? 'document_country_unsupported' : null)
+        return reason ? { available: false, reason } : { available: true }
+    }
+    const bank = intent(
+        residence === 'GB' ? 'uk_resident_blocked' : restrictions.banking ? 'residence_bank_restricted' : null
+    )
+    // Match the Brazil signup funding options in Screen Library captures.
+    const bankCurrencies = offlineCapture && residence === 'BR' && bank.available ? ['USD', 'EUR', 'GBP', 'MXN'] : []
+    return {
+        qr: intent(sanctioned ? 'residence_sanctioned' : null),
+        local: intent(
+            sanctioned
+                ? 'residence_sanctioned'
+                : MANTECA_LOCAL_RESIDENCES.has(residence)
+                  ? null
+                  : 'local_residence_unsupported'
+        ),
+        // a Russian ID verifies without the card (peanut.russian-document)
+        card: intent(restrictions.card ? 'geo-blocked' : null, idCountry === 'RU'),
+        bank: { ...bank, currencies: bankCurrencies },
+    }
+}
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -485,6 +540,12 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
     // the app reads kill switches on start; empty keeps the built-in defaults
     { method: 'GET', pattern: '/config/kill-switches', handler: () => ({}) },
+    // the attention manager asks on every authed screen; no ranking and no verdicts leave the app's registry in charge
+    {
+        method: 'GET',
+        pattern: '/users/me/attention',
+        handler: () => ({ version: 1, ranking: [], verdicts: {}, nextAsk: null }),
+    },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -496,7 +557,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
-    { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
+    // The demo user verified before Smart Paperwork Verification, so the API keeps them on today's flow.
+    ...Object.entries(KYC_USER_READS).map(([key, read]) => {
+        const [method, pattern] = key.split(' ')
+        return { method, pattern, handler: () => read(DEMO_USER) }
+    }),
+    // Nothing newer than the stored status, so the profile's answer stands.
+    { method: 'POST', pattern: '/users/kyc/identity/refresh', handler: () => ({ status: null }) },
+    // The demo user's check is over, so no identity session reopens.
+    {
+        method: 'POST',
+        pattern: '/users/kyc/attempts/:attemptId/token',
+        handler: () => json({ code: 'verification_complete' }, 409),
+    },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     // No arrival prompt by default: the drawer shows only in the arrival-* fixtures.
     { method: 'POST', pattern: '/users/me/arrival', handler: () => ({ prompt: null }) },
@@ -668,10 +741,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => json({ error: 'NO_CARD_MARKUP', message: 'No card markup to compare.' }, 404),
     },
 
-    // The demo wallet holds nothing to recover; the shape is what
-    // fetchWalletBalances reads.
-    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
-
     // Without a handler this landed on defaultShape ({}), and the recovery page
     // called BigInt(undefined) during render.
     {
@@ -683,7 +752,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             amountWei: '0',
             amountCents: '0',
             dustWei: '0',
-            autoBalanceEnabled: false,
             hasRecoverableCard: false,
         }),
     },
@@ -861,6 +929,24 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
     { method: 'POST', pattern: '/notifications/mark-read', handler: () => ({}) },
+    { method: 'GET', pattern: '/notifications/preferences', handler: () => demoNotificationPreferences },
+    {
+        method: 'PUT',
+        pattern: '/notifications/preferences',
+        handler: ({ options }) => {
+            const { push, marketingPush, emailUpdates, pushPermission } = parseBody(
+                options
+            ) as Partial<NotificationPreferences>
+            demoNotificationPreferences = {
+                ...demoNotificationPreferences,
+                ...(push !== undefined && { push }),
+                ...(marketingPush !== undefined && { marketingPush }),
+                ...(emailUpdates !== undefined && { emailUpdates }),
+                ...(pushPermission !== undefined && { pushPermission }),
+            }
+            return demoNotificationPreferences
+        },
+    },
 
     // card
     {
@@ -878,6 +964,37 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             demoCardApplied
                 ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
                 : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // Managed card funding state, read by the Home prompt for any ACTIVE card.
+    // The demo card's permission is ready, so no consent modal covers the
+    // screens that show a card; a fixture overrides `management` (and the
+    // rest) to show the prompt. Fake spender and signer: nothing is signed here.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding',
+        handler: (): RainCardFunding => ({
+            chainId: CHAIN_ID,
+            tokenAddress: PEANUT_WALLET_TOKEN,
+            spenderAddress: '0x0000000000000000000000000000000000000001',
+            walletAddress: DEMO_ADDRESS,
+            allowance: '150000000',
+            sessionKeyAddress: '0x0000000000000000000000000000000000000002',
+            permission: {
+                scopeVersion: 2,
+                ceiling: '300000000',
+                termsVersion: 'rtf-2026-09-29',
+                authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+            },
+            management: { status: 'ready', reason: null, migration: null, stop: null },
+        }),
+    },
+    // The server's funding decision. The demo card is already on managed
+    // funding (its permission above is ready); a fixture overrides it to show
+    // the existing-permission or not-yet-accepted paths.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding/access',
+        handler: (): RainFundingAccess => ({ fundingMode: 'managed', enrollmentAllowed: true }),
     },
     // per-card limits read — without this the card-limit fixture (and any
     // demo/capture render of /card/limit) 404s into the error state.
@@ -955,6 +1072,16 @@ export async function demoRespond(
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    if (method === 'GET' && pathname === '/version') {
+        return json({
+            commit: '0000000',
+            branch: 'synthetic',
+            builtAt: null,
+            migrationsHead: null,
+            contracts: REQUIRED_API_CONTRACTS,
+        })
+    }
+
     // The withdraw quote depends on its query, which route handlers never see:
     // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
     if (method === 'GET' && pathname === '/bridge/offramp/quote') {
@@ -965,6 +1092,23 @@ export async function demoRespond(
             rate: '1',
             updatedAt: CREATED_AT,
             ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
+
+    if (method === 'GET' && pathname === '/config/residence-restrictions') return json(DEMO_RESIDENCE_RESTRICTIONS)
+
+    // What a residence can unlock depends on the residence in the query.
+    if (method === 'GET' && pathname === '/config/kyc-intents') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const [residence, idCountry] = [query.get('residence'), query.get('idCountry')].map((code) =>
+            code?.trim().toUpperCase()
+        )
+        if (!residence || ![residence, idCountry].every((code) => code === undefined || /^[A-Z]{2}$/.test(code)))
+            return json({ error: `Unknown country code: ${residence ?? ''}` }, 400)
+        return json({
+            residence,
+            ...(idCountry ? { idCountry } : {}),
+            intents: demoKycIntents(residence, idCountry, capture?.offline === true),
         })
     }
 

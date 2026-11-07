@@ -11,9 +11,6 @@ const mockGetPublicClient = jest.fn(() => {
 jest.mock('@/app/actions/clients', () => ({
     getPublicClient: () => mockGetPublicClient(),
 }))
-jest.mock('@/services/tokens-price', () => ({ fetchTokenPrice: jest.fn() }))
-// jest.setup.ts stubs this module globally; this suite needs the real reader.
-jest.unmock('@/app/actions/tokens')
 
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'

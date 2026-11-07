@@ -55,7 +55,7 @@ jobs:
                   # lifecycle scripts, so don't leave it in .git/config.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -141,7 +141,7 @@ jobs:
               with:
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -154,7 +154,7 @@ jobs:
               run: node scripts/ds-lint-counts.mjs --check
 
     # Screen wordiness ratchet (founders daily 2026-09-23). Counts the English
-    # copy each screen can show (scripts/screen-wordiness.md) and prints the
+    # copy each screen can show (https://github.com/peanutprotocol/mono/blob/main/engineering/ui/screen-wordiness.md) and prints the
     # heaviest screens to the job summary on every run. Fails when a screen
     # grows past its baseline entry, or a new screen goes over the budget.
     # Advisory: not in ci-success.needs, so a red run flags copy growth
@@ -171,7 +171,7 @@ jobs:
               with:
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -197,7 +197,7 @@ jobs:
                   # Clone-only token — see the format job.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -222,7 +222,7 @@ jobs:
                   # Clone-only token — see the format job.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -239,6 +239,9 @@ jobs:
               run: pnpm next typegen
 
             - name: Typecheck
+              # tsc outgrew Node's default heap: about one run in four died out of memory (Nov 2026).
+              env:
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: pnpm typecheck
 
     # The only pre-merge coverage for the Capacitor static export. Nothing else
@@ -261,7 +264,7 @@ jobs:
                   # never see it in .git/config.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -294,6 +297,8 @@ jobs:
               env:
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # Dev leads the production API between releases and this job ships nothing: API skew warns only.
+                  NATIVE_EXPORT_COMPILE_CHECK_ONLY: '1'
               run: node scripts/native-build.js
 
             - name: Verify export output
@@ -359,7 +364,7 @@ jobs:
                   # Clone-only token — see the format job.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -396,7 +401,7 @@ jobs:
               run: pnpm test:unit:ci
 
             - name: Publish unit test report
-              uses: dorny/test-reporter@v1
+              uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
               if: always()
               with:
                   name: Unit test report
@@ -522,7 +527,7 @@ jobs:
                   # submodule PAT does not need to stay in .git/config.
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -575,10 +580,12 @@ jobs:
             # silent one.
             - name: Install Playwright system deps
               if: steps.pw-cache.outputs.cache-hit == 'true'
-              timeout-minutes: 9
+              timeout-minutes: 13
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -630,6 +637,8 @@ jobs:
 
             - name: Build
               env:
+                  # 2 GiB (Node 20's default) and then 4 GiB ran out of memory on this build (#3900, Nov 2026); runners have 16 GB.
+                  NODE_OPTIONS: --max-old-space-size=6144
                   # Without this DEV_TOOLS_ENABLED is false, ?__fixture= is
                   # ignored, and every screen redirects to /setup. It is a
                   # NEXT_PUBLIC_ value, so it must be set on the build, not on
@@ -825,8 +834,8 @@ jobs:
             always() && needs.backdoor-scan.result == 'success' &&
             needs.ds-shots-filter.outputs.render == 'true'
         runs-on: ubuntu-latest
-        # Build ~5m + gate ~9m + stress gate. A hang past this is a bug, not a
-        # slow day.
+        # Build ~6m + gate and stress gate on 4 workers. A hang past this is a bug,
+        # not a slow day.
         timeout-minutes: 45
         permissions:
             contents: read
@@ -837,7 +846,7 @@ jobs:
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -891,11 +900,22 @@ jobs:
                   echo "::error::playwright install-deps failed after 3 attempts"
                   exit 1
 
+            # Restore-only, same entry ds-shots reads (saved by dev push runs).
+            - name: Restore the Next build cache
+              uses: actions/cache/restore@v4
+              with:
+                  path: .next/cache
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  restore-keys: |
+                      ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
+
             # Same build env as ds-shots: preview enables ?__fixture=, and the
             # base URL matches the server in playwright.shots.config.ts.
             - name: Build
               id: build
               env:
+                  # 2 GiB (Node 20's default) and then 4 GiB ran out of memory on this build (#3900, Nov 2026); runners have 16 GB.
+                  NODE_OPTIONS: --max-old-space-size=6144
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
@@ -916,14 +936,18 @@ jobs:
             # Stress gate (TASK-23132): every fixture with worst-case data and
             # with large system text. Reuses the build above. ADVISORY until it
             # has one clean week: a failure shows as a warning, not a red job.
+            # `!cancelled()`, not `always()`: it still runs after a failed
+            # overflow gate, but a cancelled run stops here. With `always()` the
+            # ~20-minute stress run went on after a cancel and held this
+            # workflow's concurrency group, so the PR's next run sat pending.
             - name: Stress gate (advisory)
               id: stress
-              if: always() && steps.build.outcome == 'success'
+              if: ${{ !cancelled() && steps.build.outcome == 'success' }}
               continue-on-error: true
               run: pnpm test:stress:run
 
             - name: Upload stress results on failure
-              if: always() && steps.stress.outcome == 'failure'
+              if: ${{ !cancelled() && steps.stress.outcome == 'failure' }}
               uses: actions/upload-artifact@v4
               with:
                   name: stress-results-${{ github.run_number }}
@@ -956,7 +980,7 @@ jobs:
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
 
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
             - uses: actions/setup-node@v4
               with:
@@ -988,10 +1012,12 @@ jobs:
             # must retry, not block merges.
             - name: Install Playwright system deps
               if: steps.pw-cache.outputs.cache-hit == 'true'
-              timeout-minutes: 9
+              timeout-minutes: 13
               run: |
                   for attempt in 1 2 3; do
-                      if timeout --kill-after=15s 150 npx playwright install-deps chromium; then
+                      # apt runs as root. The timeout must too, otherwise its
+                      # signals cannot reap apt and every retry hits the orphan's lock.
+                      if sudo timeout --kill-after=15s 150 env PATH="$PATH" node node_modules/@playwright/test/cli.js install-deps chromium; then
                           exit 0
                       fi
                       echo "::warning::playwright install-deps attempt ${attempt} failed or stalled; retrying"
@@ -1020,6 +1046,8 @@ jobs:
             # the page gate redirects to /setup.
             - name: Build
               env:
+                  # 2 GiB (Node 20's default) and then 4 GiB ran out of memory before the browser specs (#3900, Nov 2026); runners have 16 GB.
+                  NODE_OPTIONS: --max-old-space-size=6144
                   NEXT_PUBLIC_VERCEL_ENV: preview
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
@@ -1057,7 +1085,7 @@ jobs:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
-            - uses: pnpm/action-setup@v4
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
@@ -1105,6 +1133,8 @@ jobs:
                   exit 1
             - name: Build with production indexing policy
               env:
+                  # Keep the same bounded build heap as the preview browser contract.
+                  NODE_OPTIONS: --max-old-space-size=6144
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
               run: pnpm build
             - name: Check every rendered sitemap URL

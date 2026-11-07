@@ -7,7 +7,6 @@ import { useSupportedChainsAndTokens } from '@/hooks/useSupportedChainsAndTokens
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import { useTokenPrice } from '@/hooks/useTokenPrice'
 import { type ITokenPriceData } from '@/interfaces/interfaces'
-import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 
 export const tokenSelectorContext = createContext({
@@ -21,7 +20,6 @@ export const tokenSelectorContext = createContext({
     setDevconnectRecipientAddress: (_address: string) => {},
     setSelectedTokenAddress: (_address: string) => {},
     setSelectedChainID: (_chainID: string) => {},
-    updateSelectedChainID: (_chainID: string) => {},
     refetchXchainRoute: false as boolean,
     setRefetchXchainRoute: (_value: boolean) => {},
     resetTokenContextProvider: () => {},
@@ -30,11 +28,16 @@ export const tokenSelectorContext = createContext({
     selectedTokenData: undefined as ITokenPriceData | null | undefined,
     isFetchingTokenData: false as boolean,
     refetchTokenData: async (): Promise<ITokenPriceData | null | undefined> => undefined,
+    /**
+     * Marks the caller as a reader of selectedTokenData while it is mounted;
+     * returns the release. The price is fetched only while one is mounted, so
+     * a token pick in a flow that never reads it (withdraw) asks the API for
+     * nothing. Call it through useReadsSelectedTokenPrice.
+     */
+    readTokenPrice: (): (() => void) => () => {},
     supportedChainsAndTokens: {} as Record<string, ChainWithTokens>,
     /** true until the chain/token record loads — a selection must not be "corrected" against a partial record */
     isLoadingChains: false as boolean,
-    selectedTokenBalance: undefined as string | undefined,
-    setSelectedTokenBalance: (_balance: string | undefined) => {},
 })
 
 /**
@@ -54,10 +57,15 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [selectedChainID, setSelectedChainID] = useState(PEANUT_WALLET_CHAIN.id.toString())
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [isXChain, setIsXChain] = useState<boolean>(false)
-    const [selectedTokenBalance, setSelectedTokenBalance] = useState<string | undefined>(undefined)
     const [devconnectTokenAddress, setDevconnectTokenAddress] = useState<string>('')
     const [devconnectChainId, setDevconnectChainId] = useState<string>('')
     const [devconnectRecipientAddress, setDevconnectRecipientAddress] = useState<string>('')
+    // how many mounted flows read selectedTokenData (today: claim)
+    const [tokenPriceReaders, setTokenPriceReaders] = useState(0)
+    const readTokenPrice = useCallback(() => {
+        setTokenPriceReaders((count) => count + 1)
+        return () => setTokenPriceReaders((count) => count - 1)
+    }, [])
 
     // Fetch supported chains and tokens (cached for 24 hours - static data)
     const { data: fetchedChainsAndTokens = {}, isPending: isLoadingChains } = useSupportedChainsAndTokens()
@@ -85,6 +93,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         chainId: selectedChainID,
         supportedChainsAndTokens,
         isPeanutWallet,
+        enabled: tokenPriceReaders > 0,
     })
 
     // Derive selectedTokenData from query (single source of truth)
@@ -98,11 +107,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             setRefetchXchainRoute(true)
         }
     }, [isFetching])
-
-    const updateSelectedChainID = (chainID: string) => {
-        setSelectedTokenAddress(NATIVE_TOKEN_ADDRESS)
-        setSelectedChainID(chainID)
-    }
 
     const resetTokenContextProvider = useCallback(() => {
         const tokenData = isPeanutWallet
@@ -124,7 +128,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setSelectedTokenAddress,
                 selectedChainID,
                 setSelectedChainID: setSelectedChainID,
-                updateSelectedChainID,
                 refetchXchainRoute,
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
@@ -133,10 +136,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 selectedTokenData,
                 isFetchingTokenData,
                 refetchTokenData,
+                readTokenPrice,
                 supportedChainsAndTokens,
                 isLoadingChains,
-                selectedTokenBalance,
-                setSelectedTokenBalance,
                 devconnectTokenAddress,
                 setDevconnectTokenAddress,
                 devconnectChainId,

@@ -14,6 +14,7 @@ import { DEMO_USER } from '@/constants/demo-data'
 import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSignupPasskey } from '@/features/setup/useSignupPasskey'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
@@ -43,7 +44,7 @@ const SignupStep = () => {
         username,
         setUsername,
         setResidenceCountry,
-        setSecondResidenceCountry,
+        setNationalityCountry,
         setSignupCompleted,
         setNoBackLockScreenId,
     } = useSetupFlowContext()
@@ -56,6 +57,7 @@ const SignupStep = () => {
     const prefersReducedMotion = useReducedMotion()
     const [suggestionIndex, setSuggestionIndex] = useState(-1)
     const [placeholderStopped, setPlaceholderStopped] = useState(false)
+    const { track, trackOnce, trackError } = useSignupControl()
 
     useEffect(() => {
         if (username || placeholderStopped || prefersReducedMotion) return
@@ -79,13 +81,14 @@ const SignupStep = () => {
 
     const onClaim = async () => {
         if (!isValid || isChanging || busy) return
+        track('claim', 'tap')
         if (isDemoUsername(username)) {
             enableDemoMode()
             // Retire any pre-demo user request before seeding the synthetic session.
             await queryClient.cancelQueries({ queryKey: [USER] })
             queryClient.setQueryData([USER], DEMO_USER)
             setResidenceCountry('BR')
-            setSecondResidenceCountry('')
+            setNationalityCountry('')
             setNoBackLockScreenId('advantage-control')
             setSignupCompleted(true)
             setScreenId('advantage-control')
@@ -104,25 +107,29 @@ const SignupStep = () => {
         // handle empty input
         if (!username) {
             setError(t('signupStep.errors.required'))
+            trackError('username', 'required')
             return false
         }
 
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
             setError(t('signupStep.errors.tooShort'))
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_short', username })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_short' })
+            trackError('username', 'too_short')
             return false
         }
         if (username.length > 12) {
             setError(t('signupStep.errors.tooLong'))
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_long', username })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_long' })
+            trackError('username', 'too_long')
             return false
         }
 
         // check character requirement
         if (!username.match(/^[a-z][a-z0-9]{3,11}$/)) {
             setError(t('signupStep.errors.invalidFormat'))
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'format', username })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'format' })
+            trackError('username', 'format')
             return false
         }
 
@@ -140,26 +147,28 @@ const SignupStep = () => {
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'taken',
-                        username,
                     })
+                    trackError('username', 'taken')
                     return false
                 case 400:
                     setError(t('signupStep.errors.invalid'))
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'invalid',
-                        username,
                     })
+                    trackError('username', 'invalid')
                     return false
                 case 404:
                     // handle is available
                     setError('')
-                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true, username })
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true })
+                    trackError('username', null)
                     return true
                 default:
                     // we dont expect any other status code
                     console.error('Unexpected status code when checking handle availability:', res.status)
                     setError(t('signupStep.errors.checkFailed'))
+                    trackError('username', 'unexpected_status')
                     Sentry.captureMessage('Unexpected status code when checking handle availability', {
                         level: 'error',
                         extra: {
@@ -172,6 +181,7 @@ const SignupStep = () => {
             }
         } catch {
             setError(t('signupStep.errors.checkFailedSupport'))
+            trackError('username', 'network')
             return false
         }
     }
@@ -187,6 +197,7 @@ const SignupStep = () => {
     }) => {
         setPlaceholderStopped(true)
         setSuggestionIndex(-1)
+        if (isChanging) trackOnce('username', 'change')
         setUsername(value.toLowerCase())
         setIsValid(isValid)
         setIsChanging(isChanging)
@@ -225,6 +236,7 @@ const SignupStep = () => {
                                 isInputChanging={isChanging}
                                 prefix="@"
                                 className="rounded-sm"
+                                onClear={() => track('username_clear', 'tap')}
                             />
                             <AnimatePresence>
                                 {suggestionIndex >= 0 && !username && !placeholderStopped && (
@@ -260,7 +272,10 @@ const SignupStep = () => {
                                 loading={passkey.isLoggingIn}
                                 disabled={passkey.isLoggingIn}
                                 variant="secondary"
-                                onClick={passkey.logIn}
+                                onClick={() => {
+                                    track('log_in', 'tap')
+                                    void passkey.logIn()
+                                }}
                                 shadowSize="4"
                             >
                                 {t('logIn')}
@@ -307,8 +322,15 @@ const SignupStep = () => {
             {passkey.helpErrorName && (
                 <PasskeySetupHelpDrawer
                     visible={passkey.isHelpOpen}
-                    onClose={passkey.closeHelp}
-                    onRetry={passkey.retryFromHelp}
+                    onClose={() => {
+                        track('passkey_help', 'dismiss')
+                        passkey.closeHelp()
+                    }}
+                    onRetry={() => {
+                        track('passkey_help_retry', 'tap')
+                        passkey.retryFromHelp()
+                    }}
+                    onSupport={() => track('passkey_help_support', 'tap')}
                     errorName={passkey.helpErrorName}
                     platform={passkey.deviceType}
                 />

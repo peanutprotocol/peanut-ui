@@ -1,17 +1,5 @@
-import { generateMetadata } from '@/app/metadata'
-import { Profile } from '@/components/Profile'
-import PageContainer from '@/components/0_Bruddle/PageContainer'
+import RouteAlias from '@/components/Global/RouteAlias'
 
-export const metadata = generateMetadata({
-    title: 'Profile | Peanut',
-    description:
-        'Manage your Peanut profile and settings. Keep your information up to date for seamless P2P digital dollar transfers and verify your identity.',
-})
-
-export default function ProfilePage() {
-    return (
-        <PageContainer>
-            <Profile />
-        </PageContainer>
-    )
+export default function LegacyProfileRoute() {
+    return <RouteAlias to="/settings" queryRedirect={{ key: 'open', value: 'residence', to: '/settings/details' }} />
 }

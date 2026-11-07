@@ -1,17 +1,19 @@
 'use client'
 import type { FC } from 'react'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
-import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { DocumentRequestState } from '@/components/Kyc/DocumentRequestState'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 type Variant =
     | 'pending'
+    | 'pending-identity'
     | 'manual-review'
     | 'requires-info'
     | 'requires-support'
@@ -52,6 +54,7 @@ interface Props {
 // reassurance and no support CTA.
 const COPY_KEYS = {
     pending: { title: 'status.pendingTitle', body: 'status.pendingBody' },
+    'pending-identity': { title: 'status.pendingTitle', body: 'status.pendingIdentityBody' },
     'manual-review': { title: 'status.manualReviewTitle', body: 'status.manualReviewBody' },
     'requires-info': { title: 'status.requiresInfoTitle', body: 'status.requiresInfoBody' },
     'requires-support': { title: 'status.requiresSupportTitle', body: 'status.requiresSupportBody' },
@@ -63,6 +66,14 @@ const COPY_KEYS = {
     },
 } as const satisfies Record<Variant, { title: string; body: string }>
 
+/** A collected proof of address on its way to, or with, the card partner: nothing for the user to do. */
+const AWAITING_DOCUMENT_REVIEW: ReadonlySet<string> = new Set([
+    'proof_of_address_received',
+    'proof_of_address_review',
+    'identity_verification_received',
+    'identity_verification_review',
+])
+
 export type InformationKind = 'taxId' | 'birthDate'
 type SelfServeKind = 'proofOfAddress' | 'identity' | InformationKind
 
@@ -71,6 +82,13 @@ interface SelfServeAction {
     label: string
     onClick: () => void
 }
+
+const SELF_SERVE_CONTROLS = {
+    proofOfAddress: 'upload_proof_of_address',
+    identity: 'upload_identity',
+    taxId: 'tax_id',
+    birthDate: 'birth_date',
+} as const satisfies Record<SelfServeKind, string>
 
 /** A self-serve step on the screen replaces the support line with what to do. */
 const REQUIRES_INFO_BODY_KEYS = {
@@ -91,7 +109,7 @@ const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requir
  * the full list is published. Mirrors CardTermsScreen's absolute-URL pattern.
  */
 const PROHIBITED_ACTIVITIES_POLICY_URL = 'https://peanut.me/en/card-prohibited-activities'
-const RESIDENCE_CHANGE_URL = '/profile/payments?open=residence'
+const RESIDENCE_CHANGE_URL = '/settings/details?open=residence'
 
 const ApplicationStatusScreen: FC<Props> = ({
     variant,
@@ -104,6 +122,17 @@ const ApplicationStatusScreen: FC<Props> = ({
     uploadError,
     onPrev,
 }) => {
+    const isProviderRequest = variant === 'requires-info'
+    const { track } = useKycControl(
+        isProviderRequest ? 'provider-request' : 'card-status',
+        isProviderRequest ? 'kyc_provider_request' : 'kyc_status'
+    )
+    const handleBack = onPrev
+        ? () => {
+              track('back', 'tap')
+              onPrev()
+          }
+        : undefined
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
@@ -125,47 +154,106 @@ const ApplicationStatusScreen: FC<Props> = ({
             selfServeAction = informationActions[0]
         }
     }
+    // requires-info's default body points at support; the step on screen, or a wait, is the way forward instead
     const bodyKey =
-        variant === 'requires-info' && selfServeAction ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind] : copyKeys.body
+        variant !== 'requires-info'
+            ? copyKeys.body
+            : selfServeAction
+              ? REQUIRES_INFO_BODY_KEYS[selfServeAction.kind]
+              : reasonCode && AWAITING_DOCUMENT_REVIEW.has(reasonCode)
+                ? 'status.requiresInfoWaitBody'
+                : copyKeys.body
+    // A document Rain asks for gets the one document-request look the Add money screens share.
+    if (
+        variant === 'requires-info' &&
+        (selfServeAction?.kind === 'proofOfAddress' || selfServeAction?.kind === 'identity')
+    )
+        return (
+            <PageStack>
+                <NavHeader title={t('navAddCard')} onPrev={handleBack} />
+                <PageStack.Center>
+                    <DocumentRequestState
+                        reason={reasonText}
+                        body={t(bodyKey)}
+                        ctaLabel={selfServeAction.label}
+                        onCta={selfServeAction.onClick}
+                        error={uploadError}
+                        onContactSupport={onContactSupport}
+                    />
+                </PageStack.Center>
+            </PageStack>
+        )
     return (
         <PageStack>
-            <NavHeader title={t('navAddCard')} onPrev={onPrev} />
-            <div className="my-auto flex flex-col items-center gap-6 text-center">
-                {variant === 'pending' && <Loading />}
-                {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
-                    <PeanutMascot
-                        pose="worried"
-                        alt={t('status.mascotAlt')}
-                        className={`${MASCOT_STATE_CLASS} select-none`}
-                    />
-                )}
-                <div className="flex flex-col gap-3">
-                    <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
-                    {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
-                    <p className="text-foreground-secondary">{t(bodyKey)}</p>
+            <NavHeader title={t('navAddCard')} onPrev={handleBack} />
+            {['pending', 'pending-identity', 'manual-review'].includes(variant) ? (
+                <div className="my-auto flex flex-col items-center gap-6 text-center">
+                    {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
+                    <div className="flex flex-col gap-3">
+                        <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
+                        {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
+                        <p className="text-foreground-secondary">{t(bodyKey)}</p>
+                    </div>
                 </div>
-                {variant === 'geo-blocked' && (
-                    <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
-                        {t('status.geoBlockedPolicyLink')}
-                    </LinkButton>
-                )}
-                {variant === 'pending-residence-blocked' && (
-                    <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
-                )}
-                {selfServeAction && (
-                    <Button variant="primary" className="w-full" onClick={selfServeAction.onClick}>
-                        {selfServeAction.label}
-                    </Button>
-                )}
-                {SUPPORT_VARIANTS.has(variant) && uploadError && (
-                    <p role="alert" className="text-body-s text-foreground-error">
-                        {uploadError}
-                    </p>
-                )}
-                {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
-                    <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
-                )}
-            </div>
+            ) : (
+                <PageStack.Center>
+                    <CenteredStatusCard
+                        title={t(copyKeys.title)}
+                        description={
+                            <>
+                                {reasonText && <p>{reasonText}</p>}
+                                <p>{t(bodyKey)}</p>
+                            </>
+                        }
+                        tone={
+                            variant === 'requires-info' || variant === 'pending-residence-blocked' ? 'warning' : 'error'
+                        }
+                        pose={variant === 'geo-blocked' ? 'worried' : undefined}
+                    >
+                        {variant === 'geo-blocked' && (
+                            <LinkButton
+                                href={PROHIBITED_ACTIVITIES_POLICY_URL}
+                                external
+                                onClick={() => track('policy', 'tap')}
+                            >
+                                {t('status.geoBlockedPolicyLink')}
+                            </LinkButton>
+                        )}
+                        {variant === 'pending-residence-blocked' && (
+                            <LinkButton href={RESIDENCE_CHANGE_URL} onClick={() => track('change_residence', 'tap')}>
+                                {t('status.pendingResidenceBlockedCta')}
+                            </LinkButton>
+                        )}
+                        {selfServeAction && (
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => {
+                                    track(SELF_SERVE_CONTROLS[selfServeAction.kind], 'tap')
+                                    selfServeAction.onClick()
+                                }}
+                            >
+                                {selfServeAction.label}
+                            </Button>
+                        )}
+                        {SUPPORT_VARIANTS.has(variant) && uploadError && (
+                            <p role="alert" className="text-body-s text-foreground-error">
+                                {uploadError}
+                            </p>
+                        )}
+                        {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
+                            <LinkButton
+                                onClick={() => {
+                                    track('support', 'tap')
+                                    onContactSupport()
+                                }}
+                            >
+                                {tCommon('contactSupport')}
+                            </LinkButton>
+                        )}
+                    </CenteredStatusCard>
+                </PageStack.Center>
+            )}
         </PageStack>
     )
 }

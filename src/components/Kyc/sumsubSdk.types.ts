@@ -6,6 +6,12 @@
 export type SumsubSubmissionSource = 'sdk_submitted' | 'sdk_teardown'
 
 export interface SumsubSdkProps {
+    validationError?: string
+    documentConfig?: import('@/app/actions/types/kyc-workflow.types').KycDocumentConfig
+    /** 'required' (default) fails without native preselection support; 'preferred' opens the SDK without it. */
+    preselection?: 'required' | 'preferred'
+    /** The picked document's name, for the native SDK's ID step in place of its "Identity document". */
+    identityStepTitle?: string
     sessionKey?: string
     visible: boolean
     accessToken: string | null
@@ -17,6 +23,8 @@ export interface SumsubSdkProps {
     onSubmitted?: (source?: SumsubSubmissionSource) => void
     onError?: (error: unknown) => void
     onRefreshToken: () => Promise<string>
+    /** The ID step is done, before the selfie: the caller may check the document Sumsub recognised. */
+    onIdentityStepCompleted?: () => void
     /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
     isMultiLevel?: boolean
 }

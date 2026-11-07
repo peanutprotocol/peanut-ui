@@ -28,6 +28,8 @@ interface ListItemProps {
     className?: string
     'data-testid'?: string
     'aria-label'?: string
+    /** the row picked in a list of choices */
+    'aria-current'?: React.AriaAttributes['aria-current']
 }
 
 /**
@@ -54,6 +56,7 @@ export const ListItem = ({
     className,
     'data-testid': dataTestId,
     'aria-label': ariaLabel,
+    'aria-current': ariaCurrent,
 }: ListItemProps) => {
     const { triggerHaptic } = useAppHaptic()
     const titleColor = disabled ? 'text-foreground-secondary' : 'text-foreground-primary'
@@ -72,6 +75,7 @@ export const ListItem = ({
             tabIndex={onClick && !disabled ? 0 : undefined}
             aria-disabled={disabled || undefined}
             aria-label={ariaLabel}
+            aria-current={ariaCurrent}
             data-testid={dataTestId}
             className={twMerge(
                 'flex items-center justify-between gap-3 p-4',

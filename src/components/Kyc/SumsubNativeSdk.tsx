@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import * as Sentry from '@sentry/nextjs'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import posthog from 'posthog-js'
 import Modal from '@/components/Global/Modal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -10,7 +11,7 @@ import { toSumsubLocale } from '@/i18n/app/sumsub-locale'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
-import { captureNativeSdkClosed, createSumsubSdkTracker } from './sumsubSdkAnalytics.utils'
+import { captureNativeSdkClosed, createSumsubSdkTracker, nativeErrorProperties } from './sumsubSdkAnalytics.utils'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -45,12 +46,16 @@ export const ORPHANED_SDK_GRACE_MS = 2000
 export const SumsubNativeSdk = ({
     visible,
     accessToken,
+    documentConfig,
+    preselection,
+    identityStepTitle,
     email,
     onClose,
     onComplete,
     onError,
     onRefreshToken,
     onSubmitted,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: SumsubSdkProps) => {
     const t = useTranslations('kyc')
@@ -63,10 +68,17 @@ export const SumsubNativeSdk = ({
     const onRefreshTokenRef = useRef(onRefreshToken)
     const accessTokenRef = useRef(accessToken)
     // A profile refresh must not relaunch the SDK over the user's KYC edits.
+    const documentConfigRef = useRef(documentConfig)
+    documentConfigRef.current = documentConfig
+    const preselectionRef = useRef(preselection)
+    preselectionRef.current = preselection
+    const identityStepTitleRef = useRef(identityStepTitle)
+    identityStepTitleRef.current = identityStepTitle
     const emailRef = useRef(email)
     emailRef.current = email
     const isMultiLevelRef = useRef(isMultiLevel)
     const onSubmittedRef = useRef(onSubmitted)
+    const onIdentityStepCompletedRef = useRef(onIdentityStepCompleted)
     const sumsubLocaleRef = useRef(toSumsubLocale(locale))
 
     useEffect(() => {
@@ -77,7 +89,8 @@ export const SumsubNativeSdk = ({
         accessTokenRef.current = accessToken
         isMultiLevelRef.current = isMultiLevel
         onSubmittedRef.current = onSubmitted
-    }, [onClose, onComplete, onError, onRefreshToken, accessToken, isMultiLevel, onSubmitted])
+        onIdentityStepCompletedRef.current = onIdentityStepCompleted
+    }, [onClose, onComplete, onError, onRefreshToken, accessToken, isMultiLevel, onSubmitted, onIdentityStepCompleted])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -91,15 +104,41 @@ export const SumsubNativeSdk = ({
     useEffect(() => {
         if (!visible || !hasAccessToken) return
 
-        const reportFailure = (reason: string, detail: unknown, kind: 'sdk-missing' | 'launch' = 'launch') => {
+        /**
+         * `nativeClose` marks a failed close reported by the SDK itself. Its
+         * text is SDK-authored and can quote applicant input or a token id, so
+         * PostHog gets only codes for it; Sentry keeps the full text.
+         */
+        const reportFailure = (
+            reason: string,
+            detail: unknown,
+            {
+                kind = 'launch',
+                nativeClose,
+            }: {
+                kind?: 'sdk-missing' | 'launch'
+                nativeClose?: { errorDetail?: SNSMobileSDKErrorDetail | null }
+            } = {}
+        ) => {
             console.error('[sumsub] native sdk failure', reason, detail)
+            const nativeError = nativeClose?.errorDetail
+            const nativeProperties = nativeErrorProperties(nativeError)
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_INIT_FAILED, {
                 reason,
-                message: detail instanceof Error ? detail.message : String(detail),
+                ...(nativeClose ? {} : { message: detail instanceof Error ? detail.message : String(detail) }),
+                ...nativeProperties,
             })
             Sentry.captureException(detail instanceof Error ? detail : new Error(`[sumsub] native ${reason}`), {
-                tags: { sumsub_sdk: 'native', sumsub_failure: reason },
-                extra: { detail },
+                tags: {
+                    ...criticalFlowTags('kyc'),
+                    kyc_step: 'sdk_launch',
+                    sumsub_sdk: 'native',
+                    sumsub_failure: reason,
+                    ...(nativeProperties.error_root_cause
+                        ? { sumsub_root_cause: nativeProperties.error_root_cause }
+                        : {}),
+                },
+                extra: { detail, ...(nativeError ? { nativeError } : {}) },
             })
             setFailure(kind)
             onErrorRef.current?.(detail)
@@ -107,7 +146,7 @@ export const SumsubNativeSdk = ({
 
         const sumsub = window.SNSMobileSDK
         if (!sumsub) {
-            reportFailure('sdk-unavailable', new Error('window.SNSMobileSDK is undefined'), 'sdk-missing')
+            reportFailure('sdk-unavailable', new Error('window.SNSMobileSDK is undefined'), { kind: 'sdk-missing' })
             return
         }
 
@@ -149,8 +188,13 @@ export const SumsubNativeSdk = ({
         }
 
         try {
-            instance = sumsub
-                .init(accessTokenRef.current!, () => onRefreshTokenRef.current())
+            let builder = sumsub
+                .init(accessTokenRef.current!, async () => {
+                    if (cancelled) throw new Error('Verification session changed')
+                    const token = await onRefreshTokenRef.current()
+                    if (cancelled) throw new Error('Verification session changed')
+                    return token
+                })
                 .withHandlers({
                     onStatusChanged: (event) => {
                         if (event?.newStatus && SUBMITTED_STATES.has(event.newStatus)) hasSubmitted = true
@@ -158,12 +202,30 @@ export const SumsubNativeSdk = ({
                     },
                     onEvent: (event) => {
                         tracker.step(event?.eventType, event?.payload?.idDocSetType, event?.payload?.isCancelled)
+                        const cancelled = event?.payload?.isCancelled === true || event?.payload?.isCancelled === 'true'
+                        if (
+                            event?.eventType === 'StepCompleted' &&
+                            event?.payload?.idDocSetType === 'IDENTITY' &&
+                            !cancelled
+                        )
+                            onIdentityStepCompletedRef.current?.()
                     },
                 })
                 .withLocale(sumsubLocaleRef.current)
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
-                .build()
+            // Sumsub's intro calls every ID "Identity document"; name the one the user picked.
+            if (identityStepTitleRef.current && typeof builder.withStrings === 'function')
+                builder = builder.withStrings({ sns_step_IDENTITY_title: identityStepTitleRef.current })
+            const documentDefinitions = documentConfigRef.current?.documentDefinitions
+            if (documentDefinitions) {
+                if (typeof builder.withPreferredDocumentDefinitions === 'function') {
+                    builder = builder.withPreferredDocumentDefinitions(documentDefinitions)
+                } else if (preselectionRef.current !== 'preferred') {
+                    throw new Error('Document preselection requires an app update')
+                }
+            }
+            instance = builder.build()
 
             // The Cordova wrapper keeps a module-level instance lock until its
             // launch promise settles. A backgrounded native screen can disappear
@@ -199,7 +261,13 @@ export const SumsubNativeSdk = ({
                         settled = true
                         clearActiveSumsubInstance(instance)
                         if (result?.success === false) {
-                            reportFailure(result.errorType || 'sdk-failed', new Error(result.errorMsg || result.status))
+                            reportFailure(
+                                result.errorType || 'sdk-failed',
+                                new Error(result.errorMsg || result.status),
+                                {
+                                    nativeClose: { errorDetail: result.errorDetail },
+                                }
+                            )
                             return
                         }
                         handleExit(result?.status)

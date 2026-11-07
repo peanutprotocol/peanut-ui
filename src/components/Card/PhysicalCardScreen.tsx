@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useEffect, useRef, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,8 +13,8 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
-import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import { NumberedList } from '@/components/0_Bruddle/NumberedList'
+import { PILL_THUMB } from '@/components/0_Bruddle/PillSurface'
 
 export const PHYSICAL_WAITLIST_QUERY_KEY = 'rain-physical-waitlist'
 
@@ -66,49 +68,49 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
         }
     }
 
+    const badge = isLoading
+        ? null
+        : data?.joinedAt
+          ? data.position === null
+              ? t('onListBadge')
+              : t('positionBadge', { position: formatFiniteDisplay(data.position) })
+          : t('notAvailableBadge')
+
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
 
-            <CardFace last4={last4} isVirtual={false} />
+            <div className="relative">
+                <CardFace last4={last4} isVirtual={false} className="grayscale" />
+                {badge && (
+                    <span
+                        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-2 text-body-m-semibold whitespace-nowrap text-foreground-primary ${PILL_THUMB}`}
+                    >
+                        {badge}
+                    </span>
+                )}
+            </div>
 
             {isLoading ? (
                 <div className="flex flex-col items-center gap-6 text-center" role="status">
                     <span className="sr-only">{tCommon('loading')}</span>
                     <div className="flex w-full flex-col items-center gap-1">
-                        <div className="h-8 w-40 animate-pulse rounded bg-foreground-primary/10" />
-                        <div className="h-5 w-64 animate-pulse rounded bg-foreground-primary/10" />
+                        <div className="h-8 w-40 animate-pulse rounded bg-background-skeleton" />
+                        <div className="h-5 w-64 animate-pulse rounded bg-background-skeleton" />
                     </div>
-                    <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
+                    <div className="h-11 w-full animate-pulse rounded-full bg-background-skeleton" />
                 </div>
             ) : data?.joinedAt ? (
-                <div className="flex flex-col items-center gap-3 text-center">
-                    <PeanutMascot pose="walking" className={MASCOT_STATE_CLASS} />
-                    {/* position is nullable, so do not render it until rain assigns one. */}
-                    <TitleBlock
-                        title={<h1>{t('onListTitle')}</h1>}
-                        description={
-                            data.position === null
-                                ? t('onListBodyPending')
-                                : t('onListBody', { position: data.position.toLocaleString() })
-                        }
-                        align="center"
-                        size="s"
-                    />
-                </div>
+                <TitleBlock title={<h1>{t('onListTitle')}</h1>} description={t('onListBody')} align="center" size="s" />
             ) : (
-                <div className="flex flex-col items-center gap-6 text-center">
-                    <TitleBlock
-                        title={<h1>{t('comingSoonTitle')}</h1>}
-                        description={t('comingSoonBody')}
-                        align="center"
-                        size="s"
-                    />
+                <>
+                    <TitleBlock title={<h1>{t('comingSoonTitle')}</h1>} description={t('comingSoonBody')} size="s" />
+                    <NumberedList items={[t('stepJoin'), t('stepNotify'), t('stepShip')]} />
                     {error && <Callout priority="error">{error}</Callout>}
                     <Button variant="primary" className="w-full" onClick={onJoin} loading={joining} disabled={joining}>
                         {t('joinCta')}
                     </Button>
-                </div>
+                </>
             )}
         </PageStack>
     )

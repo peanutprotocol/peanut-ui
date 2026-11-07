@@ -14,3 +14,8 @@ export function usEuMoneyInBody(eur: number, eurUsd: StarLpFxRate | null): strin
     if (!eurUsd || !(eurUsd.rate > 0)) return null
     return `${usd.format(Math.floor(eur * eurUsd.rate * 100) / 100)} added from your bank.`
 }
+
+/** Fills `{name}` slots in a page string; a slot with no value stays as written, so a typo shows. */
+export function fillUsEuLabel(template: string, values: Record<string, string>): string {
+    return template.replace(/\{(\w+)\}/g, (slot, name: string) => values[name] ?? slot)
+}

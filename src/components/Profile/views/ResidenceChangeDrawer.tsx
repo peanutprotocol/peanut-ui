@@ -9,12 +9,24 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
+import { useKycIntents, type KycIntents } from '@/hooks/useKycIntents'
+import { localizedCountryName } from '@/utils/country-name.utils'
 import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
+
+const SERVICES = ['card', 'bank', 'local', 'qr'] as const
+type Service = (typeof SERVICES)[number]
+
+/** What the verified residence opens that the new one closes: the services a move ends once approved. */
+function servicesLost(current: KycIntents | undefined, next: KycIntents | undefined): Service[] {
+    if (!current || !next) return []
+    return SERVICES.filter((service) => current[service].available && !next[service].available)
+}
 
 interface ResidenceChangeDrawerProps {
     visible: boolean
@@ -56,6 +68,8 @@ const ResidenceChangeDrawer = ({
     const tCommon = useTranslations('common')
     const restrictionSets = useResidenceRestrictionSets()
     const locale = useLocale()
+    // Reports only inside /verify's flow; the profile page's drawer has no KYC screen around it.
+    const control = useKycControl('change-residence')
     const [selected, setSelected] = useState<string>(pending ?? declared ?? verified ?? '')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -71,8 +85,18 @@ const ResidenceChangeDrawer = ({
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
-    const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
+    const selectedRestrictions = restrictionSets
+        ? deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
+        : null
     const differsFromVerified = !!verified && !!selected && selected !== verified
+    // Slava, 2026-10-27: an approved move into a country that restricts a service closes it,
+    // so a verified user is told what they lose before confirming.
+    const { intents: verifiedIntents } = useKycIntents(verified)
+    const { intents: selectedIntents } = useKycIntents(differsFromVerified ? selected : null)
+    const lost = differsFromVerified ? servicesLost(verifiedIntents, selectedIntents) : []
+    const lostList = new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+        lost.map((service) => t(`lost.${service}`))
+    )
 
     const save = async (reverifyAfter: boolean) => {
         if (!userId || !selected || isSaving) return false
@@ -89,7 +113,8 @@ const ResidenceChangeDrawer = ({
             // device, and trusting it there is what let a reorder wipe the
             // outgoing country. The mirror is the fallback for the window
             // before the /users/me field reaches production.
-            const previousSecond = declaredSecond ?? readSecondResidence(userId)
+            // `null` from the server means "no second residence"; only an absent field falls back.
+            const previousSecond = declaredSecond === undefined ? readSecondResidence(userId) : declaredSecond
             const isReorder = !!declared && previousSecond === selected
             const result = await updateUserById({
                 userId,
@@ -131,7 +156,9 @@ const ResidenceChangeDrawer = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (isOpen) return
+                control.track('change_residence', 'dismiss')
+                onClose()
             }}
         >
             <DrawerContent>
@@ -147,22 +174,36 @@ const ResidenceChangeDrawer = ({
                     <div className="flex w-full flex-col gap-3 text-center">
                         <p className="text-body-s">{t('description')}</p>
                         <CountryCombobox
+                            showFlags
                             options={countryOptions}
                             placeholder={t('countryPlaceholder')}
                             value={selected || undefined}
-                            onValueChange={setSelected}
+                            onValueChange={(country) => {
+                                control.track('residence_country', 'select', country)
+                                setSelected(country)
+                            }}
                         />
                         {differsFromVerified && (
                             <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
                         )}
-                        {(selectedRestrictions.banking || selectedRestrictions.card) && (
-                            <p className="text-body-xs text-foreground-secondary">
-                                {selectedRestrictions.banking && selectedRestrictions.card
-                                    ? t('fullRestrictionNote')
-                                    : selectedRestrictions.card
-                                      ? t('cardRestrictionNote')
-                                      : t('bankingRestrictionNote')}
-                            </p>
+                        {lost.length > 0 ? (
+                            <Callout priority="attention" title={t('lostTitle')} data-testid="residence-change-lost">
+                                {t('lostBody', {
+                                    country: localizedCountryName(locale, selected, selected),
+                                    services: lostList,
+                                })}
+                            </Callout>
+                        ) : (
+                            selectedRestrictions &&
+                            (selectedRestrictions.banking || selectedRestrictions.card) && (
+                                <p className="text-body-xs text-foreground-secondary">
+                                    {selectedRestrictions.banking && selectedRestrictions.card
+                                        ? t('fullRestrictionNote')
+                                        : selectedRestrictions.card
+                                          ? t('cardRestrictionNote')
+                                          : t('bankingRestrictionNote')}
+                                </p>
+                            )
                         )}
                         {error && <Callout priority="error">{error}</Callout>}
                         <Button
@@ -170,16 +211,22 @@ const ResidenceChangeDrawer = ({
                             shadowSize="4"
                             className="mt-1 w-full justify-center"
                             disabled={isSaving || !selected || !userId}
-                            onClick={() => void save(false)}
+                            onClick={() => {
+                                control.track('save', 'tap')
+                                void save(false)
+                            }}
                         >
-                            {isSaving ? tCommon('loading') : t('save')}
+                            {isSaving ? tCommon('loading') : lost.length > 0 ? t('saveAnyway') : t('save')}
                         </Button>
                         {differsFromVerified && (
                             <Button
                                 variant="secondary"
                                 className="w-full justify-center"
                                 disabled={isSaving}
-                                onClick={() => void save(true)}
+                                onClick={() => {
+                                    control.track('save_and_reverify', 'tap')
+                                    void save(true)
+                                }}
                             >
                                 {t('saveAndReverify')}
                             </Button>

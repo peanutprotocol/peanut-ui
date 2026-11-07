@@ -85,6 +85,24 @@ beforeEach(() => {
 })
 
 describe('account opening celebration', () => {
+    it('opens the normal claim screen for not_started instead of a missing-rail gate', () => {
+        const initial = props()
+        initial.gates.SEPA_EU = { kind: 'needs-enrollment' }
+        initial.unavailable = {
+            ...emptyCorridorRecord(),
+            SEPA_EU: {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'not-offered',
+                cause: 'not_started',
+            },
+        }
+        render(<DepositAccountsFlow {...initial} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Open account' }))
+        expect(initial.onClaim).toHaveBeenCalledWith('SEPA_EU')
+    })
     it('waits for active instructions and a ready gate, then dismisses into details', () => {
         const initial = props()
         const { rerender } = render(<DepositAccountsFlow {...initial} />)

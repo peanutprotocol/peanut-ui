@@ -1,5 +1,7 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
@@ -10,6 +12,7 @@ import { updateUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { isValidEmail } from '@/utils/format.utils'
 import type { IconName } from '@/components/Global/Icons/Icon'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface ProvideEmailStepProps {
     visible: boolean
@@ -25,6 +28,7 @@ interface ProvideEmailStepProps {
  * ticket needed. (Shell mirrors BridgeTosStep.)
  */
 export default function ProvideEmailStep({ visible, onComplete, onSkip }: ProvideEmailStepProps) {
+    const { track } = useKycControl('provide-email', 'kyc_provider_request')
     const t = useTranslations('kyc')
     const { user, fetchUser } = useAuth()
     const savedEmail = user?.user.email || ''
@@ -50,6 +54,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
     }, [visible, savedEmail])
 
     const handleSave = useCallback(async () => {
+        track('save', 'tap')
         // one visible cause at a time: reset both channels before selecting
         setError(null)
         setFlowError(null)
@@ -67,6 +72,10 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
         try {
             const response = await updateUserById({ userId, email: trimmed })
             if (response.error) {
+                if (response.failureKind !== 'http' || (response.status ?? 0) >= 500)
+                    Sentry.captureException(new Error('KYC email save failed'), {
+                        tags: { ...criticalFlowTags('kyc'), kyc_step: 'email_save' },
+                    })
                 setFlowError(response.error)
                 return
             }
@@ -75,17 +84,21 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             // normal in-progress state instead of this modal).
             await fetchUser()
             onComplete()
-        } catch {
+        } catch (error) {
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'email_save' } })
             setFlowError(t('provideEmail.saveFailed'))
         } finally {
             setIsSaving(false)
         }
-    }, [email, user?.user?.userId, fetchUser, onComplete, t])
+    }, [email, user?.user?.userId, fetchUser, onComplete, t, track])
 
     return (
         <ActionModal
             visible={visible}
-            onClose={onSkip}
+            onClose={() => {
+                track('provide_email', 'dismiss')
+                onSkip()
+            }}
             tone="info"
             icon={'user-id' as IconName}
             title={t('provideEmail.title')}
@@ -100,13 +113,20 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                     shadowSize: '4',
                 },
             ]}
-            tertiaryCta={{ text: t('provideEmail.notNow'), onClick: onSkip }}
+            tertiaryCta={{
+                text: t('provideEmail.notNow'),
+                onClick: () => {
+                    track('not_now', 'tap')
+                    onSkip()
+                },
+            }}
             content={
                 <div className="w-full pt-2 text-left">
                     <ProfileEditField
                         label={t('provideEmail.emailLabel')}
                         value={email}
                         onChange={(value) => {
+                            if (!editedRef.current) track('email', 'change')
                             editedRef.current = true
                             setEmail(value)
                         }}

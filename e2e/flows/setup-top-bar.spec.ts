@@ -14,6 +14,7 @@
  */
 
 import { expect, test, type Page } from '@playwright/test'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
 type Box = { x: number; y: number }
 type Sample = { switchers: Box[]; back: Box | null; heroes: string[] }
@@ -65,21 +66,16 @@ const boardHero = ({ width, height }: { width: number; height: number }) =>
 for (const viewport of VIEWPORTS) {
     test(`the hero, the language switcher and the back button stay put between steps at ${viewport.width}x${viewport.height}`, async ({
         page,
+        baseURL,
     }) => {
         await page.setViewportSize(viewport)
-        // Headless Chromium has no platform authenticator; the setup gate would show the unsupported modal.
-        await page.addInitScript(() => {
-            const w = window as unknown as {
-                PublicKeyCredential: { isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean> }
-            }
-            w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
-            w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
-        })
         await page.route('**/*', (route) =>
             ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname)
                 ? route.continue()
                 : route.abort()
         )
+        // web signup is app-only; the support keep-web cookie reopens it in this browser
+        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
         await page.goto('/setup')
         const signUp = page.getByRole('button', { name: 'Sign up' })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
@@ -107,6 +103,34 @@ for (const viewport of VIEWPORTS) {
         expect(new Set(samples.filter((s) => s.back).map((s) => JSON.stringify(s.back))).size).toBe(1)
     })
 }
+
+test('the residence capture paints its safe area and positions the top bar once', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 852 })
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
+    await page.goto('/dev/surfaces?s=03-b-residence-compare&__fixture=profile-edit')
+    const hero = page.locator('[data-setup-hero]')
+    await expect(hero).toBeVisible()
+    await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
+
+    const shell = page.locator('#scrollable-content')
+    const strip = shell.locator('xpath=preceding-sibling::*[1]')
+    await expect(strip).toHaveCSS('height', '59px')
+    await expect(strip).toHaveCSS(
+        'background-color',
+        await hero.evaluate((node) => getComputedStyle(node).backgroundColor)
+    )
+    expect(await hero.evaluate((node) => node.getBoundingClientRect().top)).toBe(59)
+    expect(await page.locator('[data-setup-top-bar]').evaluate((node) => node.getBoundingClientRect().top)).toBe(75)
+
+    await page.goto('/dev/surfaces?s=84-f-choice-public-profile-guest&__fixture=profile-edit')
+    await expect(shell.getByText('Create your wallet')).toBeVisible()
+    await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
+    await expect(strip).toHaveCSS('height', '59px')
+    await expect(strip).toHaveCSS('background-color', 'rgb(250, 244, 240)')
+    await expect(shell).toHaveCSS('position', 'relative')
+})
 
 // Every sign-up step, as /setup renders it (the surfaces gallery mounts each step in the real wrapper).
 const STEP_SURFACES = [

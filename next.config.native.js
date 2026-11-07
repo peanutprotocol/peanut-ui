@@ -20,6 +20,9 @@ try {
     console.warn('Could not get git commit hash:', error.message)
 }
 
+const { buildBranch, isTestBuild } = require('./scripts/build-branch.cjs')
+const branch = buildBranch()
+
 /** @type {import('next').NextConfig} */
 let nextConfig = {
     // STATIC EXPORT FOR CAPACITOR
@@ -56,6 +59,8 @@ let nextConfig = {
         // native builds never run on Vercel; define the literal so the /dev
         // build-time gates fold to false and dev-only data is tree-shaken out
         NEXT_PUBLIC_VERCEL_ENV: '',
+        // a build for testing names its branch on the testing ribbon; a release names none
+        NEXT_PUBLIC_TEST_BUILD_BRANCH: isTestBuild(branch) ? branch : '',
     },
 
     // Transpile packages for better compatibility

@@ -1,8 +1,10 @@
+import { parseFiniteNumber } from '@/lib/money'
 /**
  * Format points for display with thousands separators (e.g. 564,554).
  */
 export function formatPoints(points: number): string {
-    return points.toLocaleString('en-US')
+    const finite = parseFiniteNumber(points)
+    return finite === null ? '—' : finite.toLocaleString('en-US')
 }
 
 /**
@@ -10,6 +12,7 @@ export function formatPoints(points: number): string {
  * Returns { number, suffix } so the suffix (K/M) can be styled separately.
  */
 export function shortenPoints(points: number): { number: string; suffix: string } {
+    if (parseFiniteNumber(points) === null) return { number: '—', suffix: '' }
     if (points >= 1_000_000) {
         const m = points / 1_000_000
         return { number: m >= 10 ? Math.round(m).toString() : m.toFixed(1).replace(/\.0$/, ''), suffix: 'M' }
@@ -66,16 +69,16 @@ export function shortDepositReference(reference: string | undefined): string | u
 }
 
 /**
- * "2099-03-01" → "March 1, 2099". Capability advisory deadlines
+ * "2099-03-01" → "March 1, 2099" (en), "1 de março de 2099" (pt-BR). Capability advisory deadlines
  * (`NextAction.effectiveDate`) are date-only YYYY-MM-DD strings, which
  * `new Date()` parses at UTC midnight — format in UTC too, or Americas
  * timezones render the day before the deadline. Used by the pending
  * verification tasks card, so every slide renders the date the same way.
  */
-export function formatEffectiveDate(iso?: string): string | null {
+export function formatEffectiveDate(iso: string | undefined, locale: string): string | null {
     if (!iso) return null
     const date = new Date(iso)
     return Number.isNaN(date.getTime())
         ? null
-        : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+        : date.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
 }
