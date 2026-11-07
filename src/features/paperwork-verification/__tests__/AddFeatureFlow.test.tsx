@@ -97,15 +97,15 @@ describe('AddFeatureQuestions', () => {
         mockQuestions.mockResolvedValue(cardQuestions())
         mockSave.mockResolvedValue({ kind: 'saved', next: null })
         renderWithIntl(<AddFeatureQuestions feature="card" onBack={jest.fn()} onDone={jest.fn()} />)
-        expect(await screen.findByText('For your card')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
+        expect(screen.queryByText('For your card')).not.toBeInTheDocument()
         expect(mockQuestions).toHaveBeenCalledWith('card')
-        expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-annualSalary')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-expectedMonthlyVolume')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-input-phone')).not.toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-continue'))
         expect(await screen.findByTestId('verify-input-phone')).toBeInTheDocument()
-        expect(screen.getByText('For your card')).toBeInTheDocument()
+        expect(screen.queryByText('For your card')).not.toBeInTheDocument()
         expect(screen.queryByTestId('verify-pick-cardPurpose')).not.toBeInTheDocument()
         // Without the address beside it, the phone keeps its country-code help and the no-spam promise.
         expect(screen.getByText('Include your country code, like +1.')).toBeInTheDocument()
@@ -505,13 +505,13 @@ describe('AddFeatureQuestions: the nationality on the birth step', () => {
         progress: { done: 1, total: 2 },
     })
 
-    it('arrives filled under the feature heading, and Continue saves it', async () => {
+    it('arrives filled without a bank account heading, and Continue saves it', async () => {
         mockQuestions.mockResolvedValue(withNationality())
         mockSave.mockResolvedValue({ kind: 'saved', next: null })
         const onDone = jest.fn()
         renderWithIntl(<AddFeatureQuestions feature="bank" onBack={jest.fn()} onDone={onDone} />)
-        expect(await screen.findByText('For your bank account')).toBeInTheDocument()
-        expect(screen.getByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
+        expect(screen.queryByText('For your bank account')).not.toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(onDone).toHaveBeenCalled())
         expect(mockSave).toHaveBeenCalledWith('birth', { nationality: 'DE' }, 'bank', 'user-a')

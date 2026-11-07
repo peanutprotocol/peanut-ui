@@ -112,7 +112,7 @@ export function SetupConfirmationView({
             {errorDetail && <p className="mt-2">{errorDetail}</p>}
         </Callout>
     )
-    // In the sign-up flow this is the "Only for you" step: the shared title block
+    // In the sign-up flow this is the final confirmation step: the shared title block
     // at the top, the passkey confirmation on the pinned primary.
     if (merged) {
         return (

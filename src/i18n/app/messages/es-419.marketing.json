@@ -1,5 +1,12 @@
 {
     "common": {
+        "claimCouldNotComplete": "No se pudo reclamar el pago",
+        "cardCouldNotLoad": "No pudimos cargar la tarjeta",
+        "cardRecoveryUnavailable": "Recuperación de tarjeta no disponible",
+        "qrPaymentCouldNotStart": "No se pudo iniciar el pago con QR",
+        "withdrawalCouldNotComplete": "No se pudo completar el retiro",
+        "sendCouldNotComplete": "No se pudo enviar el pago",
+        "bankTransfersUnavailable": "Transferencias bancarias no disponibles",
         "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
         "exchangeRateInfo": "Este es el tipo de cambio actual. Puede cambiar ligeramente antes de que se confirme tu pago.",
         "fundsOnTheWay": "Fondos en camino",

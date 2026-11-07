@@ -4,7 +4,7 @@ import { useHydrationSnapshot } from '@/utils/native-platform'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -264,24 +264,12 @@ const HistoryPage = () => {
         return (
             <PageStack>
                 <NavHeader title={t('title')} />
-                <EmptyState
-                    icon="alert"
-                    iconColor="red"
-                    title={t('errorTitle')}
-                    description={t('errorDescription')}
-                    cta={
-                        <Button
-                            variant="primary"
-                            shadowSize="4"
-                            size="small"
-                            className="mt-2"
-                            onClick={() => refetch()}
-                            data-testid="history-retry"
-                        >
-                            {tCommon('tryAgain')}
-                        </Button>
-                    }
-                />
+                <PageStack.Center className="gap-4">
+                    <CenteredErrorCard title={t('errorTitle')} description={t('errorDescription')} />
+                    <Button variant="primary" shadowSize="4" onClick={() => refetch()} data-testid="history-retry">
+                        {tCommon('tryAgain')}
+                    </Button>
+                </PageStack.Center>
             </PageStack>
         )
     }

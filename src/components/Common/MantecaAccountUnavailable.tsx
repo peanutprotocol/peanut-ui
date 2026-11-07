@@ -1,10 +1,9 @@
 'use client'
 
-import { Callout } from '@/components/0_Bruddle/Callout'
+import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
-import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { useLocale, useTranslations } from 'next-intl'
 
@@ -30,13 +29,21 @@ export function MantecaAccountUnavailable({
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center>
-                <PeanutMascot pose="sad" className={`mx-auto ${MASCOT_STATE_CLASS}`} />
-                <Callout priority="error" ctas={[{ label: tCommon('contactSupport'), onClick: onSupport }]}>
-                    {description ??
-                        (country
-                            ? tErrors('mantecaAccountRejectedForCountry', { country })
-                            : tErrors('mantecaAccountRejected'))}
-                </Callout>
+                <CenteredErrorCard
+                    title={tCommon('bankTransfersUnavailable')}
+                    description={
+                        <div role="alert">
+                            {description ??
+                                (country
+                                    ? tErrors('mantecaAccountRejectedForCountry', { country })
+                                    : tErrors('mantecaAccountRejected'))}
+                        </div>
+                    }
+                >
+                    <Button variant="primary" onClick={onSupport}>
+                        {tCommon('contactSupport')}
+                    </Button>
+                </CenteredErrorCard>
             </PageStack.Center>
         </PageStack>
     )

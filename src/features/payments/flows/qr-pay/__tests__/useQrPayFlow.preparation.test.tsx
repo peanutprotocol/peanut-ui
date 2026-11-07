@@ -759,6 +759,7 @@ describe('open-amount QR (no lock until Pay)', () => {
         renderFlow(undefined, { page: true })
 
         const retry = await screen.findByRole('button', { name: /retry/i })
+        expect(screen.getByRole('heading', { name: 'Exchange rate unavailable' })).toBeInTheDocument()
         expect(screen.queryByText('Payment form')).not.toBeInTheDocument()
         expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
         fireEvent.click(retry)

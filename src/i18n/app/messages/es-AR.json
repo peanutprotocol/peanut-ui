@@ -1,5 +1,25 @@
 {
+    "rateGate": {
+        "title": "Tipo de cambio no disponible"
+    },
+    "walletRecovery": {
+        "invalidLink": {
+            "title": "Enlace de recuperación no disponible",
+            "description": "Este enlace de recuperación no es válido o venció."
+        },
+        "walletUnavailable": {
+            "title": "Recuperación de billetera no disponible",
+            "description": "No pudimos cargar esta billetera para recuperarla."
+        }
+    },
     "common": {
+        "claimCouldNotComplete": "No se pudo reclamar el pago",
+        "cardCouldNotLoad": "No pudimos cargar la tarjeta",
+        "cardRecoveryUnavailable": "Recuperación de tarjeta no disponible",
+        "qrPaymentCouldNotStart": "No se pudo iniciar el pago con QR",
+        "withdrawalCouldNotComplete": "No se pudo completar el retiro",
+        "sendCouldNotComplete": "No se pudo enviar el pago",
+        "bankTransfersUnavailable": "Transferencias bancarias no disponibles",
         "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
         "fundsOnTheWay": "Fondos en camino",
         "genericError": "Algo salió mal. Intentá de nuevo o contactá soporte.",
@@ -461,7 +481,8 @@
             "description": "Confirmá tu identidad para desbloquear pagos fiat y ver tus límites."
         },
         "error": {
-            "description": "No se pudieron cargar los límites. Intentá de nuevo."
+            "title": "No pudimos cargar los límites",
+            "description": "Revisá tu conexión e intentá de nuevo."
         },
         "needHigherLimits": "¿Necesitás límites más altos? Contactá soporte.",
         "warningCard": {
@@ -498,7 +519,7 @@
                 "description": "Invitá a tus amigos y desbloqueá recompensas cuando usen Peanut."
             },
             "advantage-control": {
-                "title": "Solo para vos",
+                "title": "Vos tenés el control",
                 "description": "Solo vos podés usar tu huella o Face ID para controlar tu cuenta. Peanut nunca puede mover ni congelar tu plata. Probalo ahora."
             },
             "advantage-bank": {
