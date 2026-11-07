@@ -267,7 +267,8 @@ PAGE_CAPTURES.push(
         name: "Avenia — the provider's legal details",
         route: '/withdraw/pix?destination=09579927189&destinationAmount=503&step=review',
         fixture: 'avenia-withdraw-review',
-        clicks: ['About Avenia'],
+        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
         expectSelector: '[role="dialog"][data-state="open"]',
     }
 )

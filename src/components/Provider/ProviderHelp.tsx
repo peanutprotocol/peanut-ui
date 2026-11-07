@@ -38,6 +38,8 @@ export const ProviderHelp = ({
             <button
                 type="button"
                 aria-label={t('about', { brand: PROVIDERS[providerId].brand })}
+                // the (?) has no visible text: a capture taps it by this id in every locale
+                data-testid="provider-help"
                 onClick={(event) => {
                     // the row it sits on may be a button of its own
                     event.stopPropagation()
