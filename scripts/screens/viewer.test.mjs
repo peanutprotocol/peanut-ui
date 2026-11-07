@@ -111,7 +111,9 @@ class Element {
         this.open = true
     }
     close() {
+        if (!this.open) return
         this.open = false
+        this.dispatch('close')
     }
     scrollBy(options) {
         this.lastScrollOptions = options
@@ -194,16 +196,67 @@ async function loadLanding(
         reload() {},
     }
     const historyCalls = []
+    const listeners = new Map()
+    const entries = [`${pathname}${search}${hash}`]
+    let historyIndex = 0
+    const applyUrl = (href) => {
+        const next = new URL(href, 'https://screens.example')
+        location.pathname = next.pathname
+        location.search = next.search
+        location.hash = next.hash
+        location.href = next.href
+    }
+    applyUrl(entries[0])
     const history = {
+        get length() {
+            return entries.length
+        },
         replaceState(_state, _title, href) {
             historyCalls.push(href)
-            const next = new URL(href, 'https://screens.example')
-            location.pathname = next.pathname
-            location.search = next.search
-            location.hash = next.hash
+            entries[historyIndex] =
+                new URL(href, location.href).pathname +
+                new URL(href, location.href).search +
+                new URL(href, location.href).hash
+            applyUrl(entries[historyIndex])
+        },
+        pushState(_state, _title, href) {
+            historyCalls.push(href)
+            const next = new URL(href, location.href)
+            entries.splice(historyIndex + 1, entries.length, next.pathname + next.search + next.hash)
+            historyIndex += 1
+            applyUrl(entries[historyIndex])
+        },
+        back() {
+            this.go(-1)
+        },
+        forward() {
+            this.go(1)
+        },
+        go(delta) {
+            const next = historyIndex + delta
+            if (next < 0 || next >= entries.length) return
+            historyIndex = next
+            applyUrl(entries[historyIndex])
+            for (const listener of listeners.get('popstate') ?? []) listener({ state: null })
         },
     }
+    const window = {
+        ...(screenComments ? { ScreenComments: screenComments } : {}),
+        addEventListener(type, listener) {
+            if (!listeners.has(type)) listeners.set(type, [])
+            listeners.get(type).push(listener)
+        },
+        removeEventListener(type, listener) {
+            listeners.set(
+                type,
+                (listeners.get(type) ?? []).filter((entry) => entry !== listener)
+            )
+        },
+        location,
+        history,
+    }
     elements.location = location
+    elements.history = history
     elements.historyCalls = historyCalls
     let resolveResponse
     const response = new Promise((resolve) => {
@@ -219,6 +272,7 @@ async function loadLanding(
         console,
         document,
         URLSearchParams,
+        URL,
         fetch: (url) =>
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
@@ -227,7 +281,7 @@ async function loadLanding(
                   : response,
         history,
         location,
-        window: screenComments ? { ScreenComments: screenComments } : {},
+        window,
     })
     vm.runInContext(viewer, context, {
         filename: 'public/screen-library/viewer.js',
@@ -733,7 +787,10 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.get('view-mode').checked, true)
     assert.equal(elements.get('screens').children.length, 1)
     assert.equal(elements.get('screens').children[0].id, 'failed')
-    assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
+    assert.equal(
+        elements.location.search,
+        '?source=synthetic&locale=en&status=failed&view=all&preview=changed&previewMode=side'
+    )
 
     const paired = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
         report,
@@ -747,7 +804,10 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     unchanged.children[1].children[0].children[1].onclick()
     assert.equal(imageSources(paired.get('zoom-images')).length, 2)
     assert.equal(paired.get('zoom-controls').hidden, false)
-    assert.equal(paired.location.search, '?source=synthetic&locale=en&view=all&layout=paired')
+    assert.equal(
+        paired.location.search,
+        '?source=synthetic&locale=en&view=all&layout=paired&preview=unchanged&previewMode=side'
+    )
 })
 
 for (const channel of ['pr-3392', 'compare-main'])
@@ -2150,4 +2210,185 @@ test('unknown totals never hide a card that is already on screen', async () => {
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
     screenComments.settleVote('split', undefined)
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
+})
+
+// Public preview URL contract: exercise only the rendered UI and browser navigation.
+const previewPath = `/screens/2026-09-11/pr-1/en/${'a'.repeat(40)}/`
+const previewImage = (letter) => `${letter.repeat(64)}.png`
+const previewCapture = (count = 2) => ({
+    schema: 1,
+    type: 'capture',
+    locale: 'en',
+    complete: true,
+    width: 393,
+    height: 852,
+    screens: Array.from({ length: count }, (_, i) => ({
+        id: `preview-${i}`,
+        name: `Preview ${i}`,
+        flow: i === 0 ? 'Home' : 'Send',
+        kind: 'route',
+        status: 'captured',
+        image: previewImage(i % 2 ? 'b' : 'a'),
+    })),
+})
+const openCapture = (tile) => tile.children[1].children[0].children[1].onclick()
+const previewParams = (elements) => new URLSearchParams(elements.location.search)
+
+test('preview links: open pushes one entry, navigation replaces it, Back and Forward restore the preview', async () => {
+    const elements = await loadLanding(previewPath, { report: previewCapture(), search: '?source=synthetic&locale=en' })
+    const initialLength = elements.history.length
+    const firstTile = elements.get('screens').children[0]
+    openCapture(firstTile)
+    assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    assert.equal(elements.history.length, initialLength + 1)
+    openCapture(firstTile)
+    assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    assert.equal(elements.history.length, initialLength + 1, 'reopening the same preview adds no history entry')
+    assert.equal(previewParams(elements).get('source'), 'synthetic')
+    assert.equal(previewParams(elements).get('locale'), 'en')
+    assert.equal(elements.location.pathname, previewPath)
+    elements.get('zoom-next').onclick()
+    assert.equal(previewParams(elements).get('preview'), 'preview-1')
+    assert.equal(elements.history.length, initialLength + 1)
+    elements.get('zoom').dispatch('keydown', { key: 'ArrowLeft' })
+    assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    assert.equal(elements.history.length, initialLength + 1)
+    elements.history.back()
+    assert.equal(elements.get('zoom').open, false)
+    assert.equal(previewParams(elements).has('preview'), false)
+    elements.history.forward()
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 0')
+})
+
+test('preview links: direct links resolve past pagination and filters without changing the requested filter', async () => {
+    const elements = await loadLanding(previewPath, {
+        report: previewCapture(30),
+        search: '?source=synthetic&locale=en&q=Preview%200&preview=preview-29',
+    })
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 29')
+    assert.equal(elements.get('search').value, 'Preview 0')
+    assert.equal(previewParams(elements).get('q'), 'Preview 0')
+    assert.deepEqual(renderedIds(elements), ['preview-0'])
+    elements.get('close').onclick()
+    assert.equal(elements.get('zoom').open, false)
+    assert.equal(previewParams(elements).has('preview'), false)
+    assert.equal(previewParams(elements).get('q'), 'Preview 0')
+})
+
+test('preview links: Escape and explicit close remove parameters for direct links', async () => {
+    for (const close of [
+        (elements) => elements.get('close').onclick(),
+        (elements) => elements.get('zoom').dispatch('keydown', { key: 'Escape' }),
+        (elements) => elements.get('zoom').dispatch('cancel'),
+    ]) {
+        const elements = await loadLanding(previewPath, {
+            report: previewCapture(),
+            search: '?locale=en&preview=preview-0&previewMode=screen',
+        })
+        assert.equal(elements.get('zoom').open, true)
+        close(elements)
+        assert.equal(elements.get('zoom').open, false)
+        assert.equal(previewParams(elements).has('preview'), false)
+        assert.equal(previewParams(elements).has('previewMode'), false)
+        assert.equal(previewParams(elements).get('locale'), 'en')
+    }
+})
+
+test('preview links: comparison modes round trip and changing mode replaces the current entry', async () => {
+    const before = previewImage('a'),
+        after = previewImage('b'),
+        diff = previewImage('c')
+    const report = comparisonReportWith([
+        { ...comparisonScreen({ id: 'compare-target' }), before: { image: before }, after: { image: after }, diff },
+    ])
+    for (const [mode, expected] of [
+        ['side', [before, after]],
+        ['overlay', [before, after]],
+        ['difference', [diff]],
+        ['before', [before]],
+        ['after', [after]],
+    ]) {
+        const elements = await loadLanding(previewPath, {
+            report,
+            search: `?view=all&preview=compare-target&previewMode=${mode}`,
+        })
+        assert.equal(elements.get('zoom').open, true, mode)
+        const sources = imageSources(elements.get('zoom-images'))
+        for (const image of expected)
+            assert.ok(
+                sources.some((src) => src.endsWith(image)),
+                mode
+            )
+        if (['side', 'overlay', 'difference'].includes(mode))
+            assert.equal(elements.get(mode)['aria-pressed'], 'true', mode)
+    }
+    const elements = await loadLanding(previewPath, {
+        report,
+        search: '?view=all&preview=compare-target&previewMode=side',
+    })
+    const count = elements.history.length
+    elements.get('overlay').onclick()
+    assert.equal(previewParams(elements).get('previewMode'), 'overlay')
+    assert.equal(elements.history.length, count)
+})
+
+test('preview links: unknown IDs are harmless and unknown modes normalize to a usable screen', async () => {
+    for (const id of ['', 'missing', '<script>alert(1)</script>']) {
+        const elements = await loadLanding(previewPath, {
+            report: previewCapture(),
+            search: `?preview=${encodeURIComponent(id)}`,
+        })
+        assert.equal(elements.get('zoom').open, false)
+        openCapture(elements.get('screens').children[0])
+        assert.equal(elements.get('zoom').open, true)
+        assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    }
+    const elements = await loadLanding(previewPath, {
+        report: previewCapture(),
+        search: '?preview=preview-0&previewMode=unknown',
+    })
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 0')
+    assert.ok([null, 'screen'].includes(previewParams(elements).get('previewMode')))
+})
+
+test('preview links: repeated flow placements retain their distinct rendered ID', async () => {
+    const report = {
+        schema: 1,
+        type: 'collection',
+        title: 'Review flows',
+        locales: ['en'],
+        complete: true,
+        items: [
+            {
+                id: 'shared-screen',
+                name: 'Shared',
+                flow: 'Home',
+                order: 0,
+                variants: { en: { status: 'captured', image: previewImage('a') } },
+            },
+        ],
+        flows: [
+            { title: 'First', items: [{ id: 'shared-screen' }] },
+            { title: 'Second', items: [{ id: 'shared-screen', note: 'Second placement' }] },
+        ],
+    }
+    const path = '/collections/review-flows/'
+    const elements = await loadLanding(path, { report, search: '?locale=en' })
+    const tile = elements.get('screens').children[1].lastElementChild.children[0]
+    assert.notEqual(tile.id, 'shared-screen')
+    openCapture(tile)
+    assert.equal(previewParams(elements).get('preview'), tile.id)
+    const shared = await loadLanding(path, { report, search: elements.location.search })
+    assert.equal(shared.get('zoom').open, true)
+    assert.equal(previewParams(shared).get('preview'), tile.id)
+})
+
+test('preview links: legacy hash alone does not open a modal', async () => {
+    const elements = await loadLanding(previewPath, { report: previewCapture(), hash: '#preview-0' })
+    assert.equal(elements.get('zoom').open, false)
+    assert.equal(elements.location.hash, '#preview-0')
+    assert.ok(renderedIds(elements).includes('preview-0'))
 })

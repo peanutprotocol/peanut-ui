@@ -472,7 +472,7 @@ function commentScopes(row) {
     })
 }
 function openComments(row, scope, threadId) {
-    zoom(row, 'screen')
+    zoom(row, scope.side)
     const preview = phonePreview(
         image(scope.image, `${row.name} screen preview`, { preview: false }),
         scope.side === 'before' ? 'Before' : 'After',
@@ -535,7 +535,7 @@ function navigateComment(scope, threadId) {
             name: `${row.name} · ${version}`,
             [scope.side]: { image: scope.image, status: 'captured' },
         }
-    zoom(row, scope.side === 'before' ? 'side' : 'screen')
+    zoom(row, scope.side)
     if (scope.side === 'before') {
         $('zoom-images').replaceChildren(
             phonePreview(image(scope.image, `${row.name} screen preview`, { preview: false }), `Before · ${version}`)
@@ -600,7 +600,6 @@ async function openScreenHistory(row, push = true) {
         gaps: [],
     }
     historyState = state
-    if ($('zoom').open) $('zoom').close()
     document.body.classList.add('history-open')
     $('screen-history').hidden = false
     $('history-title').textContent = row.name
@@ -608,9 +607,10 @@ async function openScreenHistory(row, push = true) {
         ? `${scope.channel} · ${localeLabel(scope.locale)} · ${scope.profile.replace('x', ' × ')} · App states`
         : 'History is unavailable for this report context.'
     document.title = `${row.name} history · Peanut Screen library`
-    const href = shareableHref(location.pathname, { history: row.id })
+    const href = shareableHref(location.pathname, { history: row.id, preview: '' })
     if (push && typeof history.pushState === 'function') history.pushState(null, '', href)
     else if (!offline && typeof history.replaceState === 'function') history.replaceState(null, '', href)
+    if ($('zoom').open) closePreview()
     $('history-close').focus?.()
     if (!historyEligible(row)) {
         $('history-status').textContent = offline
@@ -879,12 +879,13 @@ if ($('screen-history'))
 if (typeof window.addEventListener === 'function') {
     window.addEventListener('popstate', () => {
         const id = requestedFilter('history')
-        if (!id) closeScreenHistory(false)
+        if (!id && historyState) closeScreenHistory(false)
         else if (historyState?.id !== id) {
             const row = rows.find((candidate) => candidate.id === id)
             if (row) openScreenHistory(row, false)
-            else closeScreenHistory(false)
+            else if (historyState) closeScreenHistory(false)
         }
+        restorePreview()
     })
     window.addEventListener('pagehide', () => historyState?.controller.abort())
 }
@@ -1024,11 +1025,22 @@ function shareableParams(overrides = {}) {
     }
     const historyId = overrides.history ?? historyState?.id ?? requestedFilter('history')
     if (/^[a-z0-9][a-z0-9-]{0,119}$/.test(historyId)) params.set('history', historyId)
+    const previewId = overrides.preview ?? requestedFilter('preview')
+    const previewRow = previewId && rows.find((row) => row.id === previewId)
+    if (previewRow) {
+        params.set('preview', previewRow.id)
+        const mode = normalizePreviewMode(previewRow, overrides.previewMode ?? requestedFilter('previewMode'))
+        if (mode !== 'screen') params.set('previewMode', mode)
+    }
     return params
 }
 function shareableHref(pathname = location.pathname, overrides, hash = location.hash ?? '') {
     const params = shareableParams(overrides)
-    if (pathname !== location.pathname) params.delete('comments')
+    if (pathname !== location.pathname) {
+        params.delete('comments')
+        params.delete('preview')
+        params.delete('previewMode')
+    }
     const query = params.toString()
     return `${pathname}${query ? `?${query}` : ''}${hash}`
 }
@@ -1133,9 +1145,9 @@ function activePreviewIndex() {
 function updatePreviewPosition() {
     const index = activePreviewIndex()
     const device = previewDevice()
-    $('zoom-position').textContent =
-        `${index + 1} of ${filteredRows.length} · ${device.label} · ${device.width} × ${device.height}`
-    const onlyOne = filteredRows.length <= 1
+    const position = index >= 0 ? `${index + 1} of ${filteredRows.length}` : 'Outside current filters'
+    $('zoom-position').textContent = `${position} · ${device.label} · ${device.width} × ${device.height}`
+    const onlyOne = !filteredRows.length || (filteredRows.length === 1 && index >= 0)
     $('zoom-prev').disabled = onlyOne
     $('zoom-next').disabled = onlyOne
 }
@@ -1202,13 +1214,40 @@ function translationLabel(row) {
     ].filter(Boolean)
     return parts.length ? `Shifted ${parts.join(', ')}` : ''
 }
-function zoom(row, mode = 'side') {
+function normalizePreviewMode(row, mode) {
+    if (!['screen', 'side', 'overlay', 'difference', 'before', 'after'].includes(mode)) return 'screen'
+    if (mode === 'before' || mode === 'after') return row[mode]?.image ? mode : 'screen'
+    if (!comparisonMode()) return 'screen'
+    if (mode === 'difference' && !(row.status === 'changed' && asset(row.diff)))
+        return singleScreenLayout() ? 'screen' : 'side'
+    return mode
+}
+function clearPreviewUrl() {
+    if (offline || typeof history === 'undefined' || typeof history.replaceState !== 'function') return
+    const params = new URLSearchParams(location.search ?? '')
+    if (!params.has('preview') && !params.has('previewMode')) return
+    params.delete('preview')
+    params.delete('previewMode')
+    const query = params.toString()
+    history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash ?? ''}`)
+}
+function closePreview() {
+    clearPreviewUrl()
+    if ($('zoom').open) $('zoom').close()
+}
+function restorePreview() {
+    const id = requestedFilter('preview')
+    const row = id && rows.find((candidate) => candidate.id === id)
+    if (row) zoom(row, requestedFilter('previewMode') || 'screen', 'replace')
+    else closePreview()
+}
+function zoom(row, mode = 'side', urlAction = 'auto') {
+    const wasOpen = $('zoom').open
     comments?.invalidateNavigation?.()
     active = row
     const hasDiff = row.status === 'changed' && Boolean(asset(row.diff))
-    if (!comparisonMode()) mode = 'screen'
-    else if (mode === 'difference' && !hasDiff) mode = singleScreenLayout() ? 'screen' : 'side'
-    const single = mode === 'screen'
+    mode = normalizePreviewMode(row, mode)
+    const single = ['screen', 'before', 'after'].includes(mode)
     activeMode = mode
     const historyButton = $('zoom-history')
     if (historyButton) {
@@ -1226,13 +1265,13 @@ function zoom(row, mode = 'side') {
     const before = row.before,
         after = row.after
     let afterPreview
-    if (mode === 'screen') {
-        const screen = availableScreen(row)
+    if (single) {
+        const screen = mode === 'screen' ? availableScreen(row) : row[mode]
         if (screen?.image) {
             const side = screen === before ? 'before' : 'after'
             const preview = phonePreview(
                 image(screen.image, `${row.name} screen preview`, { preview: false }),
-                'Screen',
+                mode === 'before' ? 'Before' : mode === 'after' ? 'After' : 'Screen',
                 { side }
             )
             $('zoom-images').append(preview)
@@ -1282,11 +1321,28 @@ function zoom(row, mode = 'side') {
         $('zoom').showModal()
         $('close').focus?.()
     }
+    if (!offline && typeof history !== 'undefined') {
+        // Retained comment images are not necessarily the current manifest's version.
+        if (!rows.includes(row)) clearPreviewUrl()
+        else {
+            const href = shareableHref(location.pathname, { preview: row.id, previewMode: mode })
+            const current = `${location.pathname}${location.search ?? ''}${location.hash ?? ''}`
+            if (href !== current) {
+                const action = urlAction === 'replace' || wasOpen ? 'replaceState' : 'pushState'
+                if (typeof history[action] === 'function') history[action](null, '', href)
+            }
+        }
+    }
 }
 function navigatePreview(direction) {
-    if (filteredRows.length <= 1) return
     const index = activePreviewIndex()
-    const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
+    if (!filteredRows.length || (filteredRows.length === 1 && index >= 0)) return
+    const next =
+        index < 0
+            ? direction < 0
+                ? filteredRows.length - 1
+                : 0
+            : (index + direction + filteredRows.length) % filteredRows.length
     zoom(filteredRows[next], activeMode)
 }
 const voteFilter = { loading: false, error: '', requested: new Set(), stale: false, refreshing: false }
@@ -2176,7 +2232,7 @@ async function start() {
         $('view-mode').checked = true
     }
     render()
-    if (location.hash) {
+    if (location.hash && !requestedFilter('preview')) {
         viewMode = 'all'
         showVariations = true
         $('view-mode').checked = true
@@ -2188,6 +2244,7 @@ async function start() {
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
     syncShareableUrl()
+    restorePreview()
     const threadId = requestedFilter('comments')
     if (comments && /^[a-f0-9-]{36}$/.test(threadId)) comments.navigateThread(threadId)
     const historyRow = rows.find((row) => row.id === requestedFilter('history'))
@@ -2273,9 +2330,12 @@ $('variations-mode').addEventListener('change', () => {
     render()
     syncShareableUrl()
 })
-$('close').onclick = () => $('zoom').close()
+$('close').onclick = closePreview
 $('zoom').addEventListener('close', () => {
-    if (!$('zoom').open) comments?.close({ restoreFocus: false })
+    if (!$('zoom').open) {
+        clearPreviewUrl()
+        comments?.close({ restoreFocus: false })
+    }
     if (voteFilter.stale) refreshVoteFilter()
 })
 $('side').onclick = () => zoom(active, 'side')
@@ -2283,12 +2343,16 @@ $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
 $('zoom-prev').onclick = () => navigatePreview(-1)
 $('zoom-next').onclick = () => navigatePreview(1)
+function dismissPreview(event) {
+    event.preventDefault()
+    if (comments?.isOpen()) comments.close()
+    else closePreview()
+}
+$('zoom').addEventListener('cancel', dismissPreview)
 $('zoom').addEventListener('keydown', (event) => {
     if (!$('zoom').open) return
     if (event.key === 'Escape') {
-        event.preventDefault()
-        if (comments?.isOpen()) comments.close()
-        else $('zoom').close()
+        dismissPreview(event)
     } else if (
         !$('comment-panel')?.contains?.(event.target) &&
         event.target !== $('slider') &&
