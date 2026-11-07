@@ -267,16 +267,18 @@ function RecoveryError({ kind }: { kind: RecoveryErrorKind }) {
     const { openSupportWithMessage } = useModalsContext()
     return (
         <>
-            <div className="flex min-h-dvh flex-col justify-center gap-6 px-4 pt-[calc(var(--spacing-safe-top)+1.5rem)] pb-[calc(var(--spacing-safe-bottom)+1.5rem)]">
-                <CenteredErrorCard title={t(`${kind}.title`)} description={t(`${kind}.description`)} />
-                <Button
-                    variant="primary"
-                    shadowSize="4"
-                    className="mt-4 w-full"
-                    onClick={() => openSupportWithMessage('')}
-                >
-                    {tCommon('contactSupport')}
-                </Button>
+            <div className="flex min-h-dvh flex-col pt-safe-top pb-safe-bottom">
+                <div className="flex flex-1 flex-col justify-center gap-6 px-4 py-6">
+                    <CenteredErrorCard title={t(`${kind}.title`)} description={t(`${kind}.description`)} />
+                    <Button
+                        variant="primary"
+                        shadowSize="4"
+                        className="mt-4 w-full"
+                        onClick={() => openSupportWithMessage('')}
+                    >
+                        {tCommon('contactSupport')}
+                    </Button>
+                </div>
             </div>
             <SupportDrawer />
         </>
