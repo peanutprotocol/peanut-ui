@@ -19,7 +19,9 @@ describe('sendLinksApi.getClaimStatus', () => {
         await sendLinksApi.getClaimStatus(LINK)
 
         expect(mockServerFetch).toHaveBeenCalledWith(
-            expect.stringMatching(/^\/send-links\/0x[0-9a-f]+\/status\?c=42161&v=v4\.3&i=7$/i),
+            expect.stringMatching(
+                /^\/send-links\/0x[0-9a-f]+\/status\?c=42161&v=v4\.3&i=7&proof=\d+\.0x[0-9a-f]{130}$/i
+            ),
             {
                 method: 'GET',
                 cache: 'no-store',
@@ -40,7 +42,7 @@ describe('sendLinksApi.getClaimStatus', () => {
 
         expect(mockServerFetch).toHaveBeenNthCalledWith(
             2,
-            expect.stringMatching(/^\/send-links\/0x[0-9a-f]+\?c=42161&v=v4\.3&i=7$/i),
+            expect.stringMatching(/^\/send-links\/0x[0-9a-f]+\?c=42161&v=v4\.3&i=7&proof=\d+\.0x[0-9a-f]{130}$/i),
             {
                 method: 'GET',
                 cache: 'no-store',
@@ -53,5 +55,19 @@ describe('sendLinksApi.getClaimStatus', () => {
 
         await expect(sendLinksApi.getClaimStatus(LINK)).rejects.toThrow('HTTP error! status: 500')
         expect(mockServerFetch).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('sendLinksApi.get', () => {
+    beforeEach(() => mockServerFetch.mockReset())
+
+    test('sends a link-key proof and never the password', async () => {
+        mockServerFetch.mockResolvedValue({ ok: true, text: async () => '{}' } as Response)
+
+        await sendLinksApi.get(LINK)
+
+        const path = mockServerFetch.mock.calls[0][0]
+        expect(path).toMatch(/^\/send-links\/0x[0-9a-f]{40}\?c=42161&v=v4\.3&i=7&proof=\d+\.0x[0-9a-f]{130}$/i)
+        expect(path).not.toContain('secret')
     })
 })

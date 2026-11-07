@@ -12131,6 +12131,7 @@ export interface paths {
                     c?: string;
                     i?: number;
                     v?: string;
+                    proof?: string;
                 };
                 header?: never;
                 path: {
@@ -12200,6 +12201,7 @@ export interface paths {
                     c?: string;
                     i?: number;
                     v?: string;
+                    proof?: string;
                 };
                 header?: never;
                 path: {
