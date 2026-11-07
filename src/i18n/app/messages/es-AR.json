@@ -14,7 +14,7 @@
     },
     "common": {
         "claimCouldNotComplete": "No se pudo reclamar el pago",
-        "cardCouldNotLoad": "No pudimos cargar tu tarjeta",
+        "cardCouldNotLoad": "No pudimos cargar la tarjeta",
         "cardRecoveryUnavailable": "Recuperación de tarjeta no disponible",
         "qrPaymentCouldNotStart": "No se pudo iniciar el pago con QR",
         "withdrawalCouldNotComplete": "No se pudo completar el retiro",
@@ -481,7 +481,7 @@
             "description": "Confirmá tu identidad para desbloquear pagos fiat y ver tus límites."
         },
         "error": {
-            "title": "No pudimos cargar tus límites",
+            "title": "No pudimos cargar los límites",
             "description": "Revisá tu conexión e intentá de nuevo."
         },
         "needHigherLimits": "¿Necesitás límites más altos? Contactá soporte.",

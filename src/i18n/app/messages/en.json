@@ -14,7 +14,7 @@
     },
     "common": {
         "claimCouldNotComplete": "Couldn’t claim this payment",
-        "cardCouldNotLoad": "Couldn’t load your card",
+        "cardCouldNotLoad": "Couldn’t load card",
         "cardRecoveryUnavailable": "Card recovery unavailable",
         "qrPaymentCouldNotStart": "Couldn’t start this QR payment",
         "withdrawalCouldNotComplete": "Couldn’t complete this withdrawal",
@@ -858,7 +858,7 @@
             "submitted": "Document sent for review."
         },
         "error": {
-            "title": "Couldn’t load your limits",
+            "title": "Couldn’t load limits",
             "description": "Check your connection and try again."
         },
         "docsLink": "See more about limits",

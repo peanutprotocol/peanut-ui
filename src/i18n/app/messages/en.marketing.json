@@ -1,7 +1,7 @@
 {
     "common": {
         "claimCouldNotComplete": "Couldn’t claim this payment",
-        "cardCouldNotLoad": "Couldn’t load your card",
+        "cardCouldNotLoad": "Couldn’t load card",
         "cardRecoveryUnavailable": "Card recovery unavailable",
         "qrPaymentCouldNotStart": "Couldn’t start this QR payment",
         "withdrawalCouldNotComplete": "Couldn’t complete this withdrawal",

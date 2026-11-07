@@ -14,7 +14,7 @@
     },
     "common": {
         "claimCouldNotComplete": "No se pudo reclamar el pago",
-        "cardCouldNotLoad": "No pudimos cargar tu tarjeta",
+        "cardCouldNotLoad": "No pudimos cargar la tarjeta",
         "cardRecoveryUnavailable": "Recuperación de tarjeta no disponible",
         "qrPaymentCouldNotStart": "No se pudo iniciar el pago con QR",
         "withdrawalCouldNotComplete": "No se pudo completar el retiro",
@@ -858,7 +858,7 @@
             "submitted": "Documento enviado a revisión."
         },
         "error": {
-            "title": "No pudimos cargar tus límites",
+            "title": "No pudimos cargar los límites",
             "description": "Revisa tu conexión e intenta de nuevo."
         },
         "docsLink": "Ver más sobre límites",

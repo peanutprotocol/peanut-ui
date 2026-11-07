@@ -1,7 +1,7 @@
 {
     "common": {
         "claimCouldNotComplete": "No se pudo reclamar el pago",
-        "cardCouldNotLoad": "No pudimos cargar tu tarjeta",
+        "cardCouldNotLoad": "No pudimos cargar la tarjeta",
         "cardRecoveryUnavailable": "Recuperación de tarjeta no disponible",
         "qrPaymentCouldNotStart": "No se pudo iniciar el pago con QR",
         "withdrawalCouldNotComplete": "No se pudo completar el retiro",
