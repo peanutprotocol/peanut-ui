@@ -39,9 +39,16 @@ export function KycFeatureActivationStatus({
         report?.state === 'not_requested' ||
         (result?.kind === 'conflict' && !identityRequired)
     if (!consent && !failed && !refused && feature !== 'qr')
-        return <FeatureReadyScreen feature={feature} onDone={onBack} />
+        return (
+            <FeatureReadyScreen
+                feature={feature}
+                onDone={onBack}
+                acknowledgement={report?.state === 'pending' || report?.state === 'setting_up'}
+            />
+        )
     return (
         <VerifyHeroLayout
+            statusTone={failed || refused ? 'error' : 'warning'}
             screenId="feature-status"
             pose={failed || refused ? 'sad' : 'thinking'}
             onBack={onBack}

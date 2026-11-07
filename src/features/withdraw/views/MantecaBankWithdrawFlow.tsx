@@ -1,5 +1,5 @@
 'use client'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -1069,7 +1069,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                    <CenteredErrorCard
+                    <CenteredStatusCard
                         title={tCommon(isFromSendFlow ? 'sendCouldNotComplete' : 'withdrawalCouldNotComplete')}
                         description={errorMessage}
                     >
@@ -1085,7 +1085,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                         <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
                             {tCommon('contactSupport')}
                         </LinkButton>
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                 </div>
             </div>
         )

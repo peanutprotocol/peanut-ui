@@ -189,6 +189,7 @@ export function AddFeatureQuestions({
         return tracked(
             <VerifyHeroLayout
                 pose="sad"
+                statusTone="error"
                 screenId="add-feature"
                 onBack={onBack}
                 title={t(`addLater.title.${feature}`)}
@@ -221,6 +222,7 @@ export function AddFeatureQuestions({
         return tracked(
             <VerifyHeroLayout
                 pose="sad"
+                statusTone="error"
                 screenId="add-feature"
                 onBack={onBack}
                 title={t('loadFailed.title')}

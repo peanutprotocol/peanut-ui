@@ -4,7 +4,7 @@ import { useHydrationSnapshot } from '@/utils/native-platform'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -265,7 +265,7 @@ const HistoryPage = () => {
             <PageStack>
                 <NavHeader title={t('title')} />
                 <PageStack.Center className="gap-4">
-                    <CenteredErrorCard title={t('errorTitle')} description={t('errorDescription')} />
+                    <CenteredStatusCard title={t('errorTitle')} description={t('errorDescription')} />
                     <Button variant="primary" shadowSize="4" onClick={() => refetch()} data-testid="history-retry">
                         {tCommon('tryAgain')}
                     </Button>
@@ -278,12 +278,12 @@ const HistoryPage = () => {
     // page can still have older rows behind it
     if (!isLoading && !hasNextPage && combinedAndSortedEntries.length === 0) {
         return (
-            <div className="flex h-[80dvh] flex-col items-center justify-center">
+            <PageStack>
                 <NavHeader title={t('title')} />
-                <div className="flex flex-grow items-center justify-center">
+                <PageStack.Center>
                     <NoDataEmptyState animSize="lg" message={t('empty')} />
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 

@@ -7,6 +7,7 @@ import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import SetupFooter from '@/components/Setup/components/SetupFooter'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
@@ -99,8 +100,10 @@ export function VerifyHeroLayout({
     description,
     children,
     footer,
+    statusTone,
 }: {
     pose: MascotPose
+    statusTone?: 'error' | 'warning' | 'success'
     /** the analytics id of the screen, for its Back */
     screenId?: string
     onBack?: () => void
@@ -109,7 +112,7 @@ export function VerifyHeroLayout({
     children?: ReactNode
     footer: ReactNode
 }) {
-    useInsetColor(true)
+    useInsetColor(!statusTone)
     useVerifyShellHold()
     return (
         <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
@@ -118,16 +121,29 @@ export function VerifyHeroLayout({
                     <BackButton onBack={onBack} screenId={screenId} />
                 </div>
             )}
-            <div className="setup-hero-height setup-hero-background relative flex w-full shrink-0 items-center justify-center overflow-hidden px-4 md:h-[40dvh]">
-                <div className="absolute inset-x-0 top-16 bottom-2 flex items-center justify-center">
-                    <PeanutMascot pose={pose} className="relative h-full max-w-full" />
+            {statusTone ? (
+                <div className={PANEL}>
+                    <div className="flex flex-1 flex-col justify-center">
+                        <CenteredStatusCard title={title} description={description} tone={statusTone} pose={pose}>
+                            {children}
+                        </CenteredStatusCard>
+                    </div>
+                    {footer}
                 </div>
-            </div>
-            <div className={PANEL}>
-                <SetupTitleBlock title={title} description={description} />
-                {children && <div className="flex flex-1 flex-col gap-4">{children}</div>}
-                {footer}
-            </div>
+            ) : (
+                <>
+                    <div className="setup-hero-height setup-hero-background relative flex w-full shrink-0 items-center justify-center overflow-hidden px-4 md:h-[40dvh]">
+                        <div className="absolute inset-x-0 top-16 bottom-2 flex items-center justify-center">
+                            <PeanutMascot pose={pose} className="relative h-full max-w-full" />
+                        </div>
+                    </div>
+                    <div className={PANEL}>
+                        <SetupTitleBlock title={title} description={description} />
+                        {children && <div className="flex flex-1 flex-col gap-4">{children}</div>}
+                        {footer}
+                    </div>
+                </>
+            )}
         </div>
     )
 }
@@ -143,6 +159,7 @@ export function VerifyCelebrationLayout({
     title,
     description,
     celebrate = false,
+    statusTone,
     children,
     footer,
 }: {
@@ -152,6 +169,7 @@ export function VerifyCelebrationLayout({
     title: ReactNode
     description?: ReactNode
     celebrate?: boolean
+    statusTone?: 'success'
     children?: ReactNode
     footer: ReactNode
 }) {
@@ -171,13 +189,21 @@ export function VerifyCelebrationLayout({
             )}
             <div className="flex min-h-0 flex-1 flex-col justify-between gap-8 px-6 pt-4 pb-6">
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-                    <PeanutMascot pose={pose} alt="" className="h-52 w-auto" />
-                    <div className="flex max-w-80 flex-col gap-2">
-                        <h1 className="text-heading-s text-foreground-primary">{title}</h1>
-                        {description && (
-                            <p className="text-body-m leading-[1.625rem] text-foreground-secondary">{description}</p>
-                        )}
-                    </div>
+                    {statusTone ? (
+                        <CenteredStatusCard title={title} description={description} tone={statusTone} pose={pose} />
+                    ) : (
+                        <>
+                            <PeanutMascot pose={pose} alt="" className="h-52 w-auto" />
+                            <div className="flex max-w-80 flex-col gap-2">
+                                <h1 className="text-heading-s text-foreground-primary">{title}</h1>
+                                {description && (
+                                    <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
+                                        {description}
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    )}
                     {children}
                 </div>
                 {footer}

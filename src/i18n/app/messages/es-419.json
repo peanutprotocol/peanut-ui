@@ -1542,7 +1542,7 @@
             "usernameArbitrumOnly": "Los pagos a nombres de usuario de Peanut solo se pueden hacer en Arbitrum",
             "userNotFoundTitle": "Usuario no encontrado",
             "userNotFoundDescription": "No encontramos a @{username} en Peanut. Revisa el nombre de usuario e intenta de nuevo.",
-            "invalidPaymentUrlTitle": "Este enlace de pago no funciona",
+            "invalidPaymentUrlTitle": "El enlace de pago no funciona",
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
@@ -3743,7 +3743,7 @@
                 "actingAsIntermediary": "Enviaré dinero <nw><pill></pill></nw>",
                 "nationality": "Mi nacionalidad <nw>es <pill></pill></nw>",
                 "maritalStatus": "Mi estado civil <nw>es <pill></pill></nw>",
-                "sex": "Mi sexo en el documento <nw>es <pill></pill></nw>"
+                "sex": "El género en el documento <nw>es <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "Para qué usarás la tarjeta",
@@ -3761,7 +3761,7 @@
                 "actingAsIntermediary": "En nombre de quién envías dinero",
                 "nationality": "Tu nacionalidad",
                 "maritalStatus": "Estado civil",
-                "sex": "Sexo"
+                "sex": "Género"
             },
             "jobNone": {
                 "last": "Ninguno en los últimos 5 años",

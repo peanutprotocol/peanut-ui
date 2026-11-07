@@ -1,6 +1,6 @@
 'use client'
 
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -51,7 +51,7 @@ export function QrPayBlockedView() {
         return (
             <PageStack>
                 <PageStack.Center className="gap-4">
-                    <CenteredErrorCard
+                    <CenteredStatusCard
                         title={tCommon('qrPaymentCouldNotStart')}
                         description={
                             isVerificationClosed
@@ -72,7 +72,7 @@ export function QrPayBlockedView() {
                         <Button onClick={onBack} variant={canVerify ? 'secondary' : 'primary'}>
                             {t('maintenance.goBack')}
                         </Button>
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                     {initErrorNeedsSupport || isVerificationClosed ? supportLink : null}
                 </PageStack.Center>
                 {canVerify ? <SumsubKycModals flow={gate.sumsubFlow} /> : null}

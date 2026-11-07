@@ -11,7 +11,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Icon } from '@/components/Global/Icons/Icon'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import CardPinSetupFlow from '@/components/Card/CardPinSetupFlow'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
 
@@ -113,16 +113,13 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
         return (
             <PageStack gap="6">
                 <NavHeader title={t('navTitle')} onPrev={onPrev} />
-                <EmptyState
-                    concept="card"
-                    title={t('noPinTitle')}
-                    description={t('noPinBody')}
-                    cta={
-                        <Button variant="primary" className="mt-4 w-full" onClick={() => void setMode('set')}>
+                <PageStack.Center>
+                    <CenteredStatusCard tone="neutral" title={t('noPinTitle')} description={t('noPinBody')}>
+                        <Button variant="primary" className="w-full" onClick={() => void setMode('set')}>
                             {t('setPin')}
                         </Button>
-                    }
-                />
+                    </CenteredStatusCard>
+                </PageStack.Center>
             </PageStack>
         )
     }
