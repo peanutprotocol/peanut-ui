@@ -343,7 +343,7 @@
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios."
         },
         "postVerification": {
             "title": "¡Verificación completa!",
@@ -5042,7 +5042,7 @@
         },
         "claim": {
             "heading": "Recibe pagos en {currency}",
-            "subheading": "Datos bancarios a tu nombre. Compártelos con empleadores, clientes o plataformas como Deel.",
+            "subheading": "Datos bancarios para recibir pagos. Compártelos con empleadores, clientes o plataformas como Deel.",
             "conditionTerms": "Quién puede pagar depende de las reglas de {currency}. Se muestran cuando la cuenta esté abierta.",
             "statePending": "Las reglas de tu estado se confirman cuando abres la cuenta.",
             "benefitStable": "Se comparten una vez y sirven para cada pago",
@@ -5160,7 +5160,7 @@
         },
         "gate": {
             "verifyTitle": "Primero verifica la identidad",
-            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién eres.",
+            "verifyBody": "Solo podemos abrir una cuenta cuando sabemos quién eres.",
             "verifyCta": "Verificar identidad",
             "tosTitle": "Falta aceptar un documento",
             "tosCta": "Leer y aceptar",
