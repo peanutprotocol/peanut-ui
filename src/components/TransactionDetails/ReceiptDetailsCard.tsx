@@ -117,7 +117,7 @@ export function ReceiptDetailsCard({
     return (
         <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
             {/* request pot: progress and contributors first (Activity/Request board) */}
-            <DataRowGroup>
+            <DataRowGroup className={vm.requestPotContributors.length === 0 ? 'border-b-0' : undefined}>
                 {transaction.isRequestPotLink && <RequestPotProgressRow transaction={transaction} />}
                 {vm.requestPotContributors.length > 0 && <RequestPotContributorRows vm={vm} />}
             </DataRowGroup>

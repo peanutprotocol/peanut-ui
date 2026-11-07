@@ -1,7 +1,7 @@
 'use client'
 
 import { formatFiniteDisplay } from '@/utils/currency'
-import { type FC, useCallback, useState } from 'react'
+import { type FC, type ReactNode, useCallback, useState } from 'react'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -56,6 +56,7 @@ interface Props {
     onCompleteVerification?: () => void
     verificationBusy?: boolean
     verificationError?: boolean
+    statusWarning?: ReactNode
 }
 
 const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiryCopied' | 'cvvCopied'> = {
@@ -86,6 +87,7 @@ const YourCardScreen: FC<Props> = ({
     onCompleteVerification,
     verificationBusy,
     verificationError,
+    statusWarning,
 }) => {
     const t = useTranslations('card.yourCard')
     const tCommon = useTranslations('common')
@@ -210,6 +212,8 @@ const YourCardScreen: FC<Props> = ({
                     setAction(isLocked ? 'unlock' : 'lock')
                 }}
             />
+
+            {statusWarning}
 
             {onCompleteVerification && (
                 <Button

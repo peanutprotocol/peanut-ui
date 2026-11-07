@@ -3,6 +3,8 @@ import { captureProfile } from './capture-profiles.mjs'
 const ID = /^[a-z0-9][a-z0-9-]{0,119}$/
 const ASSET = /^[a-f0-9]{64}\.(?:png|webp)$/
 const SHA = /^[a-f0-9]{40}$/
+export const COMPARISON_REPORT_PATH =
+    /^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
 export const COLLECTION_LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR']
 
 function capturePresentation(capture) {
@@ -76,14 +78,34 @@ function normalizeSelectionSpec(input, flowPage) {
 
 export const FLOW_PAGE_REQUEST_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/
 
+function onlyFields(input, fields, label) {
+    if (
+        !input ||
+        typeof input !== 'object' ||
+        Array.isArray(input) ||
+        Object.keys(input).some((key) => !fields.includes(key))
+    )
+        throw new Error(`Unsupported ${label} field`)
+}
+
+function normalizeSections(input) {
+    if (!Array.isArray(input) || !input.length) throw new Error('A flow page needs at least one section')
+    return input.map((section) => {
+        onlyFields(section, ['title', 'flows'], 'section')
+        return { title: requiredText(section.title, 'section title', 120), flows: normalizeFlows(section.flows) }
+    })
+}
+
 function normalizeFlows(input) {
     if (!Array.isArray(input) || input.length < 1) throw new Error('A flow page needs at least one titled flow')
     return input.map((flow) => {
+        onlyFields(flow, ['title', 'items'], 'flow')
         const title = requiredText(flow?.title, 'flow title', 120)
         if (!Array.isArray(flow.items) || !flow.items.length) throw new Error('Each flow needs at least one screen')
         return {
             title,
             items: flow.items.map((item) => {
+                onlyFields(item, ['id', 'note'], 'flow screen')
                 if (typeof item?.id !== 'string' || !ID.test(item.id)) throw new Error('Invalid flow screen ID')
                 const note = optionalText(item.note, 'flow note', 1000)
                 return { id: item.id, ...(note ? { note } : {}) }
@@ -93,9 +115,17 @@ function normalizeFlows(input) {
 }
 
 export function normalizeFlowPageSpec(input) {
-    const flows = normalizeFlows(input?.flows)
-    if (Object.keys(input).some((key) => !['title', 'description', 'locales', 'flows', 'requestId'].includes(key)))
-        throw new Error('Unsupported flow page request field')
+    onlyFields(
+        input,
+        ['title', 'description', 'locales', 'flows', 'sections', 'compareWith', 'requestId'],
+        'flow page request'
+    )
+    if ((input.flows !== undefined) === (input.sections !== undefined))
+        throw new Error('Invalid flow page: provide exactly one of flows or sections')
+    const sections = input.sections === undefined ? undefined : normalizeSections(input.sections)
+    const flows = sections ? sections.flatMap((section) => section.flows) : normalizeFlows(input.flows)
+    if (input.compareWith !== undefined && input.compareWith !== 'main') throw new Error('Invalid comparison base')
+    const compareWith = input.compareWith ?? (sections ? 'main' : undefined)
     const requestId = input.requestId
     if (requestId !== undefined && (typeof requestId !== 'string' || !FLOW_PAGE_REQUEST_ID.test(requestId)))
         throw new Error('Invalid flow page request ID')
@@ -114,7 +144,7 @@ export function normalizeFlowPageSpec(input) {
         },
         true
     )
-    return { ...spec, flows, requestId }
+    return { ...spec, flows, ...(sections ? { sections } : {}), ...(compareWith ? { compareWith } : {}), requestId }
 }
 
 export function collectionId(title, now = new Date(), entropy = crypto.randomUUID()) {
@@ -149,7 +179,18 @@ function publishedFlowScreenName(name) {
     return name
 }
 
-export function composeCollection({ id, spec: input, reports, reportPaths = {}, createdAt, createdBy, flows }) {
+export function composeCollection({
+    id,
+    spec: input,
+    reports,
+    reportPaths = {},
+    createdAt,
+    createdBy,
+    flows,
+    sections,
+    compareWith,
+    comparisons,
+}) {
     if (!ID.test(id ?? '')) throw new Error('Invalid collection ID')
     const spec = normalizeSelectionSpec(input, flows !== undefined)
     const timestamp = new Date(createdAt ?? Date.now())
@@ -230,6 +271,8 @@ export function composeCollection({ id, spec: input, reports, reportPaths = {}, 
         ),
         items,
         ...(flows ? { flows } : {}),
+        ...(sections ? { sections } : {}),
+        ...(compareWith ? { compareWith, comparisons } : {}),
         missing,
         complete: missing.length === 0,
         capture: { status: missing.length ? 'not-requested' : 'not-needed' },
@@ -240,6 +283,42 @@ export function validateCollection(input) {
     if (input?.schema !== 1 || input.type !== 'collection' || !ID.test(input.id ?? ''))
         throw new Error('Unsupported collection schema')
     const flows = input.flows === undefined ? undefined : normalizeFlows(input.flows)
+    const sections = input.sections === undefined ? undefined : normalizeSections(input.sections)
+    if (sections && (!flows || JSON.stringify(flows) !== JSON.stringify(sections.flatMap((section) => section.flows))))
+        throw new Error('Invalid section flow references')
+    if (sections && input.complete !== true) throw new Error('Invalid incomplete section flow page')
+    if (sections && input.compareWith !== 'main') throw new Error('Invalid section comparison base')
+    if (input.compareWith !== undefined || input.comparisons !== undefined) {
+        if (
+            !flows ||
+            input.compareWith !== 'main' ||
+            !input.comparisons ||
+            typeof input.comparisons !== 'object' ||
+            Array.isArray(input.comparisons)
+        )
+            throw new Error('Invalid collection comparisons')
+        const locales = new Set(input.locales)
+        if (
+            Object.keys(input.comparisons).length !== locales.size ||
+            Object.keys(input.comparisons).some((locale) => !locales.has(locale))
+        )
+            throw new Error('Invalid collection comparison locales')
+        for (const locale of locales) {
+            const pin = input.comparisons[locale]
+            onlyFields(pin, ['path', 'baseBranch', 'beforeCommit', 'afterCommit'], 'comparison')
+            if (
+                pin.baseBranch !== 'main' ||
+                !COMPARISON_REPORT_PATH.test(pin.path ?? '') ||
+                !SHA.test(pin.beforeCommit ?? '') ||
+                !SHA.test(pin.afterCommit ?? '') ||
+                pin.path.split('/')[2] !== locale.toLowerCase() ||
+                pin.path.split('/')[3] !== pin.afterCommit ||
+                input.source?.[locale]?.commit !== pin.afterCommit ||
+                input.items?.some((item) => item.variants?.[locale]?.commit !== pin.afterCommit)
+            )
+                throw new Error('Invalid collection comparison pin')
+        }
+    }
     const spec = normalizeSelectionSpec(input, flows !== undefined)
     if (!Array.isArray(input.items) || input.items.length !== spec.items.length)
         throw new Error('Invalid collection items')
@@ -287,6 +366,7 @@ export function validateCollection(input) {
         ...(presentation ?? {}),
         items,
         ...(flows ? { flows } : {}),
+        ...(sections ? { sections } : {}),
         missing,
         complete: missing.length === 0,
     }

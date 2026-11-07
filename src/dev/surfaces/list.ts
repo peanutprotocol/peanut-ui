@@ -78,19 +78,19 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     'api-ribbon-unavailable': apiRibbon('api-ribbon-unavailable'),
     'api-ribbon-contract-error': apiRibbon('api-ribbon-contract-error'),
     'numeric-request-amount-4000': {
-        name: 'Request amount — 4,000 USDC',
+        name: 'Request amount — 4,000 USDC (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
         captureState: ['suggestedAmount=4000', 'realSlider=true'],
         expectSelector: 'input[value="4000"]',
     },
     'numeric-request-rate-unavailable': {
-        name: 'Request amount — rate unavailable',
+        name: 'Request amount — rate unavailable (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
         captureState: ['initialAmount=4000', 'secondaryRate=unavailable'],
         expectSelector: 'button[disabled]',
     },
     'numeric-request-amount-invalid': {
-        name: 'Request amount — invalid input cleared',
+        name: 'Request amount — invalid input cleared (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
         captureState: ['initialAmount=invalid', 'realSlider=true'],
         expectSelector: 'input[value=""]',

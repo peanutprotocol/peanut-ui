@@ -32,7 +32,7 @@ describe('RequestPotContributorRows', () => {
     it('shows what each contributor paid and nothing about what their charge asked', () => {
         render([row({}), row({ uuid: 'charge-2', username: '0xpayer', amount: '33' })])
 
-        expect(screen.getByText('Contributors (2)')).toBeInTheDocument()
+        expect(screen.queryByText(/Contributors/)).not.toBeInTheDocument()
         expect(screen.getByText('$40.65')).toBeInTheDocument()
         expect(screen.getByText('$33')).toBeInTheDocument()
         expect(screen.queryByText(/58\.51/)).toBeNull()

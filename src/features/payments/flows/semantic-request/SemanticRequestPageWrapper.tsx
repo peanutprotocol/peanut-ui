@@ -13,8 +13,8 @@
  */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { chargesApi } from '@/services/charges'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import { EParseUrlError, parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -146,13 +146,18 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             <PageStack>
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <CenteredErrorCard title={t('errors.invalidPaymentUrlTitle')} description={description}>
+                    <CenteredStatusCard
+                        tone={unsupportedToken ? 'error' : 'neutral'}
+                        pose="worried"
+                        title={t('errors.invalidPaymentUrlTitle')}
+                        description={description}
+                    >
                         {unsupportedToken && (
                             <Button variant="primary" onClick={() => router.replace('/home')}>
                                 {t('success.backToHome')}
                             </Button>
                         )}
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                 </div>
             </PageStack>
         )

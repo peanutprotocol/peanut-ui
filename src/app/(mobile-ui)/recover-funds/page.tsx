@@ -4,7 +4,7 @@ import { formatFiniteDisplay } from '@/utils/currency'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
@@ -298,23 +298,20 @@ export default function RecoverFundsPage() {
                 state with a way back home instead */}
             {balancesError || tokenBalances.length === 0 ? (
                 <div className="my-auto">
-                    <EmptyState
-                        icon={balancesError ? 'alert' : 'wallet'}
-                        iconColor={balancesError ? 'red' : 'gray'}
+                    <CenteredStatusCard
+                        tone={balancesError ? 'error' : 'neutral'}
                         title={balancesError ? tCommon('somethingWentWrong') : t('noTokens')}
                         description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
-                        cta={
-                            <Button
-                                variant="primary"
-                                shadowSize="4"
-                                size="small"
-                                className="mt-2"
-                                onClick={() => (balancesError ? retry() : router.push('/home'))}
-                            >
-                                {balancesError ? tCommon('tryAgain') : t('goToHome')}
-                            </Button>
-                        }
-                    />
+                    >
+                        <Button
+                            variant="primary"
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => (balancesError ? retry() : router.push('/home'))}
+                        >
+                            {balancesError ? tCommon('tryAgain') : t('goToHome')}
+                        </Button>
+                    </CenteredStatusCard>
                 </div>
             ) : (
                 <PageStack.Center className="gap-4">

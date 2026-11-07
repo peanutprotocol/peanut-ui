@@ -378,23 +378,43 @@ export type Surface = SurfaceMeta & {
 export const SURFACES: Record<string, Surface> = {
     'standalone-error-card': {
         ...SURFACE_META['standalone-error-card'],
-        render: () => <StandaloneErrorSurface kind="card" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="card" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-card-recovery': {
         ...SURFACE_META['standalone-error-card-recovery'],
-        render: () => <StandaloneErrorSurface kind="card-recovery" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="card-recovery" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-claim': {
         ...SURFACE_META['standalone-error-claim'],
-        render: () => <StandaloneErrorSurface kind="claim" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="claim" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-send': {
         ...SURFACE_META['standalone-error-send'],
-        render: () => <StandaloneErrorSurface kind="send" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="send" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-withdraw': {
         ...SURFACE_META['standalone-error-withdraw'],
-        render: () => <StandaloneErrorSurface kind="withdraw" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="withdraw" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-wallet-recovery': {
         ...SURFACE_META['standalone-error-wallet-recovery'],
