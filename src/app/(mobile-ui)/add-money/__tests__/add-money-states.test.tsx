@@ -2003,6 +2003,8 @@ describe('GROUP 8: InputAmountStep Component', () => {
         ).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
+        // no amount field: without a rate it would show $0.00 in USD
+        expect(screen.queryByTestId('amount-input')).toBeNull()
     })
 
     // #1848: the error state used to be a dead end — useCurrency only refetches
