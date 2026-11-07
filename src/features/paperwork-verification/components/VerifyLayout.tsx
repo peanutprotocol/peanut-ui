@@ -103,7 +103,7 @@ export function VerifyHeroLayout({
     statusTone,
 }: {
     pose: MascotPose
-    statusTone?: 'error' | 'success'
+    statusTone?: 'error' | 'warning' | 'success'
     /** the analytics id of the screen, for its Back */
     screenId?: string
     onBack?: () => void

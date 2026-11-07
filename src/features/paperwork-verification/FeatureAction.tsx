@@ -33,7 +33,7 @@ export function FeatureAction({
     return (
         <KycControlFlowProvider value="kyc_provider_request">
             <VerifyHeroLayout
-                statusTone={statusCard ? 'success' : undefined}
+                statusTone={statusCard ? (flow.error ? 'error' : 'warning') : undefined}
                 pose="thinking"
                 screenId={screenId}
                 onBack={onBack}
