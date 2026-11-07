@@ -15,6 +15,7 @@ import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import {
     AVENIA_MIN_WITHDRAWAL_BRL,
     AVENIA_WITHDRAW_STEPS,
@@ -189,7 +190,12 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                                 initialAmount={seedBrl}
                                 setPrimaryAmount={setTypedBrl}
                                 setSecondaryAmount={setTypedUsd}
-                                primaryDenomination={{ symbol: 'BRL', price: brl.price.sell, decimals: 2 }}
+                                // R$, as the deposit amount and the review show reais
+                                primaryDenomination={{
+                                    symbol: SYMBOLS_BY_CURRENCY_CODE.BRL,
+                                    price: brl.price.sell,
+                                    decimals: 2,
+                                }}
                                 secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
                                 onBalanceFilled={() => setEnteredIn('balance')}
                                 onAmountTyped={(symbol) =>

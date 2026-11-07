@@ -26,7 +26,14 @@ jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFr
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
-const QUOTED = { code: 'BRL', price: { sell: 5.4, buy: 5.5 }, isLoading: false, isError: false, refetch: jest.fn() }
+const QUOTED = {
+    code: 'BRL',
+    symbol: 'R$',
+    price: { sell: 5.4, buy: 5.5 },
+    isLoading: false,
+    isError: false,
+    refetch: jest.fn(),
+}
 const mockQuote = jest.fn((..._args: unknown[]) => QUOTED)
 jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
     usePixQuoteCurrency: (...args: unknown[]) => mockQuote(...args),
@@ -201,6 +208,12 @@ describe('AveniaWithdrawFlow amount step', () => {
         expect(enabledAt('?step=amount&destination=09579927189')).toBe(true)
         expect(enabledAt('?step=review&destination=09579927189&destinationAmount=503')).toBe(false)
         expect(enabledAt('?step=pix-key')).toBe(false)
+    })
+
+    it('shows reais with the R$ symbol, as the deposit amount and the review do', () => {
+        renderAt('?step=amount&destination=09579927189')
+        expect(screen.getByText('R$')).toBeInTheDocument()
+        expect(screen.queryByText('BRL')).toBeNull()
     })
 
     it('offers a retry, not a spinner, when the quote fails', () => {
