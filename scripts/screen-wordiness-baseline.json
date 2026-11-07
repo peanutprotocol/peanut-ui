@@ -21,7 +21,7 @@
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 127,
         "app/(mobile-ui)/withdraw/manteca/page.tsx": 592,
         "app/(mobile-ui)/withdraw/new-pix-key/page.tsx": 171,
-        "app/(mobile-ui)/withdraw/pix/page.tsx": 660,
+        "app/(mobile-ui)/withdraw/pix/page.tsx": 658,
         "app/(setup)/setup/finish/page.tsx": 82,
         "app/[...recipient]/page.tsx": 178,
         "app/invite/page.tsx": 91,

@@ -2581,7 +2581,7 @@
             "arrivedTo": "Sent to {destination}.",
             "arrived": "The money was sent.",
             "refunded": "The bank refused this payout. The money is back in your balance.",
-            "quoteMoved": "The rate moved since the review. Check the new amounts and confirm again.",
+            "quoteMoved": "The rate moved. Check the new amounts and confirm again.",
             "unconfirmed": "Not confirmed yet. Check History before you try again.",
             "notSent": "This withdrawal did not go through. Your balance has not changed.",
             "errors": {

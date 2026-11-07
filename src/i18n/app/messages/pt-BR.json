@@ -2581,7 +2581,7 @@
             "arrivedTo": "Enviado para {destination}.",
             "arrived": "O dinheiro foi enviado.",
             "refunded": "O banco recusou este pagamento. O dinheiro voltou para o seu saldo.",
-            "quoteMoved": "A cotação mudou desde a revisão. Confira os novos valores e confirme de novo.",
+            "quoteMoved": "A cotação mudou. Confira os novos valores e confirme de novo.",
             "unconfirmed": "Ainda sem confirmação. Confira o Histórico antes de tentar de novo.",
             "notSent": "Este saque não foi concluído. Seu saldo não mudou.",
             "errors": {
