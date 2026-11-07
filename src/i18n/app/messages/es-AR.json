@@ -175,7 +175,7 @@
             "verifyDescriptionAdvisory": "Hacé una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias."
         },
         "drawers": {
-            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
+            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios."
         },
         "postVerification": {
             "claim": {
@@ -507,7 +507,7 @@
         "choicesLater": "Podés cambiar tus opciones más adelante.",
         "steps": {
             "landing": {
-                "description": "Recibí pagos en USD o EUR con datos bancarios a tu nombre. Gastalos con tarjeta o QR, estés donde estés.",
+                "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
                 "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
             },
             "advantage-payments": {
@@ -2187,7 +2187,7 @@
         },
         "claim": {
             "heading": "Recibí pagos en {currency}",
-            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "subheading": "Datos bancarios para recibir pagos. Compartilos con empleadores, clientes o plataformas como Deel.",
             "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>.",
             "providerTerms": "Al abrir la cuenta, aceptás los <terms>{termsName}</terms>."
         },
@@ -2206,7 +2206,7 @@
         },
         "gate": {
             "verifyTitle": "Primero verificá la identidad",
-            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
+            "verifyBody": "Solo podemos abrir una cuenta cuando sabemos quién sos.",
             "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para reenviar, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agregar email",

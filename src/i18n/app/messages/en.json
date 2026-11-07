@@ -343,7 +343,7 @@
             "shareRequestLink": "Share a request link",
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
-            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
+            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details."
         },
         "postVerification": {
             "title": "Verification complete!",
@@ -902,7 +902,7 @@
         "steps": {
             "landing": {
                 "title": "Earn anywhere. Spend worldwide.",
-                "description": "Get paid in USD or EUR to bank details in your name. Spend it by card or QR, wherever you are."
+                "description": "Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are."
             },
             "signup": {
                 "title": "Claim username",
@@ -5042,7 +5042,7 @@
         },
         "claim": {
             "heading": "Get paid in {currency}",
-            "subheading": "Bank details in your name. Share them with employers, clients or platforms like Deel.",
+            "subheading": "Bank details for receiving payments. Share them with employers, clients or platforms like Deel.",
             "conditionTerms": "Who can pay depends on the {currency} rules. They show once the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
             "benefitStable": "Share once, use for every payment",
@@ -5160,7 +5160,7 @@
         },
         "gate": {
             "verifyTitle": "Verify identity first",
-            "verifyBody": "We can only open an account in your name once we know who you are.",
+            "verifyBody": "We can only open an account once we know who you are.",
             "verifyCta": "Verify identity",
             "tosTitle": "One document to agree to",
             "tosCta": "Read and agree",
