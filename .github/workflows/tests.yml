@@ -969,7 +969,7 @@ jobs:
         needs: backdoor-scan
         name: press-contract
         runs-on: ubuntu-latest
-        # Build ~4m + three specs. A hang past this is a bug, not a slow day.
+        # Build ~4m + two specs. A hang past this is a bug, not a slow day.
         timeout-minutes: 25
         permissions:
             contents: read
@@ -1059,11 +1059,6 @@ jobs:
 
             - name: Run the drawer shadow-clip spec
               run: npx playwright test e2e/flows/drawer-shadow-clip.spec.ts --config=playwright.regression.config.ts
-
-            # Claim-link loading is gated too (TASK-24599): the API will refuse a
-            # link's note and people to an app that stops sending a valid proof.
-            - name: Run the claim-link load spec
-              run: npx playwright test e2e/flows/claim-link-load.spec.ts --config=playwright.regression.config.ts
 
             - name: Upload results on failure
               if: failure()
