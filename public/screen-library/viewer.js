@@ -413,6 +413,14 @@ let rows = [],
     filteredRows = [],
     renderedCount = 0
 let commentsReportPath = ''
+let automaticMainComparison = false
+let activeComparisonPath = ''
+let comparisonUnavailable = false
+let collectionLocaleGeneration = 0
+const sectionOpen = new Map()
+const sectionViews = new Map()
+const sectionedPage = () => report?.type === 'collection' && Array.isArray(report.sections)
+
 const activityPanel = $('comment-activity')
 const activityToggle = $('activity-toggle')
 const activityClose = $('activity-close')
@@ -457,7 +465,10 @@ function commentScopes(row) {
         if (!screenshot?.image || (manifest?.type !== 'comparison' && side !== 'after')) return []
         return [
             {
-                reportPath: commentsReportPath,
+                reportPath:
+                    automaticMainComparison && side === 'before'
+                        ? `reports/${activeComparisonPath}`
+                        : commentsReportPath,
                 screenId: row.sourceScreenId ?? row.id,
                 name: row.name,
                 locale: capture?.locale ?? manifest?.locale ?? $('locale').value ?? 'en',
@@ -899,23 +910,17 @@ function newScreenPlaceholder(row) {
     if (row.before?.reason) placeholder.title = row.before.reason
     return placeholder
 }
-const comparisonMode = () => report?.type === 'comparison' || (report?.type === 'collection' && !!activeComparison)
+const comparisonMode = () =>
+    report?.type === 'comparison' || (report?.type === 'collection' && (!!activeComparison || automaticMainComparison))
 const singleScreenLayout = () =>
-    !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all' && !pairedLayout)
+    sectionedPage() || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all' && !pairedLayout)
 const availableScreen = (row) =>
-    [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
-    (report?.type === 'collection' ? row?.after : undefined)
-function collectionRows(collection, locale, comparison) {
+    automaticMainComparison || sectionedPage()
+        ? row?.after
+        : ([row?.after, row?.before].find((screen) => !unavailable(screen)) ??
+          (report?.type === 'collection' ? row?.after : undefined))
+function collectionRows(collection, locale, comparison, preserveAfter = automaticMainComparison) {
     const items = collection.items.map((item) => {
-        if (comparison) {
-            const matched = comparison.screens.find((screen) => screen.id === item.id)
-            return {
-                ...item,
-                ...(matched ?? { status: 'unavailable', before: null, after: null }),
-                order: item.order,
-                ...(item.note ? { note: item.note } : {}),
-            }
-        }
         const variant = item.variants?.[locale]
         const screen = {
             status: variant?.status === 'captured' ? 'captured' : 'unavailable',
@@ -923,24 +928,101 @@ function collectionRows(collection, locale, comparison) {
             thumbnail: variant?.thumbnail,
             reason: variant?.reason,
         }
+        if (comparison) {
+            const matched = comparison.screens.find((screen) => screen.id === item.id)
+            const row = {
+                ...item,
+                ...(matched ?? { status: 'unavailable', before: null, after: null }),
+                order: item.order,
+                ...(item.note ? { note: item.note } : {}),
+            }
+            if (preserveAfter) {
+                row.after = screen
+                // Pixel evidence belongs to the exact compared pair, not merely a commit.
+                if (!matched || matched.after?.image !== screen.image) {
+                    for (const key of ['diff', 'percent', 'pixels', 'belowThreshold', 'changeBounds', 'translation'])
+                        delete row[key]
+                    row.status = screen.status
+                }
+            }
+            return row
+        }
         return { ...item, status: screen.status, after: screen }
     })
     if (!Array.isArray(collection.flows)) return items
     const byId = new Map(items.map((item) => [item.id, item]))
     const seen = new Set()
-    let order = 0
-    return collection.flows.flatMap((flow, flowIndex) =>
-        flow.items.flatMap((step, stepIndex) => {
-            const item = byId.get(step.id)
-            if (!item) return []
-            // Keep the first link canonical for feed and vote scopes, while every occurrence has its own anchor.
-            const id = seen.has(step.id) ? `${step.id}~${flowIndex + 1}-${stepIndex + 1}` : step.id
-            seen.add(step.id)
-            return [
-                { ...item, id, sourceScreenId: step.id, flow: flow.title, flowIndex, note: step.note, order: order++ },
-            ]
+    let order = 0,
+        flowIndex = 0
+    const groups = Array.isArray(collection.sections)
+        ? collection.sections.map((section, sectionIndex) => ({ ...section, sectionIndex }))
+        : [{ flows: collection.flows }]
+    return groups.flatMap((section) =>
+        section.flows.flatMap((flow) => {
+            const index = flowIndex++
+            return flow.items.flatMap((step, stepIndex) => {
+                const item = byId.get(step.id)
+                if (!item) return []
+                // Preserve existing canonical and repeated-placement deep links.
+                const id = seen.has(step.id) ? `${step.id}~${index + 1}-${stepIndex + 1}` : step.id
+                seen.add(step.id)
+                return [
+                    {
+                        ...item,
+                        id,
+                        sourceScreenId: step.id,
+                        flow: flow.title,
+                        flowIndex: index,
+                        sectionIndex: section.sectionIndex,
+                        section: section.title,
+                        note: step.note,
+                        order: order++,
+                    },
+                ]
+            })
         })
     )
+}
+async function pinnedMainComparison(locale) {
+    if (offline) throw new Error('Main comparison unavailable offline')
+    const pin = report.comparisons?.[locale]
+    if (
+        !pin ||
+        pin.baseBranch !== 'main' ||
+        !historyReportPath(pin.path) ||
+        !/^[a-f0-9]{40}$/.test(pin.beforeCommit ?? '') ||
+        !/^[a-f0-9]{40}$/.test(pin.afterCommit ?? '') ||
+        (report.source?.[locale]?.commit && report.source[locale].commit !== pin.afterCommit)
+    )
+        throw new Error('Main comparison unavailable: invalid pinned provenance')
+    const comparison = await historyRead(loadJSON, `/screen-data/reports/${pin.path}/manifest.json`)
+    if (
+        comparison?.schema !== 1 ||
+        comparison.type !== 'comparison' ||
+        comparison.locale !== locale ||
+        comparison.before?.commit !== pin.beforeCommit ||
+        comparison.after?.commit !== pin.afterCommit ||
+        !Array.isArray(comparison.screens)
+    )
+        throw new Error('Main comparison unavailable: incompatible report')
+    return { comparison: normalizeComparison(comparison), path: pin.path }
+}
+async function configureMainComparison(locale) {
+    const generation = ++collectionLocaleGeneration
+    activeComparison = undefined
+    activeComparisonPath = ''
+    comparisonUnavailable = false
+    try {
+        const loaded = await pinnedMainComparison(locale)
+        if (generation !== collectionLocaleGeneration) return false
+        activeComparison = loaded.comparison
+        activeComparisonPath = loaded.path
+    } catch (error) {
+        if (generation !== collectionLocaleGeneration) return false
+        if (error.authRequired) throw error
+        comparisonUnavailable = true
+    }
+    return true
 }
 const requestedCollectionLocale = (collection) => {
     const requested = requestedFilter('locale')
@@ -1019,7 +1101,7 @@ function shareableParams(overrides = {}) {
         if (parseIsoDate(date)) params.set('date', date)
     }
     if (report) {
-        if (activeComparison) params.set('compare', requestedFilter('compare'))
+        if (activeComparison && !automaticMainComparison) params.set('compare', requestedFilter('compare'))
         const query = overrides.q ?? $('search').value.trim()
         const flow = overrides.flow ?? $('flow').value
         const status = overrides.status ?? $('status').value
@@ -1253,8 +1335,15 @@ function closePreview() {
 function restorePreview() {
     const id = requestedFilter('preview')
     const row = id && rows.find((candidate) => candidate.id === id)
-    if (row) zoom(row, requestedFilter('previewMode') || 'screen', 'replace', requestedFilter('comments'))
-    else closePreview()
+    if (row) {
+        revealSectionPlacement(row)
+        zoom(
+            row,
+            requestedFilter('previewMode') || (automaticMainComparison ? 'side' : 'screen'),
+            'replace',
+            requestedFilter('comments')
+        )
+    } else closePreview()
 }
 function zoom(row, mode = 'side', urlAction = 'auto', threadId = '') {
     const wasOpen = $('zoom').open
@@ -1312,16 +1401,23 @@ function zoom(row, mode = 'side', urlAction = 'auto', threadId = '') {
         $('slider').value = '50'
     } else {
         for (const [label, s] of [
-            ['Before', before],
-            ['After', after],
+            [automaticMainComparison ? 'Before · main' : 'Before', before],
+            [automaticMainComparison ? 'After · page capture' : 'After', after],
         ])
             if (s?.image) {
-                const side = label.toLowerCase()
+                const side = label.startsWith('Before') ? 'before' : 'after'
                 const preview = phonePreview(image(s.image, `${label} screen preview`, { preview: false }), label, {
                     side,
                 })
                 $('zoom-images').append(preview)
                 if (side === 'after') afterPreview = preview
+            } else if (automaticMainComparison && label.startsWith('Before')) {
+                const fig = el('figure', undefined, 'device-preview new-screen-shot')
+                fig.append(
+                    el('div', comparisonUnavailable ? 'Main comparison unavailable' : 'No capture on main', 'missing'),
+                    el('figcaption', label)
+                )
+                $('zoom-images').append(fig)
             } else if (label === 'Before' && newScreen(row)) {
                 const fig = el('figure', undefined, 'device-preview new-screen-shot')
                 fig.append(newScreenPlaceholder(row), el('figcaption', label))
@@ -1531,7 +1627,7 @@ function renderTile(row) {
             const b = el('button')
             b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
             b.append(image(s.image, row.name))
-            b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
+            b.onclick = () => zoom(row, automaticMainComparison ? 'side' : showSingle ? 'screen' : 'side')
             fig.append(b)
             const side =
                 label === 'Before' ? 'before' : label === 'After' ? 'after' : s === row.before ? 'before' : 'after'
@@ -1547,6 +1643,10 @@ function renderTile(row) {
     }
     tile.append(pair)
     const foot = el('div', undefined, 'tile-foot')
+    if (automaticMainComparison && !row.before?.image)
+        foot.append(
+            el('span', comparisonUnavailable ? 'Main comparison unavailable' : 'No capture on main', 'comparison-note')
+        )
     const link = el('a', 'Link to screen')
     link.href = `#${row.id}`
     foot.append(link)
@@ -1581,7 +1681,75 @@ function renderTile(row) {
     tile.append(foot)
     return tile
 }
+function renderSectionedPage() {
+    report.sections.forEach((section, sectionIndex) => {
+        const details = el('details', undefined, 'collection-section')
+        details.dataset.sectionIndex = String(sectionIndex)
+        details.open = sectionOpen.get(sectionIndex) ?? false
+        const summary = el('summary')
+        const sectionRows = filteredRows.filter((row) => row.sectionIndex === sectionIndex)
+        summary.append(
+            el('span', section.title, 'collection-section-name'),
+            el('span', undefined, 'collection-section-rule'),
+            el('span', `${sectionRows.length} screens`, 'collection-section-count'),
+            el('span', '›', 'collection-section-disclosure')
+        )
+        const body = el('div', undefined, 'collection-section-body')
+        details.append(summary, body)
+        const state = { details, body, rows: sectionRows, count: 0, flows: new Map(), more: null }
+        sectionViews.set(sectionIndex, state)
+        details.addEventListener('toggle', () => {
+            if (sectionViews.get(sectionIndex) !== state) return
+            sectionOpen.set(sectionIndex, details.open)
+            if (details.open && !state.count) appendSectionPage(state)
+        })
+        $('screens').append(details)
+        if (details.open) appendSectionPage(state)
+    })
+    renderedCount = filteredRows.length
+    $('screen-load-more').hidden = true
+}
+function appendSectionPage(state, throughId) {
+    const targetIndex = throughId ? state.rows.findIndex((row) => row.id === throughId) : -1
+    const end = Math.min(state.rows.length, Math.max(state.count + PAGE_SIZE, targetIndex + 1))
+    for (const row of state.rows.slice(state.count, end)) {
+        let flow = state.flows.get(row.flowIndex)
+        if (!flow) {
+            flow = el('section', undefined, 'collection-flow')
+            flow.dataset.flowIndex = String(row.flowIndex)
+            const heading = el('h2', row.flow)
+            heading.id = `collection-flow:${row.flowIndex}`
+            flow.setAttribute('aria-labelledby', heading.id)
+            flow.append(heading, el('div', undefined, 'collection-flow-screens single'))
+            state.flows.set(row.flowIndex, flow)
+        }
+        flow.lastElementChild.append(renderTile(row))
+    }
+    state.count = end
+    const children = [...state.flows.values()]
+    if (end < state.rows.length) {
+        const more = el('button', `Load more screens (${state.rows.length - end} remaining)`, 'section-load-more')
+        more.type = 'button'
+        more.onclick = () => appendSectionPage(state)
+        children.push(more)
+    } else if (!state.rows.length) children.push(el('p', 'No screens match these filters.', 'meta'))
+    state.body.replaceChildren(...children)
+}
+function revealSectionPlacement(row) {
+    if (!sectionedPage() || row?.sectionIndex === undefined) return
+    sectionOpen.set(row.sectionIndex, true)
+    const state = sectionViews.get(row.sectionIndex)
+    if (state) {
+        state.details.open = true
+        if (
+            state.rows.some((candidate) => candidate.id === row.id) &&
+            !state.rows.slice(0, state.count).some((candidate) => candidate.id === row.id)
+        )
+            appendSectionPage(state, row.id)
+    }
+}
 function appendNextPage() {
+    if (sectionedPage()) return
     if (renderedCount >= filteredRows.length) {
         $('screen-load-more').hidden = true
         return
@@ -1609,6 +1777,8 @@ function appendNextPage() {
     $('screen-load-more').hidden = renderedCount >= filteredRows.length
 }
 function render() {
+    for (const [index, state] of sectionViews) sectionOpen.set(index, state.details.open)
+    sectionViews.clear()
     const changedMode = report?.type === 'comparison' && viewMode === 'changed'
     if (report?.type === 'comparison')
         $('title').textContent = reportTitle || (changedMode ? 'See what changed.' : 'Every screen.')
@@ -1625,6 +1795,10 @@ function render() {
                 ? 'changed-screens'
                 : 'all-screens'
     $('screens').replaceChildren()
+    if (sectionedPage()) {
+        renderSectionedPage()
+        return
+    }
     if (!filteredRows.length) {
         const clearVotes = [
             'Clear vote filters',
@@ -1979,7 +2153,9 @@ async function configureReportLocales(reportPath) {
     $('branch-control').hidden = true
     $('screen-updates-control').hidden = true
     if (report.type === 'collection') {
-        reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
+        reportLocaleEntries = (
+            activeComparison && !automaticMainComparison ? [activeComparison.locale] : report.locales
+        ).map((locale) => ({
             locale,
         }))
         reportSourceEntries = []
@@ -2072,6 +2248,8 @@ async function start() {
         throw new Error('Unsupported report')
     const comparisonPath = collectionMatch ? requestedFilter('compare') : ''
     activeComparison = undefined
+    automaticMainComparison = report.type === 'collection' && report.compareWith === 'main' && !comparisonPath
+    if (automaticMainComparison) await configureMainComparison(requestedCollectionLocale(report))
     if (comparisonPath) {
         if (
             !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
@@ -2089,12 +2267,14 @@ async function start() {
         )
             throw new Error('Unsupported comparison for this collection')
         activeComparison = normalizeComparison(comparison)
+        activeComparisonPath = comparisonPath
     }
-    commentsReportPath = activeComparison
-        ? `reports/${comparisonPath}`
-        : collectionMatch
-          ? `collections/${collectionMatch[1]}`
-          : `reports/${reportPath}`
+    commentsReportPath =
+        activeComparison && !automaticMainComparison
+            ? `reports/${comparisonPath}`
+            : collectionMatch
+              ? `collections/${collectionMatch[1]}`
+              : `reports/${reportPath}`
     if (report.type === 'comparison') report = normalizeComparison(report)
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
@@ -2130,6 +2310,10 @@ async function start() {
     $('description').replaceChildren()
     if (report.type === 'collection' && report.description) $('description').append(el('span', report.description), ' ')
     $('description').append(captureDate ? el('strong', captureDate) : el('span', ''))
+    if (automaticMainComparison && comparisonUnavailable)
+        $('description').append(
+            el('p', 'Main comparison unavailable. Page screenshots remain available.', 'comparison-note')
+        )
     if ((activeComparison ?? report).beforeHarness?.mode === 'base')
         $('description').append(
             el(
@@ -2249,7 +2433,17 @@ async function start() {
         $('view-mode').checked = true
     }
     render()
-    if (location.hash && !requestedFilter('preview')) {
+    if (sectionedPage() && location.hash && !requestedFilter('preview')) {
+        let id
+        try {
+            id = decodeURIComponent(location.hash.slice(1))
+        } catch {
+            id = location.hash.slice(1)
+        }
+        const row = rows.find((candidate) => candidate.id === id)
+        revealSectionPlacement(row)
+        document.getElementById(id)?.scrollIntoView?.()
+    } else if (location.hash && !requestedFilter('preview')) {
         viewMode = 'all'
         showVariations = true
         $('view-mode').checked = true
@@ -2288,9 +2482,23 @@ $('status').addEventListener('input', () => {
     render()
     syncShareableUrl()
 })
-$('locale').addEventListener('change', () => {
+$('locale').addEventListener('change', async () => {
     if (report?.type === 'collection') {
-        rows = collectionRows(report, $('locale').value)
+        const locale = $('locale').value
+        closePreview()
+        if (automaticMainComparison) {
+            try {
+                const pending = configureMainComparison(locale)
+                // Discard the old locale's comparison scopes immediately while the next baseline loads.
+                rows = collectionRows(report, locale).map(explicitSurfaceName)
+                render()
+                if (!(await pending)) return
+            } catch (error) {
+                if (error.authRequired) showAuthGate()
+                return
+            }
+        }
+        rows = collectionRows(report, locale, activeComparison).map(explicitSurfaceName)
         renderCoverage()
         $('footer').textContent = `${localeLabel($('locale').value)} · Curated collection · Synthetic app states`
         $('flow').replaceChildren(el('option', 'All flows'))

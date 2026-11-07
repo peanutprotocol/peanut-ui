@@ -69,8 +69,9 @@ const elementIds = [
 ]
 
 class Element {
-    constructor(id) {
+    constructor(id, tagName = '') {
         this.id = id
+        this.tagName = tagName.toUpperCase()
         this.children = []
         this.hidden = false
         this.open = false
@@ -183,9 +184,20 @@ test('legacy four-pixel false positives are hidden, counted as unchanged, and re
 
 async function loadLanding(
     pathname,
-    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '', screenComments } = {}
+    {
+        ok = true,
+        redirected = false,
+        index = [],
+        report,
+        comparisonReport,
+        comparisonFailure = false,
+        search = '',
+        hash = '',
+        screenComments,
+    } = {}
 ) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
+    elements.get('zoom').append(elements.get('zoom-images'))
     const brand = new Element('brand')
     const location = {
         pathname,
@@ -263,7 +275,7 @@ async function loadLanding(
         resolveResponse = resolve
     })
     const document = {
-        createElement: () => new Element(),
+        createElement: (tag) => new Element(undefined, tag),
         getElementById: (id) => elements.get(id),
         querySelector: (selector) => (selector === '.brand' ? brand : null),
     }
@@ -273,11 +285,19 @@ async function loadLanding(
         document,
         URLSearchParams,
         URL,
+        AbortController,
+        DOMException,
+        setTimeout,
+        clearTimeout,
         fetch: (url) =>
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
-                : comparisonReport && url.includes('/screen-data/reports/')
-                  ? Promise.resolve({ ok: true, status: 200, json: async () => comparisonReport })
+                : (comparisonReport || comparisonFailure) && url.includes('/screen-data/reports/')
+                  ? Promise.resolve({
+                        ok: !comparisonFailure,
+                        status: comparisonFailure ? 503 : 200,
+                        json: async () => comparisonReport,
+                    })
                   : response,
         history,
         location,
@@ -2470,4 +2490,191 @@ test('preview links: explicitly opening another pixel difference clears the unre
     assert.equal(previewParams(elements).get('preview'), 'second')
     assert.equal(previewParams(elements).get('previewMode'), 'difference')
     assert.equal(previewParams(elements).has('comments'), false)
+})
+
+// Sectioned flow pages: public contract, intentionally independent of viewer implementation.
+const sectionPath = '/collections/section-contract/'
+const sectionComparisonPath = `2026-10-10/compare-main/en/${'c'.repeat(40)}`
+const sectionFixture = (sections) => ({
+    schema: 1,
+    type: 'collection',
+    title: 'Section contract',
+    locales: ['en'],
+    source: { en: { commit: 'c'.repeat(40) } },
+    complete: true,
+    compareWith: 'main',
+    comparisons: {
+        en: {
+            path: sectionComparisonPath,
+            baseBranch: 'main',
+            beforeCommit: 'd'.repeat(40),
+            afterCommit: 'c'.repeat(40),
+        },
+    },
+    items: ['home', 'profile'].map((id, order) => ({
+        id,
+        name: id,
+        flow: 'Catalogue',
+        order,
+        variants: { en: { status: 'captured', image: previewImage(order ? 'b' : 'a') } },
+    })),
+    sections,
+    flows: sections.flatMap(({ flows }) => flows),
+})
+const sectionComparison = (screens) => ({
+    schema: 1,
+    type: 'comparison',
+    locale: 'en',
+    complete: true,
+    before: { commit: 'd'.repeat(40) },
+    after: { commit: 'c'.repeat(40) },
+    screens,
+})
+const descendants = (element) => [element, ...(element?.children ?? []).flatMap(descendants)]
+const sectionNodes = (elements) => elements.get('screens').children
+const disclosure = (section) =>
+    descendants(section).find((node) => node.tagName === 'DETAILS' || node['aria-expanded'] !== undefined)
+const expandSection = (section) => {
+    const control = disclosure(section)
+    assert.ok(control, 'section has an accessible disclosure')
+    if (control.tagName === 'DETAILS') {
+        control.open = true
+        control.dispatch('toggle')
+    } else if (control.onclick) control.onclick()
+    else control.dispatch('click')
+}
+
+test('section pages start collapsed and preserve nested flow order, repeated placements and notes', async () => {
+    const report = sectionFixture([
+        {
+            title: 'First section',
+            flows: [
+                {
+                    title: 'First flow',
+                    items: [
+                        { id: 'profile', note: 'Profile note' },
+                        { id: 'home', note: 'First home note' },
+                    ],
+                },
+                { title: 'Second flow', items: [{ id: 'home', note: 'Repeated home note' }] },
+            ],
+        },
+        {
+            title: 'Last section',
+            flows: [{ title: 'Last flow', items: [{ id: 'profile', note: 'Last profile note' }] }],
+        },
+    ])
+    const elements = await loadLanding(sectionPath, {
+        report,
+        comparisonReport: sectionComparison([]),
+        search: '?locale=en',
+    })
+    const sections = sectionNodes(elements)
+    assert.equal(sections.length, 2)
+    assert.match(elementText(sections[0]), /First section/)
+    assert.match(elementText(sections[1]), /Last section/)
+    for (const section of sections) {
+        const control = disclosure(section)
+        assert.ok(control, 'each section exposes a disclosure')
+        assert.ok(control.tagName === 'DETAILS' ? !control.open : control['aria-expanded'] === 'false')
+        expandSection(section)
+    }
+    const firstText = elementText(sections[0])
+    assert.ok(firstText.indexOf('First flow') < firstText.indexOf('Profile note'))
+    assert.ok(firstText.indexOf('Profile note') < firstText.indexOf('First home note'))
+    assert.ok(firstText.indexOf('First home note') < firstText.indexOf('Second flow'))
+    assert.ok(firstText.indexOf('Second flow') < firstText.indexOf('Repeated home note'))
+    assert.match(elementText(sections[1]), /Last flow.*Last profile note/)
+    const ids = descendants(elements.get('screens'))
+        .map(({ id }) => id)
+        .filter((id) => id && (id === 'home' || id.startsWith('home~')))
+    assert.equal(new Set(ids).size, 2, 'repeated placements have distinct links')
+    elements.get('search').dispatch('input')
+    assert.ok(
+        disclosure(sectionNodes(elements)[0]).tagName === 'DETAILS'
+            ? disclosure(sectionNodes(elements)[0]).open
+            : disclosure(sectionNodes(elements)[0])['aria-expanded'] === 'true',
+        'local rerender retains expansion'
+    )
+})
+
+test('section comparison opens the selected after image even when the pinned report has another after', async () => {
+    const report = sectionFixture([{ title: 'Review', flows: [{ title: 'Flow', items: [{ id: 'home' }] }] }])
+    const comparisonReport = sectionComparison([
+        {
+            id: 'home',
+            status: 'changed',
+            before: { image: previewImage('d') },
+            after: { image: previewImage('e') },
+            diff: previewImage('f'),
+            percent: 42,
+        },
+    ])
+    const elements = await loadLanding(sectionPath, { report, comparisonReport, search: '?locale=en', hash: '#home' })
+    const section = sectionNodes(elements)[0]
+    expandSection(section)
+    const tile = descendants(section).find(({ id }) => id === 'home')
+    assert.ok(tile)
+    assert.ok(imageSources(tile).some((src) => src.endsWith(previewImage('a'))))
+    openCapture(tile)
+    assert.equal(elements.get('zoom').open, true)
+    const images = imageSources(elements.get('zoom-images'))
+    assert.ok(
+        images.some((src) => src.endsWith(previewImage('d'))),
+        'before is main'
+    )
+    assert.ok(
+        images.some((src) => src.endsWith(previewImage('a'))),
+        'after is selected capture'
+    )
+    assert.ok(!images.some((src) => src.endsWith(previewImage('e')) || src.endsWith(previewImage('f'))))
+    assert.doesNotMatch(elementText(tile) + elementText(elements.get('zoom')), /42%|Pixel difference/)
+})
+
+test('section pages distinguish missing main from an unavailable comparison while retaining after content', async () => {
+    const report = sectionFixture([{ title: 'Review', flows: [{ title: 'Flow', items: [{ id: 'home' }] }] }])
+    for (const [options, expected] of [
+        [{ comparisonReport: sectionComparison([]) }, /No capture on main/i],
+        [{ comparisonFailure: true }, /comparison.*unavailable|unavailable.*comparison/i],
+    ]) {
+        const elements = await loadLanding(sectionPath, { report, search: '?locale=en', ...options })
+        expandSection(sectionNodes(elements)[0])
+        assert.ok(imageSources(elements.get('screens')).some((src) => src.endsWith(previewImage('a'))))
+        const tile = descendants(elements.get('screens')).find(({ id }) => id === 'home')
+        openCapture(tile)
+        assert.ok(imageSources(elements.get('zoom-images')).some((src) => src.endsWith(previewImage('a'))))
+        assert.match(elementText(elements.get('screens')) + elementText(elements.get('zoom')), expected)
+    }
+})
+
+test('the last repeated placement in hundreds of sections can be shared without changing a filter', async () => {
+    const sections = Array.from({ length: 220 }, (_, i) => ({
+        title: `Section ${i}`,
+        flows: [{ title: `Flow ${i}`, items: [{ id: 'home', note: `Placement ${i}` }] }],
+    }))
+    const report = sectionFixture(sections)
+    const elements = await loadLanding(sectionPath, {
+        report,
+        comparisonReport: sectionComparison([]),
+        search: '?locale=en',
+    })
+    assert.equal(sectionNodes(elements).length, 220)
+    const last = sectionNodes(elements).at(-1)
+    expandSection(last)
+    const tile = descendants(last).find(
+        (node) => node.id && node.id !== 'screens' && elementText(node).includes('Placement 219')
+    )
+    assert.ok(tile?.id, 'last placement has an addressable ID')
+    openCapture(tile)
+    const preview = previewParams(elements).get('preview')
+    assert.equal(preview, tile.id)
+    const shared = await loadLanding(sectionPath, {
+        report,
+        comparisonReport: sectionComparison([]),
+        search: `?locale=en&q=does-not-match&preview=${encodeURIComponent(preview)}`,
+    })
+    assert.equal(shared.get('zoom').open, true)
+    assert.equal(previewParams(shared).get('preview'), preview)
+    assert.equal(previewParams(shared).get('q'), 'does-not-match')
+    assert.equal(shared.get('search').value, 'does-not-match')
 })
