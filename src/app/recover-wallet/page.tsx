@@ -28,7 +28,7 @@ import Card from '@/components/Global/Card'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
@@ -269,7 +269,7 @@ function RecoveryError({ kind }: { kind: RecoveryErrorKind }) {
         <>
             <div className="flex min-h-dvh flex-col pt-safe-top pb-safe-bottom">
                 <div className="flex flex-1 flex-col justify-center gap-6 px-4 py-6">
-                    <CenteredErrorCard title={t(`${kind}.title`)} description={t(`${kind}.description`)} />
+                    <CenteredStatusCard title={t(`${kind}.title`)} description={t(`${kind}.description`)} />
                     <Button
                         variant="primary"
                         shadowSize="4"

@@ -67,6 +67,7 @@ export function SavedScreen({
         <VerifyCelebrationLayout
             pose="pointing"
             screenId="answers-saved"
+            statusTone="success"
             onBack={onBack}
             celebrate
             title={t('saved.title')}
@@ -202,9 +203,18 @@ export function ReviewScreen({
 }
 
 /** Add-later is saved: the providers take it from here, and the account rows show their status. */
-export function FeatureReadyScreen({ feature, onDone }: { feature: PaperworkVerificationFeature; onDone: () => void }) {
+export function FeatureReadyScreen({
+    feature,
+    onDone,
+    acknowledgement = false,
+}: {
+    feature: PaperworkVerificationFeature
+    onDone: () => void
+    acknowledgement?: boolean
+}) {
     const t = useTranslations('kyc.paperworkVerification')
     const controls = useKycControl('feature-ready', 'kyc_status')
+    const tCommon = useTranslations('common')
     return (
         <VerifyHeroLayout
             pose="too-cool"
@@ -213,7 +223,7 @@ export function FeatureReadyScreen({ feature, onDone }: { feature: PaperworkVeri
             footer={
                 <VerifyFooter
                     actions={primary(
-                        t('addLater.doneCta'),
+                        acknowledgement ? tCommon('gotIt') : t('addLater.doneCta'),
                         () => {
                             controls.track('done', 'tap')
                             onDone()

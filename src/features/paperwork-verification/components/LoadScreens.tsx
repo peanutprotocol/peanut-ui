@@ -63,6 +63,7 @@ export function VerificationOutage({ onBack }: { onBack: () => void }) {
             <VerifyHeroLayout
                 pose="sad"
                 screenId="outage"
+                statusTone="error"
                 onBack={onBack}
                 title={t('degraded.title')}
                 description={t('degraded.description')}

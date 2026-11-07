@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -324,26 +325,27 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             }
                         />
                     ) : (
-                        <EmptyState
-                            icon="txn-off"
+                        <CenteredStatusCard
+                            tone="neutral"
+                            pose="worried"
                             title={t('blocked.title', { username })}
                             description={t('errors.moneyContactsOnly')}
-                            cta={
-                                <div className="mt-4 flex w-full flex-col gap-3">
-                                    <Button
-                                        variant="primary"
-                                        className="w-full"
-                                        icon="arrow-up-right"
-                                        href={sendUrl(username, native.isCapacitor)}
-                                    >
-                                        {t('blocked.sendCta', { username })}
-                                    </Button>
-                                    <Button variant="secondary" className="w-full" icon="link" href="/request">
-                                        {tHome('shareRequestLink')}
-                                    </Button>
-                                </div>
-                            }
-                        />
+                        >
+                            {' '}
+                            <div className="mt-4 flex w-full flex-col gap-3">
+                                <Button
+                                    variant="primary"
+                                    className="w-full"
+                                    icon="arrow-up-right"
+                                    href={sendUrl(username, native.isCapacitor)}
+                                >
+                                    {t('blocked.sendCta', { username })}
+                                </Button>
+                                <Button variant="secondary" className="w-full" icon="link" href="/request">
+                                    {tHome('shareRequestLink')}
+                                </Button>
+                            </div>
+                        </CenteredStatusCard>
                     )}
                 </PageStack.Center>
             </div>

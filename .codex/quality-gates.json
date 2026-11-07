@@ -46,6 +46,8 @@
                 "src/features/qr-code/__tests__/QrClaimUnavailableView.test.tsx",
                 "src/features/payments/flows/qr-pay/__tests__/QrPayBlockedView.test.tsx",
                 "src/i18n/app/__tests__/marketing-messages.test.ts",
+                "src/features/paperwork-verification/__tests__/StatusScreens.pending-acknowledgement.test.tsx",
+                "src/features/limits/components/__tests__/LimitsWarningCard.test.tsx",
                 "src/app/(mobile-ui)/history/__tests__/load-error.test.tsx",
                 "src/features/payments/flows/qr-pay/__tests__/useQrPayFlow.preparation.test.tsx"
             ]
@@ -85,7 +87,7 @@
                 "src/components/AddWithdraw/DynamicBankAccountForm.tsx",
                 "src/features/withdraw/BankWithdrawKycDraft.tsx",
                 "src/app/recover-wallet/page.tsx",
-                "src/components/Global/EmptyStates/CenteredErrorCard.tsx",
+                "src/components/Global/EmptyStates/CenteredStatusCard.tsx",
                 "src/features/qr-code/views/QrClaimUnavailableView.tsx"
             ]
         },

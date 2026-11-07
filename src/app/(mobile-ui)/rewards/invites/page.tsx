@@ -18,6 +18,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { getInitialsFromName } from '@/utils/general.utils'
 import { type PointsInvite } from '@/services/services.types'
 import { formatPoints } from '@/utils/format.utils'
@@ -92,22 +93,23 @@ const InvitesPage = () => {
             <PageContainer className="flex flex-col">
                 <NavHeader title={t('invitesTitle')} onPrev={onBack} />
                 <div className="mx-auto my-auto w-full">
-                    <EmptyState
-                        concept="rewards"
+                    <CenteredStatusCard
+                        tone="neutral"
+                        pose="worried"
                         title={t('noInvitesYet')}
                         description={t('shareInviteLinkPrompt')}
-                        cta={
-                            <Button
-                                variant="primary"
-                                shadowSize="4"
-                                size="small"
-                                className="mt-2"
-                                onClick={() => setIsInviteModalOpen(true)}
-                            >
-                                {t('shareInviteLink')}
-                            </Button>
-                        }
-                    />
+                    >
+                        {' '}
+                        <Button
+                            variant="primary"
+                            shadowSize="4"
+                            size="small"
+                            className="mt-2"
+                            onClick={() => setIsInviteModalOpen(true)}
+                        >
+                            {t('shareInviteLink')}
+                        </Button>
+                    </CenteredStatusCard>
                 </div>
                 <InviteFriendsModal
                     visible={isInviteModalOpen}
