@@ -6,6 +6,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import Image from 'next/image'
@@ -37,7 +38,7 @@ const MantecaLimitsView = () => {
     const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
     return (
-        <div className="flex min-h-inherit flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
@@ -123,7 +124,7 @@ const MantecaLimitsView = () => {
             {!isLoading && !error && (!mantecaLimits || mantecaLimits.length === 0) && (
                 <EmptyState title={t('noData')} icon="meter" />
             )}
-        </div>
+        </PageStack>
     )
 }
 

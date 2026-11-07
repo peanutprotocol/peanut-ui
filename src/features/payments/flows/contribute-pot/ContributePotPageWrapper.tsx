@@ -10,6 +10,7 @@
  */
 
 import { ContributePotPage } from './ContributePotPage'
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
 import Loading from '@/components/Global/Loading'
@@ -73,8 +74,7 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
             <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <EmptyState
-                        icon="search"
+                    <CenteredErrorCard
                         title={t('errors.requestNotFoundTitle')}
                         description={error || t('errors.requestNotFoundDescription')}
                     />

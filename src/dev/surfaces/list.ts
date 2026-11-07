@@ -41,6 +41,36 @@ const apiRibbon = (id: string): SurfaceMeta => {
 
 // Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'standalone-error-card': {
+        name: 'Card — load failed',
+        path: 'features/card/CardPage.tsx',
+        expectSelector: '[data-testid="standalone-error-card"] h1',
+    },
+    'standalone-error-card-recovery': {
+        name: 'Card recovery — unavailable',
+        path: 'features/card-recovery/CardRecoveryPage.tsx',
+        expectSelector: '[data-testid="standalone-error-card-recovery"] h1',
+    },
+    'standalone-error-claim': {
+        name: 'Claim — payment failed',
+        path: 'Claim/Link/Onchain/Success.view.tsx',
+        expectSelector: '[data-testid="standalone-error-claim"] h1',
+    },
+    'standalone-error-send': {
+        name: 'Send — bank payment failed',
+        path: 'features/withdraw/views/MantecaBankWithdrawFlow.tsx',
+        expectSelector: '[data-testid="standalone-error-send"] h1',
+    },
+    'standalone-error-withdraw': {
+        name: 'Withdraw — bank withdrawal failed',
+        path: 'features/withdraw/views/MantecaBankWithdrawFlow.tsx',
+        expectSelector: '[data-testid="standalone-error-withdraw"] h1',
+    },
+    'standalone-error-wallet-recovery': {
+        name: 'Recover wallet — unavailable',
+        path: 'app/recover-wallet/page.tsx',
+        expectSelector: '[data-testid="standalone-error-wallet-recovery"] h1',
+    },
     'api-ribbon-loading': apiRibbon('api-ribbon-loading'),
     'api-ribbon-compatible': apiRibbon('api-ribbon-compatible'),
     'api-ribbon-too-old': apiRibbon('api-ribbon-too-old'),

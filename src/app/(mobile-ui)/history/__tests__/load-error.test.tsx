@@ -70,7 +70,7 @@ describe('HistoryPage when the history request fails', () => {
     it('keeps the Activity header so the user can go back, and offers a retry', () => {
         render(<HistoryPage />)
         expect(screen.getByRole('heading', { name: 'history.title' })).toBeInTheDocument()
-        expect(screen.getByText('history.errorTitle')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'history.errorTitle' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('history-retry'))
         expect(mockRefetch).toHaveBeenCalledTimes(1)
     })

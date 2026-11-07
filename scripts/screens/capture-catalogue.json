@@ -1548,6 +1548,18 @@
         "route": "/fix-card-signature"
     },
     {
+        "id": "standalone-error-card",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=standalone-error-card",
+        "source": "features/card/CardPage.tsx"
+    },
+    {
+        "id": "standalone-error-card-recovery",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=standalone-error-card-recovery",
+        "source": "features/card-recovery/CardRecoveryPage.tsx"
+    },
+    {
         "id": "32-c-cancelcardmodal",
         "flow": "Card",
         "route": "/dev/surfaces?s=32-c-cancelcardmodal",
@@ -1890,6 +1902,12 @@
         "id": "p58-qr-success",
         "flow": "Payments",
         "route": "/qr/synthetic-success/success"
+    },
+    {
+        "id": "standalone-error-claim",
+        "flow": "Payments",
+        "route": "/dev/surfaces?s=standalone-error-claim",
+        "source": "Claim/Link/Onchain/Success.view.tsx"
     },
     {
         "id": "numeric-request-amount-4000",
@@ -2238,6 +2256,24 @@
         "id": "p84-avenia-provider-sheet",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+    },
+    {
+        "id": "standalone-error-send",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=standalone-error-send",
+        "source": "features/withdraw/views/MantecaBankWithdrawFlow.tsx"
+    },
+    {
+        "id": "standalone-error-withdraw",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=standalone-error-withdraw",
+        "source": "features/withdraw/views/MantecaBankWithdrawFlow.tsx"
+    },
+    {
+        "id": "standalone-error-wallet-recovery",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=standalone-error-wallet-recovery",
+        "source": "app/recover-wallet/page.tsx"
     },
     {
         "id": "92-f-withdraw-amount-error",

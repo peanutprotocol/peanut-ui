@@ -1,5 +1,6 @@
 'use client'
 
+import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
@@ -36,6 +37,7 @@ import { formatCents, shorten } from './utils'
  */
 export function CardRecoveryPage() {
     const t = useTranslations('card.recovery')
+    const tCommon = useTranslations('common')
     const onBack = useSafeBack('/home')
     const { step, preview, error, txHash, recoveredCents, handleRecover } = useCardRecoveryFlow()
 
@@ -45,7 +47,19 @@ export function CardRecoveryPage() {
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onBack} />
             <PageStack.Center>
-                {error && <Callout priority="error">{error}</Callout>}
+                {error &&
+                    (preview ? (
+                        <Callout priority="error">{error}</Callout>
+                    ) : (
+                        <CenteredErrorCard
+                            title={tCommon('cardRecoveryUnavailable')}
+                            description={
+                                <Callout priority="error" hideIcon className="bg-transparent p-0">
+                                    {error}
+                                </Callout>
+                            }
+                        />
+                    ))}
 
                 {step === 'done' && txHash ? (
                     <Card className="flex flex-col gap-3 p-6">

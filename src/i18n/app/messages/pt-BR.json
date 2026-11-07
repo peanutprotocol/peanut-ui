@@ -1,5 +1,25 @@
 {
+    "rateGate": {
+        "title": "Taxa de câmbio indisponível"
+    },
+    "walletRecovery": {
+        "invalidLink": {
+            "title": "Link de recuperação indisponível",
+            "description": "Este link de recuperação é inválido ou expirou."
+        },
+        "walletUnavailable": {
+            "title": "Recuperação da carteira indisponível",
+            "description": "Não conseguimos carregar esta carteira para recuperá-la."
+        }
+    },
     "common": {
+        "claimCouldNotComplete": "Não foi possível resgatar o pagamento",
+        "cardCouldNotLoad": "Não foi possível carregar o cartão",
+        "cardRecoveryUnavailable": "Recuperação do cartão indisponível",
+        "qrPaymentCouldNotStart": "Não foi possível iniciar o pagamento com QR",
+        "withdrawalCouldNotComplete": "Não foi possível concluir o saque",
+        "sendCouldNotComplete": "Não foi possível enviar o pagamento",
+        "bankTransfersUnavailable": "Transferências bancárias indisponíveis",
         "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
         "exchangeRateInfo": "Esta é a taxa de câmbio atual. Ela pode mudar ligeiramente antes da confirmação do seu pagamento.",
         "fundsOnTheWay": "Fundos a caminho",
@@ -838,7 +858,8 @@
             "submitted": "Documento enviado para análise."
         },
         "error": {
-            "description": "Não foi possível carregar os limites. Tente de novo."
+            "title": "Não foi possível carregar os limites",
+            "description": "Verifique sua conexão e tente de novo."
         },
         "docsLink": "Saiba mais sobre limites",
         "needHigherLimits": "Precisa de limites maiores? Fale com o suporte.",
@@ -896,7 +917,7 @@
                 "description": "Convide amigos e desbloqueie recompensas quando eles usarem o Peanut."
             },
             "advantage-control": {
-                "title": "Só para você",
+                "title": "Você está no controle",
                 "description": "Só você pode usar sua digital ou Face ID para controlar sua conta. O Peanut nunca pode mover nem congelar seu dinheiro. Experimente agora."
             },
             "sign-test-transaction": {
