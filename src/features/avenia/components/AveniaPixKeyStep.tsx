@@ -107,8 +107,9 @@ export function AveniaPixKeyStep({
                             .filter(Boolean)
                             .join(' · ')}
                         bodyWrap
+                        // whose account it is, from the directory: a deny-listed bank can still be the user's own
                         trailing={
-                            current.verdict === 'own' ? (
+                            current.info.ownAccount ? (
                                 <Badge status="completed" customText={t('ownAccount')} />
                             ) : (
                                 <Badge status="failed" customText={t('someoneElses')} />
