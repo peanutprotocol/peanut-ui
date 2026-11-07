@@ -1,5 +1,12 @@
 {
     "common": {
+        "claimCouldNotComplete": "Não foi possível resgatar o pagamento",
+        "cardCouldNotLoad": "Não foi possível carregar seu cartão",
+        "cardRecoveryUnavailable": "Recuperação do cartão indisponível",
+        "qrPaymentCouldNotStart": "Não foi possível iniciar o pagamento com QR",
+        "withdrawalCouldNotComplete": "Não foi possível concluir o saque",
+        "sendCouldNotComplete": "Não foi possível enviar o pagamento",
+        "bankTransfersUnavailable": "Transferências bancárias indisponíveis",
         "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
         "exchangeRateInfo": "Esta é a taxa de câmbio atual. Ela pode mudar ligeiramente antes da confirmação do seu pagamento.",
         "fundsOnTheWay": "Fundos a caminho",

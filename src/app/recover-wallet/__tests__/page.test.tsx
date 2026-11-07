@@ -56,7 +56,7 @@ it.each([null, 'invalid-secret-fixture'])('offers support without initializing a
     const heading = screen.getByRole('heading', { name: 'Recovery link unavailable' })
     const card = heading.closest('.border')
     expect(card).toContainElement(error)
-    const mascot = container.querySelector('[data-mascot-pose="sad"]')
+    const mascot = container.querySelector<HTMLElement>('[data-mascot-pose="sad"]')
     expect(mascot).toHaveAttribute('aria-hidden', 'true')
     expect(card).not.toContainElement(mascot)
     expect(mascot?.compareDocumentPosition(error)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)

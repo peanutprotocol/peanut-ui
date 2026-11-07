@@ -44,7 +44,8 @@
                 "src/components/AddWithdraw/__tests__/DynamicBankAccountForm.test.tsx",
                 "src/app/recover-wallet/__tests__/page.test.tsx",
                 "src/features/qr-code/__tests__/QrClaimUnavailableView.test.tsx",
-                "src/features/payments/flows/qr-pay/__tests__/QrPayBlockedView.test.tsx"
+                "src/features/payments/flows/qr-pay/__tests__/QrPayBlockedView.test.tsx",
+                "src/i18n/app/__tests__/marketing-messages.test.ts"
             ]
         },
         {
