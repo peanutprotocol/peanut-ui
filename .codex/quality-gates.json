@@ -29,6 +29,7 @@
                 "src/components/Card/__tests__/ApplicationStatusScreen.test.tsx",
                 "src/components/Profile/views/__tests__/MoneySettings.test.tsx",
                 "src/features/deposit-accounts/__tests__/DepositAccountsListScreen.test.tsx",
+                "src/features/deposit-accounts/__tests__/BankAccountVerifyBackground.test.tsx",
                 "src/features/home/views/__tests__/HomeTopNav.test.tsx",
                 "src/features/card/__tests__/useCardFlow.pendingApplication.test.tsx",
                 "src/app/(mobile-ui)/withdraw/crypto/__tests__/crypto-withdraw-confirm.test.tsx",
@@ -89,7 +90,9 @@
                 "src/features/withdraw/BankWithdrawKycDraft.tsx",
                 "src/app/recover-wallet/page.tsx",
                 "src/components/Global/EmptyStates/CenteredStatusCard.tsx",
-                "src/features/qr-code/views/QrClaimUnavailableView.tsx"
+                "src/features/qr-code/views/QrClaimUnavailableView.tsx",
+                "src/features/deposit-accounts/components/DepositAccountsFlow.tsx",
+                "src/features/deposit-accounts/components/DepositAccountsListScreen.tsx"
             ]
         },
         {

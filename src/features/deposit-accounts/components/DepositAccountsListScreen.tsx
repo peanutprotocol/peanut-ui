@@ -48,6 +48,7 @@ const HUB_HREF = '/add-money?method=bank'
 // Follow-up: evaluate 1–2 included accounts and a Peanut Tier 2 unlock for more.
 // Billing and backend enforcement decisions: mono/projects/virtual-accounts/README.md, Next steps.
 export function DepositAccountsListScreen({
+    presentation = 'add-money',
     corridors,
     accounts,
     claimable,
@@ -61,6 +62,8 @@ export function DepositAccountsListScreen({
     onOpen,
     onRetry,
 }: {
+    /** Keep the originating Bank account list behind its corridor drawer. */
+    presentation?: 'add-money' | 'bank-account'
     /** the corridors this user has a rail for, in catalogue order */
     corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
@@ -83,6 +86,8 @@ export function DepositAccountsListScreen({
     onRetry: () => void
 }) {
     const { t } = useDepositAccountCopy()
+    const tProfile = useTranslations('profile.unlockPayments')
+    const bankAccount = presentation === 'bank-account'
     const tMethods = useTranslations('addMoney.methods')
     const tSearch = useTranslations('withdraw.currencyList')
     const router = useRouter()
@@ -104,7 +109,7 @@ export function DepositAccountsListScreen({
     // Transient UI: neither survives a refresh nor belongs in a shared link.
     const [countriesOpen, setCountriesOpen] = useState(false)
     const [search, setSearch] = useState('')
-    const term = search.trim().toLowerCase()
+    const term = bankAccount ? '' : search.trim().toLowerCase()
 
     // A bank row opens the transfer the user sends themselves. The flow is a
     // page of its own, so it carries where the user came from — leaving
@@ -117,7 +122,7 @@ export function DepositAccountsListScreen({
     }
 
     const cryptoRow =
-        !method && (!term || tMethods('crypto').toLowerCase().includes(term)) ? (
+        !bankAccount && !method && (!term || tMethods('crypto').toLowerCase().includes(term)) ? (
             <ListItem
                 key="crypto"
                 title={tMethods('crypto')}
@@ -166,16 +171,22 @@ export function DepositAccountsListScreen({
     )
 
     return (
-        <PageStack>
-            <NavHeader title={t('list.addTitle')} onPrev={onBack} />
+        <PageStack gap={bankAccount ? '6' : '8'} className={bankAccount ? 'pb-10' : undefined}>
+            <NavHeader
+                title={bankAccount ? tProfile('titles.bank') : t('list.addTitle')}
+                onPrev={onBack}
+                titleClassName={bankAccount ? 'py-2 text-heading-xs md:py-1 md:text-heading-s' : undefined}
+            />
             <div className="flex flex-col gap-4">
-                <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    onClear={() => setSearch('')}
-                    placeholder={tSearch('searchPlaceholder')}
-                    aria-label={tSearch('searchPlaceholder')}
-                />
+                {!bankAccount && (
+                    <SearchInput
+                        value={search}
+                        onChange={setSearch}
+                        onClear={() => setSearch('')}
+                        placeholder={tSearch('searchPlaceholder')}
+                        aria-label={tSearch('searchPlaceholder')}
+                    />
+                )}
                 <AccountsHubList
                     accounts={{
                         corridors,
@@ -196,7 +207,7 @@ export function DepositAccountsListScreen({
                     onChangeResidence={() => router.push(withReturnTo('/settings/details?open=residence', HUB_HREF))}
                     searchTerm={term}
                     extraRows={cryptoRow ? [cryptoRow] : []}
-                    footer={countries}
+                    footer={bankAccount ? undefined : countries}
                 />
             </div>
         </PageStack>

@@ -974,6 +974,11 @@
         "route": "/add-money?method=bank"
     },
     {
+        "id": "fixture-bank-account-verify-drawer",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts"
+    },
+    {
         "id": "fixture-get-paid-usd-closed-bangladesh",
         "flow": "Add money",
         "route": "/add-money?method=bank"

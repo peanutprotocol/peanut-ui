@@ -1,6 +1,8 @@
 'use client'
 
 import type { GateState } from '@/utils/capability-gate'
+import { isSameRoute } from '@/constants/routes'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useRef, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
@@ -132,6 +134,11 @@ export function DepositAccountsFlow({
     // the euro account. Read raw, a named corridor that is not one lands on the
     // list instead.
     const [namedCorridor] = useQueryState('corridor', parseAsString)
+    const [returnToParam] = useQueryState('returnTo', parseAsString)
+    const returnTo = readReturnTo(new URLSearchParams(returnToParam ? { returnTo: returnToParam } : {}), '/add-money')
+    // Origin controls the list's presentation only; corridor gates and actions
+    // still resolve from the same authoritative accounts and capabilities.
+    const listPresentation = isSameRoute(returnTo?.split(/[?#]/)[0], '/profile/accounts') ? 'bank-account' : 'add-money'
     const namesUnknownCorridor = namedCorridor !== null && !(DEPOSIT_CORRIDORS as string[]).includes(namedCorridor)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
     // The corridor whose gate the user just started to clear (verification,
@@ -468,6 +475,7 @@ export function DepositAccountsFlow({
     return (
         <>
             <DepositAccountsListScreen
+                presentation={listPresentation}
                 corridors={corridors}
                 accounts={accounts}
                 claimable={claimable}

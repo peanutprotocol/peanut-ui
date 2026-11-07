@@ -2951,6 +2951,19 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
         },
     },
+    'bank-account-verify-drawer': {
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts',
+        about: 'Bank account Verify: the currency drawer keeps the Bank account list behind it, without Add money search or discovery.',
+        waitFor: '[data-testid="corridor-gate-drawer"][data-state="open"]',
+        responses: {
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+            'GET /users/me': {
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+                depositAccounts: { enabled: true },
+            },
+        },
+    },
     'get-paid-usd-closed-bangladesh': {
         route: '/add-money?method=bank',
         about: 'An unverified Bangladesh resident: the paperwork engine refuses USD, so USD reads Not available while EUR, GBP and MXN still ask for the ID.',
