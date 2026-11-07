@@ -1,4 +1,7 @@
 {
+    "rateGate": {
+        "title": "Taxa de câmbio indisponível"
+    },
     "walletRecovery": {
         "invalidLink": {
             "title": "Link de recuperação indisponível",
@@ -855,7 +858,8 @@
             "submitted": "Documento enviado para análise."
         },
         "error": {
-            "description": "Não foi possível carregar os limites. Tente de novo."
+            "title": "Não foi possível carregar seus limites",
+            "description": "Verifique sua conexão e tente de novo."
         },
         "docsLink": "Saiba mais sobre limites",
         "needHigherLimits": "Precisa de limites maiores? Fale com o suporte.",

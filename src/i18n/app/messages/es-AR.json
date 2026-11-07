@@ -1,4 +1,7 @@
 {
+    "rateGate": {
+        "title": "Tipo de cambio no disponible"
+    },
     "walletRecovery": {
         "invalidLink": {
             "title": "Enlace de recuperación no disponible",
@@ -478,7 +481,8 @@
             "description": "Confirmá tu identidad para desbloquear pagos fiat y ver tus límites."
         },
         "error": {
-            "description": "No se pudieron cargar los límites. Intentá de nuevo."
+            "title": "No pudimos cargar tus límites",
+            "description": "Revisá tu conexión e intentá de nuevo."
         },
         "needHigherLimits": "¿Necesitás límites más altos? Contactá soporte.",
         "warningCard": {

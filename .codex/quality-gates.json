@@ -45,7 +45,9 @@
                 "src/app/recover-wallet/__tests__/page.test.tsx",
                 "src/features/qr-code/__tests__/QrClaimUnavailableView.test.tsx",
                 "src/features/payments/flows/qr-pay/__tests__/QrPayBlockedView.test.tsx",
-                "src/i18n/app/__tests__/marketing-messages.test.ts"
+                "src/i18n/app/__tests__/marketing-messages.test.ts",
+                "src/app/(mobile-ui)/history/__tests__/load-error.test.tsx",
+                "src/features/payments/flows/qr-pay/__tests__/useQrPayFlow.preparation.test.tsx"
             ]
         },
         {

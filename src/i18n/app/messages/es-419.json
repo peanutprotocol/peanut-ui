@@ -1,4 +1,7 @@
 {
+    "rateGate": {
+        "title": "Tipo de cambio no disponible"
+    },
     "walletRecovery": {
         "invalidLink": {
             "title": "Enlace de recuperación no disponible",
@@ -855,7 +858,8 @@
             "submitted": "Documento enviado a revisión."
         },
         "error": {
-            "description": "No se pudieron cargar los límites. Intenta de nuevo."
+            "title": "No pudimos cargar tus límites",
+            "description": "Revisa tu conexión e intenta de nuevo."
         },
         "docsLink": "Ver más sobre límites",
         "needHigherLimits": "¿Necesitas límites más altos? Contacta soporte.",

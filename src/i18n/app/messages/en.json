@@ -1,4 +1,7 @@
 {
+    "rateGate": {
+        "title": "Exchange rate unavailable"
+    },
     "walletRecovery": {
         "invalidLink": {
             "title": "Recovery link unavailable",
@@ -855,7 +858,8 @@
             "submitted": "Document sent for review."
         },
         "error": {
-            "description": "Failed to load limits. Please try again."
+            "title": "Couldn’t load your limits",
+            "description": "Check your connection and try again."
         },
         "docsLink": "See more about limits",
         "needHigherLimits": "Need higher limits? Contact support.",
