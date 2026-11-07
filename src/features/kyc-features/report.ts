@@ -104,7 +104,11 @@ export function reportEntry(
     const account =
         (method ? METHOD_ACCOUNTS[method] : undefined) ??
         (railAccount
-            ? { feature: railAccount.provider === 'manteca' ? 'local' : 'bank', currency: railAccount.currency }
+            ? {
+                  // Brazil's Pix account is the local one on either provider
+                  feature: railAccount.provider === 'manteca' || railAccount.provider === 'avenia' ? 'local' : 'bank',
+                  currency: railAccount.currency,
+              }
             : undefined) ??
         (country ? COUNTRY_ACCOUNTS[country] : undefined)
     if (account) return accountEntry(report, account.feature as 'bank' | 'local', account.currency)

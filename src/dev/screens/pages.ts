@@ -230,5 +230,45 @@ PAGE_CAPTURES.push(
         name: 'Notifications settings',
         route: '/settings/notifications',
         fixture: 'settings-notifications',
+    },
+    // Avenia Pix states that follow a tap; the fixture answers the call the tap makes.
+    {
+        id: 'p80-avenia-terms-not-saved',
+        name: 'Avenia Pix terms — the acceptance was not saved',
+        route: '/add-money/pix',
+        fixture: 'avenia-first-use',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
+        id: 'p81-avenia-deposit-limit',
+        name: 'Avenia Pix deposit — over the monthly limit',
+        route: '/add-money/pix?amount=100&currency=BRL',
+        fixture: 'avenia-deposit-amount',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
+        id: 'p82-avenia-new-key-saved',
+        name: 'New Pix key saved — where the money goes',
+        route: '/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189',
+        fixture: 'avenia-new-key',
+        clicks: ['Continue'],
+    },
+    {
+        id: 'p83-avenia-new-key-saved-unnamed',
+        name: 'New Pix key saved — no holder named',
+        route: '/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189',
+        fixture: 'avenia-new-key-unnamed',
+        clicks: ['Continue'],
+    },
+    {
+        id: 'p84-avenia-provider-sheet',
+        name: "Avenia — the provider's legal details",
+        route: '/withdraw/pix?destination=09579927189&destinationAmount=503&step=review',
+        fixture: 'avenia-withdraw-review',
+        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
     }
 )

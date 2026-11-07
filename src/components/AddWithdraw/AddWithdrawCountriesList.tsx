@@ -63,10 +63,9 @@ import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useGateActions } from '@/hooks/useGateActions'
 import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-switches.consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
-import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { isPixPagePath } from '@/features/pix/pix.routes'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -74,6 +73,9 @@ interface AddWithdrawCountriesListProps {
 
 /** A submit that stopped because the screen it was made on is gone. Silent: the form only resets its spinner. */
 const SUBMIT_CANCELLED = { error: 'cancelled', silent: true }
+
+/** A rail whose page runs its own flow, with its own amount step: a Manteca page or a neutral Pix page. */
+const opensOwnFlow = (path: string | undefined) => !!path && (path.includes('/manteca') || isPixPagePath(path))
 
 const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const { pixBrazilOnrampMaintenance } = useKillSwitches()
@@ -207,9 +209,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // The euro area has no rail list of its own — it IS the euro bank form, so a
     // link straight to it never lands on an empty list screen.
     const view =
-        isSepaDestination ||
-        stepParam === 'form' ||
-        (railListSkipped && bankRail && !bankRail.path?.includes('/manteca'))
+        isSepaDestination || stepParam === 'form' || (railListSkipped && bankRail && !opensOwnFlow(bankRail.path))
             ? 'form'
             : 'list'
 
@@ -228,8 +228,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // A country whose one live rail is Manteca has no screen here: it forwards to
     // that flow. Known from the URL on the first render, so the rail list never
     // shows on the way (TASK-23054).
-    const mantecaForwardPath =
-        liveRails.length === 1 && liveRails[0].path?.includes('/manteca') ? liveRails[0].path : undefined
+    const mantecaForwardPath = liveRails.length === 1 && opensOwnFlow(liveRails[0].path) ? liveRails[0].path : undefined
     useEffect(() => {
         if (!mantecaForwardPath) return
         const extra = new URLSearchParams()
@@ -472,14 +471,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         [withdrawFlow, currentCountry, bankRail]
     )
 
-    // every Brazil method moves BRL or pays Pix, so the pause stops them all
-    const brazilPaused = useBrazilServicesPaused() && currentCountry?.path === 'brazil'
-
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
         // a new tap is the new intent: a rail still held for the gate is let go
         setHeldMethod(null)
-        if (brazilPaused) return openBrazilPausedDrawer()
-        if (method.path && method.path.includes('/manteca')) {
+        if (method.path && opensOwnFlow(method.path)) {
             // Manteca methods route directly (has own amount input). The path
             // already carries its own `method=<rail>` (bank-transfer/pix), so the
             // send origin travels in the dedicated `sendMethod` param — appending a
@@ -507,7 +502,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         setHeldMethod(null)
-        if (brazilPaused) return openBrazilPausedDrawer()
         if (method.path) {
             if (checkBridgeGate(method, () => handleAddMethodClick(method))) return
 

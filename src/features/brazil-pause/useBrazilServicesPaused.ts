@@ -9,9 +9,10 @@ import { useHydrationSnapshot } from '@/utils/native-platform'
 import { isBrazilServicesUser } from './brazilPause.utils'
 
 /**
- * True when the Brazil pause is on and covers this user. Every BRL deposit,
- * withdraw and Pix entry then shows the paused drawer or screen instead of
- * its flow. The `brazilServicesPaused` kill switch starts and ends the pause.
+ * True when the Brazil pause is on and covers this user. Pix payments and
+ * Pix-key sends then show the paused drawer or screen (`useBrazilPixPaused`);
+ * BRL deposits and withdrawals take the pause from the API's route instead.
+ * The `brazilServicesPaused` kill switch starts and ends the pause.
  */
 export function useBrazilServicesPaused(): boolean {
     const { brazilServicesPaused } = useKillSwitches()

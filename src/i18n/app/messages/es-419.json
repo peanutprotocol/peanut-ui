@@ -2531,6 +2531,79 @@
             "otherCountriesPitch": "Elige un país"
         }
     },
+    "pix": {
+        "methodNotServed": "Peanut no ofrece esto.",
+        "rolloutClosed": "Pix todavía no está disponible para tu cuenta.",
+        "residenceNotServed": "Pix no se ofrece donde vives.",
+        "unavailableTitle": "Pix no disponible",
+        "rejected": "La verificación no fue aceptada. Contacta a soporte."
+    },
+    "avenia": {
+        "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
+        "setup": {
+            "importUnavailable": "Avenia todavía no puede recibir tu verificación. La enviamos de nuevo cada día.",
+            "reviewing": "Avenia está revisando tu verificación. Esta pantalla avanza cuando termine.",
+            "verifyCta": "Verificar identidad",
+            "title": "Configurar Pix",
+            "body": "Avenia ofrece Pix para residentes de Brasil. Recibe tu verificación de Peanut, así que no hay una segunda verificación.",
+            "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
+            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contacta a soporte para agregarlo.",
+            "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intenta de nuevo.",
+            "notAvailable": "No se pudo configurar Pix. Contacta a soporte para terminarlo."
+        },
+        "deposit": {
+            "startNew": "Hacer un nuevo depósito",
+            "fee": "Comisión de Avenia {amount}",
+            "showCode": "Ver código",
+            "youGet": "Recibes ≈ {amount}",
+            "blockedBanks": "Un Pix desde {banks} se devuelve.",
+            "minimum": "El mínimo es {amount}.",
+            "limitExceeded": "Este depósito supera el límite mensual de Pix.",
+            "ownCpf": "Desde una cuenta con tu CPF {cpf}",
+            "returnedTitle": "Pix devuelto",
+            "returnedBody": "Paga de nuevo desde una cuenta con tu CPF."
+        },
+        "withdraw": {
+            "stuck": "Este retiro no se completó. Contacta a soporte.",
+            "arrivesIn": "Unos {minutes, plural, one {# minuto} other {# minutos}}",
+            "aveniaFee": "Comisión de Avenia",
+            "keyIntro": "Ingresa una clave Pix de una cuenta con tu CPF.",
+            "notACode": "Ingresa una clave Pix, no un código Pix.",
+            "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
+            "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a una cuenta con tu CPF.",
+            "keyBlocked": "Los retiros por Pix a este banco no están disponibles.",
+            "unknownHolder": "Nombre no visible",
+            "ownAccount": "Cuenta propia",
+            "someoneElses": "De otra persona",
+            "toAccount": "a {destination}",
+            "sent": "En camino.",
+            "sentTo": "En camino a {destination}.",
+            "arrivedTo": "Enviado a {destination}.",
+            "arrived": "El dinero se envió.",
+            "refunded": "El banco rechazó este pago. El dinero volvió a tu saldo.",
+            "quoteMoved": "La cotización cambió. Revisa los nuevos montos y confirma de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisa el Historial antes de intentar de nuevo.",
+            "notSent": "Este retiro no se completó. Tu saldo no cambió.",
+            "errors": {
+                "limitExceeded": "Este retiro supera el límite mensual de Pix.",
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intenta de nuevo más tarde.",
+                "quoteExpired": "La cotización tardó demasiado. Intenta de nuevo.",
+                "afterInit": "Revisa el Historial antes de intentar de nuevo.",
+                "quoteChanged": "El monto cambió durante la cotización. Intenta de nuevo."
+            }
+        },
+        "recovery": {
+            "actionNeeded": "Acción requerida",
+            "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresa una clave Pix de otra cuenta con tu CPF.",
+            "notice": "El banco rechazó este pago. El dinero espera otra clave con tu CPF.",
+            "addKey": "Agregar clave Pix",
+            "savedTitle": "Clave Pix guardada",
+            "savedTo": "El dinero se enviará a {destination}.",
+            "saved": "El dinero se enviará a la nueva clave.",
+            "notWaitingTitle": "No hace falta otra clave",
+            "notWaiting": "Este retiro ya no está esperando una nueva clave Pix."
+        }
+    },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
         "officialReceipt": {
@@ -5331,7 +5404,8 @@
             "thirdNational": "Emisor de la tarjeta, filial de Rain",
             "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
             "mantecaAr": "Depósitos (ARS), retiros, pagos con QR y titular de la cuenta de depósito en ARS",
-            "mantecaBr": "Depósitos (Pix en BRL), retiros y pagos con Pix y QR"
+            "mantecaBr": "Depósitos (Pix en BRL), retiros y pagos con Pix y QR",
+            "aveniaBr": "Depósitos y retiros (Pix en BRL)"
         },
         "about": "Sobre {brand}",
         "execution": {
@@ -5339,7 +5413,8 @@
             "bridgeEea": "Lo firmas tú, {brand} paga",
             "mantecaAr": "Liquidado por {brand}",
             "rhino": "Lo firmas tú, {brand} hace el puente",
-            "thirdNational": "Third National emite y liquida"
+            "thirdNational": "Third National emite y liquida",
+            "aveniaBr": "Liquidado por {brand}"
         },
         "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
         "cardRelationship": "Tienes una relación directa con Third National bajo los términos de la tarjeta.",

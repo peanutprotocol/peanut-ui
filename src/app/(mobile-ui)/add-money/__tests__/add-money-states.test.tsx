@@ -1429,7 +1429,10 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             setParams({ country })
             renderWithProviders(<OnrampBankPage />)
 
-            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            // Brazil's Pix has one page, where the backend's route picks the provider
+            expect(mockRouterReplace).toHaveBeenCalledWith(
+                country === 'brazil' ? '/add-money/pix' : `/add-money/${country}/manteca`
+            )
             expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
             expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         }
@@ -1681,13 +1684,13 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
         mockBrazilPaused = false
     })
 
-    test('BR + manteca shows the Brazil paused screen while the pause covers the user', () => {
-        mockBrazilPaused = true
+    // Brazil's Pix lives on /add-money/pix (features/pix/__tests__): the old URL goes there.
+    test('BR + manteca mounts no Manteca flow and goes to the neutral Pix page', () => {
         setParams({ country: 'brazil', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
-        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
         expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix')
     })
 
     test('AR + manteca stays open during the Brazil pause', () => {
@@ -2000,6 +2003,8 @@ describe('GROUP 8: InputAmountStep Component', () => {
         ).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
+        // no amount field: without a rate it would show $0.00 in USD
+        expect(screen.queryByTestId('amount-input')).toBeNull()
     })
 
     // #1848: the error state used to be a dead end — useCurrency only refetches

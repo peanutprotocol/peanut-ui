@@ -1,6 +1,6 @@
 'use client'
 
-import { type FC, useEffect, useMemo, useState } from 'react'
+import { type FC, useMemo } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
@@ -12,6 +12,7 @@ import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useManteca
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useTranslations } from 'next-intl'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
+import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 
 const MantecaPixQrDeposit: FC<{
     depositDetails: MantecaDepositResponseData
@@ -34,25 +35,15 @@ const MantecaPixQrDeposit: FC<{
     const { status } = useMantecaDepositPolling(depositDetails.id, onComplete)
 
     // QR expiry countdown. `priceExpireAt` carries a tz offset, so Date parses it
-    // directly. We tick once a second and stop once the QR is paid or has lapsed
-    // (the effect re-runs when isExpired flips and clears the interval).
+    // directly. It stops once the QR is paid or has lapsed.
     const expiresAtMs = useMemo(
         () => new Date(depositDetails.details.priceExpireAt).getTime(),
         [depositDetails.details.priceExpireAt]
     )
-    const [nowMs, setNowMs] = useState(() => Date.now())
-
-    const remainingMs = expiresAtMs - nowMs
-    const isExpired = remainingMs <= 0
-    const minutes = Math.floor(remainingMs / 60000)
-    const seconds = Math.floor((remainingMs % 60000) / 1000)
-    const countdownLabel = isExpired ? null : `${minutes}:${String(seconds).padStart(2, '0')}`
-
-    useEffect(() => {
-        if (status === 'completed' || status === 'processing' || isExpired) return
-        const interval = setInterval(() => setNowMs(Date.now()), 1000)
-        return () => clearInterval(interval)
-    }, [status, isExpired])
+    const { timeLeft: countdownLabel, isExpired } = useExpiryCountdown(
+        expiresAtMs,
+        status !== 'completed' && status !== 'processing'
+    )
 
     if (status === 'completed') {
         return (

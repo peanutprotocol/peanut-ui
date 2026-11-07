@@ -39,6 +39,8 @@ import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { LOGO } from '@/assets/brand'
 import InvitesIcon from '../Home/InvitesIcon'
 import { useRouter } from 'next/navigation'
+import { aveniaNewKeyUrl } from '@/features/avenia/aveniaRecovery'
+import { useAveniaActionBadge } from '@/features/avenia/hooks/useAveniaActionBadge'
 import { profileUrl } from '@/utils/native-routes'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
@@ -101,8 +103,14 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const router = useRouter()
     const t = useTranslations('transaction')
 
+    // a refused Pix payout waits for another own key: the row leads straight into that step
+    const actionBadge = useAveniaActionBadge(transaction)
     const handleClick = () => {
         triggerHaptic()
+        if (actionBadge) {
+            router.push(aveniaNewKeyUrl(transaction.id))
+            return
+        }
         onOpen(transaction)
     }
 
@@ -345,7 +353,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     ? transaction.extraDataForDrawer.payerName
                                     : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
                         </span>
-                        {isVerificationDeposit ? (
+                        {actionBadge ? (
+                            // the user can act now: the badge names the action (design.md), never Failed
+                            <Badge status="pending" customText={actionBadge} />
+                        ) : isVerificationDeposit ? (
                             // the money went back to the sender: design.md "Returned", grey neutral
                             <Badge status="neutral" customText={t('returnedStatus')} />
                         ) : (

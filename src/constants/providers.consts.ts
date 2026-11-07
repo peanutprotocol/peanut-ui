@@ -87,6 +87,23 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         privacyUrl: 'https://manteca.dev/brazil-politicas/pdp',
         support: 'brazil@manteca.dev',
     },
+    // Pix for Brazilian residents. Legal name and CNPJ as read on the Receita Federal register
+    // (mono product/providers/fiat/evidence/counterparty-health-tier1-latam-2026-08-27.md). No BCB
+    // authorisation is on record, so the sheet names no regulator. The dynamic Pix code and the payout
+    // name this entity as the payee.
+    'avenia-br': {
+        id: 'avenia-br',
+        brand: 'Avenia',
+        legalName: 'AVENIA SOCIEDADE PRESTADORA DE SERVICOS DE ATIVOS VIRTUAIS LTDA',
+        // confirm in writing from Avenia: mono records the city only, not the street address
+        registeredOffice: ['São Paulo, SP'],
+        taxId: 'CNPJ 50.224.164/0001-70',
+        role: 'aveniaBr',
+        userContract: true,
+        // confirm in writing from Avenia: the address comes from a partner's terms that point to it, not from Avenia
+        termsUrl: 'https://app.avenia.io/Avenia-TC.pdf',
+        termsName: 'Avenia terms and conditions',
+    },
     // peanut is rhino's customer; the user never signs rhino's terms.
     // grade B in the register: legal name, role and documents only
     rhino: {

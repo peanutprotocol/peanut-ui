@@ -20,6 +20,9 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
+import { AveniaNewKeyNotice } from '@/features/avenia/components/AveniaNewKeyNotice'
+import { AveniaPayCodeNotice } from '@/features/avenia/components/AveniaPayCodeNotice'
+import { useAveniaActionBadge } from '@/features/avenia/hooks/useAveniaActionBadge'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -64,6 +67,7 @@ export const TransactionDetailsReceipt = ({
     isActive?: boolean
 }) => {
     const t = useAppTranslations('transaction')
+    const userActionBadge = useAveniaActionBadge(transaction)
     const tRequest = useAppTranslations('request')
 
     // Only the transaction details drawer passes setIsModalOpen: it keeps that
@@ -216,6 +220,7 @@ export const TransactionDetailsReceipt = ({
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
                 statusNote={statusNote}
                 isVerificationDeposit={depositKind === 'verification'}
+                userActionBadge={userActionBadge}
             />
 
             {/* Perk eligibility banner */}
@@ -276,6 +281,15 @@ export const TransactionDetailsReceipt = ({
                         onOpenChange={setIsModalOpen}
                     />
                 )}
+
+            {/* A refused Pix payout waits for another own key: the one notice that
+                asks the user to act on THIS receipt, so it comes first. Not gated on
+                isPublic: the web receipt (the key-required notification's landing)
+                always renders as public, and the API sends the recovery to the owner
+                only, so the field itself is the gate. */}
+            <AveniaNewKeyNotice transaction={transaction} />
+            {/* A Pix deposit whose code can still be paid: the same field gate, owner only. */}
+            <AveniaPayCodeNotice transaction={transaction} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

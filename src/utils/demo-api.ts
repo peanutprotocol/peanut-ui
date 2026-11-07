@@ -9,7 +9,14 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
+import {
+    DEMO_ADDRESS,
+    DEMO_AVENIA_BR_CODE,
+    DEMO_CONTACTS,
+    DEMO_HISTORY_ENTRIES,
+    DEMO_LIMITS,
+    DEMO_USER,
+} from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { parseResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
@@ -39,6 +46,19 @@ const EMPTY_GRAPH = {
 }
 
 const soon = () => new Date(Date.now() + 120_000).toISOString()
+
+const demoAveniaWithdrawDisplay = () => ({
+    amountBrl: '106.75',
+    pixKey: '12345678909',
+    ownAccount: true,
+    holderName: 'DEMO RECIPIENT',
+    bankName: 'Demo Bank',
+    withdrawUsd: '20.020325',
+    rate: '5.369543',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+})
 
 function json(data: unknown, status = 200): Response {
     return new Response(JSON.stringify(data ?? {}), {
@@ -873,6 +893,89 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             },
         }),
     },
+
+    // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
+    // a route's provider terms step (accept-tos:avenia): the consent is recorded
+    { method: 'POST', pattern: '/users/kyc/accept-terms', handler: () => ({ accepted: true }) },
+    {
+        method: 'GET',
+        pattern: '/pix/quote',
+        handler: () => ({
+            provider: 'avenia',
+            operation: 'deposit',
+            amountBrl: '100.00',
+            usdcAmount: '18.237000',
+            rate: '5.442342',
+            fixedFeeBrl: '0.75',
+        }),
+    },
+    {
+        method: 'GET',
+        pattern: '/avenia/deposit/eligibility',
+        handler: () => ({ minAmountBrl: '20', blockedBanks: [] }),
+    },
+    {
+        method: 'POST',
+        pattern: '/avenia/deposit',
+        handler: () => ({
+            intentId: 'demo-avenia-deposit',
+            brCode: DEMO_AVENIA_BR_CODE,
+            amountBrl: '100.00',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
+            expiresAt: new Date(Date.now() + 600_000).toISOString(),
+            payerCpfMasked: '123.***.***-09',
+        }),
+    },
+    {
+        method: 'GET',
+        pattern: '/avenia/deposit/:intentId',
+        handler: () => ({
+            intentId: 'demo-avenia-deposit',
+            status: 'AWAITING_USER_ACTION',
+            ticketStatus: 'UNPAID',
+            expiresAt: soon(),
+            amountBrl: '100.00',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
+            codePayable: true,
+            brCode: DEMO_AVENIA_BR_CODE,
+            payerCpfMasked: '123.***.***-09',
+        }),
+    },
+    {
+        method: 'GET',
+        pattern: '/avenia/pix-key-info',
+        handler: () => ({
+            holderName: 'DEMO RECIPIENT',
+            holderTaxIdMasked: '***.456.789-**',
+            bankName: 'Demo Bank',
+            ispb: '00000000',
+            ownAccount: true,
+            blocked: false,
+        }),
+    },
+    { method: 'POST', pattern: '/avenia/withdraw/preview', handler: () => demoAveniaWithdrawDisplay() },
+    {
+        method: 'POST',
+        pattern: '/avenia/withdraw/init',
+        handler: () => ({
+            intentId: 'demo-avenia-withdraw',
+            display: demoAveniaWithdrawDisplay(),
+            sign: {
+                kind: 'deposit-with-id',
+                contractAddress: DEMO_ADDRESS,
+                tokenAddress: PEANUT_WALLET_TOKEN,
+                payAmount: '20.020325',
+                payAmountUnits: '20020325',
+                commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                quoteExpiresAt: soon(),
+                ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+            },
+        }),
+    },
+    { method: 'POST', pattern: '/avenia/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    { method: 'POST', pattern: '/avenia/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
 
     // points / perks / rewards
     {

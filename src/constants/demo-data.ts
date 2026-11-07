@@ -20,6 +20,10 @@ const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 // Synthetic kernel address for demo mode, pinned to DEMO_USER's PEANUT_WALLET account so useWallet's address-match passes.
 export const DEMO_ADDRESS = '0xdec0debad1dec0debad1dec0debad1dec0debad1' as Address
 
+/** A dynamic Pix code with Avenia's payee name, as its deposit tickets carry. Synthetic URL, valid CRC. */
+export const DEMO_AVENIA_BR_CODE =
+    '00020126680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/demo-avenia-deposit5204000053039865802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63044D3A'
+
 const account = (username: string, fullName: string) => ({
     identifier: username,
     type: 'PEANUT_WALLET',
@@ -133,6 +137,15 @@ const DEMO_CAPABILITIES: UserCapabilities = {
     ],
     nextActions: [],
     restrictions: [],
+    // The demo user lives in Brazil: the API's router names Avenia for both Pix operations,
+    // so /add-money/pix and /withdraw/pix open the Avenia screens the demo API answers.
+    routes: (['deposit', 'withdraw'] as const).map((operation) => ({
+        operation,
+        method: 'PIX_BR',
+        provider: 'avenia',
+        state: 'ready',
+        candidates: [{ provider: 'avenia', state: 'ready' }],
+    })),
     // The API's report for these rails, written out: the app never computes one (a test keeps them equal).
     features: {
         qr: { state: 'on' },

@@ -1299,6 +1299,40 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         }
     },
+    "pix": {
+        "residenceNotServed": "Pix no se ofrece donde vivís.",
+        "rejected": "La verificación no fue aceptada. Contactá a soporte."
+    },
+    "avenia": {
+        "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
+        "setup": {
+            "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
+            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
+            "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intentá de nuevo.",
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo."
+        },
+        "deposit": {
+            "youGet": "Recibís ≈ {amount}",
+            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF."
+        },
+        "withdraw": {
+            "stuck": "Este retiro no se completó. Contactá a soporte.",
+            "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",
+            "notACode": "Ingresá una clave Pix, no un código Pix.",
+            "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
+            "quoteMoved": "La cotización cambió. Revisá los nuevos montos y confirmá de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisá el Historial antes de intentar de nuevo.",
+            "errors": {
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
+                "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",
+                "afterInit": "Revisá el Historial antes de intentar de nuevo.",
+                "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo."
+            }
+        },
+        "recovery": {
+            "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresá una clave Pix de otra cuenta con tu CPF."
+        }
+    },
     "transaction": {
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "perk": {

@@ -9,6 +9,7 @@ import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import type { paths } from '@/types/api.generated'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import {
@@ -86,6 +87,27 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
+/** An Avenia withdrawal's recovery as `GET /history/:entryId` sends it (PR B `AveniaRecoveryView`). */
+export type AveniaRecoveryView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['aveniaRecovery']
+>
+
+/** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
+export type HistoryIntentStatus = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['intentStatus']
+>
+
+/** An Avenia Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
+export type AveniaDepositView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['aveniaDeposit']
+>
+
 /**
  * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
  * the field was `Record<string, any>` — every consumer did an implicit
@@ -104,6 +126,14 @@ export type HistoryStatus = `${EHistoryStatus}`
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
+    /** On an Avenia OFFRAMP only: its recovery after the payout failed or came back, null when it has none.
+     *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
+    aveniaRecovery?: AveniaRecoveryView | null
+    /** On an Avenia ONRAMP only: whether its code can still be paid. Read it through `aveniaCodePayable`. */
+    aveniaDeposit?: AveniaDepositView
+    /** The intent's own status, which `status` folds into PENDING (an Avenia withdrawal is
+     *  AWAITING_USER_ACTION until its deposit is reported or seen, PROCESSING after). */
+    intentStatus?: HistoryIntentStatus
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.

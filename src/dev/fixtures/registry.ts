@@ -23,7 +23,7 @@ import {
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
-import { DEMO_ADDRESS } from '@/constants/demo-data'
+import { DEMO_ADDRESS, DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
 
 const ROUTES = {
     bank: '/add-money/germany/bank',
@@ -208,6 +208,215 @@ const BRAZIL_PAUSED_RESPONSES = {
             declared: null,
             secondaryDeclaredCountry: null,
         },
+    },
+}
+
+/** Avenia's terms step as capabilities name it: a route action and its accept-tos next action. */
+const AVENIA_TERMS_ACTION = 'accept-tos:avenia'
+
+/** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's terms still to accept. */
+const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
+    (['deposit', 'withdraw'] as const).map((operation) => {
+        const step =
+            stage === 'enabled'
+                ? { state: 'ready' }
+                : {
+                      state: 'action_required',
+                      action: AVENIA_TERMS_ACTION,
+                      reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
+                  }
+        return {
+            operation,
+            method: 'PIX_BR',
+            provider: 'avenia',
+            ...step,
+            candidates: [{ provider: 'avenia', ...step }],
+        }
+    })
+
+/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once Avenia's terms are accepted. */
+const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Ana Souza' },
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: {
+            rails:
+                stage === 'enabled'
+                    ? [
+                          {
+                              id: 'avenia.pix_br',
+                              provider: 'avenia',
+                              method: 'PIX_BR',
+                              channel: 'bank',
+                              country: 'BR',
+                              currency: 'BRL',
+                              status: 'enabled',
+                              operations: { deposit: 'enabled', withdraw: 'enabled' },
+                          },
+                      ]
+                    : [],
+            nextActions:
+                stage === 'enabled'
+                    ? []
+                    : [
+                          {
+                              key: AVENIA_TERMS_ACTION,
+                              kind: 'accept-tos',
+                              purpose: 'unlock-avenia',
+                              tosUrl: 'https://app.avenia.io/Avenia-TC.pdf',
+                          },
+                      ],
+            restrictions: [],
+            routes: aveniaRoutes(stage),
+        },
+    },
+    'GET /avenia/deposit/eligibility': { minAmountBrl: '20', blockedBanks: [] },
+    // the amount step's estimate: Avenia's indicative quote for the reais on screen
+    'GET /pix/quote': {
+        provider: 'avenia',
+        operation: 'deposit',
+        amountBrl: '100.00',
+        usdcAmount: '18.237000',
+        rate: '5.442342',
+        fixedFeeBrl: '0.75',
+    },
+    ...overrides,
+})
+
+const AVENIA_OWN_KEY = '09579927189'
+const AVENIA_OTHER_KEY = '+5511987654321'
+const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
+const AVENIA_OWN_KEY_INFO = {
+    holderName: 'Ana Souza',
+    holderTaxIdMasked: '095.***.***-89',
+    bankName: 'Banco Inter',
+    ispb: '00416968',
+    ownAccount: true,
+    blocked: false,
+}
+
+/** An Avenia Pix withdrawal whose payout the bank refused; `awaitingKey` while the money waits for another own key. */
+const AVENIA_REFUSED_WITHDRAWAL_ID = 'fixture-avenia-refused-withdrawal'
+const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
+    uuid: AVENIA_REFUSED_WITHDRAWAL_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-05T10:00:00.000Z'),
+    amount: '92.50431',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    // the new key paid it, once it is no longer waiting
+    status: awaitingKey ? 'PENDING' : 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
+    currency: { amount: '503.00', code: 'BRL' },
+    extraData: {
+        kind: 'OFFRAMP',
+        provider: 'AVENIA',
+        usdAmount: '92.50431',
+        // GET /history/:entryId as PR B sends it: Avenia closed the account the old key pointed to
+        aveniaRecovery: {
+            state: awaitingKey ? 'awaiting-key' : 'done',
+            reason: 'payout-failed',
+            failureCode: 'RECEIVER_ACCOUNT_CLOSED',
+        },
+    },
+})
+const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
+
+/** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
+const AVENIA_BR_USER = {
+    user: { fullName: 'Ana Souza' },
+    residence: {
+        verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+        declared: null,
+        secondaryDeclaredCountry: null,
+    },
+}
+const aveniaRouteResponses = (
+    step: { state: string; action?: string; reason: { code: string; userMessage: string }; provider?: null },
+    rails: unknown[] = []
+) => ({
+    'GET /users/me': {
+        ...AVENIA_BR_USER,
+        capabilities: {
+            rails,
+            nextActions: [],
+            restrictions: [],
+            routes: (['deposit', 'withdraw'] as const).map((operation) => ({
+                operation,
+                method: 'PIX_BR',
+                provider: 'avenia',
+                ...step,
+                candidates: [{ provider: 'avenia', state: step.state, action: step.action, reason: step.reason }],
+            })),
+        },
+    },
+})
+/** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
+const aveniaPendingRail = (code: string) => ({
+    id: 'avenia.pix_br',
+    provider: 'avenia',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status: 'pending',
+    reason: { code, userMessage: 'Avenia is reviewing the verification.' },
+})
+const aveniaPending = (code: string) =>
+    aveniaRouteResponses({ state: 'pending', reason: { code, userMessage: 'Avenia is reviewing the verification.' } }, [
+        aveniaPendingRail(code),
+    ])
+
+/** One Avenia Pix withdrawal's history entry, for the last step read after a reload. */
+const AVENIA_WITHDRAWAL_ID = 'fixture-avenia-withdrawal'
+const aveniaWithdrawal = (status: string) => ({
+    ...aveniaRefusedWithdrawal(false),
+    uuid: AVENIA_WITHDRAWAL_ID,
+    status,
+    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', aveniaRecovery: null },
+})
+const aveniaOutcomeRoute = (intentId: string) => `${AVENIA_WITHDRAW_ROUTE}?step=success&intentId=${intentId}`
+
+/** One Avenia Pix deposit as GET /avenia/deposit/:intentId reads it; its code lapsed unless overridden. */
+const AVENIA_DEPOSIT_ID = 'fixture-avenia-deposit'
+const AVENIA_DEPOSIT_CODE_ROUTE = `/add-money/pix?step=showQR&intentId=${AVENIA_DEPOSIT_ID}`
+const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
+    intentId: AVENIA_DEPOSIT_ID,
+    status: 'AWAITING_USER_ACTION',
+    ticketStatus: 'UNPAID',
+    expiresAt: null,
+    amountBrl: '100.00',
+    usdcAmount: '18.237000',
+    fixedFeeBrl: '0.75',
+    codePayable: false,
+    ...overrides,
+})
+/** The deposit's history entry while its code can still be paid (owner-only aveniaDeposit). */
+const aveniaPayableDeposit = {
+    uuid: AVENIA_DEPOSIT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-06T10:00:00.000Z'),
+    amount: '18.237',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'PENDING',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: 'pix', type: 'PIX', isUser: false },
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    currency: { amount: '100.00', code: 'BRL' },
+    extraData: {
+        kind: 'ONRAMP',
+        provider: 'AVENIA',
+        usdAmount: '18.237',
+        aveniaDeposit: { codePayable: true, expiresAt: null },
     },
 }
 
@@ -1417,12 +1626,6 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
-    // TASK-24197: tap the BRL row. The Brazil pause opens its drawer instead of the transfer.
-    'add-money-brazil-paused': {
-        route: '/add-money?method=bank',
-        about: 'Add money by bank during the Brazil pause: the BRL row opens the paused drawer.',
-        responses: BRAZIL_PAUSED_RESPONSES,
-    },
     // TASK-21375: Argentina's bank transfer and Mercado Pago open the same
     // screen, so the country offers one row.
     'add-money-argentina': {
@@ -1583,6 +1786,383 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/withdraw/manteca?country=brazil&method=pix',
         about: 'A Brazil Pix send during the Brazil pause: the paused screen instead of the key entry.',
         responses: BRAZIL_PAUSED_RESPONSES,
+    },
+    // ---- Avenia Pix for Brazilian residents (PR C of the Brazil Avenia work) ----
+    'avenia-first-use': {
+        route: '/add-money/pix',
+        about: "Avenia's terms step: the provider and its terms named and linked before the user accepts them.",
+        responses: aveniaResponses('first-use'),
+        // the page capture that taps Continue shows the acceptance not saved
+        fails: ['POST /users/kyc/accept-terms'],
+    },
+    'avenia-deposit-amount': {
+        route: '/add-money/pix',
+        about: 'Avenia Pix deposit: the amount in reais, R$20 minimum, the provider under the button.',
+        responses: aveniaResponses('enabled'),
+        // the page capture that taps Continue shows the monthly limit
+        rejects: {
+            'POST /avenia/deposit': { status: 422, body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' } },
+        },
+    },
+    'avenia-withdraw-key': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'GET /avenia/pix-key-info': {
+                holderName: 'Ana Souza',
+                holderTaxIdMasked: '095.***.***-89',
+                bankName: 'Banco Inter',
+                ispb: '00416968',
+                ownAccount: true,
+                blocked: false,
+            },
+        }),
+    },
+    'avenia-withdraw-key-other': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(AVENIA_OTHER_KEY)}`,
+        about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'GET /avenia/pix-key-info': {
+                holderName: 'Maria Silva',
+                holderTaxIdMasked: '123.***.***-45',
+                bankName: 'Nubank',
+                ispb: '18236120',
+                ownAccount: false,
+                blocked: false,
+            },
+        }),
+    },
+    'avenia-withdraw-review': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        about: 'Avenia Pix withdrawal review: reais as the headline, the rate with the fees in, the flat fee apart.',
+        responses: aveniaResponses('enabled', {
+            'POST /avenia/withdraw/preview': {
+                amountBrl: '503.00',
+                pixKey: AVENIA_OWN_KEY,
+                ownAccount: true,
+                holderName: 'Ana Souza',
+                bankName: 'Banco Inter',
+                withdrawUsd: '92.504310',
+                rate: '5.445692',
+                fixedFeeBrl: '0.75',
+                arrivalEstimateSeconds: 60,
+                provider: 'Avenia',
+            },
+        }),
+    },
+    'avenia-new-key': {
+        route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
+        about: 'A refused Pix payout: the money waits with Avenia, and another own key resolves to its holder.',
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
+            'GET /avenia/pix-key-info': AVENIA_OWN_KEY_INFO,
+        }),
+    },
+    'avenia-new-key-not-waiting': {
+        route: AVENIA_NEW_KEY_ROUTE,
+        about: 'The new-key link of a withdrawal that no longer waits for a key: its current state instead.',
+        waitFor: '[data-testid="avenia-new-key-not-waiting"]',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(false),
+        }),
+    },
+    // ---- the Avenia states the Screen Library must show (every changed copy line) ----
+    'avenia-deposit-minimum': {
+        route: '/add-money/pix?amount=10&currency=BRL',
+        about: 'Avenia Pix deposit under R$20: the amount step says the minimum.',
+        waitFor: '[data-testid="error-alert"]',
+        responses: aveniaResponses('enabled'),
+    },
+    'avenia-deposit-expired': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'An Avenia Pix code that lapsed: no code is drawn, and a new deposit is offered.',
+        responses: aveniaResponses('enabled', { [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead() }),
+    },
+    'avenia-deposit-returned': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'A Pix Avenia sent back to the payer: it says so and offers a new deposit.',
+        responses: aveniaResponses('enabled', {
+            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                status: 'FAILED',
+                ticketStatus: 'FAILED',
+            }),
+        }),
+    },
+    'avenia-deposit-processing': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: "The Pix left the payer's bank: the code screen waits while Avenia credits the deposit.",
+        isLoadingState: true,
+        responses: aveniaResponses('enabled', {
+            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ ticketStatus: 'PAID' }),
+        }),
+    },
+    'avenia-deposit-received': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'The Avenia Pix deposit is credited: received, and the balance is updated.',
+        responses: aveniaResponses('enabled', {
+            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                status: 'COMPLETED',
+                ticketStatus: 'PAID',
+            }),
+        }),
+    },
+    'avenia-deposit-quote-failed': {
+        route: '/add-money/pix',
+        about: 'The deposit amount step when the Pix quote fails: the rate is unavailable, with a retry.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /pix/quote'],
+    },
+    'avenia-withdraw-amount': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&step=amount`,
+        about: 'Avenia Pix withdrawal: the amount in reais, estimated with the Pix quote, R$20 minimum.',
+        responses: aveniaResponses('enabled'),
+    },
+    'avenia-withdraw-quote-failed': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&step=amount`,
+        about: 'The withdraw amount step when the Pix quote fails: the rate is unavailable, with a retry.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /pix/quote'],
+    },
+    'pix-route-paused-deposit': {
+        route: '/add-money/pix',
+        about: 'The Pix deposit route is paused: the provider-outage screen, no provider flow.',
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
+    // the router pauses every route of a Brazil resident while brazilServicesPaused is on
+    'pix-route-residence-paused': {
+        route: '/withdraw/pix',
+        about: "The residence pause on a Pix route: the residence's own words, no provider flow.",
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: {
+                code: 'residence_paused',
+                userMessage: 'Deposits and withdrawals are paused where you live for now.',
+            },
+        }),
+    },
+    'pix-route-paused-withdraw': {
+        route: '/withdraw/pix',
+        about: 'The Pix withdraw route is paused: the provider-outage screen, no provider flow.',
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
+    'avenia-receipt-pay-code': {
+        route: `/history?tx=${AVENIA_DEPOSIT_ID}`,
+        about: 'The receipt of a Pix deposit whose code can still be paid opens that code again.',
+        waitFor: '[data-testid="avenia-pay-code-notice"]',
+        responses: {
+            'GET /users/history': { entries: [aveniaPayableDeposit], hasMore: false },
+            [`GET /history/${AVENIA_DEPOSIT_ID}`]: aveniaPayableDeposit,
+        },
+    },
+    'avenia-setup-verify': {
+        route: '/add-money/pix',
+        about: 'Avenia Pix before the identity check: the step sends the user to verify first.',
+        responses: aveniaRouteResponses({
+            state: 'action_required',
+            action: 'verify',
+            reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
+        }),
+    },
+    'avenia-setup-reviewing': {
+        route: '/add-money/pix',
+        about: 'Avenia Pix after the terms: the wait while Avenia reviews the shared verification.',
+        isLoadingState: true,
+        responses: aveniaPending('provider_reviewing'),
+    },
+    'avenia-setup-import-unavailable': {
+        route: '/add-money/pix',
+        about: 'Avenia cannot receive the verification yet: the wait says it is sent again each day.',
+        isLoadingState: true,
+        responses: aveniaPending('avenia_import_unavailable'),
+    },
+    'avenia-setup-cpf-missing': {
+        route: '/add-money/pix',
+        about: 'The verification has no CPF for Avenia: the step sends the user to support.',
+        responses: aveniaPending('avenia_cpf_missing'),
+    },
+    'avenia-setup-support': {
+        route: '/withdraw/pix',
+        about: 'An Avenia step only support can finish: the step says so and offers support.',
+        responses: aveniaRouteResponses({
+            state: 'action_required',
+            action: 'contact-support:avenia',
+            reason: { code: 'provider_setup_failed', userMessage: 'Pix could not be set up.' },
+        }),
+    },
+    'pix-route-rejected': {
+        route: '/add-money/pix',
+        about: "A refused Pix route: the verification was not accepted, in the user's language, with support.",
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_rejected', userMessage: 'Avenia did not accept the verification.' },
+        }),
+    },
+    'pix-route-not-offered': {
+        route: '/withdraw/pix',
+        about: 'A Pix route not offered to the user (the rollout gate): not on this account yet.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'rollout_closed', userMessage: 'Pix is not open to this account yet.' },
+        }),
+    },
+    'pix-route-residence': {
+        route: '/add-money/pix',
+        about: 'A Pix route refused for the residence: not offered where the user lives, no "try again".',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'residence_not_served', userMessage: 'This is not available for your country.' },
+        }),
+    },
+    'pix-route-provider-down': {
+        route: '/withdraw/pix',
+        about: 'A Pix route refused while the provider is down: try again soon.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+        }),
+    },
+    'pix-route-method-not-served': {
+        route: '/add-money/pix',
+        about: 'A Pix route no provider serves: Peanut does not offer it.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'method_not_served', userMessage: 'This is not available.' },
+        }),
+    },
+    'avenia-withdraw-key-code': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(DEMO_AVENIA_BR_CODE)}`,
+        about: 'A Pix code pasted where a withdrawal needs a key: the field asks for a key.',
+        responses: aveniaResponses('enabled'),
+    },
+    'avenia-withdraw-key-lookup-failed': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        about: 'The Pix key lookup failed: the field asks to try again.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /avenia/pix-key-info'],
+    },
+    'avenia-withdraw-key-blocked': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        about: "A key at a bank on Avenia's deny-list: withdrawals there are not available.",
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'GET /avenia/pix-key-info': { ...AVENIA_OWN_KEY_INFO, blocked: true },
+        }),
+    },
+    'avenia-withdraw-review-limit': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        about: 'A withdrawal over the monthly Pix limit: the review says so (PIX_LIMIT_EXCEEDED).',
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /avenia/withdraw/preview': {
+                status: 422,
+                body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' },
+            },
+        },
+    },
+    'avenia-withdraw-review-in-progress': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        about: 'Too many Pix withdrawals still on their way: the review asks to try later.',
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /avenia/withdraw/preview': {
+                status: 409,
+                body: { code: 'WITHDRAWAL_IN_PROGRESS', error: 'A withdrawal is in progress' },
+            },
+        },
+    },
+    'avenia-withdraw-review-quote-changed': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        about: 'The amount changed while it was quoted (PIX_QUOTE_CHANGED): the review asks to try again.',
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /avenia/withdraw/preview': {
+                status: 409,
+                body: { code: 'PIX_QUOTE_CHANGED', error: 'Quote changed' },
+            },
+        },
+    },
+    'avenia-withdraw-arrived': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, once Avenia paid the Pix.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('COMPLETED'),
+        }),
+    },
+    'avenia-withdraw-unconfirmed': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, while the entry is pending: not confirmed yet.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('PENDING'),
+        }),
+    },
+    'avenia-withdraw-refunded': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'A Pix withdrawal the bank did not accept: the money is back in the balance.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('REFUNDED'),
+        }),
+    },
+    'avenia-withdraw-not-sent': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'An opened withdrawal that was never signed: it did not go through, the balance is unchanged.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('CANCELLED'),
+        }),
+    },
+    'avenia-withdraw-not-signed': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'After a reload, an opened withdrawal this device never signed: it did not go through, try again.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: {
+                ...aveniaWithdrawal('PENDING'),
+                extraData: { ...aveniaWithdrawal('PENDING').extraData, intentStatus: 'AWAITING_USER_ACTION' },
+            },
+        }),
+    },
+    'avenia-withdraw-needs-key': {
+        route: aveniaOutcomeRoute(AVENIA_REFUSED_WITHDRAWAL_ID),
+        about: 'The last step of a withdrawal whose payout the bank refused: it asks for another own key.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
+        }),
+    },
+    'avenia-new-key-unnamed': {
+        route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
+        about: 'A new own key whose holder the Pix directory does not name.',
+        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
+            'GET /avenia/pix-key-info': { ...AVENIA_OWN_KEY_INFO, holderName: null, bankName: null },
+        }),
+    },
+    'avenia-receipt-new-key': {
+        route: `/history?tx=${AVENIA_REFUSED_WITHDRAWAL_ID}`,
+        about: 'The receipt of a refused Pix payout asks for another own key.',
+        waitFor: '[data-testid="avenia-new-key-notice"]',
+        responses: {
+            'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false },
+            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
+        },
+    },
+    // design.md, rows the user cannot act on: the row names the action and opens the new-key step
+    'avenia-activity-new-key': {
+        route: '/history',
+        about: 'Activity row of a refused Pix payout: "Action needed", and the tap opens the new-key step.',
+        responses: { 'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false } },
     },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {

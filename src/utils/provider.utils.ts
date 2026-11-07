@@ -50,6 +50,8 @@ export function providerIdForTransaction(
             if (code === 'BRL') return 'manteca-br'
             return null
         }
+        case 'AVENIA':
+            return 'avenia-br'
         case 'RAIN':
             return 'third-national'
         case 'RHINO':

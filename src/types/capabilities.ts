@@ -15,7 +15,9 @@
  * See engineering/projects/kyc-2.0/capabilities-rehaul-plan.md.
  */
 
-export type ProviderCode = 'bridge' | 'manteca' | 'rain'
+import type { paths } from '@/types/api.generated'
+
+export type ProviderCode = 'bridge' | 'manteca' | 'rain' | 'avenia'
 
 /** Capability status of a single rail, provider-neutral. */
 export type RailCapabilityStatus =
@@ -204,11 +206,22 @@ export interface CapabilityRestriction {
     userMessage: string
 }
 
+/**
+ * Which provider serves an operation on a method for this user, and what the
+ * user's step is there (api `routing/route-for.ts`). The backend picks the
+ * provider; the app mounts that provider's screens and decides nothing.
+ * Typed from the generated contract.
+ */
+export type CapabilityRoute =
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['routes'][number]
+
 /** The block embedded in /get-user (top-level) and returned by GET /users/capabilities. */
 export interface UserCapabilities {
     rails: RailCapability[]
     nextActions: NextAction[]
     restrictions: CapabilityRestriction[]
+    /** One route per operation and method a provider serves (today PIX_BR deposit and withdraw). Absent on an older API. */
+    routes?: CapabilityRoute[]
     /** The one answer to "what can this user do", per feature. The app renders it and decides nothing. */
     features?: FeatureReport
 }

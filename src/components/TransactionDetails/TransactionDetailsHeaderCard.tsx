@@ -70,6 +70,9 @@ interface TransactionDetailsHeaderCardProps {
     /** A bank's verification micro-deposit: cancelled on the wire, but the
      *  amount stays readable and the badge says Returned. */
     isVerificationDeposit?: boolean
+    /** The action the user can take on it now (a refused Pix payout waits for another
+     *  own key): the badge names it in the attention colour, never Failed. */
+    userActionBadge?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -253,6 +256,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     statusNote,
     nameDetail,
     isVerificationDeposit = false,
+    userActionBadge,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -406,7 +410,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     )}
                 </div>
                 {showBadge &&
-                    (actionLabelKey === 'type.returnedToSender' || isVerificationDeposit ? (
+                    (userActionBadge ? (
+                        // design.md, rows the user cannot act on: the user can act now, so the badge names it
+                        <Badge status="pending" size="medium" customText={userActionBadge} />
+                    ) : actionLabelKey === 'type.returnedToSender' || isVerificationDeposit ? (
                         // A bank deposit sent back to the payer is a fact with no
                         // success tone, so `neutral`, in the heading's word.
                         <Badge status="neutral" size="medium" customText={t('returnedStatus')} />

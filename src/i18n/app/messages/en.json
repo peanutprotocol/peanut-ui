@@ -2531,6 +2531,79 @@
             "otherCountriesPitch": "Pick a country"
         }
     },
+    "pix": {
+        "methodNotServed": "Peanut does not offer this.",
+        "rolloutClosed": "Pix is not available for your account yet.",
+        "residenceNotServed": "Pix is not offered where you live.",
+        "unavailableTitle": "Pix not available",
+        "rejected": "The verification was not accepted. Contact support."
+    },
+    "avenia": {
+        "unavailable": "Pix is not available right now. Try again soon.",
+        "setup": {
+            "importUnavailable": "Avenia cannot receive your verification yet. We send it again each day.",
+            "reviewing": "Avenia is checking your verification. This screen moves on once it is done.",
+            "verifyCta": "Verify identity",
+            "title": "Set up Pix",
+            "body": "Avenia provides Pix for residents of Brazil. It receives your Peanut verification, so there is no second check.",
+            "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
+            "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
+            "termsNotSaved": "The acceptance of Avenia's terms was not saved. Try again.",
+            "notAvailable": "Pix could not be set up. Contact support to finish it."
+        },
+        "deposit": {
+            "startNew": "Start a new deposit",
+            "fee": "Avenia fee {amount}",
+            "showCode": "Show code",
+            "youGet": "You get ≈ {amount}",
+            "blockedBanks": "A Pix from {banks} is returned.",
+            "minimum": "The minimum is {amount}.",
+            "limitExceeded": "This deposit is over the monthly Pix limit.",
+            "ownCpf": "From an account under your CPF {cpf}",
+            "returnedTitle": "Pix returned",
+            "returnedBody": "Pay again from an account under your CPF."
+        },
+        "withdraw": {
+            "stuck": "This withdrawal did not finish. Contact support.",
+            "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
+            "aveniaFee": "Avenia fee",
+            "keyIntro": "Enter a Pix key of an account under your CPF.",
+            "notACode": "Enter a Pix key, not a Pix code.",
+            "lookupFailed": "This key could not be checked. Try again.",
+            "keyNotOwn": "This key belongs to someone else. Withdrawals go only to an account under your CPF.",
+            "keyBlocked": "Pix withdrawals to this bank are not available.",
+            "unknownHolder": "Name not shown",
+            "ownAccount": "Own account",
+            "someoneElses": "Someone else's",
+            "toAccount": "to {destination}",
+            "sent": "On its way.",
+            "sentTo": "On its way to {destination}.",
+            "arrivedTo": "Sent to {destination}.",
+            "arrived": "The money was sent.",
+            "refunded": "The bank refused this payout. The money is back in your balance.",
+            "quoteMoved": "The rate moved. Check the new amounts and confirm again.",
+            "unconfirmed": "Not confirmed yet. Check History before you try again.",
+            "notSent": "This withdrawal did not go through. Your balance has not changed.",
+            "errors": {
+                "limitExceeded": "This withdrawal is over the monthly Pix limit.",
+                "inProgress": "Too many Pix withdrawals are still on their way. Try again later.",
+                "quoteExpired": "The quote took too long. Try again.",
+                "afterInit": "Check History before trying again.",
+                "quoteChanged": "The amount changed while it was quoted. Try again."
+            }
+        },
+        "recovery": {
+            "actionNeeded": "Action needed",
+            "intro": "The bank refused the payout to the previous key. The money is waiting with Avenia. Enter a Pix key of another account under your CPF.",
+            "notice": "The bank refused this payout. The money waits for another key under your CPF.",
+            "addKey": "Add Pix key",
+            "savedTitle": "Pix key saved",
+            "savedTo": "The money will be sent to {destination}.",
+            "saved": "The money will be sent to the new key.",
+            "notWaitingTitle": "No new key needed",
+            "notWaiting": "This withdrawal is no longer waiting for a new Pix key."
+        }
+    },
     "transaction": {
         "drawerTitle": "Transaction details",
         "officialReceipt": {
@@ -5331,7 +5404,8 @@
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Fiat on-ramp (ARS), off-ramp, QR payer and holder of the ARS deposit account",
-            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer"
+            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer",
+            "aveniaBr": "Fiat on-ramp and off-ramp (BRL Pix)"
         },
         "about": "About {brand}",
         "execution": {
@@ -5339,7 +5413,8 @@
             "bridgeEea": "Signed by you, {brand} pays out",
             "mantecaAr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
-            "thirdNational": "Third National issues and settles"
+            "thirdNational": "Third National issues and settles",
+            "aveniaBr": "Settled by {brand}"
         },
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
