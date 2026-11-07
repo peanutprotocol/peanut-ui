@@ -23,6 +23,7 @@ export function FeatureAction({ action, onBack, onDone }: { action: string; onBa
     return (
         <KycControlFlowProvider value="kyc_provider_request">
             <VerifyHeroLayout
+                statusTone={flow.error ? 'error' : 'warning'}
                 pose="thinking"
                 screenId={screenId}
                 onBack={onBack}

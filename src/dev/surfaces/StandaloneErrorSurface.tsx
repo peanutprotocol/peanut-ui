@@ -5,7 +5,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import NavHeader from '@/components/Global/NavHeader'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { API_ERROR_CODES } from '@/services/api-error'
@@ -34,11 +34,11 @@ export function StandaloneErrorSurface({ kind }: { kind: StandaloneErrorKind }) 
                     className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4"
                     data-testid={errorId}
                 >
-                    <CenteredErrorCard title={tCommon('cardCouldNotLoad')} description={tCard('page.loadFailed')}>
+                    <CenteredStatusCard title={tCommon('cardCouldNotLoad')} description={tCard('page.loadFailed')}>
                         <Button onClick={noop} variant="primary" shadowSize="4">
                             {tCommon('retry')}
                         </Button>
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                 </div>
             </PageContainer>
         )
@@ -54,7 +54,7 @@ export function StandaloneErrorSurface({ kind }: { kind: StandaloneErrorKind }) 
                     <NavHeader title={tCardRecovery('navTitle')} onPrev={noop} />
                 )}
                 <PageStack.Center className={isClaim ? 'gap-4' : undefined} data-testid={errorId}>
-                    <CenteredErrorCard
+                    <CenteredStatusCard
                         title={tCommon(isClaim ? 'claimCouldNotComplete' : 'cardRecoveryUnavailable')}
                         description={
                             <Callout priority="error" hideIcon className="bg-transparent p-0">
@@ -74,7 +74,7 @@ export function StandaloneErrorSurface({ kind }: { kind: StandaloneErrorKind }) 
                                 </div>
                             </>
                         )}
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                 </PageStack.Center>
             </PageStack>
         )
@@ -84,7 +84,7 @@ export function StandaloneErrorSurface({ kind }: { kind: StandaloneErrorKind }) 
         return (
             <div className="flex min-h-dvh flex-col pt-safe-top pb-safe-bottom">
                 <div className="flex flex-1 flex-col justify-center gap-6 px-4 py-6" data-testid={errorId}>
-                    <CenteredErrorCard
+                    <CenteredStatusCard
                         title={tWalletRecovery('walletUnavailable.title')}
                         description={tWalletRecovery('walletUnavailable.description')}
                     />
@@ -100,7 +100,7 @@ export function StandaloneErrorSurface({ kind }: { kind: StandaloneErrorKind }) 
         <div className="flex min-h-inherit flex-col gap-8">
             <NavHeader title={tNav(kind === 'send' ? 'send' : 'withdraw')} onPrev={noop} />
             <div className="my-auto space-y-4 flex h-full flex-col justify-center" data-testid={errorId}>
-                <CenteredErrorCard
+                <CenteredStatusCard
                     title={tCommon(kind === 'send' ? 'sendCouldNotComplete' : 'withdrawalCouldNotComplete')}
                     description={tWithdraw('errors.unexpected')}
                 >
@@ -110,7 +110,7 @@ export function StandaloneErrorSurface({ kind }: { kind: StandaloneErrorKind }) 
                     <LinkButton onClick={noop} className="self-center">
                         {tCommon('contactSupport')}
                     </LinkButton>
-                </CenteredErrorCard>
+                </CenteredStatusCard>
             </div>
         </div>
     )

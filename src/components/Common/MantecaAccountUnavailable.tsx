@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { localizedCountryName } from '@/utils/country-name.utils'
 import { useLocale, useTranslations } from 'next-intl'
 
@@ -29,7 +29,7 @@ export function MantecaAccountUnavailable({
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center>
-                <CenteredErrorCard
+                <CenteredStatusCard
                     title={tCommon('bankTransfersUnavailable')}
                     description={
                         <div role="alert">
@@ -43,7 +43,7 @@ export function MantecaAccountUnavailable({
                     <Button variant="primary" onClick={onSupport}>
                         {tCommon('contactSupport')}
                     </Button>
-                </CenteredErrorCard>
+                </CenteredStatusCard>
             </PageStack.Center>
         </PageStack>
     )

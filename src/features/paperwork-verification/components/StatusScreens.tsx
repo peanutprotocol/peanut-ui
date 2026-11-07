@@ -67,6 +67,7 @@ export function SavedScreen({
         <VerifyCelebrationLayout
             pose="pointing"
             screenId="answers-saved"
+            statusTone="success"
             onBack={onBack}
             celebrate
             title={t('saved.title')}
@@ -86,13 +87,11 @@ export function SavedScreen({
             }
         >
             {closed.length > 0 && (
-                <Callout priority="info" className="w-full max-w-80 text-left" data-testid="verify-closed-features">
+                <Callout priority="info" className="w-full text-left" data-testid="verify-closed-features">
                     {closed.map((c) => (
-                        <span key={c.feature} className="block">
-                            {line(c)}
-                        </span>
+                        <span key={c.feature}>{line(c)} </span>
                     ))}
-                    <span className="block">{t('closed.rest')}</span>
+                    <span>{t('closed.rest')}</span>
                 </Callout>
             )}
         </VerifyCelebrationLayout>
@@ -202,18 +201,28 @@ export function ReviewScreen({
 }
 
 /** Add-later is saved: the providers take it from here, and the account rows show their status. */
-export function FeatureReadyScreen({ feature, onDone }: { feature: PaperworkVerificationFeature; onDone: () => void }) {
+export function FeatureReadyScreen({
+    feature,
+    onDone,
+    acknowledgement = false,
+}: {
+    feature: PaperworkVerificationFeature
+    onDone: () => void
+    acknowledgement?: boolean
+}) {
     const t = useTranslations('kyc.paperworkVerification')
     const controls = useKycControl('feature-ready', 'kyc_status')
+    const tCommon = useTranslations('common')
     return (
         <VerifyHeroLayout
             pose="too-cool"
+            statusTone="warning"
             title={t(`addLater.doneTitle.${feature}`)}
             description={t(`addLater.doneDescription.${feature}`)}
             footer={
                 <VerifyFooter
                     actions={primary(
-                        t('addLater.doneCta'),
+                        acknowledgement ? tCommon('gotIt') : t('addLater.doneCta'),
                         () => {
                             controls.track('done', 'tap')
                             onDone()

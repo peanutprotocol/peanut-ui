@@ -1,9 +1,8 @@
 'use client'
 import type { FC } from 'react'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useTranslations } from 'next-intl'
-import PeanutMascot from '@/components/Global/PeanutMascot'
-import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import Loading from '@/components/Global/Loading'
@@ -187,58 +186,74 @@ const ApplicationStatusScreen: FC<Props> = ({
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={handleBack} />
-            <div className="my-auto flex flex-col items-center gap-6 text-center">
-                {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
-                {(variant === 'rejected' || variant === 'requires-support' || variant === 'geo-blocked') && (
-                    <PeanutMascot
-                        pose="worried"
-                        alt={t('status.mascotAlt')}
-                        className={`${MASCOT_STATE_CLASS} select-none`}
-                    />
-                )}
-                <div className="flex flex-col gap-3">
-                    <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
-                    {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
-                    <p className="text-foreground-secondary">{t(bodyKey)}</p>
+            {['pending', 'pending-identity', 'manual-review'].includes(variant) ? (
+                <div className="my-auto flex flex-col items-center gap-6 text-center">
+                    {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
+                    <div className="flex flex-col gap-3">
+                        <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
+                        {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}
+                        <p className="text-foreground-secondary">{t(bodyKey)}</p>
+                    </div>
                 </div>
-                {variant === 'geo-blocked' && (
-                    <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external onClick={() => track('policy', 'tap')}>
-                        {t('status.geoBlockedPolicyLink')}
-                    </LinkButton>
-                )}
-                {variant === 'pending-residence-blocked' && (
-                    <LinkButton href={RESIDENCE_CHANGE_URL} onClick={() => track('change_residence', 'tap')}>
-                        {t('status.pendingResidenceBlockedCta')}
-                    </LinkButton>
-                )}
-                {selfServeAction && (
-                    <Button
-                        variant="primary"
-                        className="w-full"
-                        onClick={() => {
-                            track(SELF_SERVE_CONTROLS[selfServeAction.kind], 'tap')
-                            selfServeAction.onClick()
-                        }}
+            ) : (
+                <PageStack.Center>
+                    <CenteredStatusCard
+                        title={t(copyKeys.title)}
+                        description={
+                            <>
+                                {reasonText && <p>{reasonText}</p>}
+                                <p>{t(bodyKey)}</p>
+                            </>
+                        }
+                        tone={
+                            variant === 'requires-info' || variant === 'pending-residence-blocked' ? 'warning' : 'error'
+                        }
+                        pose={variant === 'geo-blocked' ? 'worried' : undefined}
                     >
-                        {selfServeAction.label}
-                    </Button>
-                )}
-                {SUPPORT_VARIANTS.has(variant) && uploadError && (
-                    <p role="alert" className="text-body-s text-foreground-error">
-                        {uploadError}
-                    </p>
-                )}
-                {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
-                    <LinkButton
-                        onClick={() => {
-                            track('support', 'tap')
-                            onContactSupport()
-                        }}
-                    >
-                        {tCommon('contactSupport')}
-                    </LinkButton>
-                )}
-            </div>
+                        {variant === 'geo-blocked' && (
+                            <LinkButton
+                                href={PROHIBITED_ACTIVITIES_POLICY_URL}
+                                external
+                                onClick={() => track('policy', 'tap')}
+                            >
+                                {t('status.geoBlockedPolicyLink')}
+                            </LinkButton>
+                        )}
+                        {variant === 'pending-residence-blocked' && (
+                            <LinkButton href={RESIDENCE_CHANGE_URL} onClick={() => track('change_residence', 'tap')}>
+                                {t('status.pendingResidenceBlockedCta')}
+                            </LinkButton>
+                        )}
+                        {selfServeAction && (
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => {
+                                    track(SELF_SERVE_CONTROLS[selfServeAction.kind], 'tap')
+                                    selfServeAction.onClick()
+                                }}
+                            >
+                                {selfServeAction.label}
+                            </Button>
+                        )}
+                        {SUPPORT_VARIANTS.has(variant) && uploadError && (
+                            <p role="alert" className="text-body-s text-foreground-error">
+                                {uploadError}
+                            </p>
+                        )}
+                        {SUPPORT_VARIANTS.has(variant) && onContactSupport && (
+                            <LinkButton
+                                onClick={() => {
+                                    track('support', 'tap')
+                                    onContactSupport()
+                                }}
+                            >
+                                {tCommon('contactSupport')}
+                            </LinkButton>
+                        )}
+                    </CenteredStatusCard>
+                </PageStack.Center>
+            )}
         </PageStack>
     )
 }

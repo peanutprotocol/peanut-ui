@@ -51,8 +51,19 @@ jest.mock('@/components/Card/YourCardScreen', () => {
     const CancelCardModal = jest.requireActual('@/components/Card/CancelCardModal').default
     return {
         __esModule: true,
-        default: ({ card, onStopAttempt }: { card: { id: string }; onStopAttempt: () => void }) => (
-            <CancelCardModal cardId={card.id} isOpen onClose={() => {}} onStopAttempt={onStopAttempt} />
+        default: ({
+            card,
+            onStopAttempt,
+            statusWarning,
+        }: {
+            card: { id: string }
+            onStopAttempt: () => void
+            statusWarning?: ReactNode
+        }) => (
+            <>
+                {statusWarning}
+                <CancelCardModal cardId={card.id} isOpen onClose={() => {}} onStopAttempt={onStopAttempt} />
+            </>
         ),
     }
 })

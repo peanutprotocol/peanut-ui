@@ -10,6 +10,8 @@ import React from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import LimitsWarningCard from '../LimitsWarningCard'
 
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
+
 const mockPush = jest.fn()
 const mockCapture = jest.fn()
 var native = true
@@ -108,6 +110,26 @@ describe('LimitsWarningCard native navigation', () => {
         window.history.replaceState({}, '', '/')
     })
 
+    test.each([false, true])('provides exactly one Check limits action when supplied=%s', (supplied) => {
+        render(
+            <LimitsWarningCard
+                type="error"
+                title="This amount exceeds the limit"
+                items={
+                    supplied
+                        ? [{ text: 'Check limits', isLink: true, href: '/limits', kind: 'check-limits' }]
+                        : [{ text: 'You can pay up to $500 today.' }]
+                }
+                showSupportLink={false}
+            />
+        )
+
+        const actions = screen.getAllByRole('button', { name: 'Check limits' })
+        expect(actions).toHaveLength(1)
+        fireEvent.click(actions[0])
+        expect(mockPush).toHaveBeenCalledWith('/limits')
+    })
+
     test.each(['ARS', 'BRL'] as const)(
         'records native %s navigation state and offers recovery when push is swallowed',
         (currency) => {
@@ -141,7 +163,7 @@ describe('LimitsWarningCard native navigation', () => {
                     pointer_events_changed: true,
                 })
             )
-            expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong')
+            expect(screen.getByText('Something went wrong. Please try again or contact support.')).toBeVisible()
             expect(screen.getByRole('button', { name: 'Try again' })).toHaveClass('pointer-events-auto')
         }
     )
@@ -157,6 +179,6 @@ describe('LimitsWarningCard native navigation', () => {
             'limits_check_link_navigation',
             expect.objectContaining({ outcome: 'completed', pointer_events_after: 'none' })
         )
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        expect(screen.queryByText('Something went wrong. Please try again or contact support.')).not.toBeInTheDocument()
     })
 })

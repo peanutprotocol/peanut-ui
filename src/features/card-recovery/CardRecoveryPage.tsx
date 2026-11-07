@@ -1,6 +1,6 @@
 'use client'
 
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
@@ -51,7 +51,7 @@ export function CardRecoveryPage() {
                     (preview ? (
                         <Callout priority="error">{error}</Callout>
                     ) : (
-                        <CenteredErrorCard
+                        <CenteredStatusCard
                             title={tCommon('cardRecoveryUnavailable')}
                             description={
                                 <Callout priority="error" hideIcon className="bg-transparent p-0">
