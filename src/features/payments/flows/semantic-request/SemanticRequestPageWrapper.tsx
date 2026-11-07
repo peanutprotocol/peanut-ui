@@ -147,7 +147,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
                     <CenteredStatusCard
-                        tone="neutral"
+                        tone={unsupportedToken ? 'error' : 'neutral'}
                         pose="worried"
                         title={t('errors.invalidPaymentUrlTitle')}
                         description={description}

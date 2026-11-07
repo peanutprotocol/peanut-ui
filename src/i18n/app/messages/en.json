@@ -3743,7 +3743,7 @@
                 "actingAsIntermediary": "I’ll send money <nw><pill></pill></nw>",
                 "nationality": "My nationality <nw>is <pill></pill></nw>",
                 "maritalStatus": "My marital status <nw>is <pill></pill></nw>",
-                "sex": "My gender on my ID <nw>is <pill></pill></nw>"
+                "sex": "The gender on my ID <nw>is <pill></pill></nw>"
             },
             "pickerTitle": {
                 "cardPurpose": "What you’ll use the card for",

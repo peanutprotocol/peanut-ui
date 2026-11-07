@@ -28,9 +28,7 @@ export function KycFeatureActivationStatus({
     const tKyc = useTranslations('kyc')
     const report = result?.kind === 'report' ? result.report : null
     if (report?.state === 'action_required' && report.action?.startsWith('supplement:')) {
-        return (
-            <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} statusCard={feature === 'local'} />
-        )
+        return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />
     }
     const identityRequired = result?.kind === 'conflict' && result.code === 'identity_not_approved'
     const consent = !result || identityRequired
@@ -50,7 +48,7 @@ export function KycFeatureActivationStatus({
         )
     return (
         <VerifyHeroLayout
-            statusTone={failed || (refused && (feature === 'card' || feature === 'local')) ? 'error' : undefined}
+            statusTone={failed || refused ? 'error' : 'warning'}
             screenId="feature-status"
             pose={failed || refused ? 'sad' : 'thinking'}
             onBack={onBack}

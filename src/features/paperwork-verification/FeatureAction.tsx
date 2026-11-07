@@ -8,17 +8,7 @@ import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { KycControlFlowProvider, useKycControl } from './analytics'
 
-export function FeatureAction({
-    action,
-    onBack,
-    onDone,
-    statusCard = false,
-}: {
-    action: string
-    onBack: () => void
-    onDone: () => void
-    statusCard?: boolean
-}) {
+export function FeatureAction({ action, onBack, onDone }: { action: string; onBack: () => void; onDone: () => void }) {
     const t = useTranslations('kyc.paperworkVerification')
     const screenId =
         action === 'supplement:bridge' ? 'poa' : action === 'supplement:manteca' ? 'manteca-rfi' : 'provider-request'
@@ -33,7 +23,7 @@ export function FeatureAction({
     return (
         <KycControlFlowProvider value="kyc_provider_request">
             <VerifyHeroLayout
-                statusTone={statusCard ? (flow.error ? 'error' : 'warning') : undefined}
+                statusTone={flow.error ? 'error' : 'warning'}
                 pose="thinking"
                 screenId={screenId}
                 onBack={onBack}

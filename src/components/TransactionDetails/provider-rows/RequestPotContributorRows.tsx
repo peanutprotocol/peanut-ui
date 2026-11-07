@@ -20,7 +20,7 @@ export function RequestPotContributorRows({ vm }: { vm: ReceiptViewModel }) {
     if (requestPotContributors.length === 0) return null
 
     return (
-        <div className="flex w-full flex-col gap-2 pt-1 pb-3" translate="no">
+        <div className="flex w-full flex-col gap-2 pt-2 pb-3" translate="no">
             {requestPotContributors.map((contributor) => (
                 <div key={contributor.uuid} className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2">

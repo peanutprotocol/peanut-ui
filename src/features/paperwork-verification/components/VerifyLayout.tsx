@@ -190,9 +190,7 @@ export function VerifyCelebrationLayout({
             <div className="flex min-h-0 flex-1 flex-col justify-between gap-8 px-6 pt-4 pb-6">
                 <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                     {statusTone ? (
-                        <CenteredStatusCard title={title} description={description} tone={statusTone} pose={pose}>
-                            {children}
-                        </CenteredStatusCard>
+                        <CenteredStatusCard title={title} description={description} tone={statusTone} pose={pose} />
                     ) : (
                         <>
                             <PeanutMascot pose={pose} alt="" className="h-52 w-auto" />
@@ -204,9 +202,9 @@ export function VerifyCelebrationLayout({
                                     </p>
                                 )}
                             </div>
-                            {children}
                         </>
                     )}
+                    {children}
                 </div>
                 {footer}
             </div>

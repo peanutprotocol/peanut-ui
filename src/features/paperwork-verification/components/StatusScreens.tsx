@@ -87,13 +87,11 @@ export function SavedScreen({
             }
         >
             {closed.length > 0 && (
-                <Callout priority="info" className="w-full max-w-80 text-left" data-testid="verify-closed-features">
+                <Callout priority="info" className="w-full text-left" data-testid="verify-closed-features">
                     {closed.map((c) => (
-                        <span key={c.feature} className="block">
-                            {line(c)}
-                        </span>
+                        <span key={c.feature}>{line(c)} </span>
                     ))}
-                    <span className="block">{t('closed.rest')}</span>
+                    <span>{t('closed.rest')}</span>
                 </Callout>
             )}
         </VerifyCelebrationLayout>
@@ -218,6 +216,7 @@ export function FeatureReadyScreen({
     return (
         <VerifyHeroLayout
             pose="too-cool"
+            statusTone="warning"
             title={t(`addLater.doneTitle.${feature}`)}
             description={t(`addLater.doneDescription.${feature}`)}
             footer={

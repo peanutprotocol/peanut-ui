@@ -1,4 +1,5 @@
 import { Children } from 'react'
+import { twMerge } from '@/utils/tw'
 
 /**
  * One theme of rows inside a receipt or confirm card (Konrad's receipt-rows
@@ -6,10 +7,10 @@ import { Children } from 'react'
  * groups and none inside one. A group whose rows all resolved to nothing
  * renders nothing, so it leaves no empty slot and no stray divider.
  */
-export const DataRowGroup = ({ children }: { children: React.ReactNode }) => {
+export const DataRowGroup = ({ children, className }: { children: React.ReactNode; className?: string }) => {
     // ponytail: only literal null/false children are dropped; a child that
     // renders null itself still mounts, and `empty:hidden` hides that case
     const rows = Children.toArray(children)
     if (rows.length === 0) return null
-    return <div className="ds-data-row-group empty:hidden">{rows}</div>
+    return <div className={twMerge('ds-data-row-group empty:hidden', className)}>{rows}</div>
 }
