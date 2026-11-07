@@ -34,7 +34,7 @@ export function AveniaWithdrawReview({
     onCancel,
 }: {
     title: string
-    /** null while the preview loads */
+    /** null while the preview loads, and after it was refused */
     display: AveniaWithdrawDisplay | null
     isLoading: boolean
     isSubmitting: boolean
@@ -60,10 +60,10 @@ export function AveniaWithdrawReview({
                         <p className="text-heading-s text-foreground-primary">
                             {formatBankAmount(display.amountBrl, 'BRL')}
                         </p>
-                    ) : (
+                    ) : isLoading ? (
                         // same line height as the amount, so the swap does not move the card
                         <div className="mx-auto my-1 h-6 w-28 animate-pulse rounded bg-background-skeleton" />
-                    )}
+                    ) : null}
                     {destination && (
                         <p className="text-body-s text-foreground-secondary">{t('toAccount', { destination })}</p>
                     )}

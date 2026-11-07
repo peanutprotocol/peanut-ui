@@ -44,4 +44,23 @@ describe('AveniaWithdrawReview', () => {
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
         expect(screen.getByText('About 1 minute')).toBeInTheDocument()
     })
+
+    // a refused preview has no numbers: its message stands alone, with no skeleton left waiting
+    it('shows a refused preview with its message and no loading placeholder', () => {
+        const { container } = renderWithIntl(
+            <AveniaWithdrawReview
+                title="Withdraw"
+                display={null}
+                isLoading={false}
+                isSubmitting={false}
+                error={{ message: en.avenia.withdraw.errors.limitExceeded }}
+                canConfirm={false}
+                onBack={jest.fn()}
+                onConfirm={jest.fn()}
+                onCancel={jest.fn()}
+            />
+        )
+        expect(screen.getByText(en.avenia.withdraw.errors.limitExceeded)).toBeInTheDocument()
+        expect(container.querySelector('.animate-pulse, .animate-spin')).toBeNull()
+    })
 })
