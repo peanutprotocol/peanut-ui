@@ -25,8 +25,11 @@ jest.mock('@/services/rhino-sda', () => ({
 }))
 
 jest.mock('@/utils/general.utils', () => ({
-    getTokenSymbol: () => 'USDC',
     isTestnetChain: () => false,
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getTokenSymbol: () => 'USDC',
 }))
 
 describe('published claim-link campaign compatibility', () => {

@@ -23,4 +23,8 @@ export interface KillSwitches {
     pixBrazilOnrampMaintenance: boolean
     /** Brazil users get the paused drawer on every BRL deposit, withdraw and Pix entry (useBrazilServicesPaused). */
     brazilServicesPaused: boolean
+    /** Identity verification is down: every KYC entry point shows "temporarily down" instead of its CTA. */
+    kycVerificationDown: boolean
+    /** Attention asks that never show (AskId values, or '*' for all of them); an open one closes. */
+    disabledAttentionAsks: string[]
 }

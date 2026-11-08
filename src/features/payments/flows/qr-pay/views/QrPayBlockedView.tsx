@@ -1,5 +1,6 @@
 'use client'
 
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -12,11 +13,12 @@ import { useQrPayFlow } from '../QrPayFlowContext'
 
 /**
  * The three dead-end cards: provider maintenance, a failed scan init, and a
- * dynamic QR whose merchant never entered an amount. One Card + CTA shape,
- * parameterized by the derived view.
+ * dynamic QR whose merchant never entered an amount.
  */
 export function QrPayBlockedView() {
     const t = useAppTranslations('qrPay')
+    const tKyc = useAppTranslations('kyc')
+    const tCommon = useAppTranslations('common')
     const {
         view,
         paymentMethodName,
@@ -40,9 +42,7 @@ export function QrPayBlockedView() {
         </button>
     )
 
-    // A failed init keeps its historical shape: message + CTA inside the card,
-    // no title. The support link appears only for the refusals whose copy
-    // sends the user to support, so the one instruction on screen is reachable.
+    // Offer support only for refusals that direct the user there.
     if (view === 'INIT_ERROR') {
         // A refusal for identity starts the verification from here, unless the
         // ID check already ended on a final decision: then only support helps.
@@ -51,16 +51,14 @@ export function QrPayBlockedView() {
         return (
             <PageStack>
                 <PageStack.Center className="gap-4">
-                    <Card className="relative z-10 w-full items-center gap-4 p-4">
-                        {/* terminal init failure — error tone, not the attention yellow
-                            the maintenance/waiting states use */}
-                        <IconBubble icon="alert" color="red" size="m" />
-                        <p className="text-body-m">
-                            {isVerificationClosed
-                                ? t('kyc.blockedDescription')
-                                : errorInitiatingPayment || t('errors.genericQrDetails')}
-                        </p>
-
+                    <CenteredStatusCard
+                        title={tCommon('qrPaymentCouldNotStart')}
+                        description={
+                            isVerificationClosed
+                                ? tKyc('terminalDescription')
+                                : errorInitiatingPayment || t('errors.genericQrDetails')
+                        }
+                    >
                         {canVerify ? (
                             <Button
                                 onClick={() => gate.startVerification(targetMantecaCountry)}
@@ -74,7 +72,7 @@ export function QrPayBlockedView() {
                         <Button onClick={onBack} variant={canVerify ? 'secondary' : 'primary'}>
                             {t('maintenance.goBack')}
                         </Button>
-                    </Card>
+                    </CenteredStatusCard>
                     {initErrorNeedsSupport || isVerificationClosed ? supportLink : null}
                 </PageStack.Center>
                 {canVerify ? <SumsubKycModals flow={gate.sumsubFlow} /> : null}

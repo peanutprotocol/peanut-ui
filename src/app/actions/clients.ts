@@ -1,12 +1,13 @@
 import { rpcUrls } from '@/constants/general.consts'
 import { BUNDLER_URL, PAYMASTER_URL, PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import type { PublicClient, Chain, Transport } from 'viem'
-import { createPublicClient, http, extractChain, fallback } from 'viem'
-import * as chains from 'viem/chains'
+import { createPublicClient, http, fallback } from 'viem'
 import { mainnet, base, linea } from 'viem/chains'
+import { getChain } from '@/utils/chain-registry'
 
-const allChains = Object.values(chains)
-export type ChainId = (typeof allChains)[number]['id']
+// Type-only: emits no code, so viem's chain registry stays out of the bundle.
+type ViemChains = typeof import('viem/chains')
+export type ChainId = ViemChains[keyof ViemChains]['id']
 
 /**
  * Returns viem transport with fallback
@@ -51,10 +52,8 @@ export const PUBLIC_CLIENTS_BY_CHAIN: Record<
 > = {
     // Primary wallet chain - always included (configurable via NEXT_PUBLIC_PEANUT_WALLET_CHAIN_ID)
     [PEANUT_WALLET_CHAIN.id]: {
-        // FOLLOW-UP: PEANUT_WALLET_CHAIN is `Chain | <extractChain return>`
-        // (env-driven). The extractChain return is broader than Chain at the
-        // type level even though it's structurally identical at runtime. Cast
-        // here so the rest of the map literal infers cleanly.
+        // PEANUT_WALLET_CHAIN is the arbitrum | arbitrumSepolia union (env-driven).
+        // Cast here so the rest of the map literal infers cleanly.
         client: createPublicClient({
             transport: getTransportWithFallback(PEANUT_WALLET_CHAIN.id as ChainId),
             chain: PEANUT_WALLET_CHAIN as Chain,
@@ -113,10 +112,14 @@ if (ZERODEV_V3_URL) {
 
 export const peanutPublicClient = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id].client
 
-export function getPublicClient(chainId: ChainId): PublicClient {
-    let client: PublicClient | undefined = PUBLIC_CLIENTS_BY_CHAIN[chainId]?.client
+/**
+ * Clients for the wallet and recovery chains exist at start. Any other chain
+ * is looked up in viem's chain registry, which loads on first use.
+ */
+export async function getPublicClient(chainId: ChainId): Promise<PublicClient> {
+    const client: PublicClient | undefined = PUBLIC_CLIENTS_BY_CHAIN[chainId]?.client
     if (client) return client
-    const chain: Chain = extractChain({ chains: allChains, id: chainId })
+    const chain = await getChain(chainId)
     if (!chain) throw new Error(`No chain found for chainId ${chainId}`)
     return createPublicClient({
         transport: getTransportWithFallback(chainId),

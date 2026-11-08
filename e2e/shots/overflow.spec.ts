@@ -23,6 +23,7 @@ import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { blockExternal, FROZEN_NOW, openFixture, seenOnceModals, settle } from './fixture-page'
 import { fixtureHref } from '../../src/dev/fixtures/active'
 import { EXEMPT, findOverflows } from './overflow-check'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
 
 async function assertNoOverflow(page: Page, id: string, testInfo: TestInfo) {
     // the check walks the whole document, so pull below-fold content in too
@@ -103,7 +104,7 @@ for (const [locale, routes] of Object.entries(LANDING_ROUTES)) {
         test(`landing:${route}`, async ({ page }, testInfo) => {
             test.skip(testInfo.project.use.locale !== locale, `belongs to the ${locale} project`)
             await blockExternal(page)
-            await page.clock.setFixedTime(FROZEN_NOW)
+            await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
             await page.goto(route, { waitUntil: 'domcontentloaded' })
             await settle(page)
             await assertNoOverflow(page, `landing:${route}`, testInfo)
@@ -134,7 +135,7 @@ for (const route of SETUP_ROUTES) {
         })
 
         await blockExternal(page)
-        await page.clock.setFixedTime(FROZEN_NOW)
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.addInitScript(seenOnceModals)
         await page.goto(route, { waitUntil: 'domcontentloaded' })
         await settle(page)

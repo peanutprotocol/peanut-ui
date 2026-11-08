@@ -142,7 +142,8 @@ const CarouselCTA = ({
 
             {/* Content */}
             <div className="flex w-[80%] flex-col">
-                <p className="font-medium">{title}</p>
+                {/* the close button sits over the top-right corner; a title long enough to reach it wraps first */}
+                <p className={twMerge('font-medium', onClose && 'pr-6')}>{title}</p>
                 <p className="text-body-xs text-foreground-secondary">{description}</p>
             </div>
         </Card>

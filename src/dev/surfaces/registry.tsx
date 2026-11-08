@@ -1,6 +1,10 @@
 'use client'
 
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
+import { API_CONTRACT_STATES } from './api-contract-states'
+import AmountInput from '@/components/Global/AmountInput'
+import { StandaloneErrorSurface } from './StandaloneErrorSurface'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -14,9 +18,10 @@ import { SetupCelebrationView } from '@/components/Setup/Views/Success'
  */
 
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
@@ -24,6 +29,7 @@ import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -39,10 +45,12 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
-import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
 import CancelCardModal from '@/components/Card/CancelCardModal'
 import CardLimitEditDrawer from '@/components/Card/CardLimitEditDrawer'
 import LockCardModal from '@/components/Card/LockCardModal'
+import AppleWalletRow from '@/components/Card/AppleWalletRow'
+import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { BadgeDetailDrawer } from '@/components/Badges/BadgeDetailDrawer'
 import { BadgeStatusDrawer } from '@/components/Badges/BadgeStatusDrawer'
 import HowToDepositDrawer from '@/components/AddMoney/components/HowToDepositDrawer'
@@ -64,6 +72,7 @@ import { FAQsPanel } from '@/components/Global/FAQs'
 import { BackupFaqDrawers } from '@/components/Profile/BackupFaqDrawers'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
+import { personFrom } from '@/lib/person/person'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import type { OnboardingState } from '@/utils/activation-step.utils'
@@ -80,6 +89,10 @@ import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/c
 import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
+import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
+import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -93,12 +106,14 @@ function SetupScreen({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    nationalityCountry?: string
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -107,6 +122,7 @@ function SetupScreen({
                 showProgress={showProgress}
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
+                nationalityCountry={nationalityCountry}
             >
                 {children}
             </SetupScreenBody>
@@ -119,18 +135,21 @@ function SetupScreenBody({
     showProgress = true,
     forceFullScreen = false,
     residenceCountry,
+    nationalityCountry,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
     forceFullScreen?: boolean
     residenceCountry?: string
+    nationalityCountry?: string
 }) {
-    const { setSteps, setResidenceCountry } = useSetupFlowContext()
+    const { setSteps, setResidenceCountry, setNationalityCountry } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
-    }, [residenceCountry, setResidenceCountry])
+        if (nationalityCountry) setNationalityCountry(nationalityCountry)
+    }, [residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
     if (!step) return null
@@ -163,6 +182,39 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
     step: 'first_payment',
 }
 const noop = () => {}
+
+/** The final step after repeated network failures: retry copy and the "confirm later" link. */
+function NetworkBusyConfirmation() {
+    const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
+    return (
+        <SetupConfirmationView
+            merged
+            onConfirm={noop}
+            buttonText={tCommon('tryAgain')}
+            error={t('testTransaction.errors.networkBusy')}
+            errorDetail={t('testTransaction.finishLaterDescription')}
+            secondary={<LinkButton onClick={noop}>{t('testTransaction.finishLater')}</LinkButton>}
+        />
+    )
+}
+
+/** The residence step's comparison, as its Next opens it when the nationality differs. */
+function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
+    const locale = useLocale()
+    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
+    const { sets } = useResidenceRestrictionSetsWithStatus()
+    return (
+        <ResidenceCompare
+            residence={residence}
+            nationality={nationality}
+            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
+            restrictionSets={sets}
+            busy={false}
+            onChoose={noop}
+        />
+    )
+}
 const asyncNoop = async () => {}
 
 /**
@@ -207,6 +259,21 @@ function RequestPotPartialSurface() {
     )
 }
 
+function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'withdraw' }) {
+    const tAddMoney = useTranslations('addMoney')
+    const tNav = useTranslations('navigation')
+    return (
+        <AppPageSurface>
+            <MantecaAccountUnavailable
+                title={action === 'deposit' ? tAddMoney('title') : tNav('withdraw')}
+                countryCode={action === 'deposit' ? 'BR' : 'AR'}
+                onBack={noop}
+                onSupport={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
 function WithdrawReviewSurface({
     isProcessing = false,
     alreadySpent = false,
@@ -223,7 +290,6 @@ function WithdrawReviewSurface({
                         address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
                         symbol: 'USDC',
                         decimals: 6,
-                        price: 1,
                     } as React.ComponentProps<typeof ConfirmWithdrawView>['token']
                 }
                 chain={
@@ -295,14 +361,12 @@ import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
-import { KycFailedContent } from '@/components/Kyc/KycFailedContent'
 import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
 import { KycActionRequired } from '@/components/Kyc/states/KycActionRequired'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
-import { KycChecklistA, KycChecklistB } from './options/KycChecklistOptions'
 
 export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
@@ -312,6 +376,88 @@ export type Surface = SurfaceMeta & {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    'standalone-error-card': {
+        ...SURFACE_META['standalone-error-card'],
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="card" />
+            </AppPageSurface>
+        ),
+    },
+    'standalone-error-card-recovery': {
+        ...SURFACE_META['standalone-error-card-recovery'],
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="card-recovery" />
+            </AppPageSurface>
+        ),
+    },
+    'standalone-error-claim': {
+        ...SURFACE_META['standalone-error-claim'],
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="claim" />
+            </AppPageSurface>
+        ),
+    },
+    'standalone-error-send': {
+        ...SURFACE_META['standalone-error-send'],
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="send" />
+            </AppPageSurface>
+        ),
+    },
+    'standalone-error-withdraw': {
+        ...SURFACE_META['standalone-error-withdraw'],
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="withdraw" />
+            </AppPageSurface>
+        ),
+    },
+    'standalone-error-wallet-recovery': {
+        ...SURFACE_META['standalone-error-wallet-recovery'],
+        render: () => <StandaloneErrorSurface kind="wallet-recovery" />,
+    },
+    ...Object.fromEntries(
+        Object.entries(API_CONTRACT_STATES).map(([id, state]) => [
+            id,
+            {
+                ...SURFACE_META[id],
+                render: () => <TestBuildRibbonView branch="test/kyc-contract" api={state.api} />,
+            },
+        ])
+    ),
+    'numeric-request-amount-4000': {
+        ...SURFACE_META['numeric-request-amount-4000'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput setPrimaryAmount={noop} showSlider maxAmount={4000} defaultSliderSuggestedAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-rate-unavailable': {
+        ...SURFACE_META['numeric-request-rate-unavailable'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput
+                    initialAmount="4000"
+                    setPrimaryAmount={noop}
+                    primaryDenomination={{ symbol: 'USDC', price: 1, decimals: 6 }}
+                    secondaryDenomination={{ symbol: 'EUR', price: 0, decimals: 2 }}
+                />
+            </AppPageSurface>
+        ),
+    },
+    'numeric-request-amount-invalid': {
+        ...SURFACE_META['numeric-request-amount-invalid'],
+        render: () => (
+            <AppPageSurface>
+                <AmountInput initialAmount="Infinity" setPrimaryAmount={noop} showSlider maxAmount={4000} />
+            </AppPageSurface>
+        ),
+    },
     '01-a-landing': {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
@@ -333,12 +479,28 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
     },
+    '03-b-residence-compare': {
+        ...SURFACE_META['03-b-residence-compare'],
+        render: () => (
+            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
+                <ResidenceCompareSurface residence="PT" nationality="BR" />
+            </SetupScreen>
+        ),
+    },
 
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
         render: () => (
             <SetupScreen screenId="advantage-control">
                 <SetupConfirmationView merged onConfirm={noop} />
+            </SetupScreen>
+        ),
+    },
+    '05-b-signtesttransaction-network-busy': {
+        ...SURFACE_META['05-b-signtesttransaction-network-busy'],
+        render: () => (
+            <SetupScreen screenId="advantage-control">
+                <NetworkBusyConfirmation />
             </SetupScreen>
         ),
     },
@@ -392,6 +554,23 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    '08-b-loginrecoverydrawer': {
+        ...SURFACE_META['08-b-loginrecoverydrawer'],
+        render: () => (
+            <LoginRecoveryDrawer
+                visible
+                onClose={noop}
+                onRetry={noop}
+                onSignUp={noop}
+                onSupport={noop}
+                platform="ios"
+            />
+        ),
+    },
+    '08-c-loginrecoverydrawer-web': {
+        ...SURFACE_META['08-c-loginrecoverydrawer-web'],
+        render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
+    },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',
         path: 'Setup/components/PasskeyInfoDrawer.tsx',
@@ -403,7 +582,7 @@ export const SURFACES: Record<string, Surface> = {
             <ConfirmInviteModal
                 isOpen
                 onClose={noop}
-                method="Google"
+                username="maria"
                 handleLoseInvite={noop}
                 handleContinueWithPeanut={noop}
             />
@@ -414,7 +593,15 @@ export const SURFACES: Record<string, Surface> = {
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
         shotFixture: 'early-user',
-        render: () => <EarlyUserDrawer />,
+        render: () => (
+            <EarlyUserDrawer
+                presentation="drawer"
+                askId="early-user"
+                onActed={noop}
+                onDismissed={noop}
+                onSnoozed={noop}
+            />
+        ),
     },
     '12-a-eastereggmodal': {
         name: 'EasterEggDrawer',
@@ -469,6 +656,32 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['24-b-kycverificationinprogressmodal'],
         render: () => <KycVerificationInProgressModal isOpen onClose={noop} />,
     },
+    '24-c-kyctaxidsubmitted': {
+        ...SURFACE_META['24-c-kyctaxidsubmitted'],
+        render: () => <KycVerificationInProgressModal isOpen onClose={noop} phase="submitted" />,
+    },
+    '24-c-kyc-ready-ars-action': {
+        ...SURFACE_META['24-c-kyc-ready-ars-action'],
+        render: () => (
+            <KycVerificationInProgressModal
+                isOpen
+                onClose={noop}
+                phase="complete"
+                completionNotice={{ kind: 'action', currencies: ['ARS'] }}
+            />
+        ),
+    },
+    '24-d-kyc-ready-bank-review': {
+        ...SURFACE_META['24-d-kyc-ready-bank-review'],
+        render: () => (
+            <KycVerificationInProgressModal
+                isOpen
+                onClose={noop}
+                phase="complete"
+                completionNotice={{ kind: 'review', currencies: ['EUR'] }}
+            />
+        ),
+    },
     '25-b-kycactionrequiredmodal': {
         ...SURFACE_META['25-b-kycactionrequiredmodal'],
         render: () => (
@@ -496,10 +709,6 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['29-b-kycstatusdrawer'],
         render: () => <KycStatusDrawer isOpen onClose={noop} />,
     },
-    '30-b-unlockmethodmodal': {
-        ...SURFACE_META['30-b-unlockmethodmodal'],
-        render: () => <UnlockMethodModal visible onClose={noop} onUnlock={noop} methodLabel="SEPA transfers" />,
-    },
     '32-c-cancelcardmodal': {
         ...SURFACE_META['32-c-cancelcardmodal'],
         render: () => <CancelCardModal cardId="demo-card" isOpen onClose={noop} />,
@@ -521,6 +730,50 @@ export const SURFACES: Record<string, Surface> = {
     '34-c-lockcardmodal': {
         ...SURFACE_META['34-c-lockcardmodal'],
         render: () => <LockCardModal cardId="demo-card" mode="lock" isOpen onClose={noop} />,
+    },
+    '35-c-googlewalletbutton': {
+        ...SURFACE_META['35-c-googlewalletbutton'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-googlewalletbutton-adding': {
+        ...SURFACE_META['35-c-googlewalletbutton-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Google Wallet" />
+                    <GoogleWalletButton isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow': {
+        ...SURFACE_META['35-c-applewalletrow'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding={false} onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
+    },
+    '35-c-applewalletrow-adding': {
+        ...SURFACE_META['35-c-applewalletrow-adding'],
+        render: () => (
+            <AppPageSurface>
+                <div className="flex flex-col gap-6">
+                    <TitleBlock title="Add to Apple Wallet" />
+                    <AppleWalletRow isAdding onClick={noop} />
+                </div>
+            </AppPageSurface>
+        ),
     },
     '36-c-badgedetailmodal': {
         ...SURFACE_META['36-c-badgedetailmodal'],
@@ -570,7 +823,15 @@ export const SURFACES: Record<string, Surface> = {
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal',
         path: 'Migration/MigrationDownloadModal.tsx',
-        render: () => <MigrationDownloadModal forceVisible />,
+        render: () => (
+            <MigrationDownloadModal
+                presentation="modal"
+                askId="install-app"
+                onActed={noop}
+                onDismissed={noop}
+                onSnoozed={noop}
+            />
+        ),
     },
     '43-c-scantodownloadmodal': {
         ...SURFACE_META['43-c-scantodownloadmodal'],
@@ -633,12 +894,18 @@ export const SURFACES: Record<string, Surface> = {
                     {
                         uuid: 'c1',
                         username: 'ana',
-                        avatarKey: 'basic.star',
+                        person: personFrom({ username: 'ana', avatarKey: 'basic.star' }),
                         amount: '25.00',
                         createdAt: '2026-08-01T10:00:00.000Z',
                     },
                     // no pick — the username letter beside someone who has one
-                    { uuid: 'c2', username: 'bruno', amount: '10.00', createdAt: '2026-08-01T11:00:00.000Z' },
+                    {
+                        uuid: 'c2',
+                        username: 'bruno',
+                        person: personFrom({ username: 'bruno' }),
+                        amount: '10.00',
+                        createdAt: '2026-08-01T11:00:00.000Z',
+                    },
                 ]}
             />
         ),
@@ -742,37 +1009,17 @@ export const SURFACES: Record<string, Surface> = {
             </div>
         ),
     },
-    '69-e-kycprepchecklist-standard': {
-        ...SURFACE_META['69-e-kycprepchecklist-standard'],
-        render: () => (
-            <div className="p-4">
-                <KycPrepChecklist path="standard" />
-            </div>
-        ),
-    },
-    '70-e-kycprepchecklist-extended': {
-        ...SURFACE_META['70-e-kycprepchecklist-extended'],
-        render: () => (
-            <div className="p-4">
-                <KycPrepChecklist path="extended" />
-            </div>
-        ),
-    },
     '71-e-kycprepchecklist-hosted': {
         ...SURFACE_META['71-e-kycprepchecklist-hosted'],
         render: () => (
             <div className="p-4">
-                <KycPrepChecklist path="hosted" />
+                <KycPrepChecklist />
             </div>
         ),
     },
     '72-e-kycfailedcontent-terminal': {
         ...SURFACE_META['72-e-kycfailedcontent-terminal'],
-        render: () => (
-            <div className="p-4">
-                <KycFailedContent isTerminal rejectLabels={['DOCUMENT_DAMAGED']} />
-            </div>
-        ),
+        render: () => <KycFailedModal visible onClose={noop} onRetry={noop} isTerminal />,
     },
     '73-e-rejectlabelslist': {
         ...SURFACE_META['73-e-rejectlabelslist'],
@@ -882,7 +1129,7 @@ export const SURFACES: Record<string, Surface> = {
                     isAmountEntered
                     usdAmount="25"
                     recipientUserId="demo-ana"
-                    recipientUsername="ana"
+                    person={personFrom({ username: 'ana' })}
                     onPayWithPeanut={noop}
                     onPayWithExternalWallet={noop}
                 />
@@ -948,7 +1195,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['84-f-choice-public-profile-guest'],
         render: () => (
             <AppPageSurface>
-                <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />
+                <PublicProfile username="alice" isLoggedIn={false} onSendClick={noop} />
             </AppPageSurface>
         ),
     },
@@ -1004,8 +1251,7 @@ export const SURFACES: Record<string, Surface> = {
                             payerAmount: { amount: '21.50', currency: 'GBP', isEstimate: true },
                         },
                     ]}
-                    recipientUsername="ana"
-                    recipientAvatarKey="basic.frog"
+                    person={personFrom({ username: 'ana', avatarKey: 'basic.frog' })}
                     requestMessage="Dinner in Berlin"
                     requestAmount="25.00 EUR"
                     bankRowProps={{ bankPayable: true, remainingUsd: 27 }}
@@ -1025,6 +1271,14 @@ export const SURFACES: Record<string, Surface> = {
     '91-f-withdraw-review-spent': {
         ...SURFACE_META['91-f-withdraw-review-spent'],
         render: () => <WithdrawReviewSurface alreadySpent />,
+    },
+    '92-f-deposit-account-closed': {
+        ...SURFACE_META['92-f-deposit-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="deposit" />,
+    },
+    '93-f-withdraw-account-closed': {
+        ...SURFACE_META['93-f-withdraw-account-closed'],
+        render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
@@ -1056,8 +1310,6 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-b': { name: 'PasskeySetupHelpDrawer — B', render: () => <PasskeyHelpB /> },
     'opt-passkey-c': { name: 'PasskeySetupHelpDrawer — C', render: () => <PasskeyHelpC /> },
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
-    'opt-kyc-a': { name: 'KycPrepChecklist — A (bullets)', render: () => <KycChecklistA /> },
-    'opt-kyc-b': { name: 'KycPrepChecklist — B (DataRow)', render: () => <KycChecklistB /> },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

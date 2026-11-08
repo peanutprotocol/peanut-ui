@@ -28,7 +28,7 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { headsUpDeadline } from '@/utils/bridge-tasks.utils'
 import { upliftTriggerFromGate } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { isVerifiableGate } from '@/utils/capability-gate'
+import { gateRemedy } from '@/utils/capability-gate'
 import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
@@ -252,6 +252,7 @@ export function useBridgeOfframpFlow() {
     // starts from the Home and Accounts task cards (PendingVerificationTasks).
     const advisoryDeadline = headsUpDeadline(gate.kind === 'ready' ? gate.advisory?.effectiveDate : undefined)
     const [showKycModal, setShowKycModal] = useState(false)
+    const [showProvideEmail, setShowProvideEmail] = useState(false)
 
     // close kyc modal when sumsub sdk opens
     useEffect(() => {
@@ -342,12 +343,16 @@ export function useBridgeOfframpFlow() {
             // (e.g. right after an eea uplift) — show the pending modal instead of
             // a dead button, and re-arm the capability poller so we pick up
             // bridge's latest status live and the modal auto-dismisses on clear.
-            if (!isVerifiableGate(gate.kind) && gate.kind !== 'accept-tos') {
+            const remedy = gateRemedy(gate)
+            if (remedy === 'wait') {
                 pendingModal.open()
                 return
             }
-            if (gate.kind === 'accept-tos') {
+            if (remedy === 'accept-tos') {
                 guardWithTos()
+            } else if (remedy === 'provide-email') {
+                // the KYC modal could only offer support here; the email sheet clears it
+                setShowProvideEmail(true)
             } else {
                 // urgent (post-cliff) eea uplift lands here as a fixable-rejection —
                 // fire the funnel event as this KYC modal opens.
@@ -658,6 +663,8 @@ export function useBridgeOfframpFlow() {
         sumsubFlow,
         showKycModal,
         setShowKycModal,
+        showProvideEmail,
+        setShowProvideEmail,
         resetUpliftFunnel,
         showBridgeTos,
         hideTos,

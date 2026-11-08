@@ -366,7 +366,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'src/components/0_Bruddle/Button.tsx (buttonVariants.purple -> btn-purple, globals.css:821)',
                 divergence:
-                    'Canonical primary CTA and still the implicit default, so the rendered count exceeds these 76 explicit call-sites. Now token-backed: btn-purple resolves to bg-action-primary / hover bg-action-primary-hover, not a raw hex.',
+                    'Canonical primary CTA and still the implicit default, so the rendered count exceeds these 76 explicit call-sites. Now token-backed: btn-purple resolves to bg-action-primary / hover bg-action-primary-press, not a raw hex.',
                 usedIn: [
                     'app/recover-wallet/page.tsx',
                     'app/[...recipient]/error.tsx',
@@ -445,7 +445,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'src/components/0_Bruddle/Button.tsx (buttonVariants.transparent — inline utility chain)',
                 divergence:
-                    'Down from 11 to 6 product call-sites. Still a raw utility chain rather than a btn-* class, and still the only variant needing a special-case disabled patch in buttonClasses — but its hover/active colors now come from --color-action-ghost-hover.',
+                    'Down from 11 to 6 product call-sites. Still a raw utility chain rather than a btn-* class, and still the only variant needing a special-case disabled patch in buttonClasses — but its hover/active colors now come from --color-action-ghost-press.',
                 usedIn: [
                     'components/SearchInput/index.tsx',
                     'components/Global/TokenSelector/TokenSelector.tsx',
@@ -828,7 +828,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'src/styles/globals.css:140-144',
                 divergence:
-                    'NEW ROW. 58 product call-sites. action-primary 29, action-ghost-hover 12 (mostly inside the Button variant strings), action-focus 11, action-secondary 6, action-primary-hover 3. All five members are used — the only semantic colour group with no dead entries. It is also the group that makes .btn-purple and .btn-stroke token-backed rather than hex-backed.',
+                    'NEW ROW. 58 product call-sites. action-primary 29, action-ghost-press 12 (mostly inside the Button variant strings), action-focus 11, background-accent-yellow 6, action-primary-press 3. All five members are used — the only semantic colour group with no dead entries. It is also the group that makes .btn-purple and .btn-stroke token-backed rather than hex-backed.',
                 usedIn: [
                     'app/(mobile-ui)/rewards/page.tsx',
                     'app/(mobile-ui)/qr/[code]/page.tsx',
@@ -877,7 +877,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'duplicate',
                 source: 'src/styles/globals.css:37 (secondary-1), :63 (yellow-1)',
                 divergence:
-                    'Unchanged duplicate, now with a third name: secondary-1 (33 product call-sites), yellow-1 (23) and the semantic --color-action-secondary (6) are all #FFC900. Merged into one row this round — June carried them as two separate entries saying the same thing.',
+                    'Unchanged duplicate, now with a third name: secondary-1 (33 product call-sites), yellow-1 (23) and the semantic --color-background-accent-yellow (6) are all #FFC900. Merged into one row this round — June carried them as two separate entries saying the same thing.',
                 usedIn: [
                     'app/(mobile-ui)/qr-pay/page.tsx',
                     'app/(mobile-ui)/rewards/page.tsx',

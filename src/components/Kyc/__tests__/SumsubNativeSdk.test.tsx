@@ -48,16 +48,28 @@ const launch = jest.fn()
 const dismiss = jest.fn()
 const resetSdk = jest.fn()
 const configureApplicant = jest.fn()
+const configureDocuments = jest.fn()
+const configureStrings = jest.fn()
 let builtInstances: { sendEvent: jest.Mock; getNewAccessToken: jest.Mock }[] = []
 let statusHandler: ((event: { newStatus?: string }) => void) | undefined
 
-function installSdk() {
+function installSdk({ supportsDocumentPreselection = true }: { supportsDocumentPreselection?: boolean } = {}) {
     const builder: Record<string, unknown> = {}
     builder.withHandlers = (handlers: { onStatusChanged?: (e: { newStatus?: string }) => void }) => {
         statusHandler = handlers.onStatusChanged
         return builder
     }
+    if (supportsDocumentPreselection) {
+        builder.withPreferredDocumentDefinitions = (definitions: unknown) => {
+            configureDocuments(definitions)
+            return builder
+        }
+    }
     builder.withLocale = () => builder
+    builder.withStrings = (strings: unknown) => {
+        configureStrings(strings)
+        return builder
+    }
     builder.withDebug = () => builder
     builder.withApplicantConf = (conf: unknown) => {
         configureApplicant(conf)
@@ -87,11 +99,82 @@ const baseProps = () => ({
 })
 
 describe('SumsubNativeSdk', () => {
+    it('passes frozen identity choices to the native SDK before launch', () => {
+        installSdk()
+        const documentConfig = {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'RESIDENCE_PERMIT' } },
+            autoSelectDocumentDefinitions: true as const,
+        }
+        render(<SumsubNativeSdk {...baseProps()} visible documentConfig={documentConfig} />)
+        expect(configureDocuments).toHaveBeenCalledWith(documentConfig.documentDefinitions)
+    })
+
+    // Slava, 2026-10-26: Sumsub's intro said "Identity document" for the residence permit he picked.
+    it('names the picked document on the ID step, and leaves Sumsub’s own title without one', () => {
+        installSdk()
+        const { unmount } = render(<SumsubNativeSdk {...baseProps()} visible identityStepTitle="Residence permit" />)
+        expect(configureStrings).toHaveBeenCalledWith({ sns_step_IDENTITY_title: 'Residence permit' })
+        unmount()
+
+        configureStrings.mockClear()
+        render(<SumsubNativeSdk {...baseProps()} visible />)
+        expect(configureStrings).not.toHaveBeenCalled()
+    })
+
+    it('launches with preferred document choices when the native builder does not support preselection', async () => {
+        installSdk({ supportsDocumentPreselection: false })
+        const props = baseProps()
+        const onError = jest.fn()
+        const documentConfig = {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'RESIDENCE_PERMIT' } },
+            autoSelectDocumentDefinitions: true as const,
+        }
+
+        await act(async () => {
+            render(
+                <SumsubNativeSdk
+                    {...props}
+                    visible
+                    documentConfig={documentConfig}
+                    preselection="preferred"
+                    onError={onError}
+                />
+            )
+        })
+
+        expect(launch).toHaveBeenCalledTimes(1)
+        expect(configureDocuments).not.toHaveBeenCalled()
+        expect(screen.queryByText(/document preselection requires an app update/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/failed to load verification/i)).not.toBeInTheDocument()
+        expect(capture).toHaveBeenCalledTimes(1)
+        expect(capture).toHaveBeenCalledWith('kyc_sdk_launched')
+        expect(captureException).not.toHaveBeenCalled()
+        expect(onError).not.toHaveBeenCalled()
+    })
+
+    it('requires an app update for default document preselection when the native builder does not support it', async () => {
+        installSdk({ supportsDocumentPreselection: false })
+        const documentConfig = {
+            documentDefinitions: { IDENTITY: { country: 'PRT', idDocType: 'RESIDENCE_PERMIT' } },
+            autoSelectDocumentDefinitions: true as const,
+        }
+
+        await act(async () => {
+            render(<SumsubNativeSdk {...baseProps()} visible documentConfig={documentConfig} />)
+        })
+
+        expect(await screen.findByText(/failed to load verification/i)).toBeInTheDocument()
+        expect(captureException.mock.calls[0][0]).toEqual(
+            expect.objectContaining({ message: 'Document preselection requires an app update' })
+        )
+        expect(launch).not.toHaveBeenCalled()
+    })
     beforeEach(() => {
         launch.mockReset()
         dismiss.mockReset()
         resetSdk.mockReset()
         configureApplicant.mockReset()
+        configureDocuments.mockReset()
         capture.mockClear()
         captureException.mockClear()
         statusHandler = undefined

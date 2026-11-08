@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
@@ -21,16 +21,11 @@ export function BrazilPausedScreen() {
         <PageStack>
             <NavHeader onPrev={back} />
             <PageStack.Center>
-                <EmptyState
-                    icon="clock"
-                    title={t('title')}
-                    description={t('body')}
-                    cta={
-                        <Button variant="primary" className="mt-4 w-full" onClick={back}>
-                            {tCommon('gotIt')}
-                        </Button>
-                    }
-                />
+                <CenteredStatusCard tone="warning" title={t('title')} description={t('body')}>
+                    <Button variant="primary" className="w-full" onClick={back}>
+                        {tCommon('gotIt')}
+                    </Button>
+                </CenteredStatusCard>
             </PageStack.Center>
         </PageStack>
     )

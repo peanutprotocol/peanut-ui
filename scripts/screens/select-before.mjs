@@ -1,10 +1,12 @@
 import { execFileSync } from 'node:child_process'
+import { ghApiSync } from './gh-api.mjs'
 import { appendFileSync, copyFileSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { canReuseBaseline } from './baseline-reuse.mjs'
 import { validateCapture, verifyAsset, hash } from './core.mjs'
 import { findBaselineSource } from './baseline-source.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
+import { validateBeforeHarness } from './before-harness-receipt.mjs'
 
 const { REPOSITORY: repository, BEFORE: before, LOCALE: locale } = process.env
 if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? '') || !['en', 'es-419', 'es-AR', 'pt-BR'].includes(locale))
@@ -13,13 +15,18 @@ const [afterDir, destinationArg] = process.argv.slice(2)
 const destination = resolve(destinationArg)
 const api = (path) =>
     JSON.parse(
-        execFileSync('gh', ['api', repositoryApiPath(repository, path)], {
+        ghApiSync([repositoryApiPath(repository, path)], {
             encoding: 'utf8',
             timeout: 60000,
             maxBuffer: 64 * 1024 * 1024,
         })
     )
-const source = findBaselineSource({ api, repository, expectedCommit: before, locales: [locale] })
+const beforeHarnessMode = process.env.BEFORE_HARNESS ?? 'head'
+const source = findBaselineSource({ api, repository, expectedCommit: before, locales: [locale], beforeHarnessMode })
+const beforeHarness =
+    beforeHarnessMode === 'base'
+        ? validateBeforeHarness({ schema: 1, mode: 'base', harnessCommit: before }, before)
+        : undefined
 let reused = false
 let reason = 'No retained compatible candidate in the verified baseline cache search; capture before once'
 if (source) {
@@ -43,7 +50,7 @@ if (source) {
         const bytes = readFileSync(join(directory, 'capture.json'))
         const capture = validateCapture(JSON.parse(bytes))
         const after = validateCapture(JSON.parse(readFileSync(join(afterDir, 'capture.json'), 'utf8')))
-        if (!canReuseBaseline(capture, after, before))
+        if (!canReuseBaseline(capture, after, before, { beforeHarness, sourceHarnessCommit: source.harnessCommit }))
             throw new Error('Baseline manifest identities, completeness or selected state coverage differ')
         for (const screen of capture.screens)
             if (screen.status === 'captured')
@@ -55,6 +62,7 @@ if (source) {
                 for (const name of [screen.image, screen.thumbnail])
                     copyFileSync(join(directory, 'assets', name), join(destination, 'assets', name))
         writeFileSync(join(destination, 'capture.json'), bytes)
+        if (beforeHarness) writeFileSync(join(destination, 'before-harness.json'), JSON.stringify(beforeHarness))
         writeFileSync(
             join(destination, 'baseline-source.json'),
             JSON.stringify({

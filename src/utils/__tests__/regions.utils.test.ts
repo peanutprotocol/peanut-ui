@@ -1,3 +1,4 @@
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import {
     getBankRegionIntent,
     getRegionIntent,
@@ -119,23 +120,23 @@ describe('pendingBankRailRegionPaths', () => {
 
 describe('regionIntentForResidence', () => {
     it('routes LATAM residences to Manteca and everything Bridge-served to the Bridge levels', () => {
-        expect(regionIntentForResidence('BR')).toBe('LATAM')
-        expect(regionIntentForResidence('ar')).toBe('LATAM')
-        expect(regionIntentForResidence('US')).toBe('NA')
-        expect(regionIntentForResidence('MX')).toBe('NA')
-        expect(regionIntentForResidence('PT')).toBe('EU')
+        expect(regionIntentForResidence('BR', RESIDENCE_RESTRICTION_SETS)).toBe('LATAM')
+        expect(regionIntentForResidence('ar', RESIDENCE_RESTRICTION_SETS)).toBe('LATAM')
+        expect(regionIntentForResidence('US', RESIDENCE_RESTRICTION_SETS)).toBe('NA')
+        expect(regionIntentForResidence('MX', RESIDENCE_RESTRICTION_SETS)).toBe('NA')
+        expect(regionIntentForResidence('PT', RESIDENCE_RESTRICTION_SETS)).toBe('EU')
         // GB is in Bridge's document map but every bank rail refuses UK residents
-        expect(regionIntentForResidence('GB')).toBe('ROW')
-        expect(regionIntentForResidence('NG')).toBe('ROW')
+        expect(regionIntentForResidence('GB', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
+        expect(regionIntentForResidence('NG', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
         // Colombia's Manteca rail is deactivated: not LATAM until it comes back
-        expect(regionIntentForResidence('CO')).toBe('ROW')
+        expect(regionIntentForResidence('CO', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
     })
 
     // Same class as the GB block: Bridge lists the country but does not onboard
     // its residents, so a Bridge level could only end on a terminal rejection.
     it('routes a Bridge banking exclusion to the provider-less level', () => {
-        expect(regionIntentForResidence('JP')).toBe('ROW')
-        expect(regionIntentForResidence('dz')).toBe('ROW')
+        expect(regionIntentForResidence('JP', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
+        expect(regionIntentForResidence('dz', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
     })
 })
 

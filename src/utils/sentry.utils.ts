@@ -33,11 +33,12 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // quota noise and is not: it is the only alert for the open FX-stampede P2
     // behind it. It reports until the keyed single-flight fix in no-cache.ts
     // lands.
-    // /tokens/price 404 means the upstream price provider declined the lookup —
-    // in practice a Mobula 429. The UI falls back to token denomination, so it is
-    // a degraded display, never a wrong number. The backend already downgraded
-    // its own log to warn for this exact reason (PEANUT-API-75); reporting it
-    // from the client re-created the same page-per-lookup noise as PEANUT-UI-QKY.
+    // /tokens/price 404 means the API has no fresh price for the token right
+    // now. The UI then shows no USD label, so it is a degraded display, never a
+    // wrong number: no withdrawal or request payment reads it (TASK-23850). The
+    // backend already downgraded its own log to warn for this exact reason
+    // (PEANUT-API-75); reporting it from the client re-created the same
+    // page-per-lookup noise as PEANUT-UI-QKY.
     { pattern: /\/tokens\/price\/?(?:[?#]|$)/, statuses: [404] },
     // Public FX pair misses and validation failures are expected user/input
     // outcomes, not backend incidents. 503 is included deliberately: it means a
@@ -107,6 +108,10 @@ const BODY_SENSITIVE_URLS: RegExp[] = [
     /\/(?:login|signup|register|set-password|reset-password|change-password)/,
     // The user's own verified postal address — the whole body is the address
     /\/users\/me\/verified-address(?:[/?]|$)/,
+    // Profile and identity saves — name, address, tax number, citizenship, residence
+    /\/update-user(?:[/?]|$)/,
+    /\/users\/identity(?:[/?]|$)/,
+    /\/users\/residence-change\/start(?:[/?]|$)/,
     // KYC — Bridge, Sumsub, Manteca
     /\/kyc\/(?:start|submit|update)/,
     /\/bridge\/customers/,
@@ -180,6 +185,10 @@ const SENSITIVE_KEYS = new Set([
     'nif',
     'governmentid',
     'governmentidnumber',
+    'nationality',
+    'citizenship',
+    'countryofbirth',
+    'cityofbirth',
     'documentnumber',
     'passport',
     'passportnumber',
@@ -221,6 +230,7 @@ const SENSITIVE_KEYS = new Set([
     // PII — address. NOTE: `address` alone is NOT here — onchain addresses
     // (walletAddress, recipientAddress, etc.) must stay visible for
     // debugging onchain flows.
+    'street',
     'streetaddress',
     'street1',
     'street2',
@@ -238,6 +248,7 @@ const SENSITIVE_KEYS = new Set([
     'permanentaddress',
     'direccion',
     'domicilio',
+    'town',
     'postalcode',
     'zipcode',
     'zip',
@@ -247,6 +258,7 @@ const SENSITIVE_KEYS = new Set([
     'dateofbirth',
     'birthdate',
     'birthday',
+    'phone',
     'phonenumber',
     'mobilenumber',
     'telephone',
@@ -595,16 +607,31 @@ const reportNonOkResponse = async (
     // 401 on cleared session, etc). Logging them clutters DevTools and
     // gets picked up by forward-logs-shared as Sentry breadcrumbs.
     const skipRule = findSkipRule(url, response.status)
-    // A rule with no `errorCodes` decides on URL + status alone, so nothing
-    // below needs to run.
-    if (skipRule && !skipRule.errorCodes) return
+    // Missing /users routes must reach Sentry even when domain 404s are expected.
+    const users404 = response.status === 404 && /\/users(?:[/?#]|$)/.test(url)
+    if (skipRule && !skipRule.errorCodes && !users404) return
 
     let errorContent: JSONValue
     try {
         errorContent = await response.clone().json()
     } catch {
-        errorContent = await response.clone().text()
+        errorContent = await response
+            .clone()
+            .text()
+            .catch(() => '')
     }
+
+    if (
+        users404 &&
+        skipRule &&
+        !(
+            typeof errorContent === 'object' &&
+            errorContent !== null &&
+            !Array.isArray(errorContent) &&
+            errorContent.code === 'route_not_found'
+        )
+    )
+        return
 
     // A scoped rule suppresses only its own codes. Any other failure sharing
     // the status falls through and is reported.
@@ -648,6 +675,8 @@ const reportNonOkResponse = async (
 }
 
 export type FetchWithSentryOptions = RequestInit & {
+    /** Optional caller-owned guard checked immediately before each network dispatch. */
+    beforeDispatch?: () => boolean
     /** Report only status/method and static errors for sensitive requests. */
     redactTelemetry?: boolean
     preferNativeTransport?: boolean
@@ -700,8 +729,15 @@ export const fetchWithSentry = async (
     timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> => {
     const connectivityGeneration = getConnectivityGeneration()
-    const { preferNativeTransport, silentTimeout, redactTelemetry, callerReportsFailures, idempotent, ...options } =
-        optionsWithTransport
+    const {
+        preferNativeTransport,
+        silentTimeout,
+        redactTelemetry,
+        callerReportsFailures,
+        idempotent,
+        beforeDispatch,
+        ...options
+    } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
     const telemetryOptions: RequestInit = redactTelemetry ? { method: options.method } : options
     /*
@@ -716,6 +752,10 @@ export const fetchWithSentry = async (
      */
     const callerSignal = options.signal ?? undefined
     if (callerSignal?.aborted) throw cancelError(callerSignal)
+    const ensureCurrent = () => {
+        if (beforeDispatch && !beforeDispatch())
+            throw Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+    }
     /*
      * The OS HTTP client (CapacitorHttp) cannot cancel its request, so a native
      * leg stops waiting on a cancel instead: the caller is released at once and
@@ -723,7 +763,9 @@ export const fetchWithSentry = async (
      * still reaches the server; SocketQueryRefresh keeps that to one per event.
      */
     const nativeLeg = (legMs: number): Promise<Response> => {
-        const request = nativeHttpRequest(url, options, legMs)
+        const request = beforeDispatch
+            ? nativeHttpRequest(url, options, legMs, beforeDispatch)
+            : nativeHttpRequest(url, options, legMs)
         if (!callerSignal) return request
         return new Promise<Response>((resolve, reject) => {
             const onCancel = () => reject(cancelError(callerSignal))
@@ -811,6 +853,7 @@ export const fetchWithSentry = async (
              * the timeout the pool already earned is the honest outcome.
              */
             if (callerSignal?.aborted) throw cancelError(callerSignal)
+            ensureCurrent()
             const legMs = legTimeoutMs()
             if (legMs < minLegMs) {
                 throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
@@ -870,6 +913,7 @@ export const fetchWithSentry = async (
         return response
     } catch (error: unknown) {
         if (callerSignal?.aborted) throw error
+        ensureCurrent()
         // WebView fetch rejected. On native, retry once over the OS HTTP client
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only

@@ -87,7 +87,7 @@ export interface ButtonLinkProps
 const buttonVariants: Record<ButtonVariant, string> = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
-    ghost: 'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover active:text-action-ghost-hover active:fill-action-ghost-hover',
+    ghost: 'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-press hover:fill-action-ghost-press active:text-action-ghost-press active:fill-action-ghost-press',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {

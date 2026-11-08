@@ -18,6 +18,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 // Six sequential reads with a capped backoff. A websocket approval can arrive
 // ahead of the profile read model; a failed read must not strand this gate.
@@ -33,6 +34,7 @@ function IdentityGate({ children }: { children: ReactNode }) {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const onBack = useSafeBack('/send', { replace: true })
+    const control = useKycControl('kyc-status', 'kyc_status')
     const { user, logoutUser, fetchUser } = useAuth()
     const { setIsSupportModalOpen } = useModalsContext()
     const {
@@ -103,13 +105,21 @@ function IdentityGate({ children }: { children: ReactNode }) {
                     cooldownActive={!!flow.errorCooldown}
                     isLoading={flow.isLoading}
                     error={flow.error}
+                    // no destination yet: the identity check alone, as Home starts it
+                    verifyEntry={{}}
                 />
             )
         }
 
         return (
             <PageStack>
-                <NavHeader title={tNav('send')} onPrev={onBack} />
+                <NavHeader
+                    title={tNav('send')}
+                    onPrev={() => {
+                        control.track('back', 'tap')
+                        onBack()
+                    }}
+                />
                 {status === 'processing' ? (
                     <KycProcessing submittedAt={identity.submittedAt} />
                 ) : isRegionRestricted ? (
@@ -136,7 +146,13 @@ function IdentityGate({ children }: { children: ReactNode }) {
                     />
                 )}
                 {approvalRefreshExhausted && flow.liveKycStatus === 'APPROVED' && (
-                    <Button variant="secondary" onClick={() => setApprovalRefreshCycle((cycle) => cycle + 1)}>
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            control.track('refresh', 'tap')
+                            setApprovalRefreshCycle((cycle) => cycle + 1)
+                        }}
+                    >
                         {tCommon('retry')}
                     </Button>
                 )}

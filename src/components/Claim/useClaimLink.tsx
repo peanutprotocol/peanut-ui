@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress, signWithdrawalMessage } from '@/utils/peanut-claim.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
@@ -11,7 +13,8 @@ import { captureException } from '@sentry/nextjs'
 
 import { CLAIM_LINK, CLAIM_LINK_XCHAIN, TRANSACTIONS } from '@/constants/query.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
+import { isTestnetChain } from '@/utils/general.utils'
+import { getTokenSymbol } from '@/utils/token.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -241,7 +244,7 @@ export async function executeClaimXChain({
         }
         if (amountUsd < min) {
             throw new Error(
-                `Cross-chain claim to ${destRhinoChain} requires at least $${min} — the $${amountUsd.toFixed(2)} claim would be stranded by the bridge.`
+                `Cross-chain claim to ${destRhinoChain} requires at least $${min} — the $${formatFiniteDisplay(amountUsd, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })} claim would be stranded by the bridge.`
             )
         }
     }
@@ -388,7 +391,7 @@ const useClaimLink = () => {
             campaignTag?: string
             amountUsd?: number
         }) => {
-            const isTestnet = isTestnetChain(destinationChainId)
+            const isTestnet = await isTestnetChain(destinationChainId)
             return await executeClaimXChain({
                 link,
                 recipientAddress: address,

@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
@@ -20,6 +22,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { useLimits } from '@/hooks/useLimits'
@@ -111,14 +114,16 @@ export function QrPayFormView() {
 
     return (
         <>
-            <SumsubKycWrapper
-                visible={qrLimitIncreaseFlow.showWrapper}
-                accessToken={qrLimitIncreaseFlow.accessToken}
-                onClose={qrLimitIncreaseFlow.handleClose}
-                onComplete={qrLimitIncreaseFlow.handleSdkComplete}
-                onRefreshToken={qrLimitIncreaseFlow.refreshToken}
-                isMultiLevel
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={qrLimitIncreaseFlow.showWrapper}
+                    accessToken={qrLimitIncreaseFlow.accessToken}
+                    onClose={qrLimitIncreaseFlow.handleClose}
+                    onComplete={qrLimitIncreaseFlow.handleSdkComplete}
+                    onRefreshToken={qrLimitIncreaseFlow.refreshToken}
+                    isMultiLevel
+                />
+            </KycControlFlowProvider>
             <PageStack>
                 <NavHeader title={tNav('pay')} />
 
@@ -131,9 +136,9 @@ export function QrPayFormView() {
                                 <Image
                                     src={methodIcon}
                                     alt={t('paymentMethodAlt')}
-                                    width={48}
-                                    height={48}
-                                    className="h-12 w-12 rounded-full object-cover"
+                                    width={32}
+                                    height={32}
+                                    className="size-8 rounded-full object-cover"
                                 />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -252,14 +257,18 @@ export function QrPayFormView() {
                     <GlobalCard className="px-4">
                         <PaymentInfoRow
                             label={t('info.exchangeRate')}
-                            value={`1 USD = ${currency.price} ${currency.code.toUpperCase()}`}
+                            value={`1 USD = ${formatFiniteDisplay(currency.price, 'en-US', { maximumFractionDigits: 20, useGrouping: false })} ${currency.code.toUpperCase()}`}
                             moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         {(() => {
                             if (!hasCardMarkupComparison(currency.code)) return null
                             const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
                             if (savingsInCents <= 0) return null
-                            const savingsUsd = (savingsInCents / 100).toFixed(2)
+                            const savingsUsd = formatFiniteDisplay(savingsInCents / 100, 'en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                                useGrouping: false,
+                            })
                             return (
                                 <PaymentInfoRow
                                     label={t('info.saveVsCard')}

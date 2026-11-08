@@ -1,3 +1,5 @@
+import type { PixQrHost } from '@/utils/pix-qr-host'
+import { validateNumericResponse } from '@/lib/numeric-response'
 import {
     type MantecaDepositResponseData,
     type MantecaWithdrawResponse,
@@ -63,7 +65,7 @@ export type QrPayment = {
 
 /** Client-minted UUID naming one signed payment attempt in `qr_payment_stage`
  *  telemetry. Telemetry only — never an idempotency, auth or funding key. */
-export type ClientPaymentAttemptBody = { clientPaymentAttemptId?: string }
+export type ClientPaymentAttemptBody = { clientPaymentAttemptId?: string; pixQrHost?: PixQrHost }
 
 export type QrPaymentCharge = {
     uuid: string
@@ -193,7 +195,7 @@ export const mantecaApi = {
             })
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     /**
      * Complete QR payment with a pre-signed transaction.
@@ -276,7 +278,7 @@ export const mantecaApi = {
             throw await apiErrorFromResponse(response, `QR payment failed: ${response.statusText}`)
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     getPrices: async (
         { asset, against }: { asset: string; against: string },
@@ -294,7 +296,7 @@ export const mantecaApi = {
             })
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     deposit: async (
         params: CreateMantecaOnrampParams
@@ -530,7 +532,7 @@ export const mantecaApi = {
         if (!response.ok) {
             throw await apiErrorFromResponse(response, `PIX key lookup failed: ${response.statusText}`)
         }
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
     /** Saves a PIX key to the user's address book under `label`; saving a saved key renames it. */
     savePixKey: async (pixKey: string, label: string): Promise<void> => {

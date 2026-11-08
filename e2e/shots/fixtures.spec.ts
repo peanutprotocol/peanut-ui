@@ -13,12 +13,14 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FIXTURE_PARAM, FIXTURE_STORAGE_KEY, fixtureHref } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
+import { waitForLottie } from './fixture-page'
 
 const OUT_DIR = process.env.SHOTS_OUT ?? 'e2e/__shots__/current'
 
 // A frozen date keeps anything derived from "now" — relative times, greetings,
 // expiry countdowns — identical between a baseline taken last week and a
-// capture taken today. setFixedTime freezes Date only; timers still run.
+// capture taken today. freezeDate freezes Date only; timers keep real time.
 // Must stay LATER than every timestamp in the fixture registry (newest:
 // 2026-08-01), or relative times render as nonsense like "in 2 months".
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
@@ -70,7 +72,7 @@ const FULL_PAGE_CSS = `
 //
 // Keys: demo-api stamps the celebration itself; user preferences hang off
 // `demo-user`, the id every fixture inherits from demo-api.
-function seenOnceModals(): void {
+function seedFixtureSession(geoCountry: string): void {
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
         'demo-user:user-preferences',
@@ -80,7 +82,7 @@ function seenOnceModals(): void {
     // cold, and /add-money's country list sits behind that spinner — in CI the
     // request can hang past the test timeout. Seed the sessionStorage cache so
     // the hook never fetches; timestamp sits just before FROZEN_NOW.
-    window.sessionStorage.setItem('user_geo_country_code', 'DE')
+    window.sessionStorage.setItem('user_geo_country_code', geoCountry)
     window.sessionStorage.setItem(
         'user_geo_country_code_timestamp',
         String(new Date('2026-08-15T11:59:00.000Z').getTime())
@@ -141,8 +143,16 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
             const { hostname } = new URL(route.request().url())
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
         })
-        await page.clock.setFixedTime(FROZEN_NOW)
-        await page.addInitScript(seenOnceModals)
+        if (fixture.geoCountry) {
+            await page.route('**/api/geo-country', (route) =>
+                route.fulfill({
+                    json: { country: fixture.geoCountry },
+                    headers: { 'access-control-allow-origin': '*' },
+                })
+            )
+        }
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
+        await page.addInitScript(seedFixtureSession, fixture.geoCountry ?? 'DE')
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
         // Before the wait, not after: a loading fixture never reaches settle,
@@ -186,6 +196,7 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         }
 
         await mkdir(OUT_DIR, { recursive: true })
+        await waitForLottie(page)
         await page.screenshot({
             path: join(OUT_DIR, `${name}@${width}.png`),
             animations: 'disabled',

@@ -54,7 +54,7 @@ interface ToastOptions {
      *  duplicate call is a no-op (no re-animation). Auto-generated when omitted. */
     id?: ToastId
     /** Extra classes merged into the toast container — for one-off accents like
-     *  `border-action-secondary` that don't fit the standard success/error/info/attention. */
+     *  `border-background-accent-yellow` that don't fit the standard success/error/info/attention. */
     className?: string
     /** Self-designed toast content (badge celebrations): suppress the priority icon
      *  so Callout chrome doesn't stack onto the content's own artwork. */

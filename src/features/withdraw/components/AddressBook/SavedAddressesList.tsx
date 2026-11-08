@@ -8,6 +8,8 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import type { SavedAddress } from '@/interfaces/interfaces'
 import { getChainName } from '@/utils/general.utils'
+import { needsChainRegistry } from '@/utils/chain-registry'
+import { useChainRegistry } from '@/hooks/useChainRegistry'
 import { daysSince, shortSavedAddress } from '@/utils/saved-address.utils'
 import {
     byMostRecentlyUsed,
@@ -30,6 +32,13 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
     const t = useTranslations('global')
     const { supportedChainsAndTokens } = useContext(tokenSelectorContext)
     const { triggerHaptic } = useAppHaptic()
+    // Rows on a chain the token list does not name fall back to viem's chain
+    // registry; load it only then, and re-render once it is there.
+    useChainRegistry(
+        savedAddresses.some(
+            (saved) => !supportedChainsAndTokens?.[saved.chainId]?.networkName && needsChainRegistry(saved.chainId)
+        )
+    )
 
     return (
         // board 17832:80463: saved rows render as separated single rows, like the bank list
@@ -58,8 +67,16 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                                 position="solo"
                                 title={label}
                                 truncate
-                                body={`${shortAddress} · ${chainName} · ${t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}`}
-                                bodyWrap
+                                // two fixed lines, like the saved bank rows: a wrapped body made rows uneven
+                                // heights, and one cut line hid the last-used date
+                                body={
+                                    <>
+                                        <span className="block truncate">{`${shortAddress} · ${chainName}`}</span>
+                                        <span className="block truncate">
+                                            {t('savedAddresses.lastUsed', { days: daysSince(saved.lastUsedAt) })}
+                                        </span>
+                                    </>
+                                }
                                 // one leading element: the chain logo. the wallet
                                 // mini-bubble it used to carry was a composite
                                 // (design.md, ListItem leading)

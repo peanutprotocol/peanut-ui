@@ -37,12 +37,8 @@ const EXEMPT = new Map<string, string>([
     ],
     ['components/Migration/ScanToDownloadModal.tsx :: qr-code', 'a QR that downloads the app, not QR pay'],
     [
-        'features/deposit-accounts/components/ClaimAccountScreen.tsx :: link',
+        'features/deposit-accounts/components/ClaimAccountContent.tsx :: link',
         'an explainer bullet about a shareable account link, not a send or request link',
-    ],
-    [
-        'features/payments/flows/semantic-request/SemanticRequestPageWrapper.tsx :: link',
-        'the gray error state for a broken payment URL (design decision pending)',
     ],
 ])
 

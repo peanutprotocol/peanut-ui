@@ -6,6 +6,7 @@ import StaleDeploymentReload from '@/components/Global/StaleDeploymentReload'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { AppLockGate } from '@/components/Global/AppLock'
 import { PeanutDebug } from '@/context/PeanutDebug'
+import { useOptionalAuth } from '@/context/authContext'
 import { LocaleSync } from '@/i18n/app/LocaleSync'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
@@ -13,6 +14,7 @@ import { whenIdle } from '@/utils/defer-analytics'
 import { initSentry } from '@/utils/sentry-init'
 import { useWalletProvisioningLifecycle } from '@/hooks/useWalletProvisioningLifecycle'
 import { useKillSwitchesSync } from '@/features/kill-switches/useKillSwitchesSync'
+import { sweepExpiredAnswerDrafts } from '@/features/paperwork-verification/answerDraft'
 
 /**
  * App-only global surfaces. Split out of `ClientProviders` because these depend
@@ -29,14 +31,20 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
     // here rather than in sentry.client.config means a client-side navigation
     // off the landing page still initialises the SDK.
     useEffect(() => whenIdle(initSentry), [])
+    // Other accounts' expired drafts would otherwise wait for those accounts to sign in again.
+    useEffect(() => whenIdle(sweepExpiredAnswerDrafts), [])
 
     // Warms the route the app's camera button lands on. Lives here rather than
     // as a <link rel="prefetch"> in the root layout, which spent the bandwidth
-    // on marketing visitors who will never reach it.
+    // on marketing visitors who will never reach it. Signed-in only: the camera
+    // button is behind sign-in, and a guest on a public app page (claim, pay,
+    // setup) would download ~600 KiB for a route they cannot open.
+    const signedIn = !!useOptionalAuth()?.user
     useEffect(() => {
         if (process.env.NODE_ENV === 'development') return // 9s+ compile in dev
+        if (!signedIn) return
         router.prefetch('/qr-pay')
-    }, [router])
+    }, [router, signedIn])
 
     return (
         <>

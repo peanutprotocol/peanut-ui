@@ -174,10 +174,10 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(warnSpy).not.toHaveBeenCalled()
     })
 
-    it('does not report a /tokens/price 404 (upstream price provider declined)', async () => {
-        // Mobula 429s surface here as a 404. The UI falls back to token
-        // denomination, so it is a degraded display and never a wrong number —
-        // and the backend already downgraded its own log for this (PEANUT-API-75).
+    it('does not report a /tokens/price 404 (no fresh price upstream)', async () => {
+        // A missing price is a missing USD label, a degraded display and never a
+        // wrong number — and the backend already downgraded its own log for
+        // this (PEANUT-API-75).
         global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'Token price not available' }))
 
         const response = await fetchWithSentry('https://api.peanut.me/tokens/price?address=0xaf88&chainId=42161', {})
@@ -832,5 +832,53 @@ describe('the verified address never reaches Sentry', () => {
         expect(sanitizeResponseBody('/users/me/verified-address', JSON.parse(body))).toBe(
             '[REDACTED: sensitive endpoint]'
         )
+    })
+})
+
+describe('profile and identity saves never reach Sentry', () => {
+    it.each([
+        'https://api.peanut.me/update-user',
+        'https://api.peanut.me/users/identity',
+        'https://api.peanut.me/users/identity/restart',
+        'https://api.peanut.me/users/residence-change/start',
+    ])('redacts %s wholesale', (url) => {
+        const body = JSON.stringify({ taxId: '12-345', street: '9 Sample Road', citizenship: 'AR' })
+        expect(sanitizeRequestBody(url, body)).toBe('[REDACTED: sensitive endpoint]')
+        expect(sanitizeResponseBody(url, JSON.parse(body))).toBe('[REDACTED: sensitive endpoint]')
+    })
+
+    it('does not over-match similarly named paths', () => {
+        const body = JSON.stringify({ amount: 1 })
+        expect(sanitizeRequestBody('/update-username', body)).toBe(body)
+        expect(sanitizeRequestBody('/users/identity-check', body)).toBe(body)
+    })
+
+    it('scrubs the bare personal-data keys on any other endpoint', () => {
+        const out = scrubObject({
+            phone: '+1 555 0100',
+            street: '9 Sample Road',
+            town: 'Sampleton',
+            postCode: '99999',
+            nationality: 'AR',
+            citizenship: 'AR',
+            countryOfBirth: 'AR',
+            cityOfBirth: 'Rosario',
+            taxId: '20-12345678-9',
+            country: 'AR',
+        }) as Record<string, string>
+        for (const key of [
+            'phone',
+            'street',
+            'town',
+            'postCode',
+            'nationality',
+            'citizenship',
+            'countryOfBirth',
+            'cityOfBirth',
+            'taxId',
+        ]) {
+            expect(out[key]).toBe('[REDACTED]')
+        }
+        expect(out.country).toBe('AR')
     })
 })

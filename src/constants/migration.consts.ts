@@ -1,13 +1,20 @@
+import { BASE_URL, IS_DEV } from '@/constants/general.consts'
+import { isProductionDomain } from '@/constants/seo-route-policy'
+
 /**
- * PWA → native app migration (pwa-sunset).
- *
- * Everything here is dark until the `pwa-sunset` PostHog flag is flipped ON
- * (no deploy needed). Flag ON closes web signup and shows download prompts and
- * store links. Existing accounts keep logging in on the web (ruled 2026-10-07,
- * hugo): signup is app-only, the web app is not switched off.
+ * Signup is app-only. The web never offers it: it shows download prompts and
+ * store links instead. Existing accounts keep logging in on the web (ruled
+ * 2026-10-07, hugo); the web app is a fallback, not a signup path.
  */
 
-export const PWA_SUNSET_FLAG = 'pwa-sunset'
+/**
+ * Builds that are not peanut.me (staging, PR previews, local, CI) show a
+ * marked test-build sign-up on the web landing, so the team can still create
+ * web accounts there. Decided at build time: peanut.me never renders it.
+ * `next dev` counts too, because BASE_URL falls back to peanut.me when unset.
+ * isProductionDomain ignores a trailing slash, so `https://peanut.me/` is prod too.
+ */
+export const TEST_WEB_SIGNUP = IS_DEV || !isProductionDomain(BASE_URL)
 
 /**
  * Marks the already-native-associated `/home` route as an app-download entry
@@ -21,16 +28,18 @@ export const APP_ENTRY_QUERY_PARAM = 'app_entry'
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
 
 // how long "Not now" on the notifications pre-prompt snoozes before re-asking
-// (only during the migration window; flag off keeps closed-forever)
 export const NOTIF_PROMPT_SNOOZE_DAYS = 14
 
 // support escape hatch for users who can't install the app: support DMs
-// `/home?keep-web=<token>`; visiting it stores a 90-day cookie that reopens
-// web signup in that browser.
+// `/setup?keep-web=<token>`; visiting it stores a 90-day cookie that reopens
+// web signup in that browser, invite and ?step=signup links included.
 // ponytail: static shared token, FE-only; per-user tokens need a BE endpoint.
 export const KEEP_WEB_COOKIE = 'keep-web'
 export const KEEP_WEB_TOKEN = 'walnut-still-cracks'
 export const KEEP_WEB_COOKIE_DAYS = 90
+
+/** Peanut's App Store id: the store links and Safari's Smart App Banner share it. */
+export const IOS_APP_STORE_ID = '6786373552'
 
 /**
  * Write-a-review deep links for the user-initiated "Rate Peanut" row in Profile
@@ -40,7 +49,7 @@ export const KEEP_WEB_COOKIE_DAYS = 90
  * release valve for a user whose OS quota silently swallowed the sheet.
  */
 export const REVIEW_URL = {
-    ios: 'https://apps.apple.com/us/app/id6786373552?action=write-review',
+    ios: `https://apps.apple.com/us/app/id${IOS_APP_STORE_ID}?action=write-review`,
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
 
@@ -50,7 +59,7 @@ export const REVIEW_URL = {
  * counts a campaign only when both are present, so without the provider
  * token the link stays plain.
  */
-const IOS_STORE_URL = 'https://apps.apple.com/us/app/id6786373552'
+const IOS_STORE_URL = `https://apps.apple.com/us/app/id${IOS_APP_STORE_ID}`
 const APP_STORE_PROVIDER_TOKEN = process.env.NEXT_PUBLIC_APP_STORE_PROVIDER_TOKEN
 
 export const STORE_URL = {

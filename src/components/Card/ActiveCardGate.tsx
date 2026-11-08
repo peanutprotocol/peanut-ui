@@ -5,7 +5,7 @@ import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import NavHeader from '@/components/Global/NavHeader'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
@@ -50,15 +50,11 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
                 <PageStack gap="6">
                     <NavHeader title={t('yourCard.navTitle')} onPrev={onBack} />
                     <PageStack.Center>
-                        <EmptyState
-                            concept="card"
-                            title={t(noCardMessageKey)}
-                            cta={
-                                <Button variant="primary" className="mt-4 w-full" onClick={onBack}>
-                                    {t('backToCard')}
-                                </Button>
-                            }
-                        />
+                        <CenteredStatusCard tone="neutral" title={t(noCardMessageKey)}>
+                            <Button variant="primary" className="w-full" onClick={onBack}>
+                                {t('backToCard')}
+                            </Button>
+                        </CenteredStatusCard>
                     </PageStack.Center>
                 </PageStack>
             </PageContainer>

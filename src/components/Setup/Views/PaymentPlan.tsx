@@ -1,17 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
+import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { saveSignupPaymentPlan } from '@/features/setup/saveSignupAnswers'
+import { useSignupControl } from '@/features/setup/useSignupControl'
+import { useAuth } from '@/context/authContext'
 import {
     setupChannelsForResidence,
     SETUP_CHANNEL_CONCEPTS,
@@ -19,18 +20,20 @@ import {
     type SetupFundingChannel,
     type SetupPaymentChannel,
 } from '@/features/setup/paymentChannels'
+import { useKycIntents } from '@/hooks/useKycIntents'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import SetupFooter from '../components/SetupFooter'
 
-function ChannelIcon({ channel }: { channel: SetupChannel | null }) {
-    // Nothing chosen yet: an empty gray bubble (design.md: gray = nothing selected).
-    if (!channel) return <IconBubble icon={<span />} size="xs" color="gray" />
+// xs fits the picker button's 24px icon slot; s is the list-row bubble in the drawer
+function ChannelIcon({ channel, size }: { channel: SetupChannel | null; size: 'xs' | 's' }) {
+    // Nothing chosen yet: gray (design.md); an empty bubble read as a broken image
+    if (!channel) return <IconBubble icon="question-mark" size={size} color="gray" />
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
     return (
         <IconBubble
             {...CONCEPT_ICONS[concept]}
-            size="xs"
+            size={size}
             color={concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color}
         />
     )
@@ -55,11 +58,25 @@ function ChannelPicker<C extends SetupChannel>({
     placeholder: string
     onChange: (channel: C) => void
 }) {
-    const [open, setOpen] = useState(false)
     const shown = value ? compactLabel(value) : placeholder
+    const { track } = useSignupControl()
+    const control = `${kind}_channel`
     return (
-        <Drawer open={open} onOpenChange={setOpen} shouldScaleBackground={false}>
-            <DrawerTrigger asChild>
+        <DrawerSelect<C>
+            title={title}
+            value={value}
+            onChange={(channel) => {
+                track(control, 'select', channel)
+                onChange(channel)
+            }}
+            onOpen={() => track(control, 'open')}
+            onDismiss={() => track(control, 'dismiss')}
+            options={options.map((channel) => ({
+                value: channel,
+                label: label(channel),
+                leading: <ChannelIcon channel={channel} size="s" />,
+            }))}
+            trigger={
                 <Button
                     variant="secondary"
                     size="compact"
@@ -68,13 +85,13 @@ function ChannelPicker<C extends SetupChannel>({
                     aria-haspopup="dialog"
                     data-testid={`setup-${kind}-channel`}
                     className="inline-flex w-fit max-w-[calc(100vw_-_8.5rem)] min-w-0 align-middle"
-                    icon={<ChannelIcon channel={value} />}
+                    icon={<ChannelIcon channel={value} size="xs" />}
                     iconContainerClassName="size-6"
                 >
                     <span className="relative grid min-w-0 overflow-hidden text-left" title={shown}>
                         {/* All labels share one grid cell: the longest translated label
                             sizes the picker, so choosing never changes its width. */}
-                        {[placeholder, ...options.map(compactLabel)].map((text) => (
+                        {[...new Set([placeholder, ...options.map(compactLabel)])].map((text) => (
                             <span
                                 key={text}
                                 aria-hidden="true"
@@ -87,35 +104,8 @@ function ChannelPicker<C extends SetupChannel>({
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-                <div className="flex flex-col gap-4 pb-4">
-                    <DrawerTitle>{title}</DrawerTitle>
-                    <ListGroup>
-                        {options.map((channel) => (
-                            <ListItem
-                                key={channel}
-                                title={
-                                    <span className={channel === value ? 'text-foreground-primary' : undefined}>
-                                        {label(channel)}
-                                    </span>
-                                }
-                                leading={<ChannelIcon channel={channel} />}
-                                trailing={channel === value ? <Icon name="check" size={20} /> : undefined}
-                                aria-label={label(channel)}
-                                className={
-                                    channel === value ? 'bg-background-selection text-foreground-primary' : undefined
-                                }
-                                onClick={() => {
-                                    onChange(channel)
-                                    setOpen(false)
-                                }}
-                            />
-                        ))}
-                    </ListGroup>
-                </div>
-            </DrawerContent>
-        </Drawer>
+            }
+        />
     )
 }
 
@@ -125,13 +115,18 @@ function ChannelPicker<C extends SetupChannel>({
  */
 export default function PaymentPlanStep() {
     const t = useTranslations('setup.paymentPlan')
-    const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel } =
+    const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel, onFinish } =
         useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
-    const { sets, settled } = useResidenceRestrictionSetsWithStatus()
+    const { user } = useAuth()
+    const { sets, settled: setsSettled } = useResidenceRestrictionSetsWithStatus()
+    const { track } = useSignupControl()
+    const { intents, settled: intentsSettled } = useKycIntents(residenceCountry)
+    // The server's answer for the residence, or the tiers when it could not be read.
+    const settled = intentsSettled && (!!intents || setsSettled)
     const options = useMemo(
-        () => setupChannelsForResidence(sets, residenceCountry, settled),
-        [sets, residenceCountry, settled]
+        () => setupChannelsForResidence(sets, residenceCountry, settled, intents),
+        [sets, residenceCountry, settled, intents]
     )
     const funding = fundingChannel && options.funding.includes(fundingChannel) ? fundingChannel : null
     const payment = paymentChannel && options.payment.includes(paymentChannel) ? paymentChannel : null
@@ -145,11 +140,15 @@ export default function PaymentPlanStep() {
 
     const onContinue = () => {
         if (!funding || !payment) return
-        if (sets.full.has(residenceCountry)) {
+        track('continue', 'tap')
+        if (sets?.full.has(residenceCountry)) {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED, {
                 residence_country: residenceCountry,
             })
         }
+        // Saved on Next like the residence; the verify prelude (onFinish) saves its own pick.
+        const userId = user?.user?.userId
+        if (userId && !onFinish) saveSignupPaymentPlan(userId, funding, payment)
         void handleNext()
     }
 
@@ -167,12 +166,15 @@ export default function PaymentPlanStep() {
                         value={funding}
                         placeholder={t('choose')}
                         compactLabel={(channel) =>
-                            t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
+                            channel === 'peanut'
+                                ? t('peanutCompact')
+                                : t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
                         }
                         label={(channel) =>
-                            channel === 'bank' &&
-                            options.funding.some((option) => option === 'brlBank' || option === 'arsBank')
-                                ? t('funding.bankCurrencies')
+                            channel === 'bank' && intents?.bank.currencies?.length
+                                ? t('funding.bankCurrencies', {
+                                      currencies: intents.bank.currencies.join(', '),
+                                  })
                                 : t(`funding.${channel}`)
                         }
                         onChange={setFundingChannel}
@@ -188,6 +190,9 @@ export default function PaymentPlanStep() {
                         options={options.payment}
                         value={payment}
                         placeholder={t('choose')}
+                        compactLabel={(channel) =>
+                            channel === 'peanut' ? t('peanutCompact') : t(`payment.${channel}`)
+                        }
                         label={(channel) => t(`payment.${channel}`)}
                         onChange={setPaymentChannel}
                     />

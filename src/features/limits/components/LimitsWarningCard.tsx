@@ -1,5 +1,6 @@
 'use client'
 
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
@@ -164,77 +165,89 @@ export default function LimitsWarningCard({
         }
     }
 
-    return (
-        <Callout
-            priority={type === 'error' ? 'error' : 'attention'}
-            hideIcon
-            title={titleKind ? t(`warningCard.${titleKind}Title`) : title}
-            className={className}
-        >
-            <div className="flex flex-col gap-2">
-                <BulletList
-                    items={items.map((item, index) => (
-                        <span key={index}>
-                            {item.isLink && item.href ? (
-                                item.kind === 'check-limits' ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleLimitsNavigation(item.href!)}
-                                        className="pointer-events-auto underline underline-offset-2"
-                                    >
-                                        {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
-                                        <span>{itemText(item)}</span>
-                                    </button>
-                                ) : (
-                                    <Link href={item.href} className="underline underline-offset-2">
-                                        {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
-                                        <span>{itemText(item)}</span>
-                                    </Link>
-                                )
+    const heading = titleKind ? t(`warningCard.${titleKind}Title`) : title
+    const content = (
+        <div className="flex flex-col gap-2">
+            <BulletList
+                items={items.map((item, index) => (
+                    <span key={index}>
+                        {item.isLink && item.href ? (
+                            item.kind === 'check-limits' ? (
+                                <button
+                                    type="button"
+                                    onClick={() => handleLimitsNavigation(item.href!)}
+                                    className="pointer-events-auto underline underline-offset-2"
+                                >
+                                    {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
+                                    <span>{itemText(item)}</span>
+                                </button>
                             ) : (
-                                itemText(item)
-                            )}
+                                <Link href={item.href} className="underline underline-offset-2">
+                                    {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
+                                    <span>{itemText(item)}</span>
+                                </Link>
+                            )
+                        ) : (
+                            itemText(item)
+                        )}
+                    </span>
+                ))}
+            />
+            {onIncreaseLimits ? (
+                <>
+                    <button
+                        onClick={onIncreaseLimits}
+                        disabled={isIncreaseLimitsLoading}
+                        className="flex items-center gap-1"
+                    >
+                        <Icon name="plus-circle" size={16} />
+                        <span className="font-semibold underline">
+                            {isIncreaseLimitsLoading ? tCommon('loading') : t('increase.cta')}
                         </span>
-                    ))}
-                />
-                {onIncreaseLimits ? (
-                    <>
-                        <button
-                            onClick={onIncreaseLimits}
-                            disabled={isIncreaseLimitsLoading}
-                            className="flex items-center gap-1"
-                        >
-                            <Icon name="plus-circle" size={16} />
-                            <span className="font-semibold underline">
-                                {isIncreaseLimitsLoading ? tCommon('loading') : t('increase.cta')}
-                            </span>
-                        </button>
-                    </>
-                ) : showSupportLink ? (
-                    <>
-                        <button
-                            onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
-                            className="flex items-center gap-1"
-                        >
-                            <Icon name="plus-circle" size={16} />
-                            <span className="font-semibold underline">{t('needHigherLimits')}</span>
-                        </button>
-                    </>
-                ) : null}
-                {navigationError && (
-                    /* mt-2 on top of the stack's gap-2 = 16px, clear of the underlined
+                    </button>
+                </>
+            ) : showSupportLink ? (
+                <>
+                    {/* data-support-ask: this is the card's support action, so the
+                            error Callout must not add a second "Contact support" link */}
+                    <button
+                        data-support-ask
+                        onClick={() => openSupportWithMessage(LIMITS_COPY.SUPPORT_MESSAGE)}
+                        className="flex items-center gap-1"
+                    >
+                        <Icon name="plus-circle" size={16} />
+                        <span className="font-semibold underline">{t('needHigherLimits')}</span>
+                    </button>
+                </>
+            ) : null}
+            {navigationError && (
+                /* mt-2 on top of the stack's gap-2 = 16px, clear of the underlined
                        increase/support button above (the link's hit area extends 14px up) */
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                        <FieldError className="m-0">{tCommon('genericError')}</FieldError>
-                        <LinkButton
-                            onClick={() => handleLimitsNavigation('/limits')}
-                            className="pointer-events-auto shrink-0"
-                        >
-                            {tCommon('tryAgain')}
-                        </LinkButton>
-                    </div>
-                )}
-            </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                    <FieldError className="m-0">{tCommon('genericError')}</FieldError>
+                    <LinkButton
+                        onClick={() => handleLimitsNavigation('/limits')}
+                        className="pointer-events-auto shrink-0"
+                    >
+                        {tCommon('tryAgain')}
+                    </LinkButton>
+                </div>
+            )}
+            {type === 'error' && !items.some((item) => item.href === '/limits') && (
+                <LinkButton onClick={() => handleLimitsNavigation('/limits')}>
+                    {t('warningCard.checkLimits')}
+                </LinkButton>
+            )}
+        </div>
+    )
+
+    return type === 'error' ? (
+        <div role="alert" className={className}>
+            <CenteredStatusCard title={heading}>{content}</CenteredStatusCard>
+        </div>
+    ) : (
+        <Callout priority="attention" hideIcon title={heading} className={className}>
+            {content}
         </Callout>
     )
 }

@@ -47,8 +47,15 @@ export function loadSentry(): Promise<SentryModule> {
 }
 
 function withSdk(fn: (S: SentryModule) => void): void {
-    if (loaded) fn(loaded)
-    else void loadSentry().then(fn, () => {})
+    const invoke = (sdk: SentryModule) => {
+        try {
+            fn(sdk)
+        } catch {
+            /* Diagnostics must never break the product. */
+        }
+    }
+    if (loaded) invoke(loaded)
+    else void loadSentry().then(invoke, () => {})
 }
 
 // The SDK's own signatures are overloaded; these mirror the shapes actually

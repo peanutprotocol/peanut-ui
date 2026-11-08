@@ -1,6 +1,8 @@
 'use client'
 import { generateKeysFromString } from '@/utils/peanut-link.utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
+import { useChainRegistry } from '@/hooks/useChainRegistry'
+import { needsChainRegistry } from '@/utils/chain-registry'
 
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { fetchTokenPrice } from '@/services/tokens-price'
@@ -9,6 +11,7 @@ import { type TransactionDetails, REWARD_TOKENS } from '@/components/Transaction
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { RecipientType } from '@/interfaces/interfaces'
@@ -19,14 +22,8 @@ import {
     sendLinksApi,
     type ClaimLinkData,
 } from '@/services/sendLinks'
-import {
-    getInitialsFromName,
-    getTokenDetails,
-    isStableCoin,
-    getChainName,
-    getTokenLogo,
-    getChainLogo,
-} from '@/utils/general.utils'
+import { getInitialsFromName, isStableCoin, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { getUserById } from '@/app/actions/users'
 import * as Sentry from '@sentry/nextjs'
@@ -38,6 +35,7 @@ import { type ClaimXChainPreview } from './Claim.consts'
 import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useQueryStates, parseAsString } from 'nuqs'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { withPublicReceipt } from '@/utils/history.utils'
 import type { IOfframpForm } from '@/constants/cashout.consts'
 
 // state machine for the claim page — extracted verbatim from Claim.tsx
@@ -114,6 +112,10 @@ export const useClaimFlow = () => {
         refetchOnMount: true,
     })
 
+    // The chain name comes from viem's chain registry: load it when the link's
+    // chain needs it, and re-render the receipt once it is there.
+    useChainRegistry(needsChainRegistry(claimLinkData?.chainId))
+    const claimChainName = claimLinkData ? getChainName(claimLinkData.chainId) : undefined
     const transactionForDrawer: TransactionDetails | null = useMemo(() => {
         if (!claimLinkData) return null
 
@@ -194,11 +196,9 @@ export const useClaimFlow = () => {
             tokenDisplayDetails: tokenDetails
                 ? {
                       tokenSymbol: tokenDetails.symbol,
-                      chainName: getChainName(claimLinkData.chainId),
+                      chainName: claimChainName,
                       tokenIconUrl: getTokenLogo(tokenDetails.symbol),
-                      chainIconUrl: getChainName(claimLinkData.chainId)
-                          ? getChainLogo(getChainName(claimLinkData.chainId)!)
-                          : undefined,
+                      chainIconUrl: claimChainName ? getChainLogo(claimChainName) : undefined,
                   }
                 : undefined,
             peanutFeeDetails: {
@@ -211,7 +211,7 @@ export const useClaimFlow = () => {
         }
 
         return details as TransactionDetails
-    }, [claimLinkData, interactions, senderIsVerified])
+    }, [claimLinkData, interactions, senderIsVerified, claimChainName])
 
     // Enrich the sender with a live verified-badge fetch once we have their userId.
     // Falls back to false on error (the badge is a trust signal — not lying is the
@@ -276,6 +276,19 @@ export const useClaimFlow = () => {
         }
         return true
     }, [selectedTransaction, linkState, user, claimLinkData])
+
+    // The receipt is built from the link, so only its history entry can say
+    // whether it has a public link to share. Only the sender gets this
+    // receipt, so guests and receivers never read the entry.
+    const { data: historyEntry } = useHistoryEntry(claimLinkData?.pubKey, 'SEND_LINK', {
+        enabled: showTransactionReceipt,
+    })
+    // Activity keys the link's receipt by the intent id, the link page by its
+    // pubKey: take the entry's id so both share the same receipt link.
+    const receiptTransaction = useMemo(() => {
+        if (!selectedTransaction || !historyEntry) return selectedTransaction
+        return withPublicReceipt({ ...selectedTransaction, id: historyEntry.uuid }, historyEntry)
+    }, [selectedTransaction, historyEntry])
 
     // Process sendLink data when it arrives (TanStack Query handles retry automatically)
     // This effect processes link validation WITHOUT user-dependent logic
@@ -475,7 +488,7 @@ export const useClaimFlow = () => {
         setUserId,
         initialKYCStep,
         setInitialKYCStep,
-        selectedTransaction,
+        selectedTransaction: receiptTransaction,
         showTransactionReceipt,
         isLinkCancelling,
         setisLinkCancelling,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
 import { MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
@@ -12,6 +13,7 @@ import { QR_INIT_CODE, type QrScanFailure } from './init-error-classifier'
  */
 export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
     const t = useAppTranslations('qrPay')
+    const tBrazilPause = useTranslations('brazilPause')
 
     // Shown wherever the backend rejects a Pix payment below the rail minimum
     // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
@@ -35,6 +37,9 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.NOT_PROVISIONED]: t('errors.kycRequired'),
             [QR_INIT_CODE.KYC]: t('errors.kycRequired'),
             [QR_INIT_CODE.SENDER_REJECTED]: t('errors.senderRejected'),
+            [QR_INIT_CODE.PAYER_BLOCKED]: t('errors.payerBlocked'),
+            [QR_INIT_CODE.MERCHANT_BLOCKED]: t('errors.merchantBlocked'),
+            [QR_INIT_CODE.PIX_RESIDENCE]: tBrazilPause('body'),
             [QR_INIT_CODE.PIX_MIN_AMOUNT]: pixMinAmountErrorMessage,
             [QR_INIT_CODE.PIX_RECURRING]: pixRecurringErrorMessage,
             [QR_INIT_CODE.MISSING_AMOUNT]: t('errors.genericQrDetails'),
@@ -56,7 +61,7 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
             rejected: t('errors.initiateUnexpected'),
         }),
-        [t, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
+        [t, tBrazilPause, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
     )
 
     /*

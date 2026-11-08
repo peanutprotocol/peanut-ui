@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * The prompt names the account provider and links its terms before any consent
  * action, and its own button accepts nothing (TASK-23262, TASK-23295).
@@ -23,7 +24,10 @@ jest.mock('@/app/actions/users', () => ({
 const mockFetchUser = jest.fn().mockResolvedValue(null)
 let mockVerifiedResidence: string | null = null
 jest.mock('@/context/authContext', () => {
-    const auth = () => ({ fetchUser: mockFetchUser, user: { residence: { verified: mockVerifiedResidence } } })
+    const auth = () => ({
+        fetchUser: mockFetchUser,
+        user: { residence: normalizeResidence({ verified: mockVerifiedResidence }) },
+    })
     return { useAuth: auth, useOptionalAuth: auth }
 })
 

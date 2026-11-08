@@ -73,15 +73,25 @@ describe('friendlyError', () => {
         })
     })
 
-    test('unconfirmed Android passkey cleanup asks for a restart, wrapped or not', () => {
-        const cleanup = Object.assign(new Error('Passkey cleanup is unconfirmed; restart the app'), {
-            name: 'PasskeyCleanupPendingError',
-        })
-        expect(friendlyError(cleanup)).toEqual({ kind: 'code', code: 'passkeyRestartRequired' })
+    test('a request native still holds gets the still-open copy, wrapped or not', () => {
+        const cleanup = Object.assign(
+            new Error('Passkey cleanup is unconfirmed; native still holds the previous request'),
+            {
+                name: 'PasskeyCleanupPendingError',
+            }
+        )
+        expect(friendlyError(cleanup)).toEqual({ kind: 'code', code: 'passkeyStillOpen' })
         expect(friendlyError(new Error('sign failed', { cause: cleanup }))).toEqual({
             kind: 'code',
-            code: 'passkeyRestartRequired',
+            code: 'passkeyStillOpen',
         })
+    })
+
+    test('a previous request that is still closing gets the short wait-and-retry copy', () => {
+        const settling = Object.assign(new Error('The previous passkey request is still closing'), {
+            name: 'PasskeyRequestSettlingError',
+        })
+        expect(friendlyError(settling)).toEqual({ kind: 'code', code: 'passkeySettling' })
     })
 
     test('unknown errors still fall through to the support-fallback code', () => {
@@ -157,7 +167,8 @@ describe('friendly error copy catalog', () => {
         'insufficientBalance',
         'operationTimedOut',
         'passkeyNotCompleted',
-        'passkeyRestartRequired',
+        'passkeySettling',
+        'passkeyStillOpen',
         'claimLinkFailed',
         'sendLinkAlreadyClaimed',
         'lowLiquidity',
@@ -283,6 +294,22 @@ describe('one-level .cause walk on the fallback', () => {
 })
 
 describe('backend wire codes', () => {
+    test('Manteca account rejection code wins over misleading KYC prose and HTTP 403', () => {
+        const err = new ApiError('KYC_REQUIRED: complete account setup', {
+            status: 403,
+            code: 'MANTECA_ACCOUNT_REJECTED',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'code', code: 'mantecaAccountRejected' })
+    })
+
+    test('MANTECA_KYC_REQUIRED keeps its existing account-setup message handling', () => {
+        const err = new ApiError('Complete account setup to continue', {
+            status: 400,
+            code: 'MANTECA_KYC_REQUIRED',
+        })
+        expect(friendlyError(err)).toEqual({ kind: 'text', text: 'Complete account setup to continue' })
+    })
+
     test('a saved bank account the provider refused maps to the add-it-again copy, not the 409 prose', () => {
         const err = new ApiError('This bank account can no longer be used. Add it again.', {
             status: 409,

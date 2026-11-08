@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -13,6 +15,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { formatTokenAmount, isStableCoin, getChainName } from '@/utils/general.utils'
+import { loadChainRegistry } from '@/utils/chain-registry'
 import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -28,9 +31,10 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { CROSS_CHAIN_DISABLED_MESSAGE } from '@/features/kill-switches/kill-switches.consts'
-import { useTranslations, useFormatter } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
+import { personFrom } from '@/lib/person/person'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -46,7 +50,7 @@ export const ConfirmClaimLinkView = ({
     setHasFetchedRoute,
 }: _consts.IClaimScreenProps) => {
     const t = useTranslations('claim')
-    const format = useFormatter()
+    const locale = useLocale()
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const toFriendlyError = useFriendlyError()
@@ -141,10 +145,15 @@ export const ConfirmClaimLinkView = ({
                     amountUsd: hasUsdAmount ? claimUsdAmount : null,
                 })
                 if (belowMin) {
+                    // The network name comes from viem's chain registry, loaded on first use.
+                    await loadChainRegistry().catch(() => undefined)
                     setErrorState({
                         showError: true,
                         errorMessage: t('errors.belowNetworkMinimum', {
-                            amount: format.number(belowMin.minUsd, { style: 'currency', currency: 'USD' }),
+                            amount: formatFiniteDisplay(belowMin.minUsd, locale, {
+                                style: 'currency',
+                                currency: 'USD',
+                            }),
                             network: getChainName(selectedChainID) ?? selectedChainID,
                         }),
                     })
@@ -220,7 +229,7 @@ export const ConfirmClaimLinkView = ({
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
-                    avatarKey={claimLinkData.sender?.avatarKey}
+                    person={personFrom(claimLinkData.sender)}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!

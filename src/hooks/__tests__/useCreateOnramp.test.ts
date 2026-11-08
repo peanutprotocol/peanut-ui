@@ -83,6 +83,27 @@ describe('useCreateOnramp', () => {
         expect(response).toEqual(data)
     })
 
+    it.each(['NaN', 'Infinity', '-Infinity', '-1', '9'.repeat(400), '0', '0.00', '1.001'])(
+        'rejects invalid payment amount %s before any API call',
+        async (amount) => {
+            const { result } = renderHook(() => useCreateOnramp())
+            await act(async () => {
+                await expect(result.current.createOnramp({ amount, country })).rejects.toThrow(Error)
+            })
+            expect(apiFetchMock).not.toHaveBeenCalled()
+        }
+    )
+
+    it('preserves an exact valid payment amount', async () => {
+        apiFetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ transferId: 't-1' }) })
+        const { result } = renderHook(() => useCreateOnramp())
+        await act(async () => {
+            await result.current.createOnramp({ amount: '12.30', country })
+        })
+        expect(apiFetchMock).toHaveBeenCalledTimes(1)
+        expect(JSON.parse(apiFetchMock.mock.calls[0][1].body).amount).toBe('12.30')
+    })
+
     // The amount field keeps "100." mid-typing, and the API answers 400 to
     // anything that is not a plain 2-decimal amount.
     it.each([

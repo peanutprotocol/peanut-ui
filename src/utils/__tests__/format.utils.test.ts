@@ -1,4 +1,4 @@
-import { sanitizeBankAccount, formatBankAccountDisplay } from '../format.utils'
+import { sanitizeBankAccount, formatBankAccountDisplay, formatEffectiveDate } from '../format.utils'
 
 describe('Bank Account Formatting Utilities', () => {
     describe('sanitizeBankAccount', () => {
@@ -65,5 +65,18 @@ describe('Bank Account Formatting Utilities', () => {
         it('should handle undefined input', () => {
             expect(formatBankAccountDisplay(undefined)).toBe('')
         })
+    })
+})
+
+describe('formatEffectiveDate', () => {
+    it('writes the deadline in the app locale, on its UTC day', () => {
+        expect(formatEffectiveDate('2099-09-01', 'en')).toBe('September 1, 2099')
+        expect(formatEffectiveDate('2099-09-01', 'es-419')).toBe('1 de septiembre de 2099')
+        expect(formatEffectiveDate('2099-09-01', 'pt-BR')).toBe('1 de setembro de 2099')
+    })
+
+    it('returns null for a missing or malformed date', () => {
+        expect(formatEffectiveDate(undefined, 'en')).toBeNull()
+        expect(formatEffectiveDate('not-a-date', 'pt-BR')).toBeNull()
     })
 })

@@ -1,3 +1,4 @@
+import type { AttentionLedgerEntry } from '@/utils/general.utils'
 import type { SignupPreferences } from '@/types/signup-preferences'
 import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
@@ -5,7 +6,7 @@ import { type UserCapabilities, type IdentityVerification } from '@/types/capabi
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
 // phases for the multi-phase kyc verification modal
-export type KycModalPhase = 'verifying' | 'preparing' | 'bridge_tos' | 'complete'
+export type KycModalPhase = 'verifying' | 'submitted' | 'preparing' | 'bridge_tos' | 'supplement' | 'complete'
 
 // per-provider rail status for tracking after kyc approval
 export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'requires_documents' | 'enabled' | 'failed'
@@ -299,6 +300,11 @@ export interface IUserRail {
     }
 }
 
+export interface SupportLinkedAccount {
+    /** `holds_email`: that account holds this one's email. `blocked_on_email`: that account is blocked on this one's email. */
+    relation: 'holds_email' | 'blocked_on_email'
+}
+
 export interface IUserProfile {
     // OLD Points V1 fields removed - use pointsV2 in stats instead
     // Points V2: Use stats.pointsV2.totalPoints, pointsV2.inviteCount, etc.
@@ -311,6 +317,10 @@ export interface IUserProfile {
     rails: IUserRail[]
     invitesSent: userInvites[]
     showEarlyUserModal: boolean
+    /** passkeys backing the account; absent on an API deployed before the field */
+    passkeyCount?: number
+    /** the attention manager's server-side ledger (features/attention/ledger.ts), absent on an older API */
+    attention?: Partial<Record<string, AttentionLedgerEntry>>
     invitedBy: string | null // Username of the person who invited this user
     // Backend-computed capability model — TOP-LEVEL sibling of `user` on the
     // /get-user response (NOT user.capabilities). Read via useCapabilities().
@@ -331,24 +341,31 @@ export interface IUserProfile {
     // `app.configurations`. Read via useDepositAccountsEnabled(). Optional for
     // the window before that API lands; absent reads as off.
     depositAccounts?: { enabled: boolean }
-    // Residence, both flavors: declared at signup (advisory) and verified by
-    // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
-    // nextChangeAllowedAt: legacy field, ignored for self-declaration.
-    // Cooldowns belong to provider verification, not this country selection.
-    // declaredSecond: the optional second jurisdiction from the signup step,
-    // served by /users/me since 2026-08-26. Optional here only for the window
-    // before that BE lands in production; callers fall back to the device
-    // mirror in declared-residence.storage.
-    residence?: {
-        declared: string | null
-        declaredSecond?: string | null
-        verified: string | null
-        kycReported?: string | null
-        pending?: string | null
-        pendingSecond?: string | null
-        pendingStatus?: 'REQUESTED' | 'COLLECTING' | 'REVIEW_PENDING' | string | null
-        pendingRequestedAt?: string | null
-        nextChangeAllowedAt?: string | null
+    // Accounts in a live DUPLICATE_EMAIL collision with this one, for the
+    // support sidebar only (TASK-24046). Ids and usernames, nothing else.
+    supportLinkedAccounts?: SupportLinkedAccount[]
+    /** Compact residence projection; geo observations never establish residence. */
+    residence?: ResidenceProfile
+    geo?: SignupGeo | null
+}
+
+export interface ResidenceProfile {
+    verified: { country: string; status: 'VERIFIED' | 'CHANGE_REQUESTED'; updatedAt: string | null } | null
+    declared: {
+        country: string | null
+        status: 'UNVERIFIED' | 'COLLECTING' | 'REVIEW_PENDING' | 'REJECTED' | 'BLOCKED'
+        updatedAt: string | null
+        secondCountry: string | null
+    } | null
+    secondaryDeclaredCountry?: string | null
+}
+
+export interface SignupGeo {
+    signup: {
+        vercelIp?: { country: string; observedAt: string }
+        ipProvider?: { country: string; provider: 'ipapi'; observedAt: string }
+        store?: { country: string; source: 'app-store' | 'google-play'; observedAt: string }
+        device?: { locale: string | null; languages: string[]; timeZone: string | null; observedAt: string }
     }
 }
 

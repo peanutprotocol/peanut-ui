@@ -1,6 +1,7 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 import {
+    CeremonyCancelledError,
     CeremonyConflictError,
     CeremonyTimeoutError,
     PasskeyShimFailedError,
@@ -287,6 +288,52 @@ describe('guardPasskeyCeremony', () => {
         resolveCeremony('key')
         await pending
         expect(mockSetAuthToken).toHaveBeenCalledWith('jwt-abc')
+    })
+
+    it('a caller cancel retires the ceremony at once and frees the window for the next one', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        setGlobal(SHIM_INSTALLED, true)
+        const cancel = new AbortController()
+        let resolveLate!: (v: string) => void
+        const pending = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveLate = resolve
+                }),
+            { cancel: cancel.signal }
+        )
+        const assertion = expect(pending).rejects.toBeInstanceOf(CeremonyCancelledError)
+        await Promise.resolve()
+        const cancelledId = currentCeremonyId()
+        expect(cancelledId).not.toBeNull()
+        stashCeremonyVerifyToken('jwt-before-cancel', cancelledId)
+        cancel.abort()
+        await assertion
+        expect(currentCeremonyId()).toBeNull()
+        // the native assertion lands after the user chose another way in: nothing is committed
+        stashCeremonyVerifyToken('jwt-after-cancel', cancelledId)
+        resolveLate('late-key')
+        await Promise.resolve()
+        expect(mockSetAuthToken).not.toHaveBeenCalled()
+        await expect(guardPasskeyCeremony(() => Promise.resolve('next'))).resolves.toBe('next')
+    })
+
+    it('never starts a ceremony whose cancel signal is already aborted', async () => {
+        const cancel = new AbortController()
+        cancel.abort()
+        const start = jest.fn(() => Promise.resolve('key'))
+        await expect(guardPasskeyCeremony(start, { cancel: cancel.signal })).rejects.toBeInstanceOf(
+            CeremonyCancelledError
+        )
+        expect(start).not.toHaveBeenCalled()
+        expect(currentCeremonyId()).toBeNull()
+    })
+
+    it('a cancel signal that never fires leaves the normal outcome alone', async () => {
+        const cancel = new AbortController()
+        await expect(guardPasskeyCeremony(() => Promise.resolve('key'), { cancel: cancel.signal })).resolves.toBe('key')
+        cancel.abort()
+        expect(currentCeremonyId()).toBeNull()
     })
 
     it('discards a stashed verify token when the ceremony times out', async () => {

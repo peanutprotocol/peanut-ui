@@ -46,6 +46,36 @@ beforeEach(() => {
 })
 
 describe('chargesApi.create transport', () => {
+    it.each(['NaN', 'Infinity', '-1', '0', '12junk', '9'.repeat(400)])(
+        'rejects invalid charge money %s before network effects',
+        async (amount) => {
+            await expect(
+                chargesApi.create({ ...chargeData, local_price: { amount, currency: 'USD' } })
+            ).rejects.toThrow()
+            expect(mockApiFetch).not.toHaveBeenCalled()
+        }
+    )
+
+    it('accepts a direct fixed-price request whose amount is supplied by local_price', async () => {
+        mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'direct' } }))
+        await expect(chargesApi.create(chargeData)).resolves.toEqual({ data: { id: 'direct' } })
+    })
+
+    it('accepts the supported USDC.e asset and checks its precision', async () => {
+        mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'bridged' } }))
+        const requestProps = {
+            ...chargeData.requestProps!,
+            tokenAmount: '1.000001',
+            tokenSymbol: 'USDC.e',
+            tokenDecimals: 6,
+        }
+        await expect(chargesApi.create({ ...chargeData, requestProps })).resolves.toEqual({ data: { id: 'bridged' } })
+        mockApiFetch.mockClear()
+        await expect(
+            chargesApi.create({ ...chargeData, requestProps: { ...requestProps, tokenAmount: '1.0000001' } })
+        ).rejects.toThrow()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+    })
     it('sends JSON via apiFetch when there is no file attachment', async () => {
         mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'c1' } }))
 

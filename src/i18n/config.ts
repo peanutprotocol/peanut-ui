@@ -26,6 +26,7 @@ export const ROUTE_SLUGS = [
     'card-privacy',
     'card-prohibited-activities',
     'card-esign',
+    'real-time-funding-terms',
     'status',
 ] as const
 

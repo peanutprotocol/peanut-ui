@@ -1,5 +1,6 @@
 import { useLocale, useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 export const KycRestartCooldownModal = ({
     cooldown,
@@ -8,12 +9,16 @@ export const KycRestartCooldownModal = ({
     cooldown?: { retryAt?: string } | null
     onClose: () => void
 }) => {
+    const { track } = useKycControl('restart-cooldown', 'kyc_status')
     const t = useTranslations('profile.unlockPayments.cooldown')
     const locale = useLocale()
     return (
         <ActionModal
             visible={!!cooldown}
-            onClose={onClose}
+            onClose={() => {
+                track('cooldown', 'dismiss')
+                onClose()
+            }}
             title={t('title')}
             description={
                 cooldown?.retryAt
@@ -28,7 +33,16 @@ export const KycRestartCooldownModal = ({
                     : t('short')
             }
             tone="attention"
-            ctas={[{ text: t('dismiss'), variant: 'primary', onClick: onClose }]}
+            ctas={[
+                {
+                    text: t('dismiss'),
+                    variant: 'primary',
+                    onClick: () => {
+                        track('got_it', 'tap')
+                        onClose()
+                    },
+                },
+            ]}
         />
     )
 }

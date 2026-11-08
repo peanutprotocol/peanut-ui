@@ -1,30 +1,26 @@
+import { parseFiniteNumber } from '@/lib/money'
+import type { LedgerEntry } from '@/features/attention/types'
+import { reportInvalidNumeric } from '@/lib/numeric-telemetry'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
-import { formatAmountNumber } from '@/utils/currency'
+import { formatAmountNumber, formatFiniteDisplay } from '@/utils/currency'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
-import type { Address, TransactionReceipt } from 'viem'
-import { getAddress, isAddress, erc20Abi } from 'viem'
-import * as wagmiChains from 'wagmi/chains'
-/*
- * Type-only, so this module does not pull `actions/clients` — and through it
- * viem's ~700-chain registry (596 KB) — into every bundle that imports these
- * utils. `fetchTokenSymbol` below imports the client at call time instead.
- */
-import { type ChainId } from '@/app/actions/clients'
+import type { TransactionReceipt } from 'viem'
+import { getAddress, isAddress } from 'viem'
+import { getLoadedChain, loadChainRegistry } from '@/utils/chain-registry'
 import { type ChargeEntry } from '@/services/services.types'
 import { contributedAmount } from '@/utils/request-pot.utils'
+import { personFrom } from '@/lib/person/person'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
-import { resolveChainRegistryEntry } from '@/constants/chainRegistry.consts'
 import { type PushPromptTrigger } from '@/constants/push-prompt.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
@@ -221,22 +217,22 @@ export const formatNumberForDisplay = (
     if (valueStr.endsWith('.') && (valueStr.match(/\./g) || []).length === 1) {
         // For inputs like "123.", format the numeric part "123"
         const numberPart = valueStr.slice(0, -1)
-        if (numberPart === '' || isNaN(Number(numberPart))) return valueStr // Avoid formatting " ." or invalid things like "abc."
-        const formattedNumberPart = Number(numberPart).toLocaleString('en-US', {
+        if (numberPart === '' || parseFiniteNumber(numberPart) === null) return '—' // Avoid formatting " ." or invalid things like "abc."
+        const formattedNumberPart = formatFiniteDisplay(numberPart, 'en-US', {
             minimumFractionDigits: 0, // Whole numbers don't get .00 unless typed
             maximumFractionDigits: options?.maxDecimals ?? 0, // Max decimals for the number part if any
         })
-        return formattedNumberPart + '.' // Append the dot back
+        return formattedNumberPart === '—' ? formattedNumberPart : formattedNumberPart + '.' // Append the dot back
     }
 
     // Validate the numeric string, allowing for numbers with or without decimal points.
     // Disallow multiple decimal points or non-numeric characters (except the single dot handled above).
     if (!/^\d*\.?\d*$/.test(valueStr) || (valueStr.match(/\./g) || []).length > 1) {
-        return '' // Return empty for invalid numeric strings not caught above
+        return '—' // Unavailable display data is distinct from an editable empty field
     }
 
     const num = Number(valueStr)
-    if (isNaN(num)) return ''
+    if (!Number.isFinite(num)) return '—'
 
     return formatAmountNumber(num, options?.maxDecimals ?? 0, options?.minDecimals ?? 0)
 }
@@ -268,14 +264,8 @@ export function formatCurrency(
  * @returns formatted string representation of the number
  */
 export const formatAmount = (amount: string | number): string => {
-    // handle undefined, null, or empty string
-    if (!amount && amount !== 0) return '0'
-
-    // convert amount to number if not already
-    const num = typeof amount === 'string' ? Number(amount) : amount
-
-    // check for NaN after conversion
-    if (isNaN(num)) return '0'
+    const num = parseFiniteNumber(amount)
+    if (num === null) return '—'
 
     // handle small numbers differently
     if (Math.abs(num) < 0.01) {
@@ -310,12 +300,25 @@ export const formatAmount = (amount: string | number): string => {
 }
 
 export function floorFixed(value: number, decimals: number) {
-    return (Math.floor(value * 10 ** decimals) / 10 ** decimals).toFixed(decimals)
+    if (!Number.isFinite(value) || !Number.isInteger(decimals) || decimals < 0 || decimals > 100) return '—'
+    const scaled = value * 10 ** decimals
+    if (!Number.isFinite(scaled)) {
+        reportInvalidNumeric('format', 'overflow')
+        return '—'
+    }
+    return (Math.floor(scaled) / 10 ** decimals).toFixed(decimals)
 }
 
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
+    if (
+        !Number.isFinite(amount) ||
+        !Number.isInteger(significantDigits) ||
+        significantDigits < 0 ||
+        significantDigits > 100
+    )
+        return '—'
     if (amount === 0) return amount.toFixed(significantDigits)
-    let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
+    let fractionDigits = Math.floor(Math.log10(1 / Math.abs(amount))) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
     return floorFixed(amount, fractionDigits)
 }
@@ -323,6 +326,8 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
 export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
+    if (!Number.isInteger(maxFractionDigits) || maxFractionDigits < 0 || maxFractionDigits > 100)
+        return forInput ? '' : undefined
 
     // For input mode, preserve progressive typing (e.g., "1.", "0.")
     if (forInput && typeof amount === 'string') {
@@ -339,6 +344,7 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
+        if (s !== '.' && parseFiniteNumber(s) === null) return ''
         const whole = m[1] ?? ''
         const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
         if (fracRaw === undefined) return whole
@@ -347,13 +353,16 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         return `${whole}.${frac}`
     }
 
-    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
-
-    // check for NaN after conversion
-    if (isNaN(amountNumber)) return undefined
+    const amountNumber = parseFiniteNumber(amount)
+    if (amountNumber === null) return undefined
 
     // floor the amount
     const flooredAmount = Math.floor(amountNumber * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+
+    if (!Number.isFinite(flooredAmount)) {
+        reportInvalidNumeric('format', 'overflow')
+        return undefined
+    }
 
     // Convert number to string to count significant digits
     const amountString = flooredAmount.toFixed(maxFractionDigits)
@@ -363,19 +372,18 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     const fractionDigits = Math.max(2 - significantDigits, 0)
 
     // Format the number with the calculated fraction digits
-    const formattedAmount = flooredAmount.toLocaleString('en-US', {
-        minimumFractionDigits: fractionDigits,
+    const formattedAmount = formatFiniteDisplay(flooredAmount, 'en-US', {
+        minimumFractionDigits: Math.min(fractionDigits, maxFractionDigits),
         maximumFractionDigits: maxFractionDigits,
     })
-    return formattedAmount
+    return formattedAmount === '—' ? undefined : formattedAmount
 }
 
-export const isTestnetChain = (chainId: string) => {
+export const isTestnetChain = async (chainId: string): Promise<boolean> => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).
-    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
-    const chain = all.find((c) => c?.id === Number(chainId))
-    return chain?.testnet === true
+    await loadChainRegistry()
+    return getLoadedChain(chainId)?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
@@ -407,6 +415,8 @@ export interface RecentMethod {
     path: string
 }
 
+export type AttentionLedgerEntry = LedgerEntry
+
 export type UserPreferences = {
     balanceHidden?: boolean
     /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
@@ -418,9 +428,8 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    /** Home CTAs the user has dismissed, with the ISO timestamp of each dismissal.
-     *  A dismissal is permanent, except the allow-list in RECURRING_CAROUSEL_CTAS
-     *  (home-carousel.utils.ts). Legacy shape was `string[]`; both are accepted on read. */
+    /** Pre-manager Home carousel closes, with the ISO timestamp of each. Read once into the
+     *  attention ledger (features/attention/ledger.ts). Legacy shape was `string[]`; both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
     /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
      *  string. DISPLAY-only seed so a cold start paints the previous number instead
@@ -439,6 +448,8 @@ export type UserPreferences = {
     /** App loads by this user on this device. The Home push fallback waits
      *  for the third one. */
     sessionCount?: number
+    /** the pre-manager closes above were copied into `attention` (and synced) once */
+    attentionLegacyPersisted?: boolean
     /** App-review nudge budget (see utils/app-review.ts). `moments` counts
      *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
      *  past OS review requests, oldest first. */
@@ -457,6 +468,8 @@ export type UserPreferences = {
      *  rather than hiding it forever, and a genuinely new cap block is never
      *  suppressed by a stale local flag. */
     capNudgeSubmittedAt?: string
+    /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
+    attention?: Partial<Record<string, AttentionLedgerEntry>>
 }
 
 export const updateUserPreferences = (
@@ -472,8 +485,7 @@ export const updateUserPreferences = (
             ...currentPrefs,
             ...partialPrefs,
         }
-        saveToLocalStorage(`${userId}:user-preferences`, newPrefs)
-        return newPrefs
+        return saveToLocalStorage(`${userId}:user-preferences`, newPrefs) ? newPrefs : undefined
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
@@ -501,33 +513,6 @@ export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
     } else {
         return false
     }
-}
-
-export const getExplorerUrl = (chainId: string) => {
-    const explorers = supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
-    // if the explorers array has blockscout, return the blockscout url, else return the first one
-    if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
-        return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
-    } else {
-        return explorers?.[0].url
-    }
-}
-
-/** Build a transaction proof URL from any chain identifier the API emits.
- *  EVM chains keep using chain-details.json; non-EVM explorer shapes live in
- *  the canonical chain registry. */
-export const getTransactionExplorerUrl = (chainIdentifier: string, transactionHash: string) => {
-    const exactIdentifier = chainIdentifier.trim()
-    const chain = resolveChainRegistryEntry(exactIdentifier)
-    const aliasPrefix = chain?.aliasTransactionExplorerUrlPrefixes?.[exactIdentifier]
-    if (aliasPrefix) {
-        return `${aliasPrefix}${encodeURIComponent(transactionHash)}`
-    }
-    if (chain?.transactionExplorerUrlPrefix) {
-        return `${chain.transactionExplorerUrlPrefix}${encodeURIComponent(transactionHash)}`
-    }
-    const baseUrl = getExplorerUrl(chain?.id ?? exactIdentifier)
-    return baseUrl ? `${baseUrl}/tx/${transactionHash}` : undefined
 }
 
 export function formatDate(date: Date | null | undefined): string {
@@ -558,83 +543,16 @@ export const formatIban = (iban: string) => {
         .trim()
 }
 
-/** Gets the token decimals for a given token address and chain ID. */
-export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
-    return peanutTokenDetails
-        .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
-}
-
-export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Address; chainId: string }):
-    | {
-          symbol: string
-          name: string
-          decimals: number
-      }
-    | undefined {
-    const chainTokens = peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
-    if (!chainTokens) return undefined
-    const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
-    if (!tokenDetails) return undefined
-    return tokenDetails
-}
-
 /**
- * Gets the token symbol for a given token address and chain ID.
- *
- * From the sdk token list, if you need to be sure to get a token symbol you
- * should use the {@link fetchTokenSymbol} function.
- *
- * @returns The token symbol, or undefined if not found.
+ * Sync: names the wallet chain at once and any other chain once viem's
+ * registry has loaded (`useChainRegistry`, or `completeHistoryEntry` for
+ * history rows). Before that it returns undefined and starts the load.
  */
-export function getTokenSymbol(tokenAddress: string | undefined, chainId: string | undefined): string | undefined {
-    if (!tokenAddress || !chainId) return undefined
-
-    const chainTokens = peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
-    if (!chainTokens) return undefined
-
-    return chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.symbol
-}
-
-/**
- * Fetches the token symbol for a given token address and chain ID.
- *
- * This function first checks the sdk token list, and if the token is not found
- * it fetches the token contract details and tries to get the symbol from the
- * contract. If you are ok with only checking the sdk token list, and don't want
- * to await you can use the {@link getTokenSymbol} function.
- *
- * @returns The token symbol, or undefined if not found.
- */
-export async function fetchTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
-    let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
-    if (!tokenSymbol) {
-        try {
-            const { getPublicClient } = await import('@/app/actions/clients')
-            const client = getPublicClient(Number(chainId) as ChainId)
-            tokenSymbol = (await client.readContract({
-                address: tokenAddress as Address,
-                abi: erc20Abi,
-                functionName: 'symbol',
-                args: [],
-            })) as string
-        } catch (error) {
-            Sentry.captureException(error)
-            console.error('Error fetching token symbol:', error)
-        }
-    }
-    if (!tokenSymbol) {
-        console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
-    }
-    return tokenSymbol
-}
-
 export function getChainName(chainId: string): string | undefined {
     if (chainId === '0') {
         return 'Solana'
     }
-    const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
-    return chain?.name ?? undefined
+    return getLoadedChain(chainId)?.name
 }
 
 /**
@@ -653,14 +571,8 @@ export function getChainName(chainId: string): string | undefined {
  * @returns A formatted string with appropriate suffix.
  */
 export const formatExtendedNumber = (amount: string | number, minDigitsForFomatting: number = 6): string => {
-    // Handle null/undefined/invalid inputs
-    if (!amount && amount !== 0) return '0'
-
-    // Validate input type and convert to number
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount
-
-    // Check for NaN values
-    if (isNaN(num)) return '0'
+    const num = parseFiniteNumber(amount)
+    if (num === null) return '—'
 
     // Count total digits by removing decimal point and negative sign
     const totalDigits = amount.toString().replace(/[.-]/g, '').length
@@ -786,6 +698,8 @@ export const beginIntentionalLogout = () => {
 export const endIntentionalLogout = () => {
     intentionalLogout = false
 }
+
+export const isIntentionalLogout = () => intentionalLogout
 
 /**
  * Why a post-auth destination was stored. `deep-link` is an intent of the
@@ -1199,8 +1113,10 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     }
 }
 
-export const getInitialsFromName = (name: string): string => {
-    const nameParts = name.trim().split(/\s+/)
+// A user who never finished signup has no username and no name; one such row
+// must not take down the screen that lists it.
+export const getInitialsFromName = (name: string | null | undefined): string => {
+    const nameParts = (name ?? '').trim().split(/\s+/)
     if (nameParts.length === 1) {
         return nameParts[0].substring(0, 2).toUpperCase()
     } else {
@@ -1333,7 +1249,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
                 // charge/service.ts to immutable response building). Scoped separately.
                 isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
                 isPeanutUser,
-                avatarKey: payerAccount?.user?.avatarKey ?? null,
+                person: personFrom(payerAccount?.user),
             }
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)

@@ -26,7 +26,7 @@ test('open selectors are separate checkpoints and require a visible selected opt
     ]) {
         const screen = screens.find((screen) => screen.id === id)
         assert.ok(screen?.actions.length)
-        assert.match(screen.expectSelector, /\[aria-selected="true"\]/)
+        assert.match(screen.expectSelector, /\[aria-(selected|current)="true"\]/)
     }
     for (const screen of screens.filter((screen) => /Drawer\b/.test(screen.name) || screen.route.includes('drawer=')))
         assert.match(screen.expectSelector, /\[role="dialog"\]/)
@@ -92,7 +92,7 @@ test('canonical pages and interactive variants retain distinct gallery classific
 })
 
 test('account setup keeps distinct integer steps in the intended journey order', () => {
-    const setup = screens.filter(({ journey }) => journey === 'Account setup')
+    const setup = screens.filter(({ journey, flags }) => journey === 'Account setup' && !flags)
     assert.equal(new Set(setup.map(({ order }) => order)).size, setup.length)
     assert.ok(setup.every(({ order }) => Number.isInteger(order)))
     assert.deepEqual(
@@ -104,6 +104,7 @@ test('account setup keeps distinct integer steps in the intended journey order',
             '08-a-passkeysetuphelpmodal',
             '09-a-passkeyinfomodal',
             '03-a-residence-select',
+            '03-b-residence-compare',
             '04-b-advantage-fees',
             '02-b-advantage-card',
             '03-c-residence-congrats',
@@ -113,6 +114,7 @@ test('account setup keeps distinct integer steps in the intended journey order',
             '07-d-notification-settings',
             '07-b-advantage-control',
             '05-a-signtesttransaction',
+            '05-b-signtesttransaction-network-busy',
             '07-e-setup-celebration',
             '20-a-setupnotificationsmodal',
         ]

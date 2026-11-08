@@ -72,7 +72,7 @@ export function computeCardState({
     // (railStatus is the raw backend RailStatus enum — 'IN_REVIEW' was never
     // a value of it; the old comparison was dead code.)
     if (rail === 'PENDING') {
-        if (app === 'needsVerification' || app === 'needsInformation' || app === 'locked') {
+        if (app === 'needsVerification' || app === 'needsInformation' || app === 'locked' || app === 'manualReview') {
             return 'manual-review'
         }
         return 'pending'

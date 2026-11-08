@@ -1,6 +1,8 @@
 'use client'
 
 import type { GateState } from '@/utils/capability-gate'
+import { isSameRoute } from '@/constants/routes'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useRef, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
@@ -132,6 +134,11 @@ export function DepositAccountsFlow({
     // the euro account. Read raw, a named corridor that is not one lands on the
     // list instead.
     const [namedCorridor] = useQueryState('corridor', parseAsString)
+    const [returnToParam] = useQueryState('returnTo', parseAsString)
+    const returnTo = readReturnTo(new URLSearchParams(returnToParam ? { returnTo: returnToParam } : {}), '/add-money')
+    // Origin controls the list's presentation only; corridor gates and actions
+    // still resolve from the same authoritative accounts and capabilities.
+    const listPresentation = isSameRoute(returnTo?.split(/[?#]/)[0], '/profile/accounts') ? 'bank-account' : 'add-money'
     const namesUnknownCorridor = namedCorridor !== null && !(DEPOSIT_CORRIDORS as string[]).includes(namedCorridor)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
     // The corridor whose gate the user just started to clear (verification,
@@ -159,7 +166,8 @@ export function DepositAccountsFlow({
     const { t, railName, claimErrorBody } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
-    const gate = gates[corridor]
+    const gate: GateState =
+        !isHeld(account) && unavailable?.[corridor]?.cause === 'not_started' ? { kind: 'ready' } : gates[corridor]
     // A read that failed says nothing about what the user holds, so a deep link
     // must not resolve past the list: the empty fallback map would read as "not
     // claimed yet" and offer to open an account the user may already have. The
@@ -307,15 +315,22 @@ export function DepositAccountsFlow({
     // is the one that clears it; its identity words would tell a verified user
     // to verify.
     const reviewWaitsOnUser = unavailable?.[corridor]?.cause === 'review-action'
-    const gateNotice = withheldAction
-        ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
-        : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
-          ? { ...rawGateNotice, action: 'provider-review' as const }
-          : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
-            ? { ...rawGateNotice, action: 'support' as const }
-            : rawGateNotice?.action === 'finish-review' && !canFinishReview
-              ? { ...rawGateNotice, action: 'finish-review-support' as const }
-              : rawGateNotice
+    // A residence the provider does not serve for this account: no verification
+    // or review opens it, so the drawer states it and closes. The gate's own
+    // residence notice keeps its words (the UK rule has its own).
+    const residenceRestricted =
+        unavailable?.[corridor]?.cause === 'residence-restricted' && rawGateNotice?.action !== 'residence-restricted'
+    const gateNotice = residenceRestricted
+        ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
+        : withheldAction
+          ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
+          : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
+            ? { ...rawGateNotice, action: 'provider-review' as const }
+            : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+              ? { ...rawGateNotice, action: 'support' as const }
+              : rawGateNotice?.action === 'finish-review' && !canFinishReview
+                ? { ...rawGateNotice, action: 'finish-review-support' as const }
+                : rawGateNotice
     // The gate belongs to this corridor only while the user cannot open it. The
     // drawer stays mounted after it closes (`?step=list`, same corridor), so
     // it slides out instead of vanishing.
@@ -460,6 +475,7 @@ export function DepositAccountsFlow({
     return (
         <>
             <DepositAccountsListScreen
+                presentation={listPresentation}
                 corridors={corridors}
                 accounts={accounts}
                 claimable={claimable}

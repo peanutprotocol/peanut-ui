@@ -290,6 +290,22 @@ export function readSignupAttribution(): SignupAttributionContext | null {
     return stored
 }
 
+// document.referrer belongs to the loaded document, so only that document may use it.
+function isLoadedDocument(): boolean {
+    try {
+        const [entry] = performance.getEntriesByType('navigation')
+        return !!entry && new URL(entry.name).pathname === window.location.pathname
+    } catch {
+        return false
+    }
+}
+
+/** Whether this visit names a campaign (utm_*) or arrived from another site. */
+export function hasMarketingTouch(): boolean {
+    const touch = currentTouch(isLoadedDocument())
+    return !!(touch?.utmSource || touch?.utmMedium || touch?.utmCampaign || touch?.utmContent || touch?.referrerHost)
+}
+
 export function captureSignupAttribution({
     includeDocumentReferrer = false,
 }: { includeDocumentReferrer?: boolean } = {}): SignupAttributionContext | null {
@@ -321,6 +337,26 @@ export function captureSignupAttribution({
     if (!bounded) return null
     saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, bounded, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
     return bounded
+}
+
+type SignupAttributionCampaign = Pick<SignupAttributionTouch, 'utmSource' | 'utmMedium' | 'utmCampaign' | 'utmContent'>
+
+/** A new Android journey whose first touch is the campaign in a Play install referrer, or null without a usable tag. */
+export function installReferrerSignupAttribution(campaign: SignupAttributionCampaign): SignupAttributionContext | null {
+    const firstTouch: SignupAttributionTouch = { occurredAt: new Date().toISOString() }
+    for (const key of ['utmSource', 'utmMedium', 'utmCampaign', 'utmContent'] as const) {
+        const value = cleanMarketingValue(campaign[key])
+        if (value) firstTouch[key] = value
+    }
+    if (Object.keys(firstTouch).length === 1) return null
+    return canonicalSignupAttribution({
+        schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
+        journeyId: newJourneyId(),
+        platform: 'android',
+        analyticsState: 'enabled',
+        captureMethod: 'deferred_link',
+        firstTouch,
+    })
 }
 
 export function restoreSignupAttribution(context: SignupAttributionContext): SignupAttributionContext {

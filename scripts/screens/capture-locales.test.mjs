@@ -219,7 +219,7 @@ test('the caller narrows locales from live PR labels once trusted dev advertises
 
 test('caller skips drafts, cancels on conversion to draft and lets the planner read live labels', () => {
     const caller = readFileSync(new URL('../../.github/workflows/screen-library.yml', import.meta.url), 'utf8')
-    assert.match(caller, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/)
+    assert.match(caller, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft, edited\]/)
     assert.match(caller, /!github\.event\.pull_request\.draft/)
     assert.doesNotMatch(caller, /labeled/)
     const refs = caller.slice(caller.indexOf('\n    refs:\n'), caller.indexOf('\n    capture_after:\n'))

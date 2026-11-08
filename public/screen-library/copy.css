@@ -1,0 +1,191 @@
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+#copy-description {
+    max-width: 720px;
+    color: var(--muted);
+}
+.copy-provenance {
+    font:
+        12px/1.6 ui-monospace,
+        monospace;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+.copy-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    margin: 32px 0;
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    overflow: hidden;
+}
+.copy-stat {
+    padding: 18px 20px;
+    box-shadow:
+        1px 0 0 var(--rule),
+        0 1px 0 var(--rule);
+}
+.copy-stat b {
+    display: block;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+.copy-stat span {
+    font-size: 13px;
+    color: var(--muted);
+}
+.copy-stat.attention b {
+    color: #b3261e;
+}
+.copy-controls {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+}
+.copy-modes {
+    display: inline-flex;
+    border: 1px solid #aaa2ac;
+    border-radius: 999px;
+    padding: 3px;
+    background: white;
+}
+.copy-modes button {
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 8px 16px;
+    font-weight: 650;
+    font-size: 14px;
+}
+.copy-modes button[aria-pressed='true'] {
+    background: var(--ink);
+    color: white;
+}
+.copy-modes button:focus-visible,
+.copy-controls input:focus-visible,
+.copy-controls select:focus-visible {
+    outline: 3px solid var(--pink);
+    outline-offset: 2px;
+}
+.copy-search {
+    flex: 1 1 260px;
+}
+.copy-toggle {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+.copy-toggle[hidden] {
+    display: none;
+}
+.copy-count {
+    margin: 18px 0 8px;
+    color: var(--muted);
+    font-size: 14px;
+}
+.copy-group {
+    margin: 0 0 28px;
+}
+.copy-group h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 28px 0 8px;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+}
+.copy-group h2 span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+}
+.copy-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 2fr) minmax(0, 3fr);
+    gap: 4px 24px;
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+}
+.copy-key {
+    font:
+        13px/1.5 ui-monospace,
+        monospace;
+    overflow-wrap: anywhere;
+}
+.copy-text {
+    overflow-wrap: anywhere;
+}
+.copy-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #fde7e9;
+    color: #8c1d18;
+    font:
+        600 11px/1.6 system-ui,
+        sans-serif;
+    vertical-align: 1px;
+}
+.copy-states {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 13px;
+}
+.copy-states a {
+    padding: 2px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    background: white;
+    text-decoration: none;
+}
+.copy-states a:hover {
+    border-color: var(--ink);
+}
+.copy-more {
+    margin: 12px 0 0;
+}
+.copy-more button {
+    border: 1px solid #aaa2ac;
+    border-radius: 999px;
+    background: white;
+    padding: 10px 18px;
+    font-weight: 650;
+}
+@media (max-width: 640px) {
+    main {
+        padding: 32px 16px;
+    }
+    header {
+        padding: 18px 16px;
+    }
+    .brand span {
+        display: none;
+    }
+    .copy-row {
+        grid-template-columns: 1fr;
+    }
+    .copy-states {
+        grid-column: 1;
+    }
+}

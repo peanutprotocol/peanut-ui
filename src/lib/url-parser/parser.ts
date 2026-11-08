@@ -1,6 +1,7 @@
 import { getSupportedChainsAndTokens } from '@/app/actions/supported-chains'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import type { ChainWithTokens, TokenMeta } from '@/interfaces/chain-meta'
+import { isRequestToken } from '@/utils/request-token.utils'
 import { validateAmount } from '../validation/amount'
 import { validateAndResolveRecipient } from '../validation/recipient'
 import { getChainDetails, getTokenAndChainDetails } from '../validation/token'
@@ -48,11 +49,14 @@ export enum EParseUrlError {
     INVALID_CHAIN = 'Invalid chain',
     INVALID_TOKEN = 'Invalid token',
     INVALID_AMOUNT = 'Invalid amount',
+    REQUEST_TOKEN_NOT_ACCEPTED = 'Requests can only be paid in USDC or USDT',
 }
 
 export type ParseUrlError = {
     message: `${EParseUrlError}`
     recipient?: string
+    /** The token the link asks for, when requests cannot be paid in it. */
+    token?: string
 }
 
 export async function parsePaymentURL(
@@ -140,6 +144,18 @@ export async function parsePaymentURL(
 
             if (!tokenDetails) {
                 return { parsedUrl: null, error: { message: EParseUrlError.INVALID_TOKEN, recipient } }
+            }
+            // A request is paid in USDC or USDT only (TASK-23850). Refuse any other
+            // token instead of paying it in USDC, which would change the amount.
+            if (!isRequestToken(tokenDetails.symbol)) {
+                return {
+                    parsedUrl: null,
+                    error: {
+                        message: EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED,
+                        recipient,
+                        token: tokenDetails.symbol.toUpperCase(),
+                    },
+                }
             }
 
             // Update chain details for non-USERNAME recipients if needed

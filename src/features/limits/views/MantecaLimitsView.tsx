@@ -6,6 +6,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import Image from 'next/image'
@@ -17,8 +18,9 @@ import {
     getFlagUrlForCurrency,
     type LimitsPeriod,
 } from '../utils'
-import CapNudgeCard from '../components/CapNudgeCard'
+import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
+import { CapNudgeCtaContext } from '../cap-nudge-cta-context'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -33,9 +35,10 @@ const MantecaLimitsView = () => {
     const onBack = useSafeBack('/limits')
     const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
+    const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
     return (
-        <div className="flex min-h-inherit flex-col gap-6">
+        <PageStack gap="6">
             <NavHeader title={t('title')} onPrev={onBack} />
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
@@ -108,9 +111,11 @@ const MantecaLimitsView = () => {
                         </div>
                     </div>
 
-                    <CapNudgeCard />
+                    <CapNudgeCtaContext.Provider value={setCapNudgeCtaShown}>
+                        <AttentionSlot id="limits" />
+                    </CapNudgeCtaContext.Provider>
 
-                    <IncreaseLimitsButton />
+                    <IncreaseLimitsButton variant={capNudgeCtaShown ? 'secondary' : 'primary'} />
 
                     <LimitsDocsLink />
                 </>
@@ -119,7 +124,7 @@ const MantecaLimitsView = () => {
             {!isLoading && !error && (!mantecaLimits || mantecaLimits.length === 0) && (
                 <EmptyState title={t('noData')} icon="meter" />
             )}
-        </div>
+        </PageStack>
     )
 }
 

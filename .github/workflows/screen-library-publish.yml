@@ -47,11 +47,14 @@ jobs:
         if: >-
             always() && !cancelled() && github.repository == 'peanutprotocol/peanut-ui' &&
             (needs.route.result == 'skipped' || (needs.route.result == 'success' && needs.route.outputs.mode != 'skip')) &&
-            (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+            (github.event_name != 'pull_request' ||
+            (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft &&
+            (github.base_ref == 'dev' || (github.base_ref == 'main' && github.head_ref == 'dev'))))
         runs-on: ubuntu-24.04
         timeout-minutes: 10
         outputs:
             published: ${{ steps.publication.outputs.published }}
+            mode: ${{ steps.baseline.outputs.mode }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -85,9 +88,8 @@ jobs:
               run: |
                   set -euo pipefail
                   if find incoming -mindepth 2 -maxdepth 2 -path '*/capture.json' -path '*screen-library-before-*' -print -quit | grep -q .; then
-                      echo 'mode=current' >> "$GITHUB_OUTPUT"
+                      node scripts/screens/resolve-baseline.mjs --current >> "$GITHUB_OUTPUT"
                   else
-                      echo 'mode=external' >> "$GITHUB_OUTPUT"
                       node scripts/screens/resolve-baseline.mjs >> "$GITHUB_OUTPUT"
                   fi
             - name: Download verified baseline
@@ -102,6 +104,7 @@ jobs:
                   path: incoming/baseline
             - name: Verify provenance and publish
               id: publication
+              if: steps.baseline.outputs.mode != 'skip'
               env:
                   GH_TOKEN: ${{ github.token }}
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
@@ -139,7 +142,7 @@ jobs:
         needs: publish
         # Entry markers may already be committed even if the later PR comment
         # update fails, so always reconcile the index after a completed batch.
-        if: always() && needs.publish.outputs.published == 'true'
+        if: always() && needs.publish.outputs.mode != 'skip' && needs.publish.outputs.published == 'true'
         runs-on: ubuntu-24.04
         timeout-minutes: 10
         concurrency:
@@ -165,8 +168,8 @@ jobs:
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
               run: node scripts/screens/rebuild-index.mjs
     deploy:
-        needs: index
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        needs: [index, publish]
+        if: always() && !cancelled() && needs.index.result == 'success' && needs.publish.outputs.mode != 'skip' && github.event_name == 'push' && github.ref == 'refs/heads/dev'
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-gallery.yml@dev
         with:
             refresh_indexes: false

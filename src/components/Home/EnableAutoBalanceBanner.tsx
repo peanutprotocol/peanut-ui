@@ -3,16 +3,27 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { captureMessage } from '@sentry/nextjs'
-import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta } from '@/components/Global/ActionModal'
+import type { ActionModalButtonProps, ActionModalTertiaryCta } from '@/components/Global/ActionModal'
+import { AskShell } from '@/features/attention/AskShell'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useCardFundingAccess } from '@/hooks/useCardFundingAccess'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
+import { fundingReturnCents, holdsCardApproval, useCardPaymentsUpdate } from '@/features/attention/cardFunding'
+import type { AskSurfaceProps } from '@/features/attention/types'
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * Blocking modal shown when the user holds an ACTIVE Rain card without
  * the one-tap session-key grant. Without it auto-balance silently no-ops
  * after every deposit and the first card spend would force the grant
  * inline anyway — surfacing it up-front avoids both surprises.
+ *
+ * Only for an account on the existing card permission that new managed
+ * funding is not open to (the server's decision, `setupPath === 'legacy'`).
+ * An account it is open to, or one already managed, gets the managed setup
+ * prompt instead; an unknown decision shows nothing.
  *
  * Same preconditions `useGrantSessionKey().grant()` enforces (collateral
  * proxy + coordinator already provisioned by Rain) — otherwise the
@@ -37,11 +48,17 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
  * All the "have we been here" state (grant success, skip dismissal, Sentry
  * dedupe) is keyed by card id, so a later re-issued card always gets its
  * own clean setup pass.
+ *
+ * A card that already worked (an outdated approval on file, or card balance)
+ * reads as a card payments update in every state; a new card reads as
+ * finishing setup.
  */
-export default function EnableAutoBalanceBanner() {
-    const t = useTranslations('home.autoBalance')
+export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
+    const t = useTranslations('home.fundingSetup')
     const tCommon = useTranslations('common')
     const { overview } = useRainCardOverview()
+    const card = findActiveCard(overview)
+    const { setupPath } = useCardFundingAccess({ enabled: card?.status === 'ACTIVE' })
     const { grant, isGranting, lastError } = useGrantSessionKey()
     // Card id the user chose "Skip for now" for — per card, so skipping a
     // stuck card A never suppresses the prompt for a different card B that
@@ -56,9 +73,14 @@ export default function EnableAutoBalanceBanner() {
     // this a failure on card A would leak "Try again" copy and the escape
     // hatch into a re-issued card B's first-ever prompt.
     const [lastAttemptFor, setLastAttemptFor] = useState<string | null>(null)
+    const isUpdate = useCardPaymentsUpdate(
+        card?.id ?? null,
+        // an approval this prompt just stored is the stuck shape below, not evidence of an older card
+        (holdsCardApproval(card) && grantSucceededFor !== card?.id) || fundingReturnCents(overview) > 0
+    )
 
-    const card = findActiveCard(overview)
     const shouldShow =
+        setupPath === 'legacy' &&
         card?.status === 'ACTIVE' &&
         !card.hasWithdrawApproval &&
         !!overview?.status?.contractAddress &&
@@ -97,6 +119,17 @@ export default function EnableAutoBalanceBanner() {
         }
     }, [stuckAfterSuccess, card])
 
+    // Settled only when a fresh overview shows the approval on the card the grant was for;
+    // an ok response alone is the stuck-after-success shape above.
+    const approvedAfterGrant =
+        !!card && grantSucceededFor === card.id && card.status === 'ACTIVE' && card.hasWithdrawApproval
+    const actedRef = useRef<string | null>(null)
+    useEffect(() => {
+        if (!approvedAfterGrant || !card || actedRef.current === card.id) return
+        actedRef.current = card.id
+        onActed()
+    }, [approvedAfterGrant, card, onActed])
+
     const ctas: ActionModalButtonProps[] = [
         {
             text: isGranting
@@ -128,21 +161,29 @@ export default function EnableAutoBalanceBanner() {
             ? {
                   text: tCommon('skipForNow'),
                   disabled: isGranting,
-                  onClick: () => setDismissedFor(card?.id ?? null),
+                  onClick: () => {
+                      setDismissedFor(card?.id ?? null)
+                      // the grant is re-prompted on the first card spend regardless
+                      onSnoozed(Date.now() + DAY_MS)
+                  },
               }
             : undefined
 
     const dismissed = dismissedFor !== null && dismissedFor === (card?.id ?? null)
 
     return (
-        <ActionModal
+        <AskShell
+            presentation={presentation}
             visible={shouldShow && !dismissed}
             onClose={() => {}}
-            preventClose
-            hideModalCloseButton
+            dismissible={false}
             concept="card"
-            title={t('title')}
-            description={hardError || stuckAfterSuccess ? t('descriptionError') : t('description')}
+            title={t(isUpdate ? 'updateTitle' : 'title')}
+            description={
+                hardError || stuckAfterSuccess
+                    ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
+                    : t(isUpdate ? 'updateApprove' : 'description')
+            }
             ctas={ctas}
             tertiaryCta={tertiaryCta}
         />

@@ -9,7 +9,8 @@ import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
-import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
+import { formatTokenAmount, shortenStringLong } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { captureMessage } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
@@ -20,6 +21,7 @@ import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
@@ -243,33 +245,39 @@ export const SuccessClaimLinkView = ({
             <PageStack>
                 <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 <PageStack.Center className="gap-4">
-                    <Callout priority="error" data-testid="error-alert">
-                        {toFriendlyError({ code: claimFailure.code })}
-                    </Callout>
-                    {isRetryable && (
-                        <Button
-                            shadowSize="4"
-                            className="w-full"
-                            onClick={() => {
-                                // the link was rolled back, so INITIAL offers
-                                // the claim again rather than a spent link
-                                setTransactionHash(undefined)
-                                onCustom('INITIAL')
-                            }}
-                        >
-                            {tCommon('tryAgain')}
-                        </Button>
-                    )}
-                    {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
-                    {isRetryable ? (
-                        <div className="mt-2 flex justify-center">
-                            <LinkButton onClick={leaveToHome}>{t('backToHome')}</LinkButton>
-                        </div>
-                    ) : (
-                        <Button shadowSize="4" className="w-full" onClick={leaveToHome}>
-                            {t('backToHome')}
-                        </Button>
-                    )}
+                    <CenteredStatusCard
+                        title={tCommon('claimCouldNotComplete')}
+                        description={
+                            <Callout priority="error" hideIcon className="bg-transparent p-0" data-testid="error-alert">
+                                {toFriendlyError({ code: claimFailure.code })}
+                            </Callout>
+                        }
+                    >
+                        {isRetryable && (
+                            <Button
+                                shadowSize="4"
+                                className="w-full"
+                                onClick={() => {
+                                    // the link was rolled back, so INITIAL offers
+                                    // the claim again rather than a spent link
+                                    setTransactionHash(undefined)
+                                    onCustom('INITIAL')
+                                }}
+                            >
+                                {tCommon('tryAgain')}
+                            </Button>
+                        )}
+                        {/* with a retry, going home is the tertiary exit; alone, it is the one CTA */}
+                        {isRetryable ? (
+                            <div className="mt-2 flex justify-center">
+                                <LinkButton onClick={leaveToHome}>{t('backToHome')}</LinkButton>
+                            </div>
+                        ) : (
+                            <Button shadowSize="4" className="w-full" onClick={leaveToHome}>
+                                {t('backToHome')}
+                            </Button>
+                        )}
+                    </CenteredStatusCard>
                 </PageStack.Center>
             </PageStack>
         )

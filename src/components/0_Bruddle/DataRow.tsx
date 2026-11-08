@@ -13,9 +13,8 @@ interface DataRowProps {
     copyValue?: string
     onClick?: () => void
     trailing?: React.ReactNode
+    /** A long label (the Profile details rows) wraps instead of pushing the value out. */
     wrapLabel?: boolean
-    spacious?: boolean
-    compact?: boolean
 }
 
 /**
@@ -36,14 +35,10 @@ export const DataRow = ({
     onClick,
     trailing,
     wrapLabel = false,
-    spacious = false,
-    compact = false,
 }: DataRowProps) => (
     <div
         className={twMerge(
             'ds-data-row flex w-full items-center justify-between gap-3 py-3',
-            spacious && 'min-h-20 py-4',
-            compact && 'h-12 py-1',
             onClick &&
                 'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled'
         )}

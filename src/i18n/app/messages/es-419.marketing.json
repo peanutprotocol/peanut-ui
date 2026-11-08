@@ -1,5 +1,12 @@
 {
     "common": {
+        "claimCouldNotComplete": "No se pudo reclamar el pago",
+        "cardCouldNotLoad": "No pudimos cargar la tarjeta",
+        "cardRecoveryUnavailable": "Recuperación de tarjeta no disponible",
+        "qrPaymentCouldNotStart": "No se pudo iniciar el pago con QR",
+        "withdrawalCouldNotComplete": "No se pudo completar el retiro",
+        "sendCouldNotComplete": "No se pudo enviar el pago",
+        "bankTransfersUnavailable": "Transferencias bancarias no disponibles",
         "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
         "exchangeRateInfo": "Este es el tipo de cambio actual. Puede cambiar ligeramente antes de que se confirme tu pago.",
         "fundsOnTheWay": "Fondos en camino",
@@ -113,6 +120,8 @@
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "providerRejected": "Nuestro socio de pagos no pudo aceptar esta operación para tu cuenta. No se movió dinero. Contacta a soporte.",
+        "mantecaAccountRejected": "Los depósitos y retiros en este país no están disponibles para tu cuenta. Los pagos con QR siguen funcionando. El equipo de soporte puede ayudarte.",
+        "mantecaAccountRejectedForCountry": "No puedes agregar ni retirar dinero en {country}. Puedes seguir pagando con QR.",
         "bankAccountNotUsable": "Esta cuenta bancaria ya no se puede usar. Agrégala de nuevo.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualiza la página e inténtalo de nuevo.",
@@ -128,7 +137,8 @@
         "passkeyDeviceLocked": "Desbloquea el dispositivo e inténtalo de nuevo.",
         "passkeyBiometryRequired": "Usa Face ID o Touch ID para verificar la passkey e inténtalo de nuevo.",
         "passkeyVerificationIncomplete": "No se completó la verificación con passkey. Inténtalo de nuevo cuando quieras.",
-        "passkeyRestartRequired": "La última solicitud de passkey no terminó de cerrarse. Reinicia la app e inténtalo de nuevo."
+        "passkeySettling": "La última solicitud de passkey todavía se está cerrando. Espera unos segundos e inténtalo de nuevo.",
+        "passkeyStillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cierra cualquier ventana de passkey e inténtalo de nuevo. Si sigue pasando, cierra y vuelve a abrir la app."
     },
     "migration": {
         "downloadPeanut": "Descargar Peanut",
@@ -173,13 +183,14 @@
         "peanutLogoAlt": "Logo de Peanut",
         "receipt": "Recibo",
         "supportUnread": "Nueva respuesta de soporte",
+        "accounts": "Cuentas",
         "card": "Tarjeta",
         "exchangeRates": "Tipos de cambio",
         "scanQr": "Escanear QR"
     },
     "shhhhh": {
         "hero": {
-            "wordmark": "Tarjeta Peanut",
+            "wordmark": "Peanut Card",
             "tagline": "Tu dinero. Listo para pagar.",
             "cta": "Pedir tarjeta",
             "disclaimer": "Se requiere verificación y aprobación. Sin cuotas mensuales ni anuales. Se aplican las tarifas y los límites de los términos del titular.",
@@ -212,7 +223,7 @@
             "verifyTitle": "Verifica.",
             "verifyBody": "Una verificación de identidad, más los términos del titular.",
             "spendTitle": "Paga.",
-            "spendBody": "¿Aprobada? Agrega dinero y paga."
+            "spendBody": "Ten USD 10 en tu saldo, solicítala y paga."
         },
         "marquee": {
             "peanutCard": "PEANUT CARD",
@@ -237,11 +248,11 @@
             },
             "q5": {
                 "question": "¿Cómo obtengo una tarjeta?",
-                "answer": "Inicia sesión, completa la verificación y acepta los términos del titular. Tu solicitud está sujeta a aprobación."
+                "answer": "Inicia sesión, completa la verificación, ten al menos USD 10 en tu saldo de Peanut y acepta los términos del titular. Tu solicitud está sujeta a aprobación."
             },
             "q6": {
-                "question": "¿Necesito depositar antes de solicitarla?",
-                "answer": "No. Puedes solicitarla antes de agregar dinero. Agrega fondos cuando tu tarjeta esté lista para pagar."
+                "question": "¿Necesito tener dinero en mi saldo para solicitarla?",
+                "answer": "Sí. Para solicitar tu primera tarjeta necesitas al menos USD 10 en tu saldo de Peanut. No es una comisión: el dinero sigue siendo tuyo para gastarlo con la tarjeta."
             },
             "q7": {
                 "question": "¿Hay comisiones?",

@@ -9,7 +9,13 @@ import ActionModal from '@/components/Global/ActionModal'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useModalsContext } from '@/context/ModalsContext'
-import { QrKycState } from '@/constants/kyc.consts'
+import {
+    IDENTITY_DOCUMENT_MISSING_CODE,
+    isProviderIdRequestReason,
+    QR_IDENTITY_RESTART_PENDING_CODE,
+    QrKycState,
+} from '@/constants/kyc.consts'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import type { IconName } from '@/components/Global/Icons/Icon'
 import { useQrPayFlow } from '../QrPayFlowContext'
 
@@ -18,8 +24,10 @@ export function QrPayProviderRejectionView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
+    const tIdentity = useTranslations('identity')
     const { gate, methodIcon, onBack } = useQrPayFlow()
-    const { kycGateState, qrKycUserMessage, qrKycActionKey, sumsubFlow, needsIdentityRestart } = gate
+    const { kycGateState, qrKycUserMessage, qrKycActionKey, sumsubFlow, needsIdentityRestart, identityRestartReason } =
+        gate
     const { setIsSupportModalOpen } = useModalsContext()
 
     const isFixable = kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE
@@ -27,6 +35,20 @@ export function QrPayProviderRejectionView() {
     // The identity evidence behind an approval is missing: the user verifies
     // again, with any document. "A different document" is the country refusal.
     const isVerifyAgain = isRestartIdentity && needsIdentityRestart
+    // A provider asking for a new ID says why in the reason catalog, under the restart's own title.
+    const providerIdRequestKey =
+        isVerifyAgain && isProviderIdRequestReason(identityRestartReason)
+            ? reasonCodeKey(identityRestartReason)
+            : undefined
+    const isVerifyAgainCopy = isVerifyAgain && !providerIdRequestKey
+    // Says why, per cause (Slava, 2026-10-26): an imported account with no ID on
+    // file, a new ID check not finished, or an ID the payment partner cannot read.
+    const verifyAgain =
+        identityRestartReason === IDENTITY_DOCUMENT_MISSING_CODE
+            ? ({ copy: 'documentMissing', icon: 'upload-cloud' } as const)
+            : identityRestartReason === QR_IDENTITY_RESTART_PENDING_CODE
+              ? ({ copy: 'restartPending', icon: 'check-circle' } as const)
+              : ({ copy: 'unreadable', icon: 'upload-cloud' } as const)
     // A restart cooldown replaces the rejection prompt: the cooldown modal
     // (from SumsubKycModals below) is the one actionable surface, and
     // dismissing it leaves the flow rather than re-offering a restart that
@@ -42,8 +64,8 @@ export function QrPayProviderRejectionView() {
                 title={
                     isFixable
                         ? t('kyc.fixableTitle')
-                        : isVerifyAgain
-                          ? t('kyc.verifyAgainTitle')
+                        : isVerifyAgainCopy
+                          ? t(`kyc.verifyAgain.${verifyAgain.copy}.title`)
                           : isRestartIdentity
                             ? t('kyc.restartTitle')
                             : t('kyc.blockedTitle')
@@ -51,11 +73,13 @@ export function QrPayProviderRejectionView() {
                 description={
                     isFixable
                         ? t('kyc.fixableDescription')
-                        : isVerifyAgain
-                          ? t('kyc.verifyAgainDescription')
-                          : isRestartIdentity
-                            ? (qrKycUserMessage ?? t('kyc.restartDescription'))
-                            : (qrKycUserMessage ?? t('kyc.blockedDescription'))
+                        : providerIdRequestKey
+                          ? tIdentity(providerIdRequestKey)
+                          : isVerifyAgain
+                            ? t(`kyc.verifyAgain.${verifyAgain.copy}.description`)
+                            : isRestartIdentity
+                              ? (qrKycUserMessage ?? t('kyc.restartDescription'))
+                              : (qrKycUserMessage ?? t('kyc.blockedDescription'))
                 }
                 tone="error"
                 icon={
@@ -78,11 +102,13 @@ export function QrPayProviderRejectionView() {
                           }
                         : isRestartIdentity
                           ? {
-                                text: isVerifyAgain ? t('kyc.verifyAgainCta') : t('kyc.restartTitle'),
+                                text: isVerifyAgainCopy
+                                    ? t(`kyc.verifyAgain.${verifyAgain.copy}.cta`)
+                                    : t('kyc.restartTitle'),
                                 onClick: () => sumsubFlow.handleRestartIdentity(),
                                 variant: 'primary' as const,
                                 shadowSize: '4' as const,
-                                icon: isVerifyAgain ? undefined : ('upload-cloud' satisfies IconName),
+                                icon: (isVerifyAgainCopy ? verifyAgain.icon : 'upload-cloud') satisfies IconName,
                             }
                           : {
                                 text: tCommon('contactSupport'),

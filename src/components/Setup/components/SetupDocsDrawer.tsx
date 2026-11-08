@@ -2,8 +2,9 @@
 
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import DocsLink from '@/components/Global/DocsLink'
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useRef, useState, type ReactNode } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 
 export type SetupDocKind = 'terms' | 'privacy' | 'account-recovery' | 'passkeys'
 type SetupDoc = { title: string; content: ReactNode }
@@ -16,7 +17,7 @@ export interface SetupDocuments {
     passkeys: Record<HelpLocale, SetupDoc>
 }
 
-const SetupDocsContext = createContext<((kind: SetupDocKind) => void) | null>(null)
+const SetupDocsContext = createContext<((kind: SetupDocKind, onClose?: () => void) => void) | null>(null)
 
 const helpLocale = (locale: string): HelpLocale => {
     const normalized = locale.toLowerCase()
@@ -27,6 +28,7 @@ const helpLocale = (locale: string): HelpLocale => {
  * native static export can open it without leaving setup or needing a network. */
 export function SetupDocsProvider({ children, documents }: { children: ReactNode; documents: SetupDocuments }) {
     const [active, setActive] = useState<SetupDocKind | null>(null)
+    const onCloseRef = useRef<(() => void) | undefined>(undefined)
     const locale = helpLocale(useLocale())
     const tCommon = useTranslations('common')
     const document = active
@@ -35,17 +37,27 @@ export function SetupDocsProvider({ children, documents }: { children: ReactNode
             : documents[active][locale]
         : null
 
+    const open = (kind: SetupDocKind, onClose?: () => void) => {
+        onCloseRef.current = onClose
+        setActive(kind)
+    }
+    const close = () => {
+        onCloseRef.current?.()
+        onCloseRef.current = undefined
+        setActive(null)
+    }
+
     return (
-        <SetupDocsContext.Provider value={setActive}>
+        <SetupDocsContext.Provider value={open}>
             {children}
-            <Drawer open={active !== null} onOpenChange={(open) => !open && setActive(null)}>
+            <Drawer open={active !== null} onOpenChange={(isOpen) => !isOpen && close()}>
                 <DrawerContent>
                     <div className="sticky top-0 z-10 bg-white pb-2">
                         <DrawerHeader className="relative p-0 text-left sm:text-left">
                             <DrawerTitle className="pr-16">{document?.title}</DrawerTitle>
                             <button
                                 type="button"
-                                onClick={() => setActive(null)}
+                                onClick={close}
                                 className="absolute top-0 right-0 text-body-s underline underline-offset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus"
                             >
                                 {tCommon('close')}
@@ -75,6 +87,8 @@ export function SetupDocLink({
     onBeforeOpen?: () => void
 }) {
     const open = useContext(SetupDocsContext)
+    const { track } = useSignupControl()
+    const control = `${kind}_doc`
     // Isolated component previews can render setup steps without their route
     // layout. Keep the link working there rather than show an inert button.
     if (!open)
@@ -90,7 +104,8 @@ export function SetupDocLink({
             className={className}
             onClick={() => {
                 onBeforeOpen?.()
-                open(kind)
+                track(control, 'open')
+                open(kind, () => track(control, 'dismiss'))
             }}
         >
             {children}

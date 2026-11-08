@@ -15,10 +15,21 @@ export interface ProviderHelpProps {
     /** shown before the user accepts the provider's terms: the sheet speaks of the relationship as ahead */
     prospective?: boolean
     className?: string
+    /** the sheet opened or closed, for the analytics of the screen it sits on */
+    onOpenChange?: (open: boolean) => void
+    /** a terms or privacy link in the sheet was opened */
+    onDocumentClick?: (document: 'terms' | 'privacy') => void
 }
 
 /** The (?) beside a provider's name. It opens the sheet with the provider's legal details. */
-export const ProviderHelp = ({ providerId, nested, prospective, className }: ProviderHelpProps) => {
+export const ProviderHelp = ({
+    providerId,
+    nested,
+    prospective,
+    className,
+    onOpenChange,
+    onDocumentClick,
+}: ProviderHelpProps) => {
     const t = useTranslations('provider')
     const [open, setOpen] = useState(false)
 
@@ -31,6 +42,7 @@ export const ProviderHelp = ({ providerId, nested, prospective, className }: Pro
                     // the row it sits on may be a button of its own
                     event.stopPropagation()
                     setOpen(true)
+                    onOpenChange?.(true)
                 }}
                 // after: pseudo-element grows the 16px glyph to the 44px hit area
                 className={twMerge(
@@ -43,9 +55,13 @@ export const ProviderHelp = ({ providerId, nested, prospective, className }: Pro
             <ProviderSheet
                 providerId={providerId}
                 open={open}
-                onClose={() => setOpen(false)}
+                onClose={() => {
+                    setOpen(false)
+                    onOpenChange?.(false)
+                }}
                 nested={nested}
                 prospective={prospective}
+                onDocumentClick={onDocumentClick}
             />
         </>
     )

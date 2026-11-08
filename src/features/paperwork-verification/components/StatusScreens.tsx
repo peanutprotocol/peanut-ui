@@ -1,0 +1,320 @@
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
+import type { IdentityRejection } from '@/utils/identity-rejection.utils'
+import type {
+    PaperworkVerificationClosedFeature,
+    PaperworkVerificationFeature,
+} from '@/app/actions/types/kyc-paperwork-verification.types'
+import { VerifyCelebrationLayout, VerifyFooter, VerifyHeroLayout, VerifyQuestionLayout } from './VerifyLayout'
+import { useKycControl } from '../analytics'
+import { ReplacementDocumentAction } from '../ReplacementDocumentAction'
+
+const primary = (label: string, onClick: () => void, testId: string, loading = false, variant?: ButtonVariant) => (
+    <Button
+        variant={variant}
+        shadowSize="4"
+        className="w-full"
+        onClick={onClick}
+        loading={loading}
+        disabled={loading}
+        data-testid={testId}
+    >
+        {label}
+    </Button>
+)
+
+/** The last answer is saved: the ID check comes next. */
+/** `busy` while the last answers are still on their way to the server. */
+export function SavedScreen({
+    busy = false,
+    closed = [],
+    onBack,
+    onContinue,
+}: {
+    busy?: boolean
+    /** What the residence or an answer closed of the user's pick, said before the ID check. */
+    closed?: PaperworkVerificationClosedFeature[]
+    onBack?: () => void
+    onContinue: () => void
+}) {
+    const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('answers-saved')
+    const line = ({ feature, reason }: PaperworkVerificationClosedFeature) => {
+        if (t.has(`closed.${feature}.${reason}` as never)) return t(`closed.${feature}.${reason}` as never)
+        const tokens = reason.split(/[._-]/)
+        const category =
+            tokens.includes('nationality') || reason === 'us_citizen_not_supported'
+                ? 'nationality'
+                : /(^|[._-])tax[._-](id|identification_number)([._-]|$)/.test(reason)
+                  ? 'taxId'
+                  : reason.startsWith('residence_') ||
+                      reason === 'country_not_supported' ||
+                      reason === 'us_state_unsupported'
+                    ? 'residence'
+                    : 'default'
+        return t(`closed.${feature}.${category}` as never)
+    }
+    return (
+        <VerifyCelebrationLayout
+            pose="pointing"
+            screenId="answers-saved"
+            statusTone="success"
+            onBack={onBack}
+            celebrate
+            title={t('saved.title')}
+            description={t('saved.description')}
+            footer={
+                <VerifyFooter
+                    actions={primary(
+                        t('continue'),
+                        () => {
+                            controls.track('continue', 'tap')
+                            onContinue()
+                        },
+                        'verify-saved-continue',
+                        busy
+                    )}
+                />
+            }
+        >
+            {closed.length > 0 && (
+                <Callout priority="info" className="w-full text-left" data-testid="verify-closed-features">
+                    {closed.map((c) => (
+                        <span key={c.feature}>{line(c)} </span>
+                    ))}
+                    <span>{t('closed.rest')}</span>
+                </Callout>
+            )}
+        </VerifyCelebrationLayout>
+    )
+}
+
+/**
+ * The ID check failed: what the rejection reasons say and the action they call for (a retry while
+ * the check can still pass, the other account, or support), and Home.
+ */
+export function ReviewScreen({
+    rejection,
+    onHome,
+    onRetry,
+    onContactSupport,
+    onLogIn,
+    busy = false,
+    error,
+    policyHold = false,
+}: {
+    rejection: IdentityRejection
+    onHome: () => void
+    onRetry?: () => void
+    onContactSupport?: () => void
+    onLogIn?: () => void
+    busy?: boolean
+    error?: string | null
+    policyHold?: boolean
+}) {
+    const t = useTranslations('kyc.paperworkVerification')
+    const tRoot = useTranslations()
+    const controls = useKycControl('id-failed')
+    const home = () => {
+        controls.track('home', 'tap')
+        onHome()
+    }
+    const logIn =
+        !onRetry && onLogIn && rejection.action === 'other_account' && rejection.ctaKey
+            ? primary(
+                  tRoot(rejection.ctaKey as never),
+                  () => {
+                      controls.track('log_in', 'tap')
+                      onLogIn()
+                  },
+                  'verify-review-log-in',
+                  false,
+                  'secondary'
+              )
+            : null
+    const support =
+        !onRetry && onContactSupport && rejection.support
+            ? primary(
+                  tRoot('common.contactSupport'),
+                  () => {
+                      controls.track('support', 'tap')
+                      onContactSupport()
+                  },
+                  'verify-review-support'
+              )
+            : null
+    return (
+        <VerifyCelebrationLayout
+            pose="sad"
+            title={t(policyHold ? 'policyHold.title' : onRetry ? 'failed.title' : 'failed.terminalTitle')}
+            description={policyHold ? t('policyHold.description') : tRoot(rejection.descriptionKey as never)}
+            footer={
+                <VerifyFooter
+                    actions={
+                        policyHold ? (
+                            <ReplacementDocumentAction onTap={(action) => controls.track(action, 'tap')} />
+                        ) : onRetry ? (
+                            primary(
+                                tRoot((rejection.ctaKey ?? 'kyc.paperworkVerification.failed.retry') as never),
+                                () => {
+                                    controls.track('retry', 'tap')
+                                    onRetry()
+                                },
+                                'verify-review-retry',
+                                busy
+                            )
+                        ) : logIn || support ? (
+                            <>
+                                {support}
+                                {logIn}
+                            </>
+                        ) : (
+                            primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
+                        )
+                    }
+                    secondary={
+                        policyHold || onRetry || logIn || support
+                            ? primary(t('failed.cta'), home, 'verify-review-home', false, 'secondary')
+                            : undefined
+                    }
+                >
+                    {error && <Callout priority="error">{error}</Callout>}
+                </VerifyFooter>
+            }
+        >
+            {!policyHold && rejection.labels.length > 0 && (
+                <div className="w-full max-w-80 text-left">
+                    <RejectLabelsList rejectLabels={rejection.labels} />
+                </div>
+            )}
+        </VerifyCelebrationLayout>
+    )
+}
+
+/** Add-later is saved: the providers take it from here, and the account rows show their status. */
+export function FeatureReadyScreen({
+    feature,
+    onDone,
+    acknowledgement = false,
+}: {
+    feature: PaperworkVerificationFeature
+    onDone: () => void
+    acknowledgement?: boolean
+}) {
+    const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('feature-ready', 'kyc_status')
+    const tCommon = useTranslations('common')
+    return (
+        <VerifyHeroLayout
+            pose="too-cool"
+            statusTone="warning"
+            title={t(`addLater.doneTitle.${feature}`)}
+            description={t(`addLater.doneDescription.${feature}`)}
+            footer={
+                <VerifyFooter
+                    actions={primary(
+                        acknowledgement ? tCommon('gotIt') : t('addLater.doneCta'),
+                        () => {
+                            controls.track('done', 'tap')
+                            onDone()
+                        },
+                        'verify-feature-done'
+                    )}
+                />
+            }
+        />
+    )
+}
+
+const PROOF_KINDS = [
+    { key: 'bankStatement', icon: 'docs' },
+    { key: 'utilityBill', icon: 'bulb' },
+    { key: 'taxLetter', icon: 'bank' },
+] as const
+
+/**
+ * Rule 1: the ID is from another country than the residence and a bank
+ * account was picked, so Bridge will want a proof of address. Suggested, never
+ * required: Skip leaves no task behind and the bank account still opens.
+ */
+export function ProofOfAddressScreen({
+    residenceName,
+    temporaryProtection = false,
+    uploading,
+    error,
+    onUpload,
+    onSkip,
+}: {
+    residenceName: string
+    /** The approved ID was a temporary protection sheet: the residence's own, so not an ID from abroad. */
+    temporaryProtection?: boolean
+    uploading: boolean
+    error: string | null
+    onUpload: () => void
+    onSkip: () => void
+}) {
+    const t = useTranslations('kyc.paperworkVerification')
+    const controls = useKycControl('poa')
+    return (
+        <VerifyQuestionLayout
+            footer={
+                <VerifyFooter
+                    actions={primary(
+                        t('poa.upload'),
+                        () => {
+                            controls.track('upload', 'tap')
+                            onUpload()
+                        },
+                        'verify-poa-upload',
+                        uploading
+                    )}
+                    secondary={
+                        <LinkButton
+                            onClick={() => {
+                                controls.track('skip', 'tap')
+                                onSkip()
+                            }}
+                            disabled={uploading}
+                            data-testid="verify-poa-skip"
+                        >
+                            {t('poa.skip')}
+                        </LinkButton>
+                    }
+                >
+                    {error && (
+                        <Callout priority="error" className="w-full text-left">
+                            {error}
+                        </Callout>
+                    )}
+                </VerifyFooter>
+            }
+        >
+            <SetupTitleBlock
+                title={t('poa.title')}
+                description={t(temporaryProtection ? 'poa.descriptionTemporaryProtection' : 'poa.description', {
+                    country: residenceName,
+                })}
+                size="m"
+            />
+            <ListGroup>
+                {PROOF_KINDS.map(({ key, icon }) => (
+                    <ListItem
+                        key={key}
+                        title={t(`poa.kinds.${key}`)}
+                        body={t('poa.recent')}
+                        leading={<IconBubble icon={icon} size="s" color="blue" />}
+                    />
+                ))}
+            </ListGroup>
+        </VerifyQuestionLayout>
+    )
+}

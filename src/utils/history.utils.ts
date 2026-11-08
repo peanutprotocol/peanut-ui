@@ -3,7 +3,8 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
-import { getTokenDetails } from '@/utils/general.utils'
+import { getTokenDetails } from '@/utils/token.utils'
+import { loadChainRegistry, needsChainRegistry } from '@/utils/chain-registry'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
@@ -14,7 +15,7 @@ import {
     type DepositReturnReasonCode,
     type TransactionDirection,
 } from '@/components/TransactionDetails/transaction-types'
-import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
+import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -112,6 +113,13 @@ export interface HistoryEntryExtraData {
     // that share an intent kind (ONRAMP / OFFRAMP / BANK_SEND_LINK_CLAIM /
     // GUEST_DIRECT_SEND).
     bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+    /** The API serves this entry on the public receipt page
+     *  (`/receipt/<id>?kind=<kind>`) and its PDF to anyone with the link,
+     *  without the owner-only fields. The API decides it per entry
+     *  (peanut-api-ts `src/routes/user/history-receipt-access.ts`) and sends it
+     *  on the feed and on `GET /history/:entryId`. Absent means no public
+     *  receipt. */
+    publicReceipt?: boolean
     // Request-pot rollup discriminator — single P2P_REQUEST_FULFILL entry
     // that summarises a request pot's contributors rather than an
     // individual fulfilment.
@@ -344,20 +352,24 @@ export function isSettling(entry: Pick<HistoryEntry, 'status' | 'completedAt' | 
     return Number.isFinite(completedAt) && now - completedAt < NETWORK_FEE_SETTLE_WINDOW_MS
 }
 
+/** The public receipt page of an entry, or undefined when the API serves the
+ *  entry to no one but its participants. A stamped action link (a pay or
+ *  claim link) is not a receipt, so it never stands in for one. */
 export function getReceiptUrl(transaction: TransactionDetails, origin?: string): string | undefined {
     const kind = transaction.extraDataForDrawer?.kind
-    // Kinds whose receipt URL is the dedicated /receipt page (shareable,
-    // OG-augmented). SEND_LINK is the deliberate extra over FIAT_RAIL_KINDS —
-    // sendlinks get a receipt page too, but their share *button* is gated by
-    // the txHash branch in useReceiptViewModel, not hasShareableReceipt. All
-    // other kinds fall back to the stamped link.
-    if (kind && hasReceiptPage(transaction)) {
-        return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
-    }
-    if (transaction.extraDataForDrawer?.link) {
-        return transaction.extraDataForDrawer.link
-    }
-    return undefined
+    if (!kind || !hasPublicReceipt(transaction)) return undefined
+    return shareableUrl(`/receipt/${transaction.id}?kind=${kind}`, origin)
+}
+
+/**
+ * A flow that builds its receipt from its own state (a QR payment, a payment
+ * success screen) has no public-receipt flag until the history entry loads.
+ * Copy the API's flag from the entry, so that receipt shares the same link as
+ * the one in Activity.
+ */
+export function withPublicReceipt(receipt: TransactionDetails, entry: HistoryEntry | undefined): TransactionDetails {
+    if (!entry?.extraData?.publicReceipt || !receipt.extraDataForDrawer) return receipt
+    return { ...receipt, extraDataForDrawer: { ...receipt.extraDataForDrawer, publicReceipt: true } }
 }
 
 export function getAvatarUrl(transaction: TransactionDetails): string | undefined {
@@ -457,6 +469,10 @@ export function getTransactionSign(transaction: Pick<TransactionDetails, 'direct
 
 /** Completes a history entry by adding additional data and formatting the amount. */
 export async function completeHistoryEntry(entry: HistoryEntry): Promise<HistoryEntry> {
+    // Receipts name the entry's chain synchronously (transactionTransformer), so
+    // every history row passes here first and loads the chain registry when its
+    // chain needs it. A failed load only leaves the chain name out.
+    if (needsChainRegistry(entry.chainId)) await loadChainRegistry().catch(() => undefined)
     const extraData = entry.extraData ?? {}
     const kind = extraData.kind
     let link: string = ''

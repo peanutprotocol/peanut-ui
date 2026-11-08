@@ -1,4 +1,4 @@
-import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge' // Assuming this path is correct
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge' // Assuming this path is correct
 import Image from 'next/image'
 import React, { useState } from 'react'
 
@@ -7,7 +7,6 @@ interface DisplayIconProps {
     altText: string
     fallbackName: string
     sizeClass?: string
-    badgeSize?: AvatarSize
     className?: string
 }
 
@@ -16,7 +15,6 @@ const DisplayIcon: React.FC<DisplayIconProps> = ({
     altText,
     fallbackName,
     sizeClass = 'h-6 w-6',
-    badgeSize = 's',
     className = '',
 }) => {
     const [imageError, setImageError] = useState(false)
@@ -34,10 +32,11 @@ const DisplayIcon: React.FC<DisplayIconProps> = ({
         )
     }
 
-    // Fallback to AvatarWithBadge
+    // Fallback to AvatarWithBadge. A token or chain, not a person: `sizeClass`
+    // sets the box, and `s` gives the small initials type.
     return (
         <div className={`${sizeClass} flex items-center justify-center rounded-full ${className}`.trim()}>
-            <AvatarWithBadge name={fallbackName} size={badgeSize} className={sizeClass} />
+            <AvatarWithBadge name={fallbackName} size="s" className={sizeClass} />
         </div>
     )
 }

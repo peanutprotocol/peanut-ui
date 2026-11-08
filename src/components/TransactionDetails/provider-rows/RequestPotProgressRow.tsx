@@ -26,7 +26,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
     const isClosedShort = transaction.status === 'closed'
 
     return (
-        <div className="flex w-full flex-col gap-2 py-3">
+        <div className="flex w-full flex-col gap-2 pt-3 pb-1">
             <div className="flex items-center justify-between text-body-s">
                 <span className="text-foreground-primary">
                     {tGlobal('progressBar.contributed', { amount: `$${formatCurrency(potCollected.toString())}` })}
@@ -41,7 +41,7 @@ export function RequestPotProgressRow({ transaction }: { transaction: Transactio
                 no inline style, ratchet-clean; the legacy coin-marker
                 ProgressBar is off-board for receipts */}
             <progress
-                className="h-1 w-full appearance-none overflow-hidden rounded-full bg-background-disabled [&::-moz-progress-bar]:bg-action-primary [&::-webkit-progress-bar]:bg-background-disabled [&::-webkit-progress-value]:bg-action-primary"
+                className="h-1 w-full appearance-none overflow-hidden rounded-full bg-background-disabled [&::-moz-progress-bar]:bg-background-icon-bubble-green [&::-webkit-progress-bar]:bg-background-disabled [&::-webkit-progress-value]:bg-background-icon-bubble-green"
                 value={isSettled ? potGoal : Math.min(potCollected, potGoal)}
                 max={potGoal}
             />

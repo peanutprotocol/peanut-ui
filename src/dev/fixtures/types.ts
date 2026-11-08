@@ -2,6 +2,11 @@
 export type Fixture = {
     /** Route the fixture is built for. The listing page links here with the param applied. */
     route: string
+    /**
+     * Where the app sends the user from `route`, when that screen is the state
+     * under test. The capture opens `route` and shoots once it lands here.
+     */
+    landsOn?: string
     /** What the fixture proves. One line, shown on /dev/fixtures. */
     about: string
     /**
@@ -16,6 +21,8 @@ export type Fixture = {
      * (the Home checklist's "Add money") says it here.
      */
     balance?: string
+    /** ISO 3166-1 alpha-2 country to seed for IP geolocation in screenshots. */
+    geoCountry?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**

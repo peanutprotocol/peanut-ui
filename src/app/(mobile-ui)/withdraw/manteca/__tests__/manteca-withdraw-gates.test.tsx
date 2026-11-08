@@ -1,3 +1,4 @@
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'legacy-user' } } }) }))
 /**
  * Manteca withdraw — submit-time balance/limits gates (Chip review round 5).
  *
@@ -18,6 +19,7 @@ import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-l
 import { registerSpendArtifactMeta, SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // ---------- module-level mocks ----------
 
@@ -33,7 +35,18 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('next-intl', () => ({
-    useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+    useTranslations: (ns: string) => (key: string, values?: { country: string }) => {
+        const messages = jest.requireActual('@/i18n/app/messages/en.json')
+        if (ns === 'withdraw' && key === 'errors.completeAccountSetup')
+            return messages.withdraw.errors.completeAccountSetup
+        if (ns === 'errors' && ['mantecaAccountRejected', 'completeAccountSetup'].includes(key)) {
+            return messages.errors[key]
+        }
+        if (ns === 'errors' && key === 'mantecaAccountRejectedForCountry')
+            return messages.errors[key].replace('{country}', values?.country ?? '')
+        if (ns === 'common' && key === 'contactSupport') return messages.common.contactSupport
+        return `${ns}.${key}`
+    },
     useLocale: () => 'en',
 }))
 
@@ -75,9 +88,22 @@ jest.mock('@/components/0_Bruddle/Card', () => ({
 }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/0_Bruddle/Callout', () => ({
-    Callout: (props: { children?: React.ReactNode }) => <div role="alert">{props.children}</div>,
+    Callout: (props: { children?: React.ReactNode; ctas?: Array<{ label: React.ReactNode; onClick: () => void }> }) => (
+        <div role="alert">
+            {props.children}
+            {props.ctas?.map((cta, index) => (
+                <button key={index} onClick={cta.onClick}>
+                    {cta.label}
+                </button>
+            ))}
+        </div>
+    ),
 }))
-jest.mock('@/components/0_Bruddle/LinkButton', () => ({ LinkButton: () => null }))
+jest.mock('@/components/0_Bruddle/LinkButton', () => ({
+    LinkButton: (props: { onClick?: () => void; children?: React.ReactNode }) => (
+        <button onClick={props.onClick}>{props.children}</button>
+    ),
+}))
 jest.mock('@/components/0_Bruddle/BaseSelect', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
@@ -179,8 +205,21 @@ jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: () => 
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
-jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))
-jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
+let mockKycModal: { visible: boolean; variant?: string; reasonCode?: string; onVerify: () => Promise<void> } | null =
+    null
+jest.mock('@/components/Kyc/InitiateKycModal', () => ({
+    InitiateKycModal: (props: NonNullable<typeof mockKycModal>) => {
+        mockKycModal = props
+        return null
+    },
+}))
+jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
+    SumsubKycWrapper: ({ visible }: { visible: boolean }) => {
+        const { useKycControl } = jest.requireActual('@/features/paperwork-verification/analytics')
+        const { track } = useKycControl('manteca-rfi', 'kyc_legacy')
+        return visible ? <button onClick={() => track('help', 'open')}>RFI help</button> : null
+    },
+}))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => <div data-testid="maintenance" />,
 }))
@@ -245,8 +284,9 @@ jest.mock('@/context/loadingStates.context', () => {
         }),
     }
 })
+const mockOpenSupportWithMessage = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: mockOpenSupportWithMessage }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], nextActions: undefined }),
@@ -254,8 +294,9 @@ jest.mock('@/hooks/useCapabilities', () => ({
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: true }),
 }))
+let mockMantecaRejection: unknown = { state: 'none', userMessage: null }
 jest.mock('@/utils/provider-rejection.utils', () => ({
-    deriveProviderRejection: () => ({ state: 'none', userMessage: null }),
+    deriveProviderRejection: () => mockMantecaRejection,
 }))
 const sumsubFlowStub = {
     isLoading: false,
@@ -273,9 +314,10 @@ const sumsubFlowStub = {
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => sumsubFlowStub,
 }))
+let mockLimitIncreaseOpen = false
 jest.mock('@/hooks/useSumsubActionFlow', () => ({
     useSumsubActionFlow: () => ({
-        showWrapper: false,
+        showWrapper: mockLimitIncreaseOpen,
         accessToken: null,
         isLoading: false,
         handleInitiate: jest.fn(),
@@ -316,9 +358,10 @@ jest.mock('@/features/limits/utils', () => ({
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({ mantecaLimits: null, refetch: jest.fn() }),
 }))
+let mockVerifiedForCountry = true
 jest.mock('@/utils/regions.utils', () => ({
     ...jest.requireActual('@/utils/regions.utils'),
-    isVerifiedForCountry: () => true,
+    isVerifiedForCountry: () => mockVerifiedForCountry,
 }))
 jest.mock('@/hooks/useCurrency', () => ({
     useCurrency: () => ({
@@ -337,10 +380,22 @@ jest.mock('@/services/manteca', () => ({
     },
 }))
 jest.mock('@/utils/friendly-error.utils', () => ({
-    friendlyError: () => ({ kind: 'text' }),
+    friendlyError: (error: unknown) => {
+        const code = error instanceof Error && (error as Error & { code?: string }).code
+        if (code === 'MANTECA_ACCOUNT_REJECTED') return { kind: 'code', code: 'mantecaAccountRejected' }
+        if (code === 'MANTECA_KYC_REQUIRED') return { kind: 'code', code: 'completeAccountSetup' }
+        return { kind: 'text' }
+    },
 }))
 jest.mock('@/hooks/useFriendlyError', () => ({
-    useFriendlyError: () => (err: unknown) => (err instanceof Error ? err.message : String(err)),
+    useFriendlyError: () => (err: unknown) =>
+        err instanceof Error && (err as Error & { code?: string }).code === 'MANTECA_ACCOUNT_REJECTED'
+            ? jest.requireActual('@/i18n/app/messages/en.json').errors.mantecaAccountRejected
+            : err instanceof Error && (err as Error & { code?: string }).code === 'MANTECA_KYC_REQUIRED'
+              ? jest.requireActual('@/i18n/app/messages/en.json').errors.completeAccountSetup
+              : err instanceof Error
+                ? err.message
+                : String(err),
 }))
 jest.mock('@/utils/network-triage', () => ({
     captureNetworkTriagedFailure: jest.fn(),
@@ -363,9 +418,6 @@ jest.mock('@/hooks/useSafeBack', () => ({
 }))
 jest.mock('@/constants/countryCurrencyMapping', () => ({
     getFlagUrl: () => '/flag.png',
-}))
-jest.mock('@/utils/country-name.utils', () => ({
-    localizedCountryTitle: () => 'Argentina',
 }))
 jest.mock('@/i18n/app/loading-states', () => ({
     loadingStateKey: (s: string) => s,
@@ -444,10 +496,27 @@ const clickConfirm = () => fireEvent.click(screen.getByText('navigation.withdraw
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockLimitIncreaseOpen = false
     mockBalance = 100n * 10n ** 6n
     mockUrlAmount = '50'
     mockStepper.step = 'amount'
     Object.assign(mockLimitsValidation, { isBlocking: false, isLoading: false })
+    mockVerifiedForCountry = true
+    mockMantecaRejection = { state: 'none', userMessage: null }
+    mockKycModal = null
+})
+
+it('wraps the limit-increase SDK shell in the provider-request flow, without destination or token data', () => {
+    mockLimitIncreaseOpen = true
+    render(<MantecaWithdrawFlow />)
+    fireEvent.click(screen.getByRole('button', { name: 'RFI help' }))
+    expect(mockPosthogCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+        [
+            ANALYTICS_EVENTS.CONTROL_USED,
+            { flow: 'kyc_provider_request', screen_id: 'manteca-rfi', control: 'help', action: 'open' },
+        ],
+    ])
+    expect(JSON.stringify(mockPosthogCapture.mock.calls)).not.toContain('0000003100010000000001')
 })
 
 // ---------- tests ----------
@@ -464,6 +533,105 @@ describe('manteca withdraw — Back without history', () => {
 })
 
 describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
+    const rejected = () =>
+        Object.assign(
+            new Error('KYC_REQUIRED: Manteca closed this account for deposits and withdrawals in this country'),
+            { code: 'MANTECA_ACCOUNT_REJECTED', status: 403 }
+        )
+
+    it('a rejected initial quote shows terminal support guidance and makes no signature or second quote', async () => {
+        mockInitiateWithdraw.mockResolvedValue({ error: rejected().message, code: 'MANTECA_ACCOUNT_REJECTED' })
+        mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        fireEvent.click(screen.getByText('common.continue'))
+
+        await waitFor(() =>
+            expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        )
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+        expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+        expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: /contact support/i }))
+        expect(mockOpenSupportWithMessage).toHaveBeenCalled()
+    })
+
+    it('a rejected signed submission is terminal and opens support without retry or KYC', async () => {
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: '0xsigned', chainId: '42161', entryPointAddress: '0xep' },
+        })
+        mockWithdrawWithSignedTx.mockResolvedValue({ error: rejected().message, code: 'MANTECA_ACCOUNT_REJECTED' })
+        await reachReview()
+        clickConfirm()
+
+        await waitFor(() =>
+            expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        )
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
+        expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+        expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: /contact support/i }))
+        expect(mockOpenSupportWithMessage).toHaveBeenCalled()
+    })
+
+    it('a rejected recovery quote is terminal and does not sign or submit again', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('price lock expired')))
+        await reachReview()
+        mockInitiateWithdraw.mockResolvedValueOnce({ error: rejected().message, code: 'MANTECA_ACCOUNT_REJECTED' })
+        mockInitiateWithdraw.mockClear()
+
+        clickConfirm()
+
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        expect(await screen.findByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+        expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('MANTECA_KYC_REQUIRED on the initial quote retains account-setup advice', async () => {
+        mockInitiateWithdraw.mockResolvedValue({ error: 'MANTECA_KYC_REQUIRED', code: 'MANTECA_KYC_REQUIRED' })
+        mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        fireEvent.click(screen.getByText('common.continue'))
+
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        expect(
+            await screen.findByText('Please complete your account setup. Go to Settings to update your profile.')
+        ).toBeInTheDocument()
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+        expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('MANTECA_KYC_REQUIRED on submission retains account-setup advice', async () => {
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: '0xsigned', chainId: '42161', entryPointAddress: '0xep' },
+        })
+        mockWithdrawWithSignedTx.mockResolvedValue({ error: 'MANTECA_KYC_REQUIRED', code: 'MANTECA_KYC_REQUIRED' })
+        await reachReview()
+        clickConfirm()
+
+        expect(
+            await screen.findByText('Please complete your account setup. Go to Settings to update your profile.')
+        ).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1)
+        expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+        expect(sumsubFlowStub.handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
     it('all gates clear: the withdraw fires once with the locked price and amount', async () => {
         mockSignSpend.mockResolvedValue({
             strategy: 'smart-only',
@@ -1096,4 +1264,54 @@ describe('manteca withdraw — exact typed amount (TASK-23997)', () => {
         view.rerender(<MantecaWithdrawFlow />)
         expect(screen.getByText('errors.notEnoughBalanceAddFunds')).toBeInTheDocument()
     })
+})
+
+// The rail the API sends when Manteca's onboarding ID check failed or the ID expired: a step, carrying the restart.
+describe('manteca withdraw — Manteca asks for a new ID', () => {
+    const { deriveProviderRejection } = jest.requireActual('@/utils/provider-rejection.utils')
+
+    it.each(['id_expired', 'id_verification_failed'])(
+        'an ID Manteca asks for again (%s) opens the identity restart from the withdraw gate, never a resubmit',
+        async (reason) => {
+            const restart = { key: 'restart-identity', kind: 'restart-identity', purpose: reason }
+            const rail = {
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                method: 'BANK_TRANSFER_AR',
+                channel: 'bank',
+                country: 'AR',
+                currency: 'ARS',
+                status: 'requires-info',
+                blockingActions: [restart.key],
+                reason: { code: reason, userMessage: 'Your ID has expired.' },
+                resolved: {
+                    status: 'blocked',
+                    blocking: {
+                        code: reason,
+                        userMessage: 'Your ID has expired.',
+                        selfHealable: true,
+                        selfHealKind: 'restart-identity',
+                    },
+                    nextAction: restart,
+                },
+            }
+            mockMantecaRejection = deriveProviderRejection([rail], 'MANTECA', [restart])
+            mockVerifiedForCountry = false
+            mockStepper.step = 'bank-details'
+            const view = render(<MantecaWithdrawFlow />)
+            fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+            fireEvent.click(screen.getByText('common.continue'))
+            mockStepper.step = 'amount'
+            view.rerender(<MantecaWithdrawFlow />)
+            fireEvent.click(screen.getByText('common.continue'))
+
+            await waitFor(() => expect(mockKycModal?.visible).toBe(true))
+            expect(mockKycModal).toMatchObject({ variant: 'restart_identity', reasonCode: reason })
+            await act(() => mockKycModal!.onVerify())
+            expect(sumsubFlowStub.handleRestartIdentity).toHaveBeenCalled()
+            expect(sumsubFlowStub.handleFixableRejection).not.toHaveBeenCalled()
+            expect(sumsubFlowStub.handleSelfHealResubmit).not.toHaveBeenCalled()
+            expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+        }
+    )
 })

@@ -1,3 +1,15 @@
+/** the identity the profile reports; the hub reads a final rejection off it */
+let mockIdentity: { status: IdentityVerificationStatus; reason?: { code: string; userMessage: string } } | undefined
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
+            identityVerification: mockIdentity,
+        },
+    }),
+    useOptionalAuth: () => null,
+}))
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
@@ -6,11 +18,17 @@ import ptMessages from '@/i18n/app/messages/pt-BR.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import { DepositAccountsListScreen } from '../components/DepositAccountsListScreen'
-import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
+import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord, railIdFor } from '../rails'
 import { holdsSlot } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
-import type { GateState } from '@/utils/capability-gate'
+import { capabilityStateForProfile, deriveGate, type GateState } from '@/utils/capability-gate'
+import type { IUserProfile } from '@/interfaces/interfaces'
 import type { BankRowsInput } from '@/utils/unlock-payments.utils'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import { closeRefusedCorridors } from '../reportClosures'
+import { accountEntry, entryChip } from '@/features/kyc-features/report'
+import type { BankRowKey } from '@/utils/unlock-payments.utils'
+import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
@@ -69,11 +87,59 @@ jest.mock('../useDepositAccountsEnabled', () => ({
 
 /** the bank rows Accounts and payments shows too, from the real builder */
 const UNLOCK_ALL = { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' } as const
-let mockBankInput: BankRowsInput
+let mockBankInput: BankRowsInput & { restrictions: { banking: boolean; card: boolean } }
 jest.mock('@/hooks/useBankRows', () => ({
-    useBankRows: () => ({
-        rows: jest.requireActual('@/utils/unlock-payments.utils').buildBankRows(mockBankInput),
-    }),
+    useBankRows: () => {
+        const specs = [
+            ['brl', 'manteca', 'PIX_BR', 'BR', 'BRL'],
+            ['ars', 'manteca', 'BANK_TRANSFER_AR', 'AR', 'ARS'],
+            ['usd', 'bridge', 'ACH_US', 'US', 'USD'],
+            ['mxn', 'bridge', 'SPEI_MX', 'MX', 'MXN'],
+            ['sepa', 'bridge', 'SEPA_EU', 'EU', 'EUR'],
+        ] as const
+        const rails: RailCapability[] = specs
+            .filter(([key]) => mockBankInput.bankChips[key] === 'active')
+            .map(([, provider, method, country, currency]) => ({
+                id: `${provider}.${method.toLowerCase()}`,
+                provider,
+                method,
+                channel: 'bank',
+                country,
+                currency,
+                status: 'enabled',
+            }))
+        const capabilities = withFeatureReport(
+            { rails, nextActions: [] },
+            {
+                identity: mockIdentity ?? { status: 'verified' },
+                residence: mockBankInput.residenceIso2,
+                restrictions: {
+                    banking: mockBankInput.restrictions.banking
+                        ? { code: 'residence_bank_restricted', userMessage: '' }
+                        : null,
+                    card: mockBankInput.restrictions.card,
+                },
+                planReasons: mockBankInput.restrictions.banking ? { manteca: 'residence_bank_restricted' } : {},
+            }
+        )
+        const entries = specs.map(
+            ([key, provider, , , currency]) =>
+                [key, accountEntry(capabilities.features!, provider === 'bridge' ? 'bank' : 'local', currency)] as const
+        )
+        const input: BankRowsInput = {
+            ...mockBankInput,
+            bankChips: Object.fromEntries(
+                entries.map(([key, entry]) => [key, entryChip(entry, [])])
+            ) as BankRowsInput['bankChips'],
+            closedBecause: Object.fromEntries(
+                entries.map(([key, entry]) => [
+                    key,
+                    entry.reason === 'local_residence_unsupported' ? 'residence' : 'restricted-country',
+                ])
+            ) as Partial<Record<BankRowKey, 'residence' | 'restricted-country'>>,
+        }
+        return { rows: jest.requireActual('@/utils/unlock-payments.utils').buildBankRows(input) }
+    },
 }))
 
 // the drawer names card issuing from the same restrictions the rows read
@@ -84,6 +150,7 @@ jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilS
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockIdentity = undefined
     brazilPaused = false
     closeBrazilPausedDrawer()
     depositAccountsEnabled = true
@@ -91,6 +158,7 @@ beforeEach(() => {
     mockIsCountrySupported.mockReturnValue(true)
     mockBankInput = {
         bankChips: UNLOCK_ALL,
+        closedBecause: {},
         restrictions: { banking: false, card: false },
         residenceIso2: 'BR',
         isEuropeResidence: false,
@@ -468,7 +536,7 @@ describe('an account the user could open', () => {
         expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
     })
 
-    it.each([['needs-identity'], ['fixable-rejection'], ['restart-identity']] as const)(
+    it.each([['needs-identity'], ['restart-identity']] as const)(
         'names verification and leads to it when the gate reads %s',
         (kind) => {
             const onOpen = jest.fn()
@@ -483,6 +551,53 @@ describe('an account the user could open', () => {
             expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
         }
     )
+
+    // a verified user whose provider asks for one more thing is never sent back to "Verify ID"
+    it('names the provider ask, not the identity, when the gate reads fixable-rejection', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
+            onOpen,
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
+    })
+
+    it('keeps asking for the provider ask while the backend says the review waits on the user', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
+            claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-required') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeUnderReview)).not.toBeInTheDocument()
+    })
+
+    it('keeps an actionable gate ahead of the provider-review badge, as the tap destination does', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates({ kind: 'fixable-rejection', userMessage: null }),
+            claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-pending') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeUnderReview)).not.toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+    })
+
+    it('says Verify ID where the backend withholds the corridor until the identity is verified', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            unavailable: { SEPA_EU: withheld('SEPA_EU', 'identity-required') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeVerifyId)).toBeInTheDocument()
+    })
 
     /*
      * At the account limit the tap explains the limit and offers support (the
@@ -500,7 +615,7 @@ describe('an account the user could open', () => {
         search('mxn')
 
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
-        expect(inRow(container, 'SPEI_MX').queryByText('Available')).not.toBeInTheDocument()
+        expect(inRow(container, 'SPEI_MX').queryByText('Active')).not.toBeInTheDocument()
         fireEvent.click(rowOf(container, 'SPEI_MX') as HTMLElement)
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
@@ -514,9 +629,21 @@ describe('an account the user could open', () => {
             },
         })
 
-        expect(inRow(container, 'BANK_TRANSFER_CO').getByText('Pending')).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText(LIST.badgeUnderReview)).toBeInTheDocument()
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
     })
+
+    it.each([['pending'], ['waiting-on-provider']] as const)(
+        'says Under review for a provider review in progress when the gate reads %s',
+        (kind) => {
+            const { container } = list(false, {
+                gates: allGates({ kind, userMessage: null } as GateState),
+                claimable: { SEPA_EU: offered('SEPA_EU', 'endorsement-pending') },
+            })
+
+            expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeUnderReview)).toBeInTheDocument()
+        }
+    )
 
     it('points at support where the backend says only a person can open it', () => {
         const onOpen = jest.fn()
@@ -566,14 +693,60 @@ describe('a withheld account with the cause the backend names', () => {
         expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
 
-    it('sends a closed review to support', () => {
+    it('shows an account still being opened after verification as setting up, not as "not available"', () => {
         const { container } = list(false, {
-            unavailable: { ACH_US: withheld('ACH_US', 'support-required', 'review-closed') },
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'setup-pending') },
         })
 
-        expect(
-            within(rowOf(container, 'ACH_US') as HTMLElement).getByText(messages.common.contactSupport)
-        ).toBeInTheDocument()
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeSettingUp)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+    })
+
+    it('offers normal setup for a picked feature whose provider onboarding has not started', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'not_started') },
+            onOpen,
+        })
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeSetUp)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeSettingUp)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
+    })
+
+    it('keeps the MXN support action when the feature report refuses a closed review', () => {
+        const { features } = withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } })
+        const report = {
+            ...features!,
+            bank: {
+                ...features!.bank,
+                accounts: {
+                    ...features!.bank.accounts,
+                    MXN: { state: 'refused' as const, reason: 'provider_rejected' },
+                },
+            },
+        }
+        const onOpen = jest.fn()
+        const { unavailable } = closeRefusedCorridors(report, [], {
+            accounts: NONE,
+            claimable: emptyCorridorRecord<ClaimableCorridor>(),
+            unavailable: {
+                ...emptyCorridorRecord<UnavailableCorridor>(),
+                SPEI_MX: withheld('SPEI_MX', 'support-required', 'review-closed'),
+            },
+        })
+        const { container } = list(false, {
+            unavailable: { SPEI_MX: unavailable.SPEI_MX },
+            onOpen,
+        })
+
+        const row = rowOf(container, 'SPEI_MX') as HTMLElement
+        expect(within(row).getByText(messages.common.contactSupport)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('SPEI_MX')
     })
 
     it('says a restricted residence plainly, with no support and no "or not yet"', () => {
@@ -602,6 +775,229 @@ describe('a withheld account with the cause the backend names', () => {
         expect(drawer().getByText(LIST.notOpenBody.replace('{currency}', 'GBP'))).toBeInTheDocument()
         expect(drawer().queryByText(LIST.residenceMissingBody.replace('{currency}', 'GBP'))).not.toBeInTheDocument()
         expect(drawer().queryByRole('button', { name: 'Update residence' })).not.toBeInTheDocument()
+    })
+})
+
+/*
+ * Smoke test 2026-11-05: after a Sumsub-only rejection every account row
+ * turned from "Verify ID" to "Not available", and the tap said "We cannot
+ * open … Support can check why". A rejected identity is something support can
+ * review, so the rows say Action needed and the tap leads where the Home
+ * "Verification issue" card does: support, with the rejection in the prefill.
+ * A residence refusal is still Not available.
+ */
+describe('a rejected identity', () => {
+    const ACCOUNT_CORRIDORS: DepositCorridor[] = [
+        'SEPA_EU',
+        'FASTER_PAYMENTS_GB',
+        'ACH_US',
+        'SPEI_MX',
+        'BANK_TRANSFER_CO',
+    ]
+    const ISSUE = messages.home.activation.verificationIssue
+
+    /** the gates the app derives from the report the API sends for this identity */
+    const reportGates = (identity: NonNullable<typeof mockIdentity>, residence = 'DE') => {
+        const capabilities = withFeatureReport({ rails: [], nextActions: [] }, { identity, residence })
+        const state = capabilityStateForProfile(
+            { identityVerification: identity, capabilities } as unknown as IUserProfile,
+            false
+        )
+        return corridorRecord((corridor) => deriveGate(state, 'deposit', { railId: railIdFor(corridor) }))
+    }
+    /** the backend's answer for every account corridor of a failed identity */
+    const supportRequired = () =>
+        Object.fromEntries(ACCOUNT_CORRIDORS.map((corridor) => [corridor, withheld(corridor, 'support-required')]))
+
+    const contactSupport = () => {
+        jest.useFakeTimers()
+        fireEvent.click(drawer().getByRole('button', { name: messages.common.contactSupport }))
+        jest.runAllTimers()
+        jest.useRealTimers()
+    }
+
+    it.each([
+        ['the backend withholds them for support', supportRequired],
+        ['the backend names nothing', () => ({})],
+    ])('says Action needed on every account, where %s', (_, unavailable) => {
+        mockIdentity = { status: 'failed' }
+        const { container } = list(false, { gates: reportGates(mockIdentity), unavailable: unavailable() })
+
+        for (const corridor of ACCOUNT_CORRIDORS) {
+            const row = inRow(container, corridor)
+            expect(row.getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+            expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+            expect(row.queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+            expect(row.queryByText(messages.common.contactSupport)).not.toBeInTheDocument()
+        }
+    })
+
+    /*
+     * mono#339 4a: a final rejection ends the approved residence, and the API
+     * refused every corridor on it, so each row read Not available. The API
+     * now names the identity (`identity-rejected`), and the rows follow it.
+     */
+    describe('when the backend names the identity', () => {
+        const identityRejected = () =>
+            Object.fromEntries(
+                ACCOUNT_CORRIDORS.map((corridor) => [
+                    corridor,
+                    withheld(corridor, 'support-required', 'identity-rejected'),
+                ])
+            )
+
+        it.each([
+            ['the profile reports the rejection', { status: 'failed' } as const],
+            ['the profile has not caught up', undefined],
+        ])('says Action needed on every account, where %s', (_, identity) => {
+            mockIdentity = identity
+            const { container } = list(false, {
+                gates: identity ? reportGates(identity) : allGates(),
+                unavailable: identityRejected(),
+            })
+
+            for (const corridor of ACCOUNT_CORRIDORS) {
+                const row = inRow(container, corridor)
+                expect(row.getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+                expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+                expect(row.queryByText(messages.common.contactSupport)).not.toBeInTheDocument()
+            }
+        })
+
+        /*
+         * Chip on ui#3979: useDepositAccounts lays the feature report over these
+         * answers, and a refusal with no action in it used to turn every row into
+         * a residence closure: Not available, and the residence explanation.
+         */
+        it.each([
+            ['names the identity', identityRejected],
+            ['predates that cause and asks for support', supportRequired],
+        ])('keeps Action needed under the feature report when the API %s', (_, answers) => {
+            mockIdentity = { status: 'failed', reason: { code: 'duplicate_account', userMessage: '' } }
+            const { features } = withFeatureReport({ rails: [], nextActions: [] }, { identity: mockIdentity })
+            const { claimable, unavailable } = closeRefusedCorridors(features, [], {
+                accounts: NONE,
+                claimable: emptyCorridorRecord<ClaimableCorridor>(),
+                unavailable: { ...emptyCorridorRecord<UnavailableCorridor>(), ...answers() },
+            })
+            const { container } = list(false, {
+                gates: reportGates(mockIdentity),
+                claimable: claimable as Partial<Record<DepositCorridor, ClaimableCorridor>>,
+                unavailable: unavailable as Partial<Record<DepositCorridor, UnavailableCorridor>>,
+            })
+
+            for (const corridor of ACCOUNT_CORRIDORS) {
+                expect(unavailable[corridor]?.reason).toBe('support-required')
+                const row = inRow(container, corridor)
+                expect(row.getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+                expect(row.queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+            }
+            fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+            expect(drawer().getByText(messages.identity.reasons.duplicate_account)).toBeInTheDocument()
+        })
+
+        it('opens the rejection drawer, and support gets the reason', () => {
+            mockIdentity = { status: 'failed', reason: { code: 'duplicate_account', userMessage: '' } }
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates: reportGates(mockIdentity),
+                unavailable: identityRejected(),
+                onOpen,
+            })
+
+            fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+            expect(onOpen).not.toHaveBeenCalled()
+            expect(drawer().getByText(messages.identity.reasons.duplicate_account)).toBeInTheDocument()
+            expect(
+                drawer().queryByText(LIST.residenceRestrictedBody.replace('{currency}', 'EUR'))
+            ).not.toBeInTheDocument()
+
+            contactSupport()
+            expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('reason: duplicate_account'))
+        })
+    })
+
+    it('sends the tap to support with the rejection in the prefill, as the Home card does', () => {
+        mockIdentity = { status: 'failed', reason: { code: 'sumsub_final_rejection', userMessage: '' } }
+        const onOpen = jest.fn()
+        const { container } = list(false, { gates: reportGates(mockIdentity), onOpen })
+
+        fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+        expect(onOpen).not.toHaveBeenCalled()
+        expect(drawer().getByText(ISSUE.title)).toBeInTheDocument()
+        expect(drawer().getByText(messages.kyc.rejectActions.contact_support.description)).toBeInTheDocument()
+        expect(drawer().queryByText(LIST.notOfferedBody.replace('{currency}', 'EUR'))).not.toBeInTheDocument()
+
+        contactSupport()
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('reason: sumsub_final_rejection'))
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('user: legacy-user'))
+    })
+
+    it('names a duplicate account and asks support to look at both accounts', () => {
+        mockIdentity = { status: 'action_required', reason: { code: 'duplicate_account', userMessage: '' } }
+        const { container } = list(false, { gates: reportGates(mockIdentity) })
+
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
+        expect(drawer().getByText(messages.identity.reasons.duplicate_account)).toBeInTheDocument()
+
+        contactSupport()
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('reason: duplicate_account'))
+    })
+
+    it('never asks a finally rejected user to verify again', () => {
+        mockIdentity = { status: 'failed' }
+        const { container } = list(false, {
+            gates: allGates({ kind: 'needs-identity' }),
+            unavailable: { SEPA_EU: withheld('SEPA_EU', 'identity-required') },
+        })
+
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(screen.queryByText(LIST.badgeVerifyId)).not.toBeInTheDocument()
+    })
+
+    it('keeps Not available for a residence refusal beside it', () => {
+        mockIdentity = { status: 'failed' }
+        const residenceRefused: GateState = {
+            kind: 'blocked-rejection',
+            userMessage: null,
+            reason: { code: 'residence_bank_restricted', userMessage: '' },
+        }
+        const { container } = list(false, {
+            gates: { ...reportGates(mockIdentity), FASTER_PAYMENTS_GB: residenceRefused },
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'residence-restricted') },
+        })
+
+        expect(inRow(container, 'FASTER_PAYMENTS_GB').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+    })
+
+    it('keeps a jurisdictional rejection of the ID a residence answer', () => {
+        mockIdentity = { status: 'failed', reason: { code: 'identity_region_restricted', userMessage: '' } }
+        const { container } = list(false, { gates: reportGates(mockIdentity) })
+
+        for (const corridor of ACCOUNT_CORRIDORS) {
+            expect(inRow(container, corridor).getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText(LIST.badgeActionNeeded)).not.toBeInTheDocument()
+        }
+    })
+
+    it('says the same on the bank rows: Action needed for the identity, Not available for the residence', () => {
+        mockIdentity = { status: 'failed' }
+        mockBankInput = { ...mockBankInput, residenceIso2: 'BR' }
+        list(false, { gates: reportGates(mockIdentity, 'BR') })
+
+        const ROWS = messages.profile.unlockPayments.chips
+        expect(within(bankRow('brl')).getByText(ROWS.attention)).toBeInTheDocument()
+        expect(within(bankRow('ars')).getByText(ROWS.notAvailable)).toBeInTheDocument()
+
+        fireEvent.click(bankRow('brl'))
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(drawer().getByText(ISSUE.title)).toBeInTheDocument()
+        contactSupport()
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('reason: identity_rejected'))
     })
 })
 
@@ -652,7 +1048,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(link)
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/settings/details?open=residence', HUB_RETURN))
         expect(mockOpenSupport).not.toHaveBeenCalled()
     })
 
@@ -690,7 +1086,7 @@ describe('a row the user cannot use', () => {
         fireEvent.click(drawer().getByRole('button', { name: messages.depositAccounts.details.residenceCta }))
         jest.runAllTimers()
         jest.useRealTimers()
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/profile/accounts?open=residence', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/settings/details?open=residence', HUB_RETURN))
     })
 
     it('says bank transfers and the card are closed where the country of residence closes both', () => {
@@ -726,7 +1122,7 @@ describe('the other ways in', () => {
         const section = within(screen.getByTestId('other-ways'))
         expect(section.getByRole('heading', { name: LIST.otherWaysTitle })).toBeInTheDocument()
         expect(section.getByText(LIST.otherWaysBody)).toBeInTheDocument()
-        expect(within(bankRow('brl')).getByText('Available')).toBeInTheDocument()
+        expect(within(bankRow('brl')).getByText('Active')).toBeInTheDocument()
         // C16: USD is listed to open above, with its own status; a second USD
         // row down here could only say it again in other words
         expect(screen.queryByTestId('bank-row-usd')).not.toBeInTheDocument()

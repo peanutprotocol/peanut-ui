@@ -1,4 +1,5 @@
 import { chromium, devices, expect, type Request } from '@playwright/test'
+import { hasInvalidNumericUi } from './numeric-ui.mjs'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { release } from 'node:os'
@@ -7,16 +8,20 @@ import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
+import { answerRpc, isChainRpc, isRhinoTokenConfigs } from './rpc'
+import { freezeDate } from './freeze-date.mjs'
+import { FLAG_READERS, FLAG_RECORDER_MARKER, installFlagRecorder } from './flag-recorder.mjs'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
-import { fixtureIdentityFiles } from './capture-impact.mjs'
-import { knownNonvisual } from './capture-plan.mjs'
+import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
 import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { captureProfile } from './capture-profiles.mjs'
 import { installCaptureSafeArea } from './capture-safe-area.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
-import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
+import { COPY_EVIDENCE_SCRIPT, COPY_RECORDER_MARKER, installCopyRecorder } from './copy-recorder.mjs'
+import { shownCopyKeys } from './copy-coverage.mjs'
+import { remoteOptimizedCaptureImage } from './capture-images.mjs'
 import {
     CAPTURE_STATIC_CSS,
     FIXTURE_BANNER_CANDIDATE_SELECTOR,
@@ -26,6 +31,7 @@ import {
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
+import { waitForFixtureReady } from './fixture-readiness.mjs'
 
 async function main() {
     const arg = (name: string, fallback = '') =>
@@ -77,6 +83,15 @@ async function main() {
     )
         throw new Error('Running server does not identify the requested build')
     const historical = arg('historical') === 'true'
+    const intlCore = join(source, 'src/i18n/app/IntlCore.tsx')
+    const copyRecording =
+        existsSync(intlCore) && readFileSync(intlCore, 'utf8').includes(COPY_RECORDER_MARKER)
+            ? 'recorded'
+            : 'unavailable'
+    const flagsSettable = FLAG_READERS.every(({ path }) => {
+        const file = join(source, path)
+        return existsSync(file) && readFileSync(file, 'utf8').includes(FLAG_RECORDER_MARKER)
+    })
     const assets = join(out, 'assets')
     mkdirSync(assets, { recursive: true })
     const walk = (p: string): string[] =>
@@ -132,14 +147,7 @@ async function main() {
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     const harness = identity(harnessIdentityFiles())
-    const fixtures = identity(
-        fixtureIdentityFiles([
-            ...walk('src/dev/fixtures').filter((path) => !knownNonvisual(path)),
-            'src/utils/demo-api.ts',
-            'src/constants/demo-data.ts',
-            'src/constants/residence.consts.ts',
-        ])
-    )
+    const fixtures = identity(fixtureIdentityFiles(fixtureRootFiles(walk('src/dev/fixtures'))))
     const manifest = () => {
         const capture = {
             schema: 1,
@@ -154,6 +162,7 @@ async function main() {
             adapter: ADAPTER_VERSION,
             capturedAt: new Date().toISOString(),
             reconstruction: historical,
+            copyRecording,
             profile: `${captureLocale}-${profile.name}`,
             width: profile.width,
             height: profile.height,
@@ -193,7 +202,8 @@ async function main() {
                 (screen.route.startsWith('/dev/surfaces') &&
                     !knownSurfaces.includes(new URL(screen.route, base).searchParams.get('s') ?? screen.id)) ||
                 (selected.length && !selected.includes(screen.id)) ||
-                (historical && screen.kind === 'component')
+                (historical && screen.kind === 'component') ||
+                (screen.flags && !flagsSettable)
             ) {
                 results.push({
                     ...metadata,
@@ -207,6 +217,9 @@ async function main() {
                         (screen.route.startsWith('/dev/surfaces') &&
                         !knownSurfaces.includes(new URL(screen.route, base).searchParams.get('s') ?? screen.id)
                             ? 'This revision has no compatible scenario harness for this component; no newer product code was copied'
+                            : undefined) ??
+                        (screen.flags && !flagsSettable
+                            ? 'This revision cannot set PostHog flags in a capture'
                             : undefined) ??
                         (selected.length
                             ? 'Not selected in this diagnostic run'
@@ -235,31 +248,38 @@ async function main() {
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
-                await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
-                await page.addInitScript((locale) => {
-                    ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
-                    // A constant draw is independent of unrelated startup call order.
-                    Math.random = () => 0.42
-                    document.addEventListener(
-                        'play',
-                        (event) => {
-                            const video = event.target
-                            if (video instanceof HTMLVideoElement && !video.srcObject) video.pause()
-                        },
-                        true
-                    )
-                    sessionStorage.removeItem('showNoMoreJailModal')
-                    localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00Z')
-                    localStorage.setItem(
-                        'demo-user:user-preferences',
-                        JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
-                    )
-                    sessionStorage.setItem('user_geo_country_code', 'DE')
-                    sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
-                    document.cookie = 'jwt-token=fixture; path=/'
-                    document.cookie = `app-locale=${locale}; path=/`
-                    document.cookie = `NEXT_LOCALE=${locale}; path=/`
-                }, captureLocale)
+                if (copyRecording === 'recorded') await page.addInitScript(installCopyRecorder)
+                // Freeze Date only: Playwright's clock also replaces the page's timers, which held React
+                // Query's update delivery for seconds and let a screen settle after it was captured.
+                await page.addInitScript(freezeDate, Date.parse('2026-09-01T12:00:00Z'))
+                if (flagsSettable) await page.addInitScript(installFlagRecorder, screen.flags ?? {})
+                await page.addInitScript(
+                    ({ locale, geoCountry }) => {
+                        ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
+                        // A constant draw is independent of unrelated startup call order.
+                        Math.random = () => 0.42
+                        document.addEventListener(
+                            'play',
+                            (event) => {
+                                const video = event.target
+                                if (video instanceof HTMLVideoElement && !video.srcObject) video.pause()
+                            },
+                            true
+                        )
+                        sessionStorage.removeItem('showNoMoreJailModal')
+                        localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00Z')
+                        localStorage.setItem(
+                            'demo-user:user-preferences',
+                            JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
+                        )
+                        sessionStorage.setItem('user_geo_country_code', geoCountry)
+                        sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
+                        document.cookie = 'jwt-token=fixture; path=/'
+                        document.cookie = `app-locale=${locale}; path=/`
+                        document.cookie = `NEXT_LOCALE=${locale}; path=/`
+                    },
+                    { locale: captureLocale, geoCountry: screen.geoCountry ?? 'DE' }
+                )
                 if (screen.camera)
                     await page.addInitScript((mode) => {
                         // A stationary synthetic camera frame keeps app-owned scanner UI
@@ -290,8 +310,14 @@ async function main() {
                     try {
                         const request = route.request(),
                             url = new URL(request.url())
+                        if (screen.geoCountry && url.pathname.endsWith('/api/geo-country')) {
+                            return await route.fulfill({
+                                json: { country: screen.geoCountry },
+                                headers: { 'access-control-allow-origin': '*' },
+                            })
+                        }
                         if (url.origin === base.origin && url.pathname === '/crisp-proxy')
-                            return route.fulfill({
+                            return await route.fulfill({
                                 status: 200,
                                 contentType: 'text/html',
                                 body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
@@ -301,7 +327,7 @@ async function main() {
                             const range = request.headers().range
                             const match = range?.match(/^bytes=(\d+)-(\d*)$/)
                             if (!match) {
-                                return route.fulfill({
+                                return await route.fulfill({
                                     status: 200,
                                     headers: {
                                         'accept-ranges': 'bytes',
@@ -314,11 +340,11 @@ async function main() {
                             const start = Number(match[1])
                             const end = Math.min(match[2] ? Number(match[2]) : media.length - 1, media.length - 1)
                             if (start > end || start >= media.length)
-                                return route.fulfill({
+                                return await route.fulfill({
                                     status: 416,
                                     headers: { 'content-range': `bytes */${media.length}` },
                                 })
-                            return route.fulfill({
+                            return await route.fulfill({
                                 status: 206,
                                 headers: {
                                     'accept-ranges': 'bytes',
@@ -327,6 +353,30 @@ async function main() {
                                     'content-type': 'video/quicktime',
                                 },
                                 body: media.subarray(start, end + 1),
+                            })
+                        }
+                        if (isRhinoTokenConfigs(url.href))
+                            return await route.fulfill({
+                                status: 200,
+                                headers: { 'access-control-allow-origin': '*' },
+                                contentType: 'application/json',
+                                body: '{}',
+                            })
+                        if (isChainRpc(url.href)) {
+                            const cors = {
+                                'access-control-allow-origin': '*',
+                                'access-control-allow-headers': '*',
+                                'access-control-allow-methods': 'POST, OPTIONS',
+                            }
+                            if (request.method() === 'OPTIONS')
+                                return await route.fulfill({ status: 204, headers: cors })
+                            const rpc = answerRpc(url.href, screen.fixture, request.postData() ?? '')
+                            for (const call of rpc.unmapped) unknown.add(call)
+                            return await route.fulfill({
+                                status: 200,
+                                headers: cors,
+                                contentType: 'application/json',
+                                body: rpc.body,
                             })
                         }
                         // All API transports, including local same-origin test API, use synthetic answers.
@@ -358,14 +408,14 @@ async function main() {
                             }
                             return
                         }
-                        if (isRemoteOptimizedImage(url.href, base.origin)) {
+                        const captureImage = remoteOptimizedCaptureImage(url.href, base.origin)
+                        if (captureImage) {
                             // Next's same-origin optimizer otherwise reaches the public internet on behalf of
                             // remote image URLs. Keep capture independent of third-party CDN latency/failures.
-                            return route.fulfill({
+                            return await route.fulfill({
                                 status: 200,
-                                contentType: 'image/svg+xml',
                                 headers: { 'cache-control': 'public, max-age=31536000, immutable' },
-                                body: REMOTE_IMAGE_PLACEHOLDER,
+                                ...captureImage,
                             })
                         }
                         if (
@@ -384,25 +434,29 @@ async function main() {
                                     maxRedirects: 0,
                                     maxRetries: 2,
                                 })
-                                if (!response.ok()) return route.fulfill({ response })
+                                if (!response.ok()) return await route.fulfill({ response })
                                 bytes = await sharp(await response.body(), { animated: false })
                                     .png()
                                     .toBuffer()
                                 stillImages.set(url.href, bytes)
                             }
-                            return route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
+                            return await route.fulfill({ status: 200, contentType: 'image/png', body: bytes })
                         }
                         // The receipt pdf route reads the entry server side, past the synthetic API, so a
                         // fixture never resolves there; the request-pot kind held networkidle open for good.
                         if (url.origin === base.origin && /^\/receipt\/[^/]+\/pdf$/.test(url.pathname))
-                            return route.fulfill({ status: 404, headers: { 'cache-control': 'no-store' }, body: '' })
+                            return await route.fulfill({
+                                status: 404,
+                                headers: { 'cache-control': 'no-store' },
+                                body: '',
+                            })
                         if (url.origin === base.origin) {
                             const cacheable =
                                 request.method() === 'GET' &&
                                 url.pathname.startsWith('/_next/static/') &&
                                 !request.headers()['range']
                             const cached = cacheable ? staticResponses.get(url.href) : undefined
-                            if (cached) return route.fulfill(cached)
+                            if (cached) return await route.fulfill(cached)
                             const response = await route.fetch({ url: upstream(url), maxRedirects: 0, maxRetries: 2 })
                             if (cacheable && response.ok()) {
                                 const headers = { ...response.headers() }
@@ -411,11 +465,11 @@ async function main() {
                                 delete headers['transfer-encoding']
                                 const entry = { status: response.status(), headers, body: await response.body() }
                                 staticResponses.set(url.href, entry)
-                                return route.fulfill(entry)
+                                return await route.fulfill(entry)
                             }
-                            return route.fulfill({ response })
+                            return await route.fulfill({ response })
                         }
-                        return route.abort()
+                        return await route.abort()
                     } catch {
                         if (!page.isClosed()) transportFailures.add(new URL(route.request().url()).pathname)
                         await route.abort().catch(() => undefined)
@@ -469,6 +523,7 @@ async function main() {
                         `${error.message}\nIn flight: ${[...inFlight.values()].join(', ') || 'none'}\nUnmapped: ${[...unknown].join(', ') || 'none'}`
                     )
                 })
+                await waitForFixtureReady(page, screen.waitFor)
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (screen.event) {
@@ -546,6 +601,10 @@ async function main() {
                     screen.expectsLoading ?? false,
                     { timeout: 15000 }
                 )
+                // A Lottie (sign-up hero or mascot) shows frame 0 until it loads, then jumps to its reduced-motion still.
+                await page.waitForFunction(() => !document.querySelector('[data-lottie-ready="false"]'), undefined, {
+                    timeout: 15000,
+                })
                 if (new URL(page.url()).pathname !== url.pathname)
                     throw new Error(`Expected ${url.pathname}, reached ${new URL(page.url()).pathname}`)
                 if (/Not capturable|Unknown surface:|Application error:/.test(await page.locator('body').innerText()))
@@ -553,6 +612,18 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                // Applies to every registered screen/state and requested locale,
+                // including controls whose value does not appear in innerText.
+                const numericSnapshot = await page.evaluate(() => ({
+                    text: document.body.innerText,
+                    inputs: [...document.querySelectorAll('input')].map((input) => input.value),
+                    sliderAttributes: [...document.querySelectorAll('[role="slider"]')].flatMap((slider) =>
+                        ['aria-valuenow', 'aria-valuemin', 'aria-valuemax', 'aria-valuetext'].map(
+                            (name) => slider.getAttribute(name) ?? ''
+                        )
+                    ),
+                }))
+                if (hasInvalidNumericUi(numericSnapshot)) throw new Error('Invalid numeric UI in captured state')
                 let previous = await page.screenshot({
                     animations: 'disabled',
                     caret: 'hide',
@@ -584,10 +655,29 @@ async function main() {
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                const copy =
+                    copyRecording === 'recorded' ? shownCopyKeys(await page.evaluate(COPY_EVIDENCE_SCRIPT)) : undefined
+                if (screen.flags) {
+                    const read = await page.evaluate(
+                        () =>
+                            (window as unknown as { __screenCaptureFlagReads: Record<string, unknown> })
+                                .__screenCaptureFlagReads
+                    )
+                    for (const [flag, value] of Object.entries(screen.flags))
+                        if (!(flag in read))
+                            throw new Error(`This state never reads ${flag}, so it cannot show ${flag}: ${value}`)
+                }
                 const image = storeAsset(assets, previous)
                 // Keep the exact PNG as the only CI capture source. The trusted
                 // publisher converts it to a full-resolution WebP after diffing.
-                results.push({ ...metadata, status: 'captured', image, thumbnail: image })
+                results.push({
+                    ...metadata,
+                    status: 'captured',
+                    image,
+                    thumbnail: image,
+                    ...(copy ? { copy } : {}),
+                    ...(screen.flags ? { flags: screen.flags } : {}),
+                })
                 console.log(`CAPTURED ${screen.id}`)
             } catch (e) {
                 mkdirSync(join(out, 'diagnostics'), { recursive: true })

@@ -1,4 +1,5 @@
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
@@ -35,7 +36,7 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                         ? undefined
                         : TRANSACTION_NAME_KEYS.recipient,
                 fullName: entry.recipientAccount?.fullName ?? '',
-                avatarKey: entry.recipientAccount?.avatarKey,
+                peer: personFrom(entry.recipientAccount),
                 isPeerActuallyUser: true,
                 isLinkTx: false,
             }
@@ -55,7 +56,7 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                 entry.senderAccount?.username || entry.senderAccount?.identifier
                     ? undefined
                     : TRANSACTION_NAME_KEYS.bankAccount,
-            avatarKey: entry.senderAccount?.avatarKey,
+            peer: personFrom(entry.senderAccount),
             isPeerActuallyUser: !!entry.senderAccount?.isUser,
             isLinkTx: false,
         }

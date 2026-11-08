@@ -29,6 +29,7 @@ import {
     FONT_KNERD_RE,
     countOffFocusColorClasses,
     countOffFocusColorCss,
+    isProductionSource,
 } from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -114,7 +115,7 @@ function* walk(dir) {
 
 const files = []
 for (const p of walk(SRC)) {
-    if (!/\.(tsx|ts)$/.test(p) || p.endsWith('.test.tsx') || p.endsWith('.test.ts')) continue
+    if (!isProductionSource(p)) continue
     files.push({ path: relative(SRC, p), text: readFileSync(p, 'utf8') })
 }
 

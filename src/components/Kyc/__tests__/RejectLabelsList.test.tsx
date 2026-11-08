@@ -20,6 +20,13 @@ describe('RejectLabelsList', () => {
         for (const alert of alerts) expect(alert).toHaveClass('bg-background-badge-error')
     })
 
+    it('never names a cause only support can review', () => {
+        renderList(['FORGERY', 'SCREENSHOTS'])
+        expect(screen.getAllByRole('alert')).toHaveLength(1)
+        expect(screen.getByText('Screenshots not accepted')).toBeInTheDocument()
+        expect(screen.queryByText(/could not be verified/)).toBeNull()
+    })
+
     it('renders the no-labels fallback on the same tone', () => {
         renderList(null)
         expect(screen.getByRole('alert')).toHaveClass('bg-background-badge-error')

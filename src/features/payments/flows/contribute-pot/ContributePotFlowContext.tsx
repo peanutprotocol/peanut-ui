@@ -22,6 +22,8 @@ import {
 } from '@/services/services.types'
 import { collectedTotal, usdRemainingOf } from './collected'
 import { contributedAmount } from '@/utils/request-pot.utils'
+import { personFrom } from '@/lib/person/person'
+import type { Person } from '@/lib/person/person.types'
 import { useRequestPot } from './useRequestPot'
 
 // view states for contribute pot flow
@@ -33,8 +35,8 @@ export interface PotRecipient {
     address: Address
     userId?: string
     fullName?: string
-    /** Their picked profile avatar; null means the username-letter fallback. */
-    avatarKey?: string | null
+    /** The requester (TASK-23756); null when the request names no Peanut user. */
+    person: Person | null
 }
 
 // contributor info from charges
@@ -42,9 +44,8 @@ export interface PotContributor {
     uuid: string
     username?: string
     address?: string
-    /** The contributor's picked profile avatar; null means the username-letter
-     *  fallback, and it stays null for a raw-address contributor. */
-    avatarKey?: string | null
+    /** The Peanut contributor (TASK-23756); null for a raw-address contributor. */
+    person: Person | null
     /** What the contributor paid, which can be less than their charge asked. */
     amount: string
     createdAt: string
@@ -166,7 +167,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             username: request.recipientAccount.user?.username || request.recipientAccount.identifier,
             address: request.recipientAddress as Address,
             userId: request.recipientAccount.userId,
-            avatarKey: request.recipientAccount.user?.avatarKey ?? null,
+            person: personFrom(request.recipientAccount.user),
         }
     }, [request])
 
@@ -194,7 +195,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
                 uuid: c.uuid,
                 username: c.fulfillmentPayment?.payerAccount?.user?.username,
                 address: c.fulfillmentPayment?.payerAddress ?? undefined,
-                avatarKey: c.fulfillmentPayment?.payerAccount?.user?.avatarKey ?? null,
+                person: personFrom(c.fulfillmentPayment?.payerAccount?.user),
                 amount: contributedAmount(c),
                 createdAt: c.createdAt,
             }))

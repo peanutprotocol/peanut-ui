@@ -42,6 +42,12 @@ const groups: DevToolGroup[] = [
         title: 'Harnesses',
         tools: [
             {
+                name: 'Attention',
+                description: 'Inspect attention policy and the current account decision',
+                path: '/dev/attention',
+                icon: 'info',
+            },
+            {
                 name: 'Devices',
                 description: 'Any page in 6 phone widths at once (320–430), one mirrored session',
                 path: '/dev/devices',
@@ -143,7 +149,7 @@ const groups: DevToolGroup[] = [
         tools: [
             {
                 name: 'User records',
-                description: 'Everything the production database stores about one user — read-only, team only',
+                description: 'Everything the database stores about one user — read-only, team only',
                 path: '/dev/users',
                 icon: 'user',
             },
@@ -153,12 +159,6 @@ const groups: DevToolGroup[] = [
         title: 'Experiments',
         wip: true,
         tools: [
-            {
-                name: 'Nav header centering',
-                description: 'Should the empty trailing track collapse? Real NavHeader, 3 widths, gaps measured live',
-                path: '/dev/nav-header-centering',
-                icon: 'switch',
-            },
             {
                 name: 'Full Graph',
                 description: 'Force-directed graph of all users, invites, and P2P activity (admin only)',

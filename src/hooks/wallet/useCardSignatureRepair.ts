@@ -9,14 +9,15 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { buildMigrationNoopCall } from '@/utils/kernelMigration.utils'
 
 /**
- * Diagnose-and-repair for kernel accounts whose card auto-balance approval can
- * never validate, no matter how correctly it was granted:
+ * Diagnose-and-repair for kernel accounts whose card session-key approval (the
+ * withdrawal permission) can never validate, no matter how correctly it was
+ * granted:
  *
  * - `nonce-bricked`: the account's `validNonceFrom` is AHEAD of `currentNonce`
  *   (left behind by the 2025-09-18 root-validator migration wave). Kernel
  *   v3.1 rejects every enable-mode validation installed below the
- *   `validNonceFrom` floor with `InvalidNonce()` (0x756688fe), so the backend
- *   sweep fails hourly forever. Repair: a root-passkey userOp calling
+ *   `validNonceFrom` floor with `InvalidNonce()` (0x756688fe), so every
+ *   backend replay of the approval fails. Repair: a root-passkey userOp calling
  *   `invalidateNonce(validNonceFrom + 1)` on the account itself — the kernel
  *   syncs `currentNonce` up to the floor, unbricking enable mode.
  * - `undeployed`: the account is still counterfactual, and (for pre-cutoff

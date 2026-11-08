@@ -34,12 +34,26 @@ describe('useSumsubReloadResume', () => {
         renderHook(() => useSumsubReloadResume(null, onResume), { wrapper: wrapperFor(encode(persisted)) })
 
         await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
-        expect(onResume).toHaveBeenCalledWith({
+        expect(onResume.mock.calls[0][0]).toEqual({
             intent: 'LATAM',
             levelName: undefined,
             crossRegion: true,
             targetCountry: 'AR',
         })
+    })
+
+    it('two flows mounted on one page replay a persisted state once', async () => {
+        const first = jest.fn().mockResolvedValue(true)
+        const second = jest.fn().mockResolvedValue(true)
+        renderHook(
+            () => {
+                useSumsubReloadResume(null, first)
+                useSumsubReloadResume(null, second)
+            },
+            { wrapper: wrapperFor(encode({ intent: 'ROW' })) }
+        )
+        await waitFor(() => expect(first).toHaveBeenCalledTimes(1))
+        expect(second).not.toHaveBeenCalled()
     })
 
     it('resumes only once per mount', async () => {
@@ -64,6 +78,44 @@ describe('useSumsubReloadResume', () => {
 
         await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
         expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('kyc')).toBeNull()
+    })
+
+    it('keeps the persisted state while the replay is pending, so a reload mid-replay can resume', async () => {
+        const onUrlUpdate = jest.fn()
+        let finish!: (reopened: boolean) => void
+        const onResume = jest.fn().mockReturnValue(new Promise<boolean>((done) => (finish = done)))
+
+        renderHook(() => useSumsubReloadResume(null, onResume), {
+            wrapper: wrapperFor(encode({ intent: 'LATAM' }), onUrlUpdate),
+        })
+
+        await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
+        await new Promise((done) => setTimeout(done, 100))
+        expect(onUrlUpdate).not.toHaveBeenCalled()
+        finish(false)
+        await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
+        expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get('kyc')).toBeNull()
+    })
+
+    it('a replay that consumes the state before navigating away is not cleared again after it', async () => {
+        const onUrlUpdate = jest.fn()
+        const navigate = jest.fn()
+        const onResume = jest.fn().mockImplementation(async (_state, { consume }) => {
+            await consume()
+            navigate(onUrlUpdate.mock.calls.length)
+            return false
+        })
+
+        renderHook(() => useSumsubReloadResume(null, onResume), {
+            wrapper: wrapperFor(encode({ intent: 'LATAM' }), onUrlUpdate),
+        })
+
+        await waitFor(() => expect(navigate).toHaveBeenCalled())
+        // the clear landed before the navigation, and nothing writes the URL after it
+        expect(navigate).toHaveBeenCalledWith(1)
+        await new Promise((done) => setTimeout(done, 100))
+        expect(onUrlUpdate).toHaveBeenCalledTimes(1)
+        expect(onUrlUpdate.mock.calls[0][0].searchParams.get('kyc')).toBeNull()
     })
 
     it('clears the persisted state when the resume throws', async () => {
@@ -96,6 +148,20 @@ describe('useSumsubReloadResume', () => {
         })
     })
 
+    it('leaves another flow’s persisted state alone when disabled', async () => {
+        const onUrlUpdate = jest.fn()
+        const onResume = jest.fn().mockResolvedValue(false)
+        const { rerender } = renderHook(
+            ({ open }: { open: KycResumeState | null }) => useSumsubReloadResume(open, onResume, false),
+            { wrapper: wrapperFor(encode({}), onUrlUpdate), initialProps: { open: null as KycResumeState | null } }
+        )
+
+        rerender({ open: { intent: 'LATAM' } })
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        expect(onResume).not.toHaveBeenCalled()
+        expect(onUrlUpdate).not.toHaveBeenCalled()
+    })
+
     it('does not rewrite the URL while the open state is unchanged by value', () => {
         const onUrlUpdate = jest.fn()
         const onResume = jest.fn().mockResolvedValue(true)
@@ -115,7 +181,7 @@ describe('useSumsubReloadResume', () => {
         })
 
         await waitFor(() => expect(onResume).toHaveBeenCalledTimes(1))
-        expect(onResume).toHaveBeenCalledWith({
+        expect(onResume.mock.calls[0][0]).toEqual({
             intent: undefined,
             levelName: undefined,
             crossRegion: undefined,

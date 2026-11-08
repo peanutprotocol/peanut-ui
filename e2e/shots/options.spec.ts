@@ -10,12 +10,14 @@ import { expect, test } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
+import { waitForLottie } from './fixture-page'
 
 const OUT_DIR = process.env.OPTIONS_OUT ?? 'e2e/__shots__/options'
 const FIXTURE = 'profile-edit'
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
-const IDS = ['opt-passkey-a', 'opt-passkey-b', 'opt-passkey-c', 'opt-passkey-d', 'opt-kyc-a', 'opt-kyc-b']
+const IDS = ['opt-passkey-a', 'opt-passkey-b', 'opt-passkey-c', 'opt-passkey-d']
 
 const FREEZE_CSS = `
 *, *::before, *::after {
@@ -35,7 +37,7 @@ for (const id of IDS) {
             const { hostname } = new URL(route.request().url())
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
         })
-        await page.clock.setFixedTime(FROZEN_NOW)
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.goto(`/dev/surfaces?s=${id}&__fixture=${FIXTURE}`, { waitUntil: 'domcontentloaded' })
         await expect
             .poll(() => page.evaluate((key) => window.sessionStorage.getItem(key), FIXTURE_STORAGE_KEY))
@@ -44,6 +46,7 @@ for (const id of IDS) {
         await page.addStyleTag({ content: FREEZE_CSS })
         await page.evaluate(() => document.fonts.ready.then(() => undefined))
         await mkdir(OUT_DIR, { recursive: true })
+        await waitForLottie(page)
         await page.screenshot({
             path: join(OUT_DIR, `${id}@${testInfo.project.name}.png`),
             animations: 'disabled',

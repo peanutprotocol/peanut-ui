@@ -1,11 +1,13 @@
 import { useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { KycFailedContent } from '../KycFailedContent'
 import { isTerminalRejection } from '@/constants/sumsub-reject-labels.consts'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycFailedModalProps {
     visible: boolean
@@ -34,6 +36,7 @@ export const KycFailedModal = ({
     failureCount,
     isTerminal: forcedTerminal = false,
 }: KycFailedModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -47,7 +50,10 @@ export const KycFailedModal = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (!isOpen) {
+                    track('kyc_status', 'dismiss')
+                    onClose()
+                }
             }}
         >
             <DrawerContent>
@@ -66,23 +72,37 @@ export const KycFailedModal = ({
                             <KycFailedContent rejectLabels={rejectLabels} isTerminal={isTerminal} />
                         </div>
                         {isTerminal ? (
-                            <Button
-                                shadowSize="4"
-                                className="w-full justify-center"
-                                onClick={() => {
-                                    onClose()
-                                    setIsSupportModalOpen(true)
-                                }}
-                            >
-                                {tCommon('contactSupport')}
-                            </Button>
+                            <>
+                                <Button
+                                    shadowSize="4"
+                                    className="w-full justify-center"
+                                    onClick={() => {
+                                        track('support', 'tap')
+                                        onClose()
+                                        setIsSupportModalOpen(true)
+                                    }}
+                                >
+                                    {tCommon('contactSupport')}
+                                </Button>
+                                <LinkButton
+                                    onClick={() => {
+                                        track('kyc_status', 'dismiss')
+                                        onClose()
+                                    }}
+                                >
+                                    {tCommon('close')}
+                                </LinkButton>
+                            </>
                         ) : (
                             <Button
                                 icon="retry"
                                 shadowSize="4"
                                 className="w-full justify-center"
                                 disabled={isLoading}
-                                onClick={onRetry}
+                                onClick={() => {
+                                    track('retry', 'tap')
+                                    onRetry()
+                                }}
                             >
                                 {tCommon(isLoading ? 'loading' : 'tryAgain')}
                             </Button>

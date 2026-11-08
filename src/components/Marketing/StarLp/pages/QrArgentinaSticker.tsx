@@ -7,8 +7,9 @@ import { QrArgentinaAppLink } from './QrArgentinaAppLink'
  * The Argentine till's sticker: the Mercado Pago mark over "Pagá con QR"
  * (spending.md: only Mercado Pago QR is supported) and a code that opens
  * Peanut. A phone cannot scan its own screen, so a tap opens the same place,
- * with the DS press (.qr-ar-press, QrArgentinaMotionStyle). The hero's
- * sticker is in the first screen, so it loads its mark eagerly.
+ * with the DS press (.qr-ar-press, QrArgentinaMotionStyle). Its mark loads
+ * lazily, even in the hero: the scanner capture is the LCP image and gets the
+ * bandwidth first.
  */
 export function QrArgentinaSticker({ slot, className }: { slot: StarLpQrSlot; className?: string }) {
     return (
@@ -21,7 +22,6 @@ export function QrArgentinaSticker({ slot, className }: { slot: StarLpQrSlot; cl
                 campaign="qr-argentina"
                 slot={slot}
                 className={className}
-                priority={slot === 'hero-sticker'}
             />
         </QrArgentinaAppLink>
     )

@@ -1,0 +1,308 @@
+{
+    "source": "peanut-api-ts/src/attention/catalogue.ts",
+    "sourceDigest": "810ac415202c18a52ddac707446ecde248e3d58be4fc1792959dd143f028f70d",
+    "catalogueVersion": 1,
+    "settings": {
+        "settleMs": 4000,
+        "quietSessionMinCount": 3,
+        "announcementCooldownDays": 7,
+        "maxConsecutiveSessions": 3,
+        "balanceThresholdUsd": 500,
+        "nextPaymentAfterDays": 14,
+        "defaultSnoozeDays": 7
+    },
+    "catalogue": [
+        {
+            "id": "install-app",
+            "tier": 1,
+            "rank": 0,
+            "surfaces": ["interrupt", "zone"],
+            "policy": { "interrupt": "always", "snoozeDays": 3 },
+            "analyticsKey": "migration_download",
+            "emailMappings": []
+        },
+        {
+            "id": "maintenance",
+            "tier": 1,
+            "rank": 0,
+            "surfaces": ["banner"],
+            "policy": { "interrupt": "always" },
+            "analyticsKey": "maintenance",
+            "emailMappings": []
+        },
+        {
+            "id": "legal-reconsent",
+            "tier": 1,
+            "rank": 1,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always", "routes": "any", "snoozeDays": 7, "expiryDays": 1 },
+            "analyticsKey": "re_consent",
+            "emailMappings": []
+        },
+        {
+            "id": "arrival",
+            "tier": 1,
+            "rank": 2,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always", "expiryDays": 0 },
+            "analyticsKey": "arrival_prompt",
+            "emailMappings": []
+        },
+        {
+            "id": "balance-backup",
+            "tier": 1,
+            "rank": 3,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always", "expiryDays": 21 },
+            "analyticsKey": "balance_warning",
+            "emailMappings": []
+        },
+        {
+            "id": "verification-due",
+            "tier": 1,
+            "rank": 4,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "always" },
+            "analyticsKey": "verification_task",
+            "emailMappings": []
+        },
+        {
+            "id": "verification-advisory",
+            "tier": 1,
+            "rank": 4.5,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "always" },
+            "analyticsKey": "document_request",
+            "emailMappings": []
+        },
+        {
+            "id": "post-verification-action",
+            "tier": 1,
+            "rank": 5,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always" },
+            "analyticsKey": "post_verification_action",
+            "emailMappings": []
+        },
+        {
+            "id": "finish-card-setup",
+            "tier": 1,
+            "rank": 6,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always" },
+            "analyticsKey": "finish_card_setup",
+            "emailMappings": []
+        },
+        {
+            "id": "finish-card-funding",
+            "tier": 1,
+            "rank": 7,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always", "expiryDays": 0 },
+            "analyticsKey": "finish_card_funding",
+            "emailMappings": []
+        },
+        {
+            "id": "blocked-card",
+            "tier": 2,
+            "rank": 2,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never", "anchorsHome": true },
+            "analyticsKey": "blocked_card",
+            "emailMappings": []
+        },
+        {
+            "id": "checklist",
+            "tier": 2,
+            "rank": 3,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never", "anchorsHome": true, "expiryDays": 0 },
+            "analyticsKey": "checklist",
+            "emailMappings": [
+                { "prefix": "lifecycle.verify_" },
+                { "prefix": "lifecycle.fund_", "when": "not-activated" },
+                { "prefix": "lifecycle.first_spend_", "when": "not-activated" },
+                { "prefix": "lifecycle.create_card_", "when": "not-activated" }
+            ]
+        },
+        {
+            "id": "verification-deadline",
+            "tier": 3,
+            "rank": 1,
+            "surfaces": ["inline"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "verification-deadline",
+            "emailMappings": [],
+            "slots": ["bank-transfer"]
+        },
+        {
+            "id": "virtual-account",
+            "tier": 3,
+            "rank": 1,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "virtual_account",
+            "emailMappings": []
+        },
+        {
+            "id": "qr-payment",
+            "tier": 3,
+            "rank": 2,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "qr_payment",
+            "emailMappings": []
+        },
+        {
+            "id": "cap-nudge",
+            "tier": 3,
+            "rank": 2,
+            "surfaces": ["inline"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "cap-nudge",
+            "emailMappings": [],
+            "slots": ["limits"]
+        },
+        {
+            "id": "verify-for-qr",
+            "tier": 3,
+            "rank": 3,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "kyc_prompt",
+            "emailMappings": []
+        },
+        {
+            "id": "card-offer",
+            "tier": 3,
+            "rank": 4,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "card_offer",
+            "emailMappings": [{ "prefix": "lifecycle.create_card_", "when": "activated" }]
+        },
+        {
+            "id": "next-payment",
+            "tier": 3,
+            "rank": 5,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "next_payment",
+            "emailMappings": [{ "prefix": "lifecycle.win_back_" }]
+        },
+        {
+            "id": "share-bank-details",
+            "tier": 3,
+            "rank": 6,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session", "snoozeDays": 7 },
+            "analyticsKey": "share_bank_details",
+            "emailMappings": []
+        },
+        {
+            "id": "request-money",
+            "tier": 3,
+            "rank": 7,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "request_money",
+            "emailMappings": []
+        },
+        {
+            "id": "send-money",
+            "tier": 3,
+            "rank": 8,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "send_money",
+            "emailMappings": []
+        },
+        {
+            "id": "backup-passkey",
+            "tier": 4,
+            "rank": 1,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session" },
+            "analyticsKey": "backup_passkey",
+            "emailMappings": []
+        },
+        {
+            "id": "push-home-fallback",
+            "tier": 4,
+            "rank": 2,
+            "surfaces": ["interrupt", "zone"],
+            "policy": {
+                "interrupt": "session",
+                "minSessions": 3,
+                "snoozeDays": 14,
+                "overAnchor": true,
+                "expiryDays": 0
+            },
+            "analyticsKey": "notifications",
+            "emailMappings": []
+        },
+        {
+            "id": "add-email",
+            "tier": 4,
+            "rank": 3,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session", "snoozeDays": 7 },
+            "analyticsKey": "add_email",
+            "emailMappings": []
+        },
+        {
+            "id": "user-interview",
+            "tier": 5,
+            "rank": 0,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never" },
+            "analyticsKey": "user_interview",
+            "emailMappings": []
+        },
+        {
+            "id": "invite",
+            "tier": 5,
+            "rank": 1,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never" },
+            "analyticsKey": "invite",
+            "emailMappings": []
+        },
+        {
+            "id": "rewards",
+            "tier": 5,
+            "rank": 2,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never" },
+            "analyticsKey": "rewards",
+            "emailMappings": []
+        },
+        {
+            "id": "complete-profile",
+            "tier": 5,
+            "rank": 4,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never" },
+            "analyticsKey": "complete_profile",
+            "emailMappings": []
+        },
+        {
+            "id": "bug-bounty",
+            "tier": 5,
+            "rank": 5,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "never" },
+            "analyticsKey": "bug_bounty",
+            "emailMappings": []
+        },
+        {
+            "id": "early-user",
+            "tier": 6,
+            "rank": 1,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "quiet" },
+            "analyticsKey": "early_user",
+            "emailMappings": []
+        }
+    ]
+}

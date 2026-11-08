@@ -29,6 +29,8 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
+import { personFrom } from '@/lib/person/person'
+import type { Person } from '@/lib/person/person.types'
 import { useAuth } from '@/context/authContext'
 import type { TRequestChargeResponse, PaymentCreationResponse } from '@/services/services.types'
 import { getInitialsFromName } from '@/utils/general.utils'
@@ -59,18 +61,12 @@ import {
     sponsoredNetworkFee,
 } from '@/features/payments/shared/utils/charge-receipt.utils'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { withPublicReceipt } from '@/utils/history.utils'
 import { pendingNetworkFee } from '@/components/TransactionDetails/network-fee.utils'
 
-// minimal user info needed for display
-type UserDisplayInfo = {
-    username?: string
-    fullName?: string
-    /** Their picked profile avatar (TASK-22625); null means the letter fallback. */
-    avatarKey?: string | null
-}
-
 type DirectSuccessViewProps = {
-    user?: UserDisplayInfo
+    /** The Peanut user who got the money (TASK-23756). Absent or null: the charge names them, if anyone. */
+    recipient?: Person | null
     amount?: string
     message?: string | ReactNode
     recipientType?: RecipientType
@@ -120,7 +116,7 @@ type DirectSuccessViewProps = {
 }
 
 const PaymentSuccessView = ({
-    user,
+    recipient,
     amount,
     message,
     recipientType,
@@ -159,8 +155,8 @@ const PaymentSuccessView = ({
     })
 
     const recipientName = useMemo(() => {
-        if (user?.username) {
-            return user.fullName || user.username
+        if (recipient) {
+            return recipient.displayName
         }
         if (parsedPaymentData?.recipient?.identifier) {
             return parsedPaymentData.recipient.identifier
@@ -169,7 +165,7 @@ const PaymentSuccessView = ({
             user: chargeDetails?.requestLink?.recipientAccount?.user,
             address: chargeDetails?.requestLink?.recipientAddress || '',
         }).displayName
-    }, [user, parsedPaymentData, chargeDetails])
+    }, [recipient, parsedPaymentData, chargeDetails])
 
     const amountValue = useMemo(() => {
         return amount ?? chargeDetails?.tokenAmount ?? '0'
@@ -193,7 +189,7 @@ const PaymentSuccessView = ({
 
         const peanutFeeDisplayValue = '$0' // peanut doesn't charge fees yet
 
-        const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
+        const recipientIdentifier = recipient?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
             ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`, origin)
             : undefined
@@ -224,7 +220,7 @@ const PaymentSuccessView = ({
             // external-wallet withdrawals have no username/identifier — fall back to
             // the recipient address so the receipt never renders "Sent to undefined"
             userName:
-                user?.username ||
+                recipient?.username ||
                 parsedPaymentData?.recipient?.identifier ||
                 chargeDetails.requestLink?.recipientAddress ||
                 recipientName,
@@ -247,12 +243,8 @@ const PaymentSuccessView = ({
                 amountDisplay: peanutFeeDisplayValue,
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
-            // The recipient we were handed, or the one the charge names. A
-            // handed-in recipient is authoritative: their explicit null means
-            // "no pick", not "look somewhere else".
-            avatarKey: user
-                ? (user.avatarKey ?? null)
-                : (chargeDetails.requestLink?.recipientAccount?.user?.avatarKey ?? null),
+            // The recipient we were handed, or the one the charge names.
+            peer: recipient ?? personFrom(chargeDetails.requestLink?.recipientAccount?.user),
         }
 
         return details as TransactionDetails
@@ -261,7 +253,7 @@ const PaymentSuccessView = ({
         amountValue,
         recipientName,
         parsedPaymentData,
-        user,
+        recipient,
         tokenIconUrl,
         chainIconUrl,
         resolvedChainName,
@@ -290,11 +282,12 @@ const PaymentSuccessView = ({
     // the one transaction this view's receipt drawer shows — the drawer opens
     // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer).
     // The entry's facts go over the receipt the flow built, never replace it:
-    // the flow's receipt keeps the comment and the attachment.
+    // the flow's receipt keeps the comment and the attachment. The entry also
+    // says whether the receipt has a public link to share.
     const receiptTransaction = useMemo(() => {
         if (transactionDetailsProp) return transactionDetailsProp
         if (!transactionForDrawer || !historyEntry) return transactionForDrawer
-        return { ...transactionForDrawer, ...settledReceiptFields(historyEntry) }
+        return withPublicReceipt({ ...transactionForDrawer, ...settledReceiptFields(historyEntry) }, historyEntry)
     }, [transactionDetailsProp, transactionForDrawer, historyEntry])
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
@@ -318,7 +311,7 @@ const PaymentSuccessView = ({
                 recordDemoTransaction({
                     amount: String(amountValue),
                     recipientName,
-                    recipientUsername: user?.username,
+                    recipientUsername: recipient?.username,
                     recipientAddress: chargeDetails?.requestLink?.recipientAddress,
                     txHash,
                     createdAt: paymentDetails?.createdAt ?? chargeDetails?.createdAt,

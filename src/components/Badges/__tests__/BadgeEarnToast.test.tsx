@@ -128,7 +128,7 @@ describe('BadgeEarnToast', () => {
         expect(mockToast.mock.calls[1][0].id).toBe('badge-earn-avatar:BUG_WHISPERER')
 
         render(mockToast.mock.calls[1][0].content)
-        expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
+        expect(screen.getByText(/1 new avatar unlocked/)).toBeInTheDocument()
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
         expect(screen.queryByText(/Choose avatar/)).not.toBeInTheDocument()
         jest.useRealTimers()
@@ -141,7 +141,7 @@ describe('BadgeEarnToast', () => {
 
         act(() => jest.advanceTimersByTime(500))
         render(mockToast.mock.calls[1][0].content)
-        expect(screen.getByText(/3 new avatars unlocked/)).toBeInTheDocument()
+        expect(screen.getByText(/1 new avatar unlocked/)).toBeInTheDocument()
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
         jest.useRealTimers()
     })
