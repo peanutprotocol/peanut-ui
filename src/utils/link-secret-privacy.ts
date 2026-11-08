@@ -13,14 +13,23 @@ import type { CapturedNetworkRequest } from 'posthog-js'
 const RAW_SECRET_FRAGMENT = /#p=[^\s"'<>]*/gi
 // `#p=` percent-encoded one or more times inside a query value, which ends at `&`.
 const ENCODED_SECRET_FRAGMENT = /%(?:25)*23p%(?:25)*3d[^\s"'<>&]*/gi
+// The link-key proof on GET /send-links/:pubKey reads the link for 10 minutes
+// (TASK-24599). A failed fetch puts that URL in Sentry, so its value goes too.
+const READ_PROOF_QUERY = /([?&]proof=)[^\s"'<>&#]*/gi
+// The same proof inside a percent-encoded URL, such as a `redirect_uri` value.
+const ENCODED_READ_PROOF_QUERY = /(%(?:25)*(?:3f|26)proof%(?:25)*3d)[^\s"'<>&%]+/gi
 // Properties that hold a URL: `$current_url`, `$referrer`, `$initial_current_url`,
 // `$session_entry_url`, `href`, `navigationURL`, ... A fragment there is never
 // analytics data, and a fragment we do not know about may be a secret too.
 const URL_KEY = /url|href|referrer/i
 
-/** Removes every send-link secret (`#p=…`, raw or percent-encoded) from a string. */
+/** Removes every send-link secret (`#p=…`, raw or percent-encoded, and the `proof=` value) from a string. */
 export function stripLinkSecrets(value: string): string {
-    return value.replace(RAW_SECRET_FRAGMENT, '').replace(ENCODED_SECRET_FRAGMENT, '')
+    return value
+        .replace(RAW_SECRET_FRAGMENT, '')
+        .replace(ENCODED_SECRET_FRAGMENT, '')
+        .replace(READ_PROOF_QUERY, '$1redacted')
+        .replace(ENCODED_READ_PROOF_QUERY, '$1redacted')
 }
 
 /** A URL without its fragment and without any encoded send-link secret in its query. */
