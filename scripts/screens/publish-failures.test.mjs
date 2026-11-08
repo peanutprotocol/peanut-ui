@@ -79,11 +79,14 @@ else if (args[0] === 'rev-parse') {
 `,
         { mode: 0o755 }
     )
+    // Mocked runs own their event input; an enclosing Actions event belongs to another run.
+    const env = { ...process.env }
+    delete env.GITHUB_EVENT_PATH
     const result = spawnSync(process.execPath, ['scripts/screens/resolve-baseline.mjs', ...argv], {
         encoding: 'utf8',
         timeout: 10_000,
         env: {
-            ...process.env,
+            ...env,
             PATH: `${directory}:${process.env.PATH}`,
             REPOSITORY: repository,
             RUN_ID: runId,
