@@ -96,9 +96,26 @@
             ]
         },
         {
+            "name": "screen-publishing-tests",
+            "cwd": ".",
+            "argv": [
+                "node",
+                "--test",
+                "--test-timeout=120000",
+                "scripts/screens/publish-fixture-isolation.test.mjs",
+                "scripts/screens/review-provenance.test.mjs"
+            ]
+        },
+        {
             "name": "format",
             "cwd": ".",
-            "argv": ["node_modules/.bin/prettier", "--check", ".codex/quality-gates.json"]
+            "argv": [
+                "node_modules/.bin/prettier",
+                "--check",
+                ".codex/quality-gates.json",
+                "scripts/screens/publish-failures.test.mjs",
+                "scripts/screens/publish-fixture-isolation.test.mjs"
+            ]
         }
     ]
 }
