@@ -1321,6 +1321,12 @@ jobs:
     #         Ordered-By: <github-login>   (must have write access to this repo)
     #         Order: <https link to the order — Discord message, PR comment,
     #                Notion task>
+    # (c) authored by dependabot[bot] in a PR that dependabot[bot] itself
+    #     opened. Dependabot (.github/dependabot.yml) cannot add trailers and
+    #     nobody ordered a given bump, so the owner is whoever approves it:
+    #     bot-approval.yml holds the merge until a team member approves the
+    #     current head. A dependabot commit inside any other PR fails like an
+    #     unlisted bot, so its identity cannot carry work into a human's PR.
     # Policy set 2026-08-24, amended 2026-09-01: AI is a tool, not an owner;
     # every commit has a human who is accountable for it. Unknown bots
     # (claude[bot] cloud sessions, …) and emails GitHub cannot map to an
@@ -1346,6 +1352,8 @@ jobs:
               with:
                   script: |
                       const ALLOWED_BOTS = ['chip-peanut-bot[bot]'];
+                      // Accepted without trailers, and only in its own PR (header (c)).
+                      const DEPENDABOT = 'dependabot[bot]';
                       const memberCache = new Map();
                       async function hasWriteAccess(login) {
                         if (memberCache.has(login)) return memberCache.get(login);
@@ -1414,6 +1422,7 @@ jobs:
                           (typeof comparison.commits === 'number' && comparison.commits !== total)) {
                         throw new Error('Incomplete commit comparison — refusing to skip ownership checks');
                       }
+                      const dependabotPr = comparison.user.login.toLowerCase() === DEPENDABOT;
                       const bad = [];
                       const landed = [];
                       for (const c of commits) {
@@ -1431,8 +1440,11 @@ jobs:
                           } else if (!(await hasWriteAccess(orderedBy))) {
                             problem = `cites Ordered-By: ${orderedBy}, who has no write access to this repo — a bot commit must cite the team member who ordered it`;
                           }
+                        } else if (login.toLowerCase() === DEPENDABOT && dependabotPr) {
+                          // No trailers to check; bot-approval demands a team member's approval.
+                          continue;
                         } else if (login.toLowerCase().endsWith('[bot]')) {
-                          problem = `authored by ${login} — this bot is not allowlisted; bot commits are only accepted from ${ALLOWED_BOTS.join(', ')}, with provenance trailers`;
+                          problem = `authored by ${login} — this bot is not allowlisted; bot commits are only accepted from ${ALLOWED_BOTS.join(', ')}, with provenance trailers, or from ${DEPENDABOT} in a PR it opened`;
                         } else if (!(await hasWriteAccess(login))) {
                           problem = `authored by ${login}, who has no write access to this repo`;
                         }
