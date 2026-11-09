@@ -22,6 +22,7 @@ import {
     NETWORK_LABELS,
     NETWORK_LOGOS,
     getSupportedTokens,
+    CHAIN_SCOPED_DEPOSIT_TOKENS,
 } from '@/constants/rhino.consts'
 import type {
     CreateDepositAddressResponse,
@@ -255,15 +256,16 @@ const CryptoDepositView = ({
                                             chainSymbol={token.logoUrl}
                                         />
                                     ))}
+                                    {isEvm &&
+                                        CHAIN_SCOPED_DEPOSIT_TOKENS.map((token) => (
+                                            <Tooltip
+                                                key={token.name}
+                                                content={t('tokenOnlyOnNetwork', { network: token.network })}
+                                            >
+                                                <ChainChip chainName={token.name} chainSymbol={token.logoUrl} />
+                                            </Tooltip>
+                                        ))}
                                 </div>
-                                {/* a note, not chips: each token works only on the chain named, proven
-                                    by a real deposit (TASK-24595). The API's stuck-deposit detector
-                                    watches the same pairs. */}
-                                {isEvm && (
-                                    <p className="mt-2 text-body-s text-foreground-secondary">
-                                        {t('additionalTokensNote')}
-                                    </p>
-                                )}
                             </div>
 
                             {/* who holds the deposit address (TASK-23295) */}

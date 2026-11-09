@@ -67,6 +67,40 @@ export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, string[]>> 
     ])
 )
 
+/**
+ * Tokens Rhino accepts on one EVM deposit chain only. Each pair was proven by a
+ * real deposit (TASK-24595), and the API's stuck-deposit detector watches the
+ * same pairs. A token sent on any other chain is silently lost, so deposit
+ * surfaces must name the chain.
+ */
+export const CHAIN_SCOPED_DEPOSIT_TOKENS = [
+    {
+        name: 'EURe',
+        logoUrl: 'https://assets.coingecko.com/coins/images/54303/standard/eure.jpg?1739167959',
+        network: 'Gnosis',
+    },
+    {
+        name: 'EURC',
+        logoUrl: 'https://assets.coingecko.com/coins/images/26045/standard/EURC.png?1769615705',
+        network: 'Base',
+    },
+    {
+        name: 'USDS',
+        logoUrl: 'https://assets.coingecko.com/coins/images/39926/standard/usds.webp?1726666683',
+        network: 'Base',
+    },
+    {
+        name: 'USDe',
+        logoUrl: 'https://assets.coingecko.com/coins/images/33613/standard/usde.png?1733810059',
+        network: 'Arbitrum',
+    },
+    {
+        name: 'PYUSD',
+        logoUrl: 'https://assets.coingecko.com/coins/images/31212/standard/PYUSD_Token_Logo_2x.png?1765987788',
+        network: 'Arbitrum',
+    },
+] as const
+
 /** returns supported tokens (with logos) for a given chain type */
 export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>
     SUPPORTED_TOKENS_BY_NETWORK[network].map((name) => ({ name, logoUrl: TOKEN_LOGOS[name] }))
