@@ -33,6 +33,8 @@ import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { useKycFeatureActivation } from '@/features/paperwork-verification/useKycFeatureActivation'
+import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
+import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import { ApiError } from '@/services/api-error'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
@@ -88,6 +90,33 @@ export function useCardFlow() {
     const identityRef = useRef({ userId, connectedAddress })
     identityRef.current = { userId, connectedAddress }
     const { capabilities, railsForProvider, nextActionsForRail, isLoading: capabilitiesLoading } = useCapabilities()
+    const residenceAddressStep = overview?.status.hasApplication
+        ? null
+        : residenceAddressEntry(capabilities.features?.card, capabilities.nextActions)
+    const addressBlockedRef = useRef(false)
+    addressBlockedRef.current = residenceAddressStep !== null
+    const addressStartingRef = useRef(false)
+    const [addressStarting, setAddressStarting] = useState(false)
+    const [addressPoll, setAddressPoll] = useState(0)
+    useEffect(() => {
+        addressStartingRef.current = false
+        setAddressStarting(false)
+    }, [userId])
+    const refreshResidenceAddress = useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: [USER] })
+        void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
+        setAddressPoll((value) => value + 1)
+    }, [queryClient])
+    // A read-only, bounded wait. Reopening the page or Refresh starts another window.
+    useEffect(() => {
+        if (!residenceAddressStep || !userId) return
+        let reads = 0
+        const timer = setInterval(() => {
+            if (++reads >= 24) clearInterval(timer)
+            void queryClient.invalidateQueries({ queryKey: [USER] })
+        }, 5000)
+        return () => clearInterval(timer)
+    }, [residenceAddressStep, userId, addressPoll, queryClient])
     const cardRail = railsForProvider('rain')[0]
     const reasonCode = cardRail?.reason?.code ?? null
     const applicationStatus = overview?.status.applicationStatus ?? null
@@ -210,6 +239,9 @@ export function useCardFlow() {
 
     // The identity steps a plan refusal asks for: a supplement, or a restart with another document.
     const kycFlow = useMultiPhaseKycFlow({
+        onActionSubmitted: (key) => {
+            if (key === RESIDENCE_ADDRESS_ACTION_KEY) refreshResidenceAddress()
+        },
         onKycSuccess: () => {
             setPlanRefusal(null)
             invalidateOverview()
@@ -503,7 +535,7 @@ export function useCardFlow() {
             setApplyError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_COUNTRY_CONFIRMED, { country: countryCode })
             try {
-                if (!(await activation.activate()) || changed()) return
+                if (!(await activation.activate()) || changed() || addressBlockedRef.current) return
                 const res = await rainApi.applyForCard({ confirmedResidenceCountry: countryCode })
                 if (changed()) return
                 // Caller-specific `incomplete` branch (advanceFromApplyResponse
@@ -546,6 +578,22 @@ export function useCardFlow() {
                 const startedFor = { userId, connectedAddress }
                 const changed = () => !sameIdentity(identityRef.current, startedFor)
                 if (changed()) return undefined
+                if (addressBlockedRef.current) {
+                    if (residenceAddressStep === 'required' || residenceAddressStep === 'rejected') {
+                        if (addressStartingRef.current) return undefined
+                        addressStartingRef.current = true
+                        setAddressStarting(true)
+                        try {
+                            await startFlowAction(RESIDENCE_ADDRESS_ACTION_KEY)
+                        } finally {
+                            if (!changed()) {
+                                addressStartingRef.current = false
+                                setAddressStarting(false)
+                            }
+                        }
+                    }
+                    return undefined
+                }
                 // A cached display balance cannot unlock a new application. Existing
                 // applications and approved reissues retain their recovery paths.
                 if (needsFundingBeforeApply) {
@@ -564,7 +612,7 @@ export function useCardFlow() {
                     const acceptedDocuments = termsAccepted
                         ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
                         : undefined
-                    if (!(await activation.activate()) || changed()) return undefined
+                    if (!(await activation.activate()) || changed() || addressBlockedRef.current) return undefined
                     const res = await rainApi.applyForCard({
                         termsAccepted,
                         acceptedDocuments,
@@ -603,6 +651,8 @@ export function useCardFlow() {
         },
         [
             advanceFromApplyResponse,
+            residenceAddressStep,
+            startFlowAction,
             pendingTerms,
             needsFundingBeforeApply,
             userId,
@@ -635,7 +685,7 @@ export function useCardFlow() {
             // switch reads, sends and signs nothing for the next account.
             const startedFor = { userId, connectedAddress }
             const changed = () => !sameIdentity(identityRef.current, startedFor)
-            if (changed()) return
+            if (changed() || addressBlockedRef.current) return
             const shownPath = consent ? 'managed' : 'legacy'
 
             setIsIssuing(true)
@@ -650,7 +700,7 @@ export function useCardFlow() {
                     if (!changed()) setApplyError(t('page.setupFailed'))
                     return
                 }
-                if (changed()) return
+                if (changed() || addressBlockedRef.current) return
                 queryClient.setQueryData(fundingAccessQueryKey(startedFor), access)
                 // The person accepted the text of one path. If the decision moved
                 // to the other, nothing is applied or signed: the screen shows
@@ -739,7 +789,7 @@ export function useCardFlow() {
     const handleSumsubComplete = useCallback(async () => {
         const startedFor = { userId, connectedAddress }
         const changed = () => !sameIdentity(identityRef.current, startedFor)
-        if (changed()) return
+        if (changed() || addressBlockedRef.current) return
         sumsubCompletedRef.current = true
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_COMPLETED)
         setSumsubToken(null)
@@ -751,7 +801,8 @@ export function useCardFlow() {
         pollAbortRef.current = controller
 
         try {
-            if (!(await activation.activate()) || changed() || controller.signal.aborted) return
+            if (!(await activation.activate()) || changed() || addressBlockedRef.current || controller.signal.aborted)
+                return
             // Two-stage poll. First wait for the webhook-stamped readiness flag
             // (cheap, DB-only, safe at 1s cadence). Once Sumsub has reviewed
             // rain-requirements GREEN, fall through to the existing apply poll.
@@ -780,7 +831,7 @@ export function useCardFlow() {
             // applicant state hasn't fully propagated (e.g. read-replica lag).
             const res = await pollUntilApplyAdvances({
                 fetchApply: async () => {
-                    if (changed()) throw new Error('Card account changed')
+                    if (changed() || addressBlockedRef.current) throw new Error('Card prerequisites changed')
                     return rainApi.applyForCard({ termsAccepted: false })
                 },
                 intervalMs: 1000,
@@ -822,7 +873,13 @@ export function useCardFlow() {
 
     const handleSumsubRefreshToken = useCallback(async () => {
         const startedFor = { userId, connectedAddress }
-        if (!(await activation.activate()) || !sameIdentity(identityRef.current, startedFor)) return ''
+        if (
+            addressBlockedRef.current ||
+            !(await activation.activate()) ||
+            !sameIdentity(identityRef.current, startedFor) ||
+            addressBlockedRef.current
+        )
+            return ''
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if (!sameIdentity(identityRef.current, startedFor)) return ''
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
@@ -839,7 +896,12 @@ export function useCardFlow() {
     // remain reachable until the native migration cutoff.
     useSumsubReloadResume(sumsubToken !== null ? {} : null, async (_state, { consume }) => {
         const startedFor = { userId, connectedAddress }
-        if (!(await activation.activate({ beforeRedirect: consume })) || !sameIdentity(identityRef.current, startedFor))
+        if (addressBlockedRef.current) return false
+        if (
+            !(await activation.activate({ beforeRedirect: consume })) ||
+            !sameIdentity(identityRef.current, startedFor) ||
+            addressBlockedRef.current
+        )
             return false
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if (!sameIdentity(identityRef.current, startedFor)) return false
@@ -880,6 +942,9 @@ export function useCardFlow() {
         capabilitiesLoading,
         railsForProvider,
         // computed state
+        residenceAddressStep,
+        addressStarting,
+        refreshResidenceAddress,
         state,
         // apply flow
         applyError,
