@@ -974,7 +974,7 @@
                 "openSettings": "Abra Configurações → Senhas, chaves de acesso e contas.",
                 "chooseGoogle": "Defina o Gerenciador de senhas do Google como serviço preferencial e tente de novo."
             },
-            "signUpInChrome": "Criar conta em peanut.me no Chrome"
+            "signUpInBrowser": "Criar conta em peanut.me no navegador"
         },
         "waitlist": {
             "loginCanceled": "O login foi cancelado. Tente de novo.",

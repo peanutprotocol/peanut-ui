@@ -974,7 +974,7 @@
                 "openSettings": "Open Settings → Passwords, passkeys and accounts.",
                 "chooseGoogle": "Set Google Password Manager as the preferred service, then retry."
             },
-            "signUpInChrome": "Sign up at peanut.me in Chrome"
+            "signUpInBrowser": "Sign up at peanut.me in a browser"
         },
         "waitlist": {
             "loginCanceled": "Login was canceled. Please try again.",

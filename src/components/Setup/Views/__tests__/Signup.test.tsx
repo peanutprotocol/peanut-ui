@@ -308,7 +308,7 @@ describe('Claim username — control analytics', () => {
         Object.assign(mockPasskey, { isProviderUnsupportedOpen: true })
         renderSignup()
         fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in Chrome' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in a browser' }))
         fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
         fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
         expect(controls()).toEqual([

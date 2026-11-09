@@ -34,7 +34,7 @@ describe('PasskeyProviderUnsupportedDrawer', () => {
         renderDrawer({ onRetry, onSignUpInBrowser, onSupport })
 
         fireEvent.click(screen.getByRole('button', { name: /retry/i }))
-        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in Chrome' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in a browser' }))
         fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
 
         expect(onRetry).toHaveBeenCalledTimes(1)

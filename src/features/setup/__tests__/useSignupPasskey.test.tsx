@@ -65,7 +65,7 @@ function Harness() {
             {passkey.isProviderUnsupportedOpen && (
                 <div role="dialog" aria-label="Unsupported passkey provider">
                     <button onClick={passkey.retryFromProviderUnsupported}>Retry with another provider</button>
-                    <button onClick={passkey.signUpInBrowser}>Sign up in Chrome</button>
+                    <button onClick={passkey.signUpInBrowser}>Sign up in a browser</button>
                 </div>
             )}
         </div>
@@ -577,7 +577,7 @@ describe('Android failures that are not cancels', () => {
             mockHandleRegister.mockRejectedValue(providerRefusal())
             renderWithIntl(<Harness />)
             claim()
-            fireEvent.click(await screen.findByRole('button', { name: 'Sign up in Chrome' }))
+            fireEvent.click(await screen.findByRole('button', { name: 'Sign up in a browser' }))
 
             await waitFor(() =>
                 expect(open).toHaveBeenCalledWith(

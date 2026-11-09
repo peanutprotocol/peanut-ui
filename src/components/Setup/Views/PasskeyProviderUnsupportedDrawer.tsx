@@ -20,7 +20,8 @@ interface PasskeyProviderUnsupportedDrawerProps {
  * note in a layout the wallet validator cannot read (PASSKEY_PROVIDER_UNSUPPORTED,
  * TASK-24498): the phone's own manager on some Xiaomi, vivo, OPPO, realme and
  * OnePlus phones. Two ways out: make Google Password Manager the preferred
- * service and retry, or sign up in Chrome, where the browser writes the note.
+ * service and retry, or sign up in a browser, where the browser writes the
+ * note. The button opens the phone's default browser: Capacitor cannot pick one.
  */
 export const PasskeyProviderUnsupportedDrawer = ({
     visible,
@@ -56,7 +57,7 @@ export const PasskeyProviderUnsupportedDrawer = ({
                                 {tCommon('retry')}
                             </Button>
                             <Button variant="secondary" onClick={onSignUpInBrowser} className="w-full justify-center">
-                                {t('signUpInChrome')}
+                                {t('signUpInBrowser')}
                             </Button>
                             {/* XL/24 above the tertiary link: its hit area reaches 14px up, the button shadow 4px down */}
                             <div className="mt-2">
