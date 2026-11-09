@@ -48,7 +48,7 @@ import {
     type BridgeStatusResponse,
 } from '@/services/rhino-bridge'
 import { chainIdToRhinoName } from '@/constants/rhino.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
+import { NON_EVM_WITHDRAW_CHAINS, rhinoWithdrawTokenSymbol } from '@/constants/chainRegistry.consts'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { getTokenSymbol } from '@/utils/token.utils'
 
@@ -173,8 +173,9 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
     // backend forwards it to Rhino, which validates against its own per-route
     // supported-tokens map. Native ETH on EVM uses the SAME 'ETH' symbol —
     // address differs by chain (proxy 0xeee… or zero), but Rhino keys on the
-    // symbol.
-    return getTokenSymbol(tokenAddress as Address, chainId)?.toUpperCase()
+    // symbol, exactly as Rhino spells it (see rhinoWithdrawTokenSymbol).
+    const symbol = getTokenSymbol(tokenAddress as Address, chainId)
+    return symbol && rhinoWithdrawTokenSymbol(chainId, symbol)
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
