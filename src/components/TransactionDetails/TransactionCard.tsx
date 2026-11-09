@@ -9,6 +9,7 @@ import { type TransactionType } from '@/components/TransactionDetails/transactio
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import { requestedInCurrency } from '@/components/TransactionDetails/transaction-details.utils'
+import { tokenSymbolForDisplay } from '@/components/TransactionDetails/receipt-conversion.utils'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -226,7 +227,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         transaction.tokenAmount
     ) {
         const formattedTokenAmount = formatNumberForDisplay(transaction.tokenAmount, { maxDecimals: 6 })
-        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
+        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolForDisplay(transaction.tokenSymbol ?? tokenSymbolUpper)}`
     }
 
     // States board 17966:12128 amount treatment — the single place both the

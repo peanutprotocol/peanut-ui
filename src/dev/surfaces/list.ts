@@ -41,6 +41,30 @@ const apiRibbon = (id: string): SurfaceMeta => {
 
 // Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'deposit-address-launch-loading': {
+        name: 'Bank address check — opening',
+        path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',
+        captureState: ['visible=true', 'loading=true'],
+        expectSelector: '[role="dialog"] [aria-busy="true"]',
+    },
+    'deposit-address-launch-error': {
+        name: 'Bank address check — launch failed, retry available',
+        path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',
+        captureState: ['visible=true', 'loading=false', 'error=gate.actFailed'],
+        expectSelector: '[role="dialog"] [role="alert"]',
+    },
+    'card-address-launch-loading': {
+        name: 'Card address check — opening',
+        path: 'features/card/components/CardResidenceAddressScreen.tsx',
+        captureState: ['state=required', 'loading=true'],
+        expectSelector: 'button [role="status"]',
+    },
+    'card-address-launch-error': {
+        name: 'Card address check — launch failed, retry available',
+        path: 'features/card/components/CardResidenceAddressScreen.tsx',
+        captureState: ['state=required', 'loading=false', 'error=errorStartActionFailed'],
+        expectSelector: '[role="alert"]',
+    },
     'standalone-error-card': {
         name: 'Card — load failed',
         path: 'features/card/CardPage.tsx',
@@ -78,19 +102,19 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     'api-ribbon-unavailable': apiRibbon('api-ribbon-unavailable'),
     'api-ribbon-contract-error': apiRibbon('api-ribbon-contract-error'),
     'numeric-request-amount-4000': {
-        name: 'Request amount — 4,000 USDC',
+        name: 'Request amount — 4,000 USDC (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
         captureState: ['suggestedAmount=4000', 'realSlider=true'],
         expectSelector: 'input[value="4000"]',
     },
     'numeric-request-rate-unavailable': {
-        name: 'Request amount — rate unavailable',
+        name: 'Request amount — rate unavailable (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
         captureState: ['initialAmount=4000', 'secondaryRate=unavailable'],
         expectSelector: 'button[disabled]',
     },
     'numeric-request-amount-invalid': {
-        name: 'Request amount — invalid input cleared',
+        name: 'Request amount — invalid input cleared (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
         captureState: ['initialAmount=invalid', 'realSlider=true'],
         expectSelector: 'input[value=""]',

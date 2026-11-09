@@ -5,6 +5,8 @@ import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
 import { StandaloneErrorSurface } from './StandaloneErrorSurface'
+import { AddressLaunchModal } from '@/features/deposit-accounts/components/AddressLaunchModal'
+import { CardResidenceAddressScreen } from '@/features/card/components/CardResidenceAddressScreen'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -467,26 +469,89 @@ export type Surface = SurfaceMeta & {
     modalsContextFlag?: 'signIn' | 'support' | 'qrScanner'
 }
 
+function AddressLaunchSurface({ bank, loading }: { bank: boolean; loading: boolean }) {
+    const tBank = useTranslations('depositAccounts')
+    const tKyc = useTranslations('kyc')
+    return bank ? (
+        <AddressLaunchModal
+            visible
+            loading={loading}
+            error={loading ? null : tBank('gate.actFailed')}
+            terminal={false}
+            onClose={noop}
+            onRetry={noop}
+            onContactSupport={noop}
+        />
+    ) : (
+        <AppPageSurface>
+            <CardResidenceAddressScreen
+                state="required"
+                loading={loading}
+                error={loading ? null : tKyc('errorStartActionFailed')}
+                onBack={noop}
+                onStart={noop}
+                onRefresh={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
 export const SURFACES: Record<string, Surface> = {
+    'deposit-address-launch-loading': {
+        ...SURFACE_META['deposit-address-launch-loading'],
+        render: () => <AddressLaunchSurface bank loading />,
+    },
+    'deposit-address-launch-error': {
+        ...SURFACE_META['deposit-address-launch-error'],
+        render: () => <AddressLaunchSurface bank loading={false} />,
+    },
+    'card-address-launch-loading': {
+        ...SURFACE_META['card-address-launch-loading'],
+        render: () => <AddressLaunchSurface bank={false} loading />,
+    },
+    'card-address-launch-error': {
+        ...SURFACE_META['card-address-launch-error'],
+        render: () => <AddressLaunchSurface bank={false} loading={false} />,
+    },
     'standalone-error-card': {
         ...SURFACE_META['standalone-error-card'],
-        render: () => <StandaloneErrorSurface kind="card" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="card" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-card-recovery': {
         ...SURFACE_META['standalone-error-card-recovery'],
-        render: () => <StandaloneErrorSurface kind="card-recovery" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="card-recovery" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-claim': {
         ...SURFACE_META['standalone-error-claim'],
-        render: () => <StandaloneErrorSurface kind="claim" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="claim" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-send': {
         ...SURFACE_META['standalone-error-send'],
-        render: () => <StandaloneErrorSurface kind="send" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="send" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-withdraw': {
         ...SURFACE_META['standalone-error-withdraw'],
-        render: () => <StandaloneErrorSurface kind="withdraw" />,
+        render: () => (
+            <AppPageSurface>
+                <StandaloneErrorSurface kind="withdraw" />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-wallet-recovery': {
         ...SURFACE_META['standalone-error-wallet-recovery'],

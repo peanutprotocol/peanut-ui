@@ -225,6 +225,18 @@
         "route": "/dev/surfaces?s=03-a-residence-select"
     },
     {
+        "id": "card-address-launch-loading",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=card-address-launch-loading",
+        "source": "features/card/components/CardResidenceAddressScreen.tsx"
+    },
+    {
+        "id": "card-address-launch-error",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=card-address-launch-error",
+        "source": "features/card/components/CardResidenceAddressScreen.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -756,6 +768,11 @@
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
     },
     {
+        "id": "fixture-card-address-rejected",
+        "flow": "Verification",
+        "route": "/card"
+    },
+    {
         "id": "fixture-identity-awaiting-upload",
         "flow": "Verification",
         "route": "/profile/accounts"
@@ -1059,6 +1076,26 @@
         "route": "/add-money?method=bank"
     },
     {
+        "id": "fixture-add-money-address-in-review",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-address-required",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-address-retry",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-address-in-review",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
+    },
+    {
         "id": "fixture-get-paid-review-action",
         "flow": "Add money",
         "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU"
@@ -1072,6 +1109,11 @@
         "id": "fixture-get-paid-blocked",
         "flow": "Add money",
         "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-bank-account-verify-drawer",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts"
     },
     {
         "id": "fixture-get-paid-usd-closed-bangladesh",
@@ -1294,6 +1336,18 @@
         "route": "/add-money/pix?amount=100&currency=BRL"
     },
     {
+        "id": "deposit-address-launch-loading",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=deposit-address-launch-loading",
+        "source": "features/deposit-accounts/components/AddressLaunchModal.tsx"
+    },
+    {
+        "id": "deposit-address-launch-error",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=deposit-address-launch-error",
+        "source": "features/deposit-accounts/components/AddressLaunchModal.tsx"
+    },
+    {
         "id": "38-c-howtodepositmodal",
         "flow": "Add money",
         "route": "/dev/surfaces?s=38-c-howtodepositmodal",
@@ -1321,6 +1375,16 @@
         "id": "fixture-history-card-spend",
         "flow": "Card",
         "route": "/history"
+    },
+    {
+        "id": "fixture-card-address-required",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-address-in-review",
+        "flow": "Card",
+        "route": "/card"
     },
     {
         "id": "fixture-card-application",
@@ -2492,6 +2556,11 @@
     },
     {
         "id": "fixture-profile-accounts-provider-asks",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-address-required",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },

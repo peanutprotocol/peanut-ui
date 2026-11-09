@@ -8,7 +8,7 @@ import {
     useDepositAccounts,
 } from '../useDepositAccounts'
 import { CLAIMABLE_USD_PREVIEW } from '../__fixtures__/railPolicy'
-import type { ClaimableCorridor, DepositAccount, DepositCorridor } from '../types'
+import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { RailCapability } from '@/types/capabilities'
 import type { GateScope, GateState } from '@/utils/capability-gate'
@@ -716,6 +716,59 @@ describe('useDepositAccounts while the user own review is under way', () => {
         expect(result.current.unavailable.ACH_US).toBeUndefined()
 
         // nothing is under way any more, so the read stops
+        const calls = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS * 3)
+        })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(calls)
+    })
+})
+
+/** TASK-24662: the home address with Sumsub resolves by itself, like a review. */
+describe('an account that waits for the home address to be checked', () => {
+    beforeEach(() => {
+        jest.useFakeTimers()
+    })
+    afterEach(() => {
+        jest.useRealTimers()
+    })
+
+    const inReview: UnavailableCorridor = {
+        railId: 'bridge.ach_us',
+        method: 'ACH_US',
+        country: 'US',
+        currency: 'USD',
+        reason: 'not-offered',
+        cause: 'address-in-review',
+    }
+
+    it('re-reads the accounts until the address is approved, then stops', async () => {
+        fetchDepositAccounts.mockResolvedValue({ accounts: [], claimable: [], unavailable: [inReview] })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.unavailable.ACH_US?.cause).toBe('address-in-review'))
+
+        fetchDepositAccounts.mockResolvedValue({ accounts: [], claimable: [CLAIMABLE_USD_PREVIEW], unavailable: [] })
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS)
+        })
+        await waitFor(() => expect(result.current.claimable.ACH_US).toBeDefined())
+
+        const calls = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS * 3)
+        })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(calls)
+    })
+
+    it('does not poll a step the user has not answered', async () => {
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [{ ...inReview, cause: 'address-required' }],
+        })
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.unavailable.ACH_US?.cause).toBe('address-required'))
         const calls = fetchDepositAccounts.mock.calls.length
         await act(async () => {
             jest.advanceTimersByTime(ENDORSEMENT_POLL_MS * 3)

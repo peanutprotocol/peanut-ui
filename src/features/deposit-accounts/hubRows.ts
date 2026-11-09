@@ -134,7 +134,7 @@ function isOpenable(
     // the user's own review holds the corridor: the claim step's gate drawer
     // names it and starts the action that clears it
     if (withheld?.cause === 'not_started') return true
-    if (withheld?.reason === 'not-offered') return reviewHolds(withheld.cause)
+    if (withheld?.reason === 'not-offered') return reviewHolds(withheld.cause) || addressHolds(withheld.cause)
     if (withheld !== undefined) return true
     return (
         view.claimable ||
@@ -171,6 +171,11 @@ function refusedByIdentity(
 /** a review the user can act on or wait for, which the claim step explains */
 function reviewHolds(cause: UnavailableCause | undefined): boolean {
     return cause === 'review-action' || cause === 'review-pending'
+}
+
+/** the address step, or its review: the claim step's drawer asks for it or says it is being checked */
+function addressHolds(cause: UnavailableCause | undefined): boolean {
+    return cause === 'address-required' || cause === 'address-in-review'
 }
 
 /** the countries each corridor serves, computed once per corridor */

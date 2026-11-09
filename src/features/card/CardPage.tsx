@@ -14,11 +14,12 @@ import CardStopBanner from '@/components/Card/CardStopBanner'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { CardResidenceAddressScreen } from './components/CardResidenceAddressScreen'
 import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { IdentityRejectedScreen, isDecidedRejection } from '@/features/paperwork-verification/PaperworkVerificationFlow'
@@ -48,6 +49,9 @@ export const CardPage: FC = () => {
         refetchCardInfo,
         overview,
         overviewError,
+        residenceAddressStep,
+        addressStarting,
+        refreshResidenceAddress,
         capabilitiesLoading,
         railsForProvider,
         state,
@@ -131,20 +135,49 @@ export const CardPage: FC = () => {
         return (
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
-                    <CenteredErrorCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
+                    <CenteredStatusCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
                         <Button onClick={() => refetchCardInfo()} variant="primary" shadowSize="4">
                             {tCommon('retry')}
                         </Button>
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                 </div>
             </PageContainer>
         )
     }
 
+    const stopBanner = (
+        <CardStopBanner
+            key={stopAttempt?.attemptId}
+            enabled={!!overview?.status?.hasApplication}
+            attempt={stopAttempt}
+            onSettled={clearStopAttempt}
+        />
+    )
+
     const renderState = () => {
         // A finally rejected identity cannot apply: its reason and the way on, as /verify shows them.
         if (state !== 'active' && isDecidedRejection(user?.identityVerification)) {
             return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
+        }
+        if (
+            residenceAddressStep &&
+            state !== 'active' &&
+            state !== 'geo-blocked' &&
+            !overview?.status.hasApplication &&
+            !planRefusal &&
+            !geoBlocked &&
+            !pendingResidenceBlocked
+        ) {
+            return (
+                <CardResidenceAddressScreen
+                    state={residenceAddressStep}
+                    loading={addressStarting}
+                    error={kycFlow.error}
+                    onStart={() => void handleApply(false)}
+                    onRefresh={refreshResidenceAddress}
+                    onBack={onBack}
+                />
+            )
         }
         // Highest priority: show the issuance spinner between "terms accepted"
         // and the overview refetch landing. Keeps the UX from flipping back
@@ -264,11 +297,11 @@ export const CardPage: FC = () => {
                     </div>
                 ) : (
                     <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
-                        <CenteredErrorCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
+                        <CenteredStatusCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
                             <Button onClick={() => void refetchFundingAccess()} variant="primary" shadowSize="4">
                                 {tCommon('retry')}
                             </Button>
-                        </CenteredErrorCard>
+                        </CenteredStatusCard>
                     </div>
                 )
             }
@@ -407,6 +440,7 @@ export const CardPage: FC = () => {
                         card={card}
                         onPrev={onBack}
                         onStopAttempt={setStopAttempt}
+                        statusWarning={stopBanner}
                         onCompleteVerification={
                             cardVerification.available ? () => void cardVerification.start() : undefined
                         }
@@ -420,18 +454,12 @@ export const CardPage: FC = () => {
         }
     }
 
+    const screen = renderState()
     return (
         <PageContainer>
-            {/* PageContainer lays its children out in a row; the stop banner
-                must stack above the screen, not take width from it. */}
             <div className="flex min-h-inherit flex-col gap-6">
-                <CardStopBanner
-                    key={stopAttempt?.attemptId}
-                    enabled={!!overview?.status?.hasApplication}
-                    attempt={stopAttempt}
-                    onSettled={clearStopAttempt}
-                />
-                {renderState()}
+                {screen?.type !== YourCardScreen && stopBanner}
+                {screen}
             </div>
             <KycControlFlowProvider value="kyc_provider_request">
                 <SumsubKycWrapper

@@ -5,6 +5,7 @@ import { hash } from './core.mjs'
 import { canReuseBaseline } from './baseline-reuse.mjs'
 import { verifyBaselineSource } from './baseline-source.mjs'
 import { validateBeforeHarness } from './before-harness-receipt.mjs'
+import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
 
 /** Reauthenticate both provider provenance and actual source bytes in the trusted publisher. */
 export function verifyReusedBaseline({
@@ -21,7 +22,14 @@ export function verifyReusedBaseline({
     if (
         receipt?.schema !== 1 ||
         !/^[1-9]\d*$/.test(receipt.runId ?? '') ||
-        !/^[a-z0-9-]{1,200}$/.test(receipt.artifact ?? '') ||
+        typeof receipt.artifact !== 'string' ||
+        receipt.artifact.length > 200 ||
+        /[^a-zA-Z0-9-]/.test(receipt.artifact) ||
+        !['integration', 'baseline'].some((kind) =>
+            selectBaselineArtifacts([receipt.artifact], kind, expectedCommit).some(
+                (artifact) => artifact.locale === receipt.locale
+            )
+        ) ||
         !/^[a-f0-9]{64}$/.test(receipt.manifestDigest ?? '') ||
         receipt.commit !== expectedCommit ||
         receipt.locale !== after.locale ||

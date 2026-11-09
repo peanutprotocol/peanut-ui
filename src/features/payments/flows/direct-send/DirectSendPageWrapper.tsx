@@ -13,7 +13,7 @@
 
 import { personFrom } from '@/lib/person/person'
 import { usePerson } from '@/lib/person/usePerson'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { AccountType } from '@/interfaces/interfaces'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -68,7 +68,7 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
             <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <CenteredErrorCard
+                    <CenteredStatusCard
                         title={t('errors.userNotFoundTitle')}
                         description={t('errors.userNotFoundDescription', { username })}
                     />

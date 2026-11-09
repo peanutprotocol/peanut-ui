@@ -8,6 +8,7 @@
             "argv": [
                 "node_modules/.bin/jest",
                 "--runInBand",
+                "--silent",
                 "--runTestsByPath",
                 "src/components/Setup/Views/__tests__/Landing.passkeys.test.tsx",
                 "src/components/Global/RainCooldown/__tests__/IntroModal.test.tsx",
@@ -29,6 +30,7 @@
                 "src/components/Card/__tests__/ApplicationStatusScreen.test.tsx",
                 "src/components/Profile/views/__tests__/MoneySettings.test.tsx",
                 "src/features/deposit-accounts/__tests__/DepositAccountsListScreen.test.tsx",
+                "src/features/deposit-accounts/__tests__/BankAccountVerifyBackground.test.tsx",
                 "src/features/home/views/__tests__/HomeTopNav.test.tsx",
                 "src/features/card/__tests__/useCardFlow.pendingApplication.test.tsx",
                 "src/app/(mobile-ui)/withdraw/crypto/__tests__/crypto-withdraw-confirm.test.tsx",
@@ -46,6 +48,9 @@
                 "src/features/qr-code/__tests__/QrClaimUnavailableView.test.tsx",
                 "src/features/payments/flows/qr-pay/__tests__/QrPayBlockedView.test.tsx",
                 "src/i18n/app/__tests__/marketing-messages.test.ts",
+                "src/features/paperwork-verification/__tests__/StatusScreens.pending-acknowledgement.test.tsx",
+                "src/features/paperwork-verification/__tests__/FeatureAction.status.test.tsx",
+                "src/features/limits/components/__tests__/LimitsWarningCard.test.tsx",
                 "src/app/(mobile-ui)/history/__tests__/load-error.test.tsx",
                 "src/features/payments/flows/qr-pay/__tests__/useQrPayFlow.preparation.test.tsx"
             ]
@@ -85,14 +90,33 @@
                 "src/components/AddWithdraw/DynamicBankAccountForm.tsx",
                 "src/features/withdraw/BankWithdrawKycDraft.tsx",
                 "src/app/recover-wallet/page.tsx",
-                "src/components/Global/EmptyStates/CenteredErrorCard.tsx",
-                "src/features/qr-code/views/QrClaimUnavailableView.tsx"
+                "src/components/Global/EmptyStates/CenteredStatusCard.tsx",
+                "src/features/qr-code/views/QrClaimUnavailableView.tsx",
+                "src/features/deposit-accounts/components/DepositAccountsFlow.tsx",
+                "src/features/deposit-accounts/components/DepositAccountsListScreen.tsx"
+            ]
+        },
+        {
+            "name": "screen-publishing-tests",
+            "cwd": ".",
+            "argv": [
+                "node",
+                "--test",
+                "--test-timeout=120000",
+                "scripts/screens/publish-fixture-isolation.test.mjs",
+                "scripts/screens/review-provenance.test.mjs"
             ]
         },
         {
             "name": "format",
             "cwd": ".",
-            "argv": ["node_modules/.bin/prettier", "--check", ".codex/quality-gates.json"]
+            "argv": [
+                "node_modules/.bin/prettier",
+                "--check",
+                ".codex/quality-gates.json",
+                "scripts/screens/publish-failures.test.mjs",
+                "scripts/screens/publish-fixture-isolation.test.mjs"
+            ]
         }
     ]
 }

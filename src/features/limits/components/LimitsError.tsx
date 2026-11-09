@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useTranslations } from 'next-intl'
 
 interface LimitsErrorProps {
@@ -15,7 +15,7 @@ export default function LimitsError({ onRetry, isRetrying }: LimitsErrorProps) {
     const tCommon = useTranslations('common')
     return (
         <PageStack.Center className="gap-4">
-            <CenteredErrorCard title={t('error.title')} description={t('error.description')} />
+            <CenteredStatusCard title={t('error.title')} description={t('error.description')} />
             <Button icon="retry" shadowSize="4" onClick={onRetry} loading={isRetrying} disabled={isRetrying}>
                 {tCommon('retry')}
             </Button>

@@ -4,7 +4,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useTranslations } from 'next-intl'
 
 interface RateGateScreenProps {
@@ -35,7 +35,7 @@ const RateGateScreen = ({ title, onBack, isLoading, onRetry }: RateGateScreenPro
                     <Loading variant="mascot" />
                 ) : (
                     <>
-                        <CenteredErrorCard
+                        <CenteredStatusCard
                             title={t('title')}
                             description={<div role="alert">{tErrors('rateUnavailable')}</div>}
                         />

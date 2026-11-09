@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import NavHeader from '@/components/Global/NavHeader'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -22,7 +22,7 @@ export function QrClaimUnavailableView({
         <PageStack className={shakeClass}>
             <NavHeader title={t('claim.navTitle')} />
             <PageStack.Center className="gap-4">
-                <CenteredErrorCard
+                <CenteredStatusCard
                     title={t('claim.unavailableTitle')}
                     description={alreadyClaimed ? t('claim.alreadyClaimed') : t('claim.notAvailable')}
                 />

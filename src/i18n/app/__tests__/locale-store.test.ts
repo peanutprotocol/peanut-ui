@@ -10,6 +10,8 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 import { APP_RELEASE } from '@/constants/app-release'
 
 const mockRegister = jest.fn()
+const mockSetPersonPropertiesForFlags = jest.fn()
+const mockReloadFeatureFlags = jest.fn()
 const mockSetPersonProperties = jest.fn()
 const mockIsIdentified = jest.fn()
 
@@ -17,6 +19,8 @@ jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
         register: (...args: unknown[]) => mockRegister(...args),
+        setPersonPropertiesForFlags: (...args: unknown[]) => mockSetPersonPropertiesForFlags(...args),
+        reloadFeatureFlags: (...args: unknown[]) => mockReloadFeatureFlags(...args),
         setPersonProperties: (...args: unknown[]) => mockSetPersonProperties(...args),
         _isIdentified: (...args: unknown[]) => mockIsIdentified(...args),
     },
@@ -62,12 +66,15 @@ jest.mock('@capacitor/preferences', () => ({
 }))
 
 const mockGetBinaryInfo = jest.fn()
+const mockGetCachedBinaryVersion = jest.fn()
 
 // Mocked at the consumer boundary, not as @capacitor/app: a module mock of the
 // plugin here collided with another suite's virtual mock of it in the same
 // worker and made that suite read the real plugin.
 jest.mock('@/utils/app-version', () => ({
     getBinaryInfo: (...args: unknown[]) => mockGetBinaryInfo(...args),
+    getCachedBinaryInfo: (...args: unknown[]) => mockGetBinaryInfo(...args),
+    getCachedBinaryVersion: () => mockGetCachedBinaryVersion(),
 }))
 
 function setNavigatorLanguage(value: string): void {
@@ -102,6 +109,7 @@ beforeEach(() => {
     // — e.g. the posthog-throw cases — can never leak into the next.
     jest.resetAllMocks()
     mockPrefs.clear()
+    mockGetCachedBinaryVersion.mockResolvedValue('1.23.0')
     mockIsIdentified.mockReturnValue(true)
     mockIsCapacitor.mockReturnValue(false)
     mockIsNativeBridge.mockReturnValue(false)
@@ -160,6 +168,34 @@ describe('emitLocaleToAnalytics', () => {
 })
 
 describe('emitDeviceContextToAnalytics', () => {
+    it('sets native Android flag properties once across concurrent and repeated emits', async () => {
+        arrangeNativeBridge()
+        mockGetPlatform.mockReturnValue('android-native')
+        mockGetBinaryInfo.mockResolvedValue({ appVersion: '1.23.0', appBuild: '42' })
+        const store = freshStore()
+        await Promise.all([store.emitDeviceContextToAnalytics(), store.emitDeviceContextToAnalytics()])
+        await store.emitDeviceContextToAnalytics()
+        expect(mockSetPersonPropertiesForFlags).toHaveBeenCalledTimes(1)
+        expect(mockSetPersonPropertiesForFlags).toHaveBeenCalledWith({
+            client_platform: 'android',
+            binary_version: '1.23.0',
+        })
+        expect(mockReloadFeatureFlags).not.toHaveBeenCalled()
+    })
+
+    it('sets web flag properties with no binary version or native lookup', async () => {
+        await freshStore().emitDeviceContextToAnalytics()
+        expect(mockSetPersonPropertiesForFlags).toHaveBeenCalledWith({ client_platform: 'web' })
+        expect(mockGetCachedBinaryVersion).not.toHaveBeenCalled()
+    })
+
+    it('contains a feature flag SDK failure inside the analytics fence', async () => {
+        mockSetPersonPropertiesForFlags.mockImplementation(() => {
+            throw new Error('SDK failed')
+        })
+        await expect(freshStore().emitDeviceContextToAnalytics()).resolves.toBeUndefined()
+    })
+
     it('registers the raw device language and platform, and exposes them for logout re-register', async () => {
         setNavigatorLanguage('es-AR')
         const store = freshStore()

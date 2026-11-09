@@ -24279,6 +24279,14 @@
 						}
 					},
 					{
+						"in": "query",
+						"name": "proof",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
 						"in": "path",
 						"name": "pubKey",
 						"required": true,
@@ -24393,6 +24401,14 @@
 					{
 						"in": "query",
 						"name": "v",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "proof",
 						"required": false,
 						"schema": {
 							"type": "string"
@@ -27949,6 +27965,18 @@
 															{
 																"enum": [
 																	"identity-rejected"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"address-required"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"address-in-review"
 																],
 																"type": "string"
 															},

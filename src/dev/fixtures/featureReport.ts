@@ -90,11 +90,28 @@ export interface FeatureReportInput {
     activatesOnFirstUse?: boolean
     /** The paperwork engine's refusals from the residence, by product (`bridge.usd`, `rain.card`, `manteca.local`). */
     productRefusals?: Record<string, string>
+    /** No residence approval and no reviewable address: the address step (api `ApprovedResidence.addressStep`). */
+    residenceAddressStep?: 'required' | 'in_review' | 'rejected' | null
+    hasCardApplication?: boolean
 }
 
 interface Candidate {
     rail: RailCapability
     verdict: NonNullable<RailCapability['resolved']>
+}
+
+/** New bank accounts are the entry the address step answers (api `ADDRESS_GATED_FEATURES`). */
+function addressEntry(
+    input: FeatureReportInput,
+    feature: KycIntent,
+    actions: Map<string, NextAction>
+): FeatureReportEntry | null {
+    if (!input.residenceAddressStep || (feature !== 'bank' && feature !== 'card')) return null
+    if (feature === 'card' && input.hasCardApplication) return null
+    if (input.residenceAddressStep === 'in_review')
+        return { state: 'setting_up', reason: 'residence_address_in_review' }
+    const action = actions.get('sumsub:address_of_residence')
+    return action ? { state: 'action_required', reason: 'residence_unresolved', action: action.key } : null
 }
 
 export function featureReport(input: FeatureReportInput): FeatureReport {
@@ -240,6 +257,9 @@ function entryFor(
     if (scope.refusal) return refusedEntry(scope.refusal.reason, scope.refusal.message, actions)
 
     const fromRails = railsEntry(candidates, actions, input)
+    // A rail held back for the missing approval reads as setting up; the address step is what moves it.
+    const address = identity ? null : addressEntry(input, scope.feature, actions)
+    if (address && (!fromRails || fromRails.state === 'setting_up')) return address
     if (fromRails) return fromRails
 
     if (identity) return identity

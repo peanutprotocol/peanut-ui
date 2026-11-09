@@ -1,5 +1,6 @@
 import {
     COLLECTION_LOCALES,
+    COMPARISON_REPORT_PATH,
     collectionId,
     composeCollection,
     missingByLocale,
@@ -18,8 +19,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), { status
 const error = (message, status) => json({ error: message }, status)
 const safeId = /^[a-z0-9][a-z0-9-]{0,119}$/
 const safeRepository = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
-const safeReportPath =
-    /^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
+const safeReportPath = COMPARISON_REPORT_PATH
 const CAPTURE_STALE_AFTER_MS = 90 * 60 * 1000
 const COMPARISON_SEARCH_LIMIT = 100
 const FLOW_PAGE_MAX_BYTES = 256 * 1024
@@ -254,6 +254,45 @@ async function readComparisonReport(bucket, path, locale) {
     return report
 }
 
+function samePresentation(selected, candidate) {
+    return (
+        selected.locale === candidate.locale &&
+        ['profile', 'width', 'height'].every((field) => selected[field] === candidate[field]) &&
+        JSON.stringify(selected.device ?? null) === JSON.stringify(candidate.device ?? null)
+    )
+}
+
+async function mainComparisons(bucket, source, locales) {
+    const comparisons = {}
+    for (const locale of locales) {
+        const selected = source.reports[locale]
+        const entries = (await publishedComparisons(bucket, locale))
+            .filter((entry) => entry.releasePreview === true && entry.path.split('/')[3] === selected.commit)
+            .sort(
+                (a, b) =>
+                    (b.sequence ?? 0) - (a.sequence ?? 0) ||
+                    (b.attempt ?? 0) - (a.attempt ?? 0) ||
+                    String(b.path).localeCompare(String(a.path))
+            )
+        for (const entry of entries) {
+            const report = await readComparisonReport(bucket, entry.path, locale)
+            if (report.after.commit !== selected.commit || !samePresentation(selected, report.after)) continue
+            comparisons[locale] = {
+                path: entry.path,
+                baseBranch: 'main',
+                beforeCommit: report.before.commit,
+                afterCommit: report.after.commit,
+            }
+            break
+        }
+        if (!comparisons[locale])
+            throw new Error(
+                `A trusted main comparison is not published for ${locale} at the selected capture ${selected.commit}. Publish a matching main release comparison before creating this page.`
+            )
+    }
+    return comparisons
+}
+
 async function comparisonSearch(url, env) {
     const locale = url.searchParams.get('locale') || 'en'
     if (!COLLECTION_LOCALES.includes(locale)) return error('Unsupported locale', 400)
@@ -438,8 +477,18 @@ async function createFlowPage(request, authenticated, env) {
     let collection
     try {
         const source = await sources(env.REPORTS, spec.locales)
-        collection = composeCollection({ id, spec, ...source, flows: spec.flows })
+        const comparisons = spec.compareWith ? await mainComparisons(env.REPORTS, source, spec.locales) : undefined
+        collection = composeCollection({
+            id,
+            spec,
+            ...source,
+            flows: spec.flows,
+            sections: spec.sections,
+            compareWith: spec.compareWith,
+            comparisons,
+        })
         await ensureFlowPageAssets(collection, env.REPORTS)
+        collection = validateCollection(collection)
     } catch (cause) {
         // A concurrent matching request may have published from a previous source.
         const existing = requestId && (await replay())

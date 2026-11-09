@@ -40,6 +40,15 @@ type DepositGateAction =
      * Support cannot lift it, so the drawer states it and closes.
      */
     | 'residence-restricted'
+    /**
+     * No residence is approved yet and Sumsub holds no address to approve one
+     * from (backend `cause: 'address-required'`, TASK-24662): the address step
+     * clears it. `address-retry` after Sumsub refused the last answer.
+     */
+    | 'provide-address'
+    | 'address-retry'
+    /** the address is with Sumsub (`address-in-review`); the drawer waits */
+    | 'address-in-review'
     | 'none'
 
 /** The reasons the BACKEND gives, beside the ones the capability gate gives. */

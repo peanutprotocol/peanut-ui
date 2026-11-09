@@ -6,6 +6,7 @@ import type {
     RailChannel,
     RailOperation,
 } from '@/types/capabilities'
+import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 
 /**
  * Reading the API's feature report (`capabilities.features`, api
@@ -151,9 +152,14 @@ export function entryChip(entry: FeatureReportEntry, nextActions: readonly NextA
             return 'active'
         case 'refused':
             return entry.action || SUPPORT_CASE_REASONS.has(entry.reason ?? '') ? 'attention' : 'notAvailable'
-        case 'action_required':
+        case 'action_required': {
             if (entry.action === VERIFY_ACTION) return 'unlock'
-            return entryAction(entry, nextActions)?.kind === 'restart-identity' ? 'attention' : 'processing'
+            const action = entryAction(entry, nextActions)
+            // The address step is the user's own, like a new identity check: never "processing".
+            return action?.kind === 'restart-identity' || action?.key === RESIDENCE_ADDRESS_ACTION_KEY
+                ? 'attention'
+                : 'processing'
+        }
         case 'setting_up':
         case 'pending':
             return 'processing'

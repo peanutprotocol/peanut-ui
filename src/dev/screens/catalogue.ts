@@ -212,7 +212,12 @@ const definitions: Screen[] = [
         source: s.path,
         captureState: s.captureState,
         expectSelector: s.expectSelector,
-        expectsLoading: ['24-b-kycverificationinprogressmodal', '90-f-withdraw-review-processing'].includes(id),
+        expectsLoading: [
+            '24-b-kycverificationinprogressmodal',
+            '90-f-withdraw-review-processing',
+            'deposit-address-launch-loading',
+            'card-address-launch-loading',
+        ].includes(id),
         event: routeOverrides[id]?.event,
         storage: routeOverrides[id]?.storage,
         unavailable: routeOverrides[id] ? undefined : s.blocked,

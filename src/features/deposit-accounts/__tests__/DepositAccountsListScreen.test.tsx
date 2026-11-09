@@ -1479,3 +1479,86 @@ describe('the hub copy exists in every catalog', () => {
         }
     })
 })
+
+/*
+ * TASK-24662: no residence is approved and the identity check holds no
+ * address. The account is one step away, never "not available", and the
+ * events say which corridor and state the user saw.
+ */
+describe('an account that waits for the home address', () => {
+    const capture = (jest.requireMock('posthog-js') as { default: { capture: jest.Mock } }).default.capture
+    const addressGate: GateState = {
+        kind: 'fixable-rejection',
+        userMessage: null,
+        reason: { code: 'residence_unresolved', userMessage: '' },
+        actionKey: 'sumsub:address_of_residence',
+        nextAction: {
+            key: 'sumsub:address_of_residence',
+            kind: 'sumsub',
+            purpose: 'residence_address_required',
+            levelKey: 'address_of_residence',
+        },
+    }
+
+    beforeEach(() => capture.mockClear())
+
+    it('says Action needed, opens to the step, and reports the view once', () => {
+        const onOpen = jest.fn()
+        const { container, rerender } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'address-required') },
+            gates: { ...allGates(), ACH_US: addressGate },
+            onOpen,
+        })
+
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeActionNeeded)).toBeInTheDocument()
+        expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
+        expect(screen.queryByTestId('closed-row-drawer')).not.toBeInTheDocument()
+
+        rerender(<div />)
+        expect(capture.mock.calls.filter(([event]) => event === 'deposit_account_address_step_viewed')).toEqual([
+            ['deposit_account_address_step_viewed', { corridor: 'ACH_US', state: 'required' }],
+        ])
+    })
+
+    it('says Under review while the address is checked, and the row still explains itself', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'address-in-review') },
+            onOpen,
+        })
+
+        const row = rowOf(container, 'ACH_US') as HTMLElement
+        expect(within(row).getByText(LIST.badgeUnderReview)).toBeInTheDocument()
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('ACH_US')
+        expect(capture).toHaveBeenCalledWith('deposit_account_address_step_viewed', {
+            corridor: 'ACH_US',
+            state: 'in_review',
+        })
+    })
+
+    it('reports a refused answer the user sees as rejected', () => {
+        list(false, {
+            unavailable: { SEPA_EU: withheld('SEPA_EU', 'not-offered', 'address-required') },
+            gates: {
+                ...allGates(),
+                SEPA_EU: {
+                    ...addressGate,
+                    nextAction: { ...addressGate.nextAction!, purpose: 'residence_address_rejected' },
+                } as GateState,
+            },
+        })
+        expect(capture).toHaveBeenCalledWith('deposit_account_address_step_rejected', { corridor: 'SEPA_EU' })
+    })
+
+    it('keeps a residence the backend refuses Not available', () => {
+        const { container } = list(false, {
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'residence-restricted') },
+        })
+        expect(inRow(container, 'ACH_US').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
+        expect(capture).not.toHaveBeenCalledWith('deposit_account_address_step_viewed', expect.anything())
+    })
+})

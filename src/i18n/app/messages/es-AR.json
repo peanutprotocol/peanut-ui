@@ -141,8 +141,8 @@
                 "descriptionCard": "Tu saldo está listo. Pagá con tu Peanut Card."
             },
             "shareBankDetails": {
-                "title": "Compartí tus datos bancarios",
-                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar acá."
+                "title": "Compartir datos bancarios",
+                "description": "Dale tus datos bancarios a tu empleador o cliente para cobrar acá."
             },
             "requestMoney": {
                 "title": "Pedí dinero",
@@ -175,7 +175,7 @@
             "verifyDescriptionAdvisory": "Hacé una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias."
         },
         "drawers": {
-            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
+            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios."
         },
         "postVerification": {
             "claim": {
@@ -507,7 +507,7 @@
         "choicesLater": "Podés cambiar tus opciones más adelante.",
         "steps": {
             "landing": {
-                "description": "Recibí pagos en USD o EUR con datos bancarios a tu nombre. Gastalos con tarjeta o QR, estés donde estés.",
+                "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
                 "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
             },
             "advantage-payments": {
@@ -1153,6 +1153,12 @@
             "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta"
+        },
+        "addressStep": {
+            "required": "Para continuar con la solicitud de tu tarjeta, agregá tu dirección de residencia.",
+            "rejected": "Revisá tu dirección de residencia y enviala de nuevo para continuar con la solicitud de tu tarjeta.",
+            "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
+            "unavailable": "No pudimos cargar el paso de dirección. Intentá de nuevo."
         }
     },
     "addMoney": {
@@ -1336,6 +1342,8 @@
     },
     "transaction": {
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
+        "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Esperá antes de enviar el siguiente y escribile a soporte si te vuelve a pasar.",
+        "returnedReasonNameMismatch": "El nombre de la transferencia no coincidía con esta cuenta. Enviala de nuevo con el nombre exacto de los datos bancarios.",
         "perk": {
             "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."
         },
@@ -2222,7 +2230,7 @@
         },
         "claim": {
             "heading": "Recibí pagos en {currency}",
-            "subheading": "Datos bancarios a tu nombre. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "subheading": "Datos bancarios para recibir pagos. Compartilos con empleadores, clientes o plataformas como Deel.",
             "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>.",
             "providerTerms": "Al abrir la cuenta, aceptás los <terms>{termsName}</terms>."
         },
@@ -2241,7 +2249,7 @@
         },
         "gate": {
             "verifyTitle": "Primero verificá la identidad",
-            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
+            "verifyBody": "Solo podemos abrir una cuenta cuando sabemos quién sos.",
             "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para reenviar, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agregar email",
@@ -2252,7 +2260,10 @@
             "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
             "topUpCta": "Agregar desde un banco",
-            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás."
+            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás.",
+            "addressBody": "Tu identidad está verificada. Para abrir cuentas en {currency}, necesitamos tu domicilio. Lo agregás una vez y lo revisamos.",
+            "addressRetryBody": "Revisá tu domicilio y envialo de nuevo. Las cuentas en {currency} se abren cuando esté aprobado.",
+            "addressReviewBody": "No tenés que hacer nada. Las cuentas en {currency} se abren cuando esté aprobado, y esta página se actualiza sola."
         },
         "senderLimit": {
             "businessOnly": {

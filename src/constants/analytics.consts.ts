@@ -155,6 +155,14 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_ACCOUNT_DETAILS_VIEWED: 'deposit_account_details_viewed',
     DEPOSIT_ACCOUNT_SHARED: 'deposit_account_shared',
     DEPOSIT_ACCOUNT_GATE_BLOCKED: 'deposit_account_gate_blocked',
+    // The address step (TASK-24662): `corridor`, and `state` (required | rejected | in_review) on the
+    // view. Approved is the user returned to the corridor; Sumsub's own verdicts are the API's
+    // `kyc_address_step_review` event.
+    DEPOSIT_ACCOUNT_ADDRESS_STEP_VIEWED: 'deposit_account_address_step_viewed',
+    DEPOSIT_ACCOUNT_ADDRESS_STEP_STARTED: 'deposit_account_address_step_started',
+    DEPOSIT_ACCOUNT_ADDRESS_STEP_SUBMITTED: 'deposit_account_address_step_submitted',
+    DEPOSIT_ACCOUNT_ADDRESS_STEP_APPROVED: 'deposit_account_address_step_approved',
+    DEPOSIT_ACCOUNT_ADDRESS_STEP_REJECTED: 'deposit_account_address_step_rejected',
     // The funnel had a start and a failure and no success, so nothing could
     // answer "how many taps became an account".
     DEPOSIT_ACCOUNT_CLAIMED: 'deposit_account_claimed',

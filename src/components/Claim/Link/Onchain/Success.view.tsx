@@ -21,7 +21,7 @@ import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
-import CenteredErrorCard from '@/components/Global/EmptyStates/CenteredErrorCard'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
@@ -245,7 +245,7 @@ export const SuccessClaimLinkView = ({
             <PageStack>
                 <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
                 <PageStack.Center className="gap-4">
-                    <CenteredErrorCard
+                    <CenteredStatusCard
                         title={tCommon('claimCouldNotComplete')}
                         description={
                             <Callout priority="error" hideIcon className="bg-transparent p-0" data-testid="error-alert">
@@ -277,7 +277,7 @@ export const SuccessClaimLinkView = ({
                                 {t('backToHome')}
                             </Button>
                         )}
-                    </CenteredErrorCard>
+                    </CenteredStatusCard>
                 </PageStack.Center>
             </PageStack>
         )
