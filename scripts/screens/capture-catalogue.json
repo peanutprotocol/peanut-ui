@@ -959,6 +959,26 @@
         "route": "/add-money?method=bank"
     },
     {
+        "id": "fixture-add-money-address-in-review",
+        "flow": "Add money",
+        "route": "/add-money?method=bank"
+    },
+    {
+        "id": "fixture-get-paid-address-required",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
+    },
+    {
+        "id": "fixture-get-paid-address-retry",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU"
+    },
+    {
+        "id": "fixture-get-paid-address-in-review",
+        "flow": "Add money",
+        "route": "/add-money?method=bank&step=claim&corridor=ACH_US"
+    },
+    {
         "id": "fixture-get-paid-review-action",
         "flow": "Add money",
         "route": "/add-money?method=bank&step=claim&corridor=SEPA_EU"
@@ -2215,6 +2235,11 @@
     },
     {
         "id": "fixture-profile-accounts-provider-asks",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-address-required",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },
