@@ -27,6 +27,7 @@ import {
     type VerificationActionSession,
 } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { isDemoMode } from '@/utils/demo'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import {
@@ -766,8 +767,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
+        const completedAction = actionKeyRef.current
         selfHealProviderRef.current = null
         actionKeyRef.current = null
+        // The address step is reviewed apart from the identity (TASK-24662): there
+        // is no approval to wait on here, and the screen that offered it says
+        // when Sumsub has checked it.
+        if (completedAction === RESIDENCE_ADDRESS_ACTION_KEY) {
+            userInitiatedRef.current = false
+            setShowWrapper(false)
+            setIsActionFlow(false)
+            setIsMultiLevel(false)
+            return
+        }
         if (residenceChangeRef.current) {
             userInitiatedRef.current = false
             residenceChangeRef.current = false

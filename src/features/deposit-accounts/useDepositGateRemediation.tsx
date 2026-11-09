@@ -10,9 +10,16 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { useGateActions } from '@/hooks/useGateActions'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
+import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { isAddressStepGate } from './addressStep'
+import { trackAddressStepSubmitted } from './analytics'
 import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
+import { DEPOSIT_ACCOUNTS_QUERY_KEY } from './useDepositAccounts'
 
 /**
  * What the gate banner's button actually does, and the UI it needs mounted.
@@ -30,7 +37,20 @@ export function useDepositGateRemediation(): {
     verifyCorridor: (corridor: DepositCorridor) => void
     modals: ReactNode
 } {
-    const sumsubFlow = useMultiPhaseKycFlow({})
+    const t = useTranslations('depositAccounts')
+    const toast = useToast()
+    const queryClient = useQueryClient()
+    // The corridor the address step was opened for, read when the SDK reports the submission.
+    const addressCorridor = useRef<DepositCorridor | undefined>(undefined)
+    const sumsubFlow = useMultiPhaseKycFlow({
+        onActionSubmitted: (key) => {
+            if (key !== RESIDENCE_ADDRESS_ACTION_KEY) return
+            if (addressCorridor.current) trackAddressStepSubmitted(addressCorridor.current)
+            toast.info(t('gate.addressSent'))
+            // The corridors say "under review" once Sumsub has the answer; read them again now.
+            void queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
+        },
+    })
     const { gateFor } = useCapabilities()
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const gateActions = useGateActions(sumsubFlow)
@@ -51,6 +71,12 @@ export function useDepositGateRemediation(): {
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)
+        // The drawer already explained the address step: open it, with no second screen in front.
+        if (isAddressStepGate(gate)) {
+            addressCorridor.current = corridor
+            void gateActions.verify(gate, { provider: 'BRIDGE', corridor })
+            return
+        }
         switch (gate.kind) {
             case 'loading':
             case 'ready':

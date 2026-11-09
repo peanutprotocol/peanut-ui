@@ -5,7 +5,8 @@ import { isSameRoute } from '@/constants/routes'
 import { readReturnTo } from '@/utils/return-to.utils'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useRef, useState } from 'react'
-import { trackDetailsViewed, trackGateBlocked } from '../analytics'
+import { trackAddressStepApproved, trackAddressStepStarted, trackDetailsViewed, trackGateBlocked } from '../analytics'
+import { addressStepOf, type AddressStepState } from '../addressStep'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
@@ -96,6 +97,13 @@ export interface DepositAccountsFlowProps {
     review?: EndorsementReview
 }
 
+/** The drawer each address-step state opens. */
+const ADDRESS_STEP_ACTIONS = {
+    required: 'provide-address',
+    rejected: 'address-retry',
+    in_review: 'address-in-review',
+} as const satisfies Record<AddressStepState, string>
+
 /**
  * The bank flow: one NavHeader title across every step, the step in the URL,
  * in-flow back through `onPrev`.
@@ -145,6 +153,8 @@ export function DepositAccountsFlow({
     // terms, email). The drawer closes to the list for that flow; once the gate
     // clears, the user goes on to the claim for it without a second tap.
     const [resumeCorridor, setResumeCorridor] = useState<DepositCorridor>()
+    // The corridor whose address step the user started here: its resume is the step's approval.
+    const addressStepCorridor = useRef<DepositCorridor>(undefined)
     const pendingGateAct = useRef<ReturnType<typeof setTimeout>>(undefined)
     useEffect(() => () => clearTimeout(pendingGateAct.current), [])
     // Links minted while the cursor was called `?screen=` still open the flow
@@ -215,6 +225,10 @@ export function DepositAccountsFlow({
     useEffect(() => {
         if (!resumeReady || !resumeCorridor) return
         setResumeCorridor(undefined)
+        if (addressStepCorridor.current === resumeCorridor) {
+            addressStepCorridor.current = undefined
+            trackAddressStepApproved(resumeCorridor)
+        }
         setParams({ corridor: resumeCorridor, step: 'claim' })
     }, [resumeReady, resumeCorridor, setParams])
 
@@ -315,22 +329,26 @@ export function DepositAccountsFlow({
     // is the one that clears it; its identity words would tell a verified user
     // to verify.
     const reviewWaitsOnUser = unavailable?.[corridor]?.cause === 'review-action'
+    // No residence approved yet (TASK-24662): the step that asks for the address, its retry, or its review.
+    const addressStep = addressStepOf(unavailable?.[corridor], gate)
     // A residence the provider does not serve for this account: no verification
     // or review opens it, so the drawer states it and closes. The gate's own
     // residence notice keeps its words (the UK rule has its own).
     const residenceRestricted =
         unavailable?.[corridor]?.cause === 'residence-restricted' && rawGateNotice?.action !== 'residence-restricted'
-    const gateNotice = residenceRestricted
-        ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
-        : withheldAction
-          ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
-          : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
-            ? { ...rawGateNotice, action: 'provider-review' as const }
-            : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
-              ? { ...rawGateNotice, action: 'support' as const }
-              : rawGateNotice?.action === 'finish-review' && !canFinishReview
-                ? { ...rawGateNotice, action: 'finish-review-support' as const }
-                : rawGateNotice
+    const gateNotice = addressStep
+        ? { kind: gate.kind, message: null, action: ADDRESS_STEP_ACTIONS[addressStep] }
+        : residenceRestricted
+          ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
+          : withheldAction
+            ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
+            : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
+              ? { ...rawGateNotice, action: 'provider-review' as const }
+              : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+                ? { ...rawGateNotice, action: 'support' as const }
+                : rawGateNotice?.action === 'finish-review' && !canFinishReview
+                  ? { ...rawGateNotice, action: 'finish-review-support' as const }
+                  : rawGateNotice
     // The gate belongs to this corridor only while the user cannot open it. The
     // drawer stays mounted after it closes (`?step=list`, same corridor), so
     // it slides out instead of vanishing.
@@ -377,6 +395,10 @@ export function DepositAccountsFlow({
                     // capability gate to resolve, whatever that gate reads.
                     if (!isDepositBlock(gateNotice.kind)) {
                         setResumeCorridor(corridor)
+                        if (addressStep) {
+                            addressStepCorridor.current = corridor
+                            trackAddressStepStarted(corridor, addressStep === 'rejected')
+                        }
                         return afterGateCloses(() => onResolveGate(gate, corridor))
                     }
                     const reason =

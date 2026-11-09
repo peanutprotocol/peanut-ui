@@ -2219,7 +2219,10 @@
             "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
             "topUpCta": "Agregar desde un banco",
-            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás."
+            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás.",
+            "addressBody": "Tu identidad está verificada. Para abrir cuentas en {currency}, necesitamos tu domicilio. Lo agregás una vez y lo revisamos.",
+            "addressRetryBody": "Revisá tu domicilio y envialo de nuevo. Las cuentas en {currency} se abren cuando esté aprobado.",
+            "addressReviewBody": "No tenés que hacer nada. Las cuentas en {currency} se abren cuando esté aprobado, y esta página se actualiza sola."
         },
         "senderLimit": {
             "businessOnly": {

@@ -24,6 +24,9 @@ const TITLES = {
     'finish-review': 'gate.finishReviewTitle',
     'finish-review-support': 'gate.finishReviewTitle',
     'provider-review': 'gate.finishReviewTitle',
+    'provide-address': 'gate.addressTitle',
+    'address-retry': 'gate.addressRetryTitle',
+    'address-in-review': 'gate.addressReviewTitle',
 } as const
 
 const BODIES = {
@@ -43,6 +46,9 @@ const BODIES = {
     'finish-review': 'gate.finishReviewBody',
     'finish-review-support': 'gate.finishReviewSupportBody',
     'provider-review': 'gate.providerReviewBody',
+    'provide-address': 'gate.addressBody',
+    'address-retry': 'gate.addressRetryBody',
+    'address-in-review': 'gate.addressReviewBody',
 } as const
 
 const LABELS = {
@@ -58,6 +64,10 @@ const LABELS = {
     'finish-review': 'gate.finishReviewCta',
     'finish-review-support': 'gate.supportCta',
     'provider-review': 'gate.finishReviewCta',
+    'provide-address': 'gate.addressCta',
+    'address-retry': 'gate.addressRetryCta',
+    // a wait on Sumsub, on Add money and the Accounts page alike: the shared "Got it" closes it
+    'address-in-review': null,
 } as const
 
 /** the picture each reason gets; the default says "closed to you", which a wait is not */
@@ -68,10 +78,13 @@ const ICONS = {
     'finish-review': 'user-id',
     'finish-review-support': 'peanut-support',
     'provider-review': 'user-id',
+    'provide-address': 'home',
+    'address-retry': 'home',
+    'address-in-review': 'clock',
 } as const
 
 /** Reasons with nothing to press: the button closes the drawer, and the drawer updates by itself. */
-const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review'])
+const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review', 'address-in-review'])
 
 /**
  * A corridor the user cannot open yet, and the one thing that changes it.
@@ -160,7 +173,8 @@ export function CorridorGateDrawer({
                 ? tKyc('initiate.titleRegionUnavailable')
                 : t('gate.blockedTitle', { currency: rail.currency })
             : t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })
-    const label = notice.action === 'residence-restricted' ? tCommon('gotIt') : t(LABELS[notice.action])
+    const labelKey = notice.action === 'residence-restricted' ? null : LABELS[notice.action]
+    const label = labelKey ? t(labelKey) : tCommon('gotIt')
 
     const actButton = (
         <Button
@@ -196,7 +210,13 @@ export function CorridorGateDrawer({
         >
             <DrawerContent className="pb-4" data-testid="corridor-gate-drawer">
                 <div className="flex flex-col items-center text-center">
-                    {notice.action === 'pending-review' && <Badge status="pending" className="mb-4" />}
+                    {(notice.action === 'pending-review' || notice.action === 'address-in-review') && (
+                        <Badge
+                            status="pending"
+                            className="mb-4"
+                            customText={notice.action === 'address-in-review' ? t('list.badgeUnderReview') : undefined}
+                        />
+                    )}
                     <IconBubble
                         icon={gateIcon ?? 'globe-lock'}
                         // a wait is yellow; a residence rule is closed, gray like the
