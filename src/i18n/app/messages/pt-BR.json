@@ -2159,6 +2159,12 @@
             "issuedTitle": "Conheça seu Peanut Card.",
             "issuedBody": "Ele está pronto para pagamentos online e por aproximação.",
             "viewCard": "Ver cartão"
+        },
+        "addressStep": {
+            "required": "Para continuar a solicitação do seu cartão, adicione seu endereço residencial.",
+            "rejected": "Confira seu endereço residencial e envie novamente para continuar a solicitação do cartão.",
+            "in_review": "Estamos analisando seu endereço. Você poderá continuar a solicitação do cartão quando ele for aceito.",
+            "unavailable": "Não foi possível carregar a etapa de endereço. Tente novamente."
         }
     },
     "addMoney": {

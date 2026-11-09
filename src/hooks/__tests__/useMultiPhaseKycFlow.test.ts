@@ -86,9 +86,73 @@ describe('useMultiPhaseKycFlow — the address step', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockFetchUser.mockResolvedValue(null)
+        startKycAction.mockReset()
         startKycAction.mockResolvedValue({
             data: { token: 'address-token', levelName: 'provider-rfi-address', externalActionId: 'address-step-u-1' },
         })
+    })
+
+    it.each([{ error: 'Launch unavailable' }, { data: { levelName: 'provider-rfi-address' } }])(
+        'keeps a failed or tokenless address launch retryable through the real flow',
+        async (response) => {
+            startKycAction.mockResolvedValueOnce(response)
+            const onKycApproved = jest.fn()
+            const onActionSubmitted = jest.fn()
+            const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved, onActionSubmitted }))
+            await act(async () => {
+                await result.current.handleStartAction('sumsub:address_of_residence')
+            })
+            expect(result.current.error).toBeTruthy()
+            expect(result.current.isLoading).toBe(false)
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.accessToken).toBeNull()
+            expect(onKycApproved).not.toHaveBeenCalled()
+            expect(onActionSubmitted).not.toHaveBeenCalled()
+            await act(async () => {
+                await result.current.handleStartAction('sumsub:address_of_residence')
+            })
+            expect(result.current.error).toBeNull()
+            expect(result.current.showWrapper).toBe(true)
+            expect(result.current.accessToken).toBe('address-token')
+            expect(startKycAction).toHaveBeenCalledTimes(2)
+        }
+    )
+
+    it('does not open a late address SDK after the pending launch was dismissed', async () => {
+        let finish!: (response: unknown) => void
+        startKycAction.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve
+                })
+        )
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        let pending!: Promise<void>
+        act(() => {
+            pending = result.current.handleStartAction('sumsub:address_of_residence')
+        })
+        act(() => result.current.handleSdkClose())
+        await act(async () => {
+            finish({ data: { token: 'late-address-token', levelName: 'provider-rfi-address' } })
+            await pending
+        })
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+        expect(result.current.isModalOpen).toBe(false)
+    })
+
+    it('exposes a rejected launch promise without opening the SDK or reporting approval', async () => {
+        startKycAction.mockRejectedValueOnce(new Error('Launch unavailable'))
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+        await act(async () => {
+            await result.current.handleStartAction('sumsub:address_of_residence')
+        })
+        expect(result.current.error).toBe('Launch unavailable')
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+        expect(onKycApproved).not.toHaveBeenCalled()
     })
 
     it('submission hands back to the screen that offered it: no identity events, no approval wait', async () => {

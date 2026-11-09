@@ -1901,6 +1901,77 @@ export const FIXTURES: Record<string, Fixture> = {
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     // Masked state only ('****' — same span as the digits). Revealing needs a
     // passkey step-up, which no fixture can answer.
+    'card-address-required': {
+        route: '/card',
+        about: 'Card residence recovery: required.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    features: {
+                        card: {
+                            state: 'action_required',
+                            reason: 'residence_unresolved',
+                            action: 'sumsub:address_of_residence',
+                        },
+                    },
+                    nextActions: [
+                        {
+                            key: 'sumsub:address_of_residence',
+                            kind: 'sumsub',
+                            levelKey: 'address_of_residence',
+                            purpose: 'residence_address_required',
+                        },
+                    ],
+                },
+            },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-address-rejected': {
+        route: '/card',
+        about: 'Card residence recovery: rejected.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    features: {
+                        card: {
+                            state: 'action_required',
+                            reason: 'residence_unresolved',
+                            action: 'sumsub:address_of_residence',
+                        },
+                    },
+                    nextActions: [
+                        {
+                            key: 'sumsub:address_of_residence',
+                            kind: 'sumsub',
+                            levelKey: 'address_of_residence',
+                            purpose: 'residence_address_rejected',
+                        },
+                    ],
+                },
+            },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-address-in-review': {
+        route: '/card',
+        about: 'Card residence recovery: in_review.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    features: { card: { state: 'setting_up', reason: 'residence_address_in_review' } },
+                    nextActions: [],
+                },
+            },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
     'card-application': {
         route: '/card',
         about: 'Public card application with unknown residence, no admission badge, and no card balance.',
