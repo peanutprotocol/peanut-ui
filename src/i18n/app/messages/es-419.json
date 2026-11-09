@@ -2564,13 +2564,14 @@
             "returnedBody": "Paga de nuevo desde una cuenta con tu CPF."
         },
         "withdraw": {
+            "changeAmount": "Cambiar monto",
             "stuck": "Este retiro no se completó. Contacta a soporte.",
             "arrivesIn": "Unos {minutes, plural, one {# minuto} other {# minutos}}",
             "aveniaFee": "Comisión de Avenia",
             "keyIntro": "Ingresa una clave Pix de una cuenta con tu CPF.",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
-            "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a una cuenta con tu CPF.",
+            "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",
             "keyBlocked": "Los retiros por Pix a este banco no están disponibles.",
             "unknownHolder": "Nombre no visible",
             "ownAccount": "Cuenta propia",

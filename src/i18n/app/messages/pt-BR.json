@@ -2564,13 +2564,14 @@
             "returnedBody": "Pague de novo de uma conta no seu CPF."
         },
         "withdraw": {
+            "changeAmount": "Alterar valor",
             "stuck": "Este saque não foi concluído. Fale com o suporte.",
             "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
             "aveniaFee": "Tarifa da Avenia",
             "keyIntro": "Digite uma chave Pix de uma conta no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
             "lookupFailed": "Não foi possível conferir esta chave. Tente de novo.",
-            "keyNotOwn": "Esta chave é de outra pessoa. Saques vão só para uma conta no seu CPF.",
+            "keyNotOwn": "Esta chave é de outra pessoa. Saques vão só para contas no seu CPF.",
             "keyBlocked": "Saques por Pix para este banco não estão disponíveis.",
             "unknownHolder": "Nome não exibido",
             "ownAccount": "Conta própria",

@@ -2564,13 +2564,14 @@
             "returnedBody": "Pay again from an account under your CPF."
         },
         "withdraw": {
+            "changeAmount": "Change amount",
             "stuck": "This withdrawal did not finish. Contact support.",
             "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
             "aveniaFee": "Avenia fee",
             "keyIntro": "Enter a Pix key of an account under your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
-            "keyNotOwn": "This key belongs to someone else. Withdrawals go only to an account under your CPF.",
+            "keyNotOwn": "This key belongs to someone else. Withdrawals go only to accounts under your CPF.",
             "keyBlocked": "Pix withdrawals to this bank are not available.",
             "unknownHolder": "Name not shown",
             "ownAccount": "Own account",

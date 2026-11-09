@@ -38,6 +38,7 @@ import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { aveniaApi } from '@/services/avenia'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
@@ -243,6 +244,15 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const display = submit.opened?.display ?? preview.data ?? null
     const reconfirm = submit.phase === 'reconfirm'
     const fundsShort = !!display && !isAmountWithinBalance(display.withdrawUsd, spendableBalance)
+    // each refusal offers the one step that can change it
+    const previewAction = (code: string | undefined) => {
+        // a smaller amount can pass the monthly limit; the key stays
+        if (code === API_ERROR_CODES.PIX_LIMIT_EXCEEDED)
+            return { label: t('changeAmount'), onClick: () => void stepper.goTo('amount') }
+        // withdrawals still on their way: only time helps, and the message says so
+        if (code === API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS) return undefined
+        return { label: tCommon('retry'), onClick: () => void preview.refetch() }
+    }
     const reviewError = submit.error
         ? // once Avenia's ticket is open, only a signature that surely sent nothing may be tried again
           {
@@ -252,7 +262,7 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                       : submit.error,
           }
         : preview.error
-          ? { message: refusalMessage(preview.error), onRetry: () => void preview.refetch() }
+          ? { message: refusalMessage(preview.error), action: previewAction(wireErrorCode(preview.error)) }
           : fundsShort
             ? { message: tErrors('insufficientBalance') }
             : reconfirm

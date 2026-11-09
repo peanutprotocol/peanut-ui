@@ -53,7 +53,10 @@ describe('AveniaWithdrawReview', () => {
                 display={null}
                 isLoading={false}
                 isSubmitting={false}
-                error={{ message: en.avenia.withdraw.errors.limitExceeded, onRetry: jest.fn() }}
+                error={{
+                    message: en.avenia.withdraw.errors.limitExceeded,
+                    action: { label: en.common.retry, onClick: jest.fn() },
+                }}
                 canConfirm={false}
                 onBack={jest.fn()}
                 onConfirm={jest.fn()}

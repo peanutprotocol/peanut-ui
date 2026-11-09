@@ -39,7 +39,7 @@ export function AveniaWithdrawReview({
     isLoading: boolean
     isSubmitting: boolean
     /** A refusal (error), or the opened quote that moved since the review (attention). */
-    error: { message: string; onRetry?: () => void; priority?: 'error' | 'attention' } | null
+    error: { message: string; action?: { label: string; onClick: () => void }; priority?: 'error' | 'attention' } | null
     canConfirm: boolean
     onBack: () => void
     onConfirm: () => void
@@ -50,10 +50,7 @@ export function AveniaWithdrawReview({
     const tCommon = useTranslations('common')
     const destination = display ? [display.bankName, display.holderName].filter(Boolean).join(' · ') : ''
     const errorCallout = error && (
-        <Callout
-            priority={error.priority ?? 'error'}
-            ctas={error.onRetry ? [{ label: tCommon('retry'), onClick: error.onRetry }] : undefined}
-        >
+        <Callout priority={error.priority ?? 'error'} ctas={error.action ? [error.action] : undefined}>
             {error.message}
         </Callout>
     )

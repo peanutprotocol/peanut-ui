@@ -6,6 +6,7 @@ import type { UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import type { CapabilityRoute } from '@/types/capabilities'
+import { ApiError } from '@/services/api-error'
 
 // general.utils reaches the viem clients, whose RPC-ranking timers keep the worker alive
 jest.mock('@/app/actions/clients', () => ({}))
@@ -225,5 +226,43 @@ describe('AveniaWithdrawFlow amount step', () => {
         expect(screen.getByRole('button', { name: en.common.continue })).toBeDisabled()
         fireEvent.click(screen.getByRole('button', { name: en.common.retry }))
         expect(refetch).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('AveniaWithdrawFlow refused preview', () => {
+    beforeEach(() => jest.clearAllMocks())
+    const refuse = (status: number, code: string) =>
+        mockPreview.mockRejectedValue(new ApiError('refused', { status, code }))
+    const REVIEW = '?step=review&destination=09579927189&destinationAmount=503'
+
+    it('over the monthly limit: Change amount goes back to the amount step and keeps the key', async () => {
+        refuse(422, 'PIX_LIMIT_EXCEEDED')
+        const urls: string[] = []
+        renderAt(REVIEW, (event) => urls.push(event.queryString))
+
+        fireEvent.click(await screen.findByRole('button', { name: en.avenia.withdraw.changeAmount }))
+
+        await waitFor(() => expect(urls.at(-1)).toContain('step=amount'))
+        expect(urls.at(-1)).toContain('destination=09579927189')
+        expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
+    })
+
+    it('withdrawals still on their way: no retry, the message says to try later, Cancel only', async () => {
+        refuse(409, 'WITHDRAWAL_IN_PROGRESS')
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.avenia.withdraw.errors.inProgress)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
+        expect(screen.queryByRole('button', { name: en.avenia.withdraw.changeAmount })).toBeNull()
+        expect(screen.getByRole('button', { name: en.common.cancel })).toBeInTheDocument()
+    })
+
+    it('the quote changed: Retry asks for the preview again', async () => {
+        refuse(409, 'PIX_QUOTE_CHANGED')
+        renderAt(REVIEW)
+
+        fireEvent.click(await screen.findByRole('button', { name: en.common.retry }))
+
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2))
     })
 })
