@@ -2215,6 +2215,7 @@
             "supportedNetworks": "Redes compatíveis",
             "supportedTokens": "Tokens compatíveis",
             "supportedTokensInline": "Tokens compatíveis:",
+            "gnosisEureNote": "A Gnosis também aceita EURe v2 (0x420C…3430), não EURe v1.",
             "sendExtraForFees": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa.",
             "supportedEvmNetworks": "Redes EVM compatíveis",
             "evmNetworks": "redes EVM",

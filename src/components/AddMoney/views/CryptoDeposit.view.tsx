@@ -256,6 +256,9 @@ const CryptoDepositView = ({
                                         />
                                     ))}
                                 </div>
+                                {isEvm && (
+                                    <p className="mt-2 text-body-s text-foreground-secondary">{t('gnosisEureNote')}</p>
+                                )}
                             </div>
 
                             {/* who holds the deposit address (TASK-23295) */}

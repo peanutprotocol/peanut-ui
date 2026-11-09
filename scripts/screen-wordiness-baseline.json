@@ -25,7 +25,7 @@
         "app/receipt/[entryId]/OwnerReceiptView.tsx": 763,
         "app/receipt/[entryId]/page.tsx": 629,
         "app/recover-wallet/page.tsx": 63,
-        "components/AddMoney/views/CryptoDeposit.view.tsx": 197,
+        "components/AddMoney/views/CryptoDeposit.view.tsx": 206,
         "components/AddMoney/views/RhinoDeposit.view.tsx": 138,
         "components/Card/CancelCardModal.tsx": 87,
         "components/Card/CardPinScreen.tsx": 105,
