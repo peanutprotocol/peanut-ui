@@ -2191,8 +2191,8 @@
             "title": "Choose network",
             "description": "Select the network you want to add from:",
             "evmDescription": "{count} networks, 1 address",
-            "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}",
-            "evmTokensOnNetworks": "{tokens, plural, one {# supported token} other {# supported tokens}} on {networks} networks"
+            "solanaTokens": "USDC or USDT",
+            "evmTokensOnNetworks": "A lot of tokens on many networks"
         },
         "supportedNetworksModal": {
             "title": "Supported networks",
