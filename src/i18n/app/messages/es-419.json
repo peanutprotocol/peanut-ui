@@ -2215,6 +2215,7 @@
             "supportedNetworks": "Redes compatibles",
             "supportedTokens": "Tokens compatibles",
             "supportedTokensInline": "Tokens compatibles:",
+            "additionalTokensNote": "También se aceptan: EURe v2 en Gnosis (0x420C…3430, no v1), USDe y PYUSD en Arbitrum, EURC y USDS en Base.",
             "sendExtraForFees": "Envía un poco más si tu billetera o la red cobra una comisión.",
             "supportedEvmNetworks": "Redes EVM compatibles",
             "evmNetworks": "redes EVM",

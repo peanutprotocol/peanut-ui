@@ -55,15 +55,15 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
 }
 
 /**
- * EVM deposit chains where Rhino accepts FEWER tokens than the EVM family
- * list above. A token sent on a chain where Rhino doesn't accept it is
+ * EVM deposit chains where Rhino accepts a different token set from the EVM
+ * family list above. A token sent on a chain where Rhino doesn't accept it is
  * silently lost (no webhook, no intent), so deposit surfaces annotate these.
- * Source: Rhino's live SDA catalog (getSupportedConfigs, 2026-07-11).
+ * Source: Rhino's live SDA catalog (getSupportedConfigs, 2026-11-09).
  */
-export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, TokenName[]>> = Object.fromEntries(
+export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, string[]>> = Object.fromEntries(
     CHAIN_REGISTRY.filter((c) => c.family === 'evm' && c.deposit?.tokens).map((c) => [
         c.displayName,
-        [...(c.deposit!.tokens as readonly TokenName[])],
+        [...c.deposit!.tokens!],
     ])
 )
 

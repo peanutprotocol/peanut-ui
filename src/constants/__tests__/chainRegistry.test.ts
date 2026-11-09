@@ -109,7 +109,7 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             PLASMA: ['USDT'],
             TEMPO: ['USDT', 'USDC'],
             CELO: ['USDT', 'USDC'],
-            GNOSIS: ['USDT', 'USDC'],
+            GNOSIS: ['USDT', 'USDC', 'EURe v2'],
         })
         // every advertised chain has a logo (broken-logo class of bug)
         for (const chain of [...SUPPORTED_EVM_CHAINS, ...OTHER_SUPPORTED_CHAINS]) {
