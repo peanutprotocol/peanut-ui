@@ -174,3 +174,5 @@ describe('binary context shared across consumers', () => {
         expect(mockFlags).toHaveBeenCalledWith({ client_platform: 'web' })
     })
 })
+
+export {}
