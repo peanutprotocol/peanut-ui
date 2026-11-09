@@ -15,17 +15,29 @@ const handleRestartIdentity = jest.fn()
 const handleSelfHealResubmit = jest.fn()
 const handleFixableGate = jest.fn()
 let mockShowWrapper = false
+let mockFlowOptions: { onActionSubmitted?: (key: string) => void } = {}
+const mockToastInfo = jest.fn()
+const mockInvalidate = jest.fn()
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ info: mockToastInfo }) }))
+jest.mock('@tanstack/react-query', () => ({
+    ...jest.requireActual('@tanstack/react-query'),
+    useQueryClient: () => ({ invalidateQueries: mockInvalidate }),
+}))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({
-        handleInitiateKyc: (...args: unknown[]) => handleInitiateKyc(...args),
-        handleRestartIdentity: () => handleRestartIdentity(),
-        handleSelfHealResubmit: (...args: unknown[]) => handleSelfHealResubmit(...args),
-        handleFixableGate: (...args: unknown[]) => handleFixableGate(...args),
-        isLoading: false,
-        error: null,
-        errorCooldown: null,
-        showWrapper: mockShowWrapper,
-    }),
+    useMultiPhaseKycFlow: (options: typeof mockFlowOptions) => {
+        mockFlowOptions = options
+        return {
+            handleInitiateKyc: (...args: unknown[]) => handleInitiateKyc(...args),
+            handleRestartIdentity: () => handleRestartIdentity(),
+            handleSelfHealResubmit: (...args: unknown[]) => handleSelfHealResubmit(...args),
+            handleFixableGate: (...args: unknown[]) => handleFixableGate(...args),
+            isLoading: false,
+            error: null,
+            errorCooldown: null,
+            showWrapper: mockShowWrapper,
+        }
+    },
 }))
 const gateFor = jest.fn((): GateState => ({ kind: 'needs-enrollment' }) as GateState)
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -218,5 +230,58 @@ describe('useDepositGateRemediation', () => {
 
         expect(gateFor).toHaveBeenCalledWith('deposit', { railId: 'bridge.bank_transfer_co' })
         expect(handleInitiateKyc).toHaveBeenCalledWith(undefined, undefined, true, undefined, 'BANK_TRANSFER_CO')
+    })
+})
+
+/** TASK-24662: the drawer explained the address step, so its button opens it with no modal in front. */
+describe('the address step', () => {
+    const capture = (jest.requireMock('posthog-js') as { default: { capture: jest.Mock } }).default.capture
+    const addressGate: GateState = {
+        kind: 'fixable-rejection',
+        userMessage: null,
+        reason: { code: 'residence_unresolved', userMessage: '' },
+        actionKey: 'sumsub:address_of_residence',
+        nextAction: {
+            key: 'sumsub:address_of_residence',
+            kind: 'sumsub',
+            purpose: 'residence_address_required',
+            levelKey: 'address_of_residence',
+        },
+    }
+
+    it('starts the bound action straight away', async () => {
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        render(<Host />)
+        await act(async () => remediation!.resolveGate(addressGate, 'ACH_US'))
+        expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', addressGate)
+        expect(modalVisible).toBe(false)
+    })
+
+    it('on submission says it was sent, reports it for the corridor, and reads the corridors again', async () => {
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        render(<Host />)
+        await act(async () => remediation!.resolveGate(addressGate, 'ACH_US'))
+        act(() => mockFlowOptions.onActionSubmitted?.('sumsub:address_of_residence'))
+        expect(mockToastInfo).toHaveBeenCalledWith('gate.addressSent')
+        expect(capture).toHaveBeenCalledWith('deposit_account_address_step_submitted', { corridor: 'ACH_US' })
+        expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['deposit-accounts'] })
+    })
+
+    it('ignores other actions’ submissions', () => {
+        function Host() {
+            useDepositGateRemediation()
+            return null
+        }
+        render(<Host />)
+        act(() => mockFlowOptions.onActionSubmitted?.('supplement:bridge'))
+        expect(mockToastInfo).not.toHaveBeenCalled()
     })
 })

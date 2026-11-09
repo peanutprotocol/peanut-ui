@@ -1103,6 +1103,29 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
         expect(mockStartAction).not.toHaveBeenCalled()
     })
 
+    // TASK-24662: the address step is reviewed apart from the identity, so the SDK
+    // closes without the identity progress modal and no approval is awaited here.
+    it('closes the address step on submission without opening the progress modal', async () => {
+        mockStartAction.mockResolvedValue({
+            data: { token: 'tok-address', levelName: 'provider-rfi-address', externalActionId: 'address-step-u-1' },
+        } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:address_of_residence',
+                reason: { code: 'residence_unresolved' },
+            })
+        })
+        expect(result.current.showWrapper).toBe(true)
+
+        act(() => result.current.handleSdkComplete())
+
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isActionFlow).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+    })
+
     it('handleFixableGate pulls BOTH values off the gate — a dropped code means a 404', async () => {
         // The four bank surfaces used to build this argument by hand. A site that
         // passed `gate.reason` instead of `gate.reason.code`, or omitted it, would

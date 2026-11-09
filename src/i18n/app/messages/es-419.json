@@ -5185,7 +5185,16 @@
             "finishReviewCta": "Continuar",
             "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento.",
             "topUpCta": "Agregar desde un banco",
-            "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas."
+            "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas.",
+            "addressTitle": "Necesitamos el domicilio",
+            "addressBody": "Tu identidad está verificada. Para abrir cuentas en {currency}, necesitamos tu domicilio. Lo agregas una vez y lo revisamos.",
+            "addressCta": "Agregar domicilio",
+            "addressRetryTitle": "No pudimos aceptar ese domicilio",
+            "addressRetryBody": "Revisa tu domicilio y envíalo de nuevo. Las cuentas en {currency} se abren cuando esté aprobado.",
+            "addressRetryCta": "Enviar de nuevo",
+            "addressReviewTitle": "Estamos revisando el domicilio",
+            "addressReviewBody": "No tienes que hacer nada. Las cuentas en {currency} se abren cuando esté aprobado, y esta página se actualiza sola.",
+            "addressSent": "Domicilio enviado para revisión"
         },
         "senderLimit": {
             "businessOnly": {
