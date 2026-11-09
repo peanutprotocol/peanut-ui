@@ -160,6 +160,23 @@ describe('findSelection / fallbackSelection', () => {
     })
 })
 
+test('shows a mixed-case symbol as the token spells it, grouped case-insensitively', () => {
+    const chains: Record<string, ChainWithTokens> = {
+        '43114': {
+            chainId: '43114',
+            networkName: 'Avalanche',
+            chainIconURI: '',
+            tokens: [token('43114', '0xusde', 'USDe'), token('43114', '0xusdc', 'USDC')],
+        },
+    }
+    const picked = buildTokenOptions(chains, ['43114'], () => true)
+    // USDC still leads; USDe keeps its spelling instead of reading USDE
+    expect(picked.map((o) => o.symbol)).toEqual(['USDC', 'USDe'])
+    // a selection stored upper-cased still finds it
+    const fallback = fallbackSelection(picked, chains, '43114', '0xusde')
+    expect(fallback?.option.symbol).toBe('USDe')
+})
+
 test('filterTokenOptions matches symbol or name substrings', () => {
     expect(filterTokenOptions(options(), 'usd').map((o) => o.symbol)).toEqual(['USDC', 'USDT'])
     expect(filterTokenOptions(options(), '  ').length).toBe(3)

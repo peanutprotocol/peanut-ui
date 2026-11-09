@@ -28,8 +28,9 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
         </button>
     ),
 }))
+let mockTokenSymbol = 'USDC'
 jest.mock('@/hooks/useTokenChainIcons', () => ({
-    useTokenChainIcons: () => ({ resolvedChainName: 'Solana', resolvedTokenSymbol: 'USDC' }),
+    useTokenChainIcons: () => ({ resolvedChainName: 'Solana', resolvedTokenSymbol: mockTokenSymbol }),
 }))
 
 const baseProps = {
@@ -169,6 +170,36 @@ describe('ConfirmWithdrawView — the gates hold on both CTAs', () => {
         )
 
         expect(screen.getByRole('button', { name: /retry/i })).toBeDisabled()
+    })
+})
+
+// EURC is worth about $1.12, so a quote that delivers 8.90032 EURC must never
+// read as $8.90032. The spend stays in dollars: it is USDC.
+describe('ConfirmWithdrawView — a token that is not a dollar', () => {
+    it.each([
+        ['EURC', '8.90032'],
+        ['USDe', '10.086357'],
+    ])('shows what %s delivers in the token, and the spend in dollars', (symbol, receiveAmount) => {
+        mockTokenSymbol = symbol
+        try {
+            renderWithIntl(
+                <ConfirmWithdrawView
+                    {...baseProps}
+                    amount="10"
+                    payAmount="10"
+                    receiveAmount={receiveAmount}
+                    networkFee={0.03}
+                    isCrossChain
+                />
+            )
+            expect(screen.getByText(`${receiveAmount} ${symbol}`)).toBeInTheDocument()
+            expect(screen.queryByText(`$${receiveAmount}`)).not.toBeInTheDocument()
+            // the spend side is the dollar amount the kernel moves, and the fee is Rhino's USD quote
+            expect(screen.getByText('$10')).toBeInTheDocument()
+            expect(screen.getByText('$0.03')).toBeInTheDocument()
+        } finally {
+            mockTokenSymbol = 'USDC'
+        }
     })
 })
 
