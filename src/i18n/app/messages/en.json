@@ -2159,6 +2159,12 @@
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
             "viewCard": "View card"
+        },
+        "addressStep": {
+            "required": "To continue your card application, add your home address.",
+            "rejected": "Check your home address and send it again to continue your card application.",
+            "in_review": "We are checking your address. You can continue your card application once it is accepted.",
+            "unavailable": "We could not load the address step. Try again."
         }
     },
     "addMoney": {
