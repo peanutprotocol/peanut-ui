@@ -98,7 +98,10 @@ it('says a payment from someone else was returned, instead of the general reason
 })
 
 it.each([
-    ['too_many_recent', 'Too many deposits arrived in a short time. Wait a day or two before the next one.'],
+    [
+        'too_many_recent',
+        'Too many deposits arrived in a short time. Wait before sending the next one, and talk to support if it happens again.',
+    ],
     [
         'name_mismatch',
         'The name on the transfer did not match this account. Send it again with the exact name in the bank details.',

@@ -2675,7 +2675,7 @@
         },
         "returnedReason": "El banco devolvió este pago.",
         "returnedReasonThirdParty": "Salió de la cuenta de otra persona, y esta cuenta no la acepta.",
-        "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Espera uno o dos días antes del siguiente.",
+        "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Espera antes de enviar el siguiente y escríbele a soporte si te vuelve a pasar.",
         "returnedReasonNameMismatch": "El nombre de la transferencia no coincidía con esta cuenta. Envíala de nuevo con el nombre exacto de los datos bancarios.",
         "returnedStatus": "Devuelto",
         "verificationDepositNote": "Se usa para confirmar tu cuenta. No se suma a tu saldo.",

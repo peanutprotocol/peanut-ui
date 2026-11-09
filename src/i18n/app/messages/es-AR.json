@@ -1301,7 +1301,7 @@
     },
     "transaction": {
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
-        "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Esperá uno o dos días antes del siguiente.",
+        "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Esperá antes de enviar el siguiente y escribile a soporte si te vuelve a pasar.",
         "returnedReasonNameMismatch": "El nombre de la transferencia no coincidía con esta cuenta. Enviala de nuevo con el nombre exacto de los datos bancarios.",
         "perk": {
             "subtitle": "Ganá recompensas cada vez que tus amigos usan Peanut."
