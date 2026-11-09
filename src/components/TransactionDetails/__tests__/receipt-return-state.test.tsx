@@ -97,6 +97,49 @@ it('says a payment from someone else was returned, instead of the general reason
     expect(screen.getByText('Returned')).toBeInTheDocument()
 })
 
+it.each([
+    ['too_many_recent', 'Too many deposits arrived in a short time. Wait a day or two before the next one.'],
+    [
+        'name_mismatch',
+        'The name on the transfer did not match this account. Send it again with the exact name in the bank details.',
+    ],
+] as const)('gives a %s return its own reason line', (returnReasonCode, line) => {
+    const namedRule: TransactionDetails = {
+        ...returned,
+        extraDataForDrawer: {
+            originalType: 'TRANSACTION_INTENT',
+            originalUserRole: EHistoryUserRole.RECIPIENT,
+            returnReasonCode,
+        },
+    }
+    render(
+        <ToastProvider>
+            <TransactionDetailsReceipt transaction={namedRule} isPublic={false} />
+        </ToastProvider>,
+        { wrapper: IntlWrapper }
+    )
+    expect(screen.getByText(line)).toBeInTheDocument()
+    expect(screen.queryByText(/The bank sent this payment back/)).not.toBeInTheDocument()
+})
+
+it('keeps the general reason for a code this build does not know', () => {
+    const newerCode = {
+        ...returned,
+        extraDataForDrawer: {
+            originalType: 'TRANSACTION_INTENT',
+            originalUserRole: EHistoryUserRole.RECIPIENT,
+            returnReasonCode: 'a_later_code',
+        },
+    } as unknown as TransactionDetails
+    render(
+        <ToastProvider>
+            <TransactionDetailsReceipt transaction={newerCode} isPublic={false} />
+        </ToastProvider>,
+        { wrapper: IntlWrapper }
+    )
+    expect(screen.getByText('The bank sent this payment back.')).toBeInTheDocument()
+})
+
 // QA-08: the provider's text is for support (it can carry Bridge's risk
 // wording), so an unrecognised reason gets the general line, never the text
 it("never shows the provider's own text", () => {

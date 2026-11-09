@@ -2675,6 +2675,8 @@
         },
         "returnedReason": "The bank sent this payment back.",
         "returnedReasonThirdParty": "It came from someone else's account, which this account does not accept.",
+        "returnedReasonTooManyRecent": "Too many deposits arrived in a short time. Wait a day or two before the next one.",
+        "returnedReasonNameMismatch": "The name on the transfer did not match this account. Send it again with the exact name in the bank details.",
         "returnedStatus": "Returned",
         "verificationDepositNote": "Used to confirm your account. Not added to your balance.",
         "belowMinimumNote": "This deposit was below the {min} minimum, so it can't be added or returned.",

@@ -2675,6 +2675,8 @@
         },
         "returnedReason": "O banco devolveu este pagamento.",
         "returnedReasonThirdParty": "Veio da conta de outra pessoa, e esta conta não aceita isso.",
+        "returnedReasonTooManyRecent": "Chegaram depósitos demais em pouco tempo. Espere um ou dois dias antes do próximo.",
+        "returnedReasonNameMismatch": "O nome na transferência não correspondia a esta conta. Envie de novo com o nome exato dos dados bancários.",
         "returnedStatus": "Devolvido",
         "verificationDepositNote": "Usado para confirmar sua conta. Não é adicionado ao seu saldo.",
         "belowMinimumNote": "Este depósito ficou abaixo do mínimo de {min}, então não pode ser adicionado nem devolvido.",
