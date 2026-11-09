@@ -54,6 +54,7 @@ describe('withdrawScanEntryUrl', () => {
     it.each([
         ['a USDC request', 'USDC', '10'],
         ['a USDT request, whatever the case', 'usdt', '2.5'],
+        ['a DAI request', 'DAI', '5'],
     ])('carries the amount of %s', (_case, tokenSymbol, amount) => {
         expect(entryAmount(tokenSymbol, amount)).toBe(amount)
     })
