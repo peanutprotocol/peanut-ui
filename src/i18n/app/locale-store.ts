@@ -7,6 +7,7 @@
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { APP_RELEASE } from '@/constants/app-release'
+import { clientFlagProperties } from '@/utils/posthog-setup'
 import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
 import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
@@ -112,14 +113,24 @@ type DeviceContext = {
 } & Partial<DeviceIdentity>
 
 let deviceContext: DeviceContext | null = null
+let deviceContextPending: Promise<void> | null = null
 
 /** Last device context registered — for re-register after posthog.reset() on logout. */
 export function currentDeviceContext(): DeviceContext | null {
     return deviceContext
 }
 
-export async function emitDeviceContextToAnalytics(): Promise<void> {
-    if (deviceContext) return
+export function emitDeviceContextToAnalytics(): Promise<void> {
+    if (deviceContext) return Promise.resolve()
+    if (!deviceContextPending) {
+        deviceContextPending = registerDeviceContext().finally(() => {
+            deviceContextPending = null
+        })
+    }
+    return deviceContextPending
+}
+
+async function registerDeviceContext(): Promise<void> {
     try {
         const tag = await rawDeviceTag()
         const context: DeviceContext = {
@@ -140,6 +151,7 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
             }
         }
         posthog.register(context)
+        posthog.setPersonPropertiesForFlags(await clientFlagProperties())
         // set only after a successful register — a throw leaves this null so a
         // later call can retry, instead of silently disabling the emit forever
         deviceContext = context

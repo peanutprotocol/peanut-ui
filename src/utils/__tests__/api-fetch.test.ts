@@ -33,6 +33,8 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => false),
 }))
 
+jest.mock('@capacitor/app', () => ({ App: { getInfo: jest.fn() } }))
+
 jest.mock('@/i18n/app/locale-store', () => ({ currentAppLocale: jest.fn(() => null) }))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -405,6 +407,253 @@ describe('serverFetch', () => {
             await serverFetch('/quick', { method: 'GET' })
             const callArgs = mockFetchWithSentry.mock.calls[0]
             expect(callArgs.length).toBe(2)
+        })
+    })
+})
+
+describe('native app binary version header', () => {
+    type BinaryHeaderContext = {
+        apiFetch: typeof apiFetch
+        serverFetch: typeof serverFetch
+        fetch: jest.Mock
+        binaryInfo: jest.Mock
+        native: jest.Mock
+        authToken: jest.Mock
+    }
+
+    // Isolate the module cache for each scenario.
+    async function withBinaryHeaderContext(run: (context: BinaryHeaderContext) => Promise<void>) {
+        await jest.isolateModulesAsync(async () => {
+            const { App } = await import('@capacitor/app')
+            const { isCapacitor: freshIsCapacitor } = await import('@/utils/capacitor')
+            const { getAuthToken: freshGetAuthToken } = await import('@/utils/auth-token')
+            const { fetchWithSentry: freshFetch } = await import('@/utils/sentry.utils')
+            const { currentAppLocale: freshLocale } = await import('@/i18n/app/locale-store')
+            const { disableDemoMode: freshDisableDemoMode } = await import('@/utils/demo')
+
+            const binaryInfo = jest.fn()
+            ;(App.getInfo as jest.Mock).mockImplementation(async () => {
+                const info = await binaryInfo()
+                return info && { version: info.appVersion, build: info.appBuild }
+            })
+            const native = freshIsCapacitor as jest.Mock
+            const authToken = freshGetAuthToken as jest.Mock
+            const fetch = freshFetch as jest.Mock
+            binaryInfo.mockReset().mockResolvedValue({ appVersion: '1.26.0', appBuild: '456' })
+            native.mockReturnValue(true)
+            authToken.mockReturnValue('test-token')
+            fetch.mockClear()
+            ;(freshLocale as jest.Mock).mockReturnValue(null)
+            freshDisableDemoMode()
+
+            const requests = await import('../api-fetch')
+            await run({ ...requests, fetch, binaryInfo, native, authToken })
+        })
+    }
+
+    function binaryHeaders(fetch: jest.Mock, requestIndex = 0) {
+        const headers = fetch.mock.calls[requestIndex][1].headers as Record<string, string>
+        return Object.entries(headers).filter(([name]) => name.toLowerCase() === 'x-app-binary-version')
+    }
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+    })
+
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+    })
+
+    it.each(['apiFetch', 'serverFetch'] as const)('adds the native version through %s', async (requestName) => {
+        await withBinaryHeaderContext(async (context) => {
+            await context[requestName]('/users/me')
+
+            expect(binaryHeaders(context.fetch)).toEqual([['x-app-binary-version', '1.26.0']])
+            expect(context.binaryInfo).toHaveBeenCalledTimes(1)
+            expect(context.fetch.mock.calls[0][1]).not.toHaveProperty('preferNativeTransport')
+        })
+    })
+
+    it('includes the binary version on tokenless native OS transport requests', async () => {
+        await withBinaryHeaderContext(async ({ apiFetch: request, fetch, authToken }) => {
+            authToken.mockReturnValue(null)
+
+            await request('/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+            expect(fetch.mock.calls[0][1].preferNativeTransport).toBe(true)
+            expect(binaryHeaders(fetch)).toEqual([['x-app-binary-version', '1.26.0']])
+        })
+    })
+
+    it('omits automatic headers and native lookups for web and PWA requests', async () => {
+        await withBinaryHeaderContext(
+            async ({ apiFetch: request, serverFetch: serverRequest, fetch, binaryInfo, native }) => {
+                native.mockReturnValue(false)
+
+                await request('/users/me')
+                await serverRequest('/users/history')
+
+                expect(binaryInfo).not.toHaveBeenCalled()
+                expect(binaryHeaders(fetch, 0)).toEqual([])
+                expect(binaryHeaders(fetch, 1)).toEqual([])
+            }
+        )
+    })
+
+    it('does not attach a cached native version after switching to web', async () => {
+        await withBinaryHeaderContext(
+            async ({ apiFetch: request, serverFetch: serverRequest, fetch, binaryInfo, native }) => {
+                await request('/users/me')
+                expect(binaryHeaders(fetch, 0)).toEqual([['x-app-binary-version', '1.26.0']])
+
+                native.mockReturnValue(false)
+                await request('/users/me')
+                await serverRequest('/users/history')
+
+                expect(binaryHeaders(fetch, 1)).toEqual([])
+                expect(binaryHeaders(fetch, 2)).toEqual([])
+                expect(binaryInfo).toHaveBeenCalledTimes(1)
+            }
+        )
+    })
+
+    it.each(['x-app-binary-version', 'X-App-Binary-Version', 'X-APP-BINARY-VERSION'])(
+        'preserves a caller header named %s without creating a duplicate',
+        async (headerName) => {
+            await withBinaryHeaderContext(async ({ apiFetch: request, serverFetch: serverRequest, fetch }) => {
+                await request('/users/me', { headers: { [headerName]: '7.8.9' } })
+                await serverRequest('/users/history', { headers: { [headerName]: '7.8.9' } })
+
+                expect(binaryHeaders(fetch, 0)).toEqual([[headerName, '7.8.9']])
+                expect(binaryHeaders(fetch, 1)).toEqual([[headerName, '7.8.9']])
+            })
+        }
+    )
+
+    it.each(['0.0.0', '9999.9999.9999', '0000.0001.0002'])(
+        'accepts the exact bounded three-component version %s',
+        async (appVersion) => {
+            await withBinaryHeaderContext(async ({ apiFetch: request, fetch, binaryInfo }) => {
+                binaryInfo.mockResolvedValue({ appVersion, appBuild: '456' })
+
+                await request('/users/me')
+
+                expect(binaryHeaders(fetch)).toEqual([['x-app-binary-version', appVersion]])
+            })
+        }
+    )
+
+    it.each([
+        '',
+        '1.2',
+        '1.2.3.4',
+        '10000.2.3',
+        '1.10000.3',
+        '1.2.10000',
+        '1.2.3-beta',
+        '1.2.3+456',
+        'v1.2.3',
+        ' 1.2.3',
+        '1.2.3 ',
+        '1.2.3\n',
+        '1.2.3\r\n',
+        '１.２.３',
+        123,
+        null,
+        undefined,
+    ])('omits and caches an invalid version %p', async (appVersion) => {
+        await withBinaryHeaderContext(async ({ apiFetch: request, serverFetch: serverRequest, fetch, binaryInfo }) => {
+            binaryInfo.mockResolvedValue({ appVersion, appBuild: '456' })
+
+            await request('/users/me')
+            await serverRequest('/users/history')
+
+            expect(fetch).toHaveBeenCalledTimes(2)
+            expect(binaryHeaders(fetch, 0)).toEqual([])
+            expect(binaryHeaders(fetch, 1)).toEqual([])
+            expect(binaryInfo).toHaveBeenCalledTimes(1)
+        })
+    })
+
+    it.each(['null result', 'rejected lookup', 'synchronous throw'])(
+        'continues requests and caches a %s without retrying',
+        async (failure) => {
+            await withBinaryHeaderContext(
+                async ({ apiFetch: request, serverFetch: serverRequest, fetch, binaryInfo }) => {
+                    if (failure === 'null result') binaryInfo.mockResolvedValue(null)
+                    if (failure === 'rejected lookup')
+                        binaryInfo.mockRejectedValue(new Error('native lookup unavailable'))
+                    if (failure === 'synchronous throw') {
+                        binaryInfo.mockImplementation(() => {
+                            throw new Error('native lookup unavailable')
+                        })
+                    }
+
+                    await Promise.all([request('/users/me'), serverRequest('/users/history')])
+                    await request('/users/me')
+
+                    expect(fetch).toHaveBeenCalledTimes(3)
+                    for (let index = 0; index < 3; index++) expect(binaryHeaders(fetch, index)).toEqual([])
+                    expect(binaryInfo).toHaveBeenCalledTimes(1)
+                }
+            )
+        }
+    )
+
+    it('shares one in-flight lookup across both request helpers and reuses its result', async () => {
+        await withBinaryHeaderContext(async ({ apiFetch: request, serverFetch: serverRequest, fetch, binaryInfo }) => {
+            let resolveLookup!: (value: { appVersion: string; appBuild: string }) => void
+            binaryInfo.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveLookup = resolve
+                })
+            )
+
+            const requests = [request('/users/me'), serverRequest('/users/history'), request('/users/me')]
+            await jest.advanceTimersByTimeAsync(0)
+
+            expect(binaryInfo).toHaveBeenCalledTimes(1)
+            expect(fetch).not.toHaveBeenCalled()
+            resolveLookup({ appVersion: '4.5.6', appBuild: '789' })
+            await Promise.all(requests)
+            await serverRequest('/users/history')
+
+            expect(fetch).toHaveBeenCalledTimes(4)
+            for (let index = 0; index < 4; index++) {
+                expect(binaryHeaders(fetch, index)).toEqual([['x-app-binary-version', '4.5.6']])
+            }
+            expect(binaryInfo).toHaveBeenCalledTimes(1)
+        })
+    })
+
+    it('releases concurrent requests at the 300ms bound and uses a later native result', async () => {
+        await withBinaryHeaderContext(async ({ apiFetch: request, serverFetch: serverRequest, fetch, binaryInfo }) => {
+            let resolveLookup!: (value: { appVersion: string; appBuild: string }) => void
+            binaryInfo.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveLookup = resolve
+                })
+            )
+
+            const requests = [request('/users/me'), serverRequest('/users/history')]
+            await jest.advanceTimersByTimeAsync(0)
+            expect(binaryInfo).toHaveBeenCalledTimes(1)
+            await jest.advanceTimersByTimeAsync(299)
+            expect(fetch).not.toHaveBeenCalled()
+            await jest.advanceTimersByTimeAsync(1)
+            await Promise.all(requests)
+
+            expect(fetch).toHaveBeenCalledTimes(2)
+            expect(binaryHeaders(fetch, 0)).toEqual([])
+            expect(binaryHeaders(fetch, 1)).toEqual([])
+
+            resolveLookup({ appVersion: '4.5.6', appBuild: '789' })
+            await jest.advanceTimersByTimeAsync(0)
+            await request('/users/me')
+
+            expect(binaryHeaders(fetch, 2)).toEqual([['x-app-binary-version', '4.5.6']])
+            expect(binaryInfo).toHaveBeenCalledTimes(1)
         })
     })
 })
