@@ -169,6 +169,21 @@ describe('logoutUser', () => {
         expect(mockClientFlagProperties).not.toHaveBeenCalled()
     })
 
+    it('reads the latest cached flags at logout after a late binary result', async () => {
+        stubLocation()
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android' })
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.26.0' })
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+            { client_platform: 'android', binary_version: '1.26.0' },
+            false
+        )
+        expect(mockClientFlagProperties).not.toHaveBeenCalled()
+    })
+
     it('arms the latch before the user cache is emptied', async () => {
         /*
          * Read back inside the hook, not after the call: logout clears the

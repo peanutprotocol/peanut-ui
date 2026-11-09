@@ -73,6 +73,7 @@ const mockGetCachedBinaryVersion = jest.fn()
 // worker and made that suite read the real plugin.
 jest.mock('@/utils/app-version', () => ({
     getBinaryInfo: (...args: unknown[]) => mockGetBinaryInfo(...args),
+    getCachedBinaryInfo: (...args: unknown[]) => mockGetBinaryInfo(...args),
     getCachedBinaryVersion: () => mockGetCachedBinaryVersion(),
 }))
 
