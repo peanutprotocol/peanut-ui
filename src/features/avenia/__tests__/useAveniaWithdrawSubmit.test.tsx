@@ -248,6 +248,19 @@ describe('useAveniaWithdrawSubmit', () => {
         expect(mockFetchUser).toHaveBeenCalledTimes(rereads ? 1 : 0)
     })
 
+    it('opens one withdrawal for two taps in the same tick', async () => {
+        mockInit.mockReturnValue(new Promise(() => {}))
+        const { result } = renderHook(() => useAveniaWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            void result.current.submit(REQUEST, display)
+            void result.current.submit(REQUEST, display)
+        })
+
+        expect(mockInit).toHaveBeenCalledTimes(1)
+        expect(result.current.phase).toBe('starting')
+    })
+
     it('never signs again once the ticket is open, even when the signature failed', async () => {
         mockInit.mockResolvedValue(initResponse())
         mockSendTransactions.mockRejectedValue(new Error('passkey cancelled'))
@@ -287,7 +300,7 @@ describe('useAveniaWithdrawSubmit', () => {
             await result.current.submit(REQUEST, display)
         })
 
-        expect(result.current.phase).toBe('idle')
+        expect(result.current.phase).toBe('opened')
         expect(result.current.lockedAfterInit).toBe(true)
         expect(mockReportFunding).not.toHaveBeenCalled()
     })

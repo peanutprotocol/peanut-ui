@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useReducer, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import type { Address } from 'viem'
@@ -19,6 +19,16 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
 import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/avenia/aveniaWithdrawSent'
+import {
+    canSignOpened,
+    INITIAL_WITHDRAW_SUBMIT,
+    openedWithdrawal,
+    withdrawSubmitReducer,
+    type OpenedWithdrawal,
+    type WithdrawSubmitEvent,
+    type WithdrawSubmitPhase,
+    type WithdrawSubmitState,
+} from '@/features/avenia/aveniaWithdrawSubmitReducer'
 import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { BALANCE_DECREASE, PIX_WITHDRAW, TRANSACTIONS } from '@/constants/query.consts'
@@ -30,21 +40,7 @@ import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/net
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
 
-/**
- * `reconfirm`: the opened quote is worse than the reviewed one and waits for a second Confirm.
- * `funded`: the deposit that funds the withdrawal is mined. Avenia has not paid the Pix yet:
- * the withdrawal's history entry says when it does.
- * `unconfirmed`: the deposit was sent but its receipt never arrived, so the app cannot say it landed.
- */
 const flowTags = (step: string) => ({ ...criticalFlowTags('withdraw-avenia'), withdraw_step: step })
-
-export type AveniaWithdrawPhase = 'idle' | 'starting' | 'reconfirm' | 'signing' | 'funded' | 'unconfirmed'
-
-interface OpenedWithdrawal {
-    intentId: string
-    display: AveniaWithdrawDisplay
-    sign: AveniaWithdrawSign
-}
 
 export interface AveniaWithdrawSubmit {
     /** Opens the withdrawal for the reviewed quote; signs at once unless the opened quote is worse. */
@@ -60,7 +56,8 @@ export interface AveniaWithdrawSubmit {
      * holds; after an unexplained failure the deposit may have gone out, so never.
      */
     canSignOpened: boolean
-    phase: AveniaWithdrawPhase
+    /** The states are documented on `WithdrawSubmitState`. */
+    phase: WithdrawSubmitPhase
     /** The opened withdrawal: what the wallet signs, and what the review and success screens show. */
     opened: { intentId: string; display: AveniaWithdrawDisplay } | null
     error: string | null
@@ -118,24 +115,24 @@ export function useAveniaWithdrawSubmit({
                 }
             ),
     })
-    const [phase, setPhase] = useState<AveniaWithdrawPhase>('idle')
-    const [opened, setOpened] = useState<OpenedWithdrawal | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    // the first signature sent nothing (dismissed, reverted): the open ticket may be signed once more
-    const [resignable, setResignable] = useState(false)
-    const resignUsedRef = useRef(false)
-    const busyRef = useRef(false)
+    const [state, dispatchToReact] = useReducer(withdrawSubmitReducer, INITIAL_WITHDRAW_SUBMIT)
+    // React applies a dispatch at the next render. The handlers read this copy, which every dispatch
+    // moves at once, so a second tap in the same tick can neither open nor sign a second time.
+    const latest = useRef<WithdrawSubmitState>(INITIAL_WITHDRAW_SUBMIT)
+    const dispatch = useCallback((event: WithdrawSubmitEvent) => {
+        latest.current = withdrawSubmitReducer(latest.current, event)
+        dispatchToReact(event)
+    }, [])
 
     const sign = useCallback(
-        async ({ intentId, sign: request }: OpenedWithdrawal) => {
+        async (withdrawal: OpenedWithdrawal) => {
+            const { intentId, sign: request } = withdrawal
             // Rhino's quote lives 3 minutes; a deposit on an expired commitment is not bridged
             if (!(Date.parse(request.quoteExpiresAt) > Date.now())) {
-                setError(tShared('withdraw.errors.quoteExpired'))
-                setResignable(false)
-                setPhase('idle')
+                dispatch({ type: 'QUOTE_EXPIRED', withdrawal, error: tShared('withdraw.errors.quoteExpired') })
                 return
             }
-            setPhase('signing')
+            dispatch({ type: 'SIGN_START', withdrawal })
             const amount = BigInt(request.payAmountUnits)
             let minedHash: string | undefined
             let reverted = false
@@ -163,107 +160,87 @@ export function useAveniaWithdrawSubmit({
                 // signed once more. Any other failure may have sent the deposit: never again.
                 const nothingSent = reverted || isUserCancellation(caught)
                 if (nothingSent) clearDepositMaybeSent(intentId)
-                setResignable(nothingSent && !resignUsedRef.current)
-                setError(toFriendlyError(caught))
-                setPhase('idle')
+                dispatch({ type: nothingSent ? 'SENT_NOTHING' : 'MAYBE_SENT', error: toFriendlyError(caught) })
                 return
             }
             void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
             if (!minedHash) {
                 // the wallet could not resolve the receipt: the deposit may still land, or fail
-                setPhase('unconfirmed')
+                dispatch({ type: 'NO_RECEIPT' })
                 return
             }
-            setPhase('funded')
+            dispatch({ type: 'MINED' })
             // Optional for the money (Avenia's webhook moves it either way); it names the
             // funding transaction on the receipt sooner. Only a mined hash can be checked.
             aveniaApi.reportFunding(intentId, minedHash).catch((caught) => {
                 Sentry.captureException(caught, { tags: flowTags('report-funding'), extra: { intentId } })
             })
         },
-        [queryClient, sendDeposit, tShared, toFriendlyError]
+        [dispatch, queryClient, sendDeposit, tShared, toFriendlyError]
     )
 
     const submit = useCallback(
         async (request: AveniaWithdrawRequest, reviewed: AveniaWithdrawDisplay) => {
-            if (busyRef.current || opened || hasPendingTransactions) return
-            busyRef.current = true
-            setError(null)
-            setPhase('starting')
+            if (latest.current.phase !== 'idle' || hasPendingTransactions) return
+            dispatch({ type: 'SUBMIT' })
+            let init: Awaited<ReturnType<typeof aveniaApi.initWithdrawal>>
             try {
-                let init: Awaited<ReturnType<typeof aveniaApi.initWithdrawal>>
-                try {
-                    init = await aveniaApi.initWithdrawal(request)
-                } catch (caught) {
-                    const code = wireErrorCode(caught)
-                    posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                        method_type: 'avenia',
-                        stage: 'init',
-                        error_code: code ?? 'unknown',
-                    })
-                    // a wire code is the API's own refusal; anything else is a failure to look at
-                    if (!code) void captureNetworkTriagedFailure(caught, { tags: flowTags('init') })
-                    setError(initError(caught))
-                    setPhase('idle')
-                    // the route moved since the screen loaded: the capabilities say where the user stands now
-                    if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) {
-                        void fetchUser().catch(() => undefined)
-                    }
-                    return
+                init = await aveniaApi.initWithdrawal(request)
+            } catch (caught) {
+                const code = wireErrorCode(caught)
+                posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
+                    method_type: 'avenia',
+                    stage: 'init',
+                    error_code: code ?? 'unknown',
+                })
+                // a wire code is the API's own refusal; anything else is a failure to look at
+                if (!code) void captureNetworkTriagedFailure(caught, { tags: flowTags('init') })
+                dispatch({ type: 'INIT_REFUSED', error: initError(caught) })
+                // the route moved since the screen loaded: the capabilities say where the user stands now
+                if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) {
+                    void fetchUser().catch(() => undefined)
                 }
-                const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
-                setOpened(withdrawal)
-                onOpened?.(init.intentId)
-                // The wallet only ever approves its own USDC, for exactly the USD the user is shown;
-                // anything else is a contract break.
-                if (
-                    init.sign.kind !== 'deposit-with-id' ||
-                    !areEvmAddressesEqual(init.sign.tokenAddress, PEANUT_WALLET_TOKEN) ||
-                    !signMatchesDisplay(init.display, init.sign)
-                ) {
-                    Sentry.captureException(new Error('Avenia withdrawal sign request off-contract'), {
-                        tags: flowTags('sign-request'),
-                        extra: { intentId: init.intentId, kind: init.sign.kind },
-                    })
-                    setError(tShared('unavailable'))
-                    setPhase('idle')
-                    return
-                }
-                if (quoteMovedAgainstUser(reviewed, init.display)) {
-                    setPhase('reconfirm')
-                    return
-                }
-                await sign(withdrawal)
-            } finally {
-                busyRef.current = false
+                return
             }
+            const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
+            onOpened?.(init.intentId)
+            // The wallet only ever approves its own USDC, for exactly the USD the user is shown;
+            // anything else is a contract break.
+            if (
+                init.sign.kind !== 'deposit-with-id' ||
+                !areEvmAddressesEqual(init.sign.tokenAddress, PEANUT_WALLET_TOKEN) ||
+                !signMatchesDisplay(init.display, init.sign)
+            ) {
+                Sentry.captureException(new Error('Avenia withdrawal sign request off-contract'), {
+                    tags: flowTags('sign-request'),
+                    extra: { intentId: init.intentId, kind: init.sign.kind },
+                })
+                dispatch({ type: 'OFF_CONTRACT', withdrawal, error: tShared('unavailable') })
+                return
+            }
+            if (quoteMovedAgainstUser(reviewed, init.display)) {
+                dispatch({ type: 'QUOTE_MOVED', withdrawal })
+                return
+            }
+            await sign(withdrawal)
         },
-        [fetchUser, hasPendingTransactions, initError, onOpened, opened, sign, tShared]
+        [dispatch, fetchUser, hasPendingTransactions, initError, onOpened, sign, tShared]
     )
 
-    const canSignOpened = !!opened && (phase === 'reconfirm' || (phase === 'idle' && resignable))
-
     const confirmOpened = useCallback(async () => {
-        if (busyRef.current || !opened || !canSignOpened) return
-        busyRef.current = true
-        if (phase === 'idle') resignUsedRef.current = true
-        setResignable(false)
-        setError(null)
-        try {
-            await sign(opened)
-        } finally {
-            busyRef.current = false
-        }
-    }, [canSignOpened, opened, phase, sign])
+        const withdrawal = openedWithdrawal(latest.current)
+        if (withdrawal && canSignOpened(latest.current)) await sign(withdrawal)
+    }, [sign])
 
+    const withdrawal = openedWithdrawal(state)
     return {
         submit,
         confirmOpened,
-        canSignOpened,
-        phase,
-        opened: opened ? { intentId: opened.intentId, display: opened.display } : null,
-        error,
-        lockedAfterInit: !!opened,
+        canSignOpened: canSignOpened(state),
+        phase: state.phase,
+        opened: withdrawal ? { intentId: withdrawal.intentId, display: withdrawal.display } : null,
+        error: state.phase === 'idle' || state.phase === 'opened' ? state.error : null,
+        lockedAfterInit: !!withdrawal,
     }
 }
