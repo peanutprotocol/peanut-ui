@@ -2221,6 +2221,7 @@
             "supportedNetworks": "Supported networks",
             "supportedTokens": "Supported tokens",
             "supportedTokensInline": "Supported tokens:",
+            "additionalTokensNote": "Also accepted: EURe v2 on Gnosis (0x420C…3430, not v1), USDe and PYUSD on Arbitrum, EURC and USDS on Base.",
             "sendExtraForFees": "Send a little more if your wallet or network charges a fee.",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",
