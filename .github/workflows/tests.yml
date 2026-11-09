@@ -1469,9 +1469,13 @@ jobs:
     # listing every individual job — keeps the ruleset stable as jobs are
     # added/renamed. To gate a new job: add it to `needs:` here.
     #
-    # `if: always()` so this runs even when an upstream fails. Explicit
-    # `failure || cancelled` check because GitHub treats `skipped` as neutral
-    # (an upstream skip would silently let this pass without the explicit gate).
+    # `if: always()` so this runs even when an upstream fails. GitHub
+    # treats `skipped` as neutral, so every need must be `success`: a check for
+    # failure/cancelled alone went green with no tests run when backdoor-scan
+    # never started (ui#4045 and api#2087, 2026-11-09 Actions outage), because
+    # every job below it was skipped. backdoor-scan is also checked by name. The
+    # one skip by design is human-authors outside pull_request (its `if:`),
+    # allowed once.
     ci-success:
         name: ci-success
         if: always()
@@ -1494,9 +1498,17 @@ jobs:
         steps:
             - name: Verify all required jobs passed
               run: |
-                  if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
-                      echo "::error::One or more required jobs failed or were cancelled"
+                  human_authors_skip="${{ github.event_name != 'pull_request' && needs['human-authors'].result == 'skipped' }}"
+                  not_ok=0
+                  for result in ${{ join(needs.*.result, ' ') }}; do
+                      if [[ "$result" == "success" ]]; then continue; fi
+                      if [[ "$result" == "skipped" && "$human_authors_skip" == "true" ]]; then human_authors_skip=false; continue; fi
+                      not_ok=1
+                  done
+                  if [[ "${{ needs.backdoor-scan.result }}" != "success" || "$not_ok" == "1" ]]; then
+                      echo "::error::One or more required jobs failed, were cancelled or did not run"
                       echo "Job results:"
+                      echo "  backdoor-scan: ${{ needs.backdoor-scan.result }}"
                       echo "  format:    ${{ needs.format.result }}"
                       echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
