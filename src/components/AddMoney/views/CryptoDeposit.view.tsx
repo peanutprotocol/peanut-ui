@@ -256,8 +256,13 @@ const CryptoDepositView = ({
                                         />
                                     ))}
                                 </div>
+                                {/* a note, not chips: each token works only on the chain named, proven
+                                    by a real deposit (TASK-24595). The API's stuck-deposit detector
+                                    watches the same pairs. */}
                                 {isEvm && (
-                                    <p className="mt-2 text-body-s text-foreground-secondary">{t('gnosisEureNote')}</p>
+                                    <p className="mt-2 text-body-s text-foreground-secondary">
+                                        {t('additionalTokensNote')}
+                                    </p>
                                 )}
                             </div>
 

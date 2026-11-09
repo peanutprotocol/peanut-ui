@@ -1167,12 +1167,12 @@ describe('GROUP 3: Crypto deposit', () => {
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
     })
 
-    // Wallets label both EURe versions "EURe", and a v1 deposit is not credited.
+    // Each token works only on the chain named, and wallets label both EURe versions "EURe".
     test.each([
         ['EVM', 1],
         ['SOL', 0],
         ['TRON', 0],
-    ] as const)('EURe v2 note on the %s address screen', (network, expected) => {
+    ] as const)('additional tokens note on the %s address screen', (network, expected) => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'not_started',
             resetStatus: jest.fn(),
@@ -1194,7 +1194,11 @@ describe('GROUP 3: Crypto deposit', () => {
             />
         )
 
-        expect(screen.queryAllByText(/Gnosis also accepts EURe v2 .*not EURe v1/)).toHaveLength(expected)
+        expect(
+            screen.queryAllByText(
+                /EURe v2 on Gnosis \(0x420C…3430, not v1\), USDe and PYUSD on Arbitrum, EURC and USDS on Base/
+            )
+        ).toHaveLength(expected)
     })
 
     test('deposit processing shows the shared processing screen', () => {
