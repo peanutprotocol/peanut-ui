@@ -6,7 +6,11 @@ const mockGetInfo = jest.fn()
 const mockCurrent = jest.fn()
 jest.mock('@capacitor/app', () => ({ App: { getInfo: () => mockGetInfo() } }))
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: { current: () => mockCurrent() } }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true }))
+const mockIsCapacitor = jest.fn(() => true)
+jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => mockIsCapacitor(),
+    isNativeBridge: () => mockIsCapacitor(),
+}))
 
 /**
  * The About screen's version line is what a support conversation starts from.
@@ -81,5 +85,81 @@ describe('getRunningVersion', () => {
         mockCurrent.mockRejectedValue(new Error('plugin not implemented'))
 
         await expect(getRunningVersion()).resolves.toMatchObject({ appVersion: '1.1.0', otaVersion: null })
+    })
+})
+
+describe('getCachedBinaryVersion', () => {
+    function freshReader(): typeof import('@/utils/app-version').getCachedBinaryVersion {
+        let read: typeof import('@/utils/app-version').getCachedBinaryVersion
+        jest.isolateModules(() => {
+            read = require('@/utils/app-version').getCachedBinaryVersion
+        })
+        return read!
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsCapacitor.mockReturnValue(true)
+        mockGetInfo.mockReset().mockResolvedValue({ version: '1.23.0', build: '42' })
+    })
+    afterEach(() => jest.useRealTimers())
+
+    it('shares and caches one native lookup across concurrent and subsequent callers', async () => {
+        const read = freshReader()
+        await expect(Promise.all([read(), read(), read()])).resolves.toEqual(['1.23.0', '1.23.0', '1.23.0'])
+        await expect(read()).resolves.toBe('1.23.0')
+        expect(mockGetInfo).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['', '1.2', '1.2.3.4', '1.2.3-ios', ' 1.2.3', '1.2.3\n', '10000.2.3', '1.2.' + '3'.repeat(10000)])(
+        'omits invalid binary version %p without retry',
+        async (version) => {
+            mockGetInfo.mockResolvedValue({ version })
+            const read = freshReader()
+            await expect(read()).resolves.toBeUndefined()
+            await expect(read()).resolves.toBeUndefined()
+            expect(mockGetInfo).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it.each(['rejected', 'thrown'])('contains a %s plugin failure without retry', async (failure) => {
+        if (failure === 'rejected') mockGetInfo.mockRejectedValue(new Error('plugin unavailable'))
+        else
+            mockGetInfo.mockImplementation(() => {
+                throw new Error('plugin unavailable')
+            })
+        const read = freshReader()
+        await expect(read()).resolves.toBeUndefined()
+        await expect(read()).resolves.toBeUndefined()
+        expect(mockGetInfo).toHaveBeenCalledTimes(1)
+    })
+
+    it('never reads the binary on web', async () => {
+        mockIsCapacitor.mockReturnValue(false)
+        await expect(freshReader()()).resolves.toBeUndefined()
+        expect(mockGetInfo).not.toHaveBeenCalled()
+    })
+
+    it('shares the original timeout budget and accepts a late valid result without retry', async () => {
+        jest.useFakeTimers()
+        let finish!: (value: { version: string }) => void
+        mockGetInfo.mockReturnValue(
+            new Promise((resolve) => {
+                finish = resolve
+            })
+        )
+        const read = freshReader()
+        const first = read()
+        await jest.advanceTimersByTimeAsync(200)
+        const concurrent = read()
+        await jest.advanceTimersByTimeAsync(110)
+        await expect(first).resolves.toBeUndefined()
+        await expect(concurrent).resolves.toBeUndefined()
+        await expect(read()).resolves.toBeUndefined()
+        expect(mockGetInfo).toHaveBeenCalledTimes(1)
+        finish({ version: '1.23.0' })
+        await jest.advanceTimersByTimeAsync(0)
+        await expect(read()).resolves.toBe('1.23.0')
+        expect(mockGetInfo).toHaveBeenCalledTimes(1)
     })
 })

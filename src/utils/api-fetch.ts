@@ -6,6 +6,7 @@ import { getAuthHeaders, getAuthToken, authReady } from './auth-token'
 import { fetchWithSentry } from './sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from './capacitor'
+import { getCachedBinaryVersion } from './app-version'
 import { isDemoMode } from './demo'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { currentAppLocale } from '@/i18n/app/locale-store'
@@ -79,6 +80,11 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
         headers['Accept-Language'] = locale
     }
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
+
+    if (isCapacitor() && !Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'x-app-binary-version')) {
+        const version = await getCachedBinaryVersion()
+        if (version) headers['x-app-binary-version'] = version
+    }
 
     /*
      * No JS-readable token on native means either logged out or a legacy
