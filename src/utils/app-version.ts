@@ -29,6 +29,38 @@ export async function getBinaryInfo(): Promise<BinaryInfo | null> {
     }
 }
 
+let binaryVersion: string | undefined
+let binaryVersionReady: Promise<void> | undefined
+
+export async function getCachedBinaryVersion(): Promise<string | undefined> {
+    if (!isCapacitor()) return undefined
+    if (!binaryVersionReady) {
+        binaryVersionReady = new Promise<void>((resolve) => {
+            // Share the wait budget so a stalled plugin only delays startup once.
+            const timeout = setTimeout(resolve, 300)
+            void Promise.resolve()
+                .then(getBinaryInfo)
+                .then((info) => {
+                    const version = info?.appVersion
+                    if (
+                        typeof version === 'string' &&
+                        /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(version) &&
+                        version.trim() === version
+                    ) {
+                        binaryVersion = version
+                    }
+                })
+                .catch(() => undefined)
+                .finally(() => {
+                    clearTimeout(timeout)
+                    resolve()
+                })
+        })
+    }
+    await binaryVersionReady
+    return binaryVersion
+}
+
 // Capgo's name for the JS baked into the binary; some plugin versions report it
 // as the bundle id, others as its version.
 const BUILTIN_BUNDLE = 'builtin'
