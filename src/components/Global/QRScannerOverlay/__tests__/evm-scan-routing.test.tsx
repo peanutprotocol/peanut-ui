@@ -16,7 +16,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * stashScannedDestination.
  */
 import React from 'react'
-import { act, fireEvent, screen } from '@testing-library/react'
+import { act, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { isCapacitor } from '@/utils/capacitor'
 import { resolveEns } from '@/app/actions/ens'
@@ -97,14 +97,12 @@ const OPTIMISM_BRIDGED_USDC = '0x7f5c764cbc14f9669b88837ca1490cca17c31607'
 const eip681Transfer = (token: string, chainId: string) =>
     `ethereum:${token}@${chainId}/transfer?address=${CHECKSUMMED}&uint256=1e7`
 
-/** Scan, tick the acknowledgement and press on; returns the pushed URL. */
-const scanAndConfirm = async (data: string): Promise<string> => {
+/** Scan and return the destination opened without an intermediate modal. */
+const scanAndRoute = async (data: string): Promise<string> => {
     renderWithIntl(<QRScannerOverlay />)
     await act(async () => {
         await onScan(data)
     })
-    fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     return mockPush.mock.calls.at(-1)?.[0] as string
 }
 
@@ -140,7 +138,7 @@ describe('a signed-in scan of an EVM address', () => {
             ['checksummed', CHECKSUMMED],
             ['lowercase', LOWERCASE],
         ])('goes into the crypto withdrawal with a %s address intact', async (_case, address) => {
-            const { path, params, destination } = withdrawEntry(await scanAndConfirm(address))
+            const { path, params, destination } = withdrawEntry(await scanAndRoute(address))
 
             expect(path).toBe('/withdraw')
             expect(params.get('step')).toBe('amount')
@@ -154,7 +152,7 @@ describe('a signed-in scan of an EVM address', () => {
     it('still goes into the withdrawal under the kill-switch', async () => {
         mockMaintenance.disableXchainWithdraw = true
 
-        const { path, destination } = withdrawEntry(await scanAndConfirm(CHECKSUMMED))
+        const { path, destination } = withdrawEntry(await scanAndRoute(CHECKSUMMED))
 
         expect(path).toBe('/withdraw')
         expect(destination).toEqual({ address: CHECKSUMMED })
@@ -167,7 +165,7 @@ describe('a signed-in scan of an ENS name', () => {
     it('resolves the name for the wallet chain and carries it beside the address', async () => {
         mockResolveEns.mockResolvedValue(CHECKSUMMED)
 
-        const { path, params, destination } = withdrawEntry(await scanAndConfirm('alice.eth'))
+        const { path, params, destination } = withdrawEntry(await scanAndRoute('alice.eth'))
 
         expect(mockResolveEns).toHaveBeenCalledWith('alice.eth', '42161')
         expect(path).toBe('/withdraw')
@@ -186,7 +184,7 @@ describe('a signed-in scan of an ENS name', () => {
 
 describe('a signed-in scan of an EIP-681 payment request', () => {
     it('carries the chain and token it names, and a dollar amount', async () => {
-        const { path, params, destination } = withdrawEntry(await scanAndConfirm(EIP681_BASE_USDC))
+        const { path, params, destination } = withdrawEntry(await scanAndRoute(EIP681_BASE_USDC))
 
         expect(path).toBe('/withdraw')
         expect(params.get('amount')).toBe('10')
@@ -202,7 +200,7 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
     // Several contracts can share a symbol. The withdrawal selects one by
     // symbol, so only a request for that contract is paid (Chip, #3796).
     it('carries the exact contract it names when the withdrawal selects that one', async () => {
-        const { destination } = withdrawEntry(await scanAndConfirm(eip681Transfer(OPTIMISM_USDC, '10')))
+        const { destination } = withdrawEntry(await scanAndRoute(eip681Transfer(OPTIMISM_USDC, '10')))
 
         expect(destination).toEqual(
             expect.objectContaining({ chainId: '10', tokenSymbol: 'USDC', tokenAddress: OPTIMISM_USDC })
@@ -228,7 +226,7 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
     })
 
     it('with no chain, leaves the network to the user like a bare address', async () => {
-        const { path, params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}`))
+        const { path, params, destination } = withdrawEntry(await scanAndRoute(`ethereum:${CHECKSUMMED}`))
 
         expect(path).toBe('/withdraw')
         expect(params.get('amount')).toBeNull()
@@ -237,14 +235,14 @@ describe('a signed-in scan of an EIP-681 payment request', () => {
     })
 
     it('with a chain and no asset starts on that chain with its default token', async () => {
-        const { params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453`))
+        const { params, destination } = withdrawEntry(await scanAndRoute(`ethereum:${CHECKSUMMED}@8453`))
 
         expect(params.get('amount')).toBeNull()
         expect(destination).toEqual({ address: LOWERCASE, chainId: '8453' })
     })
 
     it('for native ETH on a chain that pays it out keeps ETH and leaves the amount to the user', async () => {
-        const { params, destination } = withdrawEntry(await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453?value=1e17`))
+        const { params, destination } = withdrawEntry(await scanAndRoute(`ethereum:${CHECKSUMMED}@8453?value=1e17`))
 
         expect(params.get('amount')).toBeNull()
         expect(destination).toEqual({
@@ -289,25 +287,25 @@ describe('a guest scan', () => {
     ])('of an EVM address keeps the payment page on %s', async (_platform, native, expected) => {
         mockIsCapacitor.mockReturnValue(native)
 
-        expect(await scanAndConfirm(CHECKSUMMED)).toBe(expected)
+        expect(await scanAndRoute(CHECKSUMMED)).toBe(expected)
     })
 
     it('of an ENS name keeps the payment page', async () => {
         mockResolveEns.mockResolvedValue(CHECKSUMMED)
 
-        expect(await scanAndConfirm('alice.eth')).toBe('/alice.eth')
+        expect(await scanAndRoute('alice.eth')).toBe('/alice.eth')
         expect(mockResolveEns).toHaveBeenCalledWith('alice.eth')
     })
 
     it('of an EIP-681 request keeps the payment page', async () => {
-        expect(await scanAndConfirm(EIP681_BASE_USDC)).toBe(`/${LOWERCASE}@8453/10USDC`)
+        expect(await scanAndRoute(EIP681_BASE_USDC)).toBe(`/${LOWERCASE}@8453/10USDC`)
     })
 
     // TASK-23850: a request is paid in USDC or USDT only. The scan keeps the
     // token in the path, and the payment page's parser refuses it. A signed-in
     // scan of the same QR still goes to the withdrawal (see above).
     it('of a native ETH request is refused by the payment page it opens', async () => {
-        const pushed = await scanAndConfirm(`ethereum:${CHECKSUMMED}@8453?value=1e17`)
+        const pushed = await scanAndRoute(`ethereum:${CHECKSUMMED}@8453?value=1e17`)
         expect(pushed).toBe(`/${LOWERCASE}@8453/0.1ETH`)
 
         const result = await parsePaymentURL(pushed.slice(1).split('/'))
