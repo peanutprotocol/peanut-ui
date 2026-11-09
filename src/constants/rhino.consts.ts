@@ -78,26 +78,31 @@ export const CHAIN_SCOPED_DEPOSIT_TOKENS = [
         name: 'EURe',
         logoUrl: 'https://assets.coingecko.com/coins/images/54303/standard/eure.jpg?1739167959',
         network: 'Gnosis',
+        isEuro: true,
     },
     {
         name: 'EURC',
         logoUrl: 'https://assets.coingecko.com/coins/images/26045/standard/EURC.png?1769615705',
         network: 'Base',
+        isEuro: true,
     },
     {
         name: 'USDS',
         logoUrl: 'https://assets.coingecko.com/coins/images/39926/standard/usds.webp?1726666683',
         network: 'Base',
+        isEuro: false,
     },
     {
         name: 'USDe',
         logoUrl: 'https://assets.coingecko.com/coins/images/33613/standard/usde.png?1733810059',
         network: 'Arbitrum',
+        isEuro: false,
     },
     {
         name: 'PYUSD',
         logoUrl: 'https://assets.coingecko.com/coins/images/31212/standard/PYUSD_Token_Logo_2x.png?1765987788',
         network: 'Arbitrum',
+        isEuro: false,
     },
 ] as const
 

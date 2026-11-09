@@ -260,7 +260,10 @@ const CryptoDepositView = ({
                                         CHAIN_SCOPED_DEPOSIT_TOKENS.map((token) => (
                                             <Tooltip
                                                 key={token.name}
-                                                content={t('tokenOnlyOnNetwork', { network: token.network })}
+                                                content={t(
+                                                    token.isEuro ? 'euroTokenOnlyOnNetwork' : 'tokenOnlyOnNetwork',
+                                                    { network: token.network }
+                                                )}
                                             >
                                                 <ChainChip chainName={token.name} chainSymbol={token.logoUrl} />
                                             </Tooltip>

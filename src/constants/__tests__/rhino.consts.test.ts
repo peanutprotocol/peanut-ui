@@ -11,6 +11,13 @@ describe('CHAIN_SCOPED_DEPOSIT_TOKENS', () => {
         ])
     })
 
+    test('flags only the euro stablecoins, which convert at the market rate', () => {
+        expect(CHAIN_SCOPED_DEPOSIT_TOKENS.filter((token) => token.isEuro).map((token) => token.name)).toEqual([
+            'EURe',
+            'EURC',
+        ])
+    })
+
     test('every token has a logo', () => {
         for (const token of CHAIN_SCOPED_DEPOSIT_TOKENS) {
             expect(token.logoUrl).toMatch(/^https:\/\//)

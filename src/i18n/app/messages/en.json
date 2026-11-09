@@ -2216,6 +2216,7 @@
             "supportedTokens": "Supported tokens",
             "supportedTokensInline": "Supported tokens:",
             "tokenOnlyOnNetwork": "Only on {network}",
+            "euroTokenOnlyOnNetwork": "Only on {network}. Converted at the market rate.",
             "sendExtraForFees": "Send a little more if your wallet or network charges a fee.",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",

@@ -2216,6 +2216,7 @@
             "supportedTokens": "Tokens compatíveis",
             "supportedTokensInline": "Tokens compatíveis:",
             "tokenOnlyOnNetwork": "Somente na rede {network}",
+            "euroTokenOnlyOnNetwork": "Somente na rede {network}. Convertido pela taxa de mercado.",
             "sendExtraForFees": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa.",
             "supportedEvmNetworks": "Redes EVM compatíveis",
             "evmNetworks": "redes EVM",

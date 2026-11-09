@@ -289,8 +289,8 @@ jest.mock('@/constants/rhino.consts', () => ({
     ]),
     TOKEN_LOGOS: { USDC: '/usdc.png', USDT: '/usdt.png', ETH: '/eth-token.png' },
     CHAIN_SCOPED_DEPOSIT_TOKENS: [
-        { name: 'EURe', logoUrl: '/eure.png', network: 'Gnosis' },
-        { name: 'USDe', logoUrl: '/usde.png', network: 'Arbitrum' },
+        { name: 'EURe', logoUrl: '/eure.png', network: 'Gnosis', isEuro: true },
+        { name: 'USDe', logoUrl: '/usde.png', network: 'Arbitrum', isEuro: false },
     ],
 }))
 
@@ -1200,7 +1200,10 @@ describe('GROUP 3: Crypto deposit', () => {
         test('EVM address screen names the one network for each token', () => {
             renderAddressScreen('EVM')
 
-            expect(screen.getByText('EURe').closest('[data-tooltip]')).toHaveAttribute('data-tooltip', 'Only on Gnosis')
+            expect(screen.getByText('EURe').closest('[data-tooltip]')).toHaveAttribute(
+                'data-tooltip',
+                'Only on Gnosis. Converted at the market rate.'
+            )
             expect(screen.getByText('USDe').closest('[data-tooltip]')).toHaveAttribute(
                 'data-tooltip',
                 'Only on Arbitrum'
