@@ -1200,11 +1200,11 @@ describe('GROUP 3: Crypto deposit', () => {
         test('EVM address screen names the one network for each token', () => {
             renderAddressScreen('EVM')
 
-            expect(screen.getByText('EURe').closest('[data-tooltip]')).toHaveAttribute(
+            expect(screen.getByText('EURe · Gnosis').closest('[data-tooltip]')).toHaveAttribute(
                 'data-tooltip',
                 'Only on Gnosis. Converted at the market rate.'
             )
-            expect(screen.getByText('USDe').closest('[data-tooltip]')).toHaveAttribute(
+            expect(screen.getByText('USDe · Arbitrum').closest('[data-tooltip]')).toHaveAttribute(
                 'data-tooltip',
                 'Only on Arbitrum'
             )
@@ -1213,8 +1213,8 @@ describe('GROUP 3: Crypto deposit', () => {
         test.each(['SOL', 'TRON'] as const)('%s address screen does not offer them', (network) => {
             renderAddressScreen(network)
 
-            expect(screen.queryByText('EURe')).not.toBeInTheDocument()
-            expect(screen.queryByText('USDe')).not.toBeInTheDocument()
+            expect(screen.queryByText('EURe · Gnosis')).not.toBeInTheDocument()
+            expect(screen.queryByText('USDe · Arbitrum')).not.toBeInTheDocument()
         })
     })
 
