@@ -3,6 +3,15 @@ import { isFxBearingFlow } from './transaction-predicates'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 
 /**
+ * A token symbol for a receipt or activity line: upper-cased when the record
+ * stores it lower-case (older records say "eth"), otherwise kept as is, because
+ * a mixed-case symbol is the token's real spelling (USDe).
+ */
+export function tokenSymbolForDisplay(symbol: string): string {
+    return symbol === symbol.toLowerCase() ? symbol.toUpperCase() : symbol
+}
+
+/**
  * The other side of a receipt's conversion: local fiat ("EUR 21.33") first,
  * else a non-stable destination token ("0.000416666 ETH", full decimals so the
  * receipt stays auditable). USD-pegged stablecoins are no conversion. One rule
@@ -17,9 +26,9 @@ export function receiptConvertedAmount(
         const upper = code.toUpperCase()
         if (upper !== 'USD' && !isStableCoin(upper)) return `${upper} ${formatCurrency(amount)}`
     }
-    const tokenSymbol = transaction.tokenSymbol?.toUpperCase()
-    if (tokenSymbol && tokenSymbol !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
-        return `${transaction.tokenAmount} ${tokenSymbol}`
+    const tokenSymbol = transaction.tokenSymbol
+    if (tokenSymbol && tokenSymbol.toUpperCase() !== 'USD' && !isStableCoin(tokenSymbol) && transaction.tokenAmount) {
+        return `${transaction.tokenAmount} ${tokenSymbolForDisplay(tokenSymbol)}`
     }
     return undefined
 }

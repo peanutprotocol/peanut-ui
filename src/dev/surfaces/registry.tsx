@@ -5,6 +5,8 @@ import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
 import { StandaloneErrorSurface } from './StandaloneErrorSurface'
+import { AddressLaunchModal } from '@/features/deposit-accounts/components/AddressLaunchModal'
+import { CardResidenceAddressScreen } from '@/features/card/components/CardResidenceAddressScreen'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -375,7 +377,50 @@ export type Surface = SurfaceMeta & {
     modalsContextFlag?: 'signIn' | 'support' | 'qrScanner'
 }
 
+function AddressLaunchSurface({ bank, loading }: { bank: boolean; loading: boolean }) {
+    const tBank = useTranslations('depositAccounts')
+    const tKyc = useTranslations('kyc')
+    return bank ? (
+        <AddressLaunchModal
+            visible
+            loading={loading}
+            error={loading ? null : tBank('gate.actFailed')}
+            terminal={false}
+            onClose={noop}
+            onRetry={noop}
+            onContactSupport={noop}
+        />
+    ) : (
+        <AppPageSurface>
+            <CardResidenceAddressScreen
+                state="required"
+                loading={loading}
+                error={loading ? null : tKyc('errorStartActionFailed')}
+                onBack={noop}
+                onStart={noop}
+                onRefresh={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
 export const SURFACES: Record<string, Surface> = {
+    'deposit-address-launch-loading': {
+        ...SURFACE_META['deposit-address-launch-loading'],
+        render: () => <AddressLaunchSurface bank loading />,
+    },
+    'deposit-address-launch-error': {
+        ...SURFACE_META['deposit-address-launch-error'],
+        render: () => <AddressLaunchSurface bank loading={false} />,
+    },
+    'card-address-launch-loading': {
+        ...SURFACE_META['card-address-launch-loading'],
+        render: () => <AddressLaunchSurface bank={false} loading />,
+    },
+    'card-address-launch-error': {
+        ...SURFACE_META['card-address-launch-error'],
+        render: () => <AddressLaunchSurface bank={false} loading={false} />,
+    },
     'standalone-error-card': {
         ...SURFACE_META['standalone-error-card'],
         render: () => (

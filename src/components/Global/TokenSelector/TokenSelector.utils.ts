@@ -88,7 +88,7 @@ export function withWalletChain(chains: Record<string, ChainWithTokens>): Record
 // stablecoins lead the token list, the rest follow alphabetically
 const TOKEN_RANK = ['USDC', 'USDT']
 const tokenRank = (symbol: string) => {
-    const i = TOKEN_RANK.indexOf(symbol)
+    const i = TOKEN_RANK.indexOf(symbol.toUpperCase())
     return i === -1 ? TOKEN_RANK.length : i
 }
 
@@ -126,9 +126,15 @@ export function buildTokenOptions(
         }
     }
 
-    return Array.from(bySymbol, ([symbol, networks]) => {
+    return Array.from(bySymbol.values(), (networks) => {
         const sorted = sortNetworks(networks)
-        return { symbol, name: sorted[0].token.name, logoURI: sorted[0].token.logoURI, networks: sorted }
+        // displayed as the record spells it (USDe), grouped and ranked upper-cased
+        return {
+            symbol: sorted[0].token.symbol,
+            name: sorted[0].token.name,
+            logoURI: sorted[0].token.logoURI,
+            networks: sorted,
+        }
     }).sort((a, b) => tokenRank(a.symbol) - tokenRank(b.symbol) || a.symbol.localeCompare(b.symbol))
 }
 
@@ -231,7 +237,7 @@ export function fallbackSelection(
     const symbol = chains[chainId]?.tokens
         .find((t) => tokenAddress && sameAddress(t.address, tokenAddress))
         ?.symbol.toUpperCase()
-    const option = options.find((o) => o.symbol === symbol) ?? options[0]
+    const option = options.find((o) => o.symbol.toUpperCase() === symbol) ?? options[0]
     return { option, network: pickDefaultNetwork(option, chainId) }
 }
 

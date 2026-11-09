@@ -768,6 +768,12 @@ describe('crypto withdraw preparation', () => {
         ['56', 'BNB', undefined],
         ['42161', 'USDC', '50'],
         ['1', 'USDT', '50'],
+        // A token that is not a dollar: '0', never the $50, and the API books what
+        // Rhino delivered. Omitting it would make the API store the USD amount.
+        ['8453', 'EURC', '0'],
+        ['1', 'EURC', '0'],
+        ['10', 'EURC', '0'],
+        ['43114', 'USDe', '0'],
     ] as const)('posts the correct charge amount for %s %s', async (chainId, symbol, tokenAmount) => {
         const chain = (await getSupportedChainsAndTokens())[chainId]
         const token = chain.tokens.find((candidate) => candidate.symbol === symbol)!

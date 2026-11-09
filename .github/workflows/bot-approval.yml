@@ -22,6 +22,15 @@
 # bot commits don't wedge. Pinned, paginated comparisons cover large PRs;
 # incomplete enumeration fails closed.
 #
+# Dependabot (.github/dependabot.yml) is the one bot without an orderer: it
+# cannot add trailers, and nobody ordered a given bump. Its unlanded commits
+# need an APPROVED review of the current head from any team member, and that
+# approver owns the update. Into main that approver is the second human; with
+# no orderer, there is nobody to exclude. human-authors accepts dependabot
+# commits only in a PR Dependabot opened, and here a bot-opened PR must still
+# carry its opener's own commits (Dependabot's in its PR, an allowlisted bot's
+# in any other), so an unknown bot stays red.
+#
 # PRs with no unlanded bot commits pass immediately — nothing changes for
 # people. This is a separate workflow because approval state changes on
 # pull_request_review events, which must not re-run the test matrix (a
@@ -56,6 +65,8 @@ jobs:
               with:
                   script: |
                       const ALLOWED_BOTS = ['chip-peanut-bot[bot]'];
+                      // No trailers and no orderer: the team member who approves owns it (header).
+                      const DEPENDABOT = 'dependabot[bot]';
                       // GitHub logins are case-insensitive; compare lowercased everywhere.
                       const lc = (s) => (s || '').toLowerCase();
                       const BOT_SET = new Set(ALLOWED_BOTS.map(lc));
@@ -136,8 +147,13 @@ jobs:
                       const orderers = new Set();
                       const untrailed = [];
                       let unlandedBotCommits = 0;
+                      let unlandedDependabotCommits = 0;
                       for (const c of commits) {
                         const login = lc(c.author && c.author.login);
+                        if (login === DEPENDABOT) {
+                          if (!(await alreadyLanded(c.sha))) unlandedDependabotCommits++;
+                          continue;
+                        }
                         if (!login || !BOT_SET.has(login)) continue;
                         if (await alreadyLanded(c.sha)) continue;
                         unlandedBotCommits++;
@@ -145,16 +161,19 @@ jobs:
                         if (m) orderers.add(lc(m[1]));
                         else untrailed.push(c.sha.slice(0, 7));
                       }
-                      if (unlandedBotCommits === 0) {
-                        // A bot-opened PR whose commits all claim human authors is either
-                        // authorship laundering (API commits carry caller-supplied author
-                        // metadata) or a fully superseded branch — red either way. ANY bot
-                        // opener counts, not just allowlisted ones: an unlisted bot opening
-                        // forged-human commits must not slip past both gates.
-                        if (pr.user.type === 'Bot' || lc(pr.user.login).endsWith('[bot]')) {
-                          core.setFailed(`Bot-opened PR carries no unlanded bot-authored commits — a bot PR must consist of its own provenance-trailed commits.`);
-                          return;
-                        }
+                      // A bot-opened PR whose commits all claim human authors is either
+                      // authorship laundering (API commits carry caller-supplied author
+                      // metadata) or a fully superseded branch — red either way. ANY bot
+                      // opener counts, not just allowlisted ones: an unlisted bot opening
+                      // forged-human commits must not slip past both gates. Its own work is
+                      // Dependabot's commits in a Dependabot PR, allowlisted-bot commits in
+                      // any other.
+                      const ownWork = lc(pr.user.login) === DEPENDABOT ? unlandedDependabotCommits : unlandedBotCommits;
+                      if (ownWork === 0 && (pr.user.type === 'Bot' || lc(pr.user.login).endsWith('[bot]'))) {
+                        core.setFailed(`Bot-opened PR carries no unlanded bot-authored commits — a bot PR must consist of its own provenance-trailed commits.`);
+                        return;
+                      }
+                      if (unlandedBotCommits === 0 && unlandedDependabotCommits === 0) {
                         console.log('✅ No unlanded bot-authored commits — no ownership gate to apply');
                         return;
                       }
@@ -194,6 +213,16 @@ jobs:
                       for (const [login, r] of latest) {
                         if (r.state !== 'APPROVED' || r.commit !== pr.head.sha) continue;
                         if (await hasWriteAccess(login)) approvers.push(login);
+                      }
+                      if (unlandedDependabotCommits) {
+                        if (!approvers.length) {
+                          core.setFailed(`Dependabot commits have no orderer — they need an APPROVED review of the current head from a team member, who then owns the update; bot work never merges on green gates alone.`);
+                          return;
+                        }
+                        if (unlandedBotCommits === 0) {
+                          console.log(`✅ Dependabot update approved by ${approvers.join(', ')}`);
+                          return;
+                        }
                       }
                       if (pr.base.ref === 'main') {
                         const second = approvers.filter((a) => !orderers.has(a));

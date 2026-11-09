@@ -1153,6 +1153,12 @@
             "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta"
+        },
+        "addressStep": {
+            "required": "Para continuar con la solicitud de tu tarjeta, agregá tu dirección de residencia.",
+            "rejected": "Revisá tu dirección de residencia y enviala de nuevo para continuar con la solicitud de tu tarjeta.",
+            "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
+            "unavailable": "No pudimos cargar el paso de dirección. Intentá de nuevo."
         }
     },
     "addMoney": {
