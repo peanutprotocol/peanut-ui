@@ -7,6 +7,7 @@
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { APP_RELEASE } from '@/constants/app-release'
+import { getBinaryInfo, getCachedBinaryInfo } from '@/utils/app-version'
 import { clientFlagProperties } from '@/utils/posthog-setup'
 import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
 import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
@@ -142,19 +143,42 @@ async function registerDeviceContext(): Promise<void> {
             // along with the rest of this context.
             app_release: APP_RELEASE,
         }
-        if (isNativeBridge()) {
-            const { getBinaryInfo } = await import('@/utils/app-version')
-            const binary = await getBinaryInfo()
-            if (binary) {
-                context.binary_version = binary.appVersion
-                context.binary_build = binary.appBuild
-            }
+        const native = isNativeBridge()
+        const binary = native ? await getCachedBinaryInfo() : null
+        if (binary) {
+            context.binary_version = binary.appVersion
+            context.binary_build = binary.appBuild
         }
         posthog.register(context)
-        posthog.setPersonPropertiesForFlags(await clientFlagProperties())
         // set only after a successful register — a throw leaves this null so a
         // later call can retry, instead of silently disabling the emit forever
         deviceContext = context
+        const flagProperties = await clientFlagProperties()
+        try {
+            posthog.setPersonPropertiesForFlags(flagProperties)
+        } catch {
+            // A flag SDK failure must not discard the registered device context.
+        }
+        if (native && (!binary || !flagProperties.binary_version)) {
+            void getBinaryInfo()
+                .then(async (lateBinary) => {
+                    if (!lateBinary) return
+                    if (!binary) {
+                        const fields = { binary_version: lateBinary.appVersion, binary_build: lateBinary.appBuild }
+                        if (deviceContext) deviceContext = { ...deviceContext, ...fields }
+                        try {
+                            posthog.register(fields)
+                        } catch {
+                            // A context SDK failure must not prevent the flag refresh.
+                        }
+                    }
+                    if (!flagProperties.binary_version) {
+                        const latest = await clientFlagProperties()
+                        if (latest.binary_version) posthog.setPersonPropertiesForFlags(latest)
+                    }
+                })
+                .catch(() => undefined)
+        }
     } catch {
         // analytics failure degrades to missing data, never a broken app
     }
