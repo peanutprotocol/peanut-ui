@@ -92,6 +92,7 @@ export interface FeatureReportInput {
     productRefusals?: Record<string, string>
     /** No residence approval and no reviewable address: the address step (api `ApprovedResidence.addressStep`). */
     residenceAddressStep?: 'required' | 'in_review' | 'rejected' | null
+    hasCardApplication?: boolean
 }
 
 interface Candidate {
@@ -105,7 +106,8 @@ function addressEntry(
     feature: KycIntent,
     actions: Map<string, NextAction>
 ): FeatureReportEntry | null {
-    if (!input.residenceAddressStep || feature !== 'bank') return null
+    if (!input.residenceAddressStep || (feature !== 'bank' && feature !== 'card')) return null
+    if (feature === 'card' && input.hasCardApplication) return null
     if (input.residenceAddressStep === 'in_review')
         return { state: 'setting_up', reason: 'residence_address_in_review' }
     const action = actions.get('sumsub:address_of_residence')
