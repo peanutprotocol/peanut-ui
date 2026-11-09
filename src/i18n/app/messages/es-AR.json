@@ -141,8 +141,8 @@
                 "descriptionCard": "Tu saldo está listo. Pagá con tu Peanut Card."
             },
             "shareBankDetails": {
-                "title": "Compartí tus datos bancarios",
-                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar acá."
+                "title": "Compartir datos bancarios",
+                "description": "Dale tus datos bancarios a tu empleador o cliente para cobrar acá."
             },
             "requestMoney": {
                 "title": "Pedí dinero",
