@@ -95,18 +95,23 @@ jest.mock('@/context/tokenSelector.context', () => ({
         devconnectTokenAddress: '',
     }),
 }))
-jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
-    useGeoFilteredPaymentOptions: () => ({
-        filteredMethods: [
-            { id: 'bank', title: 'Bank transfer', description: 'EUR', icons: [], soon: false },
-            { id: 'exchange-or-wallet', title: 'Crypto', description: 'Wallet', icons: [], soon: false },
-            { id: 'mercadopago', title: 'Mercado Pago', description: 'ARS', icons: [], soon: false },
-            { id: 'pix', title: 'Pix', description: 'BRL', icons: [], soon: false },
-            { id: 'devconnect', title: 'Devconnect', description: 'Event', icons: [], soon: false },
-        ],
-        isLoading: false,
-    }),
-}))
+jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => {
+    const defaultMethods = [
+        { id: 'bank', title: 'Bank transfer', description: 'EUR', icons: [], soon: false },
+        { id: 'exchange-or-wallet', title: 'Crypto', description: 'Wallet', icons: [], soon: false },
+        { id: 'mercadopago', title: 'Mercado Pago', description: 'ARS', icons: [], soon: false },
+        { id: 'pix', title: 'Pix', description: 'BRL', icons: [], soon: false },
+    ]
+    // Honour the list the component passes (the Devconnect variant passes its own methods).
+    return {
+        useGeoFilteredPaymentOptions: ({ methods }: { methods?: { id: string }[] } = {}) => ({
+            filteredMethods: methods
+                ? defaultMethods.filter((method) => methods.some(({ id }) => id === method.id))
+                : defaultMethods,
+            isLoading: false,
+        }),
+    }
+})
 
 import { readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
@@ -120,10 +125,12 @@ function Harness({
     data = claimLinkData,
     isInviteLink = true,
     isLoggedIn = false,
+    showDevconnectMethod = false,
 }: {
     data?: typeof claimLinkData
     isInviteLink?: boolean
     isLoggedIn?: boolean
+    showDevconnectMethod?: boolean
 }) {
     const [route, setRoute] = useState('')
     const [flow, setFlow] = useState('')
@@ -143,7 +150,7 @@ function Harness({
                 claimLinkData={data}
                 isLoggedIn={isLoggedIn}
                 isInviteLink={isInviteLink}
-                showDevconnectMethod
+                showDevconnectMethod={showDevconnectMethod}
             />
             <output data-testid="destination">{route}</output>
             <output data-testid="flow">{flow ? `bank:${flow}` : external ? 'external-wallet' : ''}</output>
@@ -219,16 +226,20 @@ test('a bank amount below minimum remains blocked after continuing', async () =>
     expect(screen.getByTestId('flow')).toBeEmptyDOMElement()
     expectNoSignup()
 })
-test.each(['Mercado Pago', 'Pix', 'Devconnect'])('%s bypasses the optional invite prompt', async (name) => {
+test.each(['Mercado Pago', 'Pix'])('%s bypasses the optional invite prompt', async (name) => {
     render(<Harness />)
     choose(name)
     await expectNoPrompt()
     expectNoSignup()
-    if (name === 'Devconnect') expect(screen.getByTestId('flow')).toHaveTextContent('external-wallet')
-    else {
-        expect(screen.getByTestId('step')).toHaveTextContent('regional-claim')
-        expect(screen.getByText('Account verification required')).toBeInTheDocument()
-    }
+    expect(screen.getByTestId('step')).toHaveTextContent('regional-claim')
+    expect(screen.getByText('Account verification required')).toBeInTheDocument()
+})
+test('the Claim on Devconnect app button bypasses the optional invite prompt', async () => {
+    render(<Harness showDevconnectMethod />)
+    fireEvent.click(screen.getByRole('button', { name: /Claim on.*Devconnect app/ }))
+    await expectNoPrompt()
+    expectNoSignup()
+    expect(screen.getByTestId('flow')).toHaveTextContent('external-wallet')
 })
 test('account-required bank bypasses the optional invite prompt', async () => {
     mockClaimType = 'guest-kyc-needed'
