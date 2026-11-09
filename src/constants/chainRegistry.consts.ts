@@ -128,9 +128,8 @@ const CHAIN_REGISTRY_LITERAL = [
         displayName: 'GNOSIS',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/11062/standard/Aatar_green_white.png?1706606458',
         // No ETH on Gnosis at Rhino. EURe converts to USDC; Rhino lists only the
-        // v2 contract (0x420ca0f9b9b604ce0fd9c18ef134c705e5fa3430). Wallets label
-        // both versions "EURe", so the chip and CryptoDeposit's note name v2.
-        deposit: { tokens: ['USDT', 'USDC', 'EURe v2'] },
+        // v2 contract (0x420ca0f9b9b604ce0fd9c18ef134c705e5fa3430).
+        deposit: { tokens: ['USDT', 'USDC', 'EURe'] },
         withdraw: { tokens: ['USDC', 'USDT'] }, // native xDAI not bridged by Rhino
     },
     {
