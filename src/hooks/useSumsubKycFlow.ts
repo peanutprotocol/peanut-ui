@@ -27,6 +27,7 @@ import {
     type VerificationActionSession,
 } from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { isDemoMode } from '@/utils/demo'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import {
@@ -117,6 +118,15 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
     const { user } = useAuth()
+    const actionOwnerRef = useRef(user?.user?.userId)
+    actionOwnerRef.current = user?.user?.userId
+    const addressGeneration = useRef(0)
+    const addressPendingRef = useRef(false)
+    useEffect(() => {
+        return () => {
+            addressGeneration.current += 1
+        }
+    }, [user?.user?.userId])
     const router = useRouter()
     const t = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
@@ -201,6 +211,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // actually used — most entry points pass it to handleInitiateKyc rather than
     // as the `regionIntent` prop, so the prop alone is not the effective intent.
     const [isMultiLevel, setIsMultiLevel] = useState(false)
+    useEffect(() => {
+        if (addressPendingRef.current || actionKeyRef.current === RESIDENCE_ADDRESS_ACTION_KEY) {
+            addressPendingRef.current = false
+            setShowWrapper(false)
+            setIsLoading(false)
+            setAccessToken(null)
+        }
+    }, [user?.user?.userId])
     const prevStatusRef = useRef(liveKycStatus)
     const showWrapperRef = useRef(showWrapper)
     showWrapperRef.current = showWrapper
@@ -766,8 +784,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
+        const completedAction = actionKeyRef.current
         selfHealProviderRef.current = null
         actionKeyRef.current = null
+        // The address step is reviewed apart from the identity (TASK-24662): there
+        // is no approval to wait on here, and the screen that offered it says
+        // when Sumsub has checked it.
+        if (completedAction === RESIDENCE_ADDRESS_ACTION_KEY) {
+            userInitiatedRef.current = false
+            setShowWrapper(false)
+            setIsActionFlow(false)
+            setIsMultiLevel(false)
+            return
+        }
         if (residenceChangeRef.current) {
             userInitiatedRef.current = false
             residenceChangeRef.current = false
@@ -798,6 +827,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // any close as a submission would swallow a real action-required state.
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
+        addressGeneration.current += 1
         // A closed attempt's approval belongs to /verify, not to today's post-approval steps.
         if (residenceChangeRef.current || documentAttemptRef.current) userInitiatedRef.current = false
         residenceChangeRef.current = false
@@ -811,7 +841,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // token refresh function passed to the sdk for when the token expires.
     // routes by how the flow started: start-action key, self-heal provider, or
     // the regular KYC endpoint.
+    const refreshAddressGeneration = addressGeneration.current
+    const refreshIsAddressAction = actionKeyRef.current === RESIDENCE_ADDRESS_ACTION_KEY
     const refreshToken = useCallback(async (): Promise<string> => {
+        const staleAddress = () =>
+            (refreshIsAddressAction || actionKeyRef.current === RESIDENCE_ADDRESS_ACTION_KEY) &&
+            (actionOwnerRef.current !== user?.user?.userId || addressGeneration.current !== refreshAddressGeneration)
+        // SDK teardown cannot cancel an already pending server action. Check both
+        // before dispatch and before exposing its token to the current account.
+        if (staleAddress()) throw new Error('Address verification session changed')
         if (documentAttemptRef.current) {
             let response: KycAttemptSession
             try {
@@ -840,6 +878,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
         if (actionKeyRef.current) {
             const response = await startKycAction(actionKeyRef.current)
+            if (staleAddress()) throw new Error('Address verification session changed')
             if (response.error || !response.data?.token) {
                 throw new Error(response.error || 'Failed to refresh action token')
             }
@@ -880,7 +919,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
         setAccessToken(response.data.token)
         return response.data.token
-    }, [handleDocumentConflict, router])
+    }, [handleDocumentConflict, router, user?.user?.userId, refreshAddressGeneration, refreshIsAddressAction])
 
     const closeVerificationProgressModal = useCallback(() => {
         setIsVerificationProgressModalOpen(false)
@@ -1118,6 +1157,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // the advisory pre-empt needs to start a future-dated requirement early.
     const handleStartAction = useCallback(
         async (key: string) => {
+            const owner = user?.user?.userId
+            if (key === RESIDENCE_ADDRESS_ACTION_KEY && actionOwnerRef.current !== owner) return
+            const generation = ++addressGeneration.current
+            addressPendingRef.current = key === RESIDENCE_ADDRESS_ACTION_KEY
+            const staleAddress = () =>
+                key === RESIDENCE_ADDRESS_ACTION_KEY &&
+                (actionOwnerRef.current !== owner || addressGeneration.current !== generation)
+            if (staleAddress()) return
             documentAttemptRef.current = null
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
@@ -1137,10 +1184,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 let response = await startKycAction(key)
+                if (staleAddress()) return
                 // Sumsub had already reviewed the action. Ask once more: a final rejection opens the
                 // next attempt. Only an explicit completed/not-required answer confirms it is done.
                 if (response.data?.completed) {
                     response = await startKycAction(key)
+                    if (staleAddress()) return
                     if (
                         !response.fallback &&
                         (response.data?.completed ||
@@ -1187,14 +1236,27 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsActionFlow(true)
                 setShowWrapper(true)
             } catch (e: unknown) {
+                if (staleAddress()) return
                 userInitiatedRef.current = false
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
             } finally {
-                setIsLoading(false)
+                if (!staleAddress()) {
+                    addressPendingRef.current = false
+                    setIsLoading(false)
+                }
             }
         },
-        [t, tIdentity, actionErrorMessage, setError, acceptSessionView, onKycSuccess, restartIdentity]
+        [
+            user?.user?.userId,
+            t,
+            tIdentity,
+            actionErrorMessage,
+            setError,
+            acceptSessionView,
+            onKycSuccess,
+            restartIdentity,
+        ]
     )
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,

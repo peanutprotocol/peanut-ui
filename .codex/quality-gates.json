@@ -8,6 +8,7 @@
             "argv": [
                 "node_modules/.bin/jest",
                 "--runInBand",
+                "--silent",
                 "--runTestsByPath",
                 "src/components/Setup/Views/__tests__/Landing.passkeys.test.tsx",
                 "src/components/Global/RainCooldown/__tests__/IntroModal.test.tsx",

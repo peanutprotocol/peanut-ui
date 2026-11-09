@@ -19,6 +19,7 @@ import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { CardResidenceAddressScreen } from './components/CardResidenceAddressScreen'
 import { useCardFlow } from './useCardFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { IdentityRejectedScreen, isDecidedRejection } from '@/features/paperwork-verification/PaperworkVerificationFlow'
@@ -48,6 +49,9 @@ export const CardPage: FC = () => {
         refetchCardInfo,
         overview,
         overviewError,
+        residenceAddressStep,
+        addressStarting,
+        refreshResidenceAddress,
         capabilitiesLoading,
         railsForProvider,
         state,
@@ -154,6 +158,26 @@ export const CardPage: FC = () => {
         // A finally rejected identity cannot apply: its reason and the way on, as /verify shows them.
         if (state !== 'active' && isDecidedRejection(user?.identityVerification)) {
             return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
+        }
+        if (
+            residenceAddressStep &&
+            state !== 'active' &&
+            state !== 'geo-blocked' &&
+            !overview?.status.hasApplication &&
+            !planRefusal &&
+            !geoBlocked &&
+            !pendingResidenceBlocked
+        ) {
+            return (
+                <CardResidenceAddressScreen
+                    state={residenceAddressStep}
+                    loading={addressStarting}
+                    error={kycFlow.error}
+                    onStart={() => void handleApply(false)}
+                    onRefresh={refreshResidenceAddress}
+                    onBack={onBack}
+                />
+            )
         }
         // Highest priority: show the issuance spinner between "terms accepted"
         // and the overview refetch landing. Keeps the UX from flipping back

@@ -141,8 +141,8 @@
                 "descriptionCard": "Tu saldo está listo. Pagá con tu Peanut Card."
             },
             "shareBankDetails": {
-                "title": "Compartí tus datos bancarios",
-                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar acá."
+                "title": "Compartir datos bancarios",
+                "description": "Dale tus datos bancarios a tu empleador o cliente para cobrar acá."
             },
             "requestMoney": {
                 "title": "Pedí dinero",
@@ -1153,6 +1153,12 @@
             "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta"
+        },
+        "addressStep": {
+            "required": "Para continuar con la solicitud de tu tarjeta, agregá tu dirección de residencia.",
+            "rejected": "Revisá tu dirección de residencia y enviala de nuevo para continuar con la solicitud de tu tarjeta.",
+            "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
+            "unavailable": "No pudimos cargar el paso de dirección. Intentá de nuevo."
         }
     },
     "addMoney": {
@@ -2217,7 +2223,10 @@
             "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
             "topUpCta": "Agregar desde un banco",
-            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás."
+            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás.",
+            "addressBody": "Tu identidad está verificada. Para abrir cuentas en {currency}, necesitamos tu domicilio. Lo agregás una vez y lo revisamos.",
+            "addressRetryBody": "Revisá tu domicilio y envialo de nuevo. Las cuentas en {currency} se abren cuando esté aprobado.",
+            "addressReviewBody": "No tenés que hacer nada. Las cuentas en {currency} se abren cuando esté aprobado, y esta página se actualiza sola."
         },
         "senderLimit": {
             "businessOnly": {

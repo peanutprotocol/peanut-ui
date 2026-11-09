@@ -2,6 +2,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import type { DepositCorridor } from './types'
 import type { GateState } from '@/utils/capability-gate'
+import type { AddressStepState } from './addressStep'
 
 /**
  * What the get-paid flow reports, and what it deliberately does not.
@@ -57,4 +58,27 @@ export function trackShared(corridor: DepositCorridor, method: 'share-sheet' | '
  */
 export function trackGateBlocked(corridor: DepositCorridor, kind: GateState['kind']): void {
     posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_GATE_BLOCKED, { corridor, gate_kind: kind })
+}
+
+/**
+ * The address step on a corridor (TASK-24662). A view is sent once per corridor
+ * and state while the list is on screen; a refused answer the user sees also
+ * sends `rejected`. Corridor and state only: never the address or the country.
+ */
+export function trackAddressStepViewed(corridor: DepositCorridor, state: AddressStepState): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ADDRESS_STEP_VIEWED, { corridor, state })
+    if (state === 'rejected') posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ADDRESS_STEP_REJECTED, { corridor })
+}
+
+export function trackAddressStepStarted(corridor: DepositCorridor, retry: boolean): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ADDRESS_STEP_STARTED, { corridor, retry })
+}
+
+export function trackAddressStepSubmitted(corridor: DepositCorridor): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ADDRESS_STEP_SUBMITTED, { corridor })
+}
+
+/** The answer was approved and the user is back on the corridor they chose. */
+export function trackAddressStepApproved(corridor: DepositCorridor): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ADDRESS_STEP_APPROVED, { corridor })
 }

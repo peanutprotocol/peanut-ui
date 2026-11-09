@@ -274,8 +274,8 @@
                 "descriptionCard": "Your balance is ready. Pay with your Peanut card."
             },
             "shareBankDetails": {
-                "title": "Share your bank details",
-                "description": "Give your account details to an employer or client to get paid here."
+                "title": "Share bank details",
+                "description": "Give your bank details to an employer or client to get paid here."
             },
             "requestMoney": {
                 "title": "Request money",
@@ -2159,6 +2159,12 @@
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
             "viewCard": "View card"
+        },
+        "addressStep": {
+            "required": "To continue your card application, add your home address.",
+            "rejected": "Check your home address and send it again to continue your card application.",
+            "in_review": "We are checking your address. You can continue your card application once it is accepted.",
+            "unavailable": "We could not load the address step. Try again."
         }
     },
     "addMoney": {
@@ -5186,7 +5192,16 @@
             "finishReviewCta": "Continue",
             "actFailed": "We could not open the check. Try again in a moment.",
             "topUpCta": "Add money from a bank",
-            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one."
+            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one.",
+            "addressTitle": "We need a home address",
+            "addressBody": "Your identity is verified. To open {currency} accounts, we need your home address. You add it once and we check it.",
+            "addressCta": "Add address",
+            "addressRetryTitle": "We could not accept that address",
+            "addressRetryBody": "Check your home address and send it again. {currency} accounts open once it is approved.",
+            "addressRetryCta": "Send again",
+            "addressReviewTitle": "We are checking the address",
+            "addressReviewBody": "Nothing for you to do. {currency} accounts open once it is approved, and this page updates by itself.",
+            "addressSent": "Home address sent for checking"
         },
         "senderLimit": {
             "businessOnly": {

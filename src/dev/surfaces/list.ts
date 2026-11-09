@@ -41,6 +41,30 @@ const apiRibbon = (id: string): SurfaceMeta => {
 
 // Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'deposit-address-launch-loading': {
+        name: 'Bank address check — opening',
+        path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',
+        captureState: ['visible=true', 'loading=true'],
+        expectSelector: '[role="dialog"] [aria-busy="true"]',
+    },
+    'deposit-address-launch-error': {
+        name: 'Bank address check — launch failed, retry available',
+        path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',
+        captureState: ['visible=true', 'loading=false', 'error=gate.actFailed'],
+        expectSelector: '[role="dialog"] [role="alert"]',
+    },
+    'card-address-launch-loading': {
+        name: 'Card address check — opening',
+        path: 'features/card/components/CardResidenceAddressScreen.tsx',
+        captureState: ['state=required', 'loading=true'],
+        expectSelector: 'button [role="status"]',
+    },
+    'card-address-launch-error': {
+        name: 'Card address check — launch failed, retry available',
+        path: 'features/card/components/CardResidenceAddressScreen.tsx',
+        captureState: ['state=required', 'loading=false', 'error=errorStartActionFailed'],
+        expectSelector: '[role="alert"]',
+    },
     'standalone-error-card': {
         name: 'Card — load failed',
         path: 'features/card/CardPage.tsx',

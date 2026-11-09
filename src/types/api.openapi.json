@@ -25195,6 +25195,18 @@
 															},
 															{
 																"enum": [
+																	"address-required"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"address-in-review"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
 																	"not-open"
 																],
 																"type": "string"

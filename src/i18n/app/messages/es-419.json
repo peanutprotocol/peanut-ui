@@ -274,8 +274,8 @@
                 "descriptionCard": "Tu saldo está listo. Paga con tu Peanut Card."
             },
             "shareBankDetails": {
-                "title": "Comparte tus datos bancarios",
-                "description": "Dale los datos de tu cuenta a tu empleador o cliente para cobrar aquí."
+                "title": "Compartir datos bancarios",
+                "description": "Dale tus datos bancarios a tu empleador o cliente para cobrar aquí."
             },
             "requestMoney": {
                 "title": "Pide dinero",
@@ -2159,6 +2159,12 @@
             "issuedTitle": "Conoce tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta"
+        },
+        "addressStep": {
+            "required": "Para continuar con la solicitud de tu tarjeta, agrega tu dirección de residencia.",
+            "rejected": "Revisa tu dirección de residencia y envíala de nuevo para continuar con la solicitud de tu tarjeta.",
+            "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
+            "unavailable": "No pudimos cargar el paso de dirección. Inténtalo de nuevo."
         }
     },
     "addMoney": {
@@ -5186,7 +5192,16 @@
             "finishReviewCta": "Continuar",
             "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento.",
             "topUpCta": "Agregar desde un banco",
-            "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas."
+            "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas.",
+            "addressTitle": "Necesitamos el domicilio",
+            "addressBody": "Tu identidad está verificada. Para abrir cuentas en {currency}, necesitamos tu domicilio. Lo agregas una vez y lo revisamos.",
+            "addressCta": "Agregar domicilio",
+            "addressRetryTitle": "No pudimos aceptar ese domicilio",
+            "addressRetryBody": "Revisa tu domicilio y envíalo de nuevo. Las cuentas en {currency} se abren cuando esté aprobado.",
+            "addressRetryCta": "Enviar de nuevo",
+            "addressReviewTitle": "Estamos revisando el domicilio",
+            "addressReviewBody": "No tienes que hacer nada. Las cuentas en {currency} se abren cuando esté aprobado, y esta página se actualiza sola.",
+            "addressSent": "Domicilio enviado para revisión"
         },
         "senderLimit": {
             "businessOnly": {
