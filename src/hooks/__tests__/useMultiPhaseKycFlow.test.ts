@@ -79,6 +79,42 @@ const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.captur
 
 const rejectedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_REJECTED)
 
+/** TASK-24662: the address step is reviewed apart from the identity, like the residence change. */
+describe('useMultiPhaseKycFlow — the address step', () => {
+    const { startKycAction } = jest.requireMock('@/app/actions/sumsub') as { startKycAction: jest.Mock }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockFetchUser.mockResolvedValue(null)
+        startKycAction.mockResolvedValue({
+            data: { token: 'address-token', levelName: 'provider-rfi-address', externalActionId: 'address-step-u-1' },
+        })
+    })
+
+    it('submission hands back to the screen that offered it: no identity events, no approval wait', async () => {
+        const onKycApproved = jest.fn()
+        const onActionSubmitted = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved, onActionSubmitted }))
+
+        await act(async () => {
+            await result.current.handleStartAction('sumsub:address_of_residence')
+        })
+        expect(result.current.showWrapper).toBe(true)
+
+        mockCapture.mockClear()
+        act(() => result.current.handleSdkSubmitted('sdk_submitted'))
+        act(() => result.current.handleSdkComplete())
+
+        expect(onActionSubmitted).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(markSubmitted).toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_SUBMITTED, expect.anything())
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isModalOpen).toBe(false)
+    })
+})
+
 describe('useMultiPhaseKycFlow — residence action composition', () => {
     beforeEach(() => {
         jest.clearAllMocks()

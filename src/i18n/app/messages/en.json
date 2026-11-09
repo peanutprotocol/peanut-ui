@@ -5186,7 +5186,16 @@
             "finishReviewCta": "Continue",
             "actFailed": "We could not open the check. Try again in a moment.",
             "topUpCta": "Add money from a bank",
-            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one."
+            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one.",
+            "addressTitle": "We need a home address",
+            "addressBody": "Your identity is verified. To open {currency} accounts, we need your home address. You add it once and we check it.",
+            "addressCta": "Add address",
+            "addressRetryTitle": "We could not accept that address",
+            "addressRetryBody": "Check your home address and send it again. {currency} accounts open once it is approved.",
+            "addressRetryCta": "Send again",
+            "addressReviewTitle": "We are checking the address",
+            "addressReviewBody": "Nothing for you to do. {currency} accounts open once it is approved, and this page updates by itself.",
+            "addressSent": "Home address sent for checking"
         },
         "senderLimit": {
             "businessOnly": {

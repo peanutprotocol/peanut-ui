@@ -1070,6 +1070,57 @@ const REVIEW_CAUSE_RESPONSE = {
 }
 
 /**
+ * A verified user with no approved residence and no address on their identity
+ * check (TASK-24662): every bank account asks for the home address, then waits
+ * while it is checked. COP needs no residence approval to be offered.
+ */
+const addressStepResponse = (step: 'required' | 'rejected' | 'in_review') => {
+    const entry =
+        step === 'in_review'
+            ? { state: 'setting_up', reason: 'residence_address_in_review' }
+            : { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' }
+    const cause = step === 'in_review' ? 'address-in-review' : 'address-required'
+    return {
+        'GET /users/me': {
+            capabilities: {
+                rails: [],
+                restrictions: [],
+                nextActions:
+                    step === 'in_review'
+                        ? []
+                        : [
+                              {
+                                  key: 'sumsub:address_of_residence',
+                                  kind: 'sumsub',
+                                  purpose:
+                                      step === 'rejected' ? 'residence_address_rejected' : 'residence_address_required',
+                                  levelKey: 'address_of_residence',
+                              },
+                          ],
+                features: {
+                    qr: { state: 'ready' },
+                    card: { state: 'ready' },
+                    local: { state: 'ready', accounts: {} },
+                    bank: { ...entry, accounts: { USD: entry, EUR: entry, GBP: entry, MXN: entry } },
+                },
+            },
+            depositAccounts: { enabled: true },
+            residence: { declared: null, verified: null, pending: null, declaredSecond: null },
+        },
+        'GET /users/deposit-accounts': {
+            depositAccounts: [],
+            claimable: [CLAIMABLE_COP],
+            unavailable: [
+                withheldCorridor('ACH_US', 'US', 'USD', 'not-offered', cause),
+                withheldCorridor('SEPA_EU', 'EU', 'EUR', 'not-offered', cause),
+                withheldCorridor('FASTER_PAYMENTS_GB', 'GB', 'GBP', 'not-offered', cause),
+                withheldCorridor('SPEI_MX', 'MX', 'MXN', 'not-offered', cause),
+            ],
+        },
+    }
+}
+
+/**
  * A verified user whose payment partner asks for one more thing for EUR: the
  * rail's gate reads `fixable-rejection` while the backend still offers the
  * corridor. USD is the same review once the user has answered (the backend
@@ -2914,6 +2965,31 @@ export const FIXTURES: Record<string, Fixture> = {
                 ],
             },
         },
+    },
+    'profile-accounts-address-required': {
+        route: '/profile/accounts',
+        about: 'A verified user with no approved residence: USD, EUR, GBP and MXN say "Action needed" and ask for the home address; COP opens as usual.',
+        responses: addressStepResponse('required'),
+    },
+    'add-money-address-in-review': {
+        route: '/add-money?method=bank',
+        about: 'Add money while the home address is with our verification partner: the four accounts say "Under review".',
+        responses: addressStepResponse('in_review'),
+    },
+    'get-paid-address-required': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'The USD row of a user with no approved residence: one step for the home address, never "Not available".',
+        responses: addressStepResponse('required'),
+    },
+    'get-paid-address-retry': {
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',
+        about: 'The EUR row after the address was not accepted: send it again.',
+        responses: addressStepResponse('rejected'),
+    },
+    'get-paid-address-in-review': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'The USD row while the address is checked: nothing to do, the page updates by itself.',
+        responses: addressStepResponse('in_review'),
     },
     'get-paid-review-action': {
         route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',

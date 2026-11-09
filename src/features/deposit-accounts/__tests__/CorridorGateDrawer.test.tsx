@@ -357,3 +357,92 @@ describe('a corridor the residence rule blocks', () => {
         expect(props.onResolveGate).toHaveBeenCalledWith(blocked('provider_rejected'), CORRIDOR)
     })
 })
+
+/*
+ * TASK-24662: a corridor withheld because no residence is approved and the
+ * identity check holds no address. The drawer asks for the address itself and
+ * opens the step at once; a refused answer asks again; the review is a wait.
+ * Once the address is approved the user lands on the claim they tapped.
+ */
+describe('the address step drawer', () => {
+    const capture = (jest.requireMock('posthog-js') as { default: { capture: jest.Mock } }).default.capture
+    const addressGate = (purpose = 'residence_address_required'): GateState => ({
+        kind: 'fixable-rejection',
+        userMessage: null,
+        reason: { code: 'residence_unresolved', userMessage: '' },
+        actionKey: 'sumsub:address_of_residence',
+        nextAction: { key: 'sumsub:address_of_residence', kind: 'sumsub', purpose, levelKey: 'address_of_residence' },
+    })
+    const withheldFor = (cause: 'address-required' | 'address-in-review') => ({
+        ...emptyCorridorRecord(),
+        [CORRIDOR]: {
+            railId: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            currency: 'EUR',
+            reason: 'not-offered' as const,
+            cause,
+        },
+    })
+    const addressProps = (gate: GateState, cause: 'address-required' | 'address-in-review') => ({
+        ...flowProps({ gate, withTerms: false }),
+        unavailable: withheldFor(cause),
+    })
+
+    beforeEach(() => capture.mockClear())
+
+    it('asks for the home address, never "not available", and opens the step from its button', async () => {
+        const props = addressProps(addressGate(), 'address-required')
+        const { onUrlUpdate } = renderFlow(props)
+        expect(drawer()).toHaveTextContent(GATE.addressTitle)
+        expect(drawer()).toHaveTextContent(GATE.addressBody.replace('{currency}', 'EUR'))
+        expect(drawer()).not.toHaveTextContent(GATE.verifyTitle)
+
+        tapGateButton(screen.getByTestId('corridor-gate-provide-address'))
+        expect(props.onResolveGate).toHaveBeenCalledWith(addressGate(), CORRIDOR)
+        expect(capture).toHaveBeenCalledWith('deposit_account_address_step_started', {
+            corridor: CORRIDOR,
+            retry: false,
+        })
+        await expectBackOnList(onUrlUpdate)
+    })
+
+    it('asks again after a refused answer', () => {
+        const props = addressProps(addressGate('residence_address_rejected'), 'address-required')
+        renderFlow(props)
+        expect(drawer()).toHaveTextContent(GATE.addressRetryTitle)
+        tapGateButton(screen.getByTestId('corridor-gate-address-retry'))
+        expect(capture).toHaveBeenCalledWith('deposit_account_address_step_started', {
+            corridor: CORRIDOR,
+            retry: true,
+        })
+    })
+
+    it('waits while the address is checked: nothing to start, the button closes the drawer', async () => {
+        const props = addressProps({ kind: 'pending' }, 'address-in-review')
+        const { onUrlUpdate } = renderFlow(props)
+        expect(drawer()).toHaveTextContent(GATE.addressReviewTitle)
+        expect(drawer()).toHaveTextContent(messages.depositAccounts.list.badgeUnderReview)
+        tapGateButton(screen.getByTestId('corridor-gate-address-in-review'))
+        expect(props.onResolveGate).not.toHaveBeenCalled()
+        await expectBackOnList(onUrlUpdate)
+    })
+
+    it('returns the user to the corridor they chose once the address is approved, and reports it', async () => {
+        const props = addressProps(addressGate(), 'address-required')
+        const { onUrlUpdate, rerenderFlow } = renderFlow(props)
+        tapGateButton(screen.getByTestId('corridor-gate-provide-address'))
+        await expectBackOnList(onUrlUpdate)
+
+        expect(capture).not.toHaveBeenCalledWith('deposit_account_address_step_approved', expect.anything())
+
+        // approved: the backend offers the corridor
+        rerenderFlow(flowProps())
+        await waitFor(() => {
+            const last = onUrlUpdate.mock.calls.at(-1)?.[0].searchParams
+            expect(last?.get('step')).toBe('claim')
+        })
+        expect(screen.getByTestId('claim')).toBeInTheDocument()
+        expect(capture).toHaveBeenCalledWith('deposit_account_address_step_approved', { corridor: CORRIDOR })
+    })
+})

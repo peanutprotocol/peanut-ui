@@ -50,6 +50,14 @@ export const isProviderIdRequestReason = (code: string | null | undefined): code
 export const ADDITIONAL_VERIFICATION_ROUTE = '/profile/accounts/additional'
 
 /**
+ * The address step (api TASK-24662): a verified user with no residence
+ * approval gives the address where they live, once. The action key, and the
+ * `purpose` the API puts on it after Sumsub refused an answer.
+ */
+export const RESIDENCE_ADDRESS_ACTION_KEY = 'sumsub:address_of_residence'
+export const RESIDENCE_ADDRESS_REJECTED_PURPOSE = 'residence_address_rejected'
+
+/**
  * Reason code of a QR pool rail the backend paused because the identity
  * evidence behind the approval is gone (peanut-api-ts `QR_IDENTITY_MISSING`,
  * `SUMSUB_IDENTITY_MISSING` on the rail).

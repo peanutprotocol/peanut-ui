@@ -5186,7 +5186,16 @@
             "finishReviewCta": "Continuar",
             "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes.",
             "topUpCta": "Adicionar de um banco",
-            "limitBodyTopUp": "Esse é o seu limite atual. Você ainda pode adicionar dinheiro enviando do seu próprio banco. O suporte pode abrir outra conta se você precisar."
+            "limitBodyTopUp": "Esse é o seu limite atual. Você ainda pode adicionar dinheiro enviando do seu próprio banco. O suporte pode abrir outra conta se você precisar.",
+            "addressTitle": "Precisamos do endereço residencial",
+            "addressBody": "Sua identidade está verificada. Para abrir contas em {currency}, precisamos do seu endereço residencial. Você informa uma vez e nós verificamos.",
+            "addressCta": "Adicionar endereço",
+            "addressRetryTitle": "Não conseguimos aceitar esse endereço",
+            "addressRetryBody": "Confira seu endereço residencial e envie de novo. As contas em {currency} abrem quando ele for aprovado.",
+            "addressRetryCta": "Enviar de novo",
+            "addressReviewTitle": "Estamos verificando o endereço",
+            "addressReviewBody": "Você não precisa fazer nada. As contas em {currency} abrem quando ele for aprovado, e esta página se atualiza sozinha.",
+            "addressSent": "Endereço residencial enviado para verificação"
         },
         "senderLimit": {
             "businessOnly": {

@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useSubmissionWindow } from '@/hooks/useSubmissionWindow'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
 import type { GateState } from '@/utils/capability-gate'
@@ -134,6 +135,7 @@ export function useDepositAccounts({
     const { userId } = useAuth()
     const queryClient = useQueryClient()
     const { gateFor, rails, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
+    const { isInWindow: justSubmitted } = useSubmissionWindow()
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
@@ -155,9 +157,15 @@ export function useDepositAccounts({
             // screen is waiting on exactly this read to continue into the claim.
             // The same holds for the user's own review of a rail (`review-pending`):
             // its wait drawer says the page updates by itself.
+            const unavailable = q.state.data?.unavailable ?? []
+            // An address with Sumsub resolves on its own too, and just after the SDK
+            // closes the backend may not have heard of it yet (TASK-24662).
             const reviewUnderWay =
                 (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending') ||
-                (q.state.data?.unavailable ?? []).some((corridor) => corridor.cause === 'review-pending')
+                unavailable.some(
+                    (corridor) => corridor.cause === 'review-pending' || corridor.cause === 'address-in-review'
+                ) ||
+                (justSubmitted && unavailable.some((corridor) => corridor.cause === 'address-required'))
             return reviewUnderWay ? ENDORSEMENT_POLL_MS : false
         },
     })

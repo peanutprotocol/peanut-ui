@@ -9,6 +9,7 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
+import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { entryAction, reportEntry, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { getBridgeTosLink, confirmBridgeTos } from '@/app/actions/users'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
@@ -157,6 +158,12 @@ interface UseMultiPhaseKycFlowOptions {
      */
     onKycApproved?: () => void
     onManualClose?: () => void
+    /**
+     * The SDK closed on a submitted action that is reviewed apart from the
+     * identity (today the address step): the screen that offered it says what
+     * happens next, so no progress modal opens.
+     */
+    onActionSubmitted?: (key: string) => void
     regionIntent?: KYCRegionIntent
     /** False where the page resumes its own Sumsub session from the shared `kyc` param. */
     resumeOnReload?: boolean
@@ -174,6 +181,7 @@ export const useMultiPhaseKycFlow = ({
     onKycSuccess,
     onKycApproved,
     onManualClose,
+    onActionSubmitted,
     regionIntent,
     resumeOnReload = true,
 }: UseMultiPhaseKycFlowOptions) => {
@@ -535,18 +543,27 @@ export const useMultiPhaseKycFlow = ({
     const handleSdkSubmitted = useCallback(
         (source: SumsubSubmissionSource = 'sdk_submitted') => {
             reportedRejectionRef.current = null
+            // The address step is not an identity submission (handleSdkComplete reports it).
+            if (getActionKey() === RESIDENCE_ADDRESS_ACTION_KEY) return
             captureSubmission(source)
             if (source !== 'sdk_teardown' && isArgentinaSingleLevelSession) {
                 originalHandleSdkComplete()
                 setModalPhase('submitted')
             }
         },
-        [captureSubmission, isArgentinaSingleLevelSession, originalHandleSdkComplete]
+        [captureSubmission, isArgentinaSingleLevelSession, originalHandleSdkComplete, getActionKey]
     )
 
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
+        // Not an identity submission: no KYC_SUBMITTED, no approval to wait for.
+        if (getActionKey() === RESIDENCE_ADDRESS_ACTION_KEY) {
+            originalHandleSdkComplete()
+            markSubmitted()
+            onActionSubmitted?.(RESIDENCE_ADDRESS_ACTION_KEY)
+            return
+        }
         if (!isResidenceChangeFlow) {
             captureSubmission('sdk_complete')
             isRealtimeFlowRef.current = true
@@ -580,6 +597,7 @@ export const useMultiPhaseKycFlow = ({
         isResidenceChangeFlow,
         captureSubmission,
         verificationSession,
+        onActionSubmitted,
     ])
 
     // Existing Android PWAs can cold-reload after opening the camera or gallery.

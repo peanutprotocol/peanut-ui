@@ -14,7 +14,9 @@ import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { twMerge } from '@/utils/tw'
 import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useLocale, useTranslations } from 'next-intl'
-import { useState, type ReactElement, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { addressStepOf } from '../addressStep'
+import { trackAddressStepViewed } from '../analytics'
 import { needsIdentity } from '../depositGate'
 import {
     bankRowRefusedByIdentity,
@@ -100,6 +102,21 @@ export function AccountsHubList({
         : { held: [], open: [] }
     const shownHeld = held.filter((corridor) => matches(corridor, railName(corridor)))
     const shownOpen = open.filter((row) => matches(row.corridor, railName(row.corridor)))
+    // Each corridor the address step holds, reported once per state while the list is on screen (TASK-24662).
+    const addressRows = open.flatMap((row) => {
+        const state = addressStepOf(accounts?.unavailable?.[row.corridor], accounts?.gates[row.corridor])
+        return state ? [`${row.corridor}:${state}`] : []
+    })
+    const reportedAddressRows = useRef(new Set<string>())
+    const addressRowsKey = addressRows.join(',')
+    useEffect(() => {
+        for (const row of addressRowsKey ? addressRowsKey.split(',') : []) {
+            if (reportedAddressRows.current.has(row)) continue
+            reportedAddressRows.current.add(row)
+            const [corridor, state] = row.split(':') as [DepositCorridor, Parameters<typeof trackAddressStepViewed>[1]]
+            trackAddressStepViewed(corridor, state)
+        }
+    }, [addressRowsKey])
     // A search shows every match, so the fold steps aside while the user types
     // (the countries row on Add money does the same).
     const searching = !!searchTerm.trim()
@@ -172,9 +189,12 @@ export function AccountsHubList({
         switch (withheld?.cause) {
             // the user's own review waits on them; the tap starts what clears it
             case 'review-action':
+            // no residence approved yet: the tap asks for the address where they live
+            case 'address-required':
                 return actionNeededBadge
             // a reviewer acts next (design.md, "rows the user cannot act on")
             case 'review-pending':
+            case 'address-in-review':
                 return underReviewBadge
             // the account is being opened after verification; support takes over if it doesn't finish
             case 'setup-pending':
