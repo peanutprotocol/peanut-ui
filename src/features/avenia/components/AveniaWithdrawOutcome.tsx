@@ -36,7 +36,7 @@ export function AveniaWithdrawOutcome({
     title: string
     intentId: string
     sent: { phase: 'funded' | 'unconfirmed'; display: AveniaWithdrawDisplay } | null
-    /** Nothing left the wallet: back to the review, quoted again. */
+    /** Nothing left the wallet: a new withdrawal. */
     onStartAgain: () => void
 }) {
     const t = useTranslations('avenia.withdraw')

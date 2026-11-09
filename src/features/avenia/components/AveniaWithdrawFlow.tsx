@@ -73,14 +73,25 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const [spendUsd, setSpendUsd] = useQueryState('spend', parseAsString.withDefault(''))
     const pixKey = completePixKey(destination)
     const amount = aveniaWithdrawAmount({ amountUsd, amountBrl, spendUsd })
-    const submit = useAveniaWithdrawSubmit({ onOpened: (id) => void setIntentId(id) })
+    const submit = useAveniaWithdrawSubmit({
+        // From the open ticket on, the URL names the withdrawal, not the form: step and intentId
+        // only. The key and the amount live in the ticket, and a reload reads its outcome.
+        onOpened: (id) => {
+            void setIntentId(id)
+            void setDestination(null)
+            void setAmountUsd(null)
+            void setAmountBrl(null)
+            void setSpendUsd(null)
+        },
+    })
     const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
         steps: AVENIA_WITHDRAW_STEPS,
         guards: {
             amount: { ok: !!pixKey, fallback: 'pix-key' },
-            review: { ok: !!pixKey && !!amount, fallback: pixKey ? 'amount' : 'pix-key' },
+            // an opened withdrawal stays on its review: the URL then holds only its id
+            review: { ok: (!!pixKey && !!amount) || !!intentId, fallback: pixKey ? 'amount' : 'pix-key' },
             success: { ok: !!intentId },
         },
     })
@@ -130,9 +141,10 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 title={title}
                 intentId={intentId}
                 // nothing left the wallet: the same key and amount, quoted again
+                // nothing left the wallet: a new withdrawal, from its key (the URL dropped the old form)
                 onStartAgain={() => {
                     void setIntentId(null)
-                    void stepper.goTo('review')
+                    void stepper.goTo('pix-key')
                 }}
                 sent={
                     isSent && submit.opened
@@ -278,11 +290,11 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
             error={reviewError}
             canConfirm={
                 !!display &&
-                !!request &&
                 !fundsShort &&
                 // another balance-decreasing send is still in flight
                 !hasPendingTransactions &&
-                (submit.canSignOpened || !submit.lockedAfterInit)
+                // the open ticket signs from its own numbers; only a new one needs the form's request
+                (submit.canSignOpened || (!submit.lockedAfterInit && !!request))
             }
             // an opened ticket keeps its amount: back leaves instead of editing it
             onBack={() => (submit.lockedAfterInit ? leaveFlow() : void stepper.goTo('amount'))}

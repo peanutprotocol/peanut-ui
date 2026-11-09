@@ -95,20 +95,18 @@ describe('AveniaWithdrawFlow after a reload', () => {
         expect(mockInit).not.toHaveBeenCalled()
     })
 
-    it('a withdrawal this device never signed reads as not sent, and starts again from the review', async () => {
+    it('a withdrawal this device never signed reads as not sent, and starts a new one from the key', async () => {
         window.localStorage.clear()
         mockEntry.mockReturnValue(entry('PENDING', 'AWAITING_USER_ACTION'))
-        mockPreview.mockReturnValue(new Promise(() => {}))
         const urls: string[] = []
-        renderAt('?step=success&destination=09579927189&destinationAmount=503&intentId=w1', (event) =>
-            urls.push(event.queryString)
-        )
+        renderAt('?step=success&intentId=w1', (event) => urls.push(event.queryString))
 
         expect(screen.getByText(en.avenia.withdraw.notSent)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: en.common.tryAgain }))
 
         await waitFor(() => expect(urls.at(-1)).not.toContain('intentId'))
-        expect(urls.at(-1)).toContain('step=review')
+        // the first step is the key, so the URL is empty again
+        expect(await screen.findByText(en.avenia.withdraw.keyIntro)).toBeInTheDocument()
         expect(mockInit).not.toHaveBeenCalled()
     })
 
@@ -189,6 +187,10 @@ describe('AveniaWithdrawFlow after a reload', () => {
 
         expect(await screen.findByText(en.avenia.withdraw.quoteMoved)).toBeInTheDocument()
         await waitFor(() => expect(urls.some((url) => url.includes('intentId=w2'))).toBe(true))
+        // from the open ticket on, the URL holds the step and the id only; the review stays
+        const opened = new URLSearchParams(urls.at(-1))
+        expect([...opened.keys()].sort()).toEqual(['intentId', 'step'])
+        expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
         expect(screen.queryByText(en.avenia.withdraw.unconfirmed)).toBeNull()
     })
 })
