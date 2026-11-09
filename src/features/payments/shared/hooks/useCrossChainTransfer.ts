@@ -96,7 +96,7 @@ export interface CrossChainDestinationInfo {
     tokenDecimals: number
     tokenType: number
     chainId: string
-    /** Rhino-friendly token symbol — 'USDC' or 'USDT'. Falls back from tokenAddress if omitted. */
+    /** Token symbol as Rhino spells it ('USDe', not 'USDE'). Falls back from tokenAddress if omitted. */
     tokenSymbol?: RhinoSupportedToken
 }
 

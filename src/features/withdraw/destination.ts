@@ -1,5 +1,6 @@
 import { getKillSwitches } from '@/features/kill-switches/kill-switches-store'
 import { CHAIN_REGISTRY } from '@/constants/chainRegistry.consts'
+import { STABLE_COINS } from '@/constants/general.consts'
 import type { TokenMeta } from '@/interfaces/chain-meta'
 import { addressFamilyForChainId, isValidAddressForFamily } from '@/lib/validation/addressFamily'
 
@@ -23,8 +24,6 @@ interface ScannedPaymentRequest {
     tokenSymbol?: string
     amount?: string
 }
-
-const USD_STABLECOINS = ['USDC', 'USDT']
 
 /**
  * Where a destination chosen outside the flow — today a scanned QR code — enters
@@ -53,7 +52,7 @@ export const SCAN_ID_PARAM = 'scan'
 export function withdrawScanEntryUrl(scanId: string, request: ScannedPaymentRequest = {}): string {
     const url = `/withdraw?step=amount&method=crypto&${SCAN_ID_PARAM}=${encodeURIComponent(scanId)}`
     const { tokenSymbol, amount } = request
-    if (!amount || !USD_STABLECOINS.includes(tokenSymbol?.toUpperCase() ?? '')) return url
+    if (!amount || !STABLE_COINS.includes(tokenSymbol?.toUpperCase() ?? '')) return url
     return `${url}&amount=${encodeURIComponent(amount)}`
 }
 
