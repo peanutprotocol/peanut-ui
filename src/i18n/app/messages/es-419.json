@@ -2192,7 +2192,7 @@
             "description": "Elige la red desde la que quieres agregar:",
             "evmDescription": "{count} redes, 1 dirección",
             "supportedTokens": "{count, plural, one {# token compatible} other {# tokens compatibles}}",
-            "evmTokensOnNetworks": "{tokens, plural, one {# token compatible} other {# tokens compatibles}} en {networks} redes"
+            "evmTokensOnNetworks": "Un montón de tokens en muchas redes"
         },
         "supportedNetworksModal": {
             "title": "Redes compatibles",
