@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
@@ -42,11 +43,7 @@ export function CardResidenceAddressScreen({
                 }
                 description={t(`addressStep.${state}`)}
             >
-                {error && (
-                    <p role="alert" className="text-body-s text-foreground-secondary">
-                        {error}
-                    </p>
-                )}
+                {error && <Callout priority="error">{error}</Callout>}
                 <Button className="w-full" variant="primary" loading={loading} onClick={waiting ? onRefresh : onStart}>
                     {waiting ? common('retry') : bank(state === 'rejected' ? 'addressRetryCta' : 'addressCta')}
                 </Button>

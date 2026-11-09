@@ -190,6 +190,18 @@
         "route": "/dev/surfaces?s=03-a-residence-select"
     },
     {
+        "id": "card-address-launch-loading",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=card-address-launch-loading",
+        "source": "features/card/components/CardResidenceAddressScreen.tsx"
+    },
+    {
+        "id": "card-address-launch-error",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=card-address-launch-error",
+        "source": "features/card/components/CardResidenceAddressScreen.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -1212,6 +1224,18 @@
         "id": "p69-regional-deposit",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"
+    },
+    {
+        "id": "deposit-address-launch-loading",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=deposit-address-launch-loading",
+        "source": "features/deposit-accounts/components/AddressLaunchModal.tsx"
+    },
+    {
+        "id": "deposit-address-launch-error",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=deposit-address-launch-error",
+        "source": "features/deposit-accounts/components/AddressLaunchModal.tsx"
     },
     {
         "id": "38-c-howtodepositmodal",

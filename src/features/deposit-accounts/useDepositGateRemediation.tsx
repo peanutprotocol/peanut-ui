@@ -12,6 +12,7 @@ import { useGateActions } from '@/hooks/useGateActions'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
+import { useOptionalAuth } from '@/context/authContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
@@ -20,6 +21,7 @@ import { trackAddressStepSubmitted } from './analytics'
 import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from './useDepositAccounts'
+import { AddressLaunchModal } from './components/AddressLaunchModal'
 
 /**
  * What the gate banner's button actually does, and the UI it needs mounted.
@@ -38,6 +40,9 @@ export function useDepositGateRemediation(): {
     modals: ReactNode
 } {
     const t = useTranslations('depositAccounts')
+    const owner = useOptionalAuth()?.user?.user?.userId
+    const ownerRef = useRef(owner)
+    ownerRef.current = owner
     const toast = useToast()
     const queryClient = useQueryClient()
     // The corridor the address step was opened for, read when the SDK reports the submission.
@@ -62,21 +67,77 @@ export function useDepositGateRemediation(): {
     // (the list, the country pick, the claim) — so the user lands back on the
     // corridor they tapped, one verification later.
     const [kycCorridor, setKycCorridor] = useState<DepositCorridor | undefined>()
+    const [addressLaunch, setAddressLaunch] = useState<{
+        gate: GateState
+        corridor?: DepositCorridor
+        owner: typeof owner
+    }>()
+    const [addressStarting, setAddressStarting] = useState(false)
+    const [addressLaunchError, setAddressLaunchError] = useState<string | null>(null)
+    const addressPending = useRef(false)
+    const addressGeneration = useRef(0)
+
+    useEffect(() => {
+        addressPending.current = false
+        setAddressLaunch(undefined)
+        setAddressStarting(false)
+        setAddressLaunchError(null)
+        return () => {
+            addressGeneration.current += 1
+        }
+    }, [owner])
+
+    const closeAddressLaunch = () => {
+        if (ownerRef.current !== owner) return
+        addressGeneration.current += 1
+        addressPending.current = false
+        setAddressLaunch(undefined)
+        setAddressStarting(false)
+        setAddressLaunchError(null)
+        sumsubFlow.handleSdkClose()
+    }
+
+    const startAddress = async (gate: GateState, corridor?: DepositCorridor) => {
+        if (addressPending.current || ownerRef.current !== owner) return
+        const generation = ++addressGeneration.current
+        addressPending.current = true
+        addressCorridor.current = corridor
+        setAddressLaunch({ gate, corridor, owner })
+        setAddressStarting(true)
+        setAddressLaunchError(null)
+        const current = () => ownerRef.current === owner && addressGeneration.current === generation
+        try {
+            await gateActions.verify(gate, {
+                provider: corridor && DEPOSIT_RAILS[corridor].provider === 'manteca' ? 'MANTECA' : 'BRIDGE',
+                corridor,
+            })
+        } catch {
+            if (current()) setAddressLaunchError(t('gate.actFailed'))
+        } finally {
+            if (current()) {
+                addressPending.current = false
+                setAddressStarting(false)
+            }
+        }
+    }
 
     // the SDK takes over the screen; the modal that offered to open it should not
     // still be sitting behind it
     useEffect(() => {
-        if (sumsubFlow.showWrapper) setKycModalGate(undefined)
+        if (sumsubFlow.showWrapper) {
+            setKycModalGate(undefined)
+            setAddressLaunch(undefined)
+        }
     }, [sumsubFlow.showWrapper])
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)
         // The drawer already explained the address step: open it, with no second screen in front.
         if (isAddressStepGate(gate)) {
-            addressCorridor.current = corridor
-            void gateActions.verify(gate, { provider: 'BRIDGE', corridor })
+            void startAddress(gate, corridor)
             return
         }
+        if (addressLaunch) closeAddressLaunch()
         switch (gate.kind) {
             case 'loading':
             case 'ready':
@@ -101,8 +162,30 @@ export function useDepositGateRemediation(): {
         }
     }
 
+    const addressError = addressStarting ? null : (addressLaunchError ?? sumsubFlow.error)
+    const addressVisible =
+        addressLaunch?.owner === owner &&
+        !!addressLaunch &&
+        !sumsubFlow.showWrapper &&
+        !sumsubFlow.errorCooldown &&
+        (addressStarting || !!addressError)
     const modals = (
         <>
+            <AddressLaunchModal
+                visible={addressVisible}
+                onClose={closeAddressLaunch}
+                loading={addressStarting}
+                error={addressError}
+                terminal={sumsubFlow.isTerminalError}
+                onRetry={() => {
+                    if (addressLaunch) void startAddress(addressLaunch.gate, addressLaunch.corridor)
+                }}
+                onContactSupport={() => {
+                    if (!addressLaunch) return
+                    closeAddressLaunch()
+                    gateActions.contactSupport(addressLaunch.gate)
+                }}
+            />
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 visible={kycModalGate !== undefined}
@@ -139,7 +222,13 @@ export function useDepositGateRemediation(): {
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
-            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setKycModalGate(undefined)} />
+            <SumsubKycModals
+                flow={sumsubFlow}
+                onCooldownClose={() => {
+                    setKycModalGate(undefined)
+                    if (addressLaunch) closeAddressLaunch()
+                }}
+            />
         </>
     )
 
