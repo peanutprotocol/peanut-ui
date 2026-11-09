@@ -274,8 +274,8 @@
                 "descriptionCard": "Your balance is ready. Pay with your Peanut card."
             },
             "shareBankDetails": {
-                "title": "Share your bank details",
-                "description": "Give your account details to an employer or client to get paid here."
+                "title": "Share bank details",
+                "description": "Give your bank details to an employer or client to get paid here."
             },
             "requestMoney": {
                 "title": "Request money",
