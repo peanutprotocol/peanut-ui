@@ -274,8 +274,8 @@
                 "descriptionCard": "Seu saldo está pronto. Pague com seu Peanut Card."
             },
             "shareBankDetails": {
-                "title": "Compartilhe seus dados bancários",
-                "description": "Passe os dados da sua conta para um empregador ou cliente e receba aqui."
+                "title": "Compartilhar dados bancários",
+                "description": "Passe seus dados bancários para um empregador ou cliente e receba aqui."
             },
             "requestMoney": {
                 "title": "Peça dinheiro",
