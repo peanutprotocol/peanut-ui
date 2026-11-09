@@ -53,7 +53,7 @@ export type TransactionType =
 
 /** Why the bank sent a deposit back (peanut-api-ts `DepositReturnReasonCode`).
  *  `other` gets the general explanation. */
-export type DepositReturnReasonCode = 'third_party' | 'other'
+export type DepositReturnReasonCode = 'third_party' | 'too_many_recent' | 'name_mismatch' | 'other'
 
 /** The network-fee row of a receipt. `pending`: the fee is not settled yet;
  *  `amountDisplay`, when present, is the quote the confirm screen showed,
