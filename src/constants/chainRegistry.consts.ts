@@ -192,14 +192,13 @@ const CHAIN_REGISTRY_LITERAL = [
         withdraw: { tokens: ['USDC', 'USDT'] },
     },
     {
+        // KATANA: display-only legacy — absent from Rhino's SDA and bridge
+        // catalogs (checked 2026-11-09). No rhinoName = not routable anywhere.
         id: '747474',
         coingeckoPlatformId: 'katana',
-        rhinoName: 'KATANA',
         family: 'evm',
         displayName: 'KATANA',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/32239/standard/katana.jpg?1751496126',
-        deposit: {},
-        withdraw: { tokens: ['USDC', 'USDT'] }, // delivered as vbUSDC/vbUSDT
     },
     {
         id: '59144',
