@@ -641,10 +641,36 @@ describe('runCollateralSpendPreflight', () => {
         expect(h.overlayStates).toEqual([])
     })
 
-    it('collateral-only: never migrates (pre-migration state still verifies the sig)', async () => {
+    // TASK-24722: the backend submits this withdrawal with the session key, and
+    // ZeroDev's paymaster refuses it while the on-chain root is still v0.0.2.
+    it('collateral-only + unmigrated wrapper: migrates under the overlay, returns rebuilt client', async () => {
         const h = preflightHarness({ account: unmigratedWrapper() })
         const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
+        expect(h.sendNoopUserOp).toHaveBeenCalledTimes(1)
+        expect(h.rebuildClient).toHaveBeenCalledTimes(1)
+        expect(result).toBe(h.rebuilt)
+        expect(h.overlayStates).toEqual([true, false])
+    })
+
+    it('collateral-only + plain (patched) account: zero migration behavior', async () => {
+        const h = preflightHarness({ account: { address: '0xplain' } })
+        const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
         expect(result).toBe(h.args.kernelClient)
+        expect(h.sendNoopUserOp).not.toHaveBeenCalled()
+        expect(h.rebuildClient).not.toHaveBeenCalled()
+        expect(h.overlayStates).toEqual([])
+    })
+
+    it('collateral-only: a missing overview fails before the migration prompt', async () => {
+        const h = preflightHarness({ account: unmigratedWrapper() })
+        await expect(
+            runCollateralSpendPreflight({
+                ...h.args,
+                overview: undefined as never,
+                requireOverview: true,
+                strategy: 'collateral-only',
+            })
+        ).rejects.toThrow(SessionKeyGrantRequiredError)
         expect(h.sendNoopUserOp).not.toHaveBeenCalled()
     })
 
