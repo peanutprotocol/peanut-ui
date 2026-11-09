@@ -2,7 +2,7 @@
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import EvmChainChips from './EvmChainChips'
-import { CHAIN_LOGOS, getSupportedTokens } from '@/constants/rhino.consts'
+import { CHAIN_LOGOS } from '@/constants/rhino.consts'
 import type { RhinoChainType } from '@/services/services.types'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -33,13 +33,13 @@ const NetworkList = ({ onSelect, showEvmChips = false }: NetworkListProps) => {
         {
             network: 'SOL',
             title: 'Solana',
-            body: t('networkDrawer.supportedTokens', { count: getSupportedTokens('SOL').length }),
+            body: t('networkDrawer.solanaTokens'),
             logo: CHAIN_LOGOS.SOLANA,
         },
         {
             network: 'TRON',
             title: 'Tron',
-            body: t('networkDrawer.supportedTokens', { count: getSupportedTokens('TRON').length }),
+            body: 'USDT',
             logo: CHAIN_LOGOS.TRON,
         },
     ]

@@ -2191,7 +2191,7 @@
             "title": "Escolher rede",
             "description": "Escolha a rede de onde você quer adicionar:",
             "evmDescription": "{count} redes, 1 endereço",
-            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}",
+            "solanaTokens": "USDC ou USDT",
             "evmTokensOnNetworks": "Um monte de tokens em várias redes"
         },
         "supportedNetworksModal": {
