@@ -47,6 +47,7 @@ import {
     forgetAnswerDraft,
     forgetAnswerDraftOnResidenceChange,
 } from '@/features/paperwork-verification/answerDraft'
+import { clearTransferPending } from '@/features/pix/pixWithdrawPending'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
@@ -423,6 +424,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Unsaved verification answers belong to this account only.
         forgetAnswerDraft(user?.user.userId)
+
+        // A Pix withdrawal this account may have submitted names its key and holder: never left
+        // for the next account on this browser.
+        clearTransferPending()
 
         // NOTE: main also cancelled/cleared queries here. That already happens
         // above, deliberately BEFORE the token wipe — an in-flight /users/me can

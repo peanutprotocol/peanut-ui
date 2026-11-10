@@ -250,6 +250,19 @@ describe('logoutUser', () => {
         expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
     })
 
+    // it names the key and holder of a Pix withdrawal the account may have sent; never the next account's
+    it("clears the account's pending Pix withdrawal mark", async () => {
+        localStorage.setItem('pix-withdraw-pending', JSON.stringify({ userId: 'u1', settleBy: Date.now() + 60_000 }))
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('pix-withdraw-pending')).toBeNull()
+    })
+
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
         localStorage.setItem('posthog-person-properties-sent', 'abc123')
         stubLocation()

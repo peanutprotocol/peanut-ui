@@ -34,6 +34,7 @@ import { pixSignedFunding } from '@/features/pix/pixSignedFunding'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import {
     clearTransferPending,
+    canKeepTransferMark,
     markTransferPending,
     PENDING_TRANSFER_MARGIN_MS,
 } from '@/features/pix/pixWithdrawPending'
@@ -114,8 +115,9 @@ export interface PixWithdrawSubmit {
  * - `transfer-then-submit`: nothing is open yet. The wallet signs a transfer to the deposit address
  *   without broadcasting it; POST /pix/withdraw/submit opens the payout order for the locked price,
  *   then broadcasts, so no money leaves for an order that could not open. A submit whose answer is
- *   lost may still have paid: it reads as not confirmed (`unconfirmed`), and a device mark
- *   (`pixWithdrawPending`) keeps the page on it after a reload until its history row shows.
+ *   lost may still have paid: it reads as not confirmed (`unconfirmed`), and a device mark for this
+ *   account (`pixWithdrawPending`) keeps the page on it after a reload until the lock's window has
+ *   passed. A browser that cannot keep the mark signs nothing.
  *
  * The open quotes again, seconds after the review. When that quote takes any more USD or pays any
  * fewer reais than the reviewed one, nothing is signed until the user confirms the new amounts.
@@ -136,7 +138,8 @@ export function usePixWithdrawSubmit({
     const refusalMessage = usePixRefusalMessage()
     const toFriendlyError = useFriendlyError()
     const queryClient = useQueryClient()
-    const { fetchUser } = useAuth()
+    const { fetchUser, user } = useAuth()
+    const userId = user?.user?.userId
     const { sendTransactions } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const repairRainController = useRainControllerRepair()
@@ -248,6 +251,14 @@ export function usePixWithdrawSubmit({
                 dispatch({ type: 'QUOTE_EXPIRED', withdrawal, error: quoteExpired })
                 return
             }
+            // The guard against a second payout after a lost answer is a mark this browser keeps.
+            // Where it cannot keep one (storage blocked, full or private), nothing is signed: the
+            // withdrawal stops before the signature, as an expired lock does.
+            const noRecord = tShared('withdraw.errors.noRecord')
+            if (!userId || !canKeepTransferMark()) {
+                dispatch({ type: 'QUOTE_EXPIRED', withdrawal, error: noRecord })
+                return
+            }
             dispatch({ type: 'SIGN_START', withdrawal })
             const signInput = () => ({
                 requiredUsdcAmount: BigInt(request.payAmountUnits),
@@ -279,14 +290,19 @@ export function usePixWithdrawSubmit({
                 funding: pixSignedFunding(candidate),
             })
             // From here the payout may go out with no answer naming it: the device keeps the mark until
-            // its history row shows, the API refuses the submit, or the lock's window has passed.
-            markTransferPending({
+            // the API refuses the submit, the answer names the withdrawal, or the lock's window has
+            // passed. A mark that did not hold sends nothing: the signature is dropped unsent.
+            const marked = markTransferPending({
+                userId,
                 priceLockCode: request.priceLockCode,
                 display: withdrawal.display,
-                withdrawUsd: request.payAmount,
                 submittedAt: Date.now(),
                 settleBy: lockExpiresAt + PENDING_TRANSFER_MARGIN_MS,
             })
+            if (!marked) {
+                dispatch({ type: 'SENT_NOTHING', error: noRecord })
+                return
+            }
             let submitted: Awaited<ReturnType<typeof pixApi.submitWithdrawal>>
             try {
                 submitted = await submitTransfer(() =>
@@ -357,6 +373,7 @@ export function usePixWithdrawSubmit({
             submitTransfer,
             tShared,
             toFriendlyError,
+            userId,
         ]
     )
 

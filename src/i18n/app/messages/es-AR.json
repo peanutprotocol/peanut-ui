@@ -1331,7 +1331,8 @@
                 "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
                 "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",
                 "afterInit": "Revisá el Historial antes de intentar de nuevo.",
-                "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo."
+                "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo.",
+                "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Probá con otro navegador."
             },
             "changeAmount": "Cambiar monto",
             "changeKey": "Cambiar clave"

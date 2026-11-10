@@ -28,7 +28,9 @@ jest.mock('@/hooks/useFriendlyError', () => ({
     useFriendlyError: () => (error: unknown) => `friendly: ${(error as Error).message}`,
 }))
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { userId: 'u1' } } }),
+}))
 const mockSendTransactions = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ sendTransactions: (...args: unknown[]) => mockSendTransactions(...args) }),
@@ -626,12 +628,49 @@ describe('usePixWithdrawSubmit', () => {
                 expect(result.current.lockedAfterInit).toBe(true)
                 expect(onOpened).toHaveBeenCalledWith(null)
                 // the device mark outlives this page, so a reload shows the same withdrawal
-                expect(JSON.parse(pendingMark()!)).toMatchObject({
-                    priceLockCode: 'lock-1',
-                    withdrawUsd: display.withdrawUsd,
-                })
+                expect(JSON.parse(pendingMark()!)).toMatchObject({ userId: 'u1', priceLockCode: 'lock-1' })
                 unmount()
             }
+        })
+
+        // quota, private mode or blocked storage: the guard against a second payout cannot hold
+        it('signs and sends nothing where this browser cannot keep the mark', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                throw new DOMException('quota', 'QuotaExceededError')
+            })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            setItem.mockRestore()
+
+            expect(mockSignSpend).not.toHaveBeenCalled()
+            expect(mockSubmitTransfer).not.toHaveBeenCalled()
+            expect(result.current.phase).toBe('idle')
+            expect(result.current.error).toBe('withdraw.errors.noRecord')
+        })
+
+        it('sends nothing when the mark fails to hold after the signature', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            // the probe before the signature passes; the mark itself does not stick
+            mockSignSpend.mockImplementation(async () => {
+                jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+                    throw new DOMException('quota', 'QuotaExceededError')
+                })
+                return artifact
+            })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            jest.restoreAllMocks()
+
+            expect(mockSubmitTransfer).not.toHaveBeenCalled()
+            expect(result.current.phase).toBe('idle')
+            expect(result.current.error).toBe('withdraw.errors.noRecord')
         })
 
         it('signs nothing once the lock has expired, and lets Confirm open a new one', async () => {

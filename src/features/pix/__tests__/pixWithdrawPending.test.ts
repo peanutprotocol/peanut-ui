@@ -1,60 +1,52 @@
 /** @jest-environment jsdom */
 import {
+    canKeepTransferMark,
     clearTransferPending,
     markTransferPending,
     parsePendingTransfer,
-    pendingTransferEntry,
     PENDING_TRANSFER_KEY,
     type PendingTransfer,
 } from '../pixWithdrawPending'
 
-const SUBMITTED_AT = Date.parse('2026-11-10T12:00:00Z')
 const pending = {
+    userId: 'u1',
     priceLockCode: 'lock-1',
     display: { amountBrl: '503.00' },
-    withdrawUsd: '92.504310',
-    submittedAt: SUBMITTED_AT,
-    settleBy: SUBMITTED_AT + 13 * 60_000,
-} as PendingTransfer
-const row = (overrides: Record<string, unknown> = {}) => ({
-    uuid: 'm1',
-    amount: '92.50431',
-    timestamp: new Date(SUBMITTED_AT + 20_000),
-    extraData: { kind: 'OFFRAMP' },
-    ...overrides,
-})
+    submittedAt: Date.parse('2026-11-10T12:00:00Z'),
+    settleBy: Date.parse('2026-11-10T12:13:00Z'),
+} as unknown as PendingTransfer
 
 describe('the pending-transfer mark', () => {
-    beforeEach(() => window.localStorage.clear())
+    afterEach(() => {
+        jest.restoreAllMocks()
+        window.localStorage.clear()
+    })
 
-    it('is written before the submit and read back as written, until it is cleared', () => {
-        markTransferPending(pending)
+    it('is written for one account, read back as written, until it is cleared', () => {
+        expect(markTransferPending(pending)).toBe(true)
         expect(parsePendingTransfer(window.localStorage.getItem(PENDING_TRANSFER_KEY))).toEqual(pending)
         clearTransferPending()
         expect(window.localStorage.getItem(PENDING_TRANSFER_KEY)).toBeNull()
     })
 
-    it('reads a missing or broken mark as none', () => {
+    it('reads a missing, broken or account-less mark as none', () => {
         expect(parsePendingTransfer(null)).toBeNull()
         expect(parsePendingTransfer('{not json')).toBeNull()
-        expect(parsePendingTransfer('{"priceLockCode":"x"}')).toBeNull()
-    })
-})
-
-describe('pendingTransferEntry', () => {
-    it("finds the withdrawal's row: a withdrawal of its amount from the submit on", () => {
-        expect(pendingTransferEntry(pending, [row()])?.uuid).toBe('m1')
-        // a device clock a few minutes ahead still finds it
-        expect(pendingTransferEntry(pending, [row({ timestamp: new Date(SUBMITTED_AT - 4 * 60_000) })])?.uuid).toBe(
-            'm1'
-        )
+        expect(parsePendingTransfer(JSON.stringify({ ...pending, userId: undefined }))).toBeNull()
     })
 
-    it('never takes another row for it: an older withdrawal, another amount, or not a withdrawal', () => {
-        expect(
-            pendingTransferEntry(pending, [row({ timestamp: new Date(SUBMITTED_AT - 60 * 60_000) })])
-        ).toBeUndefined()
-        expect(pendingTransferEntry(pending, [row({ amount: '10.00' })])).toBeUndefined()
-        expect(pendingTransferEntry(pending, [row({ extraData: { kind: 'ONRAMP' } })])).toBeUndefined()
+    // quota, private mode or blocked storage: the guard cannot hold, and the caller must not submit
+    it('says so when this browser cannot keep it', () => {
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new DOMException('quota', 'QuotaExceededError')
+        })
+        expect(canKeepTransferMark()).toBe(false)
+        expect(markTransferPending(pending)).toBe(false)
+        expect(window.localStorage.getItem(PENDING_TRANSFER_KEY)).toBeNull()
+    })
+
+    it('can be kept where storage works, and the probe leaves nothing behind', () => {
+        expect(canKeepTransferMark()).toBe(true)
+        expect(window.localStorage.length).toBe(0)
     })
 })

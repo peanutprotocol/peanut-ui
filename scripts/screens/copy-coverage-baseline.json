@@ -1784,6 +1784,7 @@
         "paymentLoading.wandering": "No capture state shows this copy yet",
         "paymentLoading.wiring": "No capture state shows this copy yet",
         "paymentLoading.yodeling": "No capture state shows this copy yet",
+        "pix.withdraw.errors.noRecord": "Shown only when the browser cannot keep the withdrawal record (blocked or full storage)",
         "profile.about.beta.appOnly": "No capture state shows this copy yet",
         "profile.about.beta.bundleLabel": "No capture state shows this copy yet",
         "profile.about.beta.channelLabel": "No capture state shows this copy yet",

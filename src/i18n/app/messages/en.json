@@ -2595,7 +2595,8 @@
                 "inProgress": "Too many Pix withdrawals are still on their way. Try again later.",
                 "quoteExpired": "The quote took too long. Try again.",
                 "afterInit": "Check History before trying again.",
-                "quoteChanged": "The amount changed while it was quoted. Try again."
+                "quoteChanged": "The amount changed while it was quoted. Try again.",
+                "noRecord": "This browser cannot keep a record of this withdrawal, so it was not sent. Try another browser."
             },
             "changeKey": "Change key",
             "withdrawing": "Withdrawing"

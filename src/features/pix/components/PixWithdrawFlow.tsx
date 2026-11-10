@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -91,22 +91,10 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { hasPendingTransactions } = usePendingTransactions()
 
     const isSent = submit.phase === 'funded' || submit.phase === 'unconfirmed'
-    // A withdrawal submitted with no answer naming it, from this visit or an earlier one: until its
-    // history row shows or its lock's window has passed, the page shows it, never a new Confirm.
-    // While this visit signs one, the reducer holds it instead.
-    const pending = usePixPendingTransfer({
-        enabled: !intentId && (!submit.opened || isSent),
-        onFound: useCallback(
-            (id: string) => {
-                void setIntentId(id)
-                void setDestination(null)
-                void setAmountUsd(null)
-                void setAmountBrl(null)
-                void setSpendUsd(null)
-            },
-            [setIntentId, setDestination, setAmountUsd, setAmountBrl, setSpendUsd]
-        ),
-    })
+    // A withdrawal this account submitted with no answer naming it, from this visit or an earlier
+    // one: until its lock's window has passed, the page shows it, never a new Confirm. While this
+    // visit signs one, the reducer holds it instead.
+    const pending = usePixPendingTransfer({ enabled: !intentId && (!submit.opened || isSent) })
     const stepper = useFlowStepper({
         steps: PIX_WITHDRAW_STEPS,
         guards: {

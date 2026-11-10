@@ -17,7 +17,10 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
+let mockUserId = 'u1'
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { userId: mockUserId } } }),
+}))
 const mockOpenSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
@@ -60,7 +63,7 @@ jest.mock('@/services/pix', () => ({
 }))
 const mockEntry = jest.fn()
 jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => mockEntry() }))
-// the latest history rows, which the page reads for a withdrawal submitted with no answer
+// the latest history rows: the page must never take one for a withdrawal submitted with no answer
 let mockHistoryEntries: unknown[] = []
 jest.mock('@/hooks/useTransactionHistory', () => ({
     useTransactionHistory: () => ({ data: { entries: mockHistoryEntries, hasMore: false }, refetch: jest.fn() }),
@@ -263,10 +266,11 @@ describe('PixWithdrawFlow after a reload', () => {
 describe('PixWithdrawFlow after a reload with a submit that may have gone out', () => {
     const FORM = '?step=review&destination=09579927189&destinationAmount=503'
     const SUBMITTED_AT = Date.now() - 60_000
-    const mark = (settleBy: number) =>
+    const mark = (settleBy: number, userId = 'u1') =>
         window.localStorage.setItem(
             'pix-withdraw-pending',
             JSON.stringify({
+                userId,
                 priceLockCode: 'lock-1',
                 display: {
                     amountBrl: '503.00',
@@ -280,7 +284,6 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
                     arrivalEstimateSeconds: 300,
                     provider: 'Manteca',
                 },
-                withdrawUsd: '92.504310',
                 submittedAt: SUBMITTED_AT,
                 settleBy,
             })
@@ -288,6 +291,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
     beforeEach(() => {
         jest.clearAllMocks()
         window.localStorage.clear()
+        mockUserId = 'u1'
         mockHistoryEntries = []
         mockEntry.mockReturnValue({ data: undefined, isLoading: false })
     })
@@ -302,9 +306,16 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
         expect(mockPreview).not.toHaveBeenCalled()
     })
 
-    it('becomes that withdrawal once its history row shows, and the mark goes', async () => {
+    // nothing in history names the lock: an earlier withdrawal of the same amount must not lift it
+    it('stands until its deadline whatever history shows, even a same-amount withdrawal', () => {
         mark(Date.now() + 10 * 60_000)
         mockHistoryEntries = [
+            {
+                uuid: 'older',
+                amount: '92.50431',
+                timestamp: new Date(SUBMITTED_AT - 60_000),
+                extraData: { kind: 'OFFRAMP' },
+            },
             {
                 uuid: 'm1',
                 amount: '92.50431',
@@ -315,12 +326,22 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
         const urls: string[] = []
         renderAt(FORM, (event) => urls.push(event.queryString))
 
-        await waitFor(() => expect(urls.some((url) => url.includes('intentId=m1'))).toBe(true))
-        expect([...new URLSearchParams(urls.at(-1)).keys()].sort()).toEqual(['intentId', 'step'])
-        expect(window.localStorage.getItem('pix-withdraw-pending')).toBeNull()
+        expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
+        expect(urls.some((url) => url.includes('intentId'))).toBe(false)
+        expect(window.localStorage.getItem('pix-withdraw-pending')).not.toBeNull()
     })
 
-    it("lets a new withdrawal through once the lock's window has passed with no row", async () => {
+    it("never shows another account's mark, and clears it", async () => {
+        mark(Date.now() + 10 * 60_000, 'someone-else')
+        mockPreview.mockReturnValue(new Promise(() => {}))
+        renderAt(FORM)
+
+        expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
+        expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
+        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending')).toBeNull())
+    })
+
+    it("lets a new withdrawal through once the lock's window has passed", async () => {
         mark(Date.now() - 1_000)
         mockPreview.mockReturnValue(new Promise(() => {}))
         renderAt(FORM)

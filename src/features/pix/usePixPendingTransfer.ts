@@ -1,32 +1,25 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useTransactionHistory } from '@/hooks/useTransactionHistory'
+import { useAuth } from '@/context/authContext'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { readStoredValue } from '@/utils/safe-storage'
 import {
     clearTransferPending,
     parsePendingTransfer,
-    pendingTransferEntry,
     PENDING_TRANSFER_KEY,
     type PendingTransfer,
 } from '@/features/pix/pixWithdrawPending'
 
-const HISTORY_POLL_MS = 10_000
-
 /**
- * The withdrawal this device may have submitted without an answer (`pixWithdrawPending`), while it
- * stands. History is read every 10 s for its row: once the row shows, the mark goes and `onFound`
- * gets the withdrawal's id; once the lock's window plus the margin has passed, the mark goes and
- * the page may offer a new withdrawal. `enabled`: false once the page names a withdrawal itself.
+ * The signed-in account's withdrawal that this device may have submitted without an answer
+ * naming it (`pixWithdrawPending`), until the lock's window plus the margin has passed; then the
+ * mark goes and the page may offer a new withdrawal. A mark from another account, or one past its
+ * window, is cleared and never shown. `enabled`: false once the page names a withdrawal itself.
  */
-export function usePixPendingTransfer({
-    enabled,
-    onFound,
-}: {
-    enabled: boolean
-    onFound: (entryId: string) => void
-}): PendingTransfer | null {
+export function usePixPendingTransfer({ enabled }: { enabled: boolean }): PendingTransfer | null {
+    const { user } = useAuth()
+    const userId = user?.user?.userId
     // read after hydration: the server has no storage, and the stored string is a stable snapshot
     const raw = useHydrationSnapshot(
         () => readStoredValue(PENDING_TRANSFER_KEY),
@@ -34,25 +27,17 @@ export function usePixPendingTransfer({
     )
     const [settled, setSettled] = useState(false)
     const stored = useMemo(() => parsePendingTransfer(raw), [raw])
-    const pending = enabled && !settled && stored && stored.settleBy > Date.now() ? stored : null
+    const own = !!stored && !!userId && stored.userId === userId
+    const pending = enabled && !settled && own && stored.settleBy > Date.now() ? stored : null
 
-    const history = useTransactionHistory({ mode: 'latest', limit: 10, enabled: !!pending })
-    const { refetch } = history
+    // another account's mark, one past its window, or one that does not parse: gone, so it can never
+    // stand for this account
     useEffect(() => {
-        if (!pending) return
-        const timer = setInterval(() => void refetch(), HISTORY_POLL_MS)
-        return () => clearInterval(timer)
-    }, [pending, refetch])
+        if (raw && !stored) clearTransferPending()
+        else if (stored && userId && (stored.userId !== userId || stored.settleBy <= Date.now())) clearTransferPending()
+    }, [raw, stored, userId])
 
-    const found = pending ? pendingTransferEntry(pending, history.data?.entries ?? []) : undefined
-    useEffect(() => {
-        if (!found) return
-        clearTransferPending()
-        setSettled(true)
-        onFound(found.uuid)
-    }, [found, onFound])
-
-    // the lock's window plus the margin: the API can no longer have taken it, and its row would show
+    // the lock's window plus the margin: the API can no longer have taken it, and History shows it
     useEffect(() => {
         if (!pending) return
         const timer = setTimeout(
@@ -64,11 +49,6 @@ export function usePixPendingTransfer({
         )
         return () => clearTimeout(timer)
     }, [pending])
-
-    // a mark past its window is cleared at once, so a later visit starts clean
-    useEffect(() => {
-        if (stored && stored.settleBy <= Date.now()) clearTransferPending()
-    }, [stored])
 
     return pending
 }

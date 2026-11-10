@@ -2595,7 +2595,8 @@
                 "inProgress": "Há saques por Pix demais ainda a caminho. Tente de novo mais tarde.",
                 "quoteExpired": "A cotação demorou demais. Tente de novo.",
                 "afterInit": "Confira o Histórico antes de tentar de novo.",
-                "quoteChanged": "O valor mudou durante a cotação. Tente de novo."
+                "quoteChanged": "O valor mudou durante a cotação. Tente de novo.",
+                "noRecord": "Este navegador não consegue guardar o registro deste saque, então ele não foi enviado. Tente outro navegador."
             },
             "changeKey": "Alterar chave",
             "withdrawing": "Sacando"
