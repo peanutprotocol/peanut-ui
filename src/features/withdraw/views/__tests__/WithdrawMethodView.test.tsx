@@ -253,6 +253,8 @@ let mockBrazilPaused = false
 jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
     useBrazilServicesPaused: () => mockBrazilPaused,
 }))
+let mockPixPaused = false
+jest.mock('@/features/brazil-pause/useBrazilPixPaused', () => ({ useBrazilPixPaused: () => mockPixPaused }))
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
@@ -282,6 +284,7 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockBrazilPaused = false
+    mockPixPaused = false
     closeBrazilPausedDrawer()
     mockIsBankFromSend = false
     mockUserAccounts = BANK_ACCOUNTS
@@ -295,8 +298,9 @@ import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/br
 
 // TASK-24197: with the Brazil pause on, a Brazil tap opens the paused drawer and goes nowhere
 describe('WithdrawMethodView — the Brazil pause', () => {
-    it('the Brazil country opens the paused drawer', () => {
+    it('the Brazil country opens the paused drawer when Pix is paused too', () => {
         mockBrazilPaused = true
+        mockPixPaused = true
         renderView({ showAll: 'true' })
         fireEvent.click(screen.getByTestId('country-brazil'))
 
@@ -304,7 +308,39 @@ describe('WithdrawMethodView — the Brazil pause', () => {
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    it('a saved Brazil account opens the paused drawer', () => {
+    // TASK-24724: an Argentine account reads as a Brazil rail, so the BRL pause covers
+    // a resident elsewhere, but their Pix-key sends stay open
+    it('Send → Bank → Brazil reaches the Pix-key send for a resident elsewhere', () => {
+        mockBrazilPaused = true
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank' })
+        fireEvent.click(screen.getByTestId('country-brazil'))
+
+        expect(isBrazilPausedDrawerOpen()).toBe(false)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
+    })
+
+    it('in Send, a saved Brazil key follows the Pix pause', () => {
+        mockBrazilPaused = true
+        mockIsBankFromSend = true
+        mockUserAccounts = [{ type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }]
+        const { unmount } = renderView()
+        fireEvent.click(screen.getByTestId('account-maria@silva.com.br'))
+
+        expect(isBrazilPausedDrawerOpen()).toBe(false)
+        expect(mockRouterPush.mock.calls.at(-1)?.[0] as string).toContain('method=pix')
+        unmount()
+
+        mockRouterPush.mockClear()
+        mockPixPaused = true
+        renderView()
+        fireEvent.click(screen.getByTestId('account-maria@silva.com.br'))
+
+        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('in a withdrawal, a saved Brazil account opens the paused drawer', () => {
         mockBrazilPaused = true
         mockUserAccounts = [{ type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }]
         renderView()
