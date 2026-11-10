@@ -1,6 +1,5 @@
 import {
     findPixRoute,
-    pixHostedVerification,
     pixPayBlock,
     pixRefusalCopy,
     pixRouteGate,
@@ -9,7 +8,7 @@ import {
     withPixRoute,
 } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
-import type { CapabilityRoute, NextAction } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { DEMO_USER } from '@/constants/demo-data'
 
@@ -22,38 +21,20 @@ const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     ...overrides,
 })
 
-// the provider takes no shared verification: its own identity check, on its page
+// the provider takes no shared verification: its own identity check on its page, named like its terms
 describe("the provider's own identity check", () => {
-    const hosted: NextAction = {
-        key: 'avenia-hosted',
-        kind: 'avenia-hosted',
-        purpose: 'avenia-identity',
-        url: 'https://avenia.example/identity/u1',
-        expiresAt: '2099-01-01T00:00:00.000Z',
-    }
-    const terms: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
-    const step = (action: string) => route({ state: 'action_required', action })
-
-    it('is the hosted action the route names, or offers while its step reads verify', () => {
-        expect(pixHostedVerification(step('avenia-hosted'), [terms, hosted])).toBe(hosted)
-        expect(pixHostedVerification(step('verify'), [hosted])).toBe(hosted)
-        // the Peanut check, the terms, or no step at all are not it
-        expect(pixHostedVerification(step('verify'), [terms])).toBeUndefined()
-        expect(pixHostedVerification(step('accept-tos:avenia'), [terms, hosted])).toBeUndefined()
-        expect(pixHostedVerification(route({ state: 'pending' }), [hosted])).toBeUndefined()
-    })
-
     it('reads as a set-up step on the Accounts row and its gate, like the terms', () => {
-        expect(pixRouteReportEntry(step('verify'), [hosted])).toEqual({ state: 'ready', action: 'avenia-hosted' })
-        expect(pixRouteReportEntry(step('accept-tos:avenia'), [terms])).toMatchObject({ state: 'ready' })
-        expect(pixRouteGate(step('verify'), [hosted])).toEqual({ kind: 'needs-enrollment' })
-        // the Peanut identity check stays the identity step
-        expect(pixRouteReportEntry(step('verify'))).toMatchObject({ state: 'action_required', action: 'verify' })
-        expect(pixRouteGate(step('verify'))).toEqual({ kind: 'needs-identity' })
-    })
-
-    it('reads a refused identity as a verification not accepted', () => {
-        expect(pixRefusalCopy({ code: 'IDENTITY_REJECTED', userMessage: 'Rejected.' })).toBe('rejected')
+        const hostedStep = route({
+            state: 'action_required',
+            action: 'avenia-hosted',
+            reason: { code: 'identity_hosted_pending', userMessage: '' },
+        })
+        expect(pixRouteReportEntry(hostedStep)).toEqual({
+            state: 'ready',
+            action: 'avenia-hosted',
+            reason: 'identity_hosted_pending',
+        })
+        expect(pixRouteGate(hostedStep)).toEqual({ kind: 'needs-enrollment' })
     })
 })
 

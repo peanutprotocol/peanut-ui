@@ -47,7 +47,7 @@ export function PixHostedVerification({
         const timer = setTimeout(() => setNow(Date.now()), Math.min(MAX_TIMER_MS, expiresAt - Date.now() + 1))
         return () => clearTimeout(timer)
     }, [expired, expiresAt])
-    const hosted = useHostedVerification('avenia-hosted', { url: expired ? undefined : action.url })
+    const hosted = useHostedVerification('hosted-identity', { url: expired ? undefined : action.url })
     const [isReading, setIsReading] = useState(false)
     const readAgain = async () => {
         setIsReading(true)

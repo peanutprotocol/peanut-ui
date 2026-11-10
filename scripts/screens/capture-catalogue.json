@@ -185,11 +185,6 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-identity-rejected",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-pix-setup-reviewing",
         "flow": "Setup and login",
         "route": "/add-money/pix"

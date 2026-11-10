@@ -303,15 +303,14 @@ export function useDepositAccounts({
         }
         // Pix is the route's, whichever provider serves it: a resident of Brazil has no local rail for it
         const pixRoute = findPixRoute(capabilities.routes, 'deposit')
-        if (pixRoute) out.PIX_BR = pixRouteGate(pixRoute, capabilities.nextActions)
+        if (pixRoute) out.PIX_BR = pixRouteGate(pixRoute)
         return out
-    }, [gateFor, capabilities.routes, capabilities.nextActions])
+    }, [gateFor, capabilities.routes])
 
     const { claimable, unavailable } = useMemo(
         () =>
             closeRefusedCorridors(
-                capabilities.features &&
-                    withPixRoute(capabilities.features, capabilities.routes, capabilities.nextActions),
+                capabilities.features && withPixRoute(capabilities.features, capabilities.routes),
                 rails,
                 {
                     accounts,
@@ -319,15 +318,7 @@ export function useDepositAccounts({
                     unavailable: withheldUnavailable,
                 }
             ),
-        [
-            capabilities.features,
-            capabilities.routes,
-            capabilities.nextActions,
-            rails,
-            accounts,
-            offeredClaimable,
-            withheldUnavailable,
-        ]
+        [capabilities.features, capabilities.routes, rails, accounts, offeredClaimable, withheldUnavailable]
     )
 
     /**

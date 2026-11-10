@@ -67,7 +67,7 @@ describe('useHostedVerification (web)', () => {
         const tab = { opener: {} as unknown, closed: false, close: jest.fn(), location: { href: '' } }
         jest.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
         const link = 'https://avenia.example/identity/u1'
-        const hook = renderHook(() => useHostedVerification('avenia-hosted', { url: link }))
+        const hook = renderHook(() => useHostedVerification('hosted-identity', { url: link }))
 
         await act(async () => {
             await hook.result.current.start()
@@ -87,7 +87,7 @@ describe('useHostedVerification (web)', () => {
         const { startHostedVerification } = jest.requireMock('@/app/actions/sumsub')
         const tab = { opener: {} as unknown, closed: false, close: jest.fn(), location: { href: '' } }
         jest.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
-        const hook = renderHook(() => useHostedVerification('avenia-hosted'))
+        const hook = renderHook(() => useHostedVerification('hosted-identity'))
 
         await act(async () => {
             await hook.result.current.start()

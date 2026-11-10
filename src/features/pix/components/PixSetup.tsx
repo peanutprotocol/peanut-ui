@@ -16,7 +16,6 @@ import { PROVIDERS } from '@/constants/providers.consts'
 import { PixHostedVerification } from '@/features/pix/components/PixHostedVerification'
 import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
 import { pixPendingReason, pixSetupState } from '@/features/pix/pixFlow.utils'
-import { PIX_IDENTITY_REJECTED_REASON, pixHostedVerification } from '@/features/pix/pixRoute.utils'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRouteTermsAcceptance } from '@/hooks/useRouteTermsAcceptance'
@@ -46,9 +45,9 @@ export function PixSetup({
     const tLoading = useTranslations('loadingStates')
     const router = useRouter()
     const { nextActions } = useCapabilities()
-    const termsAction = nextActions.find((action) => action.key === route?.action)
-    const hostedAction = pixHostedVerification(route, nextActions)
-    const state = pixSetupState(route, termsAction?.kind, !!hostedAction)
+    // the next action the route's step names: the provider's terms, or its own identity check
+    const routeAction = nextActions.find((action) => action.key === route?.action)
+    const state = pixSetupState(route, routeAction?.kind)
     const terms = useRouteTermsAcceptance(state === 'accept-terms' ? route?.action : undefined)
     const pending = pixPendingReason(route?.reason?.code)
     // the provider whose terms the user accepts, as the route names it
@@ -66,18 +65,13 @@ export function PixSetup({
                 title={title}
                 route={route}
                 onBack={onBack}
-                // the provider's own check did not pass: the screen's own line for that reason
-                description={
-                    state !== 'pending' && route?.reason?.code === PIX_IDENTITY_REJECTED_REASON
-                        ? undefined
-                        : t(state === 'pending' ? 'cpfRequired' : 'notAvailable')
-                }
+                description={t(state === 'pending' ? 'cpfRequired' : 'notAvailable')}
             />
         )
     }
 
-    if (state === 'hosted-verify' && hostedAction) {
-        return <PixHostedVerification title={title} onBack={onBack} action={hostedAction} providerId={providerId} />
+    if (state === 'hosted-verify' && routeAction) {
+        return <PixHostedVerification title={title} onBack={onBack} action={routeAction} providerId={providerId} />
     }
 
     // The first use opens the provider's account for Pix; the route turns ready once it is open.
@@ -145,7 +139,7 @@ export function PixSetup({
                             termsName: provider?.termsName ?? provider?.brand ?? '',
                             terms: (chunks) => (
                                 <a
-                                    href={termsAction?.tosUrl ?? provider?.termsUrl}
+                                    href={routeAction?.tosUrl ?? provider?.termsUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="underline underline-offset-2"

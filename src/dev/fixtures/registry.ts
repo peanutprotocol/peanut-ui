@@ -441,15 +441,18 @@ const aveniaHostedResponses = (expiresAt: string) =>
     aveniaRouteResponses(
         {
             state: 'action_required',
-            action: 'verify',
-            reason: { code: 'provider_identity_required', userMessage: 'Verify your identity on Avenia.' },
+            action: 'avenia-hosted',
+            reason: {
+                code: 'identity_hosted_pending',
+                userMessage: 'Verify your identity with our payments partner to continue.',
+            },
         },
         [],
         [
             {
                 key: 'avenia-hosted',
-                kind: 'avenia-hosted',
-                purpose: 'avenia-identity',
+                kind: 'hosted-identity',
+                purpose: 'unlock-avenia',
                 url: 'https://avenia.example/identity/demo',
                 expiresAt,
             },
@@ -2162,20 +2165,6 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/pix',
         about: "The link to Avenia's identity check has expired: the step offers a new one.",
         responses: aveniaHostedResponses('2026-01-01T00:00:00.000Z'),
-    },
-    'pix-setup-identity-rejected': {
-        route: '/add-money/pix',
-        about: "Avenia's own identity check did not pass: a refused route that offers support.",
-        responses: aveniaRouteResponses(
-            {
-                provider: null,
-                state: 'refused',
-                action: 'contact-support:avenia',
-                reason: { code: 'IDENTITY_REJECTED', userMessage: 'Avenia could not verify the identity.' },
-            },
-            [],
-            [{ key: 'contact-support:avenia', kind: 'contact-support', purpose: 'avenia-support' }]
-        ),
     },
     'pix-setup-reviewing': {
         route: '/add-money/pix',

@@ -115,43 +115,44 @@ describe('PixSetup', () => {
         const LINK = 'https://avenia.example/identity/u1'
         const hosted = (expiresAt: string): NextAction => ({
             key: 'avenia-hosted',
-            kind: 'avenia-hosted',
-            purpose: 'avenia-identity',
+            kind: 'hosted-identity',
+            purpose: 'unlock-avenia',
             url: LINK,
             expiresAt,
         })
         const SOON = () => new Date(Date.now() + 10 * 60_000).toISOString()
-        const verifyStep = () =>
-            route({ action: 'verify', reason: { code: 'provider_identity_required', userMessage: '' } })
+        // the route names the hosted action by its key, as it names the terms
+        const hostedStep = () =>
+            route({
+                action: 'avenia-hosted',
+                reason: {
+                    code: 'identity_hosted_pending',
+                    userMessage: 'Verify your identity with our payments partner to continue.',
+                },
+            })
 
         it("after the terms, opens the check on the provider's page, never the Peanut one", () => {
             mockNextActions = [hosted(SOON())]
-            renderSetup(verifyStep())
+            renderSetup(hostedStep())
 
             expect(screen.getByText(en.pix.setup.hosted.body)).toBeInTheDocument()
-            expect(mockHostedHook).toHaveBeenLastCalledWith('avenia-hosted', { url: LINK })
+            expect(mockHostedHook).toHaveBeenLastCalledWith('hosted-identity', { url: LINK })
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
             expect(mockHostedStart).toHaveBeenCalledTimes(1)
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        it('also when the route names the hosted step by its key', () => {
+        it('reads the capabilities again on Done', () => {
             mockNextActions = [hosted(SOON())]
-            renderSetup(route({ action: 'avenia-hosted' }))
-            expect(screen.getByRole('button', { name: en.pix.setup.verifyCta })).toBeInTheDocument()
-        })
-
-        it("reads the capabilities again on I'm done", () => {
-            mockNextActions = [hosted(SOON())]
-            renderSetup(verifyStep())
+            renderSetup(hostedStep())
             fireEvent.click(screen.getByRole('button', { name: en.common.done }))
             expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
 
-        // the read after the user comes back: the route waits on the provider's decision
+        // after the submit the route waits on the provider's decision, with no action
         it('moves to the waiting screen once the route waits on the decision', () => {
             mockNextActions = [hosted(SOON())]
-            const view = renderSetup(verifyStep())
+            const view = renderSetup(hostedStep())
             view.rerender(
                 <PixSetup
                     title="Add money"
@@ -165,11 +166,11 @@ describe('PixSetup', () => {
 
         it('offers a new link once the link has expired, and a capabilities read mints it', () => {
             mockNextActions = [hosted(new Date(Date.now() - 1_000).toISOString())]
-            renderSetup(verifyStep())
+            renderSetup(hostedStep())
 
             expect(screen.getByText(en.pix.setup.hosted.expired)).toBeInTheDocument()
             expect(screen.queryByRole('button', { name: en.pix.setup.verifyCta })).toBeNull()
-            expect(mockHostedHook).toHaveBeenLastCalledWith('avenia-hosted', { url: undefined })
+            expect(mockHostedHook).toHaveBeenLastCalledWith('hosted-identity', { url: undefined })
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.hosted.newLink }))
             expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
@@ -178,7 +179,7 @@ describe('PixSetup', () => {
             jest.useFakeTimers()
             try {
                 mockNextActions = [hosted(new Date(Date.now() + 5_000).toISOString())]
-                renderSetup(verifyStep())
+                renderSetup(hostedStep())
                 expect(screen.getByRole('button', { name: en.pix.setup.verifyCta })).toBeInTheDocument()
                 act(() => {
                     jest.advanceTimersByTime(5_001)
@@ -189,25 +190,13 @@ describe('PixSetup', () => {
             }
         })
 
-        // the share-token path: the API shares the verification, so the terms lead straight to the wait
-        it('keeps the identity check of a user with no hosted step on the Peanut verification', () => {
-            mockNextActions = []
+        // `verify` keeps meaning the Peanut identity check, whatever else the user still has to do
+        it('keeps a verify step on the Peanut verification, even while a hosted check is offered', () => {
+            mockNextActions = [hosted(SOON())]
             renderSetup(route({ action: 'verify' }))
-            expect(screen.getByRole('button', { name: en.pix.setup.verifyCta })).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
+            expect(mockPush).toHaveBeenCalledWith('/verify')
             expect(screen.queryByText(en.pix.setup.hosted.body)).toBeNull()
-        })
-
-        it('says why when the provider did not pass the identity, and offers support', () => {
-            mockNextActions = [{ key: 'contact-support:avenia', kind: 'contact-support', purpose: 'avenia-support' }]
-            renderSetup(
-                route({
-                    action: 'contact-support:avenia',
-                    reason: { code: 'IDENTITY_REJECTED', userMessage: 'Avenia could not verify the identity.' },
-                })
-            )
-            expect(screen.getByText(en.pix.rejected)).toBeInTheDocument()
-            fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
-            expect(mockOpenSupport.mock.calls[0][0]).toContain('purpose: avenia-support')
         })
     })
 

@@ -12,10 +12,10 @@ import { reserveDetachedTab } from '@/utils/reserved-tab'
 /**
  * Drives the handoff to a provider's hosted verification page and the wait for
  * the user to come back from it. Serves `bridge-hosted` (Bridge/Persona),
- * `rain-hosted` (Rain's card-member portal) and `avenia-hosted` (the Pix
+ * `rain-hosted` (Rain's card-member portal) and `hosted-identity` (a Pix
  * provider's own identity check) — the same top-level-tab handoff applies to
  * any third-party page that can't be iframed. The first two exchange their key
- * for the page's URL; `avenia-hosted` arrives with its URL (`url`).
+ * for the page's URL; `hosted-identity` arrives with its URL (`url`).
  *
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
@@ -58,7 +58,7 @@ const SETTLE_WINDOW_MS = 60_000
 const SETTLE_NUDGES_MS = [20_000, 40_000]
 
 export function useHostedVerification(
-    actionKey: 'bridge-hosted' | 'rain-hosted' | 'avenia-hosted' = 'bridge-hosted',
+    actionKey: 'bridge-hosted' | 'rain-hosted' | 'hosted-identity' = 'bridge-hosted',
     { taskPending = true, url: givenUrl }: HostedVerificationOptions = {}
 ): HostedVerification {
     const { fetchUser } = useAuth()
@@ -172,7 +172,7 @@ export function useHostedVerification(
             setIsStarting(true)
             let url = givenUrl
             try {
-                if (!url && actionKey !== 'avenia-hosted') ({ url } = await startHostedVerification(actionKey))
+                if (!url && actionKey !== 'hosted-identity') ({ url } = await startHostedVerification(actionKey))
             } catch (error) {
                 Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_launch' } })
                 // The action body catches its own errors, but a server action

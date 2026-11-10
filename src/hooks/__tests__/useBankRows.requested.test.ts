@@ -142,13 +142,13 @@ describe('the BRL row reads the Pix route', () => {
         mockCapabilities.nextActions = [
             {
                 key: 'avenia-hosted',
-                kind: 'avenia-hosted',
-                purpose: 'avenia-identity',
+                kind: 'hosted-identity',
+                purpose: 'unlock-avenia',
                 url: 'https://avenia.example/identity/u1',
                 expiresAt: '2099-01-01T00:00:00.000Z',
             },
         ]
-        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'verify' })]
+        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'avenia-hosted' })]
         expect(brl().chip).toBe('unlock')
         expect(renderHook(() => useBankEntryFor()).result.current('brl')).toEqual({
             state: 'ready',

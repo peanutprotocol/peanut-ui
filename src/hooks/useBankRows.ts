@@ -51,8 +51,8 @@ function closedBecause(reason: string | undefined): NonNullable<UnlockRow['unava
 export function useAccountsReport(): FeatureReport {
     const { capabilities } = useCapabilities()
     return useMemo(
-        () => withPixRoute(capabilities.features ?? UNKNOWN_REPORT, capabilities.routes, capabilities.nextActions),
-        [capabilities.features, capabilities.routes, capabilities.nextActions]
+        () => withPixRoute(capabilities.features ?? UNKNOWN_REPORT, capabilities.routes),
+        [capabilities.features, capabilities.routes]
     )
 }
 

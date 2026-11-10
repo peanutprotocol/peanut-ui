@@ -14694,9 +14694,10 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    expiresAt?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -14705,6 +14706,7 @@ export interface paths {
                                     }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
+                                    url?: string;
                                 }[];
                                 rails: {
                                     blockingActions?: string[];
@@ -14739,9 +14741,10 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            expiresAt?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -14750,6 +14753,7 @@ export interface paths {
                                             }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
+                                            url?: string;
                                         };
                                         status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
@@ -15321,9 +15325,10 @@ export interface paths {
                             nextAction?: {
                                 currency?: string;
                                 effectiveDate?: string;
+                                expiresAt?: string;
                                 feature?: "bank" | "card" | "local";
                                 key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
@@ -15332,6 +15337,7 @@ export interface paths {
                                 }[];
                                 requirementKey?: string;
                                 tosUrl?: string;
+                                url?: string;
                             };
                             outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
@@ -18173,9 +18179,10 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    expiresAt?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -18184,6 +18191,7 @@ export interface paths {
                                     }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
+                                    url?: string;
                                 }[];
                                 rails: {
                                     blockingActions?: string[];
@@ -18218,9 +18226,10 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            expiresAt?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -18229,6 +18238,7 @@ export interface paths {
                                             }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
+                                            url?: string;
                                         };
                                         status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
