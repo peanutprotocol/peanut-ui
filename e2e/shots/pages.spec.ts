@@ -87,6 +87,7 @@ for (const capture of CAPTURES) {
         for (const action of capture.actions ?? []) {
             if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
             else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
+            else if ('tap' in action) await page.getByText(action.tap, { exact: true }).tap()
             else {
                 await page.locator(action.fill.selector).fill(action.fill.value)
                 await page.waitForTimeout(250)

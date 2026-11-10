@@ -441,6 +441,102 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
             'GET /users/kyc/profile': profile('REJECTED'),
         },
     },
+    'paperwork-verification-rejected-not-document': {
+        route: '/verify',
+        about: 'A final non-document identity rejection explains the decision and directs the user to support.',
+        responses: {
+            ...asking('US', answered(US_STEPS)),
+            'GET /users/me': {
+                identityVerification: {
+                    oneShot: true,
+                    status: 'failed',
+                    rejectType: 'FINAL',
+                    rejectLabels: ['NOT_DOCUMENT'],
+                },
+            },
+            'GET /users/kyc/profile': profile('REJECTED'),
+        },
+    },
+    'paperwork-verification-ars-setting-up': {
+        route: '/add-money/argentina/manteca',
+        geoCountry: 'AR',
+        about: 'A verified Argentine user waits while their ARS account is being set up.',
+        isLoadingState: true,
+        responses: {
+            'GET /users/me': {
+                identityVerification: { oneShot: true, status: 'verified' },
+                capabilities: {
+                    rails: [],
+                    nextActions: [],
+                    restrictions: [],
+                    features: { local: { state: 'setting_up', accounts: { ARS: { state: 'setting_up' } } } },
+                },
+            },
+        },
+    },
+    'paperwork-verification-py-postal-refused': {
+        route: '/verify?step=address',
+        geoCountry: 'PY',
+        about: 'A Paraguayan address with an invalid postal code receives the six-digit correction on Continue.',
+        responses: asking('PY', [
+            {
+                ...address('PY', false),
+                fields: address('PY', false).fields.map((field) => ({
+                    ...field,
+                    value:
+                        (
+                            {
+                                street: 'Calle Palma',
+                                buildingNumber: '123',
+                                town: 'Asuncion',
+                                postCode: '12345',
+                            } as Record<string, string>
+                        )[field.key] ?? field.value,
+                })),
+            },
+        ]),
+        rejects: {
+            'PUT /users/kyc/answers/address': { status: 422, body: { errors: { postCode: 'invalid_postal_code' } } },
+        },
+    },
+    'paperwork-verification-py-bank-postal-support': {
+        route: '/home',
+        geoCountry: 'PY',
+        balance: '0',
+        about: 'A verified Paraguayan user is directed to support to correct their bank account postal code.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /users/me': {
+                user: {
+                    badges: [],
+                    activationMilestone: 'verified',
+                    isActivated: false,
+                    firstPaymentAt: null,
+                    activationCelebratedAt: '2026-09-01T00:00:00Z',
+                },
+                identityVerification: { oneShot: true, status: 'verified' },
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.ach_us',
+                            provider: 'bridge',
+                            method: 'ACH_US',
+                            channel: 'bank',
+                            country: 'US',
+                            currency: 'USD',
+                            status: 'blocked',
+                            reason: {
+                                code: 'invalid_bank_postal_code',
+                                userMessage: 'The bank postal code needs correction.',
+                            },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                },
+            },
+        },
+    },
     'paperwork-verification-outage': {
         route: '/verify',
         about: 'Verification outage: the shared API kill switch stops entry before any SDK opens.',

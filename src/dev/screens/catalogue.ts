@@ -61,6 +61,16 @@ const readiness: Record<string, string> = {
     '67-e-provideemailstep': 'Add email to continue',
     '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
+const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
+    'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
+    'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
+    'paperwork-verification-py-postal-refused': {
+        actions: [{ clickSelector: '[data-testid="verify-continue"]' }],
+        expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',
+    },
+    'paperwork-verification-ars-setting-up': { expectSelector: '[data-testid="verify-feature-done"]' },
+    'paperwork-verification-rejected-not-document': { expectSelector: '[data-testid="verify-review-home"]' },
+}
 const routeOverrides: Record<
     string,
     { route: string; fixture: string; event?: Screen['event']; storage?: Record<string, string> }
@@ -160,12 +170,14 @@ const definitions: Screen[] = [
         geoCountry: f.geoCountry,
         clicks: [],
         actions:
+            fixtureCapture[id]?.actions ??
             // ready shows the consent screen and on passes through; the other states answer the tap
-            /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
+            (/^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
                 ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
-                : undefined,
+                : undefined),
         expectSelector:
-            id === 'card-verification-open'
+            fixtureCapture[id]?.expectSelector ??
+            (id === 'card-verification-open'
                 ? '[data-testid="card-verification-continue"]'
                 : id === 'card-verification-checking' || id === 'card-verification-unavailable'
                   ? '[data-testid="your-card-screen"]'
@@ -181,7 +193,7 @@ const definitions: Screen[] = [
                             ? '[data-testid="verify-review-home"]'
                             : id === 'paperwork-verification-restart-foreign'
                               ? '[data-testid="verify-id"]'
-                              : undefined,
+                              : undefined),
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({

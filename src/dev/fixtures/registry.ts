@@ -308,6 +308,40 @@ const HUGE_HISTORY_ENTRY = {
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
 }
 
+// The capture clock is frozen at 2026-09-01 12:00 UTC. This order's
+// deadline is still ahead of that clock; the expired variant reports the
+// terminal status from the status endpoint instead of inferring it from time.
+const ARS_DEPOSIT = {
+    id: 'fixture-ars-deposit',
+    stages: {
+        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: '2026-09-01T12:30:00.000Z' },
+        '3': { amount: '10' },
+    },
+    details: {
+        depositAddress: '0000000000000000000000',
+        depositAlias: 'fixture.deposit.test',
+        price: '1000',
+        priceExpireAt: '2026-09-01T12:30:00.000Z',
+        withdrawCostInAsset: '0',
+    },
+}
+
+const EXPIRED_ARS_DEPOSIT_ENTRY = {
+    uuid: 'fixture-expired-ars-deposit',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-01T11:00:00.000Z'),
+    amount: '10',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'CANCELLED',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: 'bank', type: 'BANK_CBU', isUser: true },
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    currency: { amount: '10000', code: 'ARS' },
+    extraData: { kind: 'ONRAMP', provider: 'MANTECA', usdAmount: '10', mantecaDepositExpired: true },
+}
+
 // A PIX-key payment the payer looked up first (TASK-23198): the API sends the
 // owner as fullName beside the key, to the payer only.
 const PIX_KEY_PAYMENT_ENTRY = {
@@ -1481,6 +1515,27 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Add money, Argentina: one row for bank or Mercado Pago.',
         responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
     },
+    ...Object.fromEntries(
+        (['pending', 'expired'] as const).map((status) => [
+            `add-money-argentina-deposit-${status}`,
+            {
+                route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+                geoCountry: 'AR',
+                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
+                responses: {
+                    'GET /users/me': {
+                        residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                        capabilities: MANTECA_AR_CAPABILITIES,
+                    },
+                    'POST /manteca/deposit': ARS_DEPOSIT,
+                    'GET /manteca/deposit/fixture-ars-deposit/status':
+                        status === 'pending'
+                            ? { id: 'fixture-ars-deposit', status: 'PROCESSING', stage: 1, expired: false }
+                            : { id: 'fixture-ars-deposit', status: 'CANCELLED', stage: 1, expired: true },
+                },
+            },
+        ])
+    ),
     // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
     // amount screen asks for a euro account, as it does for Switzerland.
     'add-money-bank-liechtenstein': {
@@ -2482,6 +2537,36 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
     },
+    'history-expired-ars-deposit': {
+        route: '/history?tx=fixture-expired-ars-deposit',
+        about: 'An expired ARS deposit order: the receipt names the expired order.',
+        responses: {
+            'GET /users/history': { entries: [EXPIRED_ARS_DEPOSIT_ENTRY], hasMore: false },
+            'GET /history/fixture-expired-ars-deposit': EXPIRED_ARS_DEPOSIT_ENTRY,
+        },
+    },
+    ...Object.fromEntries(
+        (['name_mismatch', 'too_many_recent'] as const).map((reason) => {
+            const id = `fixture-returned-deposit-${reason.replaceAll('_', '-')}`
+            const entry = {
+                ...EXPIRED_ARS_DEPOSIT_ENTRY,
+                uuid: id,
+                status: 'REFUNDED',
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '10', returnReason: { code: reason } },
+            }
+            return [
+                `history-returned-deposit-${reason.replaceAll('_', '-')}`,
+                {
+                    route: `/history?tx=${id}`,
+                    about: `Returned deposit receipt: ${reason.replaceAll('_', ' ')} reason.`,
+                    responses: {
+                        'GET /users/history': { entries: [entry], hasMore: false },
+                        [`GET /history/${id}`]: entry,
+                    },
+                },
+            ]
+        })
+    ),
     'history-receipt-attachment': {
         route: '/history',
         about: 'A completed request payment with an attachment. Open its receipt to check download states.',
