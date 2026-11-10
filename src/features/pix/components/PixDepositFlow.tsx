@@ -143,6 +143,8 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
                 await fetchUser().catch(() => undefined)
                 return
             }
+            // a paused or dormant provider (503): the route may say so now; until it does, try again soon
+            if (code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) void fetchUser().catch(() => undefined)
             setError(
                 code === API_ERROR_CODES.PIX_MIN_AMOUNT
                     ? (minimumLine ?? tShared('unavailable'))

@@ -5,6 +5,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { pixDepositQueryKey } from '../pixDepositCode'
+import { ApiError } from '@/services/api-error'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -187,5 +188,17 @@ describe('PixDepositFlow and the URL', () => {
         await new Promise((resolve) => setTimeout(resolve, 0))
         expect(screen.queryByText(/The minimum is/)).toBeNull()
         expect(mockDepositRules).not.toHaveBeenCalled()
+    })
+
+    it('reads the route again when the provider is paused or dormant (503), and says to try again soon', async () => {
+        mockCreate.mockRejectedValue(
+            new ApiError('Pix is not available right now.', { status: 503, code: 'PROVIDER_UNAVAILABLE' })
+        )
+        renderAt('')
+        fireEvent.click(screen.getByText('type'))
+        fireEvent.click(screen.getByText('submit'))
+
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        expect(screen.queryByTestId('code-step')).toBeNull()
     })
 })

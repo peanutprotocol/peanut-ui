@@ -16,7 +16,8 @@ jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: () => Promise.resolve(null) }) }))
+const mockFetchUser = jest.fn(() => Promise.resolve(null))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
 const mockOpenSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
@@ -304,6 +305,16 @@ describe('PixWithdrawFlow refused preview', () => {
         await waitFor(() => expect(urls.at(-1)).toContain('step=amount'))
         expect(urls.at(-1)).toContain('destination=09579927189')
         expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
+    })
+
+    // a paused or dormant provider answers 503: the route may say so now, so the capabilities are read again
+    it('a paused provider: Retry, and the route read again', async () => {
+        refuse(503, 'PROVIDER_UNAVAILABLE')
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.pix.unavailable)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: en.common.retry })).toBeInTheDocument()
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
     })
 
     it('withdrawals still on their way: no retry, the message says to try later, Cancel only', async () => {

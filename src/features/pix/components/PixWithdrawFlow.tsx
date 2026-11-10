@@ -30,6 +30,7 @@ import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useAuth } from '@/context/authContext'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -59,6 +60,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { isFromSendFlow } = useSendFlowOrigin()
     const title = tNav(isFromSendFlow ? 'send' : 'withdraw')
     const backToWithdraw = useSafeBack(WITHDRAW_BACK_FALLBACK_URL)
+    const { fetchUser } = useAuth()
     // the provider the route names, for the provider row and its sheet
     const providerId = pixProviderId(route.provider)
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
@@ -115,6 +117,13 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         retry: false,
         staleTime: 30_000,
     })
+
+    // a refused route or a paused provider since the screen loaded: the capabilities say where the user stands now
+    const previewCode = wireErrorCode(preview.error)
+    useEffect(() => {
+        if (previewCode === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || previewCode === API_ERROR_CODES.PROVIDER_UNAVAILABLE)
+            void fetchUser().catch(() => undefined)
+    }, [previewCode, fetchUser])
 
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
