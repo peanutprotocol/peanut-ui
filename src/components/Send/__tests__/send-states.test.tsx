@@ -248,6 +248,9 @@ jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
 }))
 let mockResidenceIso2s: string[] = []
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
+jest.mock('@/features/brazil-pause/useBrazilPauseResidences', () => ({
+    useBrazilPauseResidences: () => mockResidenceIso2s,
+}))
 
 beforeEach(() => {
     jest.clearAllMocks()
