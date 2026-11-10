@@ -416,13 +416,14 @@ const AVENIA_BR_USER = {
 }
 const aveniaRouteResponses = (
     step: { state: string; action?: string; reason: { code: string; userMessage: string }; provider?: null },
-    rails: unknown[] = []
+    rails: unknown[] = [],
+    nextActions: unknown[] = []
 ) => ({
     'GET /users/me': {
         ...AVENIA_BR_USER,
         capabilities: {
             rails,
-            nextActions: [],
+            nextActions,
             restrictions: [],
             routes: (['deposit', 'withdraw'] as const).map((operation) => ({
                 operation,
@@ -435,6 +436,25 @@ const aveniaRouteResponses = (
         },
     },
 })
+/** After Avenia's terms, its own identity check on its page: the link, valid until `expiresAt`. */
+const aveniaHostedResponses = (expiresAt: string) =>
+    aveniaRouteResponses(
+        {
+            state: 'action_required',
+            action: 'verify',
+            reason: { code: 'provider_identity_required', userMessage: 'Verify your identity on Avenia.' },
+        },
+        [],
+        [
+            {
+                key: 'avenia-hosted',
+                kind: 'avenia-hosted',
+                purpose: 'avenia-identity',
+                url: 'https://avenia.example/identity/demo',
+                expiresAt,
+            },
+        ]
+    )
 /** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
 const aveniaPendingRail = (code: string) => ({
     id: 'avenia.pix_br',
@@ -2132,6 +2152,30 @@ export const FIXTURES: Record<string, Fixture> = {
             action: 'verify',
             reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
         }),
+    },
+    'pix-setup-hosted-verify': {
+        route: '/add-money/pix',
+        about: "Avenia takes no shared verification: after its terms, the identity check opens on Avenia's page.",
+        responses: aveniaHostedResponses('2099-01-01T00:00:00.000Z'),
+    },
+    'pix-setup-hosted-expired': {
+        route: '/add-money/pix',
+        about: "The link to Avenia's identity check has expired: the step offers a new one.",
+        responses: aveniaHostedResponses('2026-01-01T00:00:00.000Z'),
+    },
+    'pix-setup-identity-rejected': {
+        route: '/add-money/pix',
+        about: "Avenia's own identity check did not pass: a refused route that offers support.",
+        responses: aveniaRouteResponses(
+            {
+                provider: null,
+                state: 'refused',
+                action: 'contact-support:avenia',
+                reason: { code: 'IDENTITY_REJECTED', userMessage: 'Avenia could not verify the identity.' },
+            },
+            [],
+            [{ key: 'contact-support:avenia', kind: 'contact-support', purpose: 'avenia-support' }]
+        ),
     },
     'pix-setup-reviewing': {
         route: '/add-money/pix',

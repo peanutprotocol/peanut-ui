@@ -2550,11 +2550,16 @@
             "reviewing": "Nuestro socio de pagos está revisando tu verificación. Esta pantalla avanza cuando termine.",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
-            "body": "Nuestro socio de pagos ofrece Pix. Recibe tu verificación de Peanut, así que no hay una segunda verificación.",
+            "body": "Nuestro socio de pagos ofrece Pix.",
             "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contacta a soporte para agregarlo.",
             "termsNotSaved": "No se guardó tu aceptación de los términos. Intenta de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contacta a soporte para terminarlo."
+            "notAvailable": "No se pudo configurar Pix. Contacta a soporte para terminarlo.",
+            "hosted": {
+                "body": "Haz la verificación en la página de nuestro socio de pagos.",
+                "expired": "Este enlace venció.",
+                "newLink": "Pedir un enlace nuevo"
+            }
         },
         "deposit": {
             "startNew": "Hacer un nuevo depósito",

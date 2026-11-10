@@ -8,6 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { pixRefusalCopy } from '@/features/pix/pixRoute.utils'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
@@ -32,9 +33,14 @@ export function PixUnavailableScreen({
     const t = useTranslations()
     const { openSupportWithMessage } = useModalsContext()
     const { user } = useAuth()
+    const { nextActions } = useCapabilities()
     const safeBack = useSafeBack('/home')
     const back = onBack ?? safeBack
     const reason = route?.reason
+    // the support step the route names tells support which case this is, with the reason
+    const supportAction = nextActions.find(
+        (action) => action.key === route?.action && action.kind === 'contact-support'
+    )
     const description =
         line ??
         {
@@ -61,7 +67,11 @@ export function PixUnavailableScreen({
                             // the route's reason tells support which case this is
                             onClick={() =>
                                 openSupportWithMessage(
-                                    buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                                    buildContactSupportMessage({
+                                        reason,
+                                        userId: user?.user?.userId,
+                                        purpose: supportAction?.purpose,
+                                    })
                                 )
                             }
                         >

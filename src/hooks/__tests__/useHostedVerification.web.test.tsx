@@ -61,6 +61,43 @@ describe('useHostedVerification (web)', () => {
         expect(assign).not.toHaveBeenCalled()
     })
 
+    // the Pix provider's hosted check: the action carries its link, so nothing asks the API for one
+    it('opens the link an action carries without asking the API for one, and reads again on return', async () => {
+        const { startHostedVerification } = jest.requireMock('@/app/actions/sumsub')
+        const tab = { opener: {} as unknown, closed: false, close: jest.fn(), location: { href: '' } }
+        jest.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
+        const link = 'https://avenia.example/identity/u1'
+        const hook = renderHook(() => useHostedVerification('avenia-hosted', { url: link }))
+
+        await act(async () => {
+            await hook.result.current.start()
+        })
+
+        expect(startHostedVerification).not.toHaveBeenCalled()
+        expect(tab.location.href).toBe(link)
+        // back from the provider's page: one capabilities read, no Bridge settle window
+        act(() => {
+            document.dispatchEvent(new Event('visibilitychange'))
+        })
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(hook.result.current.isSettling).toBe(false)
+    })
+
+    it('opens nothing for a hosted Pix check whose action carries no link', async () => {
+        const { startHostedVerification } = jest.requireMock('@/app/actions/sumsub')
+        const tab = { opener: {} as unknown, closed: false, close: jest.fn(), location: { href: '' } }
+        jest.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
+        const hook = renderHook(() => useHostedVerification('avenia-hosted'))
+
+        await act(async () => {
+            await hook.result.current.start()
+        })
+
+        expect(startHostedVerification).not.toHaveBeenCalled()
+        expect(tab.close).toHaveBeenCalled()
+        expect(hook.result.current.error).not.toBeNull()
+    })
+
     it('falls back to this tab when the reserved tab cannot be detached', async () => {
         const tab = {
             closed: false,

@@ -19,8 +19,10 @@ export function buildContactSupportMessage(args: {
     reason?: CapabilityReason
     railId?: string
     userId?: string
+    /** The support next action's purpose, where the API names the case with one (`avenia-support`). */
+    purpose?: string
 }): string {
-    const { reason, railId, userId } = args
+    const { reason, railId, userId, purpose } = args
     const lines: string[] = []
     lines.push(
         reason?.userMessage ??
@@ -30,6 +32,7 @@ export function buildContactSupportMessage(args: {
     lines.push('— context for support —')
     if (reason?.code) lines.push(`reason: ${reason.code}`)
     if (reason?.details) lines.push(`details: ${reason.details}`)
+    if (purpose) lines.push(`purpose: ${purpose}`)
     if (railId) lines.push(`rail: ${railId}`)
     if (userId) lines.push(`user: ${userId}`)
     return lines.join('\n')

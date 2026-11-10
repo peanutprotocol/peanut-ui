@@ -14,16 +14,19 @@ const TAX_ID_MISSING_REASON = 'tax_id_missing'
 /**
  * What the Pix setup step shows for the backend's route: the identity check
  * first (`verify`), the provider's terms (the route's action is an
- * `accept-tos` next action), the account the first use opens (`activate`),
- * then the wait while the provider reviews the shared verification. Refused
- * and paused routes never reach it: the Pix pages show those. Anything else
- * is a case support finishes.
+ * `accept-tos` next action), the provider's own identity check on its page
+ * where it takes no shared verification (`hosted-verify`, `hosted`: the route
+ * waits on one, `pixHostedVerification`), the account the first use opens
+ * (`activate`), then the wait while the provider reviews the verification.
+ * Refused and paused routes never reach it: the Pix pages show those.
+ * Anything else is a case support finishes.
  */
-export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'activate' | 'pending' | 'support'
+export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'hosted-verify' | 'activate' | 'pending' | 'support'
 
 export function pixSetupState(
     route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    actionKind: NextActionKind | undefined
+    actionKind: NextActionKind | undefined,
+    hosted = false
 ): PixSetupState {
     switch (route?.state) {
         case 'ready':
@@ -31,6 +34,7 @@ export function pixSetupState(
         case 'pending':
             return 'pending'
         case 'action_required':
+            if (hosted) return 'hosted-verify'
             if (route.action === VERIFY_ACTION) return 'verify'
             if (route.action === ACTIVATE_ACTION) return 'activate'
             return actionKind === 'accept-tos' ? 'accept-terms' : 'support'

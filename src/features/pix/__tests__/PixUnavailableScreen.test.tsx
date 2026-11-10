@@ -7,6 +7,8 @@ import type { CapabilityRoute } from '@/types/capabilities'
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+let mockNextActions: unknown[] = []
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ nextActions: mockNextActions }) }))
 const mockOpenSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }),
@@ -25,7 +27,29 @@ const refused = (code: string, userMessage: string): CapabilityRoute => ({
 })
 
 describe('PixUnavailableScreen', () => {
-    beforeEach(() => jest.clearAllMocks())
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockNextActions = []
+    })
+
+    // the provider's own identity check did not pass: support, told the case by the route's support step
+    it('says the verification was not accepted, and names the support case to support', () => {
+        mockNextActions = [{ key: 'contact-support:avenia', kind: 'contact-support', purpose: 'avenia-support' }]
+        renderWithIntl(
+            <PixUnavailableScreen
+                title="Add money"
+                route={{
+                    ...refused('IDENTITY_REJECTED', 'Avenia could not verify the identity.'),
+                    action: 'contact-support:avenia',
+                }}
+            />
+        )
+        expect(screen.getByText(en.pix.rejected)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
+        const message = mockOpenSupport.mock.calls[0][0] as string
+        expect(message).toContain('reason: IDENTITY_REJECTED')
+        expect(message).toContain('purpose: avenia-support')
+    })
 
     it("says the verification was not accepted, in the user's language", () => {
         renderWithIntl(<PixUnavailableScreen title="Withdraw" route={refused('provider_rejected', 'Rejected.')} />)

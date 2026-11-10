@@ -34,6 +34,15 @@ describe('pixSetupState', () => {
         )
     })
 
+    // the provider takes no shared verification: its own check, on its page, after the terms
+    it("reads a route that waits on the provider's own check as the hosted step", () => {
+        expect(pixSetupState(route('action_required', { action: 'verify' }), undefined, true)).toBe('hosted-verify')
+        expect(pixSetupState(route('action_required', { action: 'avenia-hosted' }), 'avenia-hosted', true)).toBe(
+            'hosted-verify'
+        )
+        expect(pixSetupState(route('pending'), undefined, true)).toBe('pending')
+    })
+
     it('leaves any other step to support', () => {
         expect(pixSetupState(route('action_required', { action: 'contact-support:x' }), 'contact-support')).toBe(
             'support'

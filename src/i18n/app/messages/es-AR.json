@@ -1314,7 +1314,10 @@
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
             "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo."
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo.",
+            "hosted": {
+                "body": "Hacé la verificación en la página de nuestro socio de pagos."
+            }
         },
         "deposit": {
             "youGet": "Recibís ≈ {amount}",

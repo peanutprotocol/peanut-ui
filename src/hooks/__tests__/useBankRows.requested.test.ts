@@ -136,6 +136,26 @@ describe('the BRL row reads the Pix route', () => {
         expect(brl().chip).toBe(chip)
     })
 
+    // the provider takes no shared verification: its own check, on its page, is a set-up step like its terms
+    it("reads the provider's own identity check as Set up, like the terms", () => {
+        brazilResident()
+        mockCapabilities.nextActions = [
+            {
+                key: 'avenia-hosted',
+                kind: 'avenia-hosted',
+                purpose: 'avenia-identity',
+                url: 'https://avenia.example/identity/u1',
+                expiresAt: '2099-01-01T00:00:00.000Z',
+            },
+        ]
+        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'verify' })]
+        expect(brl().chip).toBe('unlock')
+        expect(renderHook(() => useBankEntryFor()).result.current('brl')).toEqual({
+            state: 'ready',
+            action: 'avenia-hosted',
+        })
+    })
+
     it('keeps the report for the other rows, and for BRL when the API sends no Pix route', () => {
         mockCapabilities.features!.local.accounts = { BRL: { state: 'on' }, ARS: { state: 'refused' } }
         mockCapabilities.routes = [pixRoute({ state: 'ready', operation: 'pay' })]

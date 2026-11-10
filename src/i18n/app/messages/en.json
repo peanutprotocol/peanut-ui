@@ -2550,11 +2550,16 @@
             "reviewing": "Our payment partner is checking your verification. This screen moves on once it is done.",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
-            "body": "Our payment partner provides Pix. It receives your Peanut verification, so there is no second check.",
+            "body": "Our payment partner provides Pix.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
             "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
             "termsNotSaved": "Your acceptance of the terms was not saved. Try again.",
-            "notAvailable": "Pix could not be set up. Contact support to finish it."
+            "notAvailable": "Pix could not be set up. Contact support to finish it.",
+            "hosted": {
+                "body": "Verify on our payment partner's page.",
+                "expired": "This link expired.",
+                "newLink": "Get a new link"
+            }
         },
         "deposit": {
             "startNew": "Start a new deposit",
