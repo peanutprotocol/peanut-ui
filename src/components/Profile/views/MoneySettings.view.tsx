@@ -137,7 +137,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     // ── list model ──────────────────────────────────────────────────────────
 
-    const { rows: bankRows, accountChip } = useBankRows()
+    const { rows: bankRows, accountChip, report: accountsReport } = useBankRows()
     // Copy only: which sentence a closed row's notes use. Whether a row is closed is the report's.
     const restrictions = useResidenceRestrictions()
     // Would a QR payment go through today? The gate /qr-pay itself enforces
@@ -185,22 +185,14 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         () =>
             paymentMethodSections([
                 bankAccountRow(bankRows, accountChip, {
-                    features: capabilities.features ?? UNKNOWN_REPORT,
+                    features: accountsReport,
                     heldCorridors: accountCorridors.held,
                     openableCorridors: accountCorridors.open.filter((row) => row.openable).map((row) => row.corridor),
                 }),
                 ...(spendGroup?.rows ?? []),
                 ...(peanutGroup?.rows ?? []),
             ]),
-        [
-            bankRows,
-            accountChip,
-            capabilities.features,
-            accountCorridors.held,
-            accountCorridors.open,
-            spendGroup,
-            peanutGroup,
-        ]
+        [bankRows, accountChip, accountsReport, accountCorridors.held, accountCorridors.open, spendGroup, peanutGroup]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").

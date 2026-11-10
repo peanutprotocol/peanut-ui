@@ -1,4 +1,6 @@
-import type { CapabilityRoute } from '@/types/capabilities'
+import { VERIFY_ACTION } from '@/features/kyc-features/report'
+import type { CapabilityRoute, FeatureReport, FeatureReportEntry } from '@/types/capabilities'
+import type { GateState } from '@/utils/capability-gate'
 
 export const PIX_METHOD = 'PIX_BR'
 
@@ -60,4 +62,54 @@ export function pixPayBlock(route: CapabilityRoute | undefined): PixPayBlock | n
     if (route?.state === 'paused') return 'paused'
     if (route?.state === 'refused' && route.reason?.code === 'residence_not_served') return 'residence'
     return null
+}
+
+/**
+ * The BRL account as the account screens read it, from the Pix deposit route: Pix comes from the
+ * route, whichever provider serves it. A resident of Brazil gets the local feature refused
+ * (`local_residence_unsupported`) and Pix from Avenia's route, so the local entry alone would call
+ * their Pix closed. A first-use step (terms, the account the first use opens) is the row's own
+ * set-up; a pause reads as pending, because it lifts with nothing for the user to do.
+ */
+export function pixRouteReportEntry(route: CapabilityRoute): FeatureReportEntry {
+    const reason = route.reason?.code
+    switch (route.state) {
+        case 'ready':
+            return { state: 'on' }
+        case 'action_required':
+            return route.action === VERIFY_ACTION
+                ? { state: 'action_required', action: VERIFY_ACTION, reason }
+                : { state: 'ready', action: route.action, reason }
+        case 'pending':
+        case 'paused':
+            return { state: 'pending', reason }
+        case 'refused':
+            return { state: 'refused', reason }
+    }
+}
+
+/** The feature report with the BRL account read from the Pix deposit route, where the API sends one. */
+export function withPixRoute(report: FeatureReport, routes: CapabilityRoute[] | undefined): FeatureReport {
+    const route = findPixRoute(routes, 'deposit')
+    if (!route) return report
+    return {
+        ...report,
+        local: { ...report.local, accounts: { ...report.local.accounts, BRL: pixRouteReportEntry(route) } },
+    }
+}
+
+/** The Pix corridor's gate from the deposit route, for the screens that gate accounts by corridor. */
+export function pixRouteGate(route: CapabilityRoute): GateState {
+    const userMessage = route.reason?.userMessage ?? null
+    switch (route.state) {
+        case 'ready':
+            return { kind: 'ready' }
+        case 'action_required':
+            return route.action === VERIFY_ACTION ? { kind: 'needs-identity' } : { kind: 'needs-enrollment' }
+        case 'pending':
+        case 'paused':
+            return { kind: 'waiting-on-provider', userMessage, reason: route.reason }
+        case 'refused':
+            return { kind: 'blocked-rejection', userMessage, reason: route.reason }
+    }
 }

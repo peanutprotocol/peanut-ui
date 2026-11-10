@@ -2,8 +2,9 @@
 
 import { useAuth } from '@/context/authContext'
 import { accountEntry, bestChip, entryChip, UNKNOWN_REPORT } from '@/features/kyc-features/report'
+import { withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import type { FeatureReportEntry } from '@/types/capabilities'
+import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
@@ -36,10 +37,22 @@ function closedBecause(reason: string | undefined): NonNullable<UnlockRow['unava
     return 'restricted-country'
 }
 
+/**
+ * The feature report the account screens read: the API's, with the BRL account read from the Pix
+ * deposit route where the API sends one (`withPixRoute`), so a resident of Brazil, whose local
+ * feature is refused, sees the Pix the route serves.
+ */
+export function useAccountsReport(): FeatureReport {
+    const { capabilities } = useCapabilities()
+    return useMemo(
+        () => withPixRoute(capabilities.features ?? UNKNOWN_REPORT, capabilities.routes),
+        [capabilities.features, capabilities.routes]
+    )
+}
+
 /** The report entry behind one bank row: its currency's account. */
 export function useBankEntryFor(): (key: BankRowKey) => FeatureReportEntry {
-    const { capabilities } = useCapabilities()
-    const report = capabilities.features ?? UNKNOWN_REPORT
+    const report = useAccountsReport()
     return useCallback(
         (key: BankRowKey) => accountEntry(report, ROW_ACCOUNTS[key].feature, ROW_ACCOUNTS[key].currency),
         [report]
@@ -65,7 +78,8 @@ export function useBankChipFor(): (key: BankRowKey) => UnlockChip {
  */
 export function useBankRows() {
     const { user } = useAuth()
-    const { capabilities, nextActions } = useCapabilities()
+    const { nextActions } = useCapabilities()
+    const report = useAccountsReport()
     const entryFor = useBankEntryFor()
 
     // Server copy first; the localStorage mirror of the signup answer covers
@@ -112,9 +126,12 @@ export function useBankRows() {
         }
     }, [entryFor, nextActions, residenceIso2, secondResidenceIso2])
     const rows = useMemo(() => buildBankRows(input), [input])
-    // The one bank account row: the bank and local features, each as the API states it.
-    const report = capabilities.features ?? UNKNOWN_REPORT
-    const accountChip = bestChip([entryChip(report.bank, nextActions), entryChip(report.local, nextActions)])
+    // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.
+    const accountChip = bestChip([
+        entryChip(report.bank, nextActions),
+        entryChip(report.local, nextActions),
+        entryChip(entryFor('brl'), nextActions),
+    ])
 
-    return { rows, input, accountChip, residence, residenceIso2, secondResidenceIso2 }
+    return { rows, input, accountChip, report, residence, residenceIso2, secondResidenceIso2 }
 }

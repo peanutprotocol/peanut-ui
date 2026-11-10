@@ -1,4 +1,12 @@
-import { findPixRoute, pixPayBlock, pixRefusalCopy, pixScreen } from '../pixRoute.utils'
+import {
+    findPixRoute,
+    pixPayBlock,
+    pixRefusalCopy,
+    pixRouteGate,
+    pixRouteReportEntry,
+    pixScreen,
+    withPixRoute,
+} from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { DEMO_USER } from '@/constants/demo-data'
@@ -96,5 +104,53 @@ describe('pixPayBlock', () => {
     it('reads the pay route, not the deposit or withdraw route', () => {
         const routes = [route({ state: 'paused' }), pay({ state: 'ready' })]
         expect(pixPayBlock(findPixRoute(routes, 'pay'))).toBeNull()
+    })
+})
+
+describe('the BRL account from the Pix route', () => {
+    const report = {
+        qr: { state: 'on' as const },
+        card: { state: 'ready' as const },
+        bank: { state: 'on' as const, accounts: { USD: { state: 'on' as const } } },
+        local: {
+            state: 'refused' as const,
+            reason: 'local_residence_unsupported',
+            accounts: { BRL: { state: 'refused' as const, reason: 'local_residence_unsupported' } },
+        },
+    }
+
+    it('reads each route state as the account entry the account screens know', () => {
+        expect(pixRouteReportEntry(route())).toEqual({ state: 'on' })
+        expect(pixRouteReportEntry(route({ state: 'action_required', action: 'verify' }))).toMatchObject({
+            state: 'action_required',
+            action: 'verify',
+        })
+        expect(pixRouteReportEntry(route({ state: 'action_required', action: 'activate' }))).toMatchObject({
+            state: 'ready',
+            action: 'activate',
+        })
+        expect(pixRouteReportEntry(route({ state: 'paused' }))).toMatchObject({ state: 'pending' })
+        expect(
+            pixRouteReportEntry(route({ state: 'refused', reason: { code: 'provider_rejected', userMessage: '' } }))
+        ).toEqual({ state: 'refused', reason: 'provider_rejected' })
+    })
+
+    it('lays the deposit route over the BRL account only, and only when the API sends one', () => {
+        const routed = withPixRoute(report, [route()])
+        expect(routed.local.accounts.BRL).toEqual({ state: 'on' })
+        expect(routed.local.state).toBe('refused')
+        expect(routed.bank).toBe(report.bank)
+        expect(withPixRoute(report, [route({ operation: 'pay' })])).toBe(report)
+        expect(withPixRoute(report, undefined)).toBe(report)
+    })
+
+    it('gates the Pix corridor by the route', () => {
+        expect(pixRouteGate(route())).toEqual({ kind: 'ready' })
+        expect(pixRouteGate(route({ state: 'action_required', action: 'verify' }))).toEqual({ kind: 'needs-identity' })
+        expect(pixRouteGate(route({ state: 'action_required', action: 'accept-tos:avenia' }))).toEqual({
+            kind: 'needs-enrollment',
+        })
+        expect(pixRouteGate(route({ state: 'pending' })).kind).toBe('waiting-on-provider')
+        expect(pixRouteGate(route({ state: 'refused' })).kind).toBe('blocked-rejection')
     })
 })
