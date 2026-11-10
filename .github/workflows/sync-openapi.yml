@@ -12,14 +12,14 @@ permissions:
     contents: read
 
 jobs:
-    sync:
-        # The chip-peanut-bot key lives in `content-publish`, which only `main` may
-        # use (see update-content.yml), so this job runs from `main` only: the
-        # schedule, or a dispatch on `main`.
-        environment: content-publish
+    # Runs code from `dev` (install scripts, the sync script), so it holds no secret. Staging serves
+    # `dev`, and the PR targets `dev`, so the commit is based on `dev`.
+    generate:
         runs-on: ubuntu-latest
+        outputs:
+            changed: ${{ steps.check.outputs.changed }}
+            base: ${{ steps.check.outputs.base }}
         steps:
-            # Staging serves `dev`, and the PR targets `dev`, so the commit is based on `dev`.
             - uses: actions/checkout@v4
               with:
                   ref: dev
@@ -44,43 +44,66 @@ jobs:
             - name: Check for changes
               id: check
               run: |
+                  echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
                   if git diff --quiet src/types/; then
                     echo "changed=false" >> "$GITHUB_OUTPUT"
                   else
                     echo "changed=true" >> "$GITHUB_OUTPUT"
                   fi
 
+            - if: steps.check.outputs.changed == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: openapi-types
+                  path: |
+                      src/types/api.openapi.json
+                      src/types/api.generated.ts
+                  retention-days: 1
+
+    # Holds the chip-peanut-bot token and runs no code from `dev`: only this file and the runner's own
+    # tools, with the generated files as data. The key lives in `content-publish`, which only `main`
+    # may use (see update-content.yml), so this job runs from `main` only: the schedule, or a dispatch
+    # on `main`.
+    #
+    # Every branch requires signed commits, and a commit made on the runner is unsigned: from 2026-09
+    # to 2026-11 every run failed its push with GH013. GraphQL createCommitOnBranch is signed by
+    # GitHub, here as chip-peanut-bot. The app token also makes the PR run CI, which a GITHUB_TOKEN PR
+    # does not. human-authors needs the Ordered-By and Order trailers on a bot commit, and
+    # bot-approval holds the merge until the orderer, the assignee, approves it.
+    open-pr:
+        needs: generate
+        if: needs.generate.outputs.changed == 'true'
+        environment: content-publish
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  name: openapi-types
+                  path: ${{ runner.temp }}/openapi-types
+
             - name: Mint bot token
-              if: steps.check.outputs.changed == 'true'
               id: bot
               uses: actions/create-github-app-token@v2
               with:
                   app-id: 2915219
                   private-key: ${{ secrets.CONTENT_BOT_APP_PRIVATE_KEY }}
 
-            # Every branch requires signed commits, and a commit made on the runner is
-            # unsigned: from 2026-09 to 2026-11 every run failed its push with GH013.
-            # GraphQL createCommitOnBranch is signed by GitHub, here as chip-peanut-bot.
-            # The app token also makes the PR run CI, which a GITHUB_TOKEN PR does not.
-            # human-authors needs the Ordered-By and Order trailers on a bot commit, and
-            # bot-approval holds the merge until the orderer, the assignee, approves it.
             - name: Create PR
-              if: steps.check.outputs.changed == 'true'
               env:
                   GH_TOKEN: ${{ steps.bot.outputs.token }}
                   REPO: ${{ github.repository }}
+                  BASE: ${{ needs.generate.outputs.base }}
+                  FILES: ${{ runner.temp }}/openapi-types
                   ORDERED_BY: Hugo0
                   ORDER: https://github.com/${{ github.repository }}/blob/main/.github/workflows/sync-openapi.yml
               run: |
                   set -euo pipefail
+                  [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::bad base commit"; exit 1; }
                   BRANCH="auto/sync-openapi-$(date -u +%Y%m%d-%H%M%S)"
-                  BASE=$(git rev-parse HEAD)
                   gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE" > /dev/null
-                  BRANCH="$BRANCH" BASE="$BASE" node -e '
+                  BRANCH="$BRANCH" node -e '
                     const fs = require("fs")
-                    const { execSync } = require("child_process")
-                    const files = (flags) => execSync(`git ls-files ${flags} -- src/types/`).toString().split("\n").filter(Boolean)
-                    const changed = [...new Set(files("-m -o --exclude-standard"))]
+                    const paths = ["src/types/api.openapi.json", "src/types/api.generated.ts"]
                     const input = {
                       branch: { repositoryNameWithOwner: process.env.REPO, branchName: process.env.BRANCH },
                       expectedHeadOid: process.env.BASE,
@@ -89,9 +112,10 @@ jobs:
                         body: `Ordered-By: ${process.env.ORDERED_BY}\nOrder: ${process.env.ORDER}`,
                       },
                       fileChanges: {
-                        additions: changed.filter((path) => fs.existsSync(path))
-                          .map((path) => ({ path, contents: fs.readFileSync(path).toString("base64") })),
-                        deletions: files("-d").map((path) => ({ path })),
+                        additions: paths.map((path) => ({
+                          path,
+                          contents: fs.readFileSync(`${process.env.FILES}/${path.split("/").pop()}`).toString("base64"),
+                        })),
                       },
                     }
                     const query = "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }"
@@ -102,6 +126,7 @@ jobs:
                     exit 1
                   fi
                   PR_URL=$(gh pr create \
+                    --repo "$REPO" \
                     --head "$BRANCH" \
                     --base dev \
                     --assignee "$ORDERED_BY" \
