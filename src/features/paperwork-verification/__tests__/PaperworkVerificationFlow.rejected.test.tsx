@@ -203,6 +203,14 @@ describe('a rejected identity on /verify', () => {
         expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
     })
 
+    it('explains a final non-document decision without offering another upload', async () => {
+        mockIdentity = rejected({ rejectLabels: ['NOT_DOCUMENT'] })
+        renderFlow()
+        expect(await screen.findByText(/couldn.t recognize the upload as an identity document/i)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /try again|upload/i })).toBeNull()
+        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+    })
+
     it('a status read that fails still shows the rejection the profile holds', async () => {
         jest.mocked(getKycDocumentStatus).mockRejectedValue(new Error('down'))
         renderFlow()

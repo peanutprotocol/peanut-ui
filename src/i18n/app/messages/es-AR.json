@@ -1195,6 +1195,10 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
+            "transferDeadline": "Enviá la transferencia antes de las {time}.",
+            "transferExpiredTitle": "La orden de depósito venció",
+            "transferExpiredDescription": "El plazo terminó sin que se registrara un pago. Si ya enviaste la plata, contactá a soporte.",
+            "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos"
         },
@@ -1306,6 +1310,9 @@
         }
     },
     "transaction": {
+        "name": {
+            "depositOrderExpired": "La orden de depósito venció"
+        },
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Esperá antes de enviar el siguiente y escribile a soporte si te vuelve a pasar.",
         "returnedReasonNameMismatch": "El nombre de la transferencia no coincidía con esta cuenta. Enviala de nuevo con el nombre exacto de los datos bancarios.",
@@ -1633,7 +1640,8 @@
                 "description": "Este documento ya está vinculado a otra cuenta de Peanut. Iniciá sesión en esa cuenta o escribile a soporte y te ayudamos a resolverlo."
             },
             "contact_support": {
-                "description": "No pudimos terminar tu verificación en la app. Escribile a soporte y lo revisamos."
+                "description": "No pudimos terminar tu verificación en la app. Escribile a soporte y lo revisamos.",
+                "notDocumentDescription": "No pudimos reconocer el archivo como un documento de identidad. Escribile a soporte para que lo revisemos."
             },
             "not_available": {
                 "description": "Por ahora no podemos verificarte para Peanut, y volver a intentarlo no lo va a cambiar. Si creés que es un error, escribile a soporte."
@@ -1800,6 +1808,7 @@
                 "noneFit": "¿No tenés ninguno de estos?"
             },
             "activation": {
+                "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
                 "title": {
                     "bank": "Configurá tus cuentas bancarias",
                     "card": "Configurá tu Peanut Card",
@@ -1848,6 +1857,7 @@
             "bridge_tos_required": "Aceptá los términos de nuestro socio de pagos para continuar.",
             "bridge_tos_v2_required": "Aceptá los Términos de Servicio actualizados del proveedor de transferencias bancarias para habilitar transferencias en euros y libras esterlinas.",
             "verification_blocked": "Problema de verificación: contactá a soporte para recibir ayuda.",
+            "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado. Contactá a soporte para corregirlo y volver a configurar tu cuenta bancaria.",
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si creés que es un error, escribile a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",

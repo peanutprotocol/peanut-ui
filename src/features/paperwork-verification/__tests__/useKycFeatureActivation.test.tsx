@@ -72,6 +72,33 @@ it('blocks unauthenticated users without activating', async () => {
     expect(activateKycFeature).not.toHaveBeenCalled()
 })
 
+it('shows existing ARS provisioning without starting paperwork when QR already works', async () => {
+    const profile = (state: 'setting_up' | 'on') =>
+        ({
+            user: {
+                user: { userId: 'a' },
+                identityVerification: { oneShot: true, status: 'verified' },
+                capabilities: {
+                    features: { local: { state: 'ready', accounts: { ARS: { state } } }, qr: { state: 'on' } },
+                },
+            },
+        }) as unknown as ReturnType<typeof useAuth>
+    jest.mocked(useAuth).mockReturnValue(profile('setting_up'))
+    const { result, rerender } = renderHook(() =>
+        useKycFeatureActivation('local', { scope: { channel: 'bank', country: 'AR' } })
+    )
+    expect(result.current.allowed).toBe(false)
+    expect(result.current.result).toEqual(report('setting_up'))
+    await act(async () => {
+        await expect(result.current.activate()).resolves.toBe(false)
+    })
+    expect(activateKycFeature).not.toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalled()
+    jest.mocked(useAuth).mockReturnValue(profile('on'))
+    rerender()
+    expect(result.current.allowed).toBe(true)
+})
+
 it.each(['on', 'ready'])('starts blocked and allows a confirmed %s report', async (state) => {
     const request = deferred()
     jest.mocked(activateKycFeature).mockReturnValue(request.promise)

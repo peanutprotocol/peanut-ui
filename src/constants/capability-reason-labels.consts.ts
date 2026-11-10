@@ -48,6 +48,7 @@ export const REASON_CODE_KEYS = {
     // #1249 pattern). An ID the provider asks for again is not this code: it
     // arrives as id_expired / id_verification_failed with a restart action.
     verification_blocked: 'reasons.verification_blocked',
+    invalid_bank_postal_code: 'reasons.invalid_bank_postal_code',
     terminal_rejection: 'reasons.terminal_rejection',
     bridge_terminal_rejection: 'reasons.bridge_terminal_rejection',
     duplicate_customer_detected: 'reasons.duplicate_customer_detected',

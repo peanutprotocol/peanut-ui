@@ -57,7 +57,7 @@ export function useDepositGateRemediation(): {
         },
     })
     const { gateFor } = useCapabilities()
-    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const gateActions = useGateActions(sumsubFlow)
     const bridgeProviderId = useBridgeProviderId()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
@@ -146,7 +146,7 @@ export function useDepositGateRemediation(): {
                 // nothing for the user to do; the banner offers no button either
                 return
             case 'accept-tos':
-                guardWithTos()
+                openTos()
                 return
             case 'provide-email':
                 setShowProvideEmail(true)
@@ -216,7 +216,12 @@ export function useDepositGateRemediation(): {
                 }
                 verifyEntry={{ corridor: kycCorridor }}
             />
-            <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} />
+            <BridgeTosStep
+                visible={showBridgeTos}
+                country={kycCorridor ? DEPOSIT_RAILS[kycCorridor].flagIso2.toUpperCase() : undefined}
+                onComplete={hideTos}
+                onSkip={hideTos}
+            />
             <ProvideEmailStep
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}
