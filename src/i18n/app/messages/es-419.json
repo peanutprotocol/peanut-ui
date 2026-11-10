@@ -4228,7 +4228,7 @@
             "bridge_tos_v2_required": "Acepta los Términos de Servicio actualizados del proveedor de transferencias bancarias para habilitar transferencias en euros y libras esterlinas.",
             "bridge_processing": "Nuestro socio de pagos está finalizando tu verificación. Esto suele tomar unos minutos.",
             "verification_blocked": "Problema de verificación: contacta a soporte para recibir ayuda.",
-            "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado. Contacta a soporte para corregirlo y volver a configurar tu cuenta bancaria.",
+            "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado.",
             "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si crees que es un error, escribe a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
@@ -5016,6 +5016,16 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Corregir código postal",
+            "description": "Ingresa el código postal de tu domicilio verificado.",
+            "country": "País: {country}",
+            "save": "Guardar",
+            "queuedTitle": "Configuración bancaria en espera",
+            "queuedBody": "Tu configuración bancaria está en espera. Te avisaremos cuando avance.",
+            "temporary": "No pudimos cargar esta corrección. Intenta de nuevo o contacta a soporte.",
+            "unavailable": "Esta corrección no está disponible. Contacta a soporte para recibir ayuda."
+        },
         "opened": {
             "heading": "Cuenta en {currency} lista",
             "body": "Tus propios datos bancarios, listos para tu próximo pago.",

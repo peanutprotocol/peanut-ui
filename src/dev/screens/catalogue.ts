@@ -64,6 +64,26 @@ const readiness: Record<string, string> = {
 const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
+    'paperwork-verification-bridge-postal-correction': {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="verify-input-postCode"]',
+    },
+    'paperwork-verification-bridge-postal-queued': {
+        actions: [
+            { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },
+            { fill: { selector: '[data-testid="verify-input-postCode"]', value: '012345' } },
+            { clickSelector: '[data-testid="bridge-postal-correction-save"]' },
+        ],
+        expectSelector: '[data-testid="bridge-postal-correction-queued"]',
+    },
+    'paperwork-verification-bridge-postal-temporary': {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="bridge-postal-correction-temporary"]',
+    },
+    'paperwork-verification-bridge-postal-unavailable': {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="bridge-postal-correction-unavailable"]',
+    },
     'paperwork-verification-py-postal-refused': {
         actions: [{ clickSelector: '[data-testid="verify-continue"]' }],
         expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',

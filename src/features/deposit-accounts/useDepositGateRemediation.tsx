@@ -21,6 +21,7 @@ import { trackAddressStepSubmitted } from './analytics'
 import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from './useDepositAccounts'
+import { BridgePostalCorrection } from './components/BridgePostalCorrection'
 import { AddressLaunchModal } from './components/AddressLaunchModal'
 
 /**
@@ -60,6 +61,7 @@ export function useDepositGateRemediation(): {
     const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const gateActions = useGateActions(sumsubFlow)
     const bridgeProviderId = useBridgeProviderId()
+    const [postalGate, setPostalGate] = useState<GateState>()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
     // The corridor the verification is for. It is what the backend opens the
@@ -80,6 +82,7 @@ export function useDepositGateRemediation(): {
     useEffect(() => {
         addressPending.current = false
         setAddressLaunch(undefined)
+        setPostalGate(undefined)
         setAddressStarting(false)
         setAddressLaunchError(null)
         return () => {
@@ -132,6 +135,14 @@ export function useDepositGateRemediation(): {
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)
+        if (
+            corridor &&
+            DEPOSIT_RAILS[corridor].provider === 'bridge' &&
+            getGateReasonCode(gate) === 'invalid_bank_postal_code'
+        ) {
+            setPostalGate(gate)
+            return
+        }
         // The drawer already explained the address step: open it, with no second screen in front.
         if (isAddressStepGate(gate)) {
             void startAddress(gate, corridor)
@@ -171,6 +182,17 @@ export function useDepositGateRemediation(): {
         (addressStarting || !!addressError)
     const modals = (
         <>
+            <BridgePostalCorrection
+                visible={!!postalGate}
+                onClose={() => setPostalGate(undefined)}
+                onSupport={() => {
+                    if (postalGate) gateActions.contactSupport(postalGate)
+                    setPostalGate(undefined)
+                }}
+                onQueued={() => {
+                    void queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
+                }}
+            />
             <AddressLaunchModal
                 visible={addressVisible}
                 onClose={closeAddressLaunch}

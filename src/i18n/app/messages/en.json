@@ -4228,7 +4228,7 @@
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
-            "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address. Contact support to correct it and retry your bank setup.",
+            "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address.",
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
@@ -5016,6 +5016,16 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Correct postal code",
+            "description": "Enter the postal code for your verified address.",
+            "country": "Country: {country}",
+            "save": "Save",
+            "queuedTitle": "Bank setup queued",
+            "queuedBody": "Your bank setup is queued. We’ll update you when it progresses.",
+            "temporary": "We couldn’t load this correction. Try again or contact support.",
+            "unavailable": "This correction is unavailable. Contact support for help."
+        },
         "opened": {
             "heading": "{currency} account ready",
             "body": "Your own bank details, ready for your next payment.",

@@ -778,3 +778,29 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
 }
+
+const postalSupport = PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-py-bank-postal-support']
+const postalCorrection: (typeof PAPERWORK_VERIFICATION_FIXTURES)[string] = {
+    ...postalSupport,
+    about: 'A verified user corrects the postal code for a blocked Bridge bank setup.',
+    responses: {
+        ...postalSupport.responses,
+        'GET /users/kyc/bridge-postal-code': { country: 'PY', revision: 'a'.repeat(64) },
+        'POST /users/kyc/bridge-postal-code': { status: 'queued' },
+    },
+}
+PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-correction'] = postalCorrection
+PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-queued'] = {
+    ...postalCorrection,
+    about: 'The corrected postal code is saved and Bridge setup is queued.',
+}
+PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-temporary'] = {
+    ...postalCorrection,
+    about: 'A temporary error leaves both retry and support available.',
+    rejects: { 'GET /users/kyc/bridge-postal-code': { status: 503, body: { code: 'temporary_failure' } } },
+}
+PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-unavailable'] = {
+    ...postalCorrection,
+    about: 'A user who cannot use the postal correction can contact support.',
+    rejects: { 'GET /users/kyc/bridge-postal-code': { status: 409, body: { code: 'correction_unavailable' } } },
+}

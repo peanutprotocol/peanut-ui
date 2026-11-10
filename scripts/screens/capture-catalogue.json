@@ -534,6 +534,26 @@
         "route": "/verify?feature=bank"
     },
     {
+        "id": "fixture-paperwork-verification-bridge-postal-correction",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-queued",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-temporary",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-unavailable",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "p05-home",
         "flow": "Home and shared states",
         "route": "/home"

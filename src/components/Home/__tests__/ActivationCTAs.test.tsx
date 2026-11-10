@@ -45,6 +45,11 @@ let mockDisableCardPromotion = false
 jest.mock('@/hooks/useFeatureFlag', () => ({
     useFeatureFlags: () => (flagKey: string) => flagKey === 'card-promotion-disabled' && mockDisableCardPromotion,
 }))
+jest.mock('@/features/deposit-accounts/components/BridgePostalCorrection', () => ({
+    BridgePostalCorrection: ({ visible }: { visible: boolean }) =>
+        visible ? <div>Postal correction opened</div> : null,
+}))
+
 const mockHeal = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockInitiateKyc = jest.fn()
@@ -182,6 +187,23 @@ beforeEach(() => {
     mockRejectLabels = undefined
     mockShowWrapper = false
     mockPaperworkVerification = () => Promise.resolve(false)
+})
+
+describe('Bridge postal correction', () => {
+    it('opens the correction from Home for a blocked Bridge postal code', () => {
+        mockRails = [
+            {
+                id: 'bridge.ach_us',
+                provider: 'bridge',
+                channel: 'bank',
+                status: 'blocked',
+                reason: { code: 'invalid_bank_postal_code', userMessage: 'Postal code rejected' },
+            },
+        ]
+        render(<ActivationCTAs onboarding={VERIFIED} />)
+        fireEvent.click(screen.getByRole('button', { name: 'Correct postal code' }))
+        expect(screen.getByText('Postal correction opened')).toBeInTheDocument()
+    })
 })
 
 describe('ActivationCTAs — residence restrictions', () => {
