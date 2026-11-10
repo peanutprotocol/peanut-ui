@@ -444,9 +444,9 @@ export interface TransactionDetails {
          *  `hasPublicReceipt`: it is the one gate for the receipt link, its
          *  share and the anonymous PDF. */
         publicReceipt?: boolean
-        /** An Avenia withdrawal whose payout the bank refused: the money waits for another own Pix key. */
+        /** A Pix withdrawal whose payout the bank refused: the money waits for another own Pix key. */
         awaitsNewPixKey?: boolean
-        /** An Avenia Pix deposit whose code can still be paid: the receipt opens it again. */
+        /** A Pix deposit whose code can still be paid: the receipt opens it again. */
         pixCodePayable?: boolean
         link?: string
         isLinkTransaction?: boolean
