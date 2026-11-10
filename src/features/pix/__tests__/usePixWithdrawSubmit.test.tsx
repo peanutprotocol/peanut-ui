@@ -504,7 +504,9 @@ describe('usePixWithdrawSubmit', () => {
             signedUserOp: { signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
         }
 
-        const pendingMark = () => window.localStorage.getItem('pix-withdraw-pending')
+        // this account's marks, by price lock
+        const marks = () => JSON.parse(window.localStorage.getItem('pix-withdraw-pending:u1') ?? '{}')
+        const pendingMark = () => (marks()['lock-1'] ? JSON.stringify(marks()['lock-1']) : null)
         beforeEach(() => window.localStorage.clear())
 
         it('signs a transfer of exactly the pay amount to the deposit address, and opens nothing before the submit', async () => {
@@ -588,6 +590,34 @@ describe('usePixWithdrawSubmit', () => {
             expect(result.current.phase).toBe('funded')
         })
 
+        // two tabs: tab A's submit lost its answer (lock-a); tab B's refusal must not lift A's guard
+        it("clears only its own lock's mark on a refusal, never another tab's", async () => {
+            window.localStorage.setItem(
+                'pix-withdraw-pending:u1',
+                JSON.stringify({
+                    'lock-a': {
+                        priceLockCode: 'lock-a',
+                        display,
+                        submittedAt: Date.now() - 30_000,
+                        settleBy: Date.now() + 10 * 60_000,
+                    },
+                })
+            )
+            mockInit.mockResolvedValue(transferInit())
+            mockSignSpend.mockResolvedValue(artifact)
+            mockSubmitTransfer.mockRejectedValue(
+                new ApiError('This Pix key was not found.', { status: 404, code: 'PIX_KEY_NOT_FOUND' })
+            )
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+
+            expect(result.current.phase).toBe('idle')
+            expect(Object.keys(marks())).toEqual(['lock-a'])
+        })
+
         it('reads a submit the API refused before it broadcast as nothing sent', async () => {
             mockInit.mockResolvedValue(transferInit())
             mockSignSpend.mockResolvedValue(artifact)
@@ -628,7 +658,7 @@ describe('usePixWithdrawSubmit', () => {
                 expect(result.current.lockedAfterInit).toBe(true)
                 expect(onOpened).toHaveBeenCalledWith(null)
                 // the device mark outlives this page, so a reload shows the same withdrawal
-                expect(JSON.parse(pendingMark()!)).toMatchObject({ userId: 'u1', priceLockCode: 'lock-1' })
+                expect(JSON.parse(pendingMark()!)).toMatchObject({ priceLockCode: 'lock-1' })
                 unmount()
             }
         })

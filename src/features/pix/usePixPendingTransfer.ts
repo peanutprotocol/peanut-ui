@@ -1,54 +1,57 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useAuth } from '@/context/authContext'
-import { useHydrationSnapshot } from '@/utils/native-platform'
-import { readStoredValue } from '@/utils/safe-storage'
+import { readStoredValue, removeStoredValue } from '@/utils/safe-storage'
 import {
-    clearTransferPending,
-    parsePendingTransfer,
-    PENDING_TRANSFER_KEY,
+    parsePendingTransfers,
+    pendingTransfersKey,
+    pruneTransferPending,
+    standingTransfers,
     type PendingTransfer,
 } from '@/features/pix/pixWithdrawPending'
 
+/** The single unscoped mark an earlier build of this branch wrote; it named no account. */
+const UNSCOPED_KEY = 'pix-withdraw-pending'
+
+/** Another tab's mark arrives as a storage event: the page then holds the new withdrawal too. */
+function subscribe(onChange: () => void): () => void {
+    window.addEventListener('storage', onChange)
+    return () => window.removeEventListener('storage', onChange)
+}
+
 /**
- * The signed-in account's withdrawal that this device may have submitted without an answer
- * naming it (`pixWithdrawPending`), until the lock's window plus the margin has passed; then the
- * mark goes and the page may offer a new withdrawal. A mark from another account, or one past its
- * window, is cleared and never shown. `enabled`: false once the page names a withdrawal itself.
+ * The newest withdrawal the signed-in account may have submitted from this browser without an
+ * answer naming it (`pixWithdrawPending`), while any of its marks stands. Marks past their window
+ * are pruned on read; when the last one passes, the page may offer a new withdrawal. Another
+ * account's marks live under its own key and are never read. `enabled`: false once the page names
+ * a withdrawal itself.
  */
 export function usePixPendingTransfer({ enabled }: { enabled: boolean }): PendingTransfer | null {
     const { user } = useAuth()
     const userId = user?.user?.userId
-    // read after hydration: the server has no storage, and the stored string is a stable snapshot
-    const raw = useHydrationSnapshot(
-        () => readStoredValue(PENDING_TRANSFER_KEY),
+    // the stored string is a stable snapshot; the server has no storage
+    const raw = useSyncExternalStore(
+        subscribe,
+        useCallback(() => (userId ? readStoredValue(pendingTransfersKey(userId)) : null), [userId]),
         () => null
     )
-    const [settled, setSettled] = useState(false)
-    const stored = useMemo(() => parsePendingTransfer(raw), [raw])
-    const own = !!stored && !!userId && stored.userId === userId
-    const pending = enabled && !settled && own && stored.settleBy > Date.now() ? stored : null
+    // moves the page on when the oldest standing mark passes its window
+    const [now, setNow] = useState(() => Date.now())
+    const standing = useMemo(() => standingTransfers(parsePendingTransfers(raw), now), [raw, now])
+    const pending = enabled ? (standing[0] ?? null) : null
 
-    // another account's mark, one past its window, or one that does not parse: gone, so it can never
-    // stand for this account
     useEffect(() => {
-        if (raw && !stored) clearTransferPending()
-        else if (stored && userId && (stored.userId !== userId || stored.settleBy <= Date.now())) clearTransferPending()
-    }, [raw, stored, userId])
+        removeStoredValue(UNSCOPED_KEY)
+        if (userId) pruneTransferPending(userId)
+    }, [userId, raw, now])
 
-    // the lock's window plus the margin: the API can no longer have taken it, and History shows it
+    const nextExpiry = standing.length ? Math.min(...standing.map((mark) => mark.settleBy)) : null
     useEffect(() => {
-        if (!pending) return
-        const timer = setTimeout(
-            () => {
-                clearTransferPending()
-                setSettled(true)
-            },
-            Math.max(0, pending.settleBy - Date.now())
-        )
+        if (nextExpiry === null) return
+        const timer = setTimeout(() => setNow(Date.now()), Math.max(0, nextExpiry - Date.now()) + 1)
         return () => clearTimeout(timer)
-    }, [pending])
+    }, [nextExpiry])
 
     return pending
 }

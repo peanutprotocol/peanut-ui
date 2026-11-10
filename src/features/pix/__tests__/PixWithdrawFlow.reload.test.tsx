@@ -266,28 +266,35 @@ describe('PixWithdrawFlow after a reload', () => {
 describe('PixWithdrawFlow after a reload with a submit that may have gone out', () => {
     const FORM = '?step=review&destination=09579927189&destinationAmount=503'
     const SUBMITTED_AT = Date.now() - 60_000
-    const mark = (settleBy: number, userId = 'u1') =>
+    const display = (amountBrl: string) => ({
+        amountBrl,
+        pixKey: '09579927189',
+        ownAccount: null,
+        holderName: 'Ana Souza',
+        bankName: null,
+        withdrawUsd: '92.504310',
+        rate: '5.437838',
+        fixedFeeBrl: '0',
+        arrivalEstimateSeconds: 300,
+        provider: 'Manteca',
+    })
+    // the account's marks, one per price lock
+    const marks = (
+        list: Array<{ lock: string; settleBy: number; amountBrl?: string; submittedAt?: number }>,
+        userId = 'u1'
+    ) =>
         window.localStorage.setItem(
-            'pix-withdraw-pending',
-            JSON.stringify({
-                userId,
-                priceLockCode: 'lock-1',
-                display: {
-                    amountBrl: '503.00',
-                    pixKey: '09579927189',
-                    ownAccount: null,
-                    holderName: 'Ana Souza',
-                    bankName: null,
-                    withdrawUsd: '92.504310',
-                    rate: '5.437838',
-                    fixedFeeBrl: '0',
-                    arrivalEstimateSeconds: 300,
-                    provider: 'Manteca',
-                },
-                submittedAt: SUBMITTED_AT,
-                settleBy,
-            })
+            `pix-withdraw-pending:${userId}`,
+            JSON.stringify(
+                Object.fromEntries(
+                    list.map(({ lock, settleBy, amountBrl = '503.00', submittedAt = SUBMITTED_AT }) => [
+                        lock,
+                        { priceLockCode: lock, display: display(amountBrl), submittedAt, settleBy },
+                    ])
+                )
+            )
         )
+    const SOON = () => Date.now() + 10 * 60_000
     beforeEach(() => {
         jest.clearAllMocks()
         window.localStorage.clear()
@@ -297,7 +304,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
     })
 
     it('shows it as not confirmed yet, never the review and its Confirm', () => {
-        mark(Date.now() + 10 * 60_000)
+        marks([{ lock: 'lock-a', settleBy: SOON() }])
         renderAt(FORM)
 
         expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
@@ -306,9 +313,21 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
         expect(mockPreview).not.toHaveBeenCalled()
     })
 
+    // two tabs, each with a lost answer: the page shows the newest and holds while either stands
+    it('shows the newest of two standing marks', () => {
+        marks([
+            { lock: 'lock-a', settleBy: SOON(), amountBrl: '503.00' },
+            { lock: 'lock-b', settleBy: SOON(), amountBrl: '120.00', submittedAt: SUBMITTED_AT + 5_000 },
+        ])
+        renderAt(FORM)
+
+        expect(screen.getByText('R$120')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.confirm })).toBeNull()
+    })
+
     // nothing in history names the lock: an earlier withdrawal of the same amount must not lift it
     it('stands until its deadline whatever history shows, even a same-amount withdrawal', () => {
-        mark(Date.now() + 10 * 60_000)
+        marks([{ lock: 'lock-a', settleBy: SOON() }])
         mockHistoryEntries = [
             {
                 uuid: 'older',
@@ -328,27 +347,27 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
 
         expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
         expect(urls.some((url) => url.includes('intentId'))).toBe(false)
-        expect(window.localStorage.getItem('pix-withdraw-pending')).not.toBeNull()
+        expect(window.localStorage.getItem('pix-withdraw-pending:u1')).not.toBeNull()
     })
 
-    it("never shows another account's mark, and clears it", async () => {
-        mark(Date.now() + 10 * 60_000, 'someone-else')
+    it("never reads another account's marks, and leaves them where they are", async () => {
+        marks([{ lock: 'lock-a', settleBy: SOON() }], 'someone-else')
         mockPreview.mockReturnValue(new Promise(() => {}))
         renderAt(FORM)
 
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
         expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
-        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending')).toBeNull())
+        expect(window.localStorage.getItem('pix-withdraw-pending:someone-else')).not.toBeNull()
     })
 
-    it("lets a new withdrawal through once the lock's window has passed", async () => {
-        mark(Date.now() - 1_000)
+    it("lets a new withdrawal through once every mark's window has passed, and prunes them", async () => {
+        marks([{ lock: 'lock-a', settleBy: Date.now() - 1_000 }])
         mockPreview.mockReturnValue(new Promise(() => {}))
         renderAt(FORM)
 
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
         expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
-        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending')).toBeNull())
+        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending:u1')).toBeNull())
     })
 })
 

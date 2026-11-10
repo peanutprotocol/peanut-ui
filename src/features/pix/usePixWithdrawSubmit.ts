@@ -116,8 +116,9 @@ export interface PixWithdrawSubmit {
  *   without broadcasting it; POST /pix/withdraw/submit opens the payout order for the locked price,
  *   then broadcasts, so no money leaves for an order that could not open. A submit whose answer is
  *   lost may still have paid: it reads as not confirmed (`unconfirmed`), and a device mark for this
- *   account (`pixWithdrawPending`) keeps the page on it after a reload until the lock's window has
- *   passed. A browser that cannot keep the mark signs nothing.
+ *   account and this price lock (`pixWithdrawPending`) keeps the page on it after a reload, in any
+ *   tab and after a logout, until the lock's window has passed. A browser that cannot keep the
+ *   mark signs nothing.
  *
  * The open quotes again, seconds after the review. When that quote takes any more USD or pays any
  * fewer reais than the reviewed one, nothing is signed until the user confirms the new amounts.
@@ -289,11 +290,10 @@ export function usePixWithdrawSubmit({
                 amountUsd: request.payAmount,
                 funding: pixSignedFunding(candidate),
             })
-            // From here the payout may go out with no answer naming it: the device keeps the mark until
-            // the API refuses the submit, the answer names the withdrawal, or the lock's window has
-            // passed. A mark that did not hold sends nothing: the signature is dropped unsent.
-            const marked = markTransferPending({
-                userId,
+            // From here the payout may go out with no answer naming it: the device keeps this lock's
+            // mark until the API refuses this submit, the answer names the withdrawal, or the lock's
+            // window has passed. A mark that did not hold sends nothing: the signature is dropped unsent.
+            const marked = markTransferPending(userId, {
                 priceLockCode: request.priceLockCode,
                 display: withdrawal.display,
                 submittedAt: Date.now(),
@@ -335,7 +335,8 @@ export function usePixWithdrawSubmit({
                 reportSignFailure(caught, null)
                 // a recovery that handed back, or an answer from before the broadcast, moved nothing
                 if (isSpendRecoveryOutcome(caught) || submitSentNothing(caught)) {
-                    clearTransferPending()
+                    // only this submit's mark: another tab's withdrawal keeps its own
+                    clearTransferPending(userId, request.priceLockCode)
                     dispatch({
                         type: 'SENT_NOTHING',
                         error: isSpendRecoveryOutcome(caught)
@@ -356,7 +357,7 @@ export function usePixWithdrawSubmit({
             void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
             // a named withdrawal is the URL's from now on; an unnamed one keeps the mark until history shows it
-            if (submitted.intentId) clearTransferPending()
+            if (submitted.intentId) clearTransferPending(userId, request.priceLockCode)
             dispatch({ type: 'SUBMITTED', intentId: submitted.intentId })
             onOpened?.(submitted.intentId)
         },

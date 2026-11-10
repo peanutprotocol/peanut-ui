@@ -250,9 +250,11 @@ describe('logoutUser', () => {
         expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
     })
 
-    // it names the key and holder of a Pix withdrawal the account may have sent; never the next account's
-    it("clears the account's pending Pix withdrawal mark", async () => {
-        localStorage.setItem('pix-withdraw-pending', JSON.stringify({ userId: 'u1', settleBy: Date.now() + 60_000 }))
+    // the same account signing back in before the withdrawal settles still finds its guard;
+    // another account never reads it (the key is the account's)
+    it("keeps the account's pending Pix withdrawal marks", async () => {
+        const marks = JSON.stringify({ 'lock-a': { priceLockCode: 'lock-a', settleBy: Date.now() + 60_000 } })
+        localStorage.setItem('pix-withdraw-pending:u1', marks)
         stubLocation()
         const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -260,7 +262,7 @@ describe('logoutUser', () => {
             await result.current.logoutUser()
         })
 
-        expect(localStorage.getItem('pix-withdraw-pending')).toBeNull()
+        expect(localStorage.getItem('pix-withdraw-pending:u1')).toBe(marks)
     })
 
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
