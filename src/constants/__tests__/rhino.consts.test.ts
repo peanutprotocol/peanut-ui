@@ -3,7 +3,7 @@ import { CHAIN_SCOPED_DEPOSIT_TOKENS, getSupportedTokens } from '@/constants/rhi
 describe('CHAIN_SCOPED_DEPOSIT_TOKENS', () => {
     test('pairs each token with the one chain a real deposit proved', () => {
         expect(CHAIN_SCOPED_DEPOSIT_TOKENS.map((token) => [token.name, token.network])).toEqual([
-            ['EURe', 'Gnosis'],
+            ['EURe v2', 'Gnosis'],
             ['EURC', 'Base'],
             ['USDS', 'Base'],
             ['USDe', 'Arbitrum'],
@@ -13,7 +13,7 @@ describe('CHAIN_SCOPED_DEPOSIT_TOKENS', () => {
 
     test('flags only the euro stablecoins, which convert at the market rate', () => {
         expect(CHAIN_SCOPED_DEPOSIT_TOKENS.filter((token) => token.isEuro).map((token) => token.name)).toEqual([
-            'EURe',
+            'EURe v2',
             'EURC',
         ])
     })
