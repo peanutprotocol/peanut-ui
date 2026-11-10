@@ -2,7 +2,7 @@
 import { demoRespond } from '../../src/utils/demo-api'
 import { KYC_USER_READS } from '../../src/utils/demo-kyc'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
-import { withFixtureFeatureReport } from '../../src/dev/fixtures/featureReport'
+import { withFixtureFeatureReport, withFixtureRoutes } from '../../src/dev/fixtures/featureReport'
 import type { IUserProfile } from '../../src/interfaces/interfaces'
 import openapi from '../../src/types/api.openapi.json'
 import { exampleFor } from './openapi-example'
@@ -96,10 +96,13 @@ export async function answer(
         const paperworkData = paperworkBase ? await paperworkBase.json() : {}
         const paperworkOverride = state.responses?.['GET /users/kyc/paperwork']
         const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
-        merged = withFixtureFeatureReport(
-            merged as IUserProfile | null,
-            override as Partial<IUserProfile> | null,
-            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        merged = withFixtureRoutes(
+            withFixtureFeatureReport(
+                merged as IUserProfile | null,
+                override as Partial<IUserProfile> | null,
+                paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+            ),
+            override as Partial<IUserProfile> | null
         )
     }
     return Response.json(merged, { status: base.status })
