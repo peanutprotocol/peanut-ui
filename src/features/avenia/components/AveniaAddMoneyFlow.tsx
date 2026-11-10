@@ -11,7 +11,7 @@ import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
-import { AVENIA_MIN_DEPOSIT_BRL, toApiDecimal } from '@/features/avenia/avenia.utils'
+import { toApiDecimal } from '@/features/avenia/avenia.utils'
 import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
@@ -78,15 +78,17 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
         enabled: ready,
         staleTime: 5 * 60_000,
     })
-    const minBrl = Number(eligibility.data?.minAmountBrl ?? AVENIA_MIN_DEPOSIT_BRL)
-    // the amount step's estimate is Avenia's quote for the reais on screen, not the /fx rate
-    // only the amount step quotes: the setup and the code screen do not
-    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minBrl, ready && !intentId)
+    // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
+    // It opens on the eligible minimum, and the quote names the provider's minimum from then on.
+    // Only the amount step quotes: the setup and the code screen do not.
+    const opening = eligibility.data ? { amountBrl: eligibility.data.minAmountBrl } : null
+    const currencyData = usePixQuoteCurrency('deposit', brlAmount, opening, ready && !intentId)
+    const minimumLine = currencyData.minimumBrl
+        ? tAvenia('minimum', { amount: formatBankAmount(currencyData.minimumBrl, 'BRL') })
+        : null
     const brlNumber = Number(brlAmount)
     const validationError =
-        brlAmount && brlNumber > 0 && brlNumber < minBrl
-            ? tAvenia('minimum', { amount: formatBankAmount(minBrl, 'BRL') })
-            : null
+        brlAmount && brlNumber > 0 && brlNumber < Number(currencyData.minimumBrl ?? 0) ? minimumLine : null
 
     // the code step belongs to one deposit; without its id there is nothing to show
     useEffect(() => {
@@ -142,7 +144,7 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
             }
             setError(
                 code === API_ERROR_CODES.PIX_MIN_AMOUNT
-                    ? tAvenia('minimum', { amount: formatBankAmount(minBrl, 'BRL') })
+                    ? (minimumLine ?? tShared('unavailable'))
                     : code === API_ERROR_CODES.PIX_LIMIT_EXCEEDED
                       ? tAvenia('limitExceeded')
                       : code === API_ERROR_CODES.PROVIDER_REJECTED
@@ -152,7 +154,7 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
         } finally {
             setIsCreating(false)
         }
-    }, [isCreating, brlAmount, usdAmount, setUrlState, queryClient, fetchUser, tAvenia, tShared, tErrors, minBrl])
+    }, [isCreating, brlAmount, usdAmount, setUrlState, queryClient, fetchUser, tAvenia, tShared, tErrors, minimumLine])
 
     if (intentId && (step === 'showQR' || resumeIntentId)) {
         return (

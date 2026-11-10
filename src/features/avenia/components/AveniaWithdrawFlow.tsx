@@ -8,6 +8,7 @@ import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AmountInput from '@/components/Global/AmountInput'
@@ -16,12 +17,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
-import {
-    AVENIA_MIN_WITHDRAWAL_BRL,
-    AVENIA_WITHDRAW_STEPS,
-    aveniaWithdrawAmount,
-    completePixKey,
-} from '@/features/avenia/avenia.utils'
+import { AVENIA_WITHDRAW_STEPS, aveniaWithdrawAmount, completePixKey } from '@/features/avenia/avenia.utils'
 import { AveniaPixKeyStep } from '@/features/avenia/components/AveniaPixKeyStep'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
 import { AveniaWithdrawOutcome } from '@/features/avenia/components/AveniaWithdrawOutcome'
@@ -53,7 +49,6 @@ import { formatBankAmount } from '@/utils/currency'
 export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('avenia.withdraw')
     const tShared = useTranslations('avenia')
-    const refusalMessage = useAveniaRefusalMessage()
     const tWithdraw = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -117,14 +112,18 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
 
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
-    // the amount step's estimate is Avenia's quote for the reais on screen, not the /fx rate
-    // only the amount step quotes: the setup, key, review and last steps do not
+    // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
+    // It opens on the whole balance, and the quote names the provider's minimum from then on.
+    // Only the amount step quotes: the setup, key, review and last steps do not.
+    const hasBalance = spendableBalance !== undefined && spendableBalance > 0n
     const brl = usePixQuoteCurrency(
         'withdraw',
         typedBrl,
-        AVENIA_MIN_WITHDRAWAL_BRL,
+        hasBalance ? { spendUsd: formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS) } : null,
         route.state === 'ready' && step === 'amount' && !showOutcome
     )
+    // the review's refusal lines read the minimum from the same quote
+    const refusalMessage = useAveniaRefusalMessage(brl.minimumBrl)
     const [typedUsd, setTypedUsd] = useState<string | undefined>(undefined)
     const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
         amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'
@@ -181,11 +180,11 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 ? tErrors('insufficientBalance')
                 : undefined
         // the reais the field shows, typed or converted; the API checks the credited amount again
-        const belowMinimum = Number(typedBrl) > 0 && Number(typedBrl) < AVENIA_MIN_WITHDRAWAL_BRL
+        const belowMinimum = !!brl.minimumBrl && Number(typedBrl) > 0 && Number(typedBrl) < Number(brl.minimumBrl)
         const amountError =
             balanceError ??
-            (belowMinimum
-                ? tShared('deposit.minimum', { amount: formatBankAmount(AVENIA_MIN_WITHDRAWAL_BRL, 'BRL') })
+            (belowMinimum && brl.minimumBrl
+                ? tShared('deposit.minimum', { amount: formatBankAmount(brl.minimumBrl, 'BRL') })
                 : undefined)
         return (
             <PageStack>
@@ -193,7 +192,10 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 <PageStack.Center>
                     <div className="text-heading-xs text-foreground-primary">{tWithdraw('amountToWithdraw')}</div>
                     {/* the quote failed (the route changed, Avenia is down): retry here, not a spinner */}
-                    {brl.isError ? (
+                    {spendableBalance === 0n ? (
+                        // nothing to withdraw, and nothing for the quote to open on
+                        <Callout priority="error">{tErrors('insufficientBalance')}</Callout>
+                    ) : brl.isError ? (
                         <RateUnavailable onRetry={brl.refetch} />
                     ) : brl.isLoading || !brl.price ? (
                         <Loading />

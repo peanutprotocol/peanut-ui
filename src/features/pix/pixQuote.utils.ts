@@ -1,10 +1,13 @@
 import { toApiDecimal } from '@/features/avenia/avenia.utils'
 import type { PixQuote } from '@/services/pix'
 
-/** The reais to quote: the amount on screen once it reaches the minimum, else the minimum. */
-export function pixQuoteAmountBrl(typedBrl: string | undefined, minimumBrl: number): string {
+/**
+ * The reais on screen, as the quote takes them, once they reach the provider's minimum (the quote's
+ * `minAmountBrl`). Null below it, or before the first quote has said what it is.
+ */
+export function pixTypedQuoteBrl(typedBrl: string | undefined, minimumBrl: string | null): string | null {
     const typed = toApiDecimal(typedBrl ?? '', 2)
-    return typed && Number(typed) >= minimumBrl ? typed : String(minimumBrl)
+    return typed && minimumBrl !== null && Number(typed) >= Number(minimumBrl) ? typed : null
 }
 
 /** BRL per USD of one quote, flat fee included: what the reais buy (deposit) or what the USD pays out (withdraw). */

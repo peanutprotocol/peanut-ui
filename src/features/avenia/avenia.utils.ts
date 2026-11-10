@@ -11,12 +11,6 @@ import type { HistoryEntry } from '@/utils/history.utils'
 const IDENTITY_IMPORT_UNAVAILABLE_REASON = 'identity_import_unavailable'
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
 
-/** R$0.75 fixed on R$10 is 7.5%, so Avenia deposits start at R$20 (plan H2). The eligibility route has the live value. */
-export const AVENIA_MIN_DEPOSIT_BRL = 20
-
-/** PR B refuses a withdrawal that credits less (`PIX_MIN_AMOUNT`, `AVENIA_MIN_WITHDRAWAL_BRL` in its rules). No route sends it. */
-export const AVENIA_MIN_WITHDRAWAL_BRL = 20
-
 /**
  * What the Avenia setup step shows for the backend's route: the identity
  * check first (`verify`), Avenia's terms (the route's action is an

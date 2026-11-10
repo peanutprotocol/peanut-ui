@@ -1,12 +1,14 @@
-import { pixQuoteAmountBrl, pixQuotePrice } from '../pixQuote.utils'
+import { pixQuotePrice, pixTypedQuoteBrl } from '../pixQuote.utils'
 
-describe('pixQuoteAmountBrl', () => {
-    it('quotes the reais on screen once they reach the minimum, else the minimum', () => {
-        expect(pixQuoteAmountBrl('503', 20)).toBe('503')
-        expect(pixQuoteAmountBrl('100.505', 20)).toBe('100.5')
-        expect(pixQuoteAmountBrl('19.99', 20)).toBe('20')
-        expect(pixQuoteAmountBrl('', 20)).toBe('20')
-        expect(pixQuoteAmountBrl(undefined, 20)).toBe('20')
+describe('pixTypedQuoteBrl', () => {
+    it("quotes the reais on screen once they reach the provider's minimum, else nothing", () => {
+        expect(pixTypedQuoteBrl('503', '20')).toBe('503')
+        expect(pixTypedQuoteBrl('100.505', '20')).toBe('100.5')
+        expect(pixTypedQuoteBrl('19.99', '20')).toBeNull()
+        expect(pixTypedQuoteBrl('', '20')).toBeNull()
+        expect(pixTypedQuoteBrl(undefined, '20')).toBeNull()
+        // the minimum comes from the first quote; before it, the amount waits
+        expect(pixTypedQuoteBrl('503', null)).toBeNull()
     })
 })
 

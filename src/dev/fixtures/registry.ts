@@ -283,6 +283,7 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
         usdcAmount: '18.237000',
         rate: '5.442342',
         fixedFeeBrl: '0.75',
+        minAmountBrl: '20',
     },
     ...overrides,
 })

@@ -907,6 +907,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             usdcAmount: '18.237000',
             rate: '5.442342',
             fixedFeeBrl: '0.75',
+            minAmountBrl: '20',
         }),
     },
     {
