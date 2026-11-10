@@ -22,7 +22,7 @@ jobs:
             pull-requests: read
         steps:
             - name: Authorize and dispatch the current PR head
-              uses: actions/github-script@v7
+              uses: actions/github-script@v9
               with:
                   script: |
                       if (context.payload.comment.body !== '/ds-shots') return

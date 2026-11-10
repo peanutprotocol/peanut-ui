@@ -61,7 +61,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Verify a human owns and approved the bot-authored commits
-              uses: actions/github-script@v7
+              uses: actions/github-script@v9
               with:
                   script: |
                       const ALLOWED_BOTS = ['chip-peanut-bot[bot]'];
