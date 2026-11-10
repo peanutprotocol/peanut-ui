@@ -4358,6 +4358,7 @@
 																		"us_state_required",
 																		"geo-blocked",
 																		"local_residence_unsupported",
+																		"local_served_elsewhere",
 																		"manteca_us_nationality_restricted",
 																		"local_tax_id_missing",
 																		"document_country_unsupported"
@@ -4403,6 +4404,7 @@
 																"us_state_required",
 																"geo-blocked",
 																"local_residence_unsupported",
+																"local_served_elsewhere",
 																"manteca_us_nationality_restricted",
 																"local_tax_id_missing",
 																"document_country_unsupported"
@@ -4431,6 +4433,7 @@
 																"us_state_required",
 																"geo-blocked",
 																"local_residence_unsupported",
+																"local_served_elsewhere",
 																"manteca_us_nationality_restricted",
 																"local_tax_id_missing",
 																"document_country_unsupported"
@@ -4459,6 +4462,7 @@
 																"us_state_required",
 																"geo-blocked",
 																"local_residence_unsupported",
+																"local_served_elsewhere",
 																"manteca_us_nationality_restricted",
 																"local_tax_id_missing",
 																"document_country_unsupported"
@@ -12280,6 +12284,9 @@
 												"description": "The payment lock code from init",
 												"type": "string"
 											},
+											"pixQrHost": {
+												"description": "Bounded client Pix host label for outcome telemetry; unrecognized values are ignored."
+											},
 											"qrType": {
 												"description": "Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users.",
 												"type": "string"
@@ -12362,6 +12369,9 @@
 											"paymentLockCode": {
 												"description": "The payment lock code from init",
 												"type": "string"
+											},
+											"pixQrHost": {
+												"description": "Bounded client Pix host label for outcome telemetry; unrecognized values are ignored."
 											},
 											"qrType": {
 												"type": "string"
@@ -30498,6 +30508,12 @@
 																},
 																{
 																	"enum": [
+																		"local_served_elsewhere"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
 																		"manteca_us_nationality_restricted"
 																	],
 																	"type": "string"
@@ -30664,6 +30680,12 @@
 																{
 																	"enum": [
 																		"local_residence_unsupported"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local_served_elsewhere"
 																	],
 																	"type": "string"
 																},
@@ -30840,6 +30862,12 @@
 																},
 																{
 																	"enum": [
+																		"local_served_elsewhere"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
 																		"manteca_us_nationality_restricted"
 																	],
 																	"type": "string"
@@ -31006,6 +31034,12 @@
 																{
 																	"enum": [
 																		"local_residence_unsupported"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local_served_elsewhere"
 																	],
 																	"type": "string"
 																},
@@ -31972,6 +32006,13 @@
 						"content": {
 							"application/json": {
 								"example": {
+									"address": {
+										"buildingNumber": "12",
+										"country": "PT",
+										"postCode": "1100-053",
+										"street": "Rua Augusta",
+										"town": "Lisboa"
+									},
 									"document": {
 										"country": "PT",
 										"type": "PASSPORT"
@@ -31990,10 +32031,41 @@
 										"cityOfBirth": "Lisboa",
 										"countryOfBirth": "PT",
 										"dateOfBirth": "1992-06-15"
-									}
+									},
+									"taxId": null
 								},
 								"schema": {
 									"properties": {
+										"address": {
+											"anyOf": [
+												{
+													"properties": {
+														"buildingNumber": {
+															"type": "string"
+														},
+														"country": {
+															"type": "string"
+														},
+														"postCode": {
+															"type": "string"
+														},
+														"state": {
+															"type": "string"
+														},
+														"street": {
+															"type": "string"
+														},
+														"town": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"document": {
 											"anyOf": [
 												{
@@ -32129,6 +32201,16 @@
 												}
 											},
 											"type": "object"
+										},
+										"taxId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
@@ -32137,6 +32219,8 @@
 										"idNationality",
 										"document",
 										"stored",
+										"address",
+										"taxId",
 										"heldBySumsub"
 									],
 									"type": "object"
@@ -32740,6 +32824,12 @@
 												{
 													"enum": [
 														"local_residence_unsupported"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"local_served_elsewhere"
 													],
 													"type": "string"
 												},
@@ -33724,7 +33814,8 @@
 											"id": "eea"
 										}
 									],
-									"temporaryProtection": null
+									"temporaryProtection": null,
+									"terminal": null
 								},
 								"schema": {
 									"properties": {
@@ -34047,6 +34138,19 @@
 														"proofOfAddress"
 													],
 													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"terminal": {
+											"anyOf": [
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
 												},
 												{
 													"type": "null"
@@ -35177,6 +35281,25 @@
 															},
 															"type": "array"
 														},
+														"rejectType": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"FINAL"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RETRY"
+																	],
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
 														"reviewPending": {
 															"type": "boolean"
 														},
@@ -36004,6 +36127,19 @@
 												"type": "object"
 											},
 											"type": "array"
+										},
+										"terminal": {
+											"anyOf": [
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
@@ -37883,6 +38019,25 @@
 														"type": "string"
 													},
 													"type": "array"
+												},
+												"rejectType": {
+													"anyOf": [
+														{
+															"enum": [
+																"FINAL"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"RETRY"
+															],
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
 												},
 												"reviewPending": {
 													"type": "boolean"
