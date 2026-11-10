@@ -199,15 +199,28 @@ const NAMED_BANK_ACCOUNTS = [
 
 // A PIX key saved to favorites after a payment, with the bank the PIX directory
 // named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
-/** the Brazil pause switched on for a Brazil resident (TASK-24197) */
+/** The pay:PIX_BR route as the API sends it: paused by the Brazil pause, or refused for a residence. */
+const pixPayRoute = (state: 'paused' | 'refused') => ({
+    operation: 'pay',
+    method: 'PIX_BR',
+    provider: state === 'paused' ? 'manteca' : null,
+    state,
+    reason:
+        state === 'paused'
+            ? { code: 'residence_paused', userMessage: 'Deposits and withdrawals are paused where you live for now.' }
+            : { code: 'residence_not_served', userMessage: 'Pix payments are not available where you live yet.' },
+    candidates: [],
+})
+
+/** the Brazil pause on for a Brazil resident (TASK-24197): the router pauses the pay route */
 const BRAZIL_PAUSED_RESPONSES = {
-    'GET /config/kill-switches': { brazilServicesPaused: true },
     'GET /users/me': {
         residence: {
             verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
             declared: null,
             secondaryDeclaredCountry: null,
         },
+        capabilities: { routes: [pixPayRoute('paused')] },
     },
 }
 
@@ -2380,7 +2393,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'qr-pay-brazil-resident': {
         route: PIX_QR_ROUTE,
-        about: 'A Brazilian resident reaches a Pix deep link: the Brazil pause screen shows before init.',
+        about: 'A Brazilian resident reaches a Pix deep link: the pay route refuses the residence before init.',
         responses: {
             'GET /users/me': {
                 residence: {
@@ -2388,6 +2401,7 @@ export const FIXTURES: Record<string, Fixture> = {
                     declared: null,
                     secondaryDeclaredCountry: null,
                 },
+                capabilities: { routes: [pixPayRoute('refused')] },
             },
         },
     },
@@ -3674,6 +3688,7 @@ export const FIXTURES: Record<string, Fixture> = {
                     declared: null,
                     secondaryDeclaredCountry: null,
                 },
+                capabilities: { routes: [pixPayRoute('refused')] },
             },
         },
     },

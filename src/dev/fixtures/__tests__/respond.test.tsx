@@ -148,7 +148,8 @@ describe('fixtureRespond capability report', () => {
                     residence: 'BR',
                 })
             )
-            expect(FIXTURES[name].responses?.['GET /config/kill-switches']).toEqual({ brazilServicesPaused: true })
+            // the router pauses the pay route; the app reads the route, not the switch
+            expect(body.capabilities.routes).toEqual([expect.objectContaining({ operation: 'pay', state: 'paused' })])
         }
     )
 
