@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -30,21 +31,22 @@ export default function AppUpdateCard({ onAction, onSnoozed }: ZoneSurfaceProps)
                 }}
             >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-action-primary">
-                    <Icon name="download" size={22} />
+                    <Icon name="download" size={16} />
                 </span>
                 <span className="flex flex-col pr-8">
                     <span className="text-heading-card">{t('title')}</span>
                     <span className="text-body-m text-foreground-secondary">{t('description')}</span>
                 </span>
             </button>
-            <button
+            <Button
                 type="button"
+                variant="ghost"
+                shape="square"
+                icon="cancel"
                 aria-label={tCarousel('closeTitled', { title: t('title') })}
-                className="absolute top-0 right-0 flex size-11 items-center justify-center focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                className="absolute top-0 right-0 size-11"
                 onClick={() => onSnoozed()}
-            >
-                <Icon name="cancel" size={16} />
-            </button>
+            />
         </Card>
     )
 }
