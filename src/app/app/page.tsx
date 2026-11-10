@@ -61,7 +61,8 @@ function SmartStoreContent() {
         pnutdl: parseAsString,
     })
     const entryKey = JSON.stringify(entryQuery)
-    const trackedEntry = entryQuery.tl !== null || entryQuery.tracked_link !== null || isInviteUsername(entryQuery.code)
+    const trackedEntry =
+        entryQuery.tl !== null || entryQuery.tracked_link !== null || isInviteUsername(entryQuery.code?.toLowerCase())
 
     // Keep SSR and the first client render identical; device and URL context are browser-only.
     const [mounted, setMounted] = useState(false)

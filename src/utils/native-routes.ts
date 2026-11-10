@@ -103,7 +103,10 @@ function mapDeepLink(url: string): string | null {
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
-    if (parsed.pathname.startsWith('/go/') || (parsed.pathname === '/home' && parsed.searchParams.has('tl'))) {
+    if (
+        parsed.pathname.startsWith('/go/') ||
+        (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl'))
+    ) {
         if (parsed.origin !== TRACKED_LINK_ORIGIN || parsed.username || parsed.password) return null
         const slug = parsed.pathname.startsWith('/go/') ? parsed.pathname.slice(4) : parsed.searchParams.get('tl')
         if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null

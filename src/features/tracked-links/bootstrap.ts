@@ -1,6 +1,7 @@
 import { applyDeferredPayload, buildDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
 import { stashAcquisitionInvite } from '@/utils/invite-stash'
 import { captureTrackedLinkJourney } from '@/utils/signup-attribution'
+import { sendMarketingQrAppOpening } from '@/features/marketing-qr/appOpening'
 import { captureTrackedLinkVisit } from './capture-client'
 import {
     TRACKED_LINK_ORIGIN,
@@ -27,7 +28,7 @@ export function hasTrackedLinkEntry(params: URLSearchParams): boolean {
     return (
         params.has('tl') ||
         params.has('tracked_link') ||
-        (params.getAll('code').length === 1 && isInviteUsername(params.get('code')))
+        (params.getAll('code').length === 1 && isInviteUsername(params.get('code')?.toLowerCase()))
     )
 }
 
@@ -38,7 +39,7 @@ export async function bootstrapTrackedLinkEntry(
     signal?: AbortSignal
 ): Promise<TrackedLinkBootstrap> {
     const tracked = params.has('tl') || params.has('tracked_link')
-    const slug = params.get('tracked_link') ?? params.get('tl') ?? params.get('code')
+    const slug = params.get('tracked_link') ?? params.get('tl') ?? params.get('code')?.toLowerCase()
     if (
         !isAcquisitionSlug(slug) ||
         ['tl', 'tr', 'tracked_link', 'code', 'tl_seen'].some((key) => params.getAll(key).length > 1) ||
@@ -50,8 +51,15 @@ export async function bootstrapTrackedLinkEntry(
     // Always resolve the current revision. Caller-supplied tr is transport, never navigation authority.
     const result = await resolveAcquisitionLinkClient(slug)
     if (signal?.aborted) return EMPTY
-    if (result.status !== 200 || result.link.kind === 'marketing_qr') return EMPTY
+    if (result.status !== 200) return EMPTY
     const link = result.link
+    if (link.kind === 'marketing_qr') {
+        if (native) {
+            sendMarketingQrAppOpening(new URL(`/home?mqr=${encodeURIComponent(link.qr.id)}`, TRACKED_LINK_ORIGIN))
+            return EMPTY
+        }
+        return { ...EMPTY, publicPageHref: `/q/${encodeURIComponent(link.qr.id)}` }
+    }
     if (!tracked && link.kind !== 'invite') return EMPTY
     if (link.invite) stashAcquisitionInvite(link.invite.code)
 

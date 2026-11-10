@@ -93,6 +93,15 @@ beforeEach(() => {
 })
 
 describe('app-entry gateway', () => {
+    it('routes a tracked home entry through bootstrap before generic deferred application', async () => {
+        launchUrl = 'https://peanut.me/home?app_entry=1&tl=alice&tr=1&acq_invite=alice'
+        mockParseDeferredPayload.mockReturnValue({ invite: 'mallory', dest: '/send' })
+        renderHook(() => useNativeAppLinks())
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/app?tracked_link=alice&tr=1'))
+        expect(mockParseDeferredPayload).not.toHaveBeenCalled()
+        expect(mockApplyDeferredPayload).not.toHaveBeenCalled()
+    })
+
     it('applies a QR handoff and opens its destination without visiting /app', async () => {
         launchUrl = 'https://peanut.me/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard'
         const payload = { badgeCampaigns: ['door'], dest: '/card' }

@@ -11,7 +11,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * anything visibly breaking.
  */
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
 import { parseDeferredPayload } from '@/utils/deferred-link'
@@ -83,6 +83,9 @@ jest.mock('@/components/Migration/MigrationHero', () => ({
 
 import { trackStoreClick } from '@/utils/migration.utils'
 import SmartStoreRedirect from '../page'
+import { resolveAcquisitionLinkClient } from '@/features/tracked-links/resolve-client'
+import type { ResolvedAcquisitionLink } from '@/features/tracked-links/contract'
+jest.mock('@/features/tracked-links/resolve-client', () => ({ resolveAcquisitionLinkClient: jest.fn() }))
 
 const PAYLOAD = 'pnutdl=1&lang=pt-br&invite=ABC123&dest=%2Fsend'
 const locationReplace = jest.fn()
@@ -379,5 +382,96 @@ describe('ad landing link (/app with campaign parameters)', () => {
         renderPage()
         expect(mockReplace).toHaveBeenCalledWith('/home')
         expect(readSignupAttribution()).toBeNull()
+    })
+})
+
+describe('validated acquisition bootstrap before navigation', () => {
+    const link: ResolvedAcquisitionLink = {
+        schemaVersion: 1,
+        linkId: `invite_${'a'.repeat(64)}`,
+        slug: 'alice',
+        revision: 1,
+        status: 'active',
+        kind: 'invite',
+        policy: 'journey',
+        destination: { key: 'app-entry', continuation: '/home' },
+        invite: { code: 'alice' },
+    }
+    afterEach(() => {
+        jest.useRealTimers()
+        Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+    })
+    it('does not let Android auto-navigation outrun inviter bootstrap', async () => {
+        let finish!: (value: { status: 200; link: ResolvedAcquisitionLink }) => void
+        jest.mocked(resolveAcquisitionLinkClient).mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve
+                })
+        )
+        mockDeviceType = 'android'
+        visit('?tl=alice&tr=1')
+        renderPage()
+        expect(locationReplace).not.toHaveBeenCalled()
+        await act(async () => {
+            finish({ status: 200, link })
+        })
+        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
+        const payload = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
+        expect(parseDeferredPayload(payload)?.acquisitionInvite).toBe('alice')
+        expect(parseDeferredPayload(payload)?.invite).toBeUndefined()
+    })
+    it('holds iOS for the clipboard gesture, and offers the existing app association', async () => {
+        jest.mocked(resolveAcquisitionLinkClient).mockResolvedValue({ status: 200, link })
+        mockDeviceType = 'ios'
+        visit('?tl=alice&tr=1')
+        renderPage()
+        await waitFor(() => expect(screen.getByRole('link', { name: 'Open Peanut' })).toBeInTheDocument())
+        expect(locationReplace).not.toHaveBeenCalled()
+        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        const openApp = new URL(screen.getByRole('link', { name: 'Open Peanut' }).getAttribute('href')!)
+        expect(openApp.origin).toBe('https://peanut.me')
+        expect(openApp.pathname).toBe('/home')
+        expect(openApp.searchParams.get('tl_seen')).toBe('1')
+        fireEvent.click(storeButton(/app store/i))
+        expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
+    })
+    it('keeps passive handoff functional while denying existing store and handoff telemetry', async () => {
+        mockAnalyticsAllowed = false
+        jest.mocked(resolveAcquisitionLinkClient).mockResolvedValue({ status: 200, link })
+        mockDeviceType = 'ios'
+        visit('?tl=alice')
+        renderPage()
+        await waitFor(() => expect(screen.getByRole('link', { name: 'Open Peanut' })).toBeInTheDocument())
+        fireEvent.click(storeButton(/app store/i))
+        await act(async () => {})
+        expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
+        expect(trackStoreClick).not.toHaveBeenCalled()
+        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+    })
+    it('waits for prerender activation before descriptor bootstrap or store navigation', async () => {
+        Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
+        jest.mocked(resolveAcquisitionLinkClient).mockResolvedValue({ status: 200, link })
+        mockDeviceType = 'android'
+        visit('?tl=alice')
+        renderPage()
+        expect(resolveAcquisitionLinkClient).not.toHaveBeenCalled()
+        expect(locationReplace).not.toHaveBeenCalled()
+        await act(async () => {
+            Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+            document.dispatchEvent(new Event('prerenderingchange'))
+        })
+        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
+    })
+    it('reaches the normal store after the bounded deadline when bootstrap stalls', async () => {
+        jest.useFakeTimers()
+        jest.mocked(resolveAcquisitionLinkClient).mockReturnValue(new Promise(() => {}))
+        mockDeviceType = 'android'
+        visit('?tl=alice')
+        renderPage()
+        await act(async () => {
+            jest.advanceTimersByTime(3000)
+        })
+        expect(locationReplace).toHaveBeenCalledWith(STORE_URL.android)
     })
 })

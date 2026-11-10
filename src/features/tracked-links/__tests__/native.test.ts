@@ -10,6 +10,7 @@ it('intercepts associated home entries and preserves only the deferred continuat
         'https://peanut.me/home?app_entry=1&tl=alice&tr=1&tl_seen=1&pnutdl=1&at=compact&acq_invite=alice&wid=private&fbclid=private'
     )!
     const params = new URL(mapped, 'https://peanut.me').searchParams
+    expect(deepLinkToNativePath('https://peanut.me/home/?tl=alice')).toBe('/app?tracked_link=alice')
     expect(params.get('tracked_link')).toBe('alice')
     expect(params.get('tl_seen')).toBe('1')
     expect(params.get('at')).toBe('compact')
