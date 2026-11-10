@@ -70,7 +70,7 @@ export const API_ERROR_CODES = {
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
     /** POST /charges on a request that is no longer OPEN. Sent with 409. */
     REQUEST_CLOSED: 'REQUEST_CLOSED',
-    /** The provider is down or paused (Avenia's kill switch, an outage). Retry later. */
+    /** The provider is down, paused or not set up on this deployment (503). Retry later. */
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
     /** A Pix deposit or withdrawal below the provider's minimum. Sent with 400. */
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
@@ -80,9 +80,9 @@ export const API_ERROR_CODES = {
     PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
     /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */
     PIX_QUOTE_EXPIRED: 'PIX_QUOTE_EXPIRED',
-    /** The Pix key belongs to someone else: Avenia pays out only to the user's own CPF. */
+    /** The Pix key belongs to someone else, and the provider pays only the user's own CPF. */
     PIX_KEY_NOT_OWN: 'PIX_KEY_NOT_OWN',
-    /** The key's bank is on Avenia's payout deny-list. */
+    /** The key's bank is on the provider's payout deny-list. */
     PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
     /** One Pix key lookup per second per user. */
     PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',

@@ -5428,6 +5428,7 @@
             "bridge": "Signed by you, {brand} pays out",
             "bridgeEea": "Signed by you, {brand} pays out",
             "mantecaAr": "Settled by {brand}",
+            "mantecaBr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
             "thirdNational": "Third National issues and settles",
             "aveniaBr": "Settled by {brand}"
