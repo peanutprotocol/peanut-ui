@@ -2191,8 +2191,8 @@
             "title": "Escolher rede",
             "description": "Escolha a rede de onde você quer adicionar:",
             "evmDescription": "{count} redes, 1 endereço",
-            "supportedTokens": "{count, plural, one {# token compatível} other {# tokens compatíveis}}",
-            "evmTokensOnNetworks": "{tokens, plural, one {# token suportado} other {# tokens suportados}} em {networks} redes"
+            "solanaTokens": "USDC ou USDT",
+            "evmTokensOnNetworks": "Um monte de tokens em várias redes"
         },
         "supportedNetworksModal": {
             "title": "Redes compatíveis",
@@ -2221,6 +2221,8 @@
             "supportedNetworks": "Redes compatíveis",
             "supportedTokens": "Tokens compatíveis",
             "supportedTokensInline": "Tokens compatíveis:",
+            "tokenOnlyOnNetwork": "Somente na rede {network}",
+            "euroTokenOnlyOnNetwork": "Somente na rede {network}. Convertido pela taxa de mercado.",
             "sendExtraForFees": "Envie um pouco a mais se sua carteira ou a rede cobrar uma taxa.",
             "supportedEvmNetworks": "Redes EVM compatíveis",
             "evmNetworks": "redes EVM",
@@ -2243,6 +2245,10 @@
         "manteca": {
             "youreAdding": "Adicionando",
             "sendOnlyOwnAccountTitle": "Envie somente de uma conta no seu nome",
+            "transferDeadline": "Transfira até {time}.",
+            "transferExpiredTitle": "A ordem de depósito expirou",
+            "transferExpiredDescription": "Já enviou o dinheiro? Fale com o suporte.",
+            "startNewDeposit": "Iniciar um novo depósito",
             "sendOnlyOwnAccountDescription": "Depósitos de contas de terceiros não são aceitos e os fundos podem ser perdidos.",
             "accountDetails": "Dados bancários",
             "depositAddress": "Endereço de depósito",
@@ -2623,6 +2629,7 @@
             "sentViaLink": "Enviado via link",
             "transaction": "Transação",
             "failedQrPayment": "Tentativa de pagamento com QR falhou",
+            "depositOrderExpired": "A ordem de depósito expirou",
             "verificationDeposit": "Depósito de verificação"
         },
         "nameInSentence": {
@@ -2681,6 +2688,8 @@
         },
         "returnedReason": "O banco devolveu este pagamento.",
         "returnedReasonThirdParty": "Veio da conta de outra pessoa, e esta conta não aceita isso.",
+        "returnedReasonTooManyRecent": "Chegaram depósitos demais em pouco tempo. Espere antes de enviar o próximo e fale com o suporte se acontecer outra vez.",
+        "returnedReasonNameMismatch": "O nome na transferência não correspondia a esta conta. Envie de novo com o nome exato dos dados bancários.",
         "returnedStatus": "Devolvido",
         "verificationDepositNote": "Usado para confirmar sua conta. Não é adicionado ao seu saldo.",
         "belowMinimumNote": "Este depósito ficou abaixo do mínimo de {min}, então não pode ser adicionado nem devolvido.",
@@ -3610,6 +3619,7 @@
             },
             "contact_support": {
                 "description": "Não conseguimos terminar sua verificação no app. Fale com o suporte que a gente dá uma olhada.",
+                "notDocumentDescription": "Não conseguimos reconhecer o arquivo como um documento de identidade. Fale com o suporte para a gente analisar.",
                 "supportMessage": "Oi! Minha verificação não passou e não consigo tentar de novo no app. Vocês podem dar uma olhada?"
             },
             "not_available": {
@@ -3970,6 +3980,7 @@
                 "invalidCountry": "Escolha um país da lista.",
                 "tooLong": "Está muito longo. Use menos de 100 caracteres.",
                 "invalidText": "Use só letras, números e pontuação.",
+                "invalidPostalCode": "Informe um código postal de 6 dígitos.",
                 "invalid": "Confira esta resposta.",
                 "retry": "Não conseguimos salvar. Confira sua conexão e tente de novo.",
                 "featureNotSelected": "Sua conta mudou. Estamos carregando as perguntas certas.",
@@ -4124,6 +4135,7 @@
                 "chooseAnother": "Escolher outro documento"
             },
             "activation": {
+                "settingUpAccount": "Estamos configurando sua conta em {currency}",
                 "title": {
                     "bank": "Configure suas contas bancárias",
                     "card": "Configure seu Peanut Card",
@@ -4216,6 +4228,7 @@
             "bridge_tos_v2_required": "Aceite os Termos de Serviço atualizados do provedor de transferências bancárias para habilitar transferências em euros e libras esterlinas.",
             "bridge_processing": "Nosso parceiro de pagamentos está finalizando sua verificação. Isso costuma levar alguns minutos.",
             "verification_blocked": "Problema na verificação: fale com o suporte para receber ajuda.",
+            "invalid_bank_postal_code": "Não conseguimos usar o CEP do seu endereço verificado.",
             "terminal_rejection": "Problema na verificação: fale com o suporte para receber ajuda.",
             "bridge_terminal_rejection": "Nosso parceiro de pagamentos não aprovou as transferências bancárias para esta conta, e o Peanut não pode mudar essa decisão. Seus fundos no Peanut não são afetados. Se você acha que houve um engano, fale com o suporte.",
             "duplicate_customer_detected": "Nosso parceiro de pagamentos marcou sua conta como possível duplicata. Fale com o suporte para verificar e desbloquear.",
@@ -4345,10 +4358,7 @@
             "notSupportedGetNotified": "Avisamos quando estiver no ar!",
             "getNotifiedCta": "Quero ser avisado!",
             "willBeNotified": "Avisaremos você assim que {qrName} for compatível.",
-            "continue": "Continuar",
             "okay": "Entendi",
-            "directSendCrossChain": "O Peanut aceita pagamentos entre redes.",
-            "directSendAcknowledge": "Vou conferir os dados do pagamento.",
             "externalUrlIntro": "O Peanut não aceita este QR, mas você pode abri-lo no seu navegador.",
             "externalUrlTrust": "Confirme que você confia neste site!",
             "openLink": "Abrir link",
@@ -4362,7 +4372,6 @@
             "titleArgentinaAlias": "Não dá para pagar um apelido",
             "titleNotSupported": "{qrName} ainda não é compatível.",
             "titleWillBeNotified": "Você está na lista!",
-            "titleDirectSend": "Confirmação de pagamento",
             "titleExternalUrl": "Este é um link externo!",
             "eip681ParseError": "Erro ao interpretar a URL EIP-681",
             "notPeanutUrl": "O QR não foi reconhecido como uma URL do Peanut",
@@ -5007,6 +5016,17 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Corrigir código postal",
+            "description": "Digite o código postal do seu endereço verificado.",
+            "country": "País: {country}",
+            "save": "Salvar",
+            "queuedTitle": "Configuração bancária na fila",
+            "queuedBody": "Vamos tentar configurar sua conta bancária de novo.",
+            "temporary": "Algo deu errado. Tente de novo.",
+            "unavailable": "Esta correção não está disponível.",
+            "invalid": "Informe um código postal válido."
+        },
         "opened": {
             "heading": "Conta em {currency} pronta",
             "body": "Seus próprios dados bancários, prontos para o próximo pagamento.",
@@ -5190,7 +5210,7 @@
             "providerReviewBody": "Sua identidade já está verificada. Nosso parceiro de pagamentos precisa de mais informações suas antes de abrir contas em {currency}.",
             "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e não dá para iniciá-la pelo app na sua conta. Fale com o suporte e a gente ajuda você a concluir.",
             "finishReviewCta": "Continuar",
-            "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes.",
+            "actFailed": "Não conseguimos abrir a verificação. Tente de novo.",
             "topUpCta": "Adicionar de um banco",
             "limitBodyTopUp": "Esse é o seu limite atual. Você ainda pode adicionar dinheiro enviando do seu próprio banco. O suporte pode abrir outra conta se você precisar.",
             "addressTitle": "Precisamos do endereço residencial",

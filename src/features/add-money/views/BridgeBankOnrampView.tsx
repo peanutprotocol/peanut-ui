@@ -291,6 +291,7 @@ export function BridgeBankOnrampView() {
 
                 <BridgeTosStep
                     visible={showBridgeTos}
+                    country={selectedCountry?.id}
                     onComplete={() => {
                         hideTos()
                         handleWarningConfirm()

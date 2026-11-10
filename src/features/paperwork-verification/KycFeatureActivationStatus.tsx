@@ -13,12 +13,14 @@ import { useKycControl } from './analytics'
 export function KycFeatureActivationStatus({
     feature,
     result,
+    accountCurrency,
     isLoading,
     onRetry,
     onBack,
 }: {
     feature: KycActivationFeature
     result: KycFeatureActivationResult | null
+    accountCurrency?: string
     isLoading: boolean
     onRetry: () => void
     onBack: () => void
@@ -42,6 +44,7 @@ export function KycFeatureActivationStatus({
         return (
             <FeatureReadyScreen
                 feature={feature}
+                accountCurrency={accountCurrency}
                 onDone={onBack}
                 acknowledgement={report?.state === 'pending' || report?.state === 'setting_up'}
             />

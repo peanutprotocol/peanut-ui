@@ -55,17 +55,56 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
 }
 
 /**
- * EVM deposit chains where Rhino accepts FEWER tokens than the EVM family
- * list above. A token sent on a chain where Rhino doesn't accept it is
+ * EVM deposit chains where Rhino accepts a different token set from the EVM
+ * family list above. A token sent on a chain where Rhino doesn't accept it is
  * silently lost (no webhook, no intent), so deposit surfaces annotate these.
- * Source: Rhino's live SDA catalog (getSupportedConfigs, 2026-07-11).
+ * Source: Rhino's live SDA catalog (getSupportedConfigs, 2026-11-09).
  */
-export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, TokenName[]>> = Object.fromEntries(
+export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, string[]>> = Object.fromEntries(
     CHAIN_REGISTRY.filter((c) => c.family === 'evm' && c.deposit?.tokens).map((c) => [
         c.displayName,
-        [...(c.deposit!.tokens as readonly TokenName[])],
+        [...c.deposit!.tokens!],
     ])
 )
+
+/**
+ * Tokens Rhino accepts on one EVM deposit chain only. Each pair was proven by a
+ * real deposit (TASK-24595), and the API's stuck-deposit detector watches the
+ * same pairs. A token sent on any other chain is silently lost, so deposit
+ * surfaces must name the chain.
+ */
+export const CHAIN_SCOPED_DEPOSIT_TOKENS = [
+    {
+        name: 'EURe',
+        logoUrl: 'https://assets.coingecko.com/coins/images/54303/standard/eure.jpg?1739167959',
+        network: 'Gnosis',
+        isEuro: true,
+    },
+    {
+        name: 'EURC',
+        logoUrl: 'https://assets.coingecko.com/coins/images/26045/standard/EURC.png?1769615705',
+        network: 'Base',
+        isEuro: true,
+    },
+    {
+        name: 'USDS',
+        logoUrl: 'https://assets.coingecko.com/coins/images/39926/standard/usds.webp?1726666683',
+        network: 'Base',
+        isEuro: false,
+    },
+    {
+        name: 'USDe',
+        logoUrl: 'https://assets.coingecko.com/coins/images/33613/standard/usde.png?1733810059',
+        network: 'Arbitrum',
+        isEuro: false,
+    },
+    {
+        name: 'PYUSD',
+        logoUrl: 'https://assets.coingecko.com/coins/images/31212/standard/PYUSD_Token_Logo_2x.png?1765987788',
+        network: 'Arbitrum',
+        isEuro: false,
+    },
+] as const
 
 /** returns supported tokens (with logos) for a given chain type */
 export const getSupportedTokens = (network: RhinoChainType): Array<{ name: TokenName; logoUrl: string }> =>

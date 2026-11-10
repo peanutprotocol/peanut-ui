@@ -22,6 +22,7 @@ import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
 import { isCapacitor } from '@/utils/capacitor'
 import { clearAnalyticsIdentity, identifyAnalyticsUser } from '@/utils/posthog-identity'
+import { currentClientFlagProperties } from '@/utils/posthog-setup'
 import { clearAuthToken } from '@/utils/auth-token'
 import { resetCrispProxySessions } from '@/utils/crisp'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
@@ -455,6 +456,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // same for the localization-OKR device context (device_language + platform)
             const deviceContext = currentDeviceContext()
             if (deviceContext) posthog.register(deviceContext)
+            const flagProperties = currentClientFlagProperties()
+            // reset() already queued a flag reload; restore overrides before it runs.
+            if (flagProperties) posthog.setPersonPropertiesForFlags(flagProperties, false)
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }

@@ -806,6 +806,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/manteca/deposit', handler: () => demoMantecaDeposit() },
+    {
+        method: 'GET',
+        pattern: '/manteca/deposit/:depositId/status',
+        handler: ({ params }) => ({ id: params.depositId, status: 'PROCESSING', stage: 1, expired: false }),
+    },
     { method: 'PATCH', pattern: '/manteca/deposit/:depositId/cancel', handler: () => demoMantecaDeposit() },
     {
         method: 'POST',

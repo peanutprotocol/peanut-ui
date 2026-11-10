@@ -28295,6 +28295,263 @@
 				}
 			}
 		},
+		"/users/kyc/bridge-postal-code": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"country": "PY",
+									"revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+								},
+								"schema": {
+									"properties": {
+										"country": {
+											"pattern": "^[A-Z]{2}$",
+											"type": "string"
+										},
+										"revision": {
+											"pattern": "^[0-9a-f]{64}$",
+											"type": "string"
+										}
+									},
+									"required": [
+										"country",
+										"revision"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			},
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"additionalProperties": false,
+								"properties": {
+									"postCode": {
+										"maxLength": 32,
+										"type": "string"
+									},
+									"revision": {
+										"pattern": "^[0-9a-f]{64}$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"postCode",
+									"revision"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"status": "queued"
+								},
+								"schema": {
+									"properties": {
+										"status": {
+											"enum": [
+												"queued"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"status"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"errors": {
+											"properties": {
+												"postCode": {
+													"enum": [
+														"invalid_postal_code"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"postCode"
+											],
+											"type": "object"
+										}
+									},
+									"required": [
+										"errors"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/users/kyc/details": {
 			"get": {
 				"responses": {

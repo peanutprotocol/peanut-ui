@@ -2,7 +2,7 @@
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import EvmChainChips from './EvmChainChips'
-import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
+import { CHAIN_LOGOS } from '@/constants/rhino.consts'
 import type { RhinoChainType } from '@/services/services.types'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -17,33 +17,29 @@ interface NetworkListProps {
  * The one network chooser list (Add/Crypto board 17830:78020) — consumed by
  * both the /add-money drawer and the /add-money/crypto page so the copy,
  * icons and testids cannot drift apart again (F-22; the two hand-rolled
- * copies had already diverged). Copy is the board-backed page wording:
- * "{tokens} supported tokens on {networks} networks".
+ * copies had already diverged). The EVM row names no count: a token count
+ * would leave out the tokens accepted on one network only.
  */
 const NetworkList = ({ onSelect, showEvmChips = false }: NetworkListProps) => {
     const t = useTranslations('addMoney')
-    const evmChainCount = SUPPORTED_EVM_CHAINS.length
 
     const rows: Array<{ network: RhinoChainType; title: string; body: string; logo: string }> = [
         {
             network: 'EVM',
             title: 'EVM',
-            body: t('networkDrawer.evmTokensOnNetworks', {
-                tokens: getSupportedTokens('EVM').length,
-                networks: evmChainCount,
-            }),
+            body: t('networkDrawer.evmTokensOnNetworks'),
             logo: CHAIN_LOGOS.ETHEREUM,
         },
         {
             network: 'SOL',
             title: 'Solana',
-            body: t('networkDrawer.supportedTokens', { count: getSupportedTokens('SOL').length }),
+            body: t('networkDrawer.solanaTokens'),
             logo: CHAIN_LOGOS.SOLANA,
         },
         {
             network: 'TRON',
             title: 'Tron',
-            body: t('networkDrawer.supportedTokens', { count: getSupportedTokens('TRON').length }),
+            body: 'USDT',
             logo: CHAIN_LOGOS.TRON,
         },
     ]

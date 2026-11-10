@@ -1040,6 +1040,14 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
         expect(onKycSuccess).not.toHaveBeenCalled()
     })
 
+    it('does not complete on a signature message before the API confirms it', async () => {
+        mockConfirm.mockResolvedValue({ data: { accepted: false } })
+        const { result, onKycSuccess } = await openTerms()
+        await close(result, 'tos_accepted')
+        expect(mockConfirm).toHaveBeenCalledTimes(2)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
     it('leaves a manual exit on the terms step without asking Bridge', async () => {
         const { result, onKycSuccess } = await openTerms()
 

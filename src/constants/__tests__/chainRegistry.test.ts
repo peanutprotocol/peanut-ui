@@ -36,7 +36,6 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             '43114': 'AVALANCHE',
             '999': 'HYPEREVM',
             '57073': 'INK',
-            '747474': 'KATANA',
             '59144': 'LINEA',
             '5000': 'MANTLE',
             '9745': 'PLASMA',
@@ -47,8 +46,9 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             // withdraw destination (no entry in the withdraw gate below).
             '8217': 'KAIA',
         })
-        // SCROLL must never come back without a live-catalog re-check
+        // SCROLL and KATANA must never come back without a live-catalog re-check
         expect(EVM_CHAIN_ID_TO_RHINO_NAME['534352']).toBeUndefined()
+        expect(EVM_CHAIN_ID_TO_RHINO_NAME['747474']).toBeUndefined()
     })
 
     it('non-EVM mapping and the combined resolver', () => {
@@ -72,7 +72,6 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             '43114': ['USDC', 'USDT'],
             '999': ['USDC', 'USDT'],
             '57073': ['USDC', 'USDT'],
-            '747474': ['USDC', 'USDT'],
             '59144': ['USDC', 'USDT'],
             '5000': ['USDC', 'USDT'],
             '9745': ['USDT'],
@@ -81,9 +80,10 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             solana: ['USDC', 'USDT'],
             tron: ['USDT'],
         })
-        // Kaia/opBNB rejected at SDA create; Scroll disabled — must stay out
+        // Kaia/opBNB rejected at SDA create; Scroll and Katana disabled — must stay out
         expect(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN['8217']).toBeUndefined()
         expect(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN['534352']).toBeUndefined()
+        expect(RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN['747474']).toBeUndefined()
     })
 
     it('deposit surfaces: chains, exceptions, logos', () => {
@@ -95,7 +95,6 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
                 'OPTIMISM',
                 'BNB',
                 'POLYGON',
-                'KATANA',
                 'GNOSIS',
                 'CELO',
                 'TEMPO',
@@ -109,13 +108,14 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             PLASMA: ['USDT'],
             TEMPO: ['USDT', 'USDC'],
             CELO: ['USDT', 'USDC'],
-            GNOSIS: ['USDT', 'USDC'],
+            GNOSIS: ['USDT', 'USDC', 'EURe'],
         })
         // every advertised chain has a logo (broken-logo class of bug)
         for (const chain of [...SUPPORTED_EVM_CHAINS, ...OTHER_SUPPORTED_CHAINS]) {
             expect(CHAIN_LOGOS[chain]).toMatch(/^https:\/\//)
         }
         expect(CHAIN_LOGOS.SCROLL).toMatch(/^https:\/\//) // legacy display-only
+        expect(CHAIN_LOGOS.KATANA).toMatch(/^https:\/\//) // legacy display-only
     })
 
     it('NON_EVM_WITHDRAW_CHAINS synthetic records', () => {
@@ -134,6 +134,9 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
             'https://tronscan.org/#/transaction/'
         )
         expect(resolveChainRegistryEntry('unknown')).toBeUndefined()
+        // old receipts on a display-only chain still resolve by id and by name
+        expect(resolveChainRegistryEntry('747474')?.displayName).toBe('KATANA')
+        expect(resolveChainRegistryEntry('KATANA')?.id).toBe('747474')
     })
 
     it('registry invariants', () => {
