@@ -62,3 +62,12 @@ it('makes only one browser ingress attempt while retaining navigation-safe optio
         expect.objectContaining({ credentials: 'omit', keepalive: true, referrerPolicy: 'no-referrer' })
     )
 })
+
+it('a diagnostic failure does not retry an accepted event', async () => {
+    jest.mocked(fetch).mockResolvedValue(new Response(null, { status: 204 }))
+    jest.mocked(console.info).mockImplementation(() => {
+        throw new Error('logger unavailable')
+    })
+    expect((await deliverOpening('/api/tracked-links/open', body, 'tracked_link')).outcome).toBe('accepted')
+    expect(fetch).toHaveBeenCalledTimes(1)
+})

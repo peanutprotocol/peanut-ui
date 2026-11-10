@@ -69,6 +69,8 @@ export async function deliverOpening(
 function record(outcome: OpeningDeliveryOutcome): OpeningDeliveryOutcome {
     // Do not use request-scoped error reporting: it can enrich with cookies,
     // user identity or URL. This envelope has only fixed operational categories.
-    console.info('acquisition_opening_delivery', outcome)
+    try {
+        console.info('acquisition_opening_delivery', outcome)
+    } catch {}
     return outcome
 }
