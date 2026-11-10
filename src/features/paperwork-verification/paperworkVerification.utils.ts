@@ -275,6 +275,7 @@ const ERROR_KEYS: Record<string, string> = {
     street_number_missing: 'streetNumberMissing',
     po_box_not_accepted: 'poBoxNotAccepted',
     invalid_text: 'invalidText',
+    invalid_postal_code: 'invalidPostalCode',
     us_citizen_not_supported: 'usCitizenNotSupported',
 }
 
