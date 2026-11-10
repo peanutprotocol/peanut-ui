@@ -247,6 +247,12 @@
         "source": "features/card/components/CardResidenceAddressScreen.tsx"
     },
     {
+        "id": "card-address-unavailable",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=card-address-unavailable",
+        "source": "features/card/components/CardResidenceAddressScreen.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -498,6 +504,11 @@
         "route": "/verify"
     },
     {
+        "id": "fixture-paperwork-verification-py-postal-refused",
+        "flow": "Home and shared states",
+        "route": "/verify?step=address"
+    },
+    {
         "id": "fixture-paperwork-verification-outage",
         "flow": "Home and shared states",
         "route": "/verify"
@@ -571,6 +582,31 @@
         "id": "fixture-paperwork-verification-add-bank-money",
         "flow": "Home and shared states",
         "route": "/verify?feature=bank"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-correction",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-refused",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-queued",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-temporary",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-paperwork-verification-bridge-postal-unavailable",
+        "flow": "Home and shared states",
+        "route": "/home"
     },
     {
         "id": "p05-home",
@@ -838,6 +874,11 @@
         "route": "/verify"
     },
     {
+        "id": "fixture-paperwork-verification-rejected-not-document",
+        "flow": "Verification",
+        "route": "/verify"
+    },
+    {
         "id": "fixture-feature-activation-card-ready",
         "flow": "Verification",
         "route": "/card?kyc=%7B%7D"
@@ -1006,6 +1047,16 @@
         "route": "/add-money/argentina"
     },
     {
+        "id": "fixture-add-money-argentina-deposit-pending",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
+    },
+    {
+        "id": "fixture-add-money-argentina-deposit-expired",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
+    },
+    {
         "id": "fixture-add-money-bank-liechtenstein",
         "flow": "Add money",
         "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
@@ -1079,6 +1130,21 @@
         "id": "fixture-pix-manteca-deposit-code",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
+    },
+    {
+        "id": "fixture-history-expired-ars-deposit",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-expired-ars-deposit"
+    },
+    {
+        "id": "fixture-history-returned-deposit-name-mismatch",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-returned-deposit-name-mismatch"
+    },
+    {
+        "id": "fixture-history-returned-deposit-too-many-recent",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-returned-deposit-too-many-recent"
     },
     {
         "id": "fixture-get-paid",
@@ -1211,6 +1277,11 @@
         "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
     },
     {
+        "id": "fixture-paperwork-verification-ars-setting-up",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
         "id": "fixture-feature-activation-bank-ready",
         "flow": "Add money",
         "route": "/add-money/germany/bank"
@@ -1301,6 +1372,16 @@
         "route": "/add-money/crypto"
     },
     {
+        "id": "add-money-crypto-euro-token-network",
+        "flow": "Add money",
+        "route": "/add-money/crypto?network=EVM"
+    },
+    {
+        "id": "add-money-crypto-token-network",
+        "flow": "Add money",
+        "route": "/add-money/crypto?network=EVM"
+    },
+    {
         "id": "p19-add-money-us-bank",
         "flow": "Add money",
         "route": "/add-money/usa/bank"
@@ -1361,6 +1442,12 @@
         "flow": "Add money",
         "route": "/dev/surfaces?s=deposit-address-launch-error",
         "source": "features/deposit-accounts/components/AddressLaunchModal.tsx"
+    },
+    {
+        "id": "deposit-address-submitted-toast",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=deposit-address-submitted-toast",
+        "source": "features/deposit-accounts/useDepositGateRemediation.tsx"
     },
     {
         "id": "38-c-howtodepositmodal",
@@ -2613,6 +2700,11 @@
         "id": "fixture-profile-accounts-br-resident",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-paperwork-verification-py-bank-postal-support",
+        "flow": "Profile and settings",
+        "route": "/home"
     },
     {
         "id": "p01-backup",

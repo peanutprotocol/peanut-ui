@@ -6,7 +6,9 @@ export type PageCapture = {
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<{ click: string } | { clickSelector: string } | { fill: { selector: string; value: string } }>
+    actions?: Array<
+        { click: string } | { clickSelector: string } | { tap: string } | { fill: { selector: string; value: string } }
+    >
     /** Prove the requested overlay is open, including its selected row. */
     expectSelector?: string
     routePattern?: string
@@ -67,6 +69,20 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p16-withdraw-manteca', name: 'Withdraw — Manteca', route: '/withdraw/manteca?country=argentina&amount=50' },
     { id: 'p17-add-money', name: 'Add money', route: '/add-money?method=bank' },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
+    {
+        id: 'add-money-crypto-euro-token-network',
+        name: 'Add money — euro token network tooltip',
+        route: '/add-money/crypto?network=EVM',
+        actions: [{ tap: 'EURe · Gnosis' }],
+        expectSelector: '[role="tooltip"]',
+    },
+    {
+        id: 'add-money-crypto-token-network',
+        name: 'Add money — network-specific token tooltip',
+        route: '/add-money/crypto?network=EVM',
+        actions: [{ tap: 'USDS · Base' }],
+        expectSelector: '[role="tooltip"]',
+    },
     { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/usa/bank' },
 
     { id: 'p20-qr-pay', name: 'QR Pay', route: '/qr-pay' },

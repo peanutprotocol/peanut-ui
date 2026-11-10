@@ -395,7 +395,15 @@ function PaperworkVerificationSteps({
     const exit = useSafeBack('/home')
     const [questions, setQuestions] = useState(initial.questions)
     const [plan, setPlan] = useState(initial.plan)
-    const [status, setStatus] = useState(initial.status)
+    const [status, setStatusState] = useState(initial.status)
+    const latestStatus = useRef(status)
+    const activeSdk = useRef<ReturnType<typeof usePaperworkVerificationIdentity>['session']>(null)
+    const approvedSdk = useRef<ReturnType<typeof usePaperworkVerificationIdentity>['session']>(null)
+    const setStatus = useCallback((next: Loaded['status']) => {
+        latestStatus.current = next
+        if (next === 'APPROVED') approvedSdk.current = activeSdk.current
+        setStatusState(next)
+    }, [])
     const [stepParam] = useQueryState('step')
     const [returnToFeature] = useQueryState('returnToFeature')
     const linkedQuestion = useRef(stepParam)
@@ -408,6 +416,7 @@ function PaperworkVerificationSteps({
     const [mismatchBusy, setMismatchBusy] = useState(false)
     const [documentRequired, setDocumentRequired] = useState(false)
     const identity = usePaperworkVerificationIdentity({ onHandedBack: () => router.replace('/home') })
+    if (identity.session) activeSdk.current = identity.session
     const queryClient = useQueryClient()
     // Decided once per load, so Back shows the same screens the user came through.
     const [phoneJoined] = useState(() => phoneJoinsAddress(initial.questions))
@@ -494,7 +503,7 @@ function PaperworkVerificationSteps({
     stepRef.current = step
     const reviewingAnswers = useRef(false)
     const backRevision = useRef(0)
-    // Continue moves on at once; each screen's answers save behind the next one, in order.
+    // Screens save in order. Address and CUIT wait in place so a field refusal stays with its inputs.
     const saves = useRef<Promise<void>>(Promise.resolve())
     const captureSession = useSessionFence()
     const queueGeneration = useRef(0)
@@ -573,6 +582,40 @@ function PaperworkVerificationSteps({
         const ids = shown.map((s) => s.id)
         // A shared screen also shows steps answered before; only new or edited answers are saved.
         const changed = shown.filter((s) => !stepUnchanged(s, values))
+        const waitForSave = changed.some((s) => s.id === 'address' || s.fields.some((field) => field.format === 'cuit'))
+        const stepTracking = { ...tracking, step: ids[0] }
+        const persist = async () => {
+            if (!current()) return false
+            const outcome = await saveWithRetries(changed, values, user?.user.userId, current)
+            if (!current()) return false
+            trackSaveOutcome(
+                (event, properties) =>
+                    trackPaperworkVerification(stepTracking, event, { steps: stepsLabel(changed), ...properties }),
+                outcome,
+                { seconds, rejectedBefore: rejections.current[ids[0]] ?? 0 }
+            )
+            if (outcome.ok) return true
+            // A protocol conflict invalidates the remaining queued batches.
+            if (outcome.error && outcome.error !== 'retry') queueGeneration.current += 1
+            if (outcome.rejected) rejections.current[ids[0]] = (rejections.current[ids[0]] ?? 0) + 1
+            if (waitForSave) {
+                // A shared address/phone page may have saved one step before the other was refused.
+                const refusedAt = changed.findIndex((s) => s.id === (outcome.step ?? outcome.rejected?.step))
+                if (refusedAt > 0)
+                    setQuestions((currentQuestions) =>
+                        changed
+                            .slice(0, refusedAt)
+                            .reduce((state, s) => markSaved(state, s.id, values), currentQuestions)
+                    )
+            }
+            saveFailed(changed, outcome, back === backRevision.current)
+            return false
+        }
+        if (waitForSave) {
+            const saved = saves.current.then(persist)
+            saves.current = saved.then(() => undefined)
+            if (!(await saved) || !current() || back !== backRevision.current || stepRef.current !== shown[0].id) return
+        }
         const updated = ids.reduce((current, id) => markSaved(current, id, values), questions)
         setQuestions(updated)
         setReturned((current) => (current && ids.includes(current.step) ? null : current))
@@ -590,25 +633,7 @@ function PaperworkVerificationSteps({
         void stepper.goTo(following ?? 'saved')
 
         const submission = ++submissions.current
-        const stepTracking = { ...tracking, step: ids[0] }
-        if (changed.length)
-            saves.current = saves.current.then(async () => {
-                if (!current()) return
-                const outcome = await saveWithRetries(changed, values, user?.user.userId, current)
-                if (!current()) return
-                trackSaveOutcome(
-                    (event, properties) =>
-                        trackPaperworkVerification(stepTracking, event, { steps: stepsLabel(changed), ...properties }),
-                    outcome,
-                    { seconds, rejectedBefore: rejections.current[ids[0]] ?? 0 }
-                )
-                if (outcome.ok) return
-                // Every protocol conflict is terminal for batches already queued
-                // behind it. A later deliberate submit starts a fresh generation.
-                if (outcome.error && outcome.error !== 'retry') queueGeneration.current += 1
-                if (outcome.rejected) rejections.current[ids[0]] = (rejections.current[ids[0]] ?? 0) + 1
-                saveFailed(changed, outcome, back === backRevision.current)
-            })
+        if (!waitForSave && changed.length) saves.current = saves.current.then(persist).then(() => undefined)
         if (following) return
         // The last answer reserves the attempt: read it and the ID's documents back before the midpoint needs them.
         const checkpointCurrent = () =>
@@ -644,7 +669,7 @@ function PaperworkVerificationSteps({
         setQuestions(fresh.questions)
         setPlan(fresh.plan)
         setStatus(fresh.status)
-    }, [fresh])
+    }, [fresh, setStatus])
     // The next visit opens on what this one ends with.
     useEffect(() => {
         if (user?.user.userId)
@@ -766,7 +791,7 @@ function PaperworkVerificationSteps({
         setStatus('NOT_STARTED')
         setSubmitted(false)
         void goToStep('id')
-    }, [identity.documentRequired, goToStep])
+    }, [identity.documentRequired, goToStep, setStatus])
 
     // A check that answers after the selfie was sent finds the review: it must not reopen the choice.
     const sumsubOpenRef = useRef(false)
@@ -838,10 +863,10 @@ function PaperworkVerificationSteps({
             void read.then((next) => next && setStatus(next)).catch(() => {})
         }, STATUS_POLL_MS)
         return () => clearInterval(timer)
-    }, [step, failed])
+    }, [step, failed, setStatus])
     // An approval that arrives during the visit, whether the review was opened here or on an earlier visit.
     // REVERIFYING preserves existing access but is not the replacement's decision.
-    const decided = submitted ? status === 'APPROVED' : approved
+    const decided = submitted || identity.session ? status === 'APPROVED' : approved
     const approvedAtOpen = useRef(decided)
     const approvalHandled = useRef(false)
     useEffect(() => {
@@ -1049,7 +1074,8 @@ function PaperworkVerificationSteps({
                     pending={pendingResidenceCountry(user?.residence)}
                     onSaved={async () => {
                         // The questions follow the residence: the server rebuilds them for the new country.
-                        await fetchUser()
+                        queueGeneration.current += 1
+                        await Promise.resolve(fetchUser()).catch(() => {})
                         await reload()
                     }}
                     onReverify={() => router.push(RESIDENCE_CHANGE_HREF)}
@@ -1067,17 +1093,27 @@ function PaperworkVerificationSteps({
                     identity.close()
                 }}
                 onComplete={() => {
-                    track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_SUBMITTED)
+                    const sdk = identity.session
+                    if (!sdk || activeSdk.current !== sdk) return
+                    activeSdk.current = null
                     identity.close()
+                    // An approval can arrive while the SDK is still closing. Its
+                    // route may be a follow-up, so leave that decision in place.
+                    if (latestStatus.current === 'APPROVED' || approvedSdk.current === sdk) return
+                    track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_SUBMITTED)
+                    const session = captureSession()
                     setStatus('PENDING')
                     setSubmitted(true)
                     queryClient.setQueryData([...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, user?.user.userId], 'PENDING')
                     void stepper.goTo('review')
                     // Home reads the identity from the user: refreshed once the server has read Sumsub.
-                    void refreshKycIdentityStatus().then((next) => {
-                        if (next && next !== 'NOT_STARTED') setStatus(next)
-                        void fetchUser()
-                    })
+                    void refreshKycIdentityStatus()
+                        .then((next) => {
+                            if (!session.current() || activeSdk.current) return
+                            if (next && next !== 'NOT_STARTED' && latestStatus.current !== 'APPROVED') setStatus(next)
+                            void fetchUser()
+                        })
+                        .catch(() => {})
                 }}
                 onRefreshToken={identity.refreshToken}
                 onIdentityStepCompleted={() => void checkIdentityDocument()}

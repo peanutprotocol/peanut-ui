@@ -691,6 +691,25 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
 })
 
 describe('PaperworkVerificationFlow: the phone', () => {
+    it('keeps the address visible and retains its draft when the save is refused', async () => {
+        mockQuestions.mockResolvedValue(withAddressAndPhone(false))
+        let refuse!: (result: Awaited<ReturnType<typeof saveKycAnswers>>) => void
+        mockSave.mockImplementationOnce(() => new Promise((resolve) => (refuse = resolve)))
+        await startFlow()
+        fireEvent.change(await screen.findByTestId('verify-input-street'), { target: { value: 'Main St 1' } })
+        fireEvent.change(screen.getByTestId('verify-input-town'), { target: { value: 'Austin' } })
+        fireEvent.change(screen.getByTestId('verify-input-postCode'), { target: { value: '78701' } })
+        fireEvent.change(screen.getByTestId('verify-input-phone'), { target: { value: '+1 415 555 0132' } })
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(1))
+        expect(screen.getByTestId('verify-input-street')).toHaveValue('Main St 1')
+        expect(continueButton()).toBeDisabled()
+        await act(async () => refuse({ kind: 'invalid', errors: { postCode: 'invalid_postal_code' } }))
+        expect(await screen.findByText(/6-digit postal code/i)).toBeInTheDocument()
+        expect(screen.getByTestId('verify-input-postCode')).toHaveValue('78701')
+        expect(mockSave).toHaveBeenCalledTimes(1)
+    })
+
     it('shares the address screen when both are asked, saves both in order and counts as one step', async () => {
         mockQuestions.mockResolvedValue(withAddressAndPhone(false))
         mockSave
@@ -925,6 +944,32 @@ describe('PaperworkVerificationFlow', () => {
             fireEvent.click(await screen.findByText('sumsub-id-step-done'))
         }
         const mismatchCopy = /It seems like you submitted a document from a different country/
+
+        it.each([false, true])(
+            'keeps an early approval after the SDK closes, with proof follow-up=%s',
+            async (proof) => {
+                mockMismatch.mockResolvedValue(null)
+                await openSumsubOnPassport()
+                if (proof) mockPlan.mockResolvedValue({ ...plan, proofOfAddress: 'suggested' })
+                const { useWebSocket } = jest.requireMock('@/hooks/useWebSocket') as { useWebSocket: jest.Mock }
+                const { onSumsubKycStatusUpdate } = useWebSocket.mock.calls.at(-1)[0]
+                act(() => onSumsubKycStatusUpdate('APPROVED'))
+                const destination = () =>
+                    proof
+                        ? screen.findByText('Add a proof of address')
+                        : screen.findByTestId('verify-verified-payments')
+                expect(await destination()).toBeInTheDocument()
+
+                mockRefresh.mockResolvedValue('PENDING')
+                const sdkComplete = await screen.findByText('sumsub-submit')
+                await act(async () => {
+                    fireEvent.click(sdkComplete)
+                })
+
+                expect(await destination()).toBeInTheDocument()
+                expect(screen.queryByTestId('verify-review-home')).not.toBeInTheDocument()
+            }
+        )
 
         it('closes Sumsub before the selfie and asks which country the profile belongs to', async () => {
             mockMismatch.mockResolvedValue({ picked: 'US', recognised: 'UA' })

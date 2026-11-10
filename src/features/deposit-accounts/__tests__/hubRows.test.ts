@@ -51,6 +51,17 @@ const withheldFor = (
  * holds. The rest sit under "Open new account".
  */
 describe('virtualAccountRows', () => {
+    it('keeps a Bridge postal block openable from Accounts', () => {
+        const gates = gatesAll()
+        gates.ACH_US = {
+            kind: 'blocked-rejection',
+            userMessage: null,
+            reason: { code: 'invalid_bank_postal_code', userMessage: '' },
+        }
+        const { open } = virtualAccountRows(input({ corridors: ['ACH_US'], gates }), true)
+        expect(open.find((row) => row.corridor === 'ACH_US')?.openable).toBe(true)
+    })
+
     it('lists held accounts apart from the ones the user could open, one-off transfers in neither', () => {
         const { held: heldRows, open } = virtualAccountRows(
             input({ accounts: { SEPA_EU: held('SEPA_EU'), SPEI_MX: held('SPEI_MX', 'revoked') } }),

@@ -68,6 +68,24 @@ describe('usePixDeposit', () => {
         expect(onComplete).toHaveBeenCalledTimes(1)
     })
 
+    // the screen stays mounted while the URL moves to the next deposit: that one is reported too
+    it('fires onComplete again for another deposit that completes on the same screen', async () => {
+        mockDepositStatus.mockImplementation(async (id: string) =>
+            read({ intentId: id, status: 'COMPLETED', pixReceived: true, codePayable: false })
+        )
+        const onComplete = jest.fn()
+        const { result, rerender } = renderHook(({ id }) => usePixDeposit(id, onComplete), {
+            wrapper,
+            initialProps: { id: 'd1' },
+        })
+        await waitFor(() => expect(result.current.phase).toBe('completed'))
+
+        rerender({ id: 'd2' })
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2))
+        rerender({ id: 'd2' })
+        expect(onComplete).toHaveBeenCalledTimes(2)
+    })
+
     it('reads a code that is no longer payable as expired', async () => {
         mockDepositStatus.mockResolvedValue(read({ codePayable: false, brCode: undefined }))
         const { result } = renderHook(() => usePixDeposit('d1', jest.fn()), { wrapper })

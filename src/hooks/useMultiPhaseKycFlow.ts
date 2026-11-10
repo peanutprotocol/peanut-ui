@@ -96,16 +96,9 @@ export function deriveCapabilityPhaseSignals(
  * terms are signed, and when they are, records the acceptance and polls
  * fetchUser (max 3 × 2s) until the bank rails leave the ToS-required state.
  *
- * Returns whether the caller should treat the terms as accepted. What a close
- * proves depends on its source:
- *   - `tos_accepted`: Bridge's page reported the signature, so this is always
- *     true. A "no" from the confirm endpoint is webhook lag, and the rails are
- *     still polled.
- *   - `returned` (and `completed`): the user left the page without it
- *     reporting a signature — the android system-browser tab closed, or the
- *     page moved its frame away (TASK-23881). Only Bridge's answer counts,
- *     with one retry for that same lag. A "no" returns false before arming
- *     the submission window, because nothing was submitted.
+ * A page message can arrive before the provider has persisted the signature.
+ * The API confirmation and a fresh capability read must both settle before a
+ * caller resumes the account action.
  *
  * A manual exit never comes here: the confirm endpoint reads Bridge's
  * customer-level flag, which a user who signed the base terms already has, so
@@ -113,16 +106,16 @@ export function deriveCapabilityPhaseSignals(
  */
 export async function resolveBridgeTosClose(
     fetchUser: () => Promise<IUserProfile | null>,
-    source: Exclude<IframeCloseSource, 'manual'>
+    source: Exclude<IframeCloseSource, 'manual'>,
+    country?: string
 ): Promise<boolean> {
-    const observedAcceptance = source === 'tos_accepted'
     let accepted = !!(await confirmBridgeTos()).data?.accepted
     if (!accepted) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
         accepted = !!(await confirmBridgeTos()).data?.accepted
     }
 
-    if (!accepted && !observedAcceptance) return false
+    if (!accepted) return false
 
     posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source })
 
@@ -139,12 +132,15 @@ export async function resolveBridgeTosClose(
         // MIGRATION-REVIEW: old check was `BRIDGE rail status === 'REQUIRES_INFORMATION'`
         // over raw `updatedUser.rails`. Now reads the fresh capability block from the
         // same fetch result via deriveBridgeGate (accept_tos == Bridge still needs ToS).
-        const stillNeedsTos = deriveCapabilityPhaseSignals(updatedUser?.capabilities).needsTos
-        if (!stillNeedsTos) break
+        if (
+            updatedUser?.capabilities &&
+            !deriveCapabilityPhaseSignals(updatedUser.capabilities, undefined, country).needsTos
+        )
+            return true
         if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
     }
 
-    return true
+    return false
 }
 
 interface UseMultiPhaseKycFlowOptions {
@@ -233,6 +229,7 @@ export const useMultiPhaseKycFlow = ({
     const [showTosIframe, setShowTosIframe] = useState(false)
     const [tosError, setTosError] = useState<string | null>(null)
     const [isLoadingTos, setIsLoadingTos] = useState(false)
+    const confirmedTosGeneration = useRef<number | null>(null)
 
     // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
     const closeVerificationModalRef = useRef<() => void>(() => {})
@@ -841,6 +838,7 @@ export const useMultiPhaseKycFlow = ({
             }
 
             setTosLink(response.data.tosLink)
+            confirmedTosGeneration.current = null
             setShowTosIframe(true)
             posthog.capture(ANALYTICS_EVENTS.KYC_TOS_OPENED)
         } catch (error) {
@@ -861,13 +859,21 @@ export const useMultiPhaseKycFlow = ({
 
             // a manual exit stays on the bridge_tos phase (user can try again)
             if (source === 'manual') return
+            if (confirmedTosGeneration.current === generation) return
+            confirmedTosGeneration.current = generation
 
             // show loading state while confirming + polling
             setModalPhase('preparing')
             try {
-                const accepted = await resolveBridgeTosClose(fetchUser, source)
+                const intent = lastIntentRef.current ?? regionIntent
+                const country = requestedCountry ?? (intent === 'NA' ? 'US' : intent === 'EU' ? 'EU' : undefined)
+                const accepted = await resolveBridgeTosClose(fetchUser, source, country)
                 if (generation !== flowGenerationRef.current || completionNoticeRef.current) return
                 if (!accepted) {
+                    if (source === 'tos_accepted') {
+                        setPreparingTimedOut(true)
+                        return
+                    }
                     // The page closed by itself without a signature. The copy
                     // stays dismissal-shaped because this modal's error CTA
                     // closes the flow; the home ToS card owns the retry.

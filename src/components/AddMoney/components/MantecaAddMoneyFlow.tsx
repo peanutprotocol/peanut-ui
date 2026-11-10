@@ -5,6 +5,7 @@
 // residence gate and return-to-hub only. Deliberate, tracked.
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
+import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
@@ -110,6 +111,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // does not get (B5). Brazil's Pix lives on /add-money/pix.
     const bankEntryFor = useBankEntryFor()
     const residenceGatedCountry = selectedCountry?.id === 'AR' ? 'AR' : null
+    // an ARS transfer Manteca let lapse unpaid: the details screen says so and offers a new one
+    const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
+    const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
+        void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+    })
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
     const refusal = refusalOf(localAccount ?? undefined)
@@ -479,6 +485,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
+                arsStatus={arsDeposit ? arsDepositStatus : undefined}
+                onStartOver={() => {
+                    setDepositDetails(undefined)
+                    void setUrlState({ step: 'inputAmount' })
+                }}
                 // Settled screen: the deposit is already created. Leave the flow the
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).

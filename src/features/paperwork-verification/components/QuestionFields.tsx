@@ -26,6 +26,7 @@ import { useOptionLabel } from '../useOptionLabel'
 import { fieldErrorKey, formatTaxId, jobModeOf, looksLikeItin, maskedUntouched } from '../paperworkVerification.utils'
 import { AnswerPicker } from './AnswerPicker'
 import { PlacePicker } from './PlaceField'
+import { PostalCodeField } from './PostalCodeField'
 
 const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country', 'place'])
 // A conditional field belongs with the form control it depends on, not in the heading sentences.
@@ -37,7 +38,6 @@ const ADDRESS_AUTOCOMPLETE: Record<string, string> = {
     buildingNumber: 'address-line2',
     town: 'address-level2',
     state: 'address-level1',
-    postCode: 'postal-code',
 }
 
 const nowrap = (chunks: ReactNode) => <span className="inline-block max-w-full whitespace-nowrap">{chunks}</span>
@@ -287,6 +287,13 @@ function TypedFields({
             />
         )
     }
+    const labelFor = (field: PaperworkVerificationField) =>
+        field.kind === 'taxId'
+            ? t(`tax.label.${field.format ?? 'other'}` as never)
+            : t.has(`labels.${field.key}` as never)
+              ? t(`labels.${field.key}` as never)
+              : field.key
+
     const fieldFor = (
         field: PaperworkVerificationField | undefined,
         children: (f: PaperworkVerificationField) => ReactNode,
@@ -294,16 +301,10 @@ function TypedFields({
     ) => {
         if (!field) return null
         const inputId = `${idPrefix}-${field.key}`
-        const label =
-            field.kind === 'taxId'
-                ? t(`tax.label.${field.format ?? 'other'}` as never)
-                : t.has(`labels.${field.key}` as never)
-                  ? t(`labels.${field.key}` as never)
-                  : field.key
         return (
             <Field
                 key={field.key}
-                label={label}
+                label={labelFor(field)}
                 htmlFor={inputId}
                 error={errorText(field.key)}
                 errorId={`${inputId}-error`}
@@ -316,6 +317,7 @@ function TypedFields({
 
     const address = ['street', 'buildingNumber', 'town', 'state', 'postCode', 'country'].some((k) => byKey.has(k))
     const known = new Set(['street', 'buildingNumber', 'town', 'state', 'postCode', 'country', 'phone', 'taxId'])
+    const postCode = byKey.get('postCode')
     const country = byKey.get('country')
     const phone = byKey.get('phone')
     const tax = byKey.get('taxId')
@@ -340,8 +342,16 @@ function TypedFields({
                                 ? select(f)
                                 : input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.state })
                         )}
-                        {fieldFor(byKey.get('postCode'), (f) =>
-                            input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.postCode, autoCapitalize: 'characters' })
+                        {postCode && (
+                            <PostalCodeField
+                                id={`${idPrefix}-postCode`}
+                                label={labelFor(postCode)}
+                                value={values.postCode ?? ''}
+                                required={postCode.required}
+                                error={errorText('postCode')}
+                                onChange={(value) => typedChange('postCode', value)}
+                                onBlur={() => onFieldBlur?.('postCode')}
+                            />
                         )}
                     </div>
                     {country &&

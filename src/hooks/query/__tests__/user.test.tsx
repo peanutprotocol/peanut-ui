@@ -218,7 +218,7 @@ describe('useUserQuery — demo mode', () => {
 })
 
 describe('useUserQuery transient failures', () => {
-    it.each([429, 408, 503])('keeps the cached session after HTTP %s', async (status) => {
+    it.each([400, 403, 408, 429, 503])('keeps the cached session after HTTP %s', async (status) => {
         const profile = { user: { userId: 'u1', username: 'alice' } }
         mockApiFetch.mockReset()
         mockClearAuthToken.mockClear()
@@ -230,6 +230,15 @@ describe('useUserQuery transient failures', () => {
         expect(refreshed.data).toEqual(profile)
         expect(refreshed.isError).toBe(true)
         expect(mockClearAuthToken).not.toHaveBeenCalled()
+    })
+
+    it('retires a malformed identifier response from the authentication guard', async () => {
+        mockClearAuthToken.mockClear()
+        mockApiFetch.mockReset().mockResolvedValueOnce(mockResponse(400, { error: 'Invalid user identifier format' }))
+        const { result } = renderHook(() => useUserQuery(), { wrapper: makeWrapper() })
+        await waitFor(() => expect(result.current.isSuccess).toBe(true))
+        expect(result.current.data).toBeNull()
+        expect(mockClearAuthToken).toHaveBeenCalledTimes(1)
     })
 })
 

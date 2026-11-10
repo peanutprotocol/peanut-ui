@@ -1,0 +1,59 @@
+'use client'
+
+import { mantecaApi } from '@/services/manteca'
+import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef } from 'react'
+
+const POLLING_INTERVAL = 5000
+
+// Terminal TransactionIntentStatus values returned by GET /manteca/deposit/:id/status.
+const TERMINAL_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED']
+// "Payment detected" is signalled by the synthetic's stage, NOT the intent status:
+// Manteca flips a ramp-on to ACTIVE (→ intent PROCESSING) seconds after creation,
+// while the user hasn't paid — stage 1 is DEPOSIT (QR live, awaiting fiat), and
+// only stage >= 2 (ORDER/WITHDRAW) means the fiat actually arrived.
+const PAID_STAGE = 2
+
+type MantecaDepositPollStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
+
+/**
+ * Poll a Manteca deposit intent (Argentina's bank transfer; Brazil's Pix has its
+ * own flow) until it settles. Read-only: the webhook/poller post the actual
+ * credit — this just mirrors `intent.status` so the details screen can advance,
+ * or say the order expired unpaid. Fires `onComplete` once per deposit on COMPLETED.
+ */
+export function useMantecaDepositPolling(depositId: string | undefined, onComplete: () => void) {
+    const completedDeposit = useRef<string | undefined>(undefined)
+
+    const { data } = useQuery({
+        queryKey: ['manteca-deposit-status', depositId],
+        queryFn: () => mantecaApi.getDepositStatus(depositId!),
+        enabled: !!depositId,
+        gcTime: 0, // don't carry a settled status across navigations
+        refetchInterval: (query) => {
+            const status = (query.state.data as { data?: { status?: string } } | undefined)?.data?.status
+            return status && TERMINAL_STATUSES.includes(status) ? false : POLLING_INTERVAL
+        },
+    })
+
+    const status: MantecaDepositPollStatus = useMemo(() => {
+        const s = data?.data?.status
+        const stage = data?.data?.stage
+        if (s === 'COMPLETED') return 'completed'
+        if (s === 'CANCELLED' && data?.data?.expired === true) return 'expired'
+        if (s && TERMINAL_STATUSES.includes(s)) return 'failed'
+        // stage may be null/absent (older BE, legacy row) — then stay 'pending'
+        // so the QR keeps showing rather than stranding the user on a loader.
+        if (typeof stage === 'number' && stage >= PAID_STAGE) return 'processing'
+        return 'pending'
+    }, [data])
+
+    useEffect(() => {
+        if (status === 'completed' && depositId && completedDeposit.current !== depositId) {
+            completedDeposit.current = depositId
+            onComplete()
+        }
+    }, [status, depositId, onComplete])
+
+    return { status }
+}

@@ -14,12 +14,13 @@ const SETTLED_PHASES: PixDepositPhase[] = ['completed', 'returned', 'expired']
  * One Pix deposit from GET /pix/deposit/:intentId: its code while it can be
  * paid, and its phase. A reload, back navigation and a deep link read the same
  * query, which POST /pix/deposit seeds. Polls until the deposit settles, and
- * fires `onComplete` once when it completes. A 404 (no such deposit for this
+ * fires `onComplete` once per deposit when it completes: a screen that stays
+ * mounted while the URL moves to another deposit reports that one too. A 404 (no such deposit for this
  * user) stops the polling: waiting will not change it. Read-only: the
  * provider's events and the API's poller move the deposit.
  */
 export function usePixDeposit(intentId: string, onComplete: () => void) {
-    const completedRef = useRef(false)
+    const completedFor = useRef<string | undefined>(undefined)
     const query = useQuery({
         queryKey: pixDepositQueryKey(intentId),
         queryFn: () => pixApi.readDeposit(intentId),
@@ -34,11 +35,12 @@ export function usePixDeposit(intentId: string, onComplete: () => void) {
     const phase = useMemo(() => pixDepositPhase(query.data), [query.data])
 
     useEffect(() => {
-        if (phase === 'completed' && !completedRef.current) {
-            completedRef.current = true
+        // the query is keyed by the deposit, so a completed phase is this deposit's
+        if (phase === 'completed' && completedFor.current !== intentId) {
+            completedFor.current = intentId
             onComplete()
         }
-    }, [phase, onComplete])
+    }, [phase, intentId, onComplete])
 
     return {
         deposit: query.data,

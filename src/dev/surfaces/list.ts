@@ -53,6 +53,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['visible=true', 'loading=false', 'error=gate.actFailed'],
         expectSelector: '[role="dialog"] [role="alert"]',
     },
+    'deposit-address-submitted-toast': {
+        name: 'Bank address check — submitted toast',
+        path: 'features/deposit-accounts/useDepositGateRemediation.tsx',
+        captureState: ['address step submitted'],
+        expectSelector: '[role="status"]',
+    },
     'card-address-launch-loading': {
         name: 'Card address check — opening',
         path: 'features/card/components/CardResidenceAddressScreen.tsx',
@@ -64,6 +70,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'features/card/components/CardResidenceAddressScreen.tsx',
         captureState: ['state=required', 'loading=false', 'error=errorStartActionFailed'],
         expectSelector: '[role="alert"]',
+    },
+    'card-address-unavailable': {
+        name: 'Card address check — status unavailable, retry available',
+        path: 'features/card/components/CardResidenceAddressScreen.tsx',
+        captureState: ['state=unavailable'],
+        expectSelector: 'h1',
     },
     'standalone-error-card': {
         name: 'Card — load failed',

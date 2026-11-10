@@ -84,12 +84,6 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             return payload ? normalizeUserProfile(payload) : null
         }
 
-        // Temporary failures must preserve the cached session.
-        if (userResponse.status >= 500 || userResponse.status === 429 || userResponse.status === 408) {
-            console.error('Backend error fetching user:', userResponse.status)
-            throw new BackendError('Backend error fetching user', userResponse.status)
-        }
-
         // 401 (expired/invalid JWT) and 404 (user no longer exists — e.g. local
         // DB re-seeded out from under a stale cookie) both mean the JWT is
         // irrecoverable. Wipe the token so the next render escapes to /setup
@@ -97,7 +91,11 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         // await: the native Preferences.remove must be dispatched before the
         // redirect-to-/setup teardown, or the dead JWT survives into the next
         // cold start and re-enters the home→401→setup loop.
-        if (userResponse.status === 401 || userResponse.status === 404) {
+        const invalidIdentifier =
+            userResponse.status === 400 &&
+            (await userResponse.json().catch(() => null))?.error === 'Invalid user identifier format'
+        if (userResponse.status === 401 || userResponse.status === 404 || invalidIdentifier) {
+            assertCurrentSession()
             // A login that completed while this request was in flight stored a
             // fresh token (passkey sheet blur → refetchOnWindowFocus race). A
             // stale 401 for the OLD token must not wipe it or null the user —
@@ -107,11 +105,13 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             }
             clearAccountQueries(queryClient)
             await clearAuthToken()
+            return null
         }
 
-        // 4xx = auth failure — resolve null so the layout redirects to /setup
-        console.warn('Failed to fetch user, status:', userResponse.status)
-        return null
+        // Unexpected HTTP errors do not establish that the session ended.
+        // Reject the refresh so the previous profile stays in the cache.
+        console.error('Backend error fetching user:', userResponse.status)
+        throw new BackendError('Backend error fetching user', userResponse.status)
     }
 
     return useQuery({

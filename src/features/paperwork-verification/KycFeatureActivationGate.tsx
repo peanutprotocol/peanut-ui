@@ -29,6 +29,7 @@ export function KycFeatureActivationGate({
         <KycFeatureActivationStatus
             feature={feature}
             result={activation.result}
+            accountCurrency={activation.arsProvisioning ? 'ARS' : undefined}
             isLoading={activation.isLoading}
             onRetry={() => void activation.activate()}
             onBack={onBack}

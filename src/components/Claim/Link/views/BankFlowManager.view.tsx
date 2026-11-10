@@ -695,6 +695,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         />
                         <BridgeTosStep
                             visible={showBridgeTos}
+                            country={bankRailCountry ?? selectedCountry?.id}
                             onComplete={() => {
                                 hideTos()
                                 handleCreateOfframpAndClaim(localBankDetails)

@@ -56,6 +56,7 @@ jest.mock('nuqs', () => ({
 
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+    useQuery: () => ({ data: undefined }),
 }))
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))

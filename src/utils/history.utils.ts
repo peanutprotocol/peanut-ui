@@ -139,6 +139,7 @@ export interface HistoryEntryExtraData {
     // `Provider` after the transformer runs.
     kind?: string
     provider?: string
+    mantecaDepositExpired?: true
     // Bridge flow disambiguation — distinguishes the four Bridge sub-paths
     // that share an intent kind (ONRAMP / OFFRAMP / BANK_SEND_LINK_CLAIM /
     // GUEST_DIRECT_SEND).

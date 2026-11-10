@@ -1,3 +1,8 @@
+export interface AppUpdateCutoffs {
+    ios?: string
+    android?: string
+}
+
 export type PaymentProvider = 'MANTECA'
 
 // Manteca first-party bank/kyc rails currently exist only in Argentina (ARS) and Brazil (BRL).
