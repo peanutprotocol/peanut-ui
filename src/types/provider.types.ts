@@ -37,4 +37,11 @@ export interface ProviderRecord {
     termsName?: string
     privacyUrl?: string
     support?: string
+    /**
+     * The API's provider code this entry answers for, as routes ('avenia') and history rows
+     * ('AVENIA') name it, compared without case; with `currency` where one provider runs an entity
+     * per currency (Manteca: ARS, BRL). An entry without it is never picked from a code: Bridge's
+     * residence entities are picked by residence instead.
+     */
+    answersFor?: { provider: string; currency?: string }
 }

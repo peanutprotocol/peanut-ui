@@ -99,7 +99,8 @@ describe('PixSetup', () => {
     it('sends a terms step whose provider this build has no record of to support, never an unnamed consent', () => {
         renderSetup(
             route({
-                provider: 'rain',
+                // a code no registry entry answers for
+                provider: 'newpix' as CapabilityRoute['provider'],
                 action: 'accept-tos:avenia',
                 reason: { code: 'terms_required', userMessage: '' },
             })

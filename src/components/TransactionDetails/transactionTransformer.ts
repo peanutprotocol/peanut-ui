@@ -40,25 +40,12 @@ function isDisputeStatus(value: unknown): value is DisputeStatus {
     return typeof value === 'string' && DISPUTE_STATUSES.has(value)
 }
 
-// Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
-// on provider (e.g. Manteca-specific deposit-info row) use this typed
-// value via `extraDataForDrawer.provider` for positive identity rather
-// than inferring from the absence of other fields.
-//
-// Stays a string union (not an enum) so it stays interchangeable with the
-// wire string at runtime and so adding a value here forces TS-side updates
-// at every gate that switches on it. Deprecated values are kept so old
-// rows that still carry them on the wire don't blow up the type system.
-export type Provider =
-    | 'PEANUT'
-    | 'BRIDGE'
-    | 'MANTECA'
-    | 'RHINO'
-    | 'RAIN'
-    | 'AVENIA'
-    | 'ONCHAIN'
-    | 'DEPRECATED_SIMPLEFI'
-    | 'DEPRECATED_SQUID'
+// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, AVENIA,
+// RAIN, ...). The history schema types `extraData.provider` as a plain string, so the app reads a
+// string too: a new provider needs no change here, and its legal record comes from the registry
+// (`providerIdFor` in provider.utils). Receipts that branch on a provider compare this value for
+// positive identity rather than infer it from the absence of other fields.
+export type Provider = string
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.

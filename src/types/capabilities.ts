@@ -17,7 +17,9 @@
 
 import type { paths } from '@/types/api.generated'
 
-export type ProviderCode = 'bridge' | 'manteca' | 'rain' | 'avenia'
+/** A rail's provider code, as the capabilities schema enumerates it: a new provider arrives with the API's types. */
+export type ProviderCode =
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['rails'][number]['provider']
 
 /** Capability status of a single rail, provider-neutral. */
 export type RailCapabilityStatus =
