@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -25,10 +25,11 @@ import { pixProviderId } from '@/utils/provider.utils'
  * Another own Pix key for a withdrawal whose payout the bank refused for its
  * key or account. The money waits with the provider; once the API takes the
  * key, the provider pays it there. The withdrawal is `?intentId=` in the URL,
- * so its receipt and its notification open this screen directly, and the key
- * rides in `?destination=` as on the withdraw flow. A
- * withdrawal that no longer waits for a key (paid, refunded, or a key already
- * given) shows its current state instead.
+ * so its receipt and its notification open this screen directly. The key never
+ * rides in the URL, as on the withdraw flow: a Pix key is a CPF, a phone number
+ * or an email, and a query value reaches analytics, the browser history and the
+ * request logs. A withdrawal that no longer waits for a key (paid, refunded, or
+ * a key already given) shows its current state instead.
  */
 export function PixNewKeyFlow() {
     const t = useTranslations('pix.recovery')
@@ -39,7 +40,14 @@ export function PixNewKeyFlow() {
     const back = useSafeBack('/home')
     const leaveToHome = useReturnTo('/home')
     const [intentId] = useQueryState('intentId', parseAsString.withDefault(''))
-    const [destination, setDestination] = useQueryState('destination', parseAsString.withDefault(''))
+    // an old link that still carries a key (`?destination=`) fills the field, and the URL drops it at once
+    const [keyInUrl, setKeyInUrl] = useQueryState('destination', parseAsString)
+    const [destination, setDestination] = useState(keyInUrl ?? '')
+    useEffect(() => {
+        if (!keyInUrl) return
+        setDestination(keyInUrl)
+        void setKeyInUrl(null)
+    }, [keyInUrl, setKeyInUrl])
     const entry = useHistoryEntry(intentId || null, 'OFFRAMP')
     const recovery = usePixRecoveryKey(intentId)
     // the lookup's holder and bank, for the line that says where the money goes
@@ -111,7 +119,7 @@ export function PixNewKeyFlow() {
             refusal={recovery.refusal}
             onContinue={(key, info) => {
                 setHolder(info)
-                void setDestination(key)
+                setDestination(key)
                 void recovery.submit(key)
             }}
         />

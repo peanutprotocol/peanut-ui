@@ -4,8 +4,9 @@ import type { PixRecoveryKey } from '../usePixRecoveryKey'
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 const query: Record<string, string> = { intentId: 'w1', destination: '' }
+const mockSetQuery = jest.fn()
 jest.mock('nuqs', () => ({
-    useQueryState: (name: string) => [query[name] ?? '', jest.fn()],
+    useQueryState: (name: string) => [query[name] ?? '', (value: unknown) => mockSetQuery(name, value)],
     parseAsString: { withDefault: () => ({}) },
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -13,7 +14,11 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
 jest.mock('@/features/pix/components/PixKeyStep', () => ({
-    PixKeyStep: ({ intro }: { intro: string }) => <div data-testid="key-step">{intro}</div>,
+    PixKeyStep: ({ intro, initialKey }: { intro: string; initialKey: string }) => (
+        <div data-testid="key-step" data-key={initialKey}>
+            {intro}
+        </div>
+    ),
 }))
 const mockEntry = jest.fn()
 jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => mockEntry() }))
@@ -50,6 +55,20 @@ describe('PixNewKeyFlow', () => {
         mockRecovery.mockReturnValue(recovery('idle'))
         render(<PixNewKeyFlow />)
         expect(screen.getByTestId('key-step')).toHaveTextContent('intro')
+    })
+
+    // a Pix key in the URL reaches analytics and the request logs: an old link's key fills the field, then goes
+    it('takes a key an old link carries into the field and drops it from the URL', () => {
+        query.destination = '09579927189'
+        mockEntry.mockReturnValue(withdrawal('awaiting-key'))
+        mockRecovery.mockReturnValue(recovery('idle'))
+        try {
+            render(<PixNewKeyFlow />)
+            expect(screen.getByTestId('key-step')).toHaveAttribute('data-key', '09579927189')
+            expect(mockSetQuery).toHaveBeenCalledWith('destination', null)
+        } finally {
+            query.destination = ''
+        }
     })
 
     it("shows the withdrawal's current state after a 409, not the key step", () => {

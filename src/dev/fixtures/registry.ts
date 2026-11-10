@@ -2017,6 +2017,7 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-new-key': {
+        // the key arrives as an old link carries it: the screen fills the field and drops it from the URL
         route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
         about: 'A refused Pix payout: the money waits with Avenia, and another own key resolves to its holder.',
         waitFor: '[data-testid="pix-key-holder"]',
