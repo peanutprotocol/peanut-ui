@@ -186,10 +186,6 @@ jest.mock('@/components/AddMoney/components/MantecaDepositShareDetails', () => (
     __esModule: true,
     default: () => <div data-testid="share-details" />,
 }))
-jest.mock('@/components/AddMoney/components/MantecaPixQrDeposit', () => ({
-    __esModule: true,
-    default: () => <div data-testid="pix-qr" />,
-}))
 
 // records the props MantecaAddMoney hands to the amount step
 type InputStepProps = {
@@ -241,13 +237,6 @@ describe('denomination default', () => {
         expect(screen.getByTestId('input-amount-step')).toHaveAttribute('data-denomination', 'ARS')
     })
 
-    test('Brazil opens in BRL (local currency)', () => {
-        setCountry('brazil')
-        render(<MantecaAddMoney />)
-
-        expect(screen.getByTestId('input-amount-step')).toHaveAttribute('data-denomination', 'BRL')
-    })
-
     test('an explicit ?currency=USD deep-link still wins', () => {
         setCountry('argentina')
         mockQueryState.currency = 'USD'
@@ -258,27 +247,15 @@ describe('denomination default', () => {
 })
 
 describe('provider fine print', () => {
-    test.each([
-        ['argentina', 'manteca-ar'],
-        ['brazil', 'manteca-br'],
-    ])('%s names the matching Manteca entity under the amount', (path, providerId) => {
-        setCountry(path)
+    test('Argentina names the Argentine Manteca entity under the amount', () => {
+        setCountry('argentina')
         render(<MantecaAddMoney />)
 
-        expect(lastInputStepProps!.providerFinePrint?.props.providerId).toBe(providerId)
+        expect(lastInputStepProps!.providerFinePrint?.props.providerId).toBe('manteca-ar')
     })
 })
 
 describe('denomination change → URL write-back', () => {
-    test("Brazil maps AmountInput's display symbol R$ to the ISO code BRL", () => {
-        setCountry('brazil')
-        render(<MantecaAddMoney />)
-
-        lastInputStepProps!.setCurrentDenomination('R$')
-
-        expect(mockSetQueryState).toHaveBeenCalledWith({ currency: 'BRL' })
-    })
-
     test('toggling to USD writes USD', () => {
         setCountry('argentina')
         render(<MantecaAddMoney />)
@@ -471,26 +448,6 @@ describe('Manteca account rejection during deposit', () => {
         expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
     })
 
-    test('a report closing the BR local account shows the closure on first render without a deposit attempt', () => {
-        setCountry('brazil')
-        mockClosedCountries = new Set(['BR'])
-        const { container } = render(<MantecaAddMoney />)
-
-        const mascot = container.querySelector('[data-mascot-pose="sad"]')
-        expect(mascot).toHaveAttribute('aria-hidden', 'true')
-        expect(
-            mascot!.compareDocumentPosition(screen.getByRole('alert')) & Node.DOCUMENT_POSITION_FOLLOWING
-        ).toBeTruthy()
-
-        expect(screen.getByText(/You can’t add or withdraw money in Brazil/i)).toBeInTheDocument()
-        expect(screen.getByText(/QR payments still work/i)).toBeInTheDocument()
-        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('pix-qr')).not.toBeInTheDocument()
-        expect(lastKycModalProps).toBeNull()
-        expect(mockDeposit).not.toHaveBeenCalled()
-        expect(mockFetchUser).not.toHaveBeenCalled()
-    })
-
     test('shows the account rejection and opens support without entering KYC or creating deposit details', async () => {
         setCountry('argentina')
         mockQueryState.amount = '100'
@@ -605,50 +562,22 @@ describe('residence gate — Argentina', () => {
 })
 
 /**
- * Brazil's report carries the residence refusal for its first-party Manteca
- * account, which asks for a CPF. The screen renders that API answer.
- */
-describe('residence gate — Brazil', () => {
-    test('a non-resident sees the residence screen, with the Pix QR way in', () => {
-        setCountry('brazil')
-        mockResidence = 'PT'
-        render(<MantecaAddMoney />)
-
-        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
-        expect(lastKycModalProps).toBeNull()
-        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
-        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
-    })
-
-    test('a Brazilian resident reaches the amount step', () => {
-        setCountry('brazil')
-        mockResidence = 'BR'
-        render(<MantecaAddMoney />)
-
-        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
-    })
-})
-
-/**
  * Audit C4: the gate keeps non-residents out of a flow Manteca refuses (ui#3349),
  * but a user whose rail already moves money is not refused by Manteca. The
  * Accounts row reads Available for them, so the top-up opens too — the API report supplies the same answer to both.
  */
 describe('residence gate — a rail that already works', () => {
-    test.each([
-        ['brazil', 'brl'],
-        ['argentina', 'ars'],
-    ])('a non-resident with a working %s rail reaches the amount step', (country, key) => {
-        setCountry(country)
+    test('a non-resident with a working ars rail reaches the amount step', () => {
+        setCountry('argentina')
         mockResidence = 'PT'
         mockRails = [
             {
-                id: `manteca.${key}`,
+                id: 'manteca.ars',
                 provider: 'manteca',
-                method: key === 'brl' ? 'PIX_BR' : 'BANK_TRANSFER_AR',
+                method: 'BANK_TRANSFER_AR',
                 channel: 'bank',
-                country: key === 'brl' ? 'BR' : 'AR',
-                currency: key.toUpperCase(),
+                country: 'AR',
+                currency: 'ARS',
                 status: 'enabled',
             },
         ]
@@ -659,26 +588,26 @@ describe('residence gate — a rail that already works', () => {
     })
 
     test('a rail still in progress does not lift the gate', () => {
-        setCountry('brazil')
+        setCountry('argentina')
         mockResidence = 'PT'
         mockRails = [
             {
-                id: 'manteca.pix_br',
+                id: 'manteca.ars',
                 provider: 'manteca',
-                method: 'PIX_BR',
+                method: 'BANK_TRANSFER_AR',
                 channel: 'bank',
-                country: 'BR',
-                currency: 'BRL',
+                country: 'AR',
+                currency: 'ARS',
                 status: 'pending',
             },
         ]
         render(<MantecaAddMoney />)
 
-        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+        expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
     })
 
     test('the gate waits for the rails instead of refusing a depositor while they load', () => {
-        setCountry('brazil')
+        setCountry('argentina')
         mockResidence = 'PT'
         mockCapabilitiesLoading = true
         render(<MantecaAddMoney />)

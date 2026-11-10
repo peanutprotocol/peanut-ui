@@ -2266,12 +2266,10 @@
         "processingDepositTitle": "Procesando el depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
-            "payWithPix": "Pagar con Pix",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
-            "goBack": "Volver",
             "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
         "confirmationModal": {

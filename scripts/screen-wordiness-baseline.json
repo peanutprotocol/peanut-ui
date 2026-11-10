@@ -1,7 +1,7 @@
 {
     "budget": 60,
     "screens": {
-        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 420,
+        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 382,
         "app/(mobile-ui)/add-money/[country]/bank/page.tsx": 205,
         "app/(mobile-ui)/add-money/[country]/page.tsx": 404,
         "app/(mobile-ui)/add-money/pix/page.tsx": 164,
