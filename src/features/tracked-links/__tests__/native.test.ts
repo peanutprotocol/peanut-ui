@@ -29,3 +29,11 @@ it('leaves explicit invite and ordinary native links on their existing routes', 
     expect(deepLinkToNativePath('https://peanut.me/invite?code=alice')).toBe('/setup?step=signup&code=alice')
     expect(deepLinkToNativePath('https://peanut.me/home')).toBe('/home')
 })
+
+it('drops forged continuation and observed markers on direct go links', () => {
+    expect(
+        deepLinkToNativePath(
+            'https://peanut.me/go/alice?tl_seen=1&tr=99&pnutdl=1&invite=bob&acq_invite=mallory&at=forged'
+        )
+    ).toBe('/app?tracked_link=alice')
+})

@@ -3,7 +3,7 @@ import { bootstrapTrackedLinkEntry } from '../bootstrap'
 import { resolveAcquisitionLinkClient } from '../resolve-client'
 import { sendMarketingQrAppOpening } from '@/features/marketing-qr/appOpening'
 import { captureTrackedLinkVisit } from '../capture-client'
-import { readInviteCode, readInviteIntent, stashInvite } from '@/utils/invite-stash'
+import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '@/utils/invite-stash'
 import { readSignupAttribution, captureSignupAttribution } from '@/utils/signup-attribution'
 import { parseDeferredPayload } from '@/utils/deferred-link'
 import { EInviteType } from '@/services/services.types'
@@ -109,8 +109,8 @@ it('preserves explicit pending inviter priority through a passive opening', asyn
     const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
     expect(readInviteCode()).toBe('bob')
     expect(readInviteIntent()).toBe('explicit')
-    expect(parseDeferredPayload(result.payload!)?.invite).toBe('bob')
-    expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBeUndefined()
+    expect(parseDeferredPayload(result.payload!)?.invite).toBeUndefined()
+    expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe('bob')
 })
 it('projects the same registered campaign into web and native journeys and both store handoffs', async () => {
     resolve.mockResolvedValue({ status: 200, link: campaign })
@@ -222,3 +222,33 @@ it('routes QR aliases through the existing personless sender without making a jo
     expect(readSignupAttribution()).toBeNull()
     expect(captureTrackedLinkVisit).not.toHaveBeenCalled()
 })
+
+it('keeps an app-owned retry when opening a passive handoff from a different browser choice', async () => {
+    stashInvite('bob', EInviteType.DIRECT)
+    const browser = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
+    const params = new URL(browser.openAppHref!).searchParams
+    expect(params.has('invite')).toBe(false)
+    localStorage.clear()
+    stashInvite('carol', EInviteType.DIRECT)
+    bindInviteToUser('account-a')
+    await bootstrapTrackedLinkEntry(params, true)
+    expect(readInviteCode()).toBe('carol')
+    expect(readInviteIntent()).toBe('explicit')
+    expect(readInviteUserId()).toBe('account-a')
+})
+it.each(['tl=alice', 'tracked_link=alice', 'code=alice'])(
+    'treats restored legacy invite as passive on %s and preserves an app retry',
+    async (entry) => {
+        const params = new URLSearchParams(`${entry}&pnutdl=1&invite=bob`)
+        await bootstrapTrackedLinkEntry(params, true)
+        expect(readInviteCode()).toBe('bob')
+        expect(readInviteIntent()).toBe('acquisition')
+        expect(readInviteUserId()).toBe('')
+        stashInvite('carol', EInviteType.DIRECT)
+        bindInviteToUser('account-a')
+        await bootstrapTrackedLinkEntry(params, true)
+        expect(readInviteCode()).toBe('carol')
+        expect(readInviteIntent()).toBe('explicit')
+        expect(readInviteUserId()).toBe('account-a')
+    }
+)

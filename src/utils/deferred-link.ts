@@ -338,8 +338,9 @@ export function buildDeferredPayload(
         const existing = readInviteCode()
         const guarded = existing && (readInviteIntent() !== 'acquisition' || readInviteUserId())
         const code = toInviteCode(guarded ? existing : options.acquisitionInvite)
-        if (guarded) params.set(readInviteIntent() === 'acquisition' ? 'acq_invite' : 'invite', code)
-        else if (isInviteUsername(code)) params.set('acq_invite', code)
+        // A passive opening does not transfer explicit intent to another app/account.
+        // Older clients ignore this field instead of accepting a stale browser choice.
+        if (isInviteUsername(code)) params.set('acq_invite', code)
     }
 
     const entry = new URLSearchParams(window.location.search)
@@ -750,8 +751,9 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     const invite = payload.invite ? toInviteCode(payload.invite) : ''
     // a deferred link carries only a bare code — DIRECT, and through the one
     // writer so the type can never be a stale leftover from an earlier flow
-    if (invite) stashInvite(invite, EInviteType.DIRECT)
-    if (payload.acquisitionInvite) stashAcquisitionInvite(toInviteCode(payload.acquisitionInvite))
+    if (invite && !payload.trackedLink) stashInvite(invite, EInviteType.DIRECT)
+    const acquisitionInvite = payload.trackedLink ? invite || payload.acquisitionInvite : payload.acquisitionInvite
+    if (acquisitionInvite) stashAcquisitionInvite(toInviteCode(acquisitionInvite))
     // Badge campaigns do not gate the setup step, so they can safely outlive the
     // session for a network/configuration retry. Preserve the first trimmed
     // spelling; backend resolution is case-insensitive.

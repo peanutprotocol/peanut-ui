@@ -111,6 +111,8 @@ function mapDeepLink(url: string): string | null {
         const slug = parsed.pathname.startsWith('/go/') ? parsed.pathname.slice(4) : parsed.searchParams.get('tl')
         if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null
         const params = new URLSearchParams({ tracked_link: slug })
+        // Public /go input never owns attribution or continuation state.
+        if (parsed.pathname.startsWith('/go/')) return `/app?${params}`
         const revision = parseAcquisitionRevision(parsed.searchParams.get('tr'))
         if (revision !== null) params.set('tr', String(revision))
         if (parsed.searchParams.get('tl_seen') === '1') {

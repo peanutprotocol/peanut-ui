@@ -207,8 +207,9 @@ it('keeps an explicit choice through passive handoff and ignores passive restore
         acquisitionInvite: 'alice',
         includeInviteAndBadgeContext: false,
     })
-    expect(parseDeferredPayload(encoded)?.invite).toBe('bob')
-    expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBeUndefined()
+    expect(parseDeferredPayload(encoded)?.invite).toBeUndefined()
+    expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('bob')
+    expect(parseLegacyPayload(encoded)?.invite).toBeUndefined()
     applyDeferredPayload({ acquisitionInvite: 'alice' })
     expect(readInviteCode()).toBe('bob')
 })

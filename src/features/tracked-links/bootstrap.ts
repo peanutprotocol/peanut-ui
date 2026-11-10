@@ -64,7 +64,7 @@ export async function bootstrapTrackedLinkEntry(
     if (link.invite) stashAcquisitionInvite(link.invite.code)
 
     const restored = parseDeferredPayload(params.toString())
-    if (native && restored) applyDeferredPayload(restored)
+    if (native && restored) applyDeferredPayload({ ...restored, trackedLink: link.slug })
     const legacyCampaign = tracked
         ? null
         : parseAcquisitionCampaign({

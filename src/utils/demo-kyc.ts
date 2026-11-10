@@ -94,6 +94,7 @@ export function kycPlan(user: IUserProfile | null): Required<KycDocumentPlan> {
         documentRefusals: {},
         documentTypeRefusals: {},
         temporaryProtection: null,
+        terminal: null,
     }
 }
 
