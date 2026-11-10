@@ -1,9 +1,9 @@
-import { UTM_MEDIUMS, UTM_SOURCES, type UtmParams } from '@/utils/utm.utils'
+import { UTM_MEDIUMS, type UtmParams } from '@/utils/utm.utils'
 
 export const TRACKED_LINK_EVENT = 'tracked_link_visit'
 export const TRACKED_LINK_ORIGIN = 'https://peanut.me'
 export const TRACKED_LINK_TIMEOUT_MS = 1800
-export type AcquisitionCampaign = UtmParams
+export type AcquisitionCampaign = Omit<UtmParams, 'source'> & { source: string }
 
 // Only shipped acquisition pages belong here. Payment, auth and arbitrary URLs do not.
 export const ACQUISITION_PAGES = [
@@ -30,7 +30,13 @@ type LinkBase = {
 export type ResolvedAcquisitionLink = LinkBase &
     (
         | { kind: 'invite'; policy: 'journey'; invite: { code: string }; campaign?: never; qr?: never }
-        | { kind: 'campaign'; policy: 'journey' | 'none'; campaign: AcquisitionCampaign; invite?: never; qr?: never }
+        | {
+              kind: 'campaign'
+              policy: 'journey' | 'none'
+              campaign: AcquisitionCampaign
+              invite?: { code: string }
+              qr?: never
+          }
         | {
               kind: 'marketing_qr'
               policy: 'personless'
@@ -44,12 +50,12 @@ export type AcquisitionLinkResolution =
     | { status: 400 | 404 | 410 | 503 }
 
 export function isAcquisitionSlug(value: unknown): value is string {
-    return typeof value === 'string' && value.length <= 96 && /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(value)
+    return typeof value === 'string' && value.length <= 96 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)
 }
 
 // Existing short usernames predate the current signup length rule. Identity still needs a server lookup.
 export function isInviteUsername(value: unknown): value is string {
-    return typeof value === 'string' && /^[a-z][a-z0-9]{0,31}$/.test(value)
+    return typeof value === 'string' && /^[a-z0-9]{1,64}$/.test(value)
 }
 
 export function parseAcquisitionRevision(value: unknown): number | null {
@@ -73,7 +79,9 @@ export function parseAcquisitionCampaign(value: unknown): AcquisitionCampaign | 
     if (
         !object(value) ||
         !onlyKeys(value, ['source', 'medium', 'campaign', 'content', 'term']) ||
-        !Object.values(UTM_SOURCES).includes(value.source as AcquisitionCampaign['source']) ||
+        typeof value.source !== 'string' ||
+        value.source.length > 64 ||
+        !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.source) ||
         !Object.values(UTM_MEDIUMS).includes(value.medium as AcquisitionCampaign['medium']) ||
         typeof value.campaign !== 'string' ||
         value.campaign.length > 64 ||
@@ -140,7 +148,8 @@ export function parseResolvedAcquisitionLink(value: unknown): ResolvedAcquisitio
             !value.slug.includes('-') ||
             !['journey', 'none'].includes(String(value.policy)) ||
             !parseAcquisitionCampaign(value.campaign) ||
-            value.invite !== undefined ||
+            (value.invite !== undefined &&
+                (!object(value.invite) || !onlyKeys(value.invite, ['code']) || !isInviteUsername(value.invite.code))) ||
             value.qr !== undefined
         )
             return null
@@ -175,7 +184,7 @@ export function acquisitionHandoffPath(link: ResolvedAcquisitionLink, seen = fal
     params.set('app_entry', '1')
     params.set('tl', link.slug)
     params.set('tr', String(link.revision))
-    if (link.kind === 'invite') params.set('acq_invite', link.invite.code)
+    if (link.invite) params.set('acq_invite', link.invite.code)
     if (seen) params.set('tl_seen', '1')
     return `/home?${params}`
 }
