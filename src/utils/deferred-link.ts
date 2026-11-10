@@ -13,15 +13,9 @@ import { nativeCapability } from './native-capability'
 import { sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
-import {
-    readInviteCode,
-    readInviteIntent,
-    readInviteUserId,
-    stashInvite,
-    stashAcquisitionInvite,
-} from '@/utils/invite-stash'
+import { readInviteCode, readInviteIntent, stashInvite, stashAcquisitionInvite } from '@/utils/invite-stash'
 import { isTrackedLinkEntry, trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
-import { isAcquisitionSlug, isInviteUsername } from '@/features/tracked-links/contract'
+import { isAcquisitionSlug, isInviteUsername, type ResolvedAcquisitionLink } from '@/features/tracked-links/contract'
 import { EInviteType } from '@/services/services.types'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,
@@ -317,7 +311,7 @@ export function buildDeferredPayload(
     dest?: string,
     invite?: string,
     store: 'android' | 'ios' = 'android',
-    options: { includeInviteAndBadgeContext?: boolean; acquisitionInvite?: string } = {}
+    options: { includeInviteAndBadgeContext?: boolean; acquisitionInvite?: string; trackedLink?: string } = {}
 ): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
@@ -335,16 +329,14 @@ export function buildDeferredPayload(
     }
 
     if (options.acquisitionInvite) {
-        const existing = readInviteCode()
-        const guarded = existing && (readInviteIntent() !== 'acquisition' || readInviteUserId())
-        const code = toInviteCode(guarded ? existing : options.acquisitionInvite)
+        const code = toInviteCode(options.acquisitionInvite)
         // A passive opening does not transfer explicit intent to another app/account.
-        // Older clients ignore this field instead of accepting a stale browser choice.
+        // Carry only the descriptor's inviter; a protected local choice stays on this device.
         if (isInviteUsername(code)) params.set('acq_invite', code)
     }
 
     const entry = new URLSearchParams(window.location.search)
-    const trackedLink = entry.get('tl') ?? entry.get('tracked_link')
+    const trackedLink = options.trackedLink ?? entry.get('tl') ?? entry.get('tracked_link')
     if (isAcquisitionSlug(trackedLink)) params.set('tl', trackedLink)
 
     const allowed = (!isTrackedLinkEntry() && !params.has('acq_invite')) || trackedLinkAnalyticsAllowed()
@@ -627,7 +619,7 @@ async function doRestore(): Promise<RestoredContext | null> {
         markConsumed()
     }
 
-    const payload = raw ? parseDeferredPayload(raw) : null
+    let payload = raw ? parseDeferredPayload(raw) : null
     const referrerCampaign = !payload && raw && channel === 'referrer' ? parseReferrerCampaign(raw) : null
     if (referrerCampaign) {
         await restoreReferrerCampaign(referrerCampaign)
@@ -652,6 +644,26 @@ async function doRestore(): Promise<RestoredContext | null> {
         return null
     }
 
+    if (payload.trackedLink) {
+        // Referrer/clipboard fields are caller-controlled. Resolve the same authority
+        // as a direct opening before any referral write; failed resolution stays functional.
+        let link: ResolvedAcquisitionLink | undefined
+        try {
+            const { resolveAcquisitionLinkClient } = await import('@/features/tracked-links/resolve-client')
+            const result = await resolveAcquisitionLinkClient(payload.trackedLink)
+            if (result.status === 200) link = result.link
+        } catch {}
+        if (link?.invite) stashAcquisitionInvite(link.invite.code)
+        payload = {
+            lang: payload.lang,
+            trackedLink: payload.trackedLink,
+            acquisitionInvite: link?.invite?.code,
+            dest: '/home',
+            ...(link?.policy === 'journey'
+                ? { attribution: payload.attribution, webDistinctId: payload.webDistinctId }
+                : {}),
+        }
+    }
     const restored = applyDeferredPayload(payload)
     if (payload.attribution && deferredAnalyticsAllowed(payload)) {
         // WKWebView can discard the cookie immediately. Await the native
@@ -751,13 +763,18 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     const invite = payload.invite ? toInviteCode(payload.invite) : ''
     // a deferred link carries only a bare code — DIRECT, and through the one
     // writer so the type can never be a stale leftover from an earlier flow
-    if (invite && !payload.trackedLink) stashInvite(invite, EInviteType.DIRECT)
-    const acquisitionInvite = payload.trackedLink ? invite || payload.acquisitionInvite : payload.acquisitionInvite
-    if (acquisitionInvite) stashAcquisitionInvite(toInviteCode(acquisitionInvite))
+    // Tracked callers resolve and stash the descriptor separately. This synchronous
+    // helper cannot establish authority for an inviter carried by the URL or clipboard.
+    if (!payload.trackedLink) {
+        if (invite) stashInvite(invite, EInviteType.DIRECT)
+        if (payload.acquisitionInvite) stashAcquisitionInvite(toInviteCode(payload.acquisitionInvite))
+    }
     // Badge campaigns do not gate the setup step, so they can safely outlive the
     // session for a network/configuration retry. Preserve the first trimmed
     // spelling; backend resolution is case-insensitive.
-    const badgeCampaigns = parsePendingBadgeCampaigns(payload.badgeCampaigns ?? payload.campaign)
+    const badgeCampaigns = payload.trackedLink
+        ? []
+        : parsePendingBadgeCampaigns(payload.badgeCampaigns ?? payload.campaign)
     if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
 
     // null, not the English fallback: a garbage payload must never override the device language

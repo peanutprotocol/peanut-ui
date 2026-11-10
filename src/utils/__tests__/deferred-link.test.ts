@@ -20,7 +20,9 @@ import {
     ensureSignupAttributionForRegistration,
     readSignupAttribution,
 } from '../signup-attribution'
-import { readInviteCode, stashInvite } from '../invite-stash'
+import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '../invite-stash'
+import { resolveAcquisitionLinkClient } from '@/features/tracked-links/resolve-client'
+import type { AcquisitionLinkResolution } from '@/features/tracked-links/contract'
 import { EInviteType } from '@/services/services.types'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import {
@@ -29,6 +31,8 @@ import {
 } from './fixtures/legacy-native-attribution'
 
 const getReferrer = jest.fn()
+jest.mock('@/features/tracked-links/resolve-client', () => ({ resolveAcquisitionLinkClient: jest.fn() }))
+const resolveTracked = jest.mocked(resolveAcquisitionLinkClient)
 
 jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({ getReferrer: () => getReferrer() })),
@@ -827,6 +831,144 @@ describe('applyDeferredPayload', () => {
 })
 
 describe('restoreDeferredContext', () => {
+    const trackedInvite = {
+        schemaVersion: 1 as const,
+        linkId: `invite_${'a'.repeat(64)}`,
+        slug: 'alice',
+        revision: 1,
+        status: 'active' as const,
+        kind: 'invite' as const,
+        policy: 'journey' as const,
+        destination: { key: 'app-entry' as const, continuation: '/home' as const },
+        invite: { code: 'alice' },
+    }
+
+    it.each(['none', 'personless', 'unavailable', 'journey'] as const)(
+        'imports tracked install analytics only under resolved journey policy: %s',
+        async (policy) => {
+            const previousKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+            process.env.NEXT_PUBLIC_POSTHOG_KEY = 'test-key'
+            mockIsAndroidNative.mockReturnValue(true)
+            const attribution = {
+                schemaVersion: '1',
+                journeyId: '33333333-3333-4333-8333-333333333333',
+                platform: 'web',
+                analyticsState: 'enabled',
+                captureMethod: 'browser',
+                firstTouch: { occurredAt: new Date().toISOString(), utmSource: 'newsletter', path: '/home' },
+            }
+            const params = new URLSearchParams({
+                pnutdl: '1',
+                tl: 'c-launch',
+                attribution: JSON.stringify(attribution),
+                wid: '44444444-4444-4444-8444-444444444444',
+            })
+            expect(parseDeferredPayload(params.toString())?.attribution).toBeDefined()
+            getReferrer.mockResolvedValue({ referrer: params.toString() })
+            const resolved: AcquisitionLinkResolution =
+                policy === 'unavailable'
+                    ? { status: 503 }
+                    : {
+                          status: 200,
+                          link:
+                              policy === 'personless'
+                                  ? {
+                                        ...trackedInvite,
+                                        kind: 'marketing_qr',
+                                        policy,
+                                        invite: undefined,
+                                        qr: { id: 'home-hero-en' },
+                                        campaign: { source: 'qr', medium: 'content', campaign: 'launch' },
+                                    }
+                                  : {
+                                        ...trackedInvite,
+                                        kind: 'campaign',
+                                        policy,
+                                        invite: undefined,
+                                        campaign: { source: 'twitter', medium: 'cpc', campaign: 'launch' },
+                                    },
+                      }
+            resolveTracked.mockResolvedValue(resolved)
+            try {
+                await restoreDeferredContext()
+                if (policy === 'journey') {
+                    expect(readSignupAttribution()?.journeyId).toBe(attribution.journeyId)
+                    expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: params.get('wid') })
+                } else {
+                    expect(readSignupAttribution()).toBeNull()
+                    expect(posthogRegister).not.toHaveBeenCalled()
+                    expect(posthogRegisterOnce).not.toHaveBeenCalled()
+                }
+            } finally {
+                if (previousKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+                else process.env.NEXT_PUBLIC_POSTHOG_KEY = previousKey
+            }
+        }
+    )
+
+    it.each(['invite=bob', 'acq_invite=bob', 'invite=bob&acq_invite=carol'])(
+        'synchronous tracked restoration never trusts caller referral fields: %s',
+        (fields) => {
+            applyDeferredPayload(parseDeferredPayload(`pnutdl=1&tl=alice&badge_campaign=forged&${fields}`)!)
+            expect(readInviteCode()).toBe('')
+            expect(document.cookie).not.toContain('campaignTag=')
+        }
+    )
+
+    it.each(['android', 'ios'] as const)(
+        'resolves the %s tracked handoff before stashing an inviter',
+        async (store) => {
+            const payload = 'pnutdl=1&tl=alice&invite=bob&acq_invite=carol&badge_campaign=forged&dest=%2Fsend%2Fbob'
+            resolveTracked.mockResolvedValue({ status: 200, link: trackedInvite })
+            if (store === 'android') {
+                mockIsAndroidNative.mockReturnValue(true)
+                getReferrer.mockResolvedValue({ referrer: payload })
+            } else {
+                mockIsIOSNative.mockReturnValue(true)
+                mockClipboardHasStrings.mockResolvedValue(true)
+                mockClipboardHasProbableWebUrl.mockResolvedValue(true)
+                clipboardRead.mockResolvedValue({ value: `https://peanut.me/?${payload}` })
+            }
+            await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+            expect(resolveTracked).toHaveBeenCalledWith('alice')
+            expect(readInviteCode()).toBe('alice')
+            expect(readInviteIntent()).toBe('acquisition')
+            expect(document.cookie).not.toContain('campaignTag=')
+        }
+    )
+
+    it.each(['no-inviter', 'unavailable', 'explicit', 'owned'])(
+        'tracked install restoration preserves referral authority for %s',
+        async (state) => {
+            mockIsAndroidNative.mockReturnValue(true)
+            getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&tl=c-launch&invite=bob&acq_invite=carol&dest=%2Fhome' })
+            if (state === 'explicit' || state === 'owned') stashInvite('dave', EInviteType.DIRECT)
+            if (state === 'owned') bindInviteToUser('account-a')
+            resolveTracked.mockResolvedValue(
+                state === 'unavailable'
+                    ? { status: 503 }
+                    : {
+                          status: 200,
+                          link: {
+                              ...trackedInvite,
+                              slug: 'c-launch',
+                              kind: 'campaign',
+                              campaign: { source: 'twitter', medium: 'cpc', campaign: 'launch' },
+                              invite: state === 'no-inviter' ? undefined : { code: 'alice' },
+                          },
+                      }
+            )
+            await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+            expect(readInviteCode()).toBe(state === 'explicit' || state === 'owned' ? 'dave' : '')
+            expect(readInviteUserId()).toBe(state === 'owned' ? 'account-a' : '')
+            if (state === 'unavailable') {
+                resolveTracked.mockClear()
+                await expect(restoreDeferredContext()).resolves.toBeNull()
+                expect(resolveTracked).not.toHaveBeenCalled()
+            }
+        }
+    )
+
     it('restores the invite, campaign, locale and dest from the android referrer, once', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({

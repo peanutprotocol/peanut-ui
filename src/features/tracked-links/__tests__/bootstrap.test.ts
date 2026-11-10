@@ -110,7 +110,7 @@ it('preserves explicit pending inviter priority through a passive opening', asyn
     expect(readInviteCode()).toBe('bob')
     expect(readInviteIntent()).toBe('explicit')
     expect(parseDeferredPayload(result.payload!)?.invite).toBeUndefined()
-    expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe('bob')
+    expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe('alice')
 })
 it('projects the same registered campaign into web and native journeys and both store handoffs', async () => {
     resolve.mockResolvedValue({ status: 200, link: campaign })
@@ -200,10 +200,28 @@ it('keeps a functional handoff under blocked storage without creating a journey'
 
 it('validates historical mixed-case legacy codes without treating them as campaign identities', async () => {
     visit('?code=Alice')
-    await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
+    const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
     expect(resolve).toHaveBeenCalledWith('alice')
     expect(readInviteIntent()).toBe('acquisition')
     expect(captureTrackedLinkVisit).not.toHaveBeenCalled()
+    for (const raw of [result.payload, result.iosPayload]) {
+        expect(parseDeferredPayload(raw!)?.trackedLink).toBe('alice')
+        expect(parseDeferredPayload(raw!)?.acquisitionInvite).toBe('alice')
+    }
+})
+
+it('does not import a caller journey through a campaign with measurement disabled', async () => {
+    visit('?utm_source=newsletter&utm_medium=email&utm_campaign=fall')
+    const context = captureSignupAttribution()!
+    expect(context).not.toBeNull()
+    clearCookies()
+    localStorage.clear()
+    visit('?tl=c-launch')
+    resolve.mockResolvedValue({ status: 200, link: { ...campaign, policy: 'none' } })
+    const params = new URLSearchParams({ tl: 'c-launch', pnutdl: '1', attribution: JSON.stringify(context) })
+    expect(parseDeferredPayload(params.toString())?.attribution).toBeDefined()
+    await bootstrapTrackedLinkEntry(params, true)
+    expect(readSignupAttribution()).toBeNull()
 })
 it('routes QR aliases through the existing personless sender without making a journey', async () => {
     resolve.mockResolvedValue({
@@ -237,11 +255,11 @@ it('keeps an app-owned retry when opening a passive handoff from a different bro
     expect(readInviteUserId()).toBe('account-a')
 })
 it.each(['tl=alice', 'tracked_link=alice', 'code=alice'])(
-    'treats restored legacy invite as passive on %s and preserves an app retry',
+    'uses the resolved inviter on %s and preserves an app retry',
     async (entry) => {
         const params = new URLSearchParams(`${entry}&pnutdl=1&invite=bob`)
         await bootstrapTrackedLinkEntry(params, true)
-        expect(readInviteCode()).toBe('bob')
+        expect(readInviteCode()).toBe('alice')
         expect(readInviteIntent()).toBe('acquisition')
         expect(readInviteUserId()).toBe('')
         stashInvite('carol', EInviteType.DIRECT)
@@ -250,5 +268,18 @@ it.each(['tl=alice', 'tracked_link=alice', 'code=alice'])(
         expect(readInviteCode()).toBe('carol')
         expect(readInviteIntent()).toBe('explicit')
         expect(readInviteUserId()).toBe('account-a')
+    }
+)
+
+it.each(['invite=bob', 'acq_invite=bob', 'invite=bob&acq_invite=carol'])(
+    'ignores caller referral fields after descriptor resolution: %s',
+    async (fields) => {
+        await bootstrapTrackedLinkEntry(new URLSearchParams(`tl=alice&pnutdl=1&${fields}`), true)
+        expect(readInviteCode()).toBe('alice')
+        expect(readInviteIntent()).toBe('acquisition')
+        localStorage.clear()
+        resolve.mockResolvedValue({ status: 200, link: campaign })
+        await bootstrapTrackedLinkEntry(new URLSearchParams(`tl=c-launch&pnutdl=1&${fields}`), true)
+        expect(readInviteCode()).toBe('')
     }
 )

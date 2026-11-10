@@ -64,7 +64,14 @@ export async function bootstrapTrackedLinkEntry(
     if (link.invite) stashAcquisitionInvite(link.invite.code)
 
     const restored = parseDeferredPayload(params.toString())
-    if (native && restored) applyDeferredPayload({ ...restored, trackedLink: link.slug })
+    if (native && restored)
+        applyDeferredPayload({
+            lang: restored.lang,
+            trackedLink: link.slug,
+            ...(link.policy === 'journey'
+                ? { attribution: restored.attribution, webDistinctId: restored.webDistinctId }
+                : {}),
+        })
     const legacyCampaign = tracked
         ? null
         : parseAcquisitionCampaign({
@@ -91,7 +98,11 @@ export async function bootstrapTrackedLinkEntry(
     try {
         // Build again after bootstrap; forwarding the incoming payload would omit the new journey.
         if (link.invite || journey) {
-            const options = { includeInviteAndBadgeContext: false, acquisitionInvite: link.invite?.code }
+            const options = {
+                includeInviteAndBadgeContext: false,
+                acquisitionInvite: link.invite?.code,
+                trackedLink: link.slug,
+            }
             payload = buildDeferredPayload('/home', undefined, 'android', options)
             iosPayload = buildDeferredPayload('/home', undefined, 'ios', options)
         }
