@@ -186,29 +186,35 @@ it('does not write a late journey after bootstrap cancellation', async () => {
     expect(document.cookie).not.toContain('signupAttribution=')
 })
 
-it.each(['ios', 'android'] as const)('carries passive provenance in %s while old decoders ignore it', (store) => {
-    stashAcquisitionInvite('alice')
-    const encoded = buildDeferredPayload('/home', undefined, store, {
-        acquisitionInvite: 'alice',
-        includeInviteAndBadgeContext: false,
-    })
-    if (store === 'android') expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
-    expect(new URLSearchParams(encoded).has('invite')).toBe(false)
-    expect(parseLegacyPayload(encoded)?.invite).toBeUndefined()
-    localStorage.clear()
-    applyDeferredPayload(parseDeferredPayload(encoded)!)
-    expect(readInviteCode()).toBe('alice')
-    expect(readInviteIntent()).toBe('acquisition')
-})
+it.each(['ios', 'android'] as const)(
+    'carries passive provenance in %s for descriptor-validated restoration',
+    (store) => {
+        stashAcquisitionInvite('alice')
+        const encoded = buildDeferredPayload('/home', undefined, store, {
+            acquisitionInvite: 'alice',
+            includeInviteAndBadgeContext: false,
+        })
+        if (store === 'android')
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(new URLSearchParams(encoded).has('invite')).toBe(false)
+        expect(parseLegacyPayload(encoded)?.invite).toBeUndefined()
+        expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('alice')
+        localStorage.clear()
+        applyDeferredPayload(parseDeferredPayload(encoded)!)
+        // The synchronous decoder cannot validate a descriptor; bootstrap/store restore owns that lookup.
+        expect(readInviteCode()).toBe('')
+        expect(readInviteIntent()).toBeNull()
+    }
+)
 
-it('keeps an explicit choice through passive handoff and ignores passive restore over it', () => {
+it('keeps an explicit choice locally while carrying only the descriptor inviter', () => {
     stashInvite('bob', EInviteType.DIRECT)
     const encoded = buildDeferredPayload('/home', undefined, 'ios', {
         acquisitionInvite: 'alice',
         includeInviteAndBadgeContext: false,
     })
     expect(parseDeferredPayload(encoded)?.invite).toBeUndefined()
-    expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('bob')
+    expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('alice')
     expect(parseLegacyPayload(encoded)?.invite).toBeUndefined()
     applyDeferredPayload({ acquisitionInvite: 'alice' })
     expect(readInviteCode()).toBe('bob')
@@ -231,5 +237,5 @@ it('restore rechecks native consent before persisting a tracked campaign', async
     localStorage.setItem('__ph_opt_in_out_phc_tracked_test', '0')
     applyDeferredPayload({ attribution, trackedLink: 'creator-campaign', acquisitionInvite: 'alice' })
     expect(readSignupAttribution()).toBeNull()
-    expect(readInviteCode()).toBe('alice')
+    expect(readInviteCode()).toBe('')
 })
