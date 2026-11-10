@@ -8888,6 +8888,7 @@ export interface paths {
                          * @example {
                          *       "amountBrl": "106.75",
                          *       "fixedFeeBrl": "0.75",
+                         *       "minAmountBrl": "20",
                          *       "operation": "withdraw",
                          *       "provider": "avenia",
                          *       "rate": "5.369543",
@@ -8898,6 +8899,8 @@ export interface paths {
                             amountBrl: string;
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
+                            /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
+                            minAmountBrl: string;
                             operation: "deposit" | "withdraw";
                             /** @description The provider the route names, e.g. avenia */
                             provider: string;
@@ -14391,7 +14394,8 @@ export interface paths {
                                     }[];
                                     /** @description Rail method code, e.g. PIX_BR */
                                     method: string;
-                                    operation: "deposit" | "withdraw";
+                                    /** @description pay: a QR payment on the method */
+                                    operation: "deposit" | "withdraw" | "pay";
                                     /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another. */
                                     payableDepositIntentId?: string;
                                     /** @description The provider the money routes use. Null when every candidate is refused. */
@@ -17841,7 +17845,8 @@ export interface paths {
                                     }[];
                                     /** @description Rail method code, e.g. PIX_BR */
                                     method: string;
-                                    operation: "deposit" | "withdraw";
+                                    /** @description pay: a QR payment on the method */
+                                    operation: "deposit" | "withdraw" | "pay";
                                     /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another. */
                                     payableDepositIntentId?: string;
                                     /** @description The provider the money routes use. Null when every candidate is refused. */
