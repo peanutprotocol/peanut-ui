@@ -5022,9 +5022,10 @@
             "country": "País: {country}",
             "save": "Salvar",
             "queuedTitle": "Configuração bancária na fila",
-            "queuedBody": "Sua configuração bancária está na fila. Avisaremos quando houver novidades.",
-            "temporary": "Não foi possível carregar esta correção. Tente novamente ou fale com o suporte.",
-            "unavailable": "Esta correção não está disponível. Fale com o suporte para receber ajuda."
+            "queuedBody": "Vamos tentar configurar sua conta bancária de novo.",
+            "temporary": "Algo deu errado. Tente de novo.",
+            "unavailable": "Esta correção não está disponível.",
+            "invalid": "Informe um código postal válido."
         },
         "opened": {
             "heading": "Conta em {currency} pronta",
@@ -5209,7 +5210,7 @@
             "providerReviewBody": "Sua identidade já está verificada. Nosso parceiro de pagamentos precisa de mais informações suas antes de abrir contas em {currency}.",
             "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e não dá para iniciá-la pelo app na sua conta. Fale com o suporte e a gente ajuda você a concluir.",
             "finishReviewCta": "Continuar",
-            "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes.",
+            "actFailed": "Não conseguimos abrir a verificação. Tente de novo.",
             "topUpCta": "Adicionar de um banco",
             "limitBodyTopUp": "Esse é o seu limite atual. Você ainda pode adicionar dinheiro enviando do seu próprio banco. O suporte pode abrir outra conta se você precisar.",
             "addressTitle": "Precisamos do endereço residencial",

@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { QuestionFields } from '@/features/paperwork-verification/components/QuestionFields'
+import { PostalCodeField } from '@/features/paperwork-verification/components/PostalCodeField'
 import { apiFetch } from '@/utils/api-fetch'
 
 const path = '/users/kyc/bridge-postal-code'
-const postalField = [{ key: 'postCode', kind: 'text' as const, required: true, value: null }]
 type State = 'loading' | 'editing' | 'unavailable' | 'temporary' | 'saving' | 'queued'
 
-export function BridgePostalCorrection({
+export function BridgePostalCorrectionModal({
     visible,
     onClose,
     onSupport,
@@ -24,6 +23,7 @@ export function BridgePostalCorrection({
 }) {
     const t = useTranslations('depositAccounts.postalCorrection')
     const common = useTranslations('common')
+    const labels = useTranslations('kyc.paperworkVerification.labels')
     const [state, setState] = useState<State>('loading')
     const [country, setCountry] = useState('')
     const [revision, setRevision] = useState('')
@@ -131,12 +131,12 @@ export function BridgePostalCorrection({
                 editing ? (
                     <>
                         <p>{t('country', { country })}</p>
-                        <QuestionFields
-                            fields={postalField}
-                            values={{ postCode }}
-                            errors={invalid ? { postCode: 'invalid_postal_code' } : {}}
-                            residence={country}
-                            onChange={(_, value) => {
+                        <PostalCodeField
+                            label={labels('postCode')}
+                            value={postCode}
+                            required
+                            error={invalid ? t('invalid') : null}
+                            onChange={(value) => {
                                 setPostCode(value)
                                 setInvalid(false)
                             }}

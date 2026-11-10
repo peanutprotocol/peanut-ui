@@ -5022,9 +5022,10 @@
             "country": "Country: {country}",
             "save": "Save",
             "queuedTitle": "Bank setup queued",
-            "queuedBody": "Your bank setup is queued. We’ll update you when it progresses.",
-            "temporary": "We couldn’t load this correction. Try again or contact support.",
-            "unavailable": "This correction is unavailable. Contact support for help."
+            "queuedBody": "We’ll retry your bank setup.",
+            "temporary": "Something went wrong. Try again.",
+            "unavailable": "This correction is unavailable.",
+            "invalid": "Enter a valid postal code."
         },
         "opened": {
             "heading": "{currency} account ready",
@@ -5209,7 +5210,7 @@
             "providerReviewBody": "Your identity is verified. Our payment partner needs more information from you before it can open {currency} accounts.",
             "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
             "finishReviewCta": "Continue",
-            "actFailed": "We could not open the check. Try again in a moment.",
+            "actFailed": "Couldn’t open verification. Try again.",
             "topUpCta": "Add money from a bank",
             "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one.",
             "addressTitle": "We need a home address",

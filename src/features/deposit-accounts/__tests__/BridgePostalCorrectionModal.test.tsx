@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { apiFetch } from '@/utils/api-fetch'
-import { BridgePostalCorrection } from '../components/BridgePostalCorrection'
+import { BridgePostalCorrectionModal } from '../components/BridgePostalCorrectionModal'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 const request = apiFetch as jest.MockedFunction<typeof apiFetch>
@@ -11,7 +11,9 @@ const reply = (status: number, body: unknown) =>
 const setup = () => {
     const onQueued = jest.fn()
     const onSupport = jest.fn()
-    renderWithIntl(<BridgePostalCorrection visible onClose={jest.fn()} onQueued={onQueued} onSupport={onSupport} />)
+    renderWithIntl(
+        <BridgePostalCorrectionModal visible onClose={jest.fn()} onQueued={onQueued} onSupport={onSupport} />
+    )
     return { onQueued, onSupport }
 }
 
@@ -29,6 +31,7 @@ it('keeps the postal draft after a field refusal and queues a corrected code', a
     const refusedField = await screen.findByTestId('verify-input-postCode')
     await waitFor(() => expect(refusedField).toHaveAttribute('aria-invalid', 'true'))
     expect(refusedField).toHaveValue('0210')
+    expect(refusedField).toHaveAccessibleDescription('Enter a valid postal code.')
     fireEvent.change(refusedField, { target: { value: '02108' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('Bank setup queued')

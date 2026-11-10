@@ -790,6 +790,13 @@ const postalCorrection: (typeof PAPERWORK_VERIFICATION_FIXTURES)[string] = {
     },
 }
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-correction'] = postalCorrection
+PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-refused'] = {
+    ...postalCorrection,
+    about: 'The Bridge correction keeps the postal code visible when the API rejects it.',
+    rejects: {
+        'POST /users/kyc/bridge-postal-code': { status: 422, body: { errors: { postCode: 'invalid_postal_code' } } },
+    },
+}
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-queued'] = {
     ...postalCorrection,
     about: 'The corrected postal code is saved and Bridge setup is queued.',

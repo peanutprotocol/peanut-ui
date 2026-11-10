@@ -21,7 +21,7 @@ import { trackAddressStepSubmitted } from './analytics'
 import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from './useDepositAccounts'
-import { BridgePostalCorrection } from './components/BridgePostalCorrection'
+import { BridgePostalCorrectionModal } from './components/BridgePostalCorrectionModal'
 import { AddressLaunchModal } from './components/AddressLaunchModal'
 
 /**
@@ -182,7 +182,7 @@ export function useDepositGateRemediation(): {
         (addressStarting || !!addressError)
     const modals = (
         <>
-            <BridgePostalCorrection
+            <BridgePostalCorrectionModal
                 visible={!!postalGate}
                 onClose={() => setPostalGate(undefined)}
                 onSupport={() => {

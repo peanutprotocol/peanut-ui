@@ -68,6 +68,14 @@ const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>>
         actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
         expectSelector: '[data-testid="verify-input-postCode"]',
     },
+    'paperwork-verification-bridge-postal-refused': {
+        actions: [
+            { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },
+            { fill: { selector: '[data-testid="verify-input-postCode"]', value: '1234' } },
+            { clickSelector: '[data-testid="bridge-postal-correction-save"]' },
+        ],
+        expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',
+    },
     'paperwork-verification-bridge-postal-queued': {
         actions: [
             { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },

@@ -539,6 +539,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-paperwork-verification-bridge-postal-refused",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-paperwork-verification-bridge-postal-queued",
         "flow": "Home and shared states",
         "route": "/home"

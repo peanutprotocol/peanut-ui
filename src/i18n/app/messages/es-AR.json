@@ -2193,9 +2193,10 @@
             "country": "País: {country}",
             "save": "Guardar",
             "queuedTitle": "Configuración bancaria en espera",
-            "queuedBody": "Tu configuración bancaria está en espera. Te avisaremos cuando avance.",
-            "temporary": "No pudimos cargar esta corrección. Intentá de nuevo o contactá a soporte.",
-            "unavailable": "Esta corrección no está disponible. Contactá a soporte para recibir ayuda."
+            "queuedBody": "Vamos a volver a intentar configurar tu cuenta bancaria.",
+            "temporary": "Algo salió mal. Probá de nuevo.",
+            "unavailable": "Esta corrección no está disponible.",
+            "invalid": "Ingresá un código postal válido."
         },
         "opened": {
             "heading": "Cuenta en {currency} lista",
@@ -2243,7 +2244,7 @@
             "limitBody": "Ese es tu límite actual. Si necesitás otra, soporte puede abrirla.",
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contactá a soporte y lo revisamos.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contactá a soporte y te ayudamos a completarla.",
-            "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
+            "actFailed": "No pudimos abrir la verificación. Probá de nuevo.",
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
             "topUpCta": "Agregar desde un banco",
             "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás.",

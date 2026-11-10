@@ -1,6 +1,6 @@
 'use client'
 
-import { BridgePostalCorrection } from '@/features/deposit-accounts/components/BridgePostalCorrection'
+import { BridgePostalCorrectionModal } from '@/features/deposit-accounts/components/BridgePostalCorrectionModal'
 import { CAROUSEL_CLOSE_BUTTON_POSITION } from '@/constants/carousel.consts'
 import { twMerge } from '@/utils/tw'
 import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
@@ -404,7 +404,7 @@ export default function ActivationCTAs({
                     {step.ctaLabel}
                 </Button>
             </div>
-            <BridgePostalCorrection
+            <BridgePostalCorrectionModal
                 visible={showPostalCorrection}
                 onClose={() => setShowPostalCorrection(false)}
                 onSupport={() => {

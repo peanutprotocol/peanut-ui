@@ -45,8 +45,8 @@ let mockDisableCardPromotion = false
 jest.mock('@/hooks/useFeatureFlag', () => ({
     useFeatureFlags: () => (flagKey: string) => flagKey === 'card-promotion-disabled' && mockDisableCardPromotion,
 }))
-jest.mock('@/features/deposit-accounts/components/BridgePostalCorrection', () => ({
-    BridgePostalCorrection: ({ visible }: { visible: boolean }) =>
+jest.mock('@/features/deposit-accounts/components/BridgePostalCorrectionModal', () => ({
+    BridgePostalCorrectionModal: ({ visible }: { visible: boolean }) =>
         visible ? <div>Postal correction opened</div> : null,
 }))
 
