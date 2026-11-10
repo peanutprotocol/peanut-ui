@@ -49,10 +49,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 const mockPreview = jest.fn()
 const mockInit = jest.fn()
-jest.mock('@/services/avenia', () => ({
-    aveniaApi: {
+jest.mock('@/services/pix', () => ({
+    pixApi: {
         previewWithdrawal: (request: unknown) => mockPreview(request),
-        initWithdrawal: (request: unknown) => mockInit(request),
+        openWithdrawal: (request: unknown) => mockInit(request),
     },
 }))
 const mockEntry = jest.fn()

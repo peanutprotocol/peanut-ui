@@ -34,7 +34,7 @@ const withdrawal = (state: string, status = 'PROCESSING') => ({
         extraData: {
             kind: 'OFFRAMP',
             provider: 'AVENIA',
-            aveniaRecovery: { state, reason: 'payout-failed', failureCode: 'RECEIVER_ACCOUNT_CLOSED' },
+            pixRecovery: { state, reason: 'payout-failed', failureCode: 'RECEIVER_ACCOUNT_CLOSED' },
         },
     },
     isError: false,

@@ -10,7 +10,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { ProviderRow } from '@/components/Provider/ProviderRow'
-import type { AveniaWithdrawDisplay } from '@/services/avenia'
+import type { PixWithdrawDisplay } from '@/services/pix'
 import { formatBankAmount } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
 import { arrivalMinutes, aveniaShownRate } from '@/features/avenia/avenia.utils'
@@ -35,7 +35,7 @@ export function AveniaWithdrawReview({
 }: {
     title: string
     /** null while the preview loads, and after it was refused */
-    display: AveniaWithdrawDisplay | null
+    display: PixWithdrawDisplay | null
     isLoading: boolean
     isSubmitting: boolean
     /** A refusal (error), or the opened quote that moved since the review (attention). */

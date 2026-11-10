@@ -1,10 +1,12 @@
-import type { AveniaWithdrawDisplay, AveniaWithdrawSign } from '@/services/avenia'
+import type { PixWithdrawDisplay, PixWithdrawSign } from '@/services/pix'
+
+export type DepositWithIdSign = Extract<PixWithdrawSign, { kind: 'deposit-with-id' }>
 
 /** The withdrawal the init opened: what the wallet signs, and what the review and the last step show. */
 export interface OpenedWithdrawal {
     intentId: string
-    display: AveniaWithdrawDisplay
-    sign: AveniaWithdrawSign
+    display: PixWithdrawDisplay
+    sign: DepositWithIdSign
 }
 
 /**

@@ -1,6 +1,6 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
-import type { AveniaDepositStatus, AveniaWithdrawDisplay, PixKeyInfo } from '@/services/avenia'
+import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
 import type { CapabilityRoute, NextActionKind } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
 import { VERIFY_ACTION } from '@/features/kyc-features/report'
@@ -54,24 +54,21 @@ export type AveniaDepositPhase = 'pending' | 'processing' | 'completed' | 'retur
 
 // Intent statuses after which the Pix went back to the payer.
 const RETURNED_STATUSES = ['FAILED', 'REFUNDED']
-// Ticket statuses that mean the Pix reached Avenia: the money has left the user's bank.
-const PAID_TICKET_STATUSES = ['PROCESSING', 'ON-HOLD', 'PAID', 'PARTIAL-FAILED']
 
 /**
- * The deposit screen's phase from GET /avenia/deposit/:intentId. A deposit
- * completes when Rhino's bridge to the wallet is joined to it, so a PAID
- * ticket still reads `processing`. FAILED means Avenia sent the Pix back to
- * the payer (a third-party account, a blocked bank). CANCELLED is a code that
- * lapsed unpaid: the API's poller cancels it after its expiry, and no money moved.
- * An unpaid deposit whose code the API no longer calls payable is expired too.
- * No read yet is `pending`.
+ * The deposit screen's phase from GET /pix/deposit/:intentId. A deposit
+ * completes when the USDC reaches the wallet, so a Pix the provider received
+ * (`pixReceived`) still reads `processing`. FAILED means the provider sent the
+ * Pix back to the payer (a third-party account, a blocked bank). CANCELLED is
+ * a code that lapsed unpaid, and no money moved. An unpaid deposit whose code
+ * the API no longer calls payable is expired too. No read yet is `pending`.
  */
-export function aveniaDepositPhase(status: AveniaDepositStatus | undefined): AveniaDepositPhase {
+export function aveniaDepositPhase(status: PixDeposit | undefined): AveniaDepositPhase {
     if (!status) return 'pending'
     if (status.status === 'COMPLETED') return 'completed'
     if (status.status === 'CANCELLED') return 'expired'
     if (RETURNED_STATUSES.includes(status.status)) return 'returned'
-    if (status.ticketStatus && PAID_TICKET_STATUSES.includes(status.ticketStatus)) return 'processing'
+    if (status.pixReceived) return 'processing'
     // unpaid, and the API no longer sends the code: it lapsed before the poller cancelled it
     return status.codePayable ? 'pending' : 'expired'
 }
@@ -88,11 +85,13 @@ export function completePixKey(input: string): string | null {
     return validatePixKey(key).valid ? key : null
 }
 
-export type PixKeyVerdict = 'own' | 'not-own' | 'blocked'
+/** `unchecked`: the provider cannot tell whose key it is (`ownAccount` null), and it pays any key. */
+export type PixKeyVerdict = 'own' | 'not-own' | 'blocked' | 'unchecked'
 
-/** Avenia pays out only to the user's own CPF, and never to a bank on its deny-list. */
+/** A provider that checks the holder pays only the user's own CPF; none pays a bank on its deny-list. */
 export function pixKeyVerdict(info: PixKeyInfo): PixKeyVerdict {
     if (info.blocked) return 'blocked'
+    if (info.ownAccount === null) return 'unchecked'
     return info.ownAccount ? 'own' : 'not-own'
 }
 
@@ -186,7 +185,7 @@ export function aveniaWithdrawRefusalKey(code: string | undefined): AveniaWithdr
  * before signing anything.
  */
 export function signMatchesDisplay(
-    display: Pick<AveniaWithdrawDisplay, 'withdrawUsd'>,
+    display: Pick<PixWithdrawDisplay, 'withdrawUsd'>,
     sign: { payAmount: string; payAmountUnits: string }
 ): boolean {
     try {
@@ -204,8 +203,8 @@ export function signMatchesDisplay(
  * does not parse counts as worse.
  */
 export function quoteMovedAgainstUser(
-    reviewed: Pick<AveniaWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>,
-    opened: Pick<AveniaWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>
+    reviewed: Pick<PixWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>,
+    opened: Pick<PixWithdrawDisplay, 'withdrawUsd' | 'amountBrl'>
 ): boolean {
     try {
         return (
@@ -269,7 +268,7 @@ export function aveniaWithdrawOutcome(
  * three numbers on screen agree to the centavo (USD × rate − fee = reais).
  */
 export function aveniaShownRate(
-    display: Pick<AveniaWithdrawDisplay, 'amountBrl' | 'fixedFeeBrl' | 'withdrawUsd' | 'rate'>
+    display: Pick<PixWithdrawDisplay, 'amountBrl' | 'fixedFeeBrl' | 'withdrawUsd' | 'rate'>
 ): string {
     const shownUsd = Math.round(Number(display.withdrawUsd) * 100) / 100
     if (!(shownUsd > 0)) return display.rate

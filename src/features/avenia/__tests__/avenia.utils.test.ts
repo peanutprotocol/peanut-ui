@@ -15,7 +15,7 @@ import {
     toApiDecimal,
 } from '../avenia.utils'
 import { awaitsNewPixKey, aveniaNewKeyUrl } from '../aveniaRecovery'
-import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
+import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
 import type { CapabilityRoute } from '@/types/capabilities'
 
@@ -53,40 +53,39 @@ describe('aveniaPendingReason', () => {
 })
 
 describe('aveniaDepositPhase', () => {
-    const status = (s: string, ticketStatus: string | null) => ({
+    const status = (s: string, pixReceived: boolean) => ({
+        provider: 'avenia',
         intentId: 'i',
         status: s,
-        ticketStatus,
+        pixReceived,
         expiresAt: null,
         amountBrl: '100.00',
         usdcAmount: '17.94',
-        codePayable: s === 'AWAITING_USER_ACTION' && ticketStatus === 'UNPAID',
+        codePayable: s === 'AWAITING_USER_ACTION' && !pixReceived,
     })
 
-    it('waits on an unpaid ticket', () => {
+    it('waits on an unpaid code', () => {
         expect(aveniaDepositPhase(undefined)).toBe('pending')
-        expect(aveniaDepositPhase(status('AWAITING_USER_ACTION', 'UNPAID'))).toBe('pending')
+        expect(aveniaDepositPhase(status('AWAITING_USER_ACTION', false))).toBe('pending')
     })
 
-    it('is processing once the Pix reached Avenia, until the bridge completes the deposit', () => {
-        for (const ticket of ['PROCESSING', 'ON-HOLD', 'PAID', 'PARTIAL-FAILED']) {
-            expect(aveniaDepositPhase(status('PROCESSING', ticket))).toBe('processing')
-        }
-        expect(aveniaDepositPhase(status('COMPLETED', 'PAID'))).toBe('completed')
+    it('is processing once the provider received the Pix, until the USDC completes the deposit', () => {
+        expect(aveniaDepositPhase(status('AWAITING_USER_ACTION', true))).toBe('processing')
+        expect(aveniaDepositPhase(status('PROCESSING', true))).toBe('processing')
+        expect(aveniaDepositPhase(status('COMPLETED', true))).toBe('completed')
     })
 
     it('reads a failed deposit as returned to the payer', () => {
-        expect(aveniaDepositPhase(status('FAILED', 'FAILED'))).toBe('returned')
-        expect(aveniaDepositPhase(status('REFUNDED', 'FAILED'))).toBe('returned')
+        expect(aveniaDepositPhase(status('FAILED', true))).toBe('returned')
+        expect(aveniaDepositPhase(status('REFUNDED', true))).toBe('returned')
     })
 
-    it('reads a code the API cancelled after its expiry as expired, not returned: nothing was paid', () => {
-        expect(aveniaDepositPhase(status('CANCELLED', 'CANCELED'))).toBe('expired')
-        expect(aveniaDepositPhase(status('CANCELLED', 'UNPAID'))).toBe('expired')
+    it('reads a code cancelled after its expiry as expired, not returned: nothing was paid', () => {
+        expect(aveniaDepositPhase(status('CANCELLED', false))).toBe('expired')
     })
 
     it('reads an unpaid code the API no longer calls payable as expired, before the poller cancels it', () => {
-        expect(aveniaDepositPhase({ ...status('AWAITING_USER_ACTION', 'UNPAID'), codePayable: false })).toBe('expired')
+        expect(aveniaDepositPhase({ ...status('AWAITING_USER_ACTION', false), codePayable: false })).toBe('expired')
     })
 })
 
@@ -102,12 +101,13 @@ describe('completePixKey', () => {
         expect(completePixKey('095.799')).toBeNull()
         expect(completePixKey('ana@')).toBeNull()
         expect(completePixKey('')).toBeNull()
-        expect(completePixKey(DEMO_AVENIA_BR_CODE)).toBeNull()
+        expect(completePixKey(DEMO_PIX_BR_CODE)).toBeNull()
     })
 })
 
 describe('pixKeyVerdict', () => {
-    const info = (ownAccount: boolean, blocked: boolean) => ({
+    const info = (ownAccount: boolean | null, blocked: boolean) => ({
+        provider: 'avenia',
         holderName: 'Ana',
         holderTaxIdMasked: null,
         bankName: null,
@@ -116,10 +116,15 @@ describe('pixKeyVerdict', () => {
         blocked,
     })
 
-    it('allows only the own account at a bank Avenia pays', () => {
+    it('allows only the own account at a bank the provider pays', () => {
         expect(pixKeyVerdict(info(true, false))).toBe('own')
         expect(pixKeyVerdict(info(false, false))).toBe('not-own')
         expect(pixKeyVerdict(info(true, true))).toBe('blocked')
+    })
+
+    it('leaves the holder unchecked when the provider cannot tell, and still refuses a blocked bank', () => {
+        expect(pixKeyVerdict(info(null, false))).toBe('unchecked')
+        expect(pixKeyVerdict(info(null, true))).toBe('blocked')
     })
 })
 
@@ -210,14 +215,14 @@ describe('awaitsNewPixKey', () => {
     const recovery = (state: 'awaiting-key' | 'in-progress' | 'done') => ({
         kind: 'OFFRAMP',
         provider: 'AVENIA',
-        aveniaRecovery: { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_PIX_KEY_INVALID' },
+        pixRecovery: { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_PIX_KEY_INVALID' },
     })
 
     it('reads the recovery state of the history entry', () => {
         expect(awaitsNewPixKey(recovery('awaiting-key'))).toBe(true)
         expect(awaitsNewPixKey(recovery('in-progress'))).toBe(false)
         expect(awaitsNewPixKey(recovery('done'))).toBe(false)
-        expect(awaitsNewPixKey({ kind: 'OFFRAMP', provider: 'AVENIA', aveniaRecovery: null })).toBe(false)
+        expect(awaitsNewPixKey({ kind: 'OFFRAMP', provider: 'AVENIA', pixRecovery: null })).toBe(false)
         expect(awaitsNewPixKey(undefined)).toBe(false)
     })
 
@@ -232,7 +237,7 @@ describe('aveniaWithdrawOutcome', () => {
         extraData: {
             kind: 'OFFRAMP',
             provider: 'AVENIA',
-            aveniaRecovery: state
+            pixRecovery: state
                 ? { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_ACCOUNT_CLOSED' }
                 : null,
         },

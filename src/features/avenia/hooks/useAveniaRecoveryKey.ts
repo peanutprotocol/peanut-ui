@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAveniaRefusalMessage } from '@/features/avenia/hooks/useAveniaRefusalMessage'
-import { aveniaApi } from '@/services/avenia'
+import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 
 /**
@@ -36,7 +36,7 @@ export interface AveniaRecoveryKey {
 
 /**
  * A new Pix key for a withdrawal whose payout the bank refused for its key or
- * account: POST /avenia/withdraw/:intentId/recovery-key. The API checks the
+ * account: POST /pix/withdraw/:intentId/recovery-key. The API checks the
  * key the way the withdraw key step does (own CPF, not a blocked bank), so a
  * refusal reads like that step's. Either outcome moves the withdrawal's
  * history entry, so the entry is read again.
@@ -56,7 +56,7 @@ export function useAveniaRecoveryKey(intentId: string): AveniaRecoveryKey {
             setRefusal(null)
             setPhase('submitting')
             try {
-                await aveniaApi.setRecoveryKey(intentId, pixKey)
+                await pixApi.setRecoveryKey(intentId, pixKey)
                 setPhase('accepted')
                 void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             } catch (caught) {

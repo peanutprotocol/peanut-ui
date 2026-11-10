@@ -11,7 +11,7 @@ import {
 } from '@/constants/zerodev.consts'
 import {
     DEMO_ADDRESS,
-    DEMO_AVENIA_BR_CODE,
+    DEMO_PIX_BR_CODE,
     DEMO_CONTACTS,
     DEMO_HISTORY_ENTRIES,
     DEMO_LIMITS,
@@ -47,7 +47,22 @@ const EMPTY_GRAPH = {
 
 const soon = () => new Date(Date.now() + 120_000).toISOString()
 
-const demoAveniaWithdrawDisplay = () => ({
+/** One demo Pix deposit whose code can be paid for `msLeft` more. */
+const demoPixDeposit = (msLeft: number) => ({
+    provider: 'avenia',
+    intentId: 'demo-pix-deposit',
+    status: 'AWAITING_USER_ACTION',
+    codePayable: true,
+    pixReceived: false,
+    expiresAt: new Date(Date.now() + msLeft).toISOString(),
+    amountBrl: '100.00',
+    usdcAmount: '17.940500',
+    fixedFeeBrl: '0.75',
+    brCode: DEMO_PIX_BR_CODE,
+    payerCpfMasked: '123.***.***-09',
+})
+
+const demoPixWithdrawDisplay = () => ({
     amountBrl: '106.75',
     pixKey: '12345678909',
     ownAccount: true,
@@ -910,44 +925,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             minAmountBrl: '20',
         }),
     },
+    // the demo user's Pix routes name Avenia (DEMO_PIX_ROUTES), so these answer as Avenia does
     {
         method: 'GET',
-        pattern: '/avenia/deposit/eligibility',
+        pattern: '/pix/deposit/rules',
         handler: () => ({ minAmountBrl: '20', blockedBanks: [] }),
     },
+    { method: 'POST', pattern: '/pix/deposit', handler: () => demoPixDeposit(600_000) },
+    { method: 'GET', pattern: '/pix/deposit/:intentId', handler: () => demoPixDeposit(120_000) },
     {
         method: 'POST',
-        pattern: '/avenia/deposit',
+        pattern: '/pix/key',
         handler: () => ({
-            intentId: 'demo-avenia-deposit',
-            brCode: DEMO_AVENIA_BR_CODE,
-            amountBrl: '100.00',
-            usdcAmount: '17.940500',
-            fixedFeeBrl: '0.75',
-            expiresAt: new Date(Date.now() + 600_000).toISOString(),
-            payerCpfMasked: '123.***.***-09',
-        }),
-    },
-    {
-        method: 'GET',
-        pattern: '/avenia/deposit/:intentId',
-        handler: () => ({
-            intentId: 'demo-avenia-deposit',
-            status: 'AWAITING_USER_ACTION',
-            ticketStatus: 'UNPAID',
-            expiresAt: soon(),
-            amountBrl: '100.00',
-            usdcAmount: '17.940500',
-            fixedFeeBrl: '0.75',
-            codePayable: true,
-            brCode: DEMO_AVENIA_BR_CODE,
-            payerCpfMasked: '123.***.***-09',
-        }),
-    },
-    {
-        method: 'GET',
-        pattern: '/avenia/pix-key-info',
-        handler: () => ({
+            provider: 'avenia',
             holderName: 'DEMO RECIPIENT',
             holderTaxIdMasked: '***.456.789-**',
             bankName: 'Demo Bank',
@@ -956,13 +946,14 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             blocked: false,
         }),
     },
-    { method: 'POST', pattern: '/avenia/withdraw/preview', handler: () => demoAveniaWithdrawDisplay() },
+    { method: 'POST', pattern: '/pix/withdraw/preview', handler: () => demoPixWithdrawDisplay() },
     {
         method: 'POST',
-        pattern: '/avenia/withdraw/init',
+        pattern: '/pix/withdraw',
         handler: () => ({
-            intentId: 'demo-avenia-withdraw',
-            display: demoAveniaWithdrawDisplay(),
+            provider: 'avenia',
+            intentId: 'demo-pix-withdraw',
+            display: demoPixWithdrawDisplay(),
             sign: {
                 kind: 'deposit-with-id',
                 contractAddress: DEMO_ADDRESS,
@@ -975,8 +966,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             },
         }),
     },
-    { method: 'POST', pattern: '/avenia/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
-    { method: 'POST', pattern: '/avenia/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
+    { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    { method: 'POST', pattern: '/pix/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
 
     // points / perks / rewards
     {

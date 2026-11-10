@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { aveniaApi, type PixKeyInfo } from '@/services/avenia'
+import { pixApi, type PixKeyInfo } from '@/services/pix'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { pixKeyVerdict, type PixKeyVerdict } from '@/features/avenia/avenia.utils'
 
@@ -20,9 +20,9 @@ export const pixKeyInfoQueryKey = (key: string) => ['avenia-pix-key-info', key] 
 
 /**
  * Resolves a complete Pix key to its holder, bank and own-account verdict
- * (GET /avenia/pix-key-info). Each lookup costs the user's Avenia sub-account
- * DICT tokens, so a key is looked up once and remembered, and the caller sends
- * only complete keys (`completePixKey`) after the input's debounce.
+ * (POST /pix/key). A lookup can cost the provider directory tokens, so a key is
+ * looked up once and remembered, and the caller sends only complete keys
+ * (`completePixKey`) after the input's debounce.
  */
 export function usePixKeyLookup() {
     const queryClient = useQueryClient()
@@ -32,7 +32,7 @@ export function usePixKeyLookup() {
         (key: string) =>
             queryClient.fetchQuery({
                 queryKey: pixKeyInfoQueryKey(key),
-                queryFn: () => aveniaApi.pixKeyInfo(key),
+                queryFn: () => pixApi.lookupKey(key),
                 staleTime: LOOKUP_STALE_MS,
                 retry: false,
             }),

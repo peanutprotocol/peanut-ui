@@ -17,7 +17,7 @@ import { depositMaybeSent } from '@/features/avenia/aveniaWithdrawSent'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo } from '@/hooks/useSafeBack'
-import type { AveniaWithdrawDisplay } from '@/services/avenia'
+import type { PixWithdrawDisplay } from '@/services/pix'
 import { formatBankAmount } from '@/utils/currency'
 
 /**
@@ -35,7 +35,7 @@ export function AveniaWithdrawOutcome({
 }: {
     title: string
     intentId: string
-    sent: { phase: 'funded' | 'unconfirmed'; display: AveniaWithdrawDisplay } | null
+    sent: { phase: 'funded' | 'unconfirmed'; display: PixWithdrawDisplay } | null
     /** Nothing left the wallet: a new withdrawal. */
     onStartAgain: () => void
 }) {

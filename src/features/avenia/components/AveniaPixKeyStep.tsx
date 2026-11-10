@@ -13,14 +13,15 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { completePixKey, maskedTaxIdKind } from '@/features/avenia/avenia.utils'
 import { usePixKeyLookup, type PixKeyLookup } from '@/features/avenia/hooks/usePixKeyLookup'
-import type { PixKeyInfo } from '@/services/avenia'
+import type { PixKeyInfo } from '@/services/pix'
 import { isPixEmvcoQr, normalizePixInput } from '@/utils/withdraw.utils'
 
 /**
  * The Pix key of a withdrawal, or the new key for a refused payout. A complete
- * key is resolved to its holder and bank before Continue; Avenia pays only an
- * account under the user's own CPF, so anyone else's key shows as such and
- * cannot continue.
+ * key is resolved to its holder and bank before Continue. A provider that
+ * checks the holder pays only an account under the user's own CPF, so anyone
+ * else's key shows as such and cannot continue; where the provider cannot tell
+ * (`unchecked`), the key continues with no ownership badge.
  */
 export function AveniaPixKeyStep({
     title,
@@ -53,7 +54,8 @@ export function AveniaPixKeyStep({
     const key = completePixKey(value)
     // an answer for a key the user has since changed says nothing about this one
     const current = result && key && result.key === key && !isChanging ? result : null
-    const isOwn = current?.status === 'found' && current.verdict === 'own'
+    // the provider pays this key: the user's own, or one whose holder it does not check
+    const canPay = current?.status === 'found' && (current.verdict === 'own' || current.verdict === 'unchecked')
     // a refusal for a key the user has since changed says nothing about this one
     const refusedKey = refusal?.key && refusal.key === key ? refusal.message : undefined
     const error = isPixEmvcoQr(value.trim()) ? t('notACode') : (keyError(current) ?? refusedKey)
@@ -85,7 +87,10 @@ export function AveniaPixKeyStep({
                             const complete = completePixKey(input)
                             if (!complete) return false
                             const outcome = await lookup(complete)
-                            return outcome.status === 'found' && outcome.verdict === 'own'
+                            return (
+                                outcome.status === 'found' &&
+                                (outcome.verdict === 'own' || outcome.verdict === 'unchecked')
+                            )
                         }}
                         onUpdate={(update) => {
                             setValue(isPixEmvcoQr(update.value.trim()) ? update.value : normalizePixInput(update.value))
@@ -109,7 +114,7 @@ export function AveniaPixKeyStep({
                         bodyWrap
                         // whose account it is, from the directory: a deny-listed bank can still be the user's own
                         trailing={
-                            current.info.ownAccount ? (
+                            current.info.ownAccount === null ? undefined : current.info.ownAccount ? (
                                 <Badge status="completed" customText={t('ownAccount')} />
                             ) : (
                                 <Badge status="failed" customText={t('someoneElses')} />
@@ -124,7 +129,7 @@ export function AveniaPixKeyStep({
                     variant="primary"
                     className="w-full"
                     loading={isSubmitting}
-                    disabled={!isOwn || !key || isSubmitting || !!refusedKey}
+                    disabled={!canPay || !key || isSubmitting || !!refusedKey}
                     onClick={() => key && current?.status === 'found' && onContinue(key, current.info)}
                 >
                     {tCommon('continue')}

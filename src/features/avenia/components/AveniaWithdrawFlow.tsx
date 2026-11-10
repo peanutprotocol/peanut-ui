@@ -32,7 +32,7 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { aveniaApi } from '@/services/avenia'
+import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
@@ -102,7 +102,7 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const request = pixKey && amount ? { pixKey, ...amount } : null
     const preview = useQuery({
         queryKey: ['avenia-withdraw-preview', request],
-        queryFn: () => aveniaApi.previewWithdrawal(request!),
+        queryFn: () => pixApi.previewWithdrawal(request!),
         // the review shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
         enabled: step === 'review' && !!request && !intentId && !submit.lockedAfterInit,
         retry: false,

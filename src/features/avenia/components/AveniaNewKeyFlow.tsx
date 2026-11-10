@@ -18,7 +18,7 @@ import { AveniaPixKeyStep } from '@/features/avenia/components/AveniaPixKeyStep'
 import { useAveniaRecoveryKey } from '@/features/avenia/hooks/useAveniaRecoveryKey'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
-import type { PixKeyInfo } from '@/services/avenia'
+import type { PixKeyInfo } from '@/services/pix'
 
 /**
  * Another own Pix key for a withdrawal whose payout the bank refused for its

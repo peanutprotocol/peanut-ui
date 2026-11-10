@@ -21,7 +21,7 @@ const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 export const DEMO_ADDRESS = '0xdec0debad1dec0debad1dec0debad1dec0debad1' as Address
 
 /** A dynamic Pix code with Avenia's payee name, as its deposit tickets carry. Synthetic URL, valid CRC. */
-export const DEMO_AVENIA_BR_CODE =
+export const DEMO_PIX_BR_CODE =
     '00020126680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/demo-avenia-deposit5204000053039865802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63044D3A'
 
 const account = (username: string, fullName: string) => ({

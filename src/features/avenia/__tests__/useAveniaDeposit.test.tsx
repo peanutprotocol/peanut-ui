@@ -4,16 +4,17 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 const mockDepositStatus = jest.fn()
-jest.mock('@/services/avenia', () => ({ aveniaApi: { depositStatus: (id: string) => mockDepositStatus(id) } }))
+jest.mock('@/services/pix', () => ({ pixApi: { readDeposit: (id: string) => mockDepositStatus(id) } }))
 
 import { ApiError } from '@/services/api-error'
 import { useAveniaDeposit } from '../hooks/useAveniaDeposit'
-import { aveniaDepositQueryKey, depositReadFromCreated } from '../aveniaDepositCode'
+import { aveniaDepositQueryKey } from '../aveniaDepositCode'
 
 const read = (overrides: Record<string, unknown> = {}) => ({
+    provider: 'avenia',
     intentId: 'd1',
     status: 'AWAITING_USER_ACTION',
-    ticketStatus: 'UNPAID',
+    pixReceived: false,
     expiresAt: null,
     amountBrl: '100.00',
     usdcAmount: '17.94',
@@ -36,18 +37,7 @@ describe('useAveniaDeposit', () => {
 
     it('shows a just-created code from the seeded query, before any read returns', () => {
         mockDepositStatus.mockReturnValue(new Promise(() => {}))
-        queryClient.setQueryData(
-            aveniaDepositQueryKey('d1'),
-            depositReadFromCreated({
-                intentId: 'd1',
-                brCode: 'code',
-                amountBrl: '100.00',
-                usdcAmount: '17.94',
-                fixedFeeBrl: '0.75',
-                expiresAt: null,
-                payerCpfMasked: '095.***.***-89',
-            })
-        )
+        queryClient.setQueryData(aveniaDepositQueryKey('d1'), read())
         const { result } = renderHook(() => useAveniaDeposit('d1', jest.fn()), { wrapper })
         expect(result.current.deposit?.brCode).toBe('code')
         expect(result.current.phase).toBe('pending')
@@ -69,7 +59,7 @@ describe('useAveniaDeposit', () => {
     })
 
     it('fires onComplete once when the deposit completes', async () => {
-        mockDepositStatus.mockResolvedValue(read({ status: 'COMPLETED', ticketStatus: 'PAID', codePayable: false }))
+        mockDepositStatus.mockResolvedValue(read({ status: 'COMPLETED', pixReceived: true, codePayable: false }))
         const onComplete = jest.fn()
         const { result, rerender } = renderHook(() => useAveniaDeposit('d1', onComplete), { wrapper })
 

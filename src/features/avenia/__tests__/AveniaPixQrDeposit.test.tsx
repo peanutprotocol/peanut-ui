@@ -3,7 +3,7 @@ import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import type { AveniaDepositPhase } from '../avenia.utils'
-import type { AveniaDepositStatus } from '@/services/avenia'
+import type { PixDeposit } from '@/services/pix'
 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
@@ -14,19 +14,17 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 }))
 jest.mock('@/components/Global/CopyToClipboard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
-const mockDeposit = jest.fn<
-    { deposit: AveniaDepositStatus | undefined; phase: AveniaDepositPhase; isError: boolean },
-    []
->()
+const mockDeposit = jest.fn<{ deposit: PixDeposit | undefined; phase: AveniaDepositPhase; isError: boolean }, []>()
 jest.mock('@/features/avenia/hooks/useAveniaDeposit', () => ({ useAveniaDeposit: () => mockDeposit() }))
 
 import { AveniaPixQrDeposit } from '../components/AveniaPixQrDeposit'
 
 const inTenMinutes = () => new Date(Date.now() + 600_000).toISOString()
-const read = (overrides: Partial<AveniaDepositStatus> = {}): AveniaDepositStatus => ({
+const read = (overrides: Partial<PixDeposit> = {}): PixDeposit => ({
+    provider: 'avenia',
     intentId: 'd1',
     status: 'AWAITING_USER_ACTION',
-    ticketStatus: 'UNPAID',
+    pixReceived: false,
     expiresAt: inTenMinutes(),
     amountBrl: '100.00',
     usdcAmount: '17.940500',
@@ -35,7 +33,7 @@ const read = (overrides: Partial<AveniaDepositStatus> = {}): AveniaDepositStatus
     payerCpfMasked: '095.***.***-89',
     ...overrides,
 })
-const state = (phase: AveniaDepositPhase, deposit: AveniaDepositStatus | undefined = read()) =>
+const state = (phase: AveniaDepositPhase, deposit: PixDeposit | undefined = read()) =>
     mockDeposit.mockReturnValue({ deposit, phase, isError: false })
 const onNewDeposit = jest.fn()
 const renderScreen = (blockedBankNames: string[] = []) =>
@@ -112,7 +110,7 @@ describe('AveniaPixQrDeposit', () => {
         const { unmount } = renderScreen()
         expect(screen.getByText(en.addMoney.pix.depositReceived)).toBeInTheDocument()
         unmount()
-        state('processing', read({ status: 'PROCESSING', ticketStatus: 'PAID', codePayable: false }))
+        state('processing', read({ status: 'PROCESSING', pixReceived: true, codePayable: false }))
         renderScreen()
         expect(screen.getByText(en.addMoney.processingDepositTitle)).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.avenia.deposit.startNew })).toBeNull()

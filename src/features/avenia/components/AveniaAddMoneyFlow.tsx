@@ -12,12 +12,12 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { toApiDecimal } from '@/features/avenia/avenia.utils'
-import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
+import { aveniaDepositQueryKey } from '@/features/avenia/aveniaDepositCode'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
 import { AveniaPixSetup } from '@/features/avenia/components/AveniaPixSetup'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
-import { aveniaApi } from '@/services/avenia'
+import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
@@ -74,7 +74,7 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
 
     const eligibility = useQuery({
         queryKey: ['avenia-deposit-eligibility'],
-        queryFn: aveniaApi.depositEligibility,
+        queryFn: pixApi.depositRules,
         enabled: ready,
         staleTime: 5 * 60_000,
     })
@@ -119,14 +119,14 @@ export function AveniaAddMoneyFlow({ route }: { route: CapabilityRoute }) {
             country: 'brazil',
         })
         try {
-            const created = await aveniaApi.createDeposit(amountBrl)
+            const created = await pixApi.createDeposit(amountBrl)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
                 amount_usd: usdAmount,
                 method_type: 'avenia',
                 country: 'brazil',
             })
             // the code screen reads this deposit's query; seeding it shows the code at once
-            queryClient.setQueryData(aveniaDepositQueryKey(created.intentId), depositReadFromCreated(created))
+            queryClient.setQueryData(aveniaDepositQueryKey(created.intentId), created)
             void setUrlState({ step: 'showQR', intentId: created.intentId })
             // the route names this code payable from now on, so a re-entry opens it, not a second code
             void fetchUser().catch(() => undefined)

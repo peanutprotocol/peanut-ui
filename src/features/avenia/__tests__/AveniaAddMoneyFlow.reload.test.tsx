@@ -32,9 +32,9 @@ jest.mock('@/features/avenia/components/AveniaPixQrDeposit', () => ({
     ),
 }))
 const mockCreate = jest.fn()
-jest.mock('@/services/avenia', () => ({
-    aveniaApi: {
-        depositEligibility: () => Promise.resolve({ minAmountBrl: '20', blockedBanks: [] }),
+jest.mock('@/services/pix', () => ({
+    pixApi: {
+        depositRules: () => Promise.resolve({ minAmountBrl: '20', blockedBanks: [] }),
         createDeposit: (amountBrl: string) => mockCreate(amountBrl),
     },
 }))
@@ -81,7 +81,11 @@ describe('AveniaAddMoneyFlow and the URL', () => {
 
     it('seeds the new deposit for the code screen and writes its id to the URL', async () => {
         const created = {
+            provider: 'avenia',
             intentId: 'd2',
+            status: 'AWAITING_USER_ACTION',
+            codePayable: true,
+            pixReceived: false,
             brCode: 'code-d2',
             amountBrl: '100.00',
             usdcAmount: '17.94',

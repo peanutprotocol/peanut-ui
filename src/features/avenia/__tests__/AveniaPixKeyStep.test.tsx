@@ -14,6 +14,7 @@ import { AveniaPixKeyStep } from '../components/AveniaPixKeyStep'
 
 const KEY = '09579927189'
 const info = {
+    provider: 'avenia',
     holderName: 'Ana Souza',
     holderTaxIdMasked: '095.***.***-89',
     bankName: 'Banco Inter',

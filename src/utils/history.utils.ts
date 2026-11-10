@@ -87,11 +87,11 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
-/** An Avenia withdrawal's recovery as `GET /history/:entryId` sends it (PR B `AveniaRecoveryView`). */
-export type AveniaRecoveryView = NonNullable<
+/** A Pix withdrawal's recovery as `GET /history/:entryId` sends it (api `PixRecoveryView`). */
+export type PixRecoveryView = NonNullable<
     NonNullable<
         paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
-    >['aveniaRecovery']
+    >['pixRecovery']
 >
 
 /** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
@@ -101,11 +101,11 @@ export type HistoryIntentStatus = NonNullable<
     >['intentStatus']
 >
 
-/** An Avenia Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
-export type AveniaDepositView = NonNullable<
+/** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
+export type PixDepositView = NonNullable<
     NonNullable<
         paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
-    >['aveniaDeposit']
+    >['pixDeposit']
 >
 
 /**
@@ -126,13 +126,13 @@ export type AveniaDepositView = NonNullable<
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    /** On an Avenia OFFRAMP only: its recovery after the payout failed or came back, null when it has none.
+    /** On a Pix withdrawal only: its recovery after the payout failed or came back, null when it has none.
      *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
-    aveniaRecovery?: AveniaRecoveryView | null
-    /** On an Avenia ONRAMP only: whether its code can still be paid. Read it through `aveniaCodePayable`. */
-    aveniaDeposit?: AveniaDepositView
-    /** The intent's own status, which `status` folds into PENDING (an Avenia withdrawal is
-     *  AWAITING_USER_ACTION until its deposit is reported or seen, PROCESSING after). */
+    pixRecovery?: PixRecoveryView | null
+    /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
+    pixDeposit?: PixDepositView
+    /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
+     *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and

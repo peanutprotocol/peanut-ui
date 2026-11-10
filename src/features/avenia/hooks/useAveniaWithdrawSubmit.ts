@@ -9,12 +9,7 @@ import * as Sentry from '@/utils/sentry-lazy'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import {
-    aveniaApi,
-    type AveniaWithdrawDisplay,
-    type AveniaWithdrawRequest,
-    type AveniaWithdrawSign,
-} from '@/services/avenia'
+import { pixApi, type PixWithdrawDisplay, type PixWithdrawRequest } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
 import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/avenia/avenia.utils'
@@ -24,6 +19,7 @@ import {
     INITIAL_WITHDRAW_SUBMIT,
     openedWithdrawal,
     withdrawSubmitReducer,
+    type DepositWithIdSign,
     type OpenedWithdrawal,
     type WithdrawSubmitEvent,
     type WithdrawSubmitPhase,
@@ -44,7 +40,7 @@ const flowTags = (step: string) => ({ ...criticalFlowTags('withdraw-avenia'), wi
 
 export interface AveniaWithdrawSubmit {
     /** Opens the withdrawal for the reviewed quote; signs at once unless the opened quote is worse. */
-    submit: (request: AveniaWithdrawRequest, reviewed: AveniaWithdrawDisplay) => Promise<void>
+    submit: (request: PixWithdrawRequest, reviewed: PixWithdrawDisplay) => Promise<void>
     /**
      * Signs the opened withdrawal: after the user saw its new amounts (phase `reconfirm`),
      * or once more after a signature that surely sent nothing (`canSignOpened`).
@@ -59,7 +55,7 @@ export interface AveniaWithdrawSubmit {
     /** The states are documented on `WithdrawSubmitState`. */
     phase: WithdrawSubmitPhase
     /** The opened withdrawal: what the wallet signs, and what the review and success screens show. */
-    opened: { intentId: string; display: AveniaWithdrawDisplay } | null
+    opened: { intentId: string; display: PixWithdrawDisplay } | null
     error: string | null
     /**
      * True once Avenia's ticket is open. From then on only that ticket can be
@@ -99,7 +95,7 @@ export function useAveniaWithdrawSubmit({
         mutationKey: [BALANCE_DECREASE, PIX_WITHDRAW],
         // a second send of the same deposit could pay twice
         retry: false,
-        mutationFn: ({ request, amount }: { request: AveniaWithdrawSign; amount: bigint }) =>
+        mutationFn: ({ request, amount }: { request: DepositWithIdSign; amount: bigint }) =>
             sendTransactions(
                 rhinoDepositWithIdCalls({
                     tokenAddress: request.tokenAddress as Address,
@@ -173,7 +169,7 @@ export function useAveniaWithdrawSubmit({
             dispatch({ type: 'MINED' })
             // Optional for the money (Avenia's webhook moves it either way); it names the
             // funding transaction on the receipt sooner. Only a mined hash can be checked.
-            aveniaApi.reportFunding(intentId, minedHash).catch((caught) => {
+            pixApi.reportFunding(intentId, minedHash).catch((caught) => {
                 Sentry.captureException(caught, { tags: flowTags('report-funding'), extra: { intentId } })
             })
         },
@@ -181,12 +177,12 @@ export function useAveniaWithdrawSubmit({
     )
 
     const submit = useCallback(
-        async (request: AveniaWithdrawRequest, reviewed: AveniaWithdrawDisplay) => {
+        async (request: PixWithdrawRequest, reviewed: PixWithdrawDisplay) => {
             if (latest.current.phase !== 'idle' || hasPendingTransactions) return
             dispatch({ type: 'SUBMIT' })
-            let init: Awaited<ReturnType<typeof aveniaApi.initWithdrawal>>
+            let init: Awaited<ReturnType<typeof pixApi.openWithdrawal>>
             try {
-                init = await aveniaApi.initWithdrawal(request)
+                init = await pixApi.openWithdrawal(request)
             } catch (caught) {
                 const code = wireErrorCode(caught)
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
@@ -203,18 +199,27 @@ export function useAveniaWithdrawSubmit({
                 }
                 return
             }
-            const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
-            onOpened?.(init.intentId)
+            const { intentId, sign: signRequest } = init
+            // this hook signs a deposit with its id only; a withdrawal that opens at its submit opened nothing yet
+            if (signRequest.kind !== 'deposit-with-id' || !intentId) {
+                Sentry.captureException(new Error('Pix withdrawal sign kind not handled'), {
+                    tags: flowTags('sign-request'),
+                    extra: { intentId, kind: signRequest.kind },
+                })
+                dispatch({ type: 'INIT_REFUSED', error: tShared('unavailable') })
+                return
+            }
+            const withdrawal: OpenedWithdrawal = { intentId, display: init.display, sign: signRequest }
+            onOpened?.(intentId)
             // The wallet only ever approves its own USDC, for exactly the USD the user is shown;
             // anything else is a contract break.
             if (
-                init.sign.kind !== 'deposit-with-id' ||
-                !areEvmAddressesEqual(init.sign.tokenAddress, PEANUT_WALLET_TOKEN) ||
-                !signMatchesDisplay(init.display, init.sign)
+                !areEvmAddressesEqual(signRequest.tokenAddress, PEANUT_WALLET_TOKEN) ||
+                !signMatchesDisplay(init.display, signRequest)
             ) {
                 Sentry.captureException(new Error('Avenia withdrawal sign request off-contract'), {
                     tags: flowTags('sign-request'),
-                    extra: { intentId: init.intentId, kind: init.sign.kind },
+                    extra: { intentId, kind: signRequest.kind },
                 })
                 dispatch({ type: 'OFF_CONTRACT', withdrawal, error: tShared('unavailable') })
                 return

@@ -23,7 +23,7 @@ import {
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
-import { DEMO_ADDRESS, DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
+import { DEMO_ADDRESS, DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 
 const ROUTES = {
     bank: '/add-money/germany/bank',
@@ -287,7 +287,7 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
             routes: aveniaRoutes(stage),
         },
     },
-    'GET /avenia/deposit/eligibility': { minAmountBrl: '20', blockedBanks: [] },
+    'GET /pix/deposit/rules': { minAmountBrl: '20', blockedBanks: [] },
     // the amount step's estimate: Avenia's indicative quote for the reais on screen
     'GET /pix/quote': {
         provider: 'avenia',
@@ -305,6 +305,7 @@ const AVENIA_OWN_KEY = '09579927189'
 const AVENIA_OTHER_KEY = '+5511987654321'
 const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
 const AVENIA_OWN_KEY_INFO = {
+    provider: 'avenia',
     holderName: 'Ana Souza',
     holderTaxIdMasked: '095.***.***-89',
     bankName: 'Banco Inter',
@@ -333,8 +334,8 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
         kind: 'OFFRAMP',
         provider: 'AVENIA',
         usdAmount: '92.50431',
-        // GET /history/:entryId as PR B sends it: Avenia closed the account the old key pointed to
-        aveniaRecovery: {
+        // GET /history/:entryId as the API sends it: the bank closed the account the old key pointed to
+        pixRecovery: {
             state: awaitingKey ? 'awaiting-key' : 'done',
             reason: 'payout-failed',
             failureCode: 'RECEIVER_ACCOUNT_CLOSED',
@@ -394,17 +395,18 @@ const aveniaWithdrawal = (status: string) => ({
     ...aveniaRefusedWithdrawal(false),
     uuid: AVENIA_WITHDRAWAL_ID,
     status,
-    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', aveniaRecovery: null },
+    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null },
 })
 const aveniaOutcomeRoute = (intentId: string) => `${AVENIA_WITHDRAW_ROUTE}?step=success&intentId=${intentId}`
 
-/** One Avenia Pix deposit as GET /avenia/deposit/:intentId reads it; its code lapsed unless overridden. */
+/** One Pix deposit as GET /pix/deposit/:intentId reads it; its code lapsed unless overridden. */
 const AVENIA_DEPOSIT_ID = 'fixture-avenia-deposit'
 const AVENIA_DEPOSIT_CODE_ROUTE = `/add-money/pix?step=showQR&intentId=${AVENIA_DEPOSIT_ID}`
 const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
+    provider: 'avenia',
     intentId: AVENIA_DEPOSIT_ID,
     status: 'AWAITING_USER_ACTION',
-    ticketStatus: 'UNPAID',
+    pixReceived: false,
     expiresAt: null,
     amountBrl: '100.00',
     usdcAmount: '18.237000',
@@ -412,7 +414,7 @@ const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
     codePayable: false,
     ...overrides,
 })
-/** The deposit's history entry while its code can still be paid (owner-only aveniaDeposit). */
+/** The deposit's history entry while its code can still be paid (owner-only pixDeposit). */
 const aveniaPayableDeposit = {
     uuid: AVENIA_DEPOSIT_ID,
     type: 'TRANSACTION_INTENT',
@@ -430,7 +432,7 @@ const aveniaPayableDeposit = {
         kind: 'ONRAMP',
         provider: 'AVENIA',
         usdAmount: '18.237',
-        aveniaDeposit: { codePayable: true, expiresAt: null },
+        pixDeposit: { codePayable: true, expiresAt: null },
     },
 }
 
@@ -1898,7 +1900,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaResponses('enabled'),
         // the page capture that taps Continue shows the monthly limit
         rejects: {
-            'POST /avenia/deposit': { status: 422, body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' } },
+            'POST /pix/deposit': { status: 422, body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' } },
         },
     },
     'avenia-withdraw-key': {
@@ -1906,7 +1908,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
-            'GET /avenia/pix-key-info': {
+            'POST /pix/key': {
                 holderName: 'Ana Souza',
                 holderTaxIdMasked: '095.***.***-89',
                 bankName: 'Banco Inter',
@@ -1921,7 +1923,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
-            'GET /avenia/pix-key-info': {
+            'POST /pix/key': {
                 holderName: 'Maria Silva',
                 holderTaxIdMasked: '123.***.***-45',
                 bankName: 'Nubank',
@@ -1935,7 +1937,7 @@ export const FIXTURES: Record<string, Fixture> = {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
         about: 'Avenia Pix withdrawal review: reais as the headline, the rate with the fees in, the flat fee apart.',
         responses: aveniaResponses('enabled', {
-            'POST /avenia/withdraw/preview': {
+            'POST /pix/withdraw/preview': {
                 amountBrl: '503.00',
                 pixKey: AVENIA_OWN_KEY,
                 ownAccount: true,
@@ -1955,7 +1957,7 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
-            'GET /avenia/pix-key-info': AVENIA_OWN_KEY_INFO,
+            'POST /pix/key': AVENIA_OWN_KEY_INFO,
         }),
     },
     'avenia-new-key-not-waiting': {
@@ -1976,16 +1978,13 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-deposit-expired': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
         about: 'An Avenia Pix code that lapsed: no code is drawn, and a new deposit is offered.',
-        responses: aveniaResponses('enabled', { [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead() }),
+        responses: aveniaResponses('enabled', { [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead() }),
     },
     'avenia-deposit-returned': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
         about: 'A Pix Avenia sent back to the payer: it says so and offers a new deposit.',
         responses: aveniaResponses('enabled', {
-            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
-                status: 'FAILED',
-                ticketStatus: 'FAILED',
-            }),
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ status: 'FAILED', pixReceived: true }),
         }),
     },
     'avenia-deposit-processing': {
@@ -1993,17 +1992,14 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "The Pix left the payer's bank: the code screen waits while Avenia credits the deposit.",
         isLoadingState: true,
         responses: aveniaResponses('enabled', {
-            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ ticketStatus: 'PAID' }),
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ pixReceived: true }),
         }),
     },
     'avenia-deposit-received': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
         about: 'The Avenia Pix deposit is credited: received, and the balance is updated.',
         responses: aveniaResponses('enabled', {
-            [`GET /avenia/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
-                status: 'COMPLETED',
-                ticketStatus: 'PAID',
-            }),
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ status: 'COMPLETED', pixReceived: true }),
         }),
     },
     'avenia-deposit-quote-failed': {
@@ -2141,7 +2137,7 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'avenia-withdraw-key-code': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(DEMO_AVENIA_BR_CODE)}`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(DEMO_PIX_BR_CODE)}`,
         about: 'A Pix code pasted where a withdrawal needs a key: the field asks for a key.',
         responses: aveniaResponses('enabled'),
     },
@@ -2149,14 +2145,14 @@ export const FIXTURES: Record<string, Fixture> = {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
         about: 'The Pix key lookup failed: the field asks to try again.',
         responses: aveniaResponses('enabled'),
-        fails: ['GET /avenia/pix-key-info'],
+        fails: ['POST /pix/key'],
     },
     'avenia-withdraw-key-blocked': {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
         about: "A key at a bank on Avenia's deny-list: withdrawals there are not available.",
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
-            'GET /avenia/pix-key-info': { ...AVENIA_OWN_KEY_INFO, blocked: true },
+            'POST /pix/key': { ...AVENIA_OWN_KEY_INFO, blocked: true },
         }),
     },
     'avenia-withdraw-review-limit': {
@@ -2164,7 +2160,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A withdrawal over the monthly Pix limit: the review says so (PIX_LIMIT_EXCEEDED).',
         responses: aveniaResponses('enabled'),
         rejects: {
-            'POST /avenia/withdraw/preview': {
+            'POST /pix/withdraw/preview': {
                 status: 422,
                 body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' },
             },
@@ -2175,7 +2171,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "The preview refuses a key that is not the user's: the review offers Change key, not Retry.",
         responses: aveniaResponses('enabled'),
         rejects: {
-            'POST /avenia/withdraw/preview': {
+            'POST /pix/withdraw/preview': {
                 status: 422,
                 body: { code: 'PIX_KEY_NOT_OWN', error: 'This key belongs to someone else' },
             },
@@ -2186,7 +2182,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Too many Pix withdrawals still on their way: the review asks to try later.',
         responses: aveniaResponses('enabled'),
         rejects: {
-            'POST /avenia/withdraw/preview': {
+            'POST /pix/withdraw/preview': {
                 status: 409,
                 body: { code: 'WITHDRAWAL_IN_PROGRESS', error: 'A withdrawal is in progress' },
             },
@@ -2197,7 +2193,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The amount changed while it was quoted (PIX_QUOTE_CHANGED): the review asks to try again.',
         responses: aveniaResponses('enabled'),
         rejects: {
-            'POST /avenia/withdraw/preview': {
+            'POST /pix/withdraw/preview': {
                 status: 409,
                 body: { code: 'PIX_QUOTE_CHANGED', error: 'Quote changed' },
             },
@@ -2254,7 +2250,7 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: '[data-testid="avenia-pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
-            'GET /avenia/pix-key-info': { ...AVENIA_OWN_KEY_INFO, holderName: null, bankName: null },
+            'POST /pix/key': { ...AVENIA_OWN_KEY_INFO, holderName: null, bankName: null },
         }),
     },
     'avenia-receipt-new-key': {

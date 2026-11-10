@@ -23,10 +23,10 @@ import React, { useState } from 'react'
 import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
 import { AveniaWithdrawOutcome } from '@/features/avenia/components/AveniaWithdrawOutcome'
 import { AveniaWithdrawReview } from '@/features/avenia/components/AveniaWithdrawReview'
-import type { AveniaWithdrawDisplay } from '@/services/avenia'
-import { aveniaDepositQueryKey, depositReadFromCreated } from '@/features/avenia/aveniaDepositCode'
+import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
+import { aveniaDepositQueryKey } from '@/features/avenia/aveniaDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
-import { DEMO_AVENIA_BR_CODE } from '@/constants/demo-data'
+import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
@@ -283,28 +283,29 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
     )
 }
 
-// the code screen right after POST /avenia/deposit, with ten minutes on the clock: the
+// the code screen right after POST /pix/deposit, with ten minutes on the clock: the
 // create seeds the deposit's query, as the flow does, so no read is needed to draw it
 function AveniaPixDepositSurface() {
     const queryClient = useQueryClient()
     useState(() =>
-        queryClient.setQueryData(
-            aveniaDepositQueryKey('demo-avenia-deposit'),
-            depositReadFromCreated({
-                intentId: 'demo-avenia-deposit',
-                brCode: DEMO_AVENIA_BR_CODE,
-                amountBrl: '100.00',
-                usdcAmount: '17.940500',
-                fixedFeeBrl: '0.75',
-                expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
-                payerCpfMasked: '095.***.***-89',
-            })
-        )
+        queryClient.setQueryData(aveniaDepositQueryKey('demo-pix-deposit'), {
+            provider: 'avenia',
+            intentId: 'demo-pix-deposit',
+            status: 'AWAITING_USER_ACTION',
+            codePayable: true,
+            pixReceived: false,
+            brCode: DEMO_PIX_BR_CODE,
+            amountBrl: '100.00',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
+            expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
+            payerCpfMasked: '095.***.***-89',
+        } satisfies PixDeposit)
     )
     return (
         <AppPageSurface>
             <AveniaPixQrDeposit
-                intentId="demo-avenia-deposit"
+                intentId="demo-pix-deposit"
                 blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
                 onBack={noop}
                 onDone={noop}
@@ -316,7 +317,7 @@ function AveniaPixDepositSurface() {
 }
 
 // the withdrawal this session signed, for the last step's in-memory destination
-const AVENIA_SURFACE_DISPLAY: AveniaWithdrawDisplay = {
+const AVENIA_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
     pixKey: '09579927189',
     ownAccount: true,

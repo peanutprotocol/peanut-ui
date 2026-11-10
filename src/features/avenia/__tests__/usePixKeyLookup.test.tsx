@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { ApiError } from '@/services/api-error'
 
 const mockPixKeyInfo = jest.fn()
-jest.mock('@/services/avenia', () => ({ aveniaApi: { pixKeyInfo: (key: string) => mockPixKeyInfo(key) } }))
+jest.mock('@/services/pix', () => ({ pixApi: { lookupKey: (key: string) => mockPixKeyInfo(key) } }))
 
 import { usePixKeyLookup } from '../hooks/usePixKeyLookup'
 

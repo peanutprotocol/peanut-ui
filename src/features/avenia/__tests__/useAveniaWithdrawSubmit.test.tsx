@@ -35,9 +35,9 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 const mockInit = jest.fn()
 const mockReportFunding = jest.fn()
-jest.mock('@/services/avenia', () => ({
-    aveniaApi: {
-        initWithdrawal: (request: unknown) => mockInit(request),
+jest.mock('@/services/pix', () => ({
+    pixApi: {
+        openWithdrawal: (request: unknown) => mockInit(request),
         reportFunding: (intentId: string, hash: string) => mockReportFunding(intentId, hash),
     },
 }))
@@ -64,6 +64,7 @@ const units = (usd: string) => {
     return BigInt(whole + fraction.padEnd(6, '0').slice(0, 6)).toString()
 }
 const initResponse = (overrides: Record<string, unknown> = {}, opened: Partial<typeof display> = {}) => ({
+    provider: 'avenia',
     intentId: 'w1',
     display: { ...display, ...opened },
     sign: {

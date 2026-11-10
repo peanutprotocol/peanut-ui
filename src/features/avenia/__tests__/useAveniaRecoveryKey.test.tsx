@@ -6,8 +6,8 @@ import { ApiError } from '@/services/api-error'
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 const mockSetRecoveryKey = jest.fn()
-jest.mock('@/services/avenia', () => ({
-    aveniaApi: { setRecoveryKey: (intentId: string, pixKey: string) => mockSetRecoveryKey(intentId, pixKey) },
+jest.mock('@/services/pix', () => ({
+    pixApi: { setRecoveryKey: (intentId: string, pixKey: string) => mockSetRecoveryKey(intentId, pixKey) },
 }))
 
 import { useAveniaRecoveryKey } from '../hooks/useAveniaRecoveryKey'
