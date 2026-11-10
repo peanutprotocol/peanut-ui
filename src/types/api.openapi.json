@@ -11925,6 +11925,9 @@
 												"description": "The payment lock code from init",
 												"type": "string"
 											},
+											"pixQrHost": {
+												"description": "Bounded client Pix host label for outcome telemetry; unrecognized values are ignored."
+											},
 											"qrType": {
 												"description": "Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users.",
 												"type": "string"
@@ -12007,6 +12010,9 @@
 											"paymentLockCode": {
 												"description": "The payment lock code from init",
 												"type": "string"
+											},
+											"pixQrHost": {
+												"description": "Bounded client Pix host label for outcome telemetry; unrecognized values are ignored."
 											},
 											"qrType": {
 												"type": "string"
@@ -21952,6 +21958,107 @@
 				]
 			}
 		},
+		"/tracked-links/invites/{username}": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "username",
+						"required": true,
+						"schema": {
+							"maxLength": 64,
+							"minLength": 1,
+							"pattern": "^[a-z0-9]{1,64}$",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"linkId": "invite_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+									"schemaVersion": 1,
+									"username": "examplecreator"
+								},
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"linkId": {
+											"pattern": "^invite_[a-f0-9]{64}$",
+											"type": "string"
+										},
+										"schemaVersion": {
+											"enum": [
+												1
+											],
+											"type": "number"
+										},
+										"username": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"schemaVersion",
+										"username",
+										"linkId"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"enum": [
+												"Link not found"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"enum": [
+												"Link lookup unavailable"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Resolve an existing invite identity without recording an opening",
+				"tags": [
+					"tracked-links"
+				]
+			}
+		},
 		"/unsubscribe": {
 			"get": {
 				"parameters": [
@@ -28302,6 +28409,13 @@
 						"content": {
 							"application/json": {
 								"example": {
+									"address": {
+										"buildingNumber": "12",
+										"country": "PT",
+										"postCode": "1100-053",
+										"street": "Rua Augusta",
+										"town": "Lisboa"
+									},
 									"document": {
 										"country": "PT",
 										"type": "PASSPORT"
@@ -28320,10 +28434,41 @@
 										"cityOfBirth": "Lisboa",
 										"countryOfBirth": "PT",
 										"dateOfBirth": "1992-06-15"
-									}
+									},
+									"taxId": null
 								},
 								"schema": {
 									"properties": {
+										"address": {
+											"anyOf": [
+												{
+													"properties": {
+														"buildingNumber": {
+															"type": "string"
+														},
+														"country": {
+															"type": "string"
+														},
+														"postCode": {
+															"type": "string"
+														},
+														"state": {
+															"type": "string"
+														},
+														"street": {
+															"type": "string"
+														},
+														"town": {
+															"type": "string"
+														}
+													},
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
 										"document": {
 											"anyOf": [
 												{
@@ -28459,6 +28604,16 @@
 												}
 											},
 											"type": "object"
+										},
+										"taxId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
@@ -28467,6 +28622,8 @@
 										"idNationality",
 										"document",
 										"stored",
+										"address",
+										"taxId",
 										"heldBySumsub"
 									],
 									"type": "object"
@@ -30054,7 +30211,8 @@
 											"id": "eea"
 										}
 									],
-									"temporaryProtection": null
+									"temporaryProtection": null,
+									"terminal": null
 								},
 								"schema": {
 									"properties": {
@@ -30371,6 +30529,19 @@
 														"proofOfAddress"
 													],
 													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"terminal": {
+											"anyOf": [
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
 												},
 												{
 													"type": "null"
@@ -31465,6 +31636,25 @@
 															},
 															"type": "array"
 														},
+														"rejectType": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"FINAL"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RETRY"
+																	],
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
 														"reviewPending": {
 															"type": "boolean"
 														},
@@ -32292,6 +32482,19 @@
 												"type": "object"
 											},
 											"type": "array"
+										},
+										"terminal": {
+											"anyOf": [
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
 										}
 									},
 									"required": [
@@ -33899,6 +34102,25 @@
 														"type": "string"
 													},
 													"type": "array"
+												},
+												"rejectType": {
+													"anyOf": [
+														{
+															"enum": [
+																"FINAL"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"RETRY"
+															],
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
 												},
 												"reviewPending": {
 													"type": "boolean"

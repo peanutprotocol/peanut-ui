@@ -6747,6 +6747,8 @@ export interface paths {
                         kind: "userOp";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
+                        /** @description Bounded client Pix host label for outcome telemetry; unrecognized values are ignored. */
+                        pixQrHost?: unknown;
                         /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
                         qrType?: string;
                         rainPreparationId?: string;
@@ -6775,6 +6777,8 @@ export interface paths {
                         kind: "rainWithdrawal";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
+                        /** @description Bounded client Pix host label for outcome telemetry; unrecognized values are ignored. */
+                        pixQrHost?: unknown;
                         qrType?: string;
                         signedRainWithdrawal: {
                             adminNonce: string;
@@ -12330,6 +12334,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tracked-links/invites/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve an existing invite identity without recording an opening */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    username: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "linkId": "invite_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                         *       "schemaVersion": 1,
+                         *       "username": "examplecreator"
+                         *     }
+                         */
+                        "application/json": {
+                            linkId: string;
+                            /** @enum {number} */
+                            schemaVersion: 1;
+                            username: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            error: "Link not found";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            error: "Link lookup unavailable";
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/unsubscribe": {
         parameters: {
             query?: never;
@@ -14592,6 +14670,13 @@ export interface paths {
                     content: {
                         /**
                          * @example {
+                         *       "address": {
+                         *         "buildingNumber": "12",
+                         *         "country": "PT",
+                         *         "postCode": "1100-053",
+                         *         "street": "Rua Augusta",
+                         *         "town": "Lisboa"
+                         *       },
                          *       "document": {
                          *         "country": "PT",
                          *         "type": "PASSPORT"
@@ -14610,10 +14695,19 @@ export interface paths {
                          *         "cityOfBirth": "Lisboa",
                          *         "countryOfBirth": "PT",
                          *         "dateOfBirth": "1992-06-15"
-                         *       }
+                         *       },
+                         *       "taxId": null
                          *     }
                          */
                         "application/json": {
+                            address: {
+                                buildingNumber?: string;
+                                country?: string;
+                                postCode?: string;
+                                state?: string;
+                                street?: string;
+                                town?: string;
+                            } | null;
                             document: {
                                 country: string;
                                 type: string;
@@ -14645,6 +14739,7 @@ export interface paths {
                                 sex?: string;
                                 sourceOfFunds?: string;
                             };
+                            taxId: string | null;
                         };
                     };
                 };
@@ -15309,7 +15404,8 @@ export interface paths {
                          *           "id": "eea"
                          *         }
                          *       ],
-                         *       "temporaryProtection": null
+                         *       "temporaryProtection": null,
+                         *       "terminal": null
                          *     }
                          */
                         "application/json": {
@@ -15351,6 +15447,7 @@ export interface paths {
                                 proofOfAddress: boolean;
                                 until: string;
                             } | null;
+                            terminal?: "rejected" | null;
                         };
                     };
                 };
@@ -15637,6 +15734,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                rejectType?: "FINAL" | "RETRY" | null;
                                 reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
@@ -15906,6 +16004,7 @@ export interface paths {
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
+                            terminal?: "rejected" | null;
                         };
                     };
                 };
@@ -16342,6 +16441,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                rejectType?: "FINAL" | "RETRY" | null;
                                 reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";

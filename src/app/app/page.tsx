@@ -184,6 +184,7 @@ function SmartStoreContent() {
         // Installed apps apply the QR's context immediately, then open its destination.
         const dest = parsed ? applyDeferredPayload(parsed).dest : null
         router.replace(dest ?? '/home')
+        return undefined
     }, [router, entryKey])
     const inNativeApp = mounted && nativePlatform.isNativeBridge
 

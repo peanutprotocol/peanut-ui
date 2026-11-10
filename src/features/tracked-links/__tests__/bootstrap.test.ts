@@ -212,6 +212,7 @@ it('routes QR aliases through the existing personless sender without making a jo
             ...campaign,
             slug: 'qr-home-hero-en',
             kind: 'marketing_qr',
+            invite: undefined,
             policy: 'personless',
             qr: { id: 'home-hero-en' },
         },

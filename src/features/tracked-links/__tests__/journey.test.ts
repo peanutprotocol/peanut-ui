@@ -60,7 +60,7 @@ beforeEach(() => {
 afterEach(() => {
     jest.restoreAllMocks()
     jest.useRealTimers()
-    delete (navigator as Navigator & { doNotTrack?: string }).doNotTrack
+    Reflect.deleteProperty(navigator, 'doNotTrack')
     delete (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl
     delete (document as Document & { prerendering?: boolean }).prerendering
     process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'false'

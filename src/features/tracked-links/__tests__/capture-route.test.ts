@@ -100,7 +100,7 @@ it.each([404, 410, 503] as const)('returns resolver status %s without scheduling
 it('does not admit a personless QR through the journey endpoint', async () => {
     mockResolve.mockResolvedValue({
         status: 200,
-        link: { ...link, kind: 'marketing_qr', policy: 'personless', qr: { id: 'home-hero-en' } },
+        link: { ...link, kind: 'marketing_qr', invite: undefined, policy: 'personless', qr: { id: 'home-hero-en' } },
     })
     expect((await POST(request())).status).toBe(400)
     expect(tasks).toHaveLength(0)

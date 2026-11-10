@@ -103,6 +103,7 @@ it('keeps retired aliases reserved and marketing QR on the existing personless t
         ...campaign,
         slug: 'qr-home-hero-en',
         kind: 'marketing_qr',
+        invite: undefined,
         policy: 'personless',
         qr: { id: 'home-hero-en' },
     })
