@@ -150,7 +150,7 @@ const ResidenceChangeDrawer = ({
             if (reverifyAfter) onReverify(selected)
             return true
         } catch {
-            setError(tCommon('genericError'))
+            setError(tCommon('somethingWentWrong'))
             return false
         } finally {
             saving.current = false

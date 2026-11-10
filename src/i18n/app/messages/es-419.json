@@ -2245,9 +2245,9 @@
         "manteca": {
             "youreAdding": "Agregando",
             "sendOnlyOwnAccountTitle": "Envía solo desde una cuenta a tu nombre",
-            "transferDeadline": "Envía la transferencia antes de las {time}.",
+            "transferDeadline": "Transfiere antes de las {time}.",
             "transferExpiredTitle": "La orden de depósito venció",
-            "transferExpiredDescription": "El plazo terminó sin que se registrara un pago. Si ya enviaste el dinero, contacta a soporte.",
+            "transferExpiredDescription": "¿Ya enviaste dinero? Contacta a soporte.",
             "startNewDeposit": "Iniciar un nuevo depósito",
             "sendOnlyOwnAccountDescription": "No se admiten depósitos desde cuentas de terceros y los fondos se pueden perder.",
             "accountDetails": "Datos bancarios",

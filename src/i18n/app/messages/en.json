@@ -2245,9 +2245,9 @@
         "manteca": {
             "youreAdding": "Adding",
             "sendOnlyOwnAccountTitle": "Send only from an account in your name",
-            "transferDeadline": "Send your transfer by {time}.",
+            "transferDeadline": "Transfer by {time}.",
             "transferExpiredTitle": "Deposit order expired",
-            "transferExpiredDescription": "The transfer window closed before a payment was recorded. If you already sent money, contact support.",
+            "transferExpiredDescription": "Already sent money? Contact support.",
             "startNewDeposit": "Start a new deposit",
             "sendOnlyOwnAccountDescription": "Deposits from third-party accounts are not supported and funds may be lost.",
             "accountDetails": "Bank details",

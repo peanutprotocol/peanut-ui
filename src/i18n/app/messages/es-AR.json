@@ -1195,9 +1195,9 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
-            "transferDeadline": "Enviá la transferencia antes de las {time}.",
+            "transferDeadline": "Transferí antes de las {time}.",
             "transferExpiredTitle": "La orden de depósito venció",
-            "transferExpiredDescription": "El plazo terminó sin que se registrara un pago. Si ya enviaste la plata, contactá a soporte.",
+            "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
             "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos"

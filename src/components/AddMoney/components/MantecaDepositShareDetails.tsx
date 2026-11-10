@@ -120,20 +120,6 @@ const MantecaDepositShareDetails = ({
             </div>
         )
 
-    if (arsStatus && arsStatus !== 'pending')
-        return (
-            <div className="flex h-full w-full flex-col gap-6">
-                <NavHeader title={t('title')} onPrev={onBack} />
-                <Callout priority={arsStatus === 'completed' ? 'success' : arsStatus === 'failed' ? 'error' : 'info'}>
-                    {arsStatus === 'completed'
-                        ? t('pix.depositReceived')
-                        : arsStatus === 'processing'
-                          ? t('processingDepositTitle')
-                          : tCommon('genericError')}
-                </Callout>
-            </div>
-        )
-
     const transferDeadline = arsStatus === 'pending' ? Date.parse(depositDetails.stages?.['1']?.expireAt ?? '') : NaN
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
