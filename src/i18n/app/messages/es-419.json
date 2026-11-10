@@ -3974,6 +3974,7 @@
                 "invalidCountry": "Elige un país de la lista.",
                 "tooLong": "Es demasiado largo. Usa menos de 100 caracteres.",
                 "invalidText": "Usa solo letras, números y signos de puntuación.",
+                "invalidPostalCode": "Ingresa un código postal de 6 dígitos.",
                 "invalid": "Revisa esta respuesta.",
                 "retry": "No pudimos guardarlo. Revisa tu conexión e inténtalo de nuevo.",
                 "featureNotSelected": "Tu cuenta cambió. Estamos cargando las preguntas correctas.",

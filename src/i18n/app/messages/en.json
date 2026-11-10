@@ -3974,6 +3974,7 @@
                 "invalidCountry": "Choose a country from the list.",
                 "tooLong": "That’s too long. Keep it under 100 characters.",
                 "invalidText": "Use only letters, numbers and punctuation.",
+                "invalidPostalCode": "Enter a 6-digit postal code.",
                 "invalid": "Check this answer.",
                 "retry": "We couldn’t save that. Check your connection and try again.",
                 "featureNotSelected": "Your account changed. We’re loading the right questions.",
