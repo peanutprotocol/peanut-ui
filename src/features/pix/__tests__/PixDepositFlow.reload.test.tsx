@@ -16,10 +16,19 @@ jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
     __esModule: true,
-    default: ({ onSubmit, setCurrencyAmount }: { onSubmit: () => void; setCurrencyAmount: (v: string) => void }) => (
+    default: ({
+        onSubmit,
+        setCurrencyAmount,
+        validationError,
+    }: {
+        onSubmit: () => void
+        setCurrencyAmount: (v: string) => void
+        validationError?: string | null
+    }) => (
         <div data-testid="amount-step">
             <button onClick={() => setCurrencyAmount('100')}>type</button>
             <button onClick={onSubmit}>submit</button>
+            {validationError && <p>{validationError}</p>}
         </div>
     ),
 }))
@@ -32,33 +41,39 @@ jest.mock('@/features/pix/components/PixQrDeposit', () => ({
     ),
 }))
 const mockCreate = jest.fn()
+const mockDepositRules = jest.fn(() => Promise.resolve({ minAmountBrl: '20', blockedBanks: [] }))
 jest.mock('@/services/pix', () => ({
     pixApi: {
-        depositRules: () => Promise.resolve({ minAmountBrl: '20', blockedBanks: [] }),
+        depositRules: () => mockDepositRules(),
         createDeposit: (amountBrl: string) => mockCreate(amountBrl),
     },
 }))
 
 import { PixDepositFlow } from '../components/PixDepositFlow'
 
-const route = (payableDepositIntentId?: string): CapabilityRoute => ({
+const route = (payableDepositIntentId?: string, minAmount = '20'): CapabilityRoute => ({
     operation: 'deposit',
     method: 'PIX_BR',
     provider: 'avenia',
     state: 'ready',
+    limits: { minAmount, currency: 'BRL' },
     candidates: [{ provider: 'avenia', state: 'ready' }],
     ...(payableDepositIntentId ? { payableDepositIntentId } : {}),
 })
 
 const renderAt = (
     searchParams: string,
-    { payable, onUrlUpdate }: { payable?: string; onUrlUpdate?: (event: UrlUpdateEvent) => void } = {}
+    {
+        payable,
+        minAmount,
+        onUrlUpdate,
+    }: { payable?: string; minAmount?: string; onUrlUpdate?: (event: UrlUpdateEvent) => void } = {}
 ) => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = renderWithIntl(
         <QueryClientProvider client={queryClient}>
             <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-                <PixDepositFlow route={route(payable)} />
+                <PixDepositFlow route={route(payable, minAmount)} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
@@ -157,5 +172,20 @@ describe('PixDepositFlow and the URL', () => {
         expect(await screen.findByTestId('amount-step')).toBeInTheDocument()
         expect(screen.queryByTestId('code-step')).toBeNull()
         expect(mockFetchUser).toHaveBeenCalled()
+    })
+
+    // the route states the provider's minimum: the amount step refuses an amount under it before any quote
+    it("says the route's minimum under an amount below it", async () => {
+        renderAt('', { minAmount: '200' })
+        fireEvent.click(screen.getByText('type'))
+        expect(await screen.findByText(/The minimum is R\$200/)).toBeInTheDocument()
+    })
+
+    it('reads no deposit rules for the amount step: the route already states the minimum', async () => {
+        renderAt('', { minAmount: '1' })
+        fireEvent.click(screen.getByText('type'))
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        expect(screen.queryByText(/The minimum is/)).toBeNull()
+        expect(mockDepositRules).not.toHaveBeenCalled()
     })
 })

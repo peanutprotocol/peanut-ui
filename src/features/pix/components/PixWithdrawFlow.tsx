@@ -26,6 +26,8 @@ import { usePixWithdrawSubmit } from '@/features/pix/usePixWithdrawSubmit'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
+import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
+import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
@@ -116,18 +118,18 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
 
     const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
+    // The route states the provider's minimum: an amount under it is refused here, before any quote.
     // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
-    // It opens on the whole balance, and the quote names the provider's minimum from then on.
     // Only the amount step quotes: the setup, key, review and last steps do not.
-    const hasBalance = spendableBalance !== undefined && spendableBalance > 0n
+    const minimumBrl = pixMinimumBrl(route)
     const brl = usePixQuoteCurrency(
         'withdraw',
         typedBrl,
-        hasBalance ? { spendUsd: formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS) } : null,
+        minimumBrl,
         route.state === 'ready' && step === 'amount' && !showOutcome
     )
-    // the review's refusal lines read the minimum from the same quote
-    const refusalMessage = usePixRefusalMessage(brl.minimumBrl)
+    // the review's refusal lines name the same minimum
+    const refusalMessage = usePixRefusalMessage(minimumBrl)
     const [typedUsd, setTypedUsd] = useState<string | undefined>(undefined)
     const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
         amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'
@@ -180,16 +182,20 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
 
     if (step === 'amount') {
         const usdForBalance = typedUsd ?? amountUsd
+        // "Use balance" sends the balance itself (spendUsd), which fits by construction; the
+        // estimate beside it is the quote's price for the reais, which can read a cent over
         const balanceError =
-            usdForBalance && Number(usdForBalance) > 0 && !isAmountWithinBalance(usdForBalance, spendableBalance)
+            enteredIn !== 'balance' &&
+            usdForBalance &&
+            Number(usdForBalance) > 0 &&
+            !isAmountWithinBalance(usdForBalance, spendableBalance)
                 ? tErrors('insufficientBalance')
                 : undefined
         // the reais the field shows, typed or converted; the API checks the credited amount again
-        const belowMinimum = !!brl.minimumBrl && Number(typedBrl) > 0 && Number(typedBrl) < Number(brl.minimumBrl)
         const amountError =
             balanceError ??
-            (belowMinimum && brl.minimumBrl
-                ? tShared('deposit.minimum', { amount: formatBankAmount(brl.minimumBrl, 'BRL') })
+            (minimumBrl && isUnderPixMinimum(typedBrl, minimumBrl)
+                ? tShared('deposit.minimum', { amount: formatBankAmount(minimumBrl, 'BRL') })
                 : undefined)
         return (
             <PageStack>
@@ -198,7 +204,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                     <div className="text-heading-xs text-foreground-primary">{tWithdraw('amountToWithdraw')}</div>
                     {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
                     {spendableBalance === 0n ? (
-                        // nothing to withdraw, and nothing for the quote to open on: the field's own error line
+                        // nothing to withdraw: the field's own error line, no amount to type
                         <Field error={tErrors('insufficientBalance')}>{null}</Field>
                     ) : brl.isError ? (
                         <RateUnavailable onRetry={brl.refetch} />

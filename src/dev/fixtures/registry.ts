@@ -243,6 +243,8 @@ const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
             method: 'PIX_BR',
             provider: 'avenia',
             ...step,
+            // the provider's minimum, as the route states it before any quote
+            limits: { minAmount: '20', currency: 'BRL' },
             candidates: [{ provider: 'avenia', ...step }],
         }
     })
@@ -368,6 +370,7 @@ const aveniaRouteResponses = (
                 method: 'PIX_BR',
                 provider: 'avenia',
                 ...step,
+                limits: { minAmount: '20', currency: 'BRL' },
                 candidates: [{ provider: 'avenia', state: step.state, action: step.action, reason: step.reason }],
             })),
         },

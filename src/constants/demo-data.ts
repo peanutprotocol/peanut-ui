@@ -115,6 +115,7 @@ const DEMO_PIX_ROUTES: CapabilityRoute[] = [
             method: 'PIX_BR',
             provider: 'avenia',
             state: 'ready',
+            limits: { minAmount: '20', currency: 'BRL' },
             candidates: [{ provider: 'avenia', state: 'ready' }],
         })
     ),

@@ -16,6 +16,8 @@ import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
 import { PixSetup } from '@/features/pix/components/PixSetup'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
+import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
+import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
@@ -74,23 +76,20 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const [isCreating, setIsCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const eligibility = useQuery({
+    // the banks the provider sends a Pix back to: the code screen names them, nothing else reads them
+    const rules = useQuery({
         queryKey: ['pix-deposit-rules'],
         queryFn: pixApi.depositRules,
-        enabled: ready,
+        enabled: ready && !!intentId,
         staleTime: 5 * 60_000,
     })
+    // The route states the provider's minimum: an amount under it is refused here, before any quote.
     // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
-    // It opens on the eligible minimum, and the quote names the provider's minimum from then on.
     // Only the amount step quotes: the setup and the code screen do not.
-    const opening = eligibility.data ? { amountBrl: eligibility.data.minAmountBrl } : null
-    const currencyData = usePixQuoteCurrency('deposit', brlAmount, opening, ready && !intentId)
-    const minimumLine = currencyData.minimumBrl
-        ? tDeposit('minimum', { amount: formatBankAmount(currencyData.minimumBrl, 'BRL') })
-        : null
-    const brlNumber = Number(brlAmount)
-    const validationError =
-        brlAmount && brlNumber > 0 && brlNumber < Number(currencyData.minimumBrl ?? 0) ? minimumLine : null
+    const minimumBrl = pixMinimumBrl(route)
+    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minimumBrl, ready && !intentId)
+    const minimumLine = minimumBrl ? tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') }) : null
+    const validationError = isUnderPixMinimum(brlAmount, minimumBrl) ? minimumLine : null
 
     // the code step belongs to one deposit; without its id there is nothing to show
     useEffect(() => {
@@ -156,15 +155,25 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         } finally {
             setIsCreating(false)
         }
-    }, [isCreating, brlAmount, usdAmount, setUrlState, queryClient, fetchUser, tDeposit, tShared, tErrors, minimumLine])
+    }, [
+        isCreating,
+        brlAmount,
+        usdAmount,
+        setUrlState,
+        queryClient,
+        fetchUser,
+        tDeposit,
+        tShared,
+        tErrors,
+        minimumLine,
+        route.provider,
+    ])
 
     if (intentId && (step === 'showQR' || resumeIntentId)) {
         return (
             <PixQrDeposit
                 intentId={intentId}
-                blockedBankNames={
-                    eligibility.data?.blockedBanks.flatMap((bank) => (bank.name ? [bank.name] : [])) ?? []
-                }
+                blockedBankNames={rules.data?.blockedBanks.flatMap((bank) => (bank.name ? [bank.name] : [])) ?? []}
                 // the code is made; back leaves the flow rather than offering a second code
                 onBack={onBack}
                 onDone={leaveToHome}

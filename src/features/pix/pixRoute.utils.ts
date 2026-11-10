@@ -11,6 +11,11 @@ export function findPixRoute(
     return routes?.find((route) => route.operation === operation && route.method === PIX_METHOD)
 }
 
+/** The least reais the route's provider takes for the operation (`route.limits`), or null where it states none. */
+export function pixMinimumBrl(route: CapabilityRoute | undefined): string | null {
+    return route?.limits?.currency === 'BRL' ? route.limits.minAmount : null
+}
+
 /** What a Pix deposit or withdrawal page shows, from the backend's route: one flow for every provider. */
 export type PixScreen = 'loading' | 'paused' | 'flow' | 'unavailable'
 

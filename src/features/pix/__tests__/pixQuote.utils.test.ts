@@ -1,14 +1,26 @@
-import { pixQuotePrice, pixTypedQuoteBrl } from '../pixQuote.utils'
+import { isUnderPixMinimum, pixQuoteAmountBrl, pixQuotePrice } from '../pixQuote.utils'
 
-describe('pixTypedQuoteBrl', () => {
-    it("quotes the reais on screen once they reach the provider's minimum, else nothing", () => {
-        expect(pixTypedQuoteBrl('503', '20')).toBe('503')
-        expect(pixTypedQuoteBrl('100.505', '20')).toBe('100.5')
-        expect(pixTypedQuoteBrl('19.99', '20')).toBeNull()
-        expect(pixTypedQuoteBrl('', '20')).toBeNull()
-        expect(pixTypedQuoteBrl(undefined, '20')).toBeNull()
-        // the minimum comes from the first quote; before it, the amount waits
-        expect(pixTypedQuoteBrl('503', null)).toBeNull()
+describe('pixQuoteAmountBrl', () => {
+    it("quotes the reais on screen once they reach the route's minimum, else the minimum", () => {
+        expect(pixQuoteAmountBrl('503', '20')).toBe('503')
+        expect(pixQuoteAmountBrl('100.505', '20')).toBe('100.5')
+        // under the minimum, or nothing typed yet: the minimum, an amount the provider takes
+        expect(pixQuoteAmountBrl('19.99', '20')).toBe('20')
+        expect(pixQuoteAmountBrl('', '20')).toBe('20')
+        expect(pixQuoteAmountBrl(undefined, '1')).toBe('1')
+        // a route that states no minimum: the typed amount, and nothing before one
+        expect(pixQuoteAmountBrl('503', null)).toBe('503')
+        expect(pixQuoteAmountBrl(undefined, null)).toBeNull()
+    })
+})
+
+describe('isUnderPixMinimum', () => {
+    it("is true for a typed amount under the route's minimum only", () => {
+        expect(isUnderPixMinimum('19.99', '20')).toBe(true)
+        expect(isUnderPixMinimum('20', '20')).toBe(false)
+        expect(isUnderPixMinimum('', '20')).toBe(false)
+        expect(isUnderPixMinimum('0.5', '1')).toBe(true)
+        expect(isUnderPixMinimum('0.5', null)).toBe(false)
     })
 })
 

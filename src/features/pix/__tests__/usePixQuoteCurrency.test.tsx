@@ -17,10 +17,10 @@ const TYPED = {
     fixedFeeBrl: '0.75',
     minAmountBrl: '20',
 }
-const OPENING = {
-    amountBrl: '503.00',
-    usdcAmount: '92.504310',
-    rate: '5.445692',
+const MINIMUM = {
+    amountBrl: '20.00',
+    usdcAmount: '3.556000',
+    rate: '5.413948',
     fixedFeeBrl: '0.75',
     minAmountBrl: '20',
 }
@@ -33,25 +33,21 @@ describe('usePixQuoteCurrency', () => {
     )
     beforeEach(() => jest.clearAllMocks())
 
-    it("opens on the opening amount and takes the provider's minimum from that quote", async () => {
-        mockQuote.mockResolvedValue(OPENING)
-        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', undefined, { spendUsd: '92.50' }, true), {
-            wrapper,
-        })
+    it("prices the route's minimum before an amount is typed: no whole-balance quote, no eligibility read", async () => {
+        mockQuote.mockResolvedValue(MINIMUM)
+        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', undefined, '20', true), { wrapper })
 
-        await waitFor(() => expect(result.current.minimumBrl).toBe('20'))
+        await waitFor(() => expect(result.current.price).not.toBeNull())
         expect(mockQuote).toHaveBeenCalledTimes(1)
-        expect(mockQuote).toHaveBeenCalledWith({ operation: 'withdraw', spendUsd: '92.50' })
-        expect(result.current.price!.sell * 92.50431).toBeCloseTo(503, 4)
+        expect(mockQuote).toHaveBeenCalledWith({ operation: 'withdraw', amountBrl: '20' })
+        expect(result.current.price!.sell * 3.556).toBeCloseTo(20, 4)
     })
 
     it('prices the reais on screen with their own quote once they reach the minimum, not the /fx rate', async () => {
         mockQuote.mockImplementation(async (request: { amountBrl?: string }) =>
-            request.amountBrl === '106.75' ? TYPED : OPENING
+            request.amountBrl === '106.75' ? TYPED : MINIMUM
         )
-        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '106.75', { spendUsd: '92.50' }, true), {
-            wrapper,
-        })
+        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '106.75', '20', true), { wrapper })
 
         await waitFor(() => expect(mockQuote).toHaveBeenCalledWith({ operation: 'withdraw', amountBrl: '106.75' }))
         await waitFor(() => expect(result.current.price!.sell * 20.020325).toBeCloseTo(106.75, 6))
@@ -59,11 +55,9 @@ describe('usePixQuoteCurrency', () => {
         expect(result.current.price!.buy).toBe(result.current.price!.sell)
     })
 
-    it('keeps the opening quote for an amount under the minimum', async () => {
-        mockQuote.mockResolvedValue(OPENING)
-        const { result } = renderHook(() => usePixQuoteCurrency('deposit', '10', { amountBrl: '20' }, true), {
-            wrapper,
-        })
+    it('never quotes an amount under the minimum: it keeps the price of the minimum', async () => {
+        mockQuote.mockResolvedValue(MINIMUM)
+        const { result } = renderHook(() => usePixQuoteCurrency('deposit', '10', '20', true), { wrapper })
 
         await waitFor(() => expect(result.current.price).not.toBeNull())
         expect(mockQuote).toHaveBeenCalledTimes(1)
@@ -71,24 +65,14 @@ describe('usePixQuoteCurrency', () => {
     })
 
     it('reports a failed quote, so the amount step offers a retry', async () => {
-        mockQuote.mockRejectedValue(new Error('403'))
-        const { result } = renderHook(() => usePixQuoteCurrency('deposit', '100', { amountBrl: '20' }, true), {
-            wrapper,
-        })
+        mockQuote.mockRejectedValue(new Error('503'))
+        const { result } = renderHook(() => usePixQuoteCurrency('deposit', '100', '20', true), { wrapper })
         await waitFor(() => expect(result.current.isError).toBe(true))
         expect(result.current.price).toBeNull()
     })
 
-    it('waits, never a field in USD, while there is nothing to open on yet', () => {
-        const { result } = renderHook(() => usePixQuoteCurrency('deposit', undefined, null, true), { wrapper })
-        expect(result.current.isLoading).toBe(true)
-        expect(mockQuote).not.toHaveBeenCalled()
-    })
-
     it('asks for no quote while the amount step is not on screen', async () => {
-        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '100', { spendUsd: '92.50' }, false), {
-            wrapper,
-        })
+        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '100', '20', false), { wrapper })
         await new Promise((resolve) => setTimeout(resolve, 0))
         expect(mockQuote).not.toHaveBeenCalled()
         expect(result.current.isLoading).toBe(false)
