@@ -20,7 +20,7 @@
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 404,
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 127,
         "app/(mobile-ui)/withdraw/manteca/page.tsx": 570,
-        "app/(mobile-ui)/withdraw/new-pix-key/page.tsx": 170,
+        "app/(mobile-ui)/withdraw/new-pix-key/page.tsx": 168,
         "app/(mobile-ui)/withdraw/pix/page.tsx": 660,
         "app/(setup)/setup/finish/page.tsx": 82,
         "app/[...recipient]/page.tsx": 177,

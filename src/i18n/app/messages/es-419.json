@@ -2576,7 +2576,7 @@
             "stuck": "Este retiro no se completó. Contacta a soporte.",
             "arrivesIn": "Unos {minutes, plural, one {# minuto} other {# minutos}}",
             "aveniaFee": "Comisión de Avenia",
-            "keyIntro": "Ingresa una clave Pix de una cuenta con tu CPF.",
+            "keyIntro": "Ingresa una clave Pix registrada con tu CPF.",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
             "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",
@@ -2599,7 +2599,8 @@
                 "quoteExpired": "La cotización tardó demasiado. Intenta de nuevo.",
                 "afterInit": "Revisa el Historial antes de intentar de nuevo.",
                 "quoteChanged": "El monto cambió durante la cotización. Intenta de nuevo."
-            }
+            },
+            "changeKey": "Cambiar clave"
         },
         "recovery": {
             "actionNeeded": "Acción requerida",

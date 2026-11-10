@@ -257,13 +257,26 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const reconfirm = submit.phase === 'reconfirm'
     const fundsShort = !!display && !isAmountWithinBalance(display.withdrawUsd, spendableBalance)
     // each refusal offers the one step that can change it
+    // Each refusal offers the one step that can change it: never a Retry that repeats the refused key or amount.
     const previewAction = (code: string | undefined) => {
-        // a smaller amount can pass the monthly limit; the key stays
-        if (code === API_ERROR_CODES.PIX_LIMIT_EXCEEDED)
-            return { label: t('changeAmount'), onClick: () => void stepper.goTo('amount') }
-        // withdrawals still on their way: only time helps, and the message says so
-        if (code === API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS) return undefined
-        return { label: tCommon('retry'), onClick: () => void preview.refetch() }
+        switch (code) {
+            // another amount can pass: back to the amount step, the key stays
+            case API_ERROR_CODES.PIX_LIMIT_EXCEEDED:
+            case API_ERROR_CODES.PIX_MIN_AMOUNT:
+                return { label: t('changeAmount'), onClick: () => void stepper.goTo('amount') }
+            // the key itself was refused: back to the key step, the key kept in the field to edit
+            case API_ERROR_CODES.PIX_KEY_NOT_OWN:
+            case API_ERROR_CODES.PIX_KEY_BLOCKED:
+            case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
+                return { label: t('changeKey'), onClick: () => void stepper.goTo('pix-key') }
+            // only time helps (the message says so), or only support can (the callout offers it)
+            case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
+            case API_ERROR_CODES.PROVIDER_REJECTED:
+                return undefined
+            // a moved quote, a throttled lookup, an outage or a network failure can pass on a retry
+            default:
+                return { label: tCommon('retry'), onClick: () => void preview.refetch() }
+        }
     }
     const reviewError = submit.error
         ? // once Avenia's ticket is open, only a signature that surely sent nothing may be tried again

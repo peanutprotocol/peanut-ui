@@ -1323,7 +1323,7 @@
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contactá a soporte.",
-            "keyIntro": "Ingresá una clave Pix de una cuenta con tu CPF.",
+            "keyIntro": "Ingresá una clave Pix registrada con tu CPF.",
             "notACode": "Ingresá una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
             "quoteMoved": "La cotización cambió. Revisá los nuevos montos y confirmá de nuevo.",
@@ -1334,7 +1334,8 @@
                 "afterInit": "Revisá el Historial antes de intentar de nuevo.",
                 "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo."
             },
-            "changeAmount": "Cambiar monto"
+            "changeAmount": "Cambiar monto",
+            "changeKey": "Cambiar clave"
         },
         "recovery": {
             "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresá una clave Pix de otra cuenta con tu CPF."

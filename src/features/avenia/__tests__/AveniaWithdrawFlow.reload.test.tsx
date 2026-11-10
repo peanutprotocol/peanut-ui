@@ -259,6 +259,42 @@ describe('AveniaWithdrawFlow refused preview', () => {
         expect(screen.getByRole('button', { name: en.common.cancel })).toBeInTheDocument()
     })
 
+    it('under the minimum: Change amount goes back to the amount step', async () => {
+        refuse(422, 'PIX_MIN_AMOUNT')
+        const urls: string[] = []
+        renderAt(REVIEW, (event) => urls.push(event.queryString))
+
+        fireEvent.click(await screen.findByRole('button', { name: en.avenia.withdraw.changeAmount }))
+
+        await waitFor(() => expect(urls.at(-1)).toContain('step=amount'))
+        expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
+    })
+
+    it.each(['PIX_KEY_NOT_OWN', 'PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
+        'the key was refused (%s): Change key opens the key step with the key kept to edit',
+        async (code) => {
+            refuse(422, code)
+            const urls: string[] = []
+            renderAt(REVIEW, (event) => urls.push(event.queryString))
+
+            fireEvent.click(await screen.findByRole('button', { name: en.avenia.withdraw.changeKey }))
+
+            expect(await screen.findByDisplayValue('09579927189')).toBeInTheDocument()
+            expect(new URLSearchParams(urls.at(-1)).get('destination')).toBe('09579927189')
+            expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
+        }
+    )
+
+    it('the provider rejected the account: no retry and no edit, the message says what to do', async () => {
+        refuse(403, 'PROVIDER_REJECTED')
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.errors.providerRejected)).toBeInTheDocument()
+        for (const name of [en.common.retry, en.avenia.withdraw.changeAmount, en.avenia.withdraw.changeKey]) {
+            expect(screen.queryByRole('button', { name })).toBeNull()
+        }
+    })
+
     it('the quote changed: Retry asks for the preview again', async () => {
         refuse(409, 'PIX_QUOTE_CHANGED')
         renderAt(REVIEW)

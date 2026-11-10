@@ -2576,7 +2576,7 @@
             "stuck": "This withdrawal did not finish. Contact support.",
             "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
             "aveniaFee": "Avenia fee",
-            "keyIntro": "Enter a Pix key of an account under your CPF.",
+            "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
             "keyNotOwn": "This key belongs to someone else. Withdrawals go only to accounts under your CPF.",
@@ -2599,7 +2599,8 @@
                 "quoteExpired": "The quote took too long. Try again.",
                 "afterInit": "Check History before trying again.",
                 "quoteChanged": "The amount changed while it was quoted. Try again."
-            }
+            },
+            "changeKey": "Change key"
         },
         "recovery": {
             "actionNeeded": "Action needed",
