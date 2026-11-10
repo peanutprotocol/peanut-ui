@@ -26679,6 +26679,9 @@
 															"effectiveDate": {
 																"type": "string"
 															},
+															"expiresAt": {
+																"type": "string"
+															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -26759,6 +26762,12 @@
 																			"questions"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"hosted-identity"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -26815,6 +26824,9 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"url": {
 																"type": "string"
 															}
 														},
@@ -27076,6 +27088,9 @@
 																			"effectiveDate": {
 																				"type": "string"
 																			},
+																			"expiresAt": {
+																				"type": "string"
+																			},
 																			"feature": {
 																				"anyOf": [
 																					{
@@ -27156,6 +27171,12 @@
 																							"questions"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"hosted-identity"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -27212,6 +27233,9 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -29245,6 +29269,9 @@
 												"effectiveDate": {
 													"type": "string"
 												},
+												"expiresAt": {
+													"type": "string"
+												},
 												"feature": {
 													"anyOf": [
 														{
@@ -29325,6 +29352,12 @@
 																"questions"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"hosted-identity"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -29381,6 +29414,9 @@
 													"type": "string"
 												},
 												"tosUrl": {
+													"type": "string"
+												},
+												"url": {
 													"type": "string"
 												}
 											},
@@ -36831,6 +36867,9 @@
 															"effectiveDate": {
 																"type": "string"
 															},
+															"expiresAt": {
+																"type": "string"
+															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -36911,6 +36950,12 @@
 																			"questions"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"hosted-identity"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -36967,6 +37012,9 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"url": {
 																"type": "string"
 															}
 														},
@@ -37228,6 +37276,9 @@
 																			"effectiveDate": {
 																				"type": "string"
 																			},
+																			"expiresAt": {
+																				"type": "string"
+																			},
 																			"feature": {
 																				"anyOf": [
 																					{
@@ -37308,6 +37359,12 @@
 																							"questions"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"hosted-identity"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -37364,6 +37421,9 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"url": {
 																				"type": "string"
 																			}
 																		},
