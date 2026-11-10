@@ -1341,6 +1341,11 @@
         "route": "/add-money/pix?amount=100&currency=BRL"
     },
     {
+        "id": "p85-manteca-ar-provider-sheet",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
+    },
+    {
         "id": "deposit-address-launch-loading",
         "flow": "Add money",
         "route": "/dev/surfaces?s=deposit-address-launch-loading",
@@ -2338,6 +2343,11 @@
     },
     {
         "id": "p84-pix-provider-sheet",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+    },
+    {
+        "id": "p86-pix-manteca-provider-sheet",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },

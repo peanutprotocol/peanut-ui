@@ -5418,9 +5418,9 @@
             "rhino": "Direcciones de depósito entre redes y liquidez de puente. Peanut es cliente de Rhino; tú no tienes cuenta en Rhino.",
             "thirdNational": "Emisor de la tarjeta, filial de Rain",
             "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
-            "mantecaAr": "Depósitos (ARS), retiros, pagos con QR y titular de la cuenta de depósito en ARS",
-            "mantecaBr": "Depósitos (Pix en BRL), retiros y pagos con Pix y QR",
-            "aveniaBr": "Depósitos y retiros (Pix en BRL)"
+            "mantecaAr": "Depósitos, retiros y pagos con QR en Argentina",
+            "mantecaBr": "Pagos y transferencias por Pix para quienes no viven en Brasil",
+            "aveniaBr": "Depósitos y retiros por Pix para residentes de Brasil"
         },
         "about": "Sobre {brand}",
         "execution": {

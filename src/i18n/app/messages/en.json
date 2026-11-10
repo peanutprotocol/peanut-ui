@@ -5418,9 +5418,9 @@
             "rhino": "Cross-chain deposit addresses and bridge liquidity. Peanut is Rhino's customer; you hold no Rhino account.",
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
-            "mantecaAr": "Fiat on-ramp (ARS), off-ramp, QR payer and holder of the ARS deposit account",
-            "mantecaBr": "Fiat on-ramp (BRL Pix), off-ramp, Pix and QR payer",
-            "aveniaBr": "Fiat on-ramp and off-ramp (BRL Pix)"
+            "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
+            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil",
+            "aveniaBr": "Pix deposits and withdrawals for residents of Brazil"
         },
         "about": "About {brand}",
         "execution": {
