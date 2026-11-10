@@ -9,6 +9,9 @@ type WebStorageLike = {
     getItem(key: string): string | null
     setItem(key: string, value: string): void
     removeItem(key: string): void
+    /** Present on a real Storage: lets a caller list its own keys by prefix. */
+    readonly length?: number
+    key?(index: number): string | null
 }
 
 type StorageHost = { localStorage?: WebStorageLike | null }
@@ -40,6 +43,22 @@ export function writeStoredValue(key: string, value: string): void {
         storage.setItem(key, value)
     } catch {
         // quota exceeded or storage disabled mid-session
+    }
+}
+
+/** The stored keys that start with `prefix`; none where storage cannot be read or listed. */
+export function storedKeysWithPrefix(prefix: string): string[] {
+    const storage = webStorage()
+    if (!storage || typeof storage.key !== 'function' || typeof storage.length !== 'number') return []
+    try {
+        const keys: string[] = []
+        for (let index = 0; index < storage.length; index++) {
+            const key = storage.key(index)
+            if (key?.startsWith(prefix)) keys.push(key)
+        }
+        return keys
+    } catch {
+        return []
     }
 }
 

@@ -504,9 +504,12 @@ describe('usePixWithdrawSubmit', () => {
             signedUserOp: { signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
         }
 
-        // this account's marks, by price lock
-        const marks = () => JSON.parse(window.localStorage.getItem('pix-withdraw-pending:u1') ?? '{}')
-        const pendingMark = () => (marks()['lock-1'] ? JSON.stringify(marks()['lock-1']) : null)
+        // this account's marks: one key per price lock
+        const markLocks = () =>
+            Array.from({ length: window.localStorage.length }, (_, i) => window.localStorage.key(i))
+                .filter((key) => key?.startsWith('pix-withdraw-pending:u1:'))
+                .map((key) => key!.slice('pix-withdraw-pending:u1:'.length))
+        const pendingMark = () => window.localStorage.getItem('pix-withdraw-pending:u1:lock-1')
         beforeEach(() => window.localStorage.clear())
 
         it('signs a transfer of exactly the pay amount to the deposit address, and opens nothing before the submit', async () => {
@@ -593,14 +596,12 @@ describe('usePixWithdrawSubmit', () => {
         // two tabs: tab A's submit lost its answer (lock-a); tab B's refusal must not lift A's guard
         it("clears only its own lock's mark on a refusal, never another tab's", async () => {
             window.localStorage.setItem(
-                'pix-withdraw-pending:u1',
+                'pix-withdraw-pending:u1:lock-a',
                 JSON.stringify({
-                    'lock-a': {
-                        priceLockCode: 'lock-a',
-                        display,
-                        submittedAt: Date.now() - 30_000,
-                        settleBy: Date.now() + 10 * 60_000,
-                    },
+                    priceLockCode: 'lock-a',
+                    display,
+                    submittedAt: Date.now() - 30_000,
+                    settleBy: Date.now() + 10 * 60_000,
                 })
             )
             mockInit.mockResolvedValue(transferInit())
@@ -615,7 +616,7 @@ describe('usePixWithdrawSubmit', () => {
             })
 
             expect(result.current.phase).toBe('idle')
-            expect(Object.keys(marks())).toEqual(['lock-a'])
+            expect(markLocks()).toEqual(['lock-a'])
         })
 
         it('reads a submit the API refused before it broadcast as nothing sent', async () => {

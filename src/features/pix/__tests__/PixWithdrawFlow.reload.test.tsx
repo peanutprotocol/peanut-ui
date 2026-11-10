@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
@@ -278,20 +278,15 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
         arrivalEstimateSeconds: 300,
         provider: 'Manteca',
     })
-    // the account's marks, one per price lock
+    // the account's marks, one key per price lock
     const marks = (
         list: Array<{ lock: string; settleBy: number; amountBrl?: string; submittedAt?: number }>,
         userId = 'u1'
     ) =>
-        window.localStorage.setItem(
-            `pix-withdraw-pending:${userId}`,
-            JSON.stringify(
-                Object.fromEntries(
-                    list.map(({ lock, settleBy, amountBrl = '503.00', submittedAt = SUBMITTED_AT }) => [
-                        lock,
-                        { priceLockCode: lock, display: display(amountBrl), submittedAt, settleBy },
-                    ])
-                )
+        list.forEach(({ lock, settleBy, amountBrl = '503.00', submittedAt = SUBMITTED_AT }) =>
+            window.localStorage.setItem(
+                `pix-withdraw-pending:${userId}:${lock}`,
+                JSON.stringify({ priceLockCode: lock, display: display(amountBrl), submittedAt, settleBy })
             )
         )
     const SOON = () => Date.now() + 10 * 60_000
@@ -347,7 +342,23 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
 
         expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
         expect(urls.some((url) => url.includes('intentId'))).toBe(false)
-        expect(window.localStorage.getItem('pix-withdraw-pending:u1')).not.toBeNull()
+        expect(window.localStorage.getItem('pix-withdraw-pending:u1:lock-a')).not.toBeNull()
+    })
+
+    // another tab's submit lost its answer while this one shows the review: this page holds too
+    it("holds an open page when another tab's mark arrives", async () => {
+        mockPreview.mockReturnValue(new Promise(() => {}))
+        renderAt(FORM)
+        expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
+
+        marks([{ lock: 'lock-b', settleBy: SOON(), amountBrl: '120.00' }])
+        act(() => {
+            window.dispatchEvent(new StorageEvent('storage', { key: 'pix-withdraw-pending:u1:lock-b' }))
+        })
+
+        expect(await screen.findByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
+        expect(screen.getByText('R$120')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.confirm })).toBeNull()
     })
 
     it("never reads another account's marks, and leaves them where they are", async () => {
@@ -357,7 +368,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
 
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
         expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
-        expect(window.localStorage.getItem('pix-withdraw-pending:someone-else')).not.toBeNull()
+        expect(window.localStorage.getItem('pix-withdraw-pending:someone-else:lock-a')).not.toBeNull()
     })
 
     it("lets a new withdrawal through once every mark's window has passed, and prunes them", async () => {
@@ -367,7 +378,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
 
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
         expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
-        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending:u1')).toBeNull())
+        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending:u1:lock-a')).toBeNull())
     })
 })
 

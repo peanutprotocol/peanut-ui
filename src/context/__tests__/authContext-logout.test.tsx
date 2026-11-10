@@ -253,8 +253,8 @@ describe('logoutUser', () => {
     // the same account signing back in before the withdrawal settles still finds its guard;
     // another account never reads it (the key is the account's)
     it("keeps the account's pending Pix withdrawal marks", async () => {
-        const marks = JSON.stringify({ 'lock-a': { priceLockCode: 'lock-a', settleBy: Date.now() + 60_000 } })
-        localStorage.setItem('pix-withdraw-pending:u1', marks)
+        const mark = JSON.stringify({ priceLockCode: 'lock-a', settleBy: Date.now() + 60_000 })
+        localStorage.setItem('pix-withdraw-pending:u1:lock-a', mark)
         stubLocation()
         const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -262,7 +262,7 @@ describe('logoutUser', () => {
             await result.current.logoutUser()
         })
 
-        expect(localStorage.getItem('pix-withdraw-pending:u1')).toBe(marks)
+        expect(localStorage.getItem('pix-withdraw-pending:u1:lock-a')).toBe(mark)
     })
 
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {

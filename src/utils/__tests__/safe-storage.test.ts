@@ -4,7 +4,14 @@
  * SecurityError in restricted Android in-app browsers, which took out startup
  * locale detection and wagmi's module-scope createConfig.
  */
-import { readStoredValue, removeStoredValue, resilientWebStorage, webStorage, writeStoredValue } from '../safe-storage'
+import {
+    readStoredValue,
+    removeStoredValue,
+    resilientWebStorage,
+    storedKeysWithPrefix,
+    webStorage,
+    writeStoredValue,
+} from '../safe-storage'
 
 const realStorage = Object.getOwnPropertyDescriptor(window, 'localStorage')!
 
@@ -21,6 +28,29 @@ it('reads and writes through a healthy localStorage', () => {
     expect(readStoredValue('k')).toBe('v')
     removeStoredValue('k')
     expect(readStoredValue('k')).toBeNull()
+})
+
+it('lists only the stored keys with the prefix asked', () => {
+    writeStoredValue('mark:u1:a', '1')
+    writeStoredValue('mark:u1:b', '2')
+    writeStoredValue('mark:u10:c', '3')
+    expect(storedKeysWithPrefix('mark:u1:').sort()).toEqual(['mark:u1:a', 'mark:u1:b'])
+    localStorage.clear()
+})
+
+it('lists no keys where storage is missing or cannot be listed', () => {
+    stubLocalStorage(() => null)
+    expect(storedKeysWithPrefix('mark:')).toEqual([])
+    stubLocalStorage(
+        () =>
+            ({
+                length: 1,
+                key: () => {
+                    throw new DOMException('denied', 'SecurityError')
+                },
+            }) as unknown as Storage
+    )
+    expect(storedKeysWithPrefix('mark:')).toEqual([])
 })
 
 it('treats a null localStorage as empty instead of dereferencing it', () => {

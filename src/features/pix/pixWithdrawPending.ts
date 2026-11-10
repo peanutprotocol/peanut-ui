@@ -1,5 +1,5 @@
 import type { PixWithdrawDisplay } from '@/services/pix'
-import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
+import { readStoredValue, removeStoredValue, storedKeysWithPrefix, writeStoredValue } from '@/utils/safe-storage'
 
 /**
  * A `transfer-then-submit` withdrawal whose submit may have gone out. It has no intent id until the
@@ -10,9 +10,10 @@ import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/sa
  * otherwise send a second payout.
  *
  * Nothing in history names the price lock or the submit, so a mark is never matched against a row
- * by its amount or time: it stands until its deadline. The marks of one account live under that
- * account's own key, one per price lock: two tabs never overwrite or clear each other's mark, the
- * same account signing back in finds its marks, and another account never reads them.
+ * by its amount or time: it stands until its deadline. Each mark has its own storage key, per
+ * account and price lock (`pix-withdraw-pending:<user id>:<lock code>`), written and removed on
+ * its own: two tabs never rewrite a shared value, so neither can drop the other's mark; the same
+ * account signing back in finds its marks; another account never reads them.
  */
 export interface PendingTransfer {
     priceLockCode: string
@@ -23,71 +24,69 @@ export interface PendingTransfer {
     settleBy: number
 }
 
-type PendingTransfers = Record<string, PendingTransfer>
-
 /** The lock bounds the submit; history can lag the API's answer by a little. */
 export const PENDING_TRANSFER_MARGIN_MS = 10 * 60_000
-const PROBE_KEY = 'pix-withdraw-pending-probe'
+const KEY_ROOT = 'pix-withdraw-pending'
+const PROBE_KEY = `${KEY_ROOT}-probe`
 
-/** One account's marks: a map from price lock to mark. */
-export const pendingTransfersKey = (userId: string) => `pix-withdraw-pending:${userId}`
+/** The prefix of one account's mark keys. */
+export const pendingTransfersPrefix = (userId: string) => `${KEY_ROOT}:${userId}:`
+export const pendingTransferKey = (userId: string, priceLockCode: string) =>
+    `${pendingTransfersPrefix(userId)}${priceLockCode}`
 
-/** The marks a stored value holds, every one of them, or none for a value that does not parse. */
-export function parsePendingTransfers(raw: string | null): PendingTransfers {
-    if (!raw) return {}
+/** One stored mark, or null for a value that does not parse or names another lock than its key. */
+export function parsePendingTransfer(raw: string | null, priceLockCode: string): PendingTransfer | null {
+    if (!raw) return null
     try {
-        const parsed = JSON.parse(raw) as unknown
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-        return Object.fromEntries(
-            Object.entries(parsed as PendingTransfers).filter(
-                ([lock, mark]) => typeof mark?.settleBy === 'number' && mark.priceLockCode === lock
-            )
-        )
+        const mark = JSON.parse(raw) as PendingTransfer
+        return typeof mark?.settleBy === 'number' && mark.priceLockCode === priceLockCode ? mark : null
     } catch {
-        return {}
+        return null
     }
 }
 
-/** The marks still inside their window, newest first. */
-export function standingTransfers(marks: PendingTransfers, now: number): PendingTransfer[] {
-    return Object.values(marks)
-        .filter((mark) => mark.settleBy > now)
-        .sort((a, b) => b.submittedAt - a.submittedAt)
+/** Every mark the account has stored, ordered by lock code; unreadable ones are left out. */
+export function readTransfersPending(userId: string): PendingTransfer[] {
+    const prefix = pendingTransfersPrefix(userId)
+    return storedKeysWithPrefix(prefix)
+        .sort()
+        .flatMap((key) => {
+            const mark = parsePendingTransfer(readStoredValue(key), key.slice(prefix.length))
+            return mark ? [mark] : []
+        })
 }
 
-function writeMarks(userId: string, marks: PendingTransfers): void {
-    if (Object.keys(marks).length) writeStoredValue(pendingTransfersKey(userId), JSON.stringify(marks))
-    else removeStoredValue(pendingTransfersKey(userId))
+/** The marks still inside their window, newest first. */
+export function standingTransfers(marks: readonly PendingTransfer[], now: number): PendingTransfer[] {
+    return marks.filter((mark) => mark.settleBy > now).sort((a, b) => b.submittedAt - a.submittedAt)
+}
+
+/** Writes this lock's own key and reads it back: false when this browser could not keep it. */
+export function markTransferPending(userId: string, mark: PendingTransfer): boolean {
+    const key = pendingTransferKey(userId, mark.priceLockCode)
+    const value = JSON.stringify(mark)
+    writeStoredValue(key, value)
+    return readStoredValue(key) === value
+}
+
+/** Removes the one mark the answer concerns; the account's other marks are other keys. */
+export function clearTransferPending(userId: string, priceLockCode: string): void {
+    removeStoredValue(pendingTransferKey(userId, priceLockCode))
 }
 
 /**
- * Adds this lock's mark to the account's marks, dropping only marks past their window, and reads it
- * back: false when this browser could not keep it.
+ * Removes the account's marks past their window or unreadable, and the keys earlier builds of
+ * this branch wrote (one unscoped mark, then one map per account), so no stale record of a key or
+ * a holder lingers.
  */
-export function markTransferPending(userId: string, mark: PendingTransfer, now = Date.now()): boolean {
-    const marks = parsePendingTransfers(readStoredValue(pendingTransfersKey(userId)))
-    const standing = Object.fromEntries(standingTransfers(marks, now).map((kept) => [kept.priceLockCode, kept]))
-    writeMarks(userId, { ...standing, [mark.priceLockCode]: mark })
-    const kept = parsePendingTransfers(readStoredValue(pendingTransfersKey(userId)))[mark.priceLockCode]
-    return kept?.submittedAt === mark.submittedAt
-}
-
-/** Clears the one mark the answer concerns; the account's other marks stay. */
-export function clearTransferPending(userId: string, priceLockCode: string): void {
-    const marks = parsePendingTransfers(readStoredValue(pendingTransfersKey(userId)))
-    if (!(priceLockCode in marks)) return
-    const { [priceLockCode]: _cleared, ...rest } = marks
-    writeMarks(userId, rest)
-}
-
-/** Drops the account's marks past their window, so no stale record of a key or a holder lingers. */
 export function pruneTransferPending(userId: string, now = Date.now()): void {
-    const raw = readStoredValue(pendingTransfersKey(userId))
-    if (!raw) return
-    const marks = parsePendingTransfers(raw)
-    const standing = standingTransfers(marks, now)
-    if (standing.length === Object.keys(marks).length && Object.keys(marks).length) return
-    writeMarks(userId, Object.fromEntries(standing.map((kept) => [kept.priceLockCode, kept])))
+    removeStoredValue(KEY_ROOT)
+    removeStoredValue(`${KEY_ROOT}:${userId}`)
+    const prefix = pendingTransfersPrefix(userId)
+    for (const key of storedKeysWithPrefix(prefix)) {
+        const mark = parsePendingTransfer(readStoredValue(key), key.slice(prefix.length))
+        if (!mark || mark.settleBy <= now) removeStoredValue(key)
+    }
 }
 
 /** Whether this browser can keep a mark at all (storage blocked, full or private): asked before signing. */

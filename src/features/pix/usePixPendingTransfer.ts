@@ -2,17 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { useAuth } from '@/context/authContext'
-import { readStoredValue, removeStoredValue } from '@/utils/safe-storage'
 import {
-    parsePendingTransfers,
-    pendingTransfersKey,
     pruneTransferPending,
+    readTransfersPending,
     standingTransfers,
     type PendingTransfer,
 } from '@/features/pix/pixWithdrawPending'
-
-/** The single unscoped mark an earlier build of this branch wrote; it named no account. */
-const UNSCOPED_KEY = 'pix-withdraw-pending'
 
 /** Another tab's mark arrives as a storage event: the page then holds the new withdrawal too. */
 function subscribe(onChange: () => void): () => void {
@@ -22,29 +17,28 @@ function subscribe(onChange: () => void): () => void {
 
 /**
  * The newest withdrawal the signed-in account may have submitted from this browser without an
- * answer naming it (`pixWithdrawPending`), while any of its marks stands. Marks past their window
- * are pruned on read; when the last one passes, the page may offer a new withdrawal. Another
- * account's marks live under its own key and are never read. `enabled`: false once the page names
- * a withdrawal itself.
+ * answer naming it (`pixWithdrawPending`), while any of its marks stands. The account's marks are
+ * read by their key prefix; marks past their window are pruned on read, and when the last one
+ * passes, the page may offer a new withdrawal. Another account's marks have another prefix and are
+ * never read. `enabled`: false once the page names a withdrawal itself.
  */
 export function usePixPendingTransfer({ enabled }: { enabled: boolean }): PendingTransfer | null {
     const { user } = useAuth()
     const userId = user?.user?.userId
-    // the stored string is a stable snapshot; the server has no storage
-    const raw = useSyncExternalStore(
+    // a string is a stable snapshot of the account's marks; the server has no storage
+    const snapshot = useSyncExternalStore(
         subscribe,
-        useCallback(() => (userId ? readStoredValue(pendingTransfersKey(userId)) : null), [userId]),
-        () => null
+        useCallback(() => (userId ? JSON.stringify(readTransfersPending(userId)) : '[]'), [userId]),
+        () => '[]'
     )
     // moves the page on when the oldest standing mark passes its window
     const [now, setNow] = useState(() => Date.now())
-    const standing = useMemo(() => standingTransfers(parsePendingTransfers(raw), now), [raw, now])
+    const standing = useMemo(() => standingTransfers(JSON.parse(snapshot) as PendingTransfer[], now), [snapshot, now])
     const pending = enabled ? (standing[0] ?? null) : null
 
     useEffect(() => {
-        removeStoredValue(UNSCOPED_KEY)
         if (userId) pruneTransferPending(userId)
-    }, [userId, raw, now])
+    }, [userId, snapshot, now])
 
     const nextExpiry = standing.length ? Math.min(...standing.map((mark) => mark.settleBy)) : null
     useEffect(() => {
