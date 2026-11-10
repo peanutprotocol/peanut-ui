@@ -8,7 +8,6 @@ import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AmountInput from '@/components/Global/AmountInput'
@@ -193,8 +192,8 @@ export function AveniaWithdrawFlow({ route }: { route: CapabilityRoute }) {
                     <div className="text-heading-xs text-foreground-primary">{tWithdraw('amountToWithdraw')}</div>
                     {/* the quote failed (the route changed, Avenia is down): retry here, not a spinner */}
                     {spendableBalance === 0n ? (
-                        // nothing to withdraw, and nothing for the quote to open on
-                        <Callout priority="error">{tErrors('insufficientBalance')}</Callout>
+                        // nothing to withdraw, and nothing for the quote to open on: the field's own error line
+                        <Field error={tErrors('insufficientBalance')}>{null}</Field>
                     ) : brl.isError ? (
                         <RateUnavailable onRetry={brl.refetch} />
                     ) : brl.isLoading || !brl.price ? (
