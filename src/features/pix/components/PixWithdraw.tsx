@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { parseAsString, useQueryStates } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
-import { AveniaWithdrawFlow } from '@/features/avenia/components/AveniaWithdrawFlow'
+import { PixWithdrawFlow } from '@/features/pix/components/PixWithdrawFlow'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { PixPausedScreen } from '@/features/pix/components/PixPausedScreen'
 import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
@@ -38,7 +38,7 @@ export function PixWithdraw() {
 
     if (screen === 'loading') return <Loading variant="mascot" />
     if (screen === 'paused') return <PixPausedScreen route={route} action="withdrawals" />
-    if (screen === 'avenia' && route) return <AveniaWithdrawFlow route={route} />
+    if (screen === 'avenia' && route) return <PixWithdrawFlow route={route} />
     if (screen === 'manteca') {
         return (
             <KycFeatureActivationGate feature="local" scope={{ channel: 'bank', country: 'BR' }}>

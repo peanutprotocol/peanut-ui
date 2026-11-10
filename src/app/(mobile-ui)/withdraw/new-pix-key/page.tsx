@@ -1,6 +1,6 @@
 'use client'
 
-import { AveniaNewKeyFlow } from '@/features/avenia/components/AveniaNewKeyFlow'
+import { PixNewKeyFlow } from '@/features/pix/components/PixNewKeyFlow'
 
 /**
  * A new own Pix key for a withdrawal the bank refused (`?intentId=`). Not
@@ -8,5 +8,5 @@ import { AveniaNewKeyFlow } from '@/features/avenia/components/AveniaNewKeyFlow'
  * own money, and the API keeps its route open for the same reason.
  */
 export default function NewPixKeyPage() {
-    return <AveniaNewKeyFlow />
+    return <PixNewKeyFlow />
 }

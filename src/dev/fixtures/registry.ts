@@ -1906,7 +1906,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-withdraw-key': {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
         about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
-        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             'POST /pix/key': {
                 holderName: 'Ana Souza',
@@ -1921,7 +1921,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-withdraw-key-other': {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(AVENIA_OTHER_KEY)}`,
         about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
-        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             'POST /pix/key': {
                 holderName: 'Maria Silva',
@@ -1954,16 +1954,16 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-new-key': {
         route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
         about: 'A refused Pix payout: the money waits with Avenia, and another own key resolves to its holder.',
-        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
             'POST /pix/key': AVENIA_OWN_KEY_INFO,
         }),
     },
-    'avenia-new-key-not-waiting': {
+    'pix-new-key-not-waiting': {
         route: AVENIA_NEW_KEY_ROUTE,
         about: 'The new-key link of a withdrawal that no longer waits for a key: its current state instead.',
-        waitFor: '[data-testid="avenia-new-key-not-waiting"]',
+        waitFor: '[data-testid="pix-new-key-not-waiting"]',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(false),
         }),
@@ -2050,7 +2050,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-receipt-pay-code': {
         route: `/history?tx=${AVENIA_DEPOSIT_ID}`,
         about: 'The receipt of a Pix deposit whose code can still be paid opens that code again.',
-        waitFor: '[data-testid="avenia-pay-code-notice"]',
+        waitFor: '[data-testid="pix-pay-code-notice"]',
         responses: {
             'GET /users/history': { entries: [aveniaPayableDeposit], hasMore: false },
             [`GET /history/${AVENIA_DEPOSIT_ID}`]: aveniaPayableDeposit,
@@ -2150,7 +2150,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-withdraw-key-blocked': {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
         about: "A key at a bank on Avenia's deny-list: withdrawals there are not available.",
-        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             'POST /pix/key': { ...AVENIA_OWN_KEY_INFO, blocked: true },
         }),
@@ -2247,7 +2247,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-new-key-unnamed': {
         route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
         about: 'A new own key whose holder the Pix directory does not name.',
-        waitFor: '[data-testid="avenia-pix-key-holder"]',
+        waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
             'POST /pix/key': { ...AVENIA_OWN_KEY_INFO, holderName: null, bankName: null },
@@ -2256,7 +2256,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'avenia-receipt-new-key': {
         route: `/history?tx=${AVENIA_REFUSED_WITHDRAWAL_ID}`,
         about: 'The receipt of a refused Pix payout asks for another own key.',
-        waitFor: '[data-testid="avenia-new-key-notice"]',
+        waitFor: '[data-testid="pix-new-key-notice"]',
         responses: {
             'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false },
             [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),

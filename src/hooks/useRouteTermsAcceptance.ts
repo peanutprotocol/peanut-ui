@@ -25,7 +25,7 @@ export interface RouteTermsAcceptance {
  * A 409 means the route no longer names this step: the capabilities say what now.
  */
 export function useRouteTermsAcceptance(key: string | undefined): RouteTermsAcceptance {
-    const t = useTranslations('avenia')
+    const t = useTranslations('pix')
     const { fetchUser } = useAuth()
     const [isAccepting, setIsAccepting] = useState(false)
     const [error, setError] = useState<string | null>(null)

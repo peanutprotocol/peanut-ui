@@ -2545,9 +2545,7 @@
         "residenceNotServed": "O Pix não é oferecido onde você mora.",
         "unavailableTitle": "Pix indisponível",
         "rejected": "A verificação não foi aceita. Fale com o suporte.",
-        "payResidence": "Os pagamentos Pix ainda não estão disponíveis onde você mora."
-    },
-    "avenia": {
+        "payResidence": "Os pagamentos Pix ainda não estão disponíveis onde você mora.",
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
         "setup": {
             "importUnavailable": "A Avenia ainda não consegue receber a sua verificação. Enviamos de novo todos os dias.",

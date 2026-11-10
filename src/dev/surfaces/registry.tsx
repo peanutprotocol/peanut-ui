@@ -20,11 +20,11 @@ import { CardResidenceAddressScreen } from '@/features/card/components/CardResid
  */
 
 import React, { useState } from 'react'
-import { AveniaPixQrDeposit } from '@/features/avenia/components/AveniaPixQrDeposit'
-import { AveniaWithdrawOutcome } from '@/features/avenia/components/AveniaWithdrawOutcome'
-import { AveniaWithdrawReview } from '@/features/avenia/components/AveniaWithdrawReview'
+import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
+import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
+import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
 import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
-import { aveniaDepositQueryKey } from '@/features/avenia/aveniaDepositCode'
+import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
@@ -288,7 +288,7 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
 function AveniaPixDepositSurface() {
     const queryClient = useQueryClient()
     useState(() =>
-        queryClient.setQueryData(aveniaDepositQueryKey('demo-pix-deposit'), {
+        queryClient.setQueryData(pixDepositQueryKey('demo-pix-deposit'), {
             provider: 'avenia',
             intentId: 'demo-pix-deposit',
             status: 'AWAITING_USER_ACTION',
@@ -304,7 +304,7 @@ function AveniaPixDepositSurface() {
     )
     return (
         <AppPageSurface>
-            <AveniaPixQrDeposit
+            <PixQrDeposit
                 intentId="demo-pix-deposit"
                 blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
                 onBack={noop}
@@ -335,7 +335,7 @@ function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }
     const display = unnamed ? { ...AVENIA_SURFACE_DISPLAY, bankName: null, holderName: null } : AVENIA_SURFACE_DISPLAY
     return (
         <AppPageSurface>
-            <AveniaWithdrawOutcome
+            <PixWithdrawOutcome
                 title="Withdraw"
                 intentId="fixture-avenia-withdrawal"
                 sent={{ phase: 'funded', display }}
@@ -347,14 +347,14 @@ function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }
 
 // the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
 function AveniaWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
-    const t = useTranslations('avenia.withdraw')
+    const t = useTranslations('pix.withdraw')
     const error =
         variant === 'quote-moved'
             ? { message: t('quoteMoved'), priority: 'attention' as const }
             : { message: `${t('errors.quoteExpired')} ${t('errors.afterInit')}` }
     return (
         <AppPageSurface>
-            <AveniaWithdrawReview
+            <PixWithdrawReview
                 title="Withdraw"
                 display={AVENIA_SURFACE_DISPLAY}
                 isLoading={false}

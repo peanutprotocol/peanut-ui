@@ -1,4 +1,4 @@
-import { toApiDecimal } from '@/features/avenia/avenia.utils'
+import { toApiDecimal } from '@/features/pix/pixFlow.utils'
 import type { PixQuote } from '@/services/pix'
 
 /**

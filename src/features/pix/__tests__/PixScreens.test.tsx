@@ -22,11 +22,11 @@ jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
 jest.mock('@/features/pix/components/PixUnavailableScreen', () => ({
     PixUnavailableScreen: () => <div>unavailable</div>,
 }))
-jest.mock('@/features/avenia/components/AveniaAddMoneyFlow', () => ({
-    AveniaAddMoneyFlow: ({ route }: { route: CapabilityRoute }) => <div>avenia deposit {route.state}</div>,
+jest.mock('@/features/pix/components/PixDepositFlow', () => ({
+    PixDepositFlow: ({ route }: { route: CapabilityRoute }) => <div>avenia deposit {route.state}</div>,
 }))
-jest.mock('@/features/avenia/components/AveniaWithdrawFlow', () => ({
-    AveniaWithdrawFlow: ({ route }: { route: CapabilityRoute }) => <div>avenia withdraw {route.state}</div>,
+jest.mock('@/features/pix/components/PixWithdrawFlow', () => ({
+    PixWithdrawFlow: ({ route }: { route: CapabilityRoute }) => <div>avenia withdraw {route.state}</div>,
 }))
 jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
     __esModule: true,

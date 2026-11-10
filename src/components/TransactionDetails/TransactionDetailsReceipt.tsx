@@ -20,9 +20,9 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
-import { AveniaNewKeyNotice } from '@/features/avenia/components/AveniaNewKeyNotice'
-import { AveniaPayCodeNotice } from '@/features/avenia/components/AveniaPayCodeNotice'
-import { useAveniaActionBadge } from '@/features/avenia/hooks/useAveniaActionBadge'
+import { PixNewKeyNotice } from '@/features/pix/components/PixNewKeyNotice'
+import { PixPayCodeNotice } from '@/features/pix/components/PixPayCodeNotice'
+import { usePixActionBadge } from '@/features/pix/usePixActionBadge'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -67,7 +67,7 @@ export const TransactionDetailsReceipt = ({
     isActive?: boolean
 }) => {
     const t = useAppTranslations('transaction')
-    const userActionBadge = useAveniaActionBadge(transaction)
+    const userActionBadge = usePixActionBadge(transaction)
     const tRequest = useAppTranslations('request')
 
     // Only the transaction details drawer passes setIsModalOpen: it keeps that
@@ -292,9 +292,9 @@ export const TransactionDetailsReceipt = ({
                 isPublic: the web receipt (the key-required notification's landing)
                 always renders as public, and the API sends the recovery to the owner
                 only, so the field itself is the gate. */}
-            <AveniaNewKeyNotice transaction={transaction} />
+            <PixNewKeyNotice transaction={transaction} />
             {/* A Pix deposit whose code can still be paid: the same field gate, owner only. */}
-            <AveniaPayCodeNotice transaction={transaction} />
+            <PixPayCodeNotice transaction={transaction} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

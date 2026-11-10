@@ -1369,7 +1369,7 @@
         "id": "94-f-avenia-pix-deposit",
         "flow": "Add money",
         "route": "/dev/surfaces?s=94-f-avenia-pix-deposit",
-        "source": "features/avenia/components/AveniaPixQrDeposit.tsx"
+        "source": "features/pix/components/PixQrDeposit.tsx"
     },
     {
         "id": "fixture-history-card-spend",
@@ -2107,7 +2107,7 @@
         "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189"
     },
     {
-        "id": "fixture-avenia-new-key-not-waiting",
+        "id": "fixture-pix-new-key-not-waiting",
         "flow": "Withdraw",
         "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal"
     },
@@ -2390,37 +2390,37 @@
         "id": "94-g-avenia-withdraw-on-its-way",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-g-avenia-withdraw-on-its-way",
-        "source": "features/avenia/components/AveniaWithdrawOutcome.tsx"
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
         "id": "94-h-avenia-withdraw-arrived-to",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-h-avenia-withdraw-arrived-to",
-        "source": "features/avenia/components/AveniaWithdrawOutcome.tsx"
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
         "id": "94-i-avenia-withdraw-sent-unnamed",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-i-avenia-withdraw-sent-unnamed",
-        "source": "features/avenia/components/AveniaWithdrawOutcome.tsx"
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
         "id": "94-j-avenia-review-quote-moved",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-j-avenia-review-quote-moved",
-        "source": "features/avenia/components/AveniaWithdrawReview.tsx"
+        "source": "features/pix/components/PixWithdrawReview.tsx"
     },
     {
         "id": "94-k-avenia-review-after-init",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-k-avenia-review-after-init",
-        "source": "features/avenia/components/AveniaWithdrawReview.tsx"
+        "source": "features/pix/components/PixWithdrawReview.tsx"
     },
     {
         "id": "94-l-avenia-withdraw-stuck",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-l-avenia-withdraw-stuck",
-        "source": "features/avenia/components/AveniaWithdrawOutcome.tsx"
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
         "id": "fixture-rewards",

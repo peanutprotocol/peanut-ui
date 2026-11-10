@@ -56,8 +56,8 @@ describe('PixUnavailableScreen', () => {
         ['residence_not_served', en.pix.residenceNotServed],
         ['rollout_closed', en.pix.rolloutClosed],
         ['method_not_served', en.pix.methodNotServed],
-        ['provider_unavailable', en.avenia.unavailable],
-        ['provider_paused', en.avenia.unavailable],
+        ['provider_unavailable', en.pix.unavailable],
+        ['provider_paused', en.pix.unavailable],
     ])('gives %s its own line', (code, line) => {
         renderWithIntl(<PixUnavailableScreen title="Withdraw" route={refused(code, 'From the API.')} />)
         expect(screen.getByText(line)).toBeInTheDocument()
