@@ -43,3 +43,20 @@ it('the shared transfer details say to send only from an account in the user’s
         "Send it only from a bank account in my name. Transfers from someone else's account can't be credited."
     )
 })
+
+it('shows the expired order without sharing the old account details', () => {
+    const onStartOver = jest.fn()
+    renderWithIntl(
+        <MantecaDepositShareDetails
+            depositDetails={deposit}
+            onBack={jest.fn()}
+            arsStatus="expired"
+            onStartOver={onStartOver}
+        />
+    )
+    expect(screen.getByText('Deposit order expired')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
+    expect(onStartOver).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Start a new deposit' }))
+    expect(onStartOver).toHaveBeenCalledTimes(1)
+})

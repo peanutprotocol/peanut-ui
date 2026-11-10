@@ -2249,6 +2249,10 @@
         "manteca": {
             "youreAdding": "Agregando",
             "sendOnlyOwnAccountTitle": "Envía solo desde una cuenta a tu nombre",
+            "transferDeadline": "Transfiere antes de las {time}.",
+            "transferExpiredTitle": "La orden de depósito venció",
+            "transferExpiredDescription": "¿Ya enviaste dinero? Contacta a soporte.",
+            "startNewDeposit": "Iniciar un nuevo depósito",
             "sendOnlyOwnAccountDescription": "No se admiten depósitos desde cuentas de terceros y los fondos se pueden perder.",
             "accountDetails": "Datos bancarios",
             "depositAddress": "Dirección de depósito",
@@ -2629,6 +2633,7 @@
             "sentViaLink": "Enviado por enlace",
             "transaction": "Transacción",
             "failedQrPayment": "Intento de pago QR fallido",
+            "depositOrderExpired": "La orden de depósito venció",
             "verificationDeposit": "Depósito de verificación"
         },
         "nameInSentence": {
@@ -3618,6 +3623,7 @@
             },
             "contact_support": {
                 "description": "No pudimos terminar tu verificación en la app. Escríbele a soporte y lo revisamos.",
+                "notDocumentDescription": "No pudimos reconocer el archivo como un documento de identidad. Escríbele a soporte para que lo revisemos.",
                 "supportMessage": "¡Hola! Mi verificación no pasó y no puedo intentarlo de nuevo en la app. ¿Pueden revisarlo?"
             },
             "not_available": {
@@ -4133,6 +4139,7 @@
                 "chooseAnother": "Elegir otro documento"
             },
             "activation": {
+                "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
                 "title": {
                     "bank": "Configura tus cuentas bancarias",
                     "card": "Configura tu Peanut Card",
@@ -4225,6 +4232,7 @@
             "bridge_tos_v2_required": "Acepta los Términos de Servicio actualizados del proveedor de transferencias bancarias para habilitar transferencias en euros y libras esterlinas.",
             "bridge_processing": "Nuestro socio de pagos está finalizando tu verificación. Esto suele tomar unos minutos.",
             "verification_blocked": "Problema de verificación: contacta a soporte para recibir ayuda.",
+            "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado.",
             "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si crees que es un error, escribe a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
@@ -5012,6 +5020,17 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Corregir código postal",
+            "description": "Ingresa el código postal de tu domicilio verificado.",
+            "country": "País: {country}",
+            "save": "Guardar",
+            "queuedTitle": "Configuración bancaria en espera",
+            "queuedBody": "Volveremos a intentar configurar tu cuenta bancaria.",
+            "temporary": "Algo salió mal. Inténtalo de nuevo.",
+            "unavailable": "Esta corrección no está disponible.",
+            "invalid": "Ingresa un código postal válido."
+        },
         "opened": {
             "heading": "Cuenta en {currency} lista",
             "body": "Tus propios datos bancarios, listos para tu próximo pago.",
@@ -5195,7 +5214,7 @@
             "providerReviewBody": "Tu identidad ya está verificada. Nuestro socio de pagos necesita más información tuya antes de abrir cuentas en {currency}.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contacta a soporte y te ayudamos a completarla.",
             "finishReviewCta": "Continuar",
-            "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento.",
+            "actFailed": "No pudimos abrir la verificación. Inténtalo de nuevo.",
             "topUpCta": "Agregar desde un banco",
             "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas.",
             "addressTitle": "Necesitamos el domicilio",

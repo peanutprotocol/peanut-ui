@@ -114,7 +114,10 @@ export function identityRejection({
         case 'not_available':
             return {
                 action,
-                descriptionKey: `kyc.rejectActions.${action}.description`,
+                descriptionKey:
+                    action === 'contact_support' && wanted === 'retry_document' && known.includes('NOT_DOCUMENT')
+                        ? 'kyc.rejectActions.contact_support.notDocumentDescription'
+                        : `kyc.rejectActions.${action}.description`,
                 labels: explained,
                 support: SUPPORT(reason?.code ?? IDENTITY_REJECTED_CODE),
             }

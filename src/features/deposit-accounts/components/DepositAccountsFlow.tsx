@@ -1,6 +1,6 @@
 'use client'
 
-import type { GateState } from '@/utils/capability-gate'
+import { getGateReasonCode, type GateState } from '@/utils/capability-gate'
 import { isSameRoute } from '@/constants/routes'
 import { readReturnTo } from '@/utils/return-to.utils'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
@@ -336,19 +336,23 @@ export function DepositAccountsFlow({
     // residence notice keeps its words (the UK rule has its own).
     const residenceRestricted =
         unavailable?.[corridor]?.cause === 'residence-restricted' && rawGateNotice?.action !== 'residence-restricted'
-    const gateNotice = addressStep
-        ? { kind: gate.kind, message: null, action: ADDRESS_STEP_ACTIONS[addressStep] }
-        : residenceRestricted
-          ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
-          : withheldAction
-            ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
-            : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
-              ? { ...rawGateNotice, action: 'provider-review' as const }
-              : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
-                ? { ...rawGateNotice, action: 'support' as const }
-                : rawGateNotice?.action === 'finish-review' && !canFinishReview
-                  ? { ...rawGateNotice, action: 'finish-review-support' as const }
-                  : rawGateNotice
+    const postalCorrection = rail.provider === 'bridge' && getGateReasonCode(gate) === 'invalid_bank_postal_code'
+    const gateNotice =
+        postalCorrection && rawGateNotice
+            ? rawGateNotice
+            : addressStep
+              ? { kind: gate.kind, message: null, action: ADDRESS_STEP_ACTIONS[addressStep] }
+              : residenceRestricted
+                ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
+                : withheldAction
+                  ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
+                  : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
+                    ? { ...rawGateNotice, action: 'provider-review' as const }
+                    : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+                      ? { ...rawGateNotice, action: 'support' as const }
+                      : rawGateNotice?.action === 'finish-review' && !canFinishReview
+                        ? { ...rawGateNotice, action: 'finish-review-support' as const }
+                        : rawGateNotice
     // The gate belongs to this corridor only while the user cannot open it. The
     // drawer stays mounted after it closes (`?step=list`, same corridor), so
     // it slides out instead of vanishing.
@@ -388,7 +392,7 @@ export function DepositAccountsFlow({
                     // A corridor the backend withheld for support is not
                     // something the capability gate can resolve: its own answer
                     // here is a verification run that cannot lift the block.
-                    if (withheldAction === 'support') {
+                    if (withheldAction === 'support' && !postalCorrection) {
                         return afterGateCloses(() => onContactSupport(corridor, 'blocked'))
                     }
                     // A block from the backend's own terms has nothing for the

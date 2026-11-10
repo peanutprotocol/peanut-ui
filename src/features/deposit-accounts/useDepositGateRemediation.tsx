@@ -12,6 +12,7 @@ import { useGateActions } from '@/hooks/useGateActions'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
+import { USER } from '@/constants/query.consts'
 import { useOptionalAuth } from '@/context/authContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
@@ -21,6 +22,7 @@ import { trackAddressStepSubmitted } from './analytics'
 import { DEPOSIT_RAILS, railIdFor } from './rails'
 import type { DepositCorridor } from './types'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from './useDepositAccounts'
+import { BridgePostalCorrectionModal } from './components/BridgePostalCorrectionModal'
 import { AddressLaunchModal } from './components/AddressLaunchModal'
 
 /**
@@ -57,9 +59,10 @@ export function useDepositGateRemediation(): {
         },
     })
     const { gateFor } = useCapabilities()
-    const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
+    const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const gateActions = useGateActions(sumsubFlow)
     const bridgeProviderId = useBridgeProviderId()
+    const [postalGate, setPostalGate] = useState<GateState>()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
     // The corridor the verification is for. It is what the backend opens the
@@ -80,6 +83,7 @@ export function useDepositGateRemediation(): {
     useEffect(() => {
         addressPending.current = false
         setAddressLaunch(undefined)
+        setPostalGate(undefined)
         setAddressStarting(false)
         setAddressLaunchError(null)
         return () => {
@@ -132,6 +136,14 @@ export function useDepositGateRemediation(): {
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)
+        if (
+            corridor &&
+            DEPOSIT_RAILS[corridor].provider === 'bridge' &&
+            getGateReasonCode(gate) === 'invalid_bank_postal_code'
+        ) {
+            setPostalGate(gate)
+            return
+        }
         // The drawer already explained the address step: open it, with no second screen in front.
         if (isAddressStepGate(gate)) {
             void startAddress(gate, corridor)
@@ -146,7 +158,7 @@ export function useDepositGateRemediation(): {
                 // nothing for the user to do; the banner offers no button either
                 return
             case 'accept-tos':
-                guardWithTos()
+                openTos()
                 return
             case 'provide-email':
                 setShowProvideEmail(true)
@@ -171,6 +183,18 @@ export function useDepositGateRemediation(): {
         (addressStarting || !!addressError)
     const modals = (
         <>
+            <BridgePostalCorrectionModal
+                visible={!!postalGate}
+                onClose={() => setPostalGate(undefined)}
+                onSupport={() => {
+                    if (postalGate) gateActions.contactSupport(postalGate)
+                    setPostalGate(undefined)
+                }}
+                onQueued={() => {
+                    void queryClient.invalidateQueries({ queryKey: [USER] })
+                    void queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
+                }}
+            />
             <AddressLaunchModal
                 visible={addressVisible}
                 onClose={closeAddressLaunch}
@@ -216,7 +240,12 @@ export function useDepositGateRemediation(): {
                 }
                 verifyEntry={{ corridor: kycCorridor }}
             />
-            <BridgeTosStep visible={showBridgeTos} onComplete={hideTos} onSkip={hideTos} />
+            <BridgeTosStep
+                visible={showBridgeTos}
+                country={kycCorridor ? DEPOSIT_RAILS[kycCorridor].flagIso2.toUpperCase() : undefined}
+                onComplete={hideTos}
+                onSkip={hideTos}
+            />
             <ProvideEmailStep
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}

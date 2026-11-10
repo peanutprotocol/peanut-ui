@@ -6,6 +6,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
+import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
@@ -116,6 +117,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const bankEntryFor = useBankEntryFor()
     const residenceGatedCountry =
         selectedCountry?.id === 'AR' || selectedCountry?.id === 'BR' ? (selectedCountry.id as 'AR' | 'BR') : null
+    const arsDeposit = residenceGatedCountry === 'AR' && step === 'depositDetails' ? depositDetails : undefined
+    const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
+        void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+    })
     const localAccount = residenceGatedCountry ? bankEntryFor(residenceGatedCountry === 'AR' ? 'ars' : 'brl') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
     const refusal = refusalOf(localAccount ?? undefined)
@@ -513,6 +518,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
+                arsStatus={arsDeposit ? arsDepositStatus : undefined}
+                onStartOver={() => {
+                    setDepositDetails(undefined)
+                    void setUrlState({ step: 'inputAmount' })
+                }}
                 // Settled screen: the deposit is already created. Leave the flow the
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).

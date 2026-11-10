@@ -2249,6 +2249,10 @@
         "manteca": {
             "youreAdding": "Adding",
             "sendOnlyOwnAccountTitle": "Send only from an account in your name",
+            "transferDeadline": "Transfer by {time}.",
+            "transferExpiredTitle": "Deposit order expired",
+            "transferExpiredDescription": "Already sent money? Contact support.",
+            "startNewDeposit": "Start a new deposit",
             "sendOnlyOwnAccountDescription": "Deposits from third-party accounts are not supported and funds may be lost.",
             "accountDetails": "Bank details",
             "depositAddress": "Deposit address",
@@ -2629,6 +2633,7 @@
             "sentViaLink": "Sent via link",
             "transaction": "Transaction",
             "failedQrPayment": "Failed QR payment attempt",
+            "depositOrderExpired": "Deposit order expired",
             "verificationDeposit": "Verification deposit"
         },
         "nameInSentence": {
@@ -3618,6 +3623,7 @@
             },
             "contact_support": {
                 "description": "We couldn’t finish your ID check in the app. Message support and we’ll take a look.",
+                "notDocumentDescription": "We couldn’t recognize the upload as an identity document. Message support so we can review it.",
                 "supportMessage": "Hi! My ID check didn’t go through and I can’t try again in the app. Can you take a look?"
             },
             "not_available": {
@@ -4133,6 +4139,7 @@
                 "chooseAnother": "Choose another document"
             },
             "activation": {
+                "settingUpAccount": "We’re setting up your {currency} account",
                 "title": {
                     "bank": "Set up bank accounts",
                     "card": "Set up your Peanut Card",
@@ -4225,6 +4232,7 @@
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
+            "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address.",
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
@@ -5012,6 +5020,17 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Correct postal code",
+            "description": "Enter the postal code for your verified address.",
+            "country": "Country: {country}",
+            "save": "Save",
+            "queuedTitle": "Bank setup queued",
+            "queuedBody": "We’ll retry your bank setup.",
+            "temporary": "Something went wrong. Try again.",
+            "unavailable": "This correction is unavailable.",
+            "invalid": "Enter a valid postal code."
+        },
         "opened": {
             "heading": "{currency} account ready",
             "body": "Your own bank details, ready for your next payment.",
@@ -5195,7 +5214,7 @@
             "providerReviewBody": "Your identity is verified. Our payment partner needs more information from you before it can open {currency} accounts.",
             "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
             "finishReviewCta": "Continue",
-            "actFailed": "We could not open the check. Try again in a moment.",
+            "actFailed": "Couldn’t open verification. Try again.",
             "topUpCta": "Add money from a bank",
             "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one.",
             "addressTitle": "We need a home address",

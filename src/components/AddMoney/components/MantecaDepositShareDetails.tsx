@@ -12,6 +12,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { Icon } from '@/components/Global/Icons/Icon'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import {
     MANTECA_ARG_DEPOSIT_CUIT,
@@ -19,7 +20,7 @@ import {
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -27,10 +28,14 @@ import { PROVIDERS } from '@/constants/providers.consts'
 const MantecaDepositShareDetails = ({
     depositDetails,
     currencyAmount,
+    arsStatus,
+    onStartOver,
     onBack,
 }: {
     depositDetails: MantecaDepositResponseData
     currencyAmount?: string | undefined
+    arsStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
+    onStartOver?: () => void
     // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
     onBack: () => void
 }) => {
@@ -39,6 +44,7 @@ const MantecaDepositShareDetails = ({
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
     const tProvider = useTranslations('provider')
+    const locale = useLocale()
     const currentCountryName = params.country as string
 
     const currentCountryDetails = useMemo(() => {
@@ -99,6 +105,22 @@ const MantecaDepositShareDetails = ({
         return textParts.join('\n')
     }
 
+    if (arsStatus === 'expired')
+        return (
+            <div className="flex h-full w-full flex-col gap-6">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <Callout priority="attention" title={t('manteca.transferExpiredTitle')}>
+                    {t('manteca.transferExpiredDescription')}
+                </Callout>
+                {onStartOver && (
+                    <Button variant="primary" shadowSize="4" className="w-full" onClick={onStartOver}>
+                        {t('manteca.startNewDeposit')}
+                    </Button>
+                )}
+            </div>
+        )
+
+    const transferDeadline = arsStatus === 'pending' ? Date.parse(depositDetails.stages?.['1']?.expireAt ?? '') : NaN
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -129,6 +151,16 @@ const MantecaDepositShareDetails = ({
                 <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
                     {t('manteca.sendOnlyOwnAccountDescription')}
                 </Callout>
+                {Number.isFinite(transferDeadline) && (
+                    <Callout priority="attention">
+                        {t('manteca.transferDeadline', {
+                            time: new Date(transferDeadline).toLocaleTimeString(locale, {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                            }),
+                        })}
+                    </Callout>
+                )}
                 <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
                 <Card className="space-y-0 rounded-sm px-4">
                     {depositAddress && (

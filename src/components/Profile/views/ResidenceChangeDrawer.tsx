@@ -15,7 +15,7 @@ import { updateUserById } from '@/app/actions/users'
 import posthog from 'posthog-js'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
 
@@ -72,6 +72,7 @@ const ResidenceChangeDrawer = ({
     const control = useKycControl('change-residence')
     const [selected, setSelected] = useState<string>(pending ?? declared ?? verified ?? '')
     const [isSaving, setIsSaving] = useState(false)
+    const saving = useRef(false)
     const [error, setError] = useState<string | null>(null)
 
     // The parent keeps this modal mounted and toggles `visible`, so the
@@ -99,7 +100,8 @@ const ResidenceChangeDrawer = ({
     )
 
     const save = async (reverifyAfter: boolean) => {
-        if (!userId || !selected || isSaving) return false
+        if (!userId || !selected || saving.current) return false
+        saving.current = true
         setIsSaving(true)
         setError(null)
         try {
@@ -147,7 +149,11 @@ const ResidenceChangeDrawer = ({
             onClose()
             if (reverifyAfter) onReverify(selected)
             return true
+        } catch {
+            setError(tCommon('somethingWentWrong'))
+            return false
         } finally {
+            saving.current = false
             setIsSaving(false)
         }
     }
@@ -156,7 +162,7 @@ const ResidenceChangeDrawer = ({
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (isOpen) return
+                if (isOpen || saving.current) return
                 control.track('change_residence', 'dismiss')
                 onClose()
             }}
@@ -179,6 +185,7 @@ const ResidenceChangeDrawer = ({
                             placeholder={t('countryPlaceholder')}
                             value={selected || undefined}
                             onValueChange={(country) => {
+                                if (saving.current) return
                                 control.track('residence_country', 'select', country)
                                 setSelected(country)
                             }}

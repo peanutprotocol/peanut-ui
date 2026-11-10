@@ -606,6 +606,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             />
             <BridgeTosStep
                 visible={showBridgeTos}
+                country={currentCountry?.id}
                 onComplete={() => {
                     hideTos()
                     const replay = pendingAfterTosRef.current

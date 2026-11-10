@@ -193,7 +193,11 @@ async function main() {
             const clicks = screen.clicks.map(captureText)
             const clickTestIds = screen.clickTestIds ?? []
             const actions = screen.actions?.map((action) =>
-                'click' in action ? { ...action, click: captureText(action.click) } : action
+                'click' in action
+                    ? { click: captureText(action.click) }
+                    : 'tap' in action
+                      ? { tap: captureText(action.tap) }
+                      : action
             )
             if (
                 (screen.requiresSource && !existsSync(join(source, screen.requiresSource))) ||
@@ -506,6 +510,7 @@ async function main() {
                 for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
                     else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
+                    else if ('tap' in action) await page.getByText(action.tap, { exact: true }).tap()
                     else {
                         await page.locator(action.fill.selector).fill(action.fill.value)
                         // Pause like a person before the next tap. The app writes a typed value to the
