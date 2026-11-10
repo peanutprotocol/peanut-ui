@@ -315,433 +315,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/avenia/deposit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create a Pix deposit (BRL → USDC)
-         * @description Quotes BRL/PIX → USDC on Base on the user’s Avenia sub-account and opens a ticket that delivers to their Rhino inflow address, which bridges to their wallet. Returns the dynamic Pix code; it lives 10 minutes.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @description Reais, at most two decimals */
-                        amountBrl: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "amountBrl": "100.00",
-                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63041D3A",
-                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
-                         *       "fixedFeeBrl": "0.75",
-                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-                         *       "payerCpfMasked": "123.***.***-09",
-                         *       "usdcAmount": "17.920175"
-                         *     }
-                         */
-                        "application/json": {
-                            amountBrl: string;
-                            brCode: string;
-                            expiresAt: string | null;
-                            /** @description Avenia’s flat fee in reais, shown as its own line */
-                            fixedFeeBrl: string;
-                            intentId: string;
-                            payerCpfMasked: string;
-                            /** @description USDC the wallet receives: Avenia’s output less Rhino’s bridge fee, by Rhino’s quote */
-                            usdcAmount: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/deposit/eligibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Pix deposit rules for the amount step
-         * @description The minimum amount and the banks Avenia refuses a Pix deposit from (its pay-in deny-list).
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "blockedBanks": [
-                         *         {
-                         *           "ispb": "00360305",
-                         *           "name": "Caixa Economica Federal"
-                         *         }
-                         *       ],
-                         *       "minAmountBrl": "20"
-                         *     }
-                         */
-                        "application/json": {
-                            blockedBanks: {
-                                ispb: string;
-                                name: string | null;
-                            }[];
-                            minAmountBrl: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/deposit/{intentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Pix deposit: its code while payable, then its status
-         * @description Owner only. Read-only: the webhook and the poller move the deposit. After a reload the app draws the code again from here while `codePayable` is true, and the outcome after that. The deposit route in capabilities names the payable deposit (`payableDepositIntentId`).
-         */
-        get: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path: {
-                    intentId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            amountBrl: string | null;
-                            /** @description The dynamic Pix code (copia e cola) */
-                            brCode?: string;
-                            /** @description The code can still be paid: the deposit waits for the payer, the ticket is UNPAID and before expiresAt. brCode and payerCpfMasked are sent only then. */
-                            codePayable: boolean;
-                            expiresAt: string | null;
-                            /** @description Avenia’s flat fee in reais, when the quote’s fee lines are on file */
-                            fixedFeeBrl?: string;
-                            intentId: string;
-                            /** @description The CPF the Pix must come from */
-                            payerCpfMasked?: string;
-                            status: string;
-                            ticketStatus: string | null;
-                            /** @description USDC the wallet receives: Avenia’s output less Rhino’s bridge fee, by Rhino’s quote at the deposit */
-                            usdcAmount: string | null;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/pix-key-info": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Resolve a Pix key to its holder and bank
-         * @description DICT read charged to the user’s own sub-account: holder, masked tax id, bank, whether the key looks like the user’s own (the masked CPF and the holder name match; DICT shows only part of the CPF, and Avenia checks the full one at payout) and whether its bank is blocked. Cached 10 minutes per user and key; one lookup per second per user. Open whatever the route says, like recovery-key: it moves no money.
-         */
-        get: {
-            parameters: {
-                query: {
-                    key: string;
-                };
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "bankName": "Nu Pagamentos S.A.",
-                         *       "blocked": false,
-                         *       "holderName": "Ana Souza",
-                         *       "holderTaxIdMasked": "***.456.789-**",
-                         *       "ispb": "18236120",
-                         *       "ownAccount": true
-                         *     }
-                         */
-                        "application/json": {
-                            bankName: string | null;
-                            blocked: boolean;
-                            holderName: string | null;
-                            holderTaxIdMasked: string | null;
-                            ispb: string | null;
-                            /** @description Precheck: the masked CPF and holder name match the user. Avenia refuses a payout to another CPF. */
-                            ownAccount: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/avenia/webhook": {
         parameters: {
             query?: never;
@@ -816,696 +389,6 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/withdraw/init": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start a Pix withdrawal
-         * @description Opens the Avenia ticket (10 minutes), then quotes and commits Rhino in receive mode for exactly its USDC. The app approves the USDC to the bridge contract and calls depositWithId, then reports the hash to /avenia/withdraw/:intentId/funded. Avenia matches a deposit by wallet and exact amount, so every unpaid ticket keeps a USDC amount of its own: while an earlier withdrawal is unaccounted for, the ticket can be up to 0.0001 USDC above the asked amount (the display shows the real one).
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        amountBrl?: string;
-                        amountUsd?: string;
-                        pixKey: string;
-                        /** @description USDC to leave the wallet, Rhino’s fee included ("Use balance"). Send one of the three amounts. */
-                        spendUsd?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "display": {
-                         *         "amountBrl": "106.75",
-                         *         "arrivalEstimateSeconds": 60,
-                         *         "bankName": "Nu Pagamentos S.A.",
-                         *         "fixedFeeBrl": "0.75",
-                         *         "holderName": "Ana Souza",
-                         *         "ownAccount": true,
-                         *         "pixKey": "12345678909",
-                         *         "provider": "Avenia",
-                         *         "rate": "5.369543",
-                         *         "withdrawUsd": "20.020325"
-                         *       },
-                         *       "intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
-                         *       "sign": {
-                         *         "commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
-                         *         "contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
-                         *         "kind": "deposit-with-id",
-                         *         "payAmount": "20.020325",
-                         *         "payAmountUnits": "20020325",
-                         *         "quoteExpiresAt": "2026-11-04T12:03:00.000Z",
-                         *         "ticketExpiresAt": "2026-11-04T12:10:00.000Z",
-                         *         "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
-                         *       }
-                         *     }
-                         */
-                        "application/json": {
-                            display: {
-                                /** @description The headline: reais credited to the account */
-                                amountBrl: string;
-                                /** @description About how long from the signature to the Pix paid */
-                                arrivalEstimateSeconds: number;
-                                bankName: string | null;
-                                /** @description Avenia’s flat fee in reais, shown as its own line */
-                                fixedFeeBrl: string;
-                                holderName: string | null;
-                                /** @enum {boolean} */
-                                ownAccount: true;
-                                pixKey: string;
-                                /** @enum {string} */
-                                provider: "Avenia";
-                                /** @description BRL per USDC that leaves the wallet, with Avenia’s percentage fees and Rhino’s fee inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
-                                rate: string;
-                                /** @description USDC that leaves the wallet */
-                                withdrawUsd: string;
-                            };
-                            intentId: string;
-                            sign: {
-                                commitmentId: string;
-                                contractAddress: string;
-                                /** @enum {string} */
-                                kind: "deposit-with-id";
-                                payAmount: string;
-                                payAmountUnits: string;
-                                quoteExpiresAt: string;
-                                ticketExpiresAt: string;
-                                tokenAddress: string;
-                            };
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/withdraw/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Preview a Pix withdrawal
-         * @description Own-key check, monthly limit, Avenia’s and Rhino’s quotes. Opens no ticket.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        amountBrl?: string;
-                        amountUsd?: string;
-                        pixKey: string;
-                        /** @description USDC to leave the wallet, Rhino’s fee included ("Use balance"). Send one of the three amounts. */
-                        spendUsd?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "amountBrl": "106.75",
-                         *       "arrivalEstimateSeconds": 60,
-                         *       "bankName": "Nu Pagamentos S.A.",
-                         *       "fixedFeeBrl": "0.75",
-                         *       "holderName": "Ana Souza",
-                         *       "ownAccount": true,
-                         *       "pixKey": "12345678909",
-                         *       "provider": "Avenia",
-                         *       "rate": "5.369543",
-                         *       "withdrawUsd": "20.020325"
-                         *     }
-                         */
-                        "application/json": {
-                            /** @description The headline: reais credited to the account */
-                            amountBrl: string;
-                            /** @description About how long from the signature to the Pix paid */
-                            arrivalEstimateSeconds: number;
-                            bankName: string | null;
-                            /** @description Avenia’s flat fee in reais, shown as its own line */
-                            fixedFeeBrl: string;
-                            holderName: string | null;
-                            /** @enum {boolean} */
-                            ownAccount: true;
-                            pixKey: string;
-                            /** @enum {string} */
-                            provider: "Avenia";
-                            /** @description BRL per USDC that leaves the wallet, with Avenia’s percentage fees and Rhino’s fee inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
-                            rate: string;
-                            /** @description USDC that leaves the wallet */
-                            withdrawUsd: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/withdraw/{intentId}/funded": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Report the withdrawal’s deposit transaction
-         * @description Checks the receipt funds this withdrawal’s Rhino commitment from the user’s wallet, for exactly the pay amount.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path: {
-                    intentId: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        txHash: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "status": "PROCESSING"
-                         *     }
-                         */
-                        "application/json": {
-                            status: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/avenia/withdraw/{intentId}/recovery-key": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Name another own Pix key for a refused withdrawal
-         * @description When a payout was refused for its key or account, the money waits on the Avenia balance. The new key must be the user’s own; the recovery queue then pays it. Open whatever the route says (a closed rollout gate, a paused provider), since it only returns the user’s own money.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                };
-                path: {
-                    intentId: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        pixKey: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "accepted": true
-                         *     }
-                         */
-                        "application/json": {
-                            /** @enum {boolean} */
-                            accepted: true;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                422: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
                             error: string;
                         };
                     };
@@ -7206,18 +6089,18 @@ export interface paths {
                     content: {
                         "application/json": {
                             extraData?: {
-                                /** @description An Avenia Pix deposit, on an Avenia ONRAMP only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /avenia/deposit/:intentId). */
-                                aveniaDeposit?: {
+                                /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
+                                intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
+                                pixDeposit?: {
                                     codePayable: boolean;
                                     expiresAt: string | null;
                                 };
-                                aveniaRecovery?: {
+                                pixRecovery?: {
                                     failureCode: string | null;
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "awaiting-key" | "in-progress" | "done";
                                 } | null;
-                                /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
-                                intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
                             } & {
                                 [key: string]: unknown;
                             };
@@ -8848,6 +7731,595 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pix/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Pix deposit (BRL → USDC)
+         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "100.00",
+                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+                         *       "codePayable": true,
+                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+                         *       "payerCpfMasked": "123.***.***-09",
+                         *       "pixReceived": false,
+                         *       "provider": "avenia",
+                         *       "status": "AWAITING_USER_ACTION",
+                         *       "usdcAmount": "17.920175"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            brCode?: string;
+                            /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
+                            expiresAt: string | null;
+                            /** @description The flat fee in reais, where the provider charges one */
+                            fixedFeeBrl?: string;
+                            intentId: string;
+                            /** @description The CPF the Pix must come from, masked, where the provider requires one */
+                            payerCpfMasked?: string;
+                            /** @description The provider received the Pix; the USDC is on its way to the wallet */
+                            pixReceived: boolean;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                            /** @description USDC the wallet receives, after every fee */
+                            usdcAmount: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pix deposit rules for the amount step
+         * @description The least amount and the banks the user’s Pix provider refuses a deposit from, for the provider the deposit route names (capabilities.routes).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "blockedBanks": [
+                         *         {
+                         *           "ispb": "00360305",
+                         *           "name": "Caixa Economica Federal"
+                         *         }
+                         *       ],
+                         *       "minAmountBrl": "20"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description Banks the provider refuses a Pix from: the app tells the user before they pay */
+                            blockedBanks: {
+                                ispb: string;
+                                name: string | null;
+                            }[];
+                            minAmountBrl: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit/{intentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pix deposit: its code while payable, then its status
+         * @description Owner only. Read-only: the provider’s webhook and poller move the deposit. After a reload the app draws the code again from here while codePayable is true, and the outcome after that. The deposit route in capabilities names the payable deposit (payableDepositIntentId).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "100.00",
+                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+                         *       "codePayable": true,
+                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+                         *       "payerCpfMasked": "123.***.***-09",
+                         *       "pixReceived": false,
+                         *       "provider": "avenia",
+                         *       "status": "AWAITING_USER_ACTION",
+                         *       "usdcAmount": "17.920175"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            brCode?: string;
+                            /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
+                            expiresAt: string | null;
+                            /** @description The flat fee in reais, where the provider charges one */
+                            fixedFeeBrl?: string;
+                            intentId: string;
+                            /** @description The CPF the Pix must come from, masked, where the provider requires one */
+                            payerCpfMasked?: string;
+                            /** @description The provider received the Pix; the USDC is on its way to the wallet */
+                            pixReceived: boolean;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                            /** @description USDC the wallet receives, after every fee */
+                            usdcAmount: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve a Pix key to its holder and bank
+         * @description A directory read through the provider the withdrawal route names (or, while that route is closed, the provider that serves the user): holder, masked tax id, bank, whether the key looks like the user’s own, and whether the provider pays it. Moves no money. Rate limited per user.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pixKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "bankName": "Nu Pagamentos S.A.",
+                         *       "blocked": false,
+                         *       "holderName": "Ana Souza",
+                         *       "holderTaxIdMasked": "***.456.789-**",
+                         *       "ispb": "18236120",
+                         *       "ownAccount": true,
+                         *       "provider": "avenia"
+                         *     }
+                         */
+                        "application/json": {
+                            bankName: string | null;
+                            /** @description The provider will not pay this key’s bank or holder */
+                            blocked: boolean;
+                            holderName: string | null;
+                            holderTaxIdMasked: string | null;
+                            ispb: string | null;
+                            /** @description Precheck: the holder looks like the user. Null when the provider cannot tell. */
+                            ownAccount: boolean | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pix/quote": {
         parameters: {
             query?: never;
@@ -8987,6 +8459,913 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a Pix withdrawal
+         * @description Opens the withdrawal with the provider the withdrawal route names and returns what the wallet signs (sign.kind says how). Send one of amountUsd, amountBrl or spendUsd.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl?: string;
+                        /** @description USDC, at most six decimals */
+                        amountUsd?: string;
+                        pixKey: string;
+                        /** @description USDC to leave the wallet, every fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "display": {
+                         *         "amountBrl": "106.75",
+                         *         "arrivalEstimateSeconds": 60,
+                         *         "bankName": "Nu Pagamentos S.A.",
+                         *         "fixedFeeBrl": "0.75",
+                         *         "holderName": "Ana Souza",
+                         *         "ownAccount": true,
+                         *         "pixKey": "12345678909",
+                         *         "provider": "Avenia",
+                         *         "rate": "5.369543",
+                         *         "withdrawUsd": "20.020325"
+                         *       },
+                         *       "intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
+                         *       "provider": "avenia",
+                         *       "sign": {
+                         *         "commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+                         *         "contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+                         *         "kind": "deposit-with-id",
+                         *         "payAmount": "20.020325",
+                         *         "payAmountUnits": "20020325",
+                         *         "quoteExpiresAt": "2026-11-04T12:03:00.000Z",
+                         *         "ticketExpiresAt": "2026-11-04T12:10:00.000Z",
+                         *         "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            display: {
+                                /** @description The headline: reais credited to the account */
+                                amountBrl: string;
+                                /** @description About how long from the signature to the Pix paid */
+                                arrivalEstimateSeconds: number;
+                                bankName: string | null;
+                                /** @description The flat fee in reais, shown as its own line */
+                                fixedFeeBrl: string;
+                                holderName: string | null;
+                                ownAccount: boolean | null;
+                                pixKey: string;
+                                /** @description The payments partner’s name, for the review’s "processed by" line */
+                                provider: string;
+                                /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                                rate: string;
+                                /** @description USDC that leaves the wallet */
+                                withdrawUsd: string;
+                            };
+                            /** @description The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit */
+                            intentId: string | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description How the wallet funds the withdrawal */
+                            sign: {
+                                commitmentId: string;
+                                contractAddress: string;
+                                /** @enum {string} */
+                                kind: "deposit-with-id";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                quoteExpiresAt: string;
+                                ticketExpiresAt: string;
+                                tokenAddress: string;
+                            } | {
+                                depositAddress: string;
+                                /** @enum {string} */
+                                kind: "transfer-then-submit";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                priceLockCode: string;
+                                quoteExpiresAt: string;
+                                tokenAddress: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review a Pix withdrawal
+         * @description Checks the key with the provider the withdrawal route names and quotes the amount. Opens nothing. Send one of amountUsd, amountBrl or spendUsd.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl?: string;
+                        /** @description USDC, at most six decimals */
+                        amountUsd?: string;
+                        pixKey: string;
+                        /** @description USDC to leave the wallet, every fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "106.75",
+                         *       "arrivalEstimateSeconds": 60,
+                         *       "bankName": "Nu Pagamentos S.A.",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "holderName": "Ana Souza",
+                         *       "ownAccount": true,
+                         *       "pixKey": "12345678909",
+                         *       "provider": "Avenia",
+                         *       "rate": "5.369543",
+                         *       "withdrawUsd": "20.020325"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description The headline: reais credited to the account */
+                            amountBrl: string;
+                            /** @description About how long from the signature to the Pix paid */
+                            arrivalEstimateSeconds: number;
+                            bankName: string | null;
+                            /** @description The flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            holderName: string | null;
+                            ownAccount: boolean | null;
+                            pixKey: string;
+                            /** @description The payments partner’s name, for the review’s "processed by" line */
+                            provider: string;
+                            /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                            rate: string;
+                            /** @description USDC that leaves the wallet */
+                            withdrawUsd: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a transfer-then-submit withdrawal’s signed funding
+         * @description For sign.kind transfer-then-submit: the API opens the payout order for the locked price first, then broadcasts the signed transfer, so no money leaves for an order that could not open.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The sign step’s payAmount */
+                        amountUsd: string;
+                        funding: {
+                            chainId: string;
+                            entryPointAddress: string;
+                            /** @enum {string} */
+                            kind: "userOp";
+                            /** @description The mixed strategy: the UserOp also withdraws card collateral */
+                            rainPreparationId?: string;
+                            signedUserOp: {
+                                callData: string;
+                                callGasLimit: unknown;
+                                factory?: string;
+                                factoryData?: string;
+                                maxFeePerGas: unknown;
+                                maxPriorityFeePerGas: unknown;
+                                nonce: unknown;
+                                paymaster?: string;
+                                paymasterData?: string;
+                                paymasterPostOpGasLimit: unknown;
+                                paymasterVerificationGasLimit: unknown;
+                                preVerificationGas: unknown;
+                                sender: string;
+                                signature: string;
+                                verificationGasLimit: unknown;
+                            };
+                        } | {
+                            chainId: string;
+                            /** @enum {string} */
+                            kind: "rainWithdrawal";
+                            signedRainWithdrawal: {
+                                adminNonce: string;
+                                adminSalt: string;
+                                adminSignature: string;
+                                amount: string;
+                                directTransfer: boolean;
+                                executorSalt: string;
+                                executorSignature: string;
+                                expiresAt: number;
+                                /** Format: uuid */
+                                preparationId: string;
+                                preparedCoordinatorAddress?: string;
+                                recipientAddress: string;
+                            };
+                        };
+                        pixKey: string;
+                        /** @description The sign step’s priceLockCode */
+                        priceLockCode: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "intentId": "3c7a9e2b-5d14-4f8a-9b6c-0e2d4f6a8b1c",
+                         *       "provider": "manteca",
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            intentId: string | null;
+                            provider: string;
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/{intentId}/funded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a deposit-with-id withdrawal’s funding
+         * @description For sign.kind deposit-with-id: the wallet broadcast the deposit. The API checks the receipt funds exactly this withdrawal; the provider’s events move it after that. Idempotent.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        txHash: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/{intentId}/recovery-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Name a new own Pix key for a refused payout
+         * @description For a withdrawal whose payout was refused for its key: the provider pays the reais to this key instead. Own key only. Open whatever the route says: it returns the user’s own money.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pixKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "accepted": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            accepted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -14392,11 +14771,18 @@ export interface paths {
                                         };
                                         state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                     }[];
+                                    /** @description The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote. */
+                                    limits?: {
+                                        /** @description The currency of the amount: the method’s, e.g. BRL */
+                                        currency: string;
+                                        /** @description The least amount the provider takes for this operation */
+                                        minAmount: string;
+                                    };
                                     /** @description Rail method code, e.g. PIX_BR */
                                     method: string;
                                     /** @description pay: a QR payment on the method */
                                     operation: "deposit" | "withdraw" | "pay";
-                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another. */
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
                                     payableDepositIntentId?: string;
                                     /** @description The provider the money routes use. Null when every candidate is refused. */
                                     provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
@@ -17843,11 +18229,18 @@ export interface paths {
                                         };
                                         state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                     }[];
+                                    /** @description The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote. */
+                                    limits?: {
+                                        /** @description The currency of the amount: the method’s, e.g. BRL */
+                                        currency: string;
+                                        /** @description The least amount the provider takes for this operation */
+                                        minAmount: string;
+                                    };
                                     /** @description Rail method code, e.g. PIX_BR */
                                     method: string;
                                     /** @description pay: a QR payment on the method */
                                     operation: "deposit" | "withdraw" | "pay";
-                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another. */
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
                                     payableDepositIntentId?: string;
                                     /** @description The provider the money routes use. Null when every candidate is refused. */
                                     provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
