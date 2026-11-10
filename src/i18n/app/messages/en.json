@@ -3774,7 +3774,8 @@
             "later": "Do this later",
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
             "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
-            "unavailable": "{feature}: this feature isn’t available with the current verification."
+            "unavailable": "{feature}: this feature isn’t available with the current verification.",
+            "servedElsewhere": "Pix deposits and withdrawals are available where you live."
         },
         "paperworkVerification": {
             "back": "Go back",

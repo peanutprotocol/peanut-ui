@@ -1721,7 +1721,8 @@
         },
         "supplement": {
             "proofOfAddressTitle": "Agregá un comprobante de domicilio",
-            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."
+            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos.",
+            "servedElsewhere": "Los depósitos y retiros por Pix están disponibles donde vivís."
         },
         "paperworkVerification": {
             "phoneHelp": "Incluí el código de tu país, como +54.",

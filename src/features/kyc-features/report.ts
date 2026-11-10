@@ -26,6 +26,20 @@ export type KycFeature = keyof FeatureReport
 /** Manteca closed this country's account; only support can reopen it. */
 export const MANTECA_ACCOUNT_REJECTED_REASON = 'manteca_account_rejected'
 
+/**
+ * The local feature refused because another entry serves the residence: a resident of Brazil gets
+ * Pix from its route, not a Manteca account. Nothing is closed; the Pix screens read the route.
+ */
+export const LOCAL_SERVED_ELSEWHERE_REASON = 'local_served_elsewhere'
+
+/**
+ * A local refusal that is the residence's answer, not a closed account: no account for this
+ * residence (`local_residence_unsupported`), or another entry serves it.
+ */
+export function isLocalResidenceRefusal(reason: string | undefined): boolean {
+    return reason === 'local_residence_unsupported' || reason === LOCAL_SERVED_ELSEWHERE_REASON
+}
+
 /** A report the API has not sent: nothing is offered and nothing is refused until it arrives. */
 const UNKNOWN: FeatureReportEntry = { state: 'pending' }
 export const UNKNOWN_REPORT: FeatureReport = {

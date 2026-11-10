@@ -26,6 +26,7 @@ import { act, fireEvent, render as rtlRender, screen } from '@testing-library/re
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
 
@@ -718,11 +719,15 @@ describe('refused local accounts retain their own reason and remedy', () => {
         expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
     })
 
-    test('a residence refusal keeps the residence explanation', () => {
-        setCountry('argentina')
-        mockApiArs = { state: 'refused', reason: 'local_residence_unsupported' }
-        render(<MantecaAddMoney />)
-        expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
-        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
-    })
+    // another entry serving the residence (Brazil's Pix) is the residence's answer for Argentina too
+    test.each(['local_residence_unsupported', LOCAL_SERVED_ELSEWHERE_REASON])(
+        'a residence refusal (%s) keeps the residence explanation',
+        (reason) => {
+            setCountry('argentina')
+            mockApiArs = { state: 'refused', reason }
+            render(<MantecaAddMoney />)
+            expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
+            expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        }
+    )
 })

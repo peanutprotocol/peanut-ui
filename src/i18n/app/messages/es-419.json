@@ -3774,7 +3774,8 @@
             "later": "Hacerlo más tarde",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contacta a soporte y lo completamos por ti.",
             "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte.",
-            "unavailable": "{feature}: esta función no está disponible con la verificación actual."
+            "unavailable": "{feature}: esta función no está disponible con la verificación actual.",
+            "servedElsewhere": "Los depósitos y retiros por Pix están disponibles donde vives."
         },
         "paperworkVerification": {
             "back": "Volver",

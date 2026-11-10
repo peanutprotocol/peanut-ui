@@ -9,6 +9,7 @@ import {
 } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
 import type { CapabilityRoute } from '@/types/capabilities'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { DEMO_USER } from '@/constants/demo-data'
 
 const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
@@ -142,6 +143,23 @@ describe('the BRL account from the Pix route', () => {
         expect(routed.bank).toBe(report.bank)
         expect(withPixRoute(report, [route({ operation: 'pay' })])).toBe(report)
         expect(withPixRoute(report, undefined)).toBe(report)
+    })
+
+    // the API's answer for a resident of Brazil: the local feature refused because the Pix route serves them
+    it('reads the BRL account from the route whichever residence answer refused the local feature', () => {
+        const servedElsewhere = {
+            ...report,
+            local: {
+                state: 'refused' as const,
+                reason: LOCAL_SERVED_ELSEWHERE_REASON,
+                accounts: { BRL: { state: 'refused' as const, reason: LOCAL_SERVED_ELSEWHERE_REASON } },
+            },
+        }
+        expect(withPixRoute(servedElsewhere, [route()]).local.accounts.BRL).toEqual({ state: 'on' })
+        expect(
+            withPixRoute(servedElsewhere, [route({ state: 'action_required', action: 'accept-tos:avenia' })]).local
+                .accounts.BRL
+        ).toMatchObject({ state: 'ready', action: 'accept-tos:avenia' })
     })
 
     it('gates the Pix corridor by the route', () => {

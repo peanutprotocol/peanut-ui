@@ -1,7 +1,13 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { accountEntry, bestChip, entryChip, UNKNOWN_REPORT } from '@/features/kyc-features/report'
+import {
+    accountEntry,
+    bestChip,
+    entryChip,
+    isLocalResidenceRefusal,
+    UNKNOWN_REPORT,
+} from '@/features/kyc-features/report'
 import { withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
@@ -33,7 +39,7 @@ const ROW_ACCOUNTS: Readonly<Record<BankRowKey, { feature: 'bank' | 'local'; cur
 /** Which sentence explains a closed row: the residence's rule, the account's own, or the country's. */
 function closedBecause(reason: string | undefined): NonNullable<UnlockRow['unavailableBecause']> {
     if (reason === 'account_unavailable_in_residence') return 'account-residence'
-    if (reason === 'local_residence_unsupported') return 'residence'
+    if (isLocalResidenceRefusal(reason)) return 'residence'
     return 'restricted-country'
 }
 

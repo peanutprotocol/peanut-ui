@@ -31,7 +31,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { useBankEntryFor } from '@/hooks/useBankRows'
-import { isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
+import { isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
 import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
@@ -113,7 +113,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
     const refusal = refusalOf(localAccount ?? undefined)
-    const requiresResidenceGate = refusal === 'local_residence_unsupported'
+    const requiresResidenceGate = isLocalResidenceRefusal(refusal)
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old

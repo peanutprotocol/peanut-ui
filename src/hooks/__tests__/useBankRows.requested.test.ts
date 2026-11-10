@@ -2,6 +2,7 @@ import { renderHook } from '@testing-library/react'
 import { useBankChipFor, useBankEntryFor, useBankRows } from '@/hooks/useBankRows'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { CapabilityRoute, UserCapabilities } from '@/types/capabilities'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 
 let mockCapabilities: UserCapabilities
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -89,17 +90,28 @@ describe('the BRL row reads the Pix route', () => {
         candidates: [],
         ...step,
     })
-    const brazilResident = () => {
+    const brazilResident = (reason = 'local_residence_unsupported') => {
         mockCapabilities.features!.local = {
             state: 'refused',
-            reason: 'local_residence_unsupported',
-            accounts: { BRL: { state: 'refused', reason: 'local_residence_unsupported' } },
+            reason,
+            accounts: { BRL: { state: 'refused', reason } },
         }
     }
     const brl = () => renderHook(() => useBankRows()).result.current.rows.find((row) => row.labelKey === 'brl')!
 
     it('reads a ready route as an active row, where the refused local account alone reads closed', () => {
         brazilResident()
+        expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })
+
+        mockCapabilities.routes = [pixRoute({ state: 'ready' })]
+        expect(brl().chip).toBe('active')
+        expect(brl().unavailableBecause).toBeUndefined()
+        expect(renderHook(() => useBankRows()).result.current.accountChip).toBe('active')
+    })
+
+    // the API's answer for a resident of Brazil: another entry, the Pix route, serves the residence
+    it('reads a local refusal because another entry serves the residence like the residence one', () => {
+        brazilResident(LOCAL_SERVED_ELSEWHERE_REASON)
         expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })
 
         mockCapabilities.routes = [pixRoute({ state: 'ready' })]

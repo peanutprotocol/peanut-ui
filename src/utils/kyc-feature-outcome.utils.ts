@@ -1,9 +1,16 @@
 import type { KycFeatures, KycFeatureReports } from '@/app/actions/types/kyc-workflow.types'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 
-type RefusalCopy = 'supplement.uncollectable' | 'supplement.identityDocumentInsufficient' | 'supplement.unavailable'
+type RefusalCopy =
+    | 'supplement.uncollectable'
+    | 'supplement.identityDocumentInsufficient'
+    | 'supplement.servedElsewhere'
+    | 'supplement.unavailable'
 const REFUSAL_COPY = new Map<string | undefined, RefusalCopy>([
     ['requirements_uncollectable', 'supplement.uncollectable'],
     ['identity_document_insufficient', 'supplement.identityDocumentInsufficient'],
+    // the local account is refused because the residence's Pix comes from its route: not unavailable
+    [LOCAL_SERVED_ELSEWHERE_REASON, 'supplement.servedElsewhere'],
 ])
 
 export const kycFeatureRefusalCopy = (reason?: string): RefusalCopy =>

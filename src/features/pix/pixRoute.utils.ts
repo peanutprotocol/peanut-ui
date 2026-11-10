@@ -71,9 +71,9 @@ export function pixPayBlock(route: CapabilityRoute | undefined): PixPayBlock | n
 
 /**
  * The BRL account as the account screens read it, from the Pix deposit route: Pix comes from the
- * route, whichever provider serves it. A resident of Brazil gets the local feature refused
- * (`local_residence_unsupported`) and Pix from Avenia's route, so the local entry alone would call
- * their Pix closed. A first-use step (terms, the account the first use opens) is the row's own
+ * route, whichever provider serves it. A resident of Brazil gets the local feature refused (another
+ * entry serves the residence, `LOCAL_SERVED_ELSEWHERE_REASON`) and Pix from Avenia's route, so the
+ * local entry alone would call their Pix closed. A first-use step (terms, the account the first use opens) is the row's own
  * set-up; a pause reads as pending, because it lifts with nothing for the user to do.
  */
 export function pixRouteReportEntry(route: CapabilityRoute): FeatureReportEntry {
