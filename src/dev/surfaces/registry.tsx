@@ -7,6 +7,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { StandaloneErrorSurface } from './StandaloneErrorSurface'
 import { AddressLaunchModal } from '@/features/deposit-accounts/components/AddressLaunchModal'
 import { CardResidenceAddressScreen } from '@/features/card/components/CardResidenceAddressScreen'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -404,6 +405,17 @@ function AddressLaunchSurface({ bank, loading }: { bank: boolean; loading: boole
     )
 }
 
+function DepositAddressSubmittedToastSurface() {
+    const t = useTranslations('depositAccounts.gate')
+    const { info, dismiss } = useToast()
+    const message = t('addressSent')
+    React.useEffect(() => {
+        const id = info(message, { duration: 'persistent' })
+        return () => dismiss(id)
+    }, [message, info, dismiss])
+    return null
+}
+
 export const SURFACES: Record<string, Surface> = {
     'deposit-address-launch-loading': {
         ...SURFACE_META['deposit-address-launch-loading'],
@@ -413,6 +425,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['deposit-address-launch-error'],
         render: () => <AddressLaunchSurface bank loading={false} />,
     },
+    'deposit-address-submitted-toast': {
+        ...SURFACE_META['deposit-address-submitted-toast'],
+        render: () => <DepositAddressSubmittedToastSurface />,
+    },
     'card-address-launch-loading': {
         ...SURFACE_META['card-address-launch-loading'],
         render: () => <AddressLaunchSurface bank={false} loading />,
@@ -420,6 +436,20 @@ export const SURFACES: Record<string, Surface> = {
     'card-address-launch-error': {
         ...SURFACE_META['card-address-launch-error'],
         render: () => <AddressLaunchSurface bank={false} loading={false} />,
+    },
+    'card-address-unavailable': {
+        ...SURFACE_META['card-address-unavailable'],
+        render: () => (
+            <AppPageSurface>
+                <CardResidenceAddressScreen
+                    state="unavailable"
+                    loading={false}
+                    onBack={noop}
+                    onStart={noop}
+                    onRefresh={noop}
+                />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-card': {
         ...SURFACE_META['standalone-error-card'],

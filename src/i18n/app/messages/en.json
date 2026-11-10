@@ -2191,8 +2191,8 @@
             "title": "Choose network",
             "description": "Select the network you want to add from:",
             "evmDescription": "{count} networks, 1 address",
-            "supportedTokens": "{count, plural, one {# Supported token} other {# Supported tokens}}",
-            "evmTokensOnNetworks": "{tokens, plural, one {# supported token} other {# supported tokens}} on {networks} networks"
+            "solanaTokens": "USDC or USDT",
+            "evmTokensOnNetworks": "A lot of tokens on many networks"
         },
         "supportedNetworksModal": {
             "title": "Supported networks",
@@ -2221,6 +2221,8 @@
             "supportedNetworks": "Supported networks",
             "supportedTokens": "Supported tokens",
             "supportedTokensInline": "Supported tokens:",
+            "tokenOnlyOnNetwork": "Only on {network}",
+            "euroTokenOnlyOnNetwork": "Only on {network}. Converted at the market rate.",
             "sendExtraForFees": "Send a little more if your wallet or network charges a fee.",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",
@@ -2243,6 +2245,10 @@
         "manteca": {
             "youreAdding": "Adding",
             "sendOnlyOwnAccountTitle": "Send only from an account in your name",
+            "transferDeadline": "Transfer by {time}.",
+            "transferExpiredTitle": "Deposit order expired",
+            "transferExpiredDescription": "Already sent money? Contact support.",
+            "startNewDeposit": "Start a new deposit",
             "sendOnlyOwnAccountDescription": "Deposits from third-party accounts are not supported and funds may be lost.",
             "accountDetails": "Bank details",
             "depositAddress": "Deposit address",
@@ -2623,6 +2629,7 @@
             "sentViaLink": "Sent via link",
             "transaction": "Transaction",
             "failedQrPayment": "Failed QR payment attempt",
+            "depositOrderExpired": "Deposit order expired",
             "verificationDeposit": "Verification deposit"
         },
         "nameInSentence": {
@@ -2681,6 +2688,8 @@
         },
         "returnedReason": "The bank sent this payment back.",
         "returnedReasonThirdParty": "It came from someone else's account, which this account does not accept.",
+        "returnedReasonTooManyRecent": "Too many deposits arrived in a short time. Wait before sending the next one, and talk to support if it happens again.",
+        "returnedReasonNameMismatch": "The name on the transfer did not match this account. Send it again with the exact name in the bank details.",
         "returnedStatus": "Returned",
         "verificationDepositNote": "Used to confirm your account. Not added to your balance.",
         "belowMinimumNote": "This deposit was below the {min} minimum, so it can't be added or returned.",
@@ -3610,6 +3619,7 @@
             },
             "contact_support": {
                 "description": "We couldn’t finish your ID check in the app. Message support and we’ll take a look.",
+                "notDocumentDescription": "We couldn’t recognize the upload as an identity document. Message support so we can review it.",
                 "supportMessage": "Hi! My ID check didn’t go through and I can’t try again in the app. Can you take a look?"
             },
             "not_available": {
@@ -3970,6 +3980,7 @@
                 "invalidCountry": "Choose a country from the list.",
                 "tooLong": "That’s too long. Keep it under 100 characters.",
                 "invalidText": "Use only letters, numbers and punctuation.",
+                "invalidPostalCode": "Enter a 6-digit postal code.",
                 "invalid": "Check this answer.",
                 "retry": "We couldn’t save that. Check your connection and try again.",
                 "featureNotSelected": "Your account changed. We’re loading the right questions.",
@@ -4124,6 +4135,7 @@
                 "chooseAnother": "Choose another document"
             },
             "activation": {
+                "settingUpAccount": "We’re setting up your {currency} account",
                 "title": {
                     "bank": "Set up bank accounts",
                     "card": "Set up your Peanut Card",
@@ -4216,6 +4228,7 @@
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
             "verification_blocked": "Verification issue — contact support for help.",
+            "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address.",
             "terminal_rejection": "Verification issue — contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
             "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
@@ -4345,10 +4358,7 @@
             "notSupportedGetNotified": "Get notified when it goes live!",
             "getNotifiedCta": "Get notified!",
             "willBeNotified": "We'll let you know as soon as {qrName} is supported.",
-            "continue": "Continue",
             "okay": "Okay",
-            "directSendCrossChain": "Peanut supports cross-chain payments.",
-            "directSendAcknowledge": "I'll check the payment details.",
             "externalUrlIntro": "Peanut doesn't support this QR but you can open it with your browser.",
             "externalUrlTrust": "Make sure you trust this website!",
             "openLink": "Open link",
@@ -4362,7 +4372,6 @@
             "titleArgentinaAlias": "Can't pay an alias",
             "titleNotSupported": "{qrName} not supported yet.",
             "titleWillBeNotified": "You're on the list!",
-            "titleDirectSend": "Payment confirmation",
             "titleExternalUrl": "This is an external link!",
             "eip681ParseError": "Error parsing EIP-681 URL",
             "notPeanutUrl": "QR not recognized as Peanut URL",
@@ -5007,6 +5016,17 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Correct postal code",
+            "description": "Enter the postal code for your verified address.",
+            "country": "Country: {country}",
+            "save": "Save",
+            "queuedTitle": "Bank setup queued",
+            "queuedBody": "We’ll retry your bank setup.",
+            "temporary": "Something went wrong. Try again.",
+            "unavailable": "This correction is unavailable.",
+            "invalid": "Enter a valid postal code."
+        },
         "opened": {
             "heading": "{currency} account ready",
             "body": "Your own bank details, ready for your next payment.",
@@ -5190,7 +5210,7 @@
             "providerReviewBody": "Your identity is verified. Our payment partner needs more information from you before it can open {currency} accounts.",
             "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
             "finishReviewCta": "Continue",
-            "actFailed": "We could not open the check. Try again in a moment.",
+            "actFailed": "Couldn’t open verification. Try again.",
             "topUpCta": "Add money from a bank",
             "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one.",
             "addressTitle": "We need a home address",

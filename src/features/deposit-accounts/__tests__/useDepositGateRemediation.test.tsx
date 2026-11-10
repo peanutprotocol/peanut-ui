@@ -9,6 +9,8 @@ import { useDepositGateRemediation } from '../useDepositGateRemediation'
 import { gateFromEntry, type GateState } from '@/utils/capability-gate'
 import { DEPOSIT_RAIL_ORDER } from '../rails'
 import type { DepositCorridor } from '../types'
+import { USER } from '@/constants/query.consts'
+import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '../useDepositAccounts'
 
 const handleInitiateKyc = jest.fn()
 const handleRestartIdentity = jest.fn()
@@ -18,6 +20,13 @@ let mockShowWrapper = false
 let mockFlowOptions: { onActionSubmitted?: (key: string) => void } = {}
 const mockToastInfo = jest.fn()
 const mockInvalidate = jest.fn()
+let mockPostalCorrection: { visible: boolean; onQueued: () => void }
+jest.mock('../components/BridgePostalCorrectionModal', () => ({
+    BridgePostalCorrectionModal: (props: typeof mockPostalCorrection) => {
+        mockPostalCorrection = props
+        return null
+    },
+}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ info: mockToastInfo }) }))
 jest.mock('@tanstack/react-query', () => ({
     ...jest.requireActual('@tanstack/react-query'),
@@ -98,6 +107,27 @@ beforeEach(() => {
 })
 
 describe('useDepositGateRemediation', () => {
+    it('refreshes the user gate and deposit accounts after a Bridge postal correction', () => {
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        render(<Host />)
+        const gate = gateFromEntry(
+            { state: 'action_required', reason: 'invalid_bank_postal_code', action: 'contact-support' },
+            {
+                rails: [],
+                nextActions: [{ key: 'contact-support', kind: 'contact-support', purpose: 'invalid_bank_postal_code' }],
+            }
+        )
+        act(() => remediation!.resolveGate(gate, 'ACH_US'))
+        expect(mockPostalCorrection.visible).toBe(true)
+        expect(mockInvalidate).not.toHaveBeenCalled()
+        act(() => mockPostalCorrection.onQueued())
+        expect(mockInvalidate.mock.calls).toEqual([[{ queryKey: [USER] }], [{ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY }]])
+    })
+
     it('restarts the identity run the provider asked us to restart', async () => {
         await openBannerFor({ kind: 'restart-identity' } as GateState)
 

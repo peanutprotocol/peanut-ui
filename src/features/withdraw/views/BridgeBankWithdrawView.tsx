@@ -134,6 +134,7 @@ export default function BridgeBankWithdrawView() {
 
             <BridgeTosStep
                 visible={flow.showBridgeTos}
+                country={verifyEntry.targetCountry}
                 onComplete={() => {
                     flow.hideTos()
                     flow.handleCreateAndInitiateOfframp()

@@ -174,7 +174,12 @@ export function CorridorGateDrawer({
                 : t('gate.blockedTitle', { currency: rail.currency })
             : t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })
     const labelKey = notice.action === 'residence-restricted' ? null : LABELS[notice.action]
-    const label = labelKey ? t(labelKey) : tCommon('gotIt')
+    const label =
+        notice.reasonCode === 'invalid_bank_postal_code' && rail.provider === 'bridge'
+            ? t('postalCorrection.title')
+            : labelKey
+              ? t(labelKey)
+              : tCommon('gotIt')
 
     const actButton = (
         <Button

@@ -119,12 +119,17 @@ export const TransactionDetailsReceipt = ({
     // sentence. The provider's text is never shown: the API stores Bridge's
     // `refund.reason` joined with its undocumented `risk_rejection_reason`,
     // and marks the result "for support, not for display" (QA-08, 2026-09-24).
+    const returnReasonCode = transaction.extraDataForDrawer?.returnReasonCode
     const returnReasonLine =
         transaction.actionLabelKey !== 'type.returnedToSender'
             ? undefined
-            : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
+            : returnReasonCode === 'third_party'
               ? t('returnedReasonThirdParty')
-              : t('returnedReason')
+              : returnReasonCode === 'too_many_recent'
+                ? t('returnedReasonTooManyRecent')
+                : returnReasonCode === 'name_mismatch'
+                  ? t('returnedReasonNameMismatch')
+                  : t('returnedReason')
     const minimumAmountDisplay = transaction.extraDataForDrawer?.minimumAmountDisplay
     // a request asked in euros says so under its dollar headline
     const requestedAmountDisplay = requestedInCurrency(transaction)

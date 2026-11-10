@@ -15,6 +15,12 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 
 const mockClear = jest.fn()
+const mockCurrentClientFlagProperties = jest.fn()
+const mockClientFlagProperties = jest.fn()
+jest.mock('@/utils/posthog-setup', () => ({
+    currentClientFlagProperties: () => mockCurrentClientFlagProperties(),
+    clientFlagProperties: () => mockClientFlagProperties(),
+}))
 const mockCancelQueries = jest.fn().mockResolvedValue(undefined)
 const mockRefetch = jest.fn().mockResolvedValue({ data: null })
 const mockApiFetch = jest.fn().mockResolvedValue(undefined)
@@ -89,11 +95,13 @@ jest.mock('posthog-js', () => ({
         get_distinct_id: jest.fn(),
         setPersonProperties: jest.fn(),
         reset: jest.fn(),
+        setPersonPropertiesForFlags: jest.fn(),
         register: jest.fn(),
     },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'
+import posthog from 'posthog-js'
 import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
@@ -122,6 +130,7 @@ const stubLocation = (onNavigate?: () => void) => {
 describe('logoutUser', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.23.0' })
         mockCancelQueries.mockResolvedValue(undefined)
         mockRefetch.mockResolvedValue({ data: null })
         mockApiFetch.mockReset().mockResolvedValue({ status: 200, ok: true })
@@ -137,6 +146,42 @@ describe('logoutUser', () => {
         endIntentionalLogout()
         clearRedirectUrl()
         clearSessionHeld()
+    })
+
+    it('restores cached flag properties after reset without a fresh async lookup or duplicate reload', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+        expect(posthog.reset).toHaveBeenCalledTimes(1)
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledTimes(1)
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+            {
+                client_platform: 'android',
+                binary_version: '1.23.0',
+            },
+            false
+        )
+        expect((posthog.reset as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+            (posthog.setPersonPropertiesForFlags as jest.Mock).mock.invocationCallOrder[0]
+        )
+        expect(mockClientFlagProperties).not.toHaveBeenCalled()
+    })
+
+    it('reads the latest cached flags at logout after a late binary result', async () => {
+        stubLocation()
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android' })
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.26.0' })
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+            { client_platform: 'android', binary_version: '1.26.0' },
+            false
+        )
+        expect(mockClientFlagProperties).not.toHaveBeenCalled()
     })
 
     it('arms the latch before the user cache is emptied', async () => {

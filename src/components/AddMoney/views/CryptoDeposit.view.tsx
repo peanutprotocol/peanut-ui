@@ -22,6 +22,7 @@ import {
     NETWORK_LABELS,
     NETWORK_LOGOS,
     getSupportedTokens,
+    CHAIN_SCOPED_DEPOSIT_TOKENS,
 } from '@/constants/rhino.consts'
 import type {
     CreateDepositAddressResponse,
@@ -255,6 +256,23 @@ const CryptoDepositView = ({
                                             chainSymbol={token.logoUrl}
                                         />
                                     ))}
+                                    {isEvm &&
+                                        CHAIN_SCOPED_DEPOSIT_TOKENS.map((token) => (
+                                            <Tooltip
+                                                key={token.name}
+                                                // The default width runs off screen over a chip at the left edge.
+                                                contentClassName="max-w-40"
+                                                content={t(
+                                                    token.isEuro ? 'euroTokenOnlyOnNetwork' : 'tokenOnlyOnNetwork',
+                                                    { network: token.network }
+                                                )}
+                                            >
+                                                <ChainChip
+                                                    chainName={`${token.name} · ${token.network}`}
+                                                    chainSymbol={token.logoUrl}
+                                                />
+                                            </Tooltip>
+                                        ))}
                                 </div>
                             </div>
 

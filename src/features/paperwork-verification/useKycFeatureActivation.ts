@@ -44,6 +44,14 @@ export function useKycFeatureActivation(
             : features[feature]
         : undefined
     const alreadyOn = existing?.state === 'on'
+    const ars =
+        feature === 'local' &&
+        reportScope?.channel === 'bank' &&
+        identityStatus === 'verified' &&
+        (reportScope.country === 'AR' || reportScope.method === 'BANK_TRANSFER_AR')
+            ? features?.local.accounts.ARS
+            : undefined
+    const arsProvisioning = ars?.state === 'pending' || ars?.state === 'setting_up'
     const consentKey = JSON.stringify([
         userId,
         oneShot,
@@ -55,7 +63,7 @@ export function useKycFeatureActivation(
     ])
     const recovery = useRef({ key: consentKey, waiting: false })
     if (recovery.current.key !== consentKey) recovery.current = { key: consentKey, waiting: false }
-    const scopeKey = `${consentKey}:${identityStatus ?? ''}:${enabled}`
+    const scopeKey = `${consentKey}:${identityStatus ?? ''}:${enabled}:${arsProvisioning}`
     const generation = useRef({ key: scopeKey, value: 0 })
     if (generation.current.key !== scopeKey) generation.current = { key: scopeKey, value: generation.current.value + 1 }
     const scope = `${scopeKey}:${generation.current.value}`
@@ -65,7 +73,11 @@ export function useKycFeatureActivation(
     const inFlight = useRef<{ scope: string; token: object; promise: Promise<boolean> } | null>(null)
     const [saved, setSaved] = useState<{ scope: string; result: KycFeatureActivationResult } | null>(null)
     const [loadingScope, setLoadingScope] = useState<string | null>(null)
-    const result = saved?.scope === scope ? saved.result : null
+    const result: KycFeatureActivationResult | null = arsProvisioning
+        ? { kind: 'report', report: { state: ars.state } }
+        : saved?.scope === scope
+          ? saved.result
+          : null
     const allowed = !!userId && (!oneShot || alreadyOn || canContinue(feature, result))
 
     useEffect(() => {
@@ -81,6 +93,7 @@ export function useKycFeatureActivation(
         (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
             if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
             if (!oneShot || alreadyOn) return Promise.resolve(true)
+            if (arsProvisioning) return Promise.resolve(false)
             if (inFlight.current?.scope === scope) return inFlight.current.promise
             setLoadingScope(scope)
             const token = {}
@@ -131,7 +144,7 @@ export function useKycFeatureActivation(
             inFlight.current = { scope, token, promise }
             return promise
         },
-        [scope, userId, oneShot, feature, alreadyOn, enabled, identityStatus]
+        [scope, userId, oneShot, feature, alreadyOn, arsProvisioning, enabled, identityStatus]
     )
 
     useEffect(() => {
@@ -143,7 +156,7 @@ export function useKycFeatureActivation(
 
     const waiting = result?.kind === 'report' && ['setting_up', 'pending'].includes(result.report.state)
     useEffect(() => {
-        if (!waiting || alreadyOn || !enabled) return
+        if (!waiting || alreadyOn || arsProvisioning || !enabled) return
         const poll = () => void activate()
         const timer = setInterval(poll, KYC_ACTIVATION_POLL_MS)
         window.addEventListener('focus', poll)
@@ -151,7 +164,7 @@ export function useKycFeatureActivation(
             clearInterval(timer)
             window.removeEventListener('focus', poll)
         }
-    }, [waiting, alreadyOn, enabled, activate])
+    }, [waiting, alreadyOn, arsProvisioning, enabled, activate])
 
-    return { allowed, userReady: !!userId, result, isLoading: loadingScope === scope, activate }
+    return { allowed, userReady: !!userId, result, arsProvisioning, isLoading: loadingScope === scope, activate }
 }

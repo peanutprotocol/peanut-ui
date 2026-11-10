@@ -288,6 +288,10 @@ jest.mock('@/constants/rhino.consts', () => ({
         { name: 'ETH', logoUrl: '/eth-token.png' },
     ]),
     TOKEN_LOGOS: { USDC: '/usdc.png', USDT: '/usdt.png', ETH: '/eth-token.png' },
+    CHAIN_SCOPED_DEPOSIT_TOKENS: [
+        { name: 'EURe v2', logoUrl: '/eure.png', network: 'Gnosis', isEuro: true },
+        { name: 'USDe', logoUrl: '/usde.png', network: 'Arbitrum', isEuro: false },
+    ],
 }))
 
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -564,7 +568,9 @@ jest.mock('@/components/AddMoney/components/SupportedNetworksDrawer', () => ({
 }))
 
 jest.mock('@/components/Tooltip', () => ({
-    Tooltip: (props: any) => <div>{props.children}</div>,
+    Tooltip: (props: any) => (
+        <div data-tooltip={typeof props.content === 'string' ? props.content : undefined}>{props.children}</div>
+    ),
 }))
 
 // Crypto deposit polling hook
@@ -1165,6 +1171,51 @@ describe('GROUP 3: Crypto deposit', () => {
         expect(screen.getAllByText(/EVM/).length).toBeGreaterThan(0)
         expect(screen.getByText('5 USD')).toBeInTheDocument()
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
+    })
+
+    describe('chain-scoped token chips', () => {
+        const renderAddressScreen = (network: 'EVM' | 'SOL' | 'TRON') => {
+            mockUseCryptoDepositPolling.mockReturnValue({
+                status: 'not_started',
+                resetStatus: jest.fn(),
+                isResetting: false,
+            })
+            renderWithProviders(
+                <CryptoDepositView
+                    network={network}
+                    depositAddressData={{
+                        depositAddress: '0x1234567890abcdef1234567890abcdef12345678',
+                        minDepositLimitUsd: 5,
+                        maxDepositLimitUsd: 10000,
+                        supportedChains: [],
+                    }}
+                    isLoading={false}
+                    onSuccess={jest.fn()}
+                    onBack={jest.fn()}
+                />
+            )
+        }
+
+        // A token sent on any other chain is silently lost, so each chip names its chain.
+        test('EVM address screen names the one network for each token', () => {
+            renderAddressScreen('EVM')
+
+            expect(screen.getByText('EURe v2 · Gnosis').closest('[data-tooltip]')).toHaveAttribute(
+                'data-tooltip',
+                'Only on Gnosis. Converted at the market rate.'
+            )
+            expect(screen.getByText('USDe · Arbitrum').closest('[data-tooltip]')).toHaveAttribute(
+                'data-tooltip',
+                'Only on Arbitrum'
+            )
+        })
+
+        test.each(['SOL', 'TRON'] as const)('%s address screen does not offer them', (network) => {
+            renderAddressScreen(network)
+
+            expect(screen.queryByText('EURe v2 · Gnosis')).not.toBeInTheDocument()
+            expect(screen.queryByText('USDe · Arbitrum')).not.toBeInTheDocument()
+        })
     })
 
     test('deposit processing shows the shared processing screen', () => {

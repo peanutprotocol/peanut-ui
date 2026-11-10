@@ -1,7 +1,7 @@
 import { countryData } from '@/components/AddMoney/consts'
 import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
 import type { CapabilityReason } from '@/types/capabilities'
-import { isIdentityRefusal, type GateState } from '@/utils/capability-gate'
+import { getGateReasonCode, isIdentityRefusal, type GateState } from '@/utils/capability-gate'
 import { dedupeHeldBankRows, type UnlockRow } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
@@ -131,6 +131,11 @@ function isOpenable(
     gates: Record<DepositCorridor, GateState>
 ): boolean {
     const withheld = unavailable?.[corridor]
+    if (
+        DEPOSIT_RAILS[corridor].provider === 'bridge' &&
+        getGateReasonCode(gates[corridor]) === 'invalid_bank_postal_code'
+    )
+        return true
     // the user's own review holds the corridor: the claim step's gate drawer
     // names it and starts the action that clears it
     if (withheld?.cause === 'not_started') return true

@@ -148,6 +148,18 @@ describe('BridgeTosStep', () => {
         expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'tos_accepted')
     })
 
+    it('uses one confirmation for duplicate hosted-page callbacks', async () => {
+        mockResolveClose.mockResolvedValue(true)
+        const { onComplete } = renderStep()
+        await openTos()
+        const callback = closeIframe
+        await act(async () => {
+            await Promise.all([callback?.('tos_accepted'), callback?.('returned')])
+        })
+        expect(mockResolveClose).toHaveBeenCalledTimes(1)
+        expect(onComplete).toHaveBeenCalledTimes(1)
+    })
+
     it('skips the step on a manual exit without asking Bridge', async () => {
         // Bridge's confirm answers with a customer-level flag that a user who
         // signed the base terms already has, so it cannot vouch for the SEPA

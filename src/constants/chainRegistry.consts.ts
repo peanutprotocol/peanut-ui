@@ -49,7 +49,7 @@ export interface ChainRegistryEntry {
     /** Exact-id explorer prefixes for aliases that share a provider routing
      *  bucket but belong to a different network (for example a testnet). */
     aliasTransactionExplorerUrlPrefixes?: Readonly<Record<string, string>>
-    /** Present = advertised DEPOSIT chain. `tokens` only when narrower than
+    /** Present = advertised DEPOSIT chain. `tokens` only when it differs from
      *  the family default (USDT/USDC/ETH for EVM) — drives the "USDT only"
      *  funds-safety annotations. */
     deposit?: { tokens?: readonly string[] }
@@ -122,7 +122,9 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'evm',
         displayName: 'GNOSIS',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/11062/standard/Aatar_green_white.png?1706606458',
-        deposit: { tokens: ['USDT', 'USDC'] }, // no ETH on Gnosis at Rhino
+        // No ETH on Gnosis at Rhino. EURe converts to USDC; Rhino lists only the
+        // v2 contract (0x420ca0f9b9b604ce0fd9c18ef134c705e5fa3430).
+        deposit: { tokens: ['USDT', 'USDC', 'EURe'] },
         withdraw: { tokens: ['USDC', 'USDT'] }, // native xDAI not bridged by Rhino
     },
     {
@@ -189,14 +191,13 @@ const CHAIN_REGISTRY_LITERAL = [
         withdraw: { tokens: ['USDC', 'USDT'] },
     },
     {
+        // KATANA: display-only legacy — absent from Rhino's SDA and bridge
+        // catalogs (checked 2026-11-09). No rhinoName = not routable anywhere.
         id: '747474',
         coingeckoPlatformId: 'katana',
-        rhinoName: 'KATANA',
         family: 'evm',
         displayName: 'KATANA',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/32239/standard/katana.jpg?1751496126',
-        deposit: {},
-        withdraw: { tokens: ['USDC', 'USDT'] }, // delivered as vbUSDC/vbUSDT
     },
     {
         id: '59144',
