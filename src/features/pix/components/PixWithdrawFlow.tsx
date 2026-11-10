@@ -37,13 +37,14 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
+import { pixProviderId } from '@/utils/provider.utils'
 
 /**
- * Withdraw by Pix for a Brazilian resident on Avenia: the own Pix key, the
- * amount, the review, then the signature. The key and the amount live in the
- * URL (`?destination=`, `?amount=` in USD, `?destinationAmount=` in reais or
- * `?spend=` for the whole balance), so a refresh keeps the step; nothing is
- * opened at Avenia before Confirm.
+ * Withdraw by Pix, for whichever provider the withdraw route names: the own
+ * Pix key, the amount, the review, then the signature. The key and the
+ * amount live in the URL (`?destination=`, `?amount=` in USD,
+ * `?destinationAmount=` in reais or `?spend=` for the whole balance), so a
+ * refresh keeps the step; nothing is opened at the provider before Confirm.
  */
 export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('pix.withdraw')
@@ -56,6 +57,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { isFromSendFlow } = useSendFlowOrigin()
     const title = tNav(isFromSendFlow ? 'send' : 'withdraw')
     const backToWithdraw = useSafeBack(WITHDRAW_BACK_FALLBACK_URL)
+    // the provider the route names, for the provider row and its sheet
+    const providerId = pixProviderId(route.provider)
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     const [destination, setDestination] = useQueryState('destination', parseAsString.withDefault(''))
@@ -63,7 +66,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const [intentId, setIntentId] = useQueryState('intentId', parseAsString.withDefault(''))
     const [amountUsd, setAmountUsd] = useWithdrawAmount()
     const [amountBrl, setAmountBrl] = useWithdrawDestinationAmount()
-    // "Use balance": the USDC that leaves the wallet, Rhino's fee included, so the whole balance can go
+    // "Use balance": the USDC that leaves the wallet, every fee included, so the whole balance can go
     const [spendUsd, setSpendUsd] = useQueryState('spend', parseAsString.withDefault(''))
     const pixKey = completePixKey(destination)
     const amount = pixWithdrawAmount({ amountUsd, amountBrl, spendUsd })
@@ -138,6 +141,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             <PixWithdrawOutcome
                 title={title}
                 intentId={intentId}
+                providerId={providerId}
                 // nothing left the wallet: the same key and amount, quoted again
                 // nothing left the wallet: a new withdrawal, from its key (the URL dropped the old form)
                 onStartAgain={() => {
@@ -190,7 +194,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 <NavHeader title={title} onPrev={() => void stepper.goTo('pix-key')} />
                 <PageStack.Center>
                     <div className="text-heading-xs text-foreground-primary">{tWithdraw('amountToWithdraw')}</div>
-                    {/* the quote failed (the route changed, Avenia is down): retry here, not a spinner */}
+                    {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
                     {spendableBalance === 0n ? (
                         // nothing to withdraw, and nothing for the quote to open on: the field's own error line
                         <Field error={tErrors('insufficientBalance')}>{null}</Field>
@@ -231,7 +235,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                         onClick={() => {
                             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
                                 amount_usd: typedUsd,
-                                method_type: 'avenia',
+                                method_type: route.provider,
                                 country: 'brazil',
                             })
                             // the API takes one amount: the one the user typed, or the balance they tapped
@@ -280,7 +284,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         }
     }
     const reviewError = submit.error
-        ? // once Avenia's ticket is open, only a signature that surely sent nothing may be tried again
+        ? // once the withdrawal is open, only a signature that surely sent nothing may be tried again
           {
               message:
                   submit.lockedAfterInit && !submit.canSignOpened
@@ -299,6 +303,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         <PixWithdrawReview
             title={title}
             display={display}
+            providerId={providerId}
             isLoading={preview.isLoading}
             isSubmitting={submit.phase === 'starting' || submit.phase === 'signing'}
             error={reviewError}
@@ -318,7 +323,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 if (!request || !preview.data) return
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
                     amount_usd: preview.data.withdrawUsd,
-                    method_type: 'avenia',
+                    method_type: route.provider,
                     country: 'brazil',
                 })
                 await submit.submit(request, preview.data)

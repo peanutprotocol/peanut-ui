@@ -60,3 +60,19 @@ export function providerIdForTransaction(
             return null
     }
 }
+
+/**
+ * The legal record behind a Pix provider code, as a route, a /pix/* answer or a history entry
+ * names it ('avenia', 'MANTECA'), for the provider row and its sheet. Null for a provider this
+ * build has no record of: the screen then shows no provider row.
+ */
+export function pixProviderId(provider: string | null | undefined): ProviderId | null {
+    switch (provider?.toLowerCase()) {
+        case 'avenia':
+            return 'avenia-br'
+        case 'manteca':
+            return 'manteca-br'
+        default:
+            return null
+    }
+}

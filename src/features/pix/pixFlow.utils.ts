@@ -3,22 +3,23 @@ import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdra
 import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
 import type { CapabilityRoute, NextActionKind } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
-import { VERIFY_ACTION } from '@/features/kyc-features/report'
+import { ACTIVATE_ACTION, VERIFY_ACTION } from '@/features/kyc-features/report'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** The pending route's reasons while Avenia reviews the shared verification (api `kyc/capabilities`). */
+/** The pending route's reasons while the provider reviews the shared verification (api `kyc/capabilities`). */
 const IDENTITY_IMPORT_UNAVAILABLE_REASON = 'identity_import_unavailable'
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
 
 /**
- * What the Avenia setup step shows for the backend's route: the identity
- * check first (`verify`), Avenia's terms (the route's action is an
- * `accept-tos` next action), then the wait while Avenia reviews the shared
- * verification. Refused and paused routes never reach it: the Pix pages show
- * those. Anything else is a case support finishes.
+ * What the Pix setup step shows for the backend's route: the identity check
+ * first (`verify`), the provider's terms (the route's action is an
+ * `accept-tos` next action), the account the first use opens (`activate`),
+ * then the wait while the provider reviews the shared verification. Refused
+ * and paused routes never reach it: the Pix pages show those. Anything else
+ * is a case support finishes.
  */
-export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'pending' | 'support'
+export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'activate' | 'pending' | 'support'
 
 export function pixSetupState(
     route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
@@ -31,13 +32,14 @@ export function pixSetupState(
             return 'pending'
         case 'action_required':
             if (route.action === VERIFY_ACTION) return 'verify'
+            if (route.action === ACTIVATE_ACTION) return 'activate'
             return actionKind === 'accept-tos' ? 'accept-terms' : 'support'
         default:
             return 'support'
     }
 }
 
-/** Why the route waits: Avenia reviews, cannot receive the verification yet, or has no CPF for it. */
+/** Why the route waits: the provider reviews, cannot receive the verification yet, or has no CPF for it. */
 export type PixPendingReason = 'reviewing' | 'import-unavailable' | 'cpf-missing'
 
 export function pixPendingReason(code: string | undefined): PixPendingReason {
@@ -75,8 +77,8 @@ export function pixDepositPhase(status: PixDeposit | undefined): PixDepositPhase
 
 /**
  * The key as the Pix directory holds it, or null while it cannot be a complete
- * key yet. A lookup costs the user's Avenia sub-account DICT tokens (20 for a
- * key that is not found), so an incomplete or malformed key is never sent.
+ * key yet. A lookup can cost the provider directory tokens (more for a key that
+ * is not found), so an incomplete or malformed key is never sent.
  * A Pix code is not a key: a withdrawal pays to a key.
  */
 export function completePixKey(input: string): string | null {
@@ -97,7 +99,7 @@ export function pixKeyVerdict(info: PixKeyInfo): PixKeyVerdict {
 
 /**
  * One amount reaches the API: reais when the user typed reais, the balance
- * when they tapped it (`spendUsd`: what leaves the wallet, Rhino's fee
+ * when they tapped it (`spendUsd`: what leaves the wallet, every fee
  * included, so the whole balance can go), else USD.
  */
 export function pixWithdrawAmount({
@@ -132,13 +134,13 @@ export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
     return masked.replace(/[^\d*]/g, '').length === 14 ? 'CNPJ' : 'CPF'
 }
 
-/** The steps of an Avenia Pix withdrawal: the key first, as on the Manteca flow it replaces. */
+/** The steps of a Pix withdrawal: the key first. */
 export const PIX_WITHDRAW_STEPS = ['pix-key', 'amount', 'review', 'success'] as const
 export type PixWithdrawStep = (typeof PIX_WITHDRAW_STEPS)[number]
 
 /**
  * What explains a refused withdrawal preview, init or new key, by wire code: an
- * `avenia` catalog key, or `pixKeyNotFound` / `providerRejected` / `minimum`,
+ * `pix` catalog key, or `pixKeyNotFound` / `providerRejected` / `minimum`,
  * which `usePixRefusalMessage` reads from the shared catalogs.
  */
 export type PixWithdrawRefusal =
@@ -181,8 +183,8 @@ export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefu
 /**
  * Whether the sign request asks for exactly the USD the opened quote shows.
  * The user confirms `display.withdrawUsd`; the wallet signs `payAmountUnits`.
- * PR B builds both from Rhino's pay amount, and the app checks they agree
- * before signing anything.
+ * The API builds both from the same pay amount, and the app checks they
+ * agree before signing anything.
  */
 export function signMatchesDisplay(
     display: Pick<PixWithdrawDisplay, 'withdrawUsd'>,
@@ -217,11 +219,12 @@ export function quoteMovedAgainstUser(
 }
 
 /**
- * What the last step of a withdrawal says, from its history entry. A mined
- * deposit only funds the withdrawal: Avenia pays the Pix after it, so the
- * step says "on its way" until the entry completes, and asks for another key
- * when the bank refused the payout. An unconfirmed deposit that ended failed
- * or cancelled never reached Rhino, so nothing left the wallet.
+ * What the last step of a withdrawal says, from its history entry. A funding
+ * transaction only funds the withdrawal: the provider pays the Pix after it,
+ * so the step says "on its way" until the entry completes, and asks for
+ * another key when the bank refused the payout. An unconfirmed funding that
+ * ended failed or cancelled never reached the provider, so nothing left the
+ * wallet.
  *
  * `phase` is what this device knows of the deposit: `funded` (mined),
  * `unconfirmed` (it may have gone out: no receipt, or a reload after the
@@ -255,7 +258,7 @@ export function pixWithdrawOutcome(
         // know: support sorts it out, and the screen never reads as progress
         return 'stuck'
     }
-    // the API saw the deposit (reported, or found at Rhino): Avenia pays next
+    // the API saw the funding (reported, or found on chain): the provider pays next
     if (entry?.extraData?.intentStatus === 'PROCESSING') return 'on-its-way'
     if (phase === 'unsigned' && entry?.extraData?.intentStatus === 'AWAITING_USER_ACTION') return 'not-sent'
     return phase === 'funded' ? 'on-its-way' : 'unconfirmed'

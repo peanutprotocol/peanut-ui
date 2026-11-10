@@ -21,17 +21,18 @@ import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
+import { pixProviderId } from '@/utils/provider.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
 
 /**
- * Add money by Pix for a Brazilian resident on Avenia: the first-use setup
- * while the route is not ready, the amount in reais (R$20 minimum), then the
- * dynamic Pix code. Same URL contract as the Manteca flow it replaces for
- * these users (`?step=`, `?amount=`, `?currency=`), plus `?intentId=` once
- * the code exists. While a code can still be paid (the route's
+ * Add money by Pix, for whichever provider the deposit route names: the
+ * first-use setup while the route is not ready, the amount in reais, then the
+ * dynamic Pix code. The URL holds the step, the amount and its currency
+ * (`?step=`, `?amount=`, `?currency=`), plus `?intentId=` once the code
+ * exists. While a code can still be paid (the route's
  * `payableDepositIntentId`), the flow opens that code instead of the amount
  * step; a new deposit is offered once the code has lapsed or come back.
  */
@@ -58,6 +59,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
     const ready = route.state === 'ready'
+    const providerId = pixProviderId(route.provider)
     // The deposit the user left for a new one; the capabilities may still name it payable for a moment.
     const [leftIntentId, setLeftIntentId] = useState<string | null>(null)
     const payableIntentId = route.payableDepositIntentId
@@ -115,14 +117,14 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         setIsCreating(true)
         posthog.capture(ANALYTICS_EVENTS.DEPOSIT_AMOUNT_ENTERED, {
             amount_usd: usdAmount,
-            method_type: 'avenia',
+            method_type: route.provider,
             country: 'brazil',
         })
         try {
             const created = await pixApi.createDeposit(amountBrl)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
                 amount_usd: usdAmount,
-                method_type: 'avenia',
+                method_type: route.provider,
                 country: 'brazil',
             })
             // the code screen reads this deposit's query; seeding it shows the code at once
@@ -133,7 +135,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         } catch (caught) {
             const code = wireErrorCode(caught)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
-                method_type: 'avenia',
+                method_type: route.provider,
                 country: 'brazil',
                 error_code: code ?? 'unknown',
             })
@@ -200,7 +202,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
             onBack={onBack}
             // the code carries the amount and the bank app cannot change it
             amountFixedByCode
-            providerFinePrint={<ProviderFinePrint providerId="avenia-br" />}
+            providerFinePrint={providerId ? <ProviderFinePrint providerId={providerId} /> : undefined}
         />
     )
 }

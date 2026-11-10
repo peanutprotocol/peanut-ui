@@ -1313,7 +1313,7 @@
         "setup": {
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
             "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
-            "termsNotSaved": "No se guardó la aceptación de los términos de Avenia. Intentá de nuevo.",
+            "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
             "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo."
         },
         "deposit": {
@@ -1337,7 +1337,7 @@
             "changeKey": "Cambiar clave"
         },
         "recovery": {
-            "intro": "El banco rechazó el pago a la clave anterior. El dinero está esperando en Avenia. Ingresá una clave Pix de otra cuenta con tu CPF."
+            "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresá una clave Pix de otra cuenta con tu CPF."
         }
     },
     "transaction": {

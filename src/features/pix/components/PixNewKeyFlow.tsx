@@ -19,11 +19,12 @@ import { usePixRecoveryKey } from '@/features/pix/usePixRecoveryKey'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import type { PixKeyInfo } from '@/services/pix'
+import { pixProviderId } from '@/utils/provider.utils'
 
 /**
  * Another own Pix key for a withdrawal whose payout the bank refused for its
- * key or account. The money waits with Avenia; once the API takes the key,
- * its recovery queue pays it there. The withdrawal is `?intentId=` in the URL,
+ * key or account. The money waits with the provider; once the API takes the
+ * key, the provider pays it there. The withdrawal is `?intentId=` in the URL,
  * so its receipt and its notification open this screen directly, and the key
  * rides in `?destination=` as on the withdraw flow. A
  * withdrawal that no longer waits for a key (paid, refunded, or a key already
@@ -61,6 +62,8 @@ export function PixNewKeyFlow() {
 
     if (recovery.phase === 'accepted') {
         const destination = [holder?.bankName, holder?.holderName].filter(Boolean).join(' · ')
+        // the provider that holds the withdrawal, as its history entry names it
+        const providerId = pixProviderId(entry.data.extraData?.provider)
         return (
             <PageStack>
                 <NavHeader title={title} hideBackBtn />
@@ -74,7 +77,7 @@ export function PixNewKeyFlow() {
                     <Button variant="primary" className="w-full" onClick={leaveToHome}>
                         {tCommon('done')}
                     </Button>
-                    <ProviderFinePrint providerId="avenia-br" />
+                    {providerId && <ProviderFinePrint providerId={providerId} />}
                 </PageStack.Center>
             </PageStack>
         )

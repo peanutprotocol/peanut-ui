@@ -17,13 +17,15 @@ import { useAuth } from '@/context/authContext'
 import { usePixDeposit } from '@/features/pix/usePixDeposit'
 import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import { formatBankAmount } from '@/utils/currency'
+import { pixProviderId } from '@/utils/provider.utils'
 
 /**
- * The dynamic Pix code of one Avenia deposit (`?intentId=`), read from GET
- * /avenia/deposit/:intentId: the amount in reais, what the balance gets, the
- * time the code has left, and who the payer must be (an account under the
- * user's own CPF: Avenia returns any other Pix). A reload, back navigation
- * and a deep link draw the same code. A code that lapsed or a Pix that came
+ * The dynamic Pix code of one deposit (`?intentId=`), read from GET
+ * /pix/deposit/:intentId: the amount in reais, what the balance gets, and,
+ * where the provider sends them, the flat fee, the time the code has left and
+ * who the payer must be (an account under the user's own CPF: that provider
+ * returns any other Pix). A reload, back navigation and a deep link draw the
+ * same code. A code that lapsed or a Pix that came
  * back says so, and the way on is a new deposit, never a dead code.
  */
 export function PixQrDeposit({
@@ -35,7 +37,7 @@ export function PixQrDeposit({
     onComplete,
 }: {
     intentId: string
-    /** Banks whose Pix Avenia sends back (GET /avenia/deposit/eligibility). */
+    /** Banks whose Pix the provider sends back (GET /pix/deposit/rules). */
     blockedBankNames: string[]
     /** Leaves the flow. */
     onBack: () => void
@@ -52,6 +54,8 @@ export function PixQrDeposit({
     const format = useFormatter()
     const { user } = useAuth()
     const { deposit, phase, isError } = usePixDeposit(intentId, onComplete)
+    // the provider the deposit answer names, for its row and sheet
+    const providerId = pixProviderId(deposit?.provider)
 
     const expiresAtMs = useMemo(() => (deposit?.expiresAt ? Date.parse(deposit.expiresAt) : null), [deposit?.expiresAt])
     const countdown = useExpiryCountdown(expiresAtMs, phase === 'pending')
@@ -144,7 +148,7 @@ export function PixQrDeposit({
                             {formatBankAmount(deposit.amountBrl, 'BRL')}
                         </p>
                     )}
-                    {/* Avenia's fees are already out of the quote: this is what the balance receives */}
+                    {/* the provider's fees are already out of the quote: this is what the balance receives */}
                     {deposit.usdcAmount && (
                         <p className="text-body-s text-foreground-secondary">
                             {tDeposit('youGet', { amount: formatBankAmount(deposit.usdcAmount, 'USD') })}
@@ -183,7 +187,7 @@ export function PixQrDeposit({
                     </p>
                 )}
 
-                <ProviderFinePrint providerId="avenia-br" />
+                {providerId && <ProviderFinePrint providerId={providerId} />}
             </PageStack.Center>
         </PageStack>
     )

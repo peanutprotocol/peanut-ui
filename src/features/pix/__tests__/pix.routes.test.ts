@@ -23,10 +23,8 @@ describe('the neutral Pix pages', () => {
         expect(isPixPagePath(undefined)).toBe(false)
     })
 
-    it("carry a saved account's query to the withdraw page", () => {
-        expect(pixWithdrawUrl({ destination: '09579927189', isSavedAccount: 'true', sendMethod: undefined })).toBe(
-            '/withdraw/pix?destination=09579927189&isSavedAccount=true'
-        )
-        expect(pixWithdrawUrl({})).toBe('/withdraw/pix')
+    it("open the withdraw page's key step on a saved key", () => {
+        expect(pixWithdrawUrl('09579927189')).toBe('/withdraw/pix?destination=09579927189')
+        expect(pixWithdrawUrl('ana@example.com')).toBe('/withdraw/pix?destination=ana%40example.com')
     })
 })

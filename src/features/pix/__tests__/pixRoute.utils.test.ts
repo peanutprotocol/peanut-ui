@@ -21,10 +21,10 @@ describe('findPixRoute', () => {
 })
 
 describe('pixScreen', () => {
-    it("mounts the screens of the provider the route names, whatever the user's step", () => {
-        expect(pixScreen(route(), false)).toBe('avenia')
-        expect(pixScreen(route({ state: 'action_required', action: 'activate' }), false)).toBe('avenia')
-        expect(pixScreen(route({ provider: 'manteca', candidates: [] }), false)).toBe('manteca')
+    it("mounts the one Pix flow for whichever provider the route names, whatever the user's step", () => {
+        expect(pixScreen(route(), false)).toBe('flow')
+        expect(pixScreen(route({ state: 'action_required', action: 'activate' }), false)).toBe('flow')
+        expect(pixScreen(route({ provider: 'manteca', candidates: [] }), false)).toBe('flow')
     })
 
     it("shows a refused route as not available, never its candidates' screens", () => {
@@ -67,7 +67,7 @@ describe('pixRefusalCopy', () => {
 describe('demo mode', () => {
     it('reaches the Avenia Pix screens for both operations', () => {
         for (const operation of ['deposit', 'withdraw'] as const) {
-            expect(pixScreen(findPixRoute(DEMO_USER.capabilities?.routes, operation), false)).toBe('avenia')
+            expect(pixScreen(findPixRoute(DEMO_USER.capabilities?.routes, operation), false)).toBe('flow')
         }
     })
 })

@@ -59,13 +59,23 @@ describe('PixQrDeposit', () => {
         expect(screen.getByText('You get ≈ $17.94')).toBeInTheDocument()
     })
 
-    it("shows Avenia's flat fee when the read carries it", () => {
+    it('shows the flat fee when the read carries it', () => {
         state('pending', read({ fixedFeeBrl: '0.75' }))
         renderScreen()
-        expect(screen.getByText('Avenia fee R$0.75')).toBeInTheDocument()
+        expect(screen.getByText('Fee R$0.75')).toBeInTheDocument()
     })
 
-    it('names the banks whose Pix Avenia sends back', () => {
+    // a provider that sends no expiry, payer CPF or flat fee: the code alone, with no line it cannot fill
+    it('draws a code with no expiry, payer or fee as the code alone', () => {
+        state('pending', read({ provider: 'manteca', expiresAt: null, payerCpfMasked: undefined }))
+        renderScreen()
+        expect(screen.getByTestId('qr')).toHaveTextContent('00020101021226...')
+        expect(screen.queryByText(/Fee/)).toBeNull()
+        expect(screen.queryByText(/Expires in/)).toBeNull()
+        expect(screen.queryByText(/under your CPF/)).toBeNull()
+    })
+
+    it('names the banks whose Pix the provider sends back', () => {
         state('pending')
         renderScreen(['Caixa', 'Sicredi', 'Sicoob'])
         expect(screen.getByText('A Pix from Caixa, Sicredi, or Sicoob is returned.')).toBeInTheDocument()

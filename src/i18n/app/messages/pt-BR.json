@@ -2548,19 +2548,19 @@
         "payResidence": "Os pagamentos Pix ainda não estão disponíveis onde você mora.",
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
         "setup": {
-            "importUnavailable": "A Avenia ainda não consegue receber a sua verificação. Enviamos de novo todos os dias.",
-            "reviewing": "A Avenia está conferindo a sua verificação. Esta tela avança quando terminar.",
+            "importUnavailable": "Nosso parceiro de pagamentos ainda não consegue receber a sua verificação. Enviamos de novo todos os dias.",
+            "reviewing": "Nosso parceiro de pagamentos está conferindo a sua verificação. Esta tela avança quando terminar.",
             "verifyCta": "Verificar identidade",
             "title": "Configurar o Pix",
-            "body": "A Avenia oferece Pix para residentes do Brasil. Ela recebe a sua verificação do Peanut, então não há uma segunda verificação.",
+            "body": "Nosso parceiro de pagamentos oferece o Pix. Ele recebe a sua verificação do Peanut, então não há uma segunda verificação.",
             "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
             "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
-            "termsNotSaved": "O aceite dos termos da Avenia não foi salvo. Tente de novo.",
+            "termsNotSaved": "O seu aceite dos termos não foi salvo. Tente de novo.",
             "notAvailable": "Não foi possível configurar o Pix. Fale com o suporte para concluir."
         },
         "deposit": {
             "startNew": "Fazer um novo depósito",
-            "fee": "Tarifa da Avenia {amount}",
+            "fee": "Taxa {amount}",
             "showCode": "Mostrar código",
             "youGet": "Você recebe ≈ {amount}",
             "blockedBanks": "Um Pix de {banks} é devolvido.",
@@ -2574,7 +2574,7 @@
             "changeAmount": "Alterar valor",
             "stuck": "Este saque não foi concluído. Fale com o suporte.",
             "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
-            "aveniaFee": "Tarifa da Avenia",
+            "fee": "Taxa",
             "keyIntro": "Digite uma chave Pix registrada no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
             "lookupFailed": "Não foi possível conferir esta chave. Tente de novo.",
@@ -2599,11 +2599,12 @@
                 "afterInit": "Confira o Histórico antes de tentar de novo.",
                 "quoteChanged": "O valor mudou durante a cotação. Tente de novo."
             },
-            "changeKey": "Alterar chave"
+            "changeKey": "Alterar chave",
+            "withdrawing": "Sacando"
         },
         "recovery": {
             "actionNeeded": "Ação necessária",
-            "intro": "O banco recusou o pagamento para a chave anterior. O dinheiro está aguardando na Avenia. Digite uma chave Pix de outra conta no seu CPF.",
+            "intro": "O banco recusou o pagamento para a chave anterior. O seu dinheiro está aguardando. Digite uma chave Pix de outra conta no seu CPF.",
             "notice": "O banco recusou este pagamento. O dinheiro aguarda outra chave no seu CPF.",
             "addKey": "Adicionar chave Pix",
             "savedTitle": "Chave Pix salva",

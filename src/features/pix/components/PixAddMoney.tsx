@@ -1,6 +1,5 @@
 'use client'
 
-import MantecaAddMoney from '@/components/AddMoney/components/MantecaAddMoney'
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
 import { PixDepositFlow } from '@/features/pix/components/PixDepositFlow'
@@ -9,9 +8,9 @@ import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableSc
 import { usePixRoute } from '@/features/pix/usePixRoute'
 
 /**
- * Add money by Pix (`/add-money/pix`). The backend's deposit route names the
- * provider; this mounts that provider's screens. The route also carries every
- * pause (the residence's, a provider's, a currency's), so the page reads no switch.
+ * Add money by Pix (`/add-money/pix`). The backend's deposit route picks the
+ * provider, and the one Pix flow serves it. The route also carries every pause
+ * (the residence's, a provider's, a currency's), so the page reads no switch.
  */
 export function PixAddMoney() {
     const t = useTranslations('addMoney')
@@ -19,7 +18,6 @@ export function PixAddMoney() {
 
     if (screen === 'loading') return <Loading variant="mascot" />
     if (screen === 'paused') return <PixPausedScreen route={route} action="deposits" />
-    if (screen === 'avenia' && route) return <PixDepositFlow route={route} />
-    if (screen === 'manteca') return <MantecaAddMoney countryPath="brazil" />
+    if (screen === 'flow' && route) return <PixDepositFlow route={route} />
     return <PixUnavailableScreen title={t('title')} route={route} />
 }

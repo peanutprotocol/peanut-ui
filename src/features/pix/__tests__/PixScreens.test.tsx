@@ -3,10 +3,6 @@ import { render, screen } from '@testing-library/react'
 import type { CapabilityRoute } from '@/types/capabilities'
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
-jest.mock('nuqs', () => ({
-    parseAsString: {},
-    useQueryStates: () => [{ destination: null, isSavedAccount: null }, jest.fn()],
-}))
 let mockRoutes: CapabilityRoute[] | undefined
 let mockLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -23,22 +19,17 @@ jest.mock('@/features/pix/components/PixUnavailableScreen', () => ({
     PixUnavailableScreen: () => <div>unavailable</div>,
 }))
 jest.mock('@/features/pix/components/PixDepositFlow', () => ({
-    PixDepositFlow: ({ route }: { route: CapabilityRoute }) => <div>avenia deposit {route.state}</div>,
+    PixDepositFlow: ({ route }: { route: CapabilityRoute }) => (
+        <div>
+            pix deposit {route.provider} {route.state}
+        </div>
+    ),
 }))
 jest.mock('@/features/pix/components/PixWithdrawFlow', () => ({
-    PixWithdrawFlow: ({ route }: { route: CapabilityRoute }) => <div>avenia withdraw {route.state}</div>,
-}))
-jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
-    __esModule: true,
-    default: ({ countryPath }: { countryPath: string }) => <div>manteca deposit {countryPath}</div>,
-}))
-jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
-    KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
-}))
-jest.mock('@/features/withdraw/views/MantecaBankWithdrawFlow', () => ({
-    __esModule: true,
-    default: ({ searchParams }: { searchParams: URLSearchParams }) => (
-        <div>manteca withdraw {searchParams.get('country')}</div>
+    PixWithdrawFlow: ({ route }: { route: CapabilityRoute }) => (
+        <div>
+            pix withdraw {route.provider} {route.state}
+        </div>
     ),
 }))
 
@@ -60,22 +51,21 @@ describe('the neutral Pix screens', () => {
         mockLoading = false
     })
 
-    it("mount Avenia's screens when the route names Avenia", () => {
+    it('mount the one Pix flow, with its route, whichever provider the route names', () => {
         mockRoutes = [route('deposit', { state: 'action_required', action: 'activate' }), route('withdraw')]
         const { unmount } = render(<PixAddMoney />)
-        expect(screen.getByText('avenia deposit action_required')).toBeInTheDocument()
+        expect(screen.getByText('pix deposit avenia action_required')).toBeInTheDocument()
         unmount()
-        render(<PixWithdraw />)
-        expect(screen.getByText('avenia withdraw ready')).toBeInTheDocument()
-    })
+        const withdraw = render(<PixWithdraw />)
+        expect(screen.getByText('pix withdraw avenia ready')).toBeInTheDocument()
+        withdraw.unmount()
 
-    it("mount Manteca's screens, for Brazil, when the route names Manteca", () => {
         mockRoutes = [route('deposit', { provider: 'manteca' }), route('withdraw', { provider: 'manteca' })]
-        const { unmount } = render(<PixAddMoney />)
-        expect(screen.getByText('manteca deposit brazil')).toBeInTheDocument()
-        unmount()
+        const deposit = render(<PixAddMoney />)
+        expect(screen.getByText('pix deposit manteca ready')).toBeInTheDocument()
+        deposit.unmount()
         render(<PixWithdraw />)
-        expect(screen.getByText('manteca withdraw brazil')).toBeInTheDocument()
+        expect(screen.getByText('pix withdraw manteca ready')).toBeInTheDocument()
     })
 
     // the router reads the pause switches: the paused route is the only pause these pages show
@@ -84,11 +74,11 @@ describe('the neutral Pix screens', () => {
         mockRoutes = [route('deposit', { provider: 'manteca', ...residencePaused }), route('withdraw', residencePaused)]
         const { unmount } = render(<PixAddMoney />)
         expect(screen.getByText('brazil paused')).toBeInTheDocument()
-        expect(screen.queryByText(/manteca deposit/)).toBeNull()
+        expect(screen.queryByText(/pix deposit/)).toBeNull()
         unmount()
         render(<PixWithdraw />)
         expect(screen.getByText('brazil paused')).toBeInTheDocument()
-        expect(screen.queryByText(/avenia withdraw/)).toBeNull()
+        expect(screen.queryByText(/pix withdraw/)).toBeNull()
     })
 
     it("show the outage for a provider's or a currency's pause", () => {
@@ -113,7 +103,7 @@ describe('the neutral Pix screens', () => {
         ]
         render(<PixAddMoney />)
         expect(screen.getByText('unavailable')).toBeInTheDocument()
-        expect(screen.queryByText(/manteca deposit/)).toBeNull()
+        expect(screen.queryByText(/pix deposit/)).toBeNull()
     })
 
     it('show the outage screen on a paused route, and never fall back to another provider', () => {

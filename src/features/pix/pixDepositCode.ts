@@ -1,6 +1,6 @@
 /**
  * A Pix deposit's code, read from one source: GET /pix/deposit/:intentId. Kept apart from
- * avenia.utils so the history transformer can read it without the deposit and withdraw helpers.
+ * pixFlow.utils so the history transformer can read it without the deposit and withdraw helpers.
  */
 import type { HistoryEntryExtraData } from '@/utils/history.utils'
 

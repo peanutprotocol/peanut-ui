@@ -11,20 +11,23 @@ import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import { ProviderRow } from '@/components/Provider/ProviderRow'
 import type { PixWithdrawDisplay } from '@/services/pix'
+import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
 import { arrivalMinutes, pixShownRate } from '@/features/pix/pixFlow.utils'
 
 /**
- * Review of a Pix withdrawal, from POST /avenia/withdraw/preview: the reais
+ * Review of a Pix withdrawal, from POST /pix/withdraw/preview: the reais
  * the account receives as the headline, the key in its own group, then what
- * leaves the wallet, the rate with every percentage fee inside (Avenia's and
- * Rhino's), Avenia's flat fee as its own line, and the API's arrival estimate.
+ * leaves the wallet, the rate with every percentage fee inside, the
+ * provider's flat fee as its own line where it charges one, and the API's
+ * arrival estimate.
  * Dumb view: the flow owns the preview and the confirm.
  */
 export function PixWithdrawReview({
     title,
     display,
+    providerId,
     isLoading,
     isSubmitting,
     error,
@@ -36,6 +39,8 @@ export function PixWithdrawReview({
     title: string
     /** null while the preview loads, and after it was refused */
     display: PixWithdrawDisplay | null
+    /** The provider the route names, for its row and sheet; null shows no row. */
+    providerId: ProviderId | null
     isLoading: boolean
     isSubmitting: boolean
     /** A refusal (error), or the opened quote that moved since the review (attention). */
@@ -75,7 +80,7 @@ export function PixWithdrawReview({
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center>
                 <div className="text-center">
-                    <p className="text-body-s text-foreground-secondary">{tWithdraw('manteca.youreWithdrawing')}</p>
+                    <p className="text-body-s text-foreground-secondary">{t('withdrawing')}</p>
                     {display ? (
                         <p className="text-heading-s text-foreground-primary">
                             {formatBankAmount(display.amountBrl, 'BRL')}
@@ -108,12 +113,15 @@ export function PixWithdrawReview({
                             value={display ? `1 USD = BRL ${formatCurrency(pixShownRate(display), 6)}` : ''}
                             loading={isLoading}
                         />
-                        {/* the rate holds the percentage fees; the flat fee is its own line (Hugo's fees table) */}
-                        <DataRow
-                            label={t('aveniaFee')}
-                            value={display ? formatBankAmount(display.fixedFeeBrl, 'BRL') : ''}
-                            loading={isLoading}
-                        />
+                        {/* the rate holds the percentage fees; a flat fee is its own line (Hugo's fees table),
+                            and a provider that charges none shows no line */}
+                        {!(display && Number(display.fixedFeeBrl) === 0) && (
+                            <DataRow
+                                label={t('fee')}
+                                value={display ? formatBankAmount(display.fixedFeeBrl, 'BRL') : ''}
+                                loading={isLoading}
+                            />
+                        )}
                         <DataRow
                             label={tWithdraw('bank.arrives')}
                             value={
@@ -123,7 +131,7 @@ export function PixWithdrawReview({
                             }
                             loading={isLoading}
                         />
-                        <ProviderRow providerId="avenia-br" />
+                        {providerId && <ProviderRow providerId={providerId} />}
                     </DataRowGroup>
                 </Card>
 

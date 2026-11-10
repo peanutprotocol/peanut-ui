@@ -2548,19 +2548,19 @@
         "payResidence": "Pix payments are not available where you live yet.",
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
-            "importUnavailable": "Avenia cannot receive your verification yet. We send it again each day.",
-            "reviewing": "Avenia is checking your verification. This screen moves on once it is done.",
+            "importUnavailable": "Our payment partner cannot receive your verification yet. We send it again each day.",
+            "reviewing": "Our payment partner is checking your verification. This screen moves on once it is done.",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
-            "body": "Avenia provides Pix for residents of Brazil. It receives your Peanut verification, so there is no second check.",
+            "body": "Our payment partner provides Pix. It receives your Peanut verification, so there is no second check.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
             "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
-            "termsNotSaved": "The acceptance of Avenia's terms was not saved. Try again.",
+            "termsNotSaved": "Your acceptance of the terms was not saved. Try again.",
             "notAvailable": "Pix could not be set up. Contact support to finish it."
         },
         "deposit": {
             "startNew": "Start a new deposit",
-            "fee": "Avenia fee {amount}",
+            "fee": "Fee {amount}",
             "showCode": "Show code",
             "youGet": "You get ≈ {amount}",
             "blockedBanks": "A Pix from {banks} is returned.",
@@ -2574,7 +2574,7 @@
             "changeAmount": "Change amount",
             "stuck": "This withdrawal did not finish. Contact support.",
             "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
-            "aveniaFee": "Avenia fee",
+            "fee": "Fee",
             "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
@@ -2599,11 +2599,12 @@
                 "afterInit": "Check History before trying again.",
                 "quoteChanged": "The amount changed while it was quoted. Try again."
             },
-            "changeKey": "Change key"
+            "changeKey": "Change key",
+            "withdrawing": "Withdrawing"
         },
         "recovery": {
             "actionNeeded": "Action needed",
-            "intro": "The bank refused the payout to the previous key. The money is waiting with Avenia. Enter a Pix key of another account under your CPF.",
+            "intro": "The bank refused the payout to the previous key. Your money is waiting. Enter a Pix key of another account under your CPF.",
             "notice": "The bank refused this payout. The money waits for another key under your CPF.",
             "addKey": "Add Pix key",
             "savedTitle": "Pix key saved",

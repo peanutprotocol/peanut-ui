@@ -7,7 +7,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { pixDepositCodeUrl } from '@/features/pix/pix.routes'
 
 /**
- * On the receipt of an Avenia Pix deposit whose code can still be paid: the
+ * On the receipt of a Pix deposit whose code can still be paid: the
  * button opens that code again, the way the new-key notice opens its screen.
  * Renders nothing on any other receipt. The API sends the code state to the
  * owner only, so a shared receipt never shows it.

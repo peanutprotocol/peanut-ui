@@ -7,8 +7,8 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { pixNewKeyUrl } from '@/features/pix/pixRecovery'
 
 /**
- * On the receipt of an Avenia withdrawal whose payout the bank refused for its
- * key or account: the money waits with Avenia, and the CTA opens the new-key
+ * On the receipt of a Pix withdrawal whose payout the bank refused for its
+ * key or account: the money waits with the provider, and the CTA opens the new-key
  * screen. Renders nothing on any other receipt. The API sends the recovery to
  * the signed-in owner only (a public read strips it), so a shared receipt never
  * shows it; the key-required notification lands on this receipt.

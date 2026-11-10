@@ -8,27 +8,25 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { PROVIDERS } from '@/constants/providers.consts'
-import { useAuth } from '@/context/authContext'
-import { useModalsContext } from '@/context/ModalsContext'
+import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
 import { pixPendingReason, pixSetupState } from '@/features/pix/pixFlow.utils'
+import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRouteTermsAcceptance } from '@/hooks/useRouteTermsAcceptance'
 import type { CapabilityRoute } from '@/types/capabilities'
-import { buildContactSupportMessage } from '@/utils/contact-support.utils'
-
-const AVENIA = PROVIDERS['avenia-br']
+import { pixProviderId } from '@/utils/provider.utils'
 
 /**
- * The user's step before Avenia Pix works, as the backend's route names it:
- * the identity check first; Avenia's terms, which the user accepts here (the
- * API then shares the Peanut verification with Avenia, so there is no second
- * check); then the wait while Avenia reviews it. The flow under it renders
- * once the route is ready.
+ * The user's step before Pix works, as the backend's route names it: the
+ * identity check first; the provider's terms, which the user accepts here (the
+ * API then shares the Peanut verification with the provider, so there is no
+ * second check); the account the first use opens; then the wait while the
+ * provider reviews it. The flow under it renders once the route is ready.
  */
 export function PixSetup({
     title,
@@ -44,25 +42,37 @@ export function PixSetup({
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const router = useRouter()
-    const { openSupportWithMessage } = useModalsContext()
-    const { user } = useAuth()
     const { nextActions } = useCapabilities()
     const termsAction = nextActions.find((action) => action.key === route?.action)
     const state = pixSetupState(route, termsAction?.kind)
     const terms = useRouteTermsAcceptance(state === 'accept-terms' ? route?.action : undefined)
     const pending = pixPendingReason(route?.reason?.code)
-    // the route's reason tells support which case this is
-    const contactSupport = () =>
-        openSupportWithMessage(buildContactSupportMessage({ reason: route?.reason, userId: user?.user?.userId }))
+    // the provider whose terms the user accepts, as the route names it
+    const providerId = pixProviderId(route?.provider)
+    const provider = providerId ? PROVIDERS[providerId] : null
 
-    if (state === 'support' || (state === 'pending' && pending === 'cpf-missing')) {
+    // a consent screen names the terms it accepts: a provider this build has no record of goes to support
+    if (
+        state === 'support' ||
+        (state === 'accept-terms' && !provider) ||
+        (state === 'pending' && pending === 'cpf-missing')
+    ) {
         return (
-            <MantecaAccountUnavailable
+            <PixUnavailableScreen
                 title={title}
-                description={t(state === 'pending' ? 'cpfRequired' : 'notAvailable')}
+                route={route}
                 onBack={onBack}
-                onSupport={contactSupport}
+                description={t(state === 'pending' ? 'cpfRequired' : 'notAvailable')}
             />
+        )
+    }
+
+    // The first use opens the provider's account for Pix; the route turns ready once it is open.
+    if (state === 'activate') {
+        return (
+            <KycFeatureActivationGate feature="local" scope={{ channel: 'bank', country: 'BR' }}>
+                <Loading variant="mascot" />
+            </KycFeatureActivationGate>
         )
     }
 
@@ -119,10 +129,10 @@ export function PixSetup({
                         screens). The link is the document the API versions and hashes. */}
                     <p className="text-center text-body-xs text-foreground-secondary">
                         {t.rich('terms', {
-                            termsName: AVENIA.termsName ?? AVENIA.brand,
+                            termsName: provider?.termsName ?? provider?.brand ?? '',
                             terms: (chunks) => (
                                 <a
-                                    href={termsAction?.tosUrl ?? AVENIA.termsUrl}
+                                    href={termsAction?.tosUrl ?? provider?.termsUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="underline underline-offset-2"
@@ -132,7 +142,7 @@ export function PixSetup({
                             ),
                         })}
                     </p>
-                    <ProviderFinePrint providerId="avenia-br" label="accountProvider" prospective />
+                    {providerId && <ProviderFinePrint providerId={providerId} label="accountProvider" prospective />}
                     {terms.error && <Callout priority="error">{terms.error}</Callout>}
                 </div>
             </PageStack.Center>

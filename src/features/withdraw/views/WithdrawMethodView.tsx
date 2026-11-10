@@ -268,7 +268,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                                 // Brazil's own-account withdrawal has one page, where the backend's route
                                 // picks the provider; a saved Brazil key in Send pays over Pix (the key screen).
                                 ownBrazilWithdrawal
-                                    ? pixWithdrawUrl({ destination: account.identifier, isSavedAccount: 'true' })
+                                    ? pixWithdrawUrl(account.identifier)
                                     : mantecaWithdrawUrl({
                                           country: countryPath,
                                           destination: account.identifier,

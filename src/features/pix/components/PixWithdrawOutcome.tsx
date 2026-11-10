@@ -18,11 +18,12 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import type { PixWithdrawDisplay } from '@/services/pix'
+import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
 
 /**
  * The last step of a Pix withdrawal (`?intentId=`). The withdrawal's history
- * entry says whether Avenia paid the Pix. `sent` is what this session signed;
+ * entry says whether the provider paid the Pix. `sent` is what this session signed;
  * after a reload it is null and the screen reads the amount from the entry.
  * A deposit this device may have sent counts as unconfirmed until the entry
  * says otherwise; one it never sent reads as not sent, with a way to start again.
@@ -30,11 +31,14 @@ import { formatBankAmount } from '@/utils/currency'
 export function PixWithdrawOutcome({
     title,
     intentId,
+    providerId,
     sent,
     onStartAgain,
 }: {
     title: string
     intentId: string
+    /** The provider the route names, for its row and sheet; null shows no row. */
+    providerId: ProviderId | null
     sent: { phase: 'funded' | 'unconfirmed'; display: PixWithdrawDisplay } | null
     /** Nothing left the wallet: a new withdrawal. */
     onStartAgain: () => void
@@ -72,7 +76,7 @@ export function PixWithdrawOutcome({
             {outcome === 'arrived' && <SoundPlayer sound="success" />}
             <NavHeader title={title} hideBackBtn />
             <PageStack.Center className="items-center text-center">
-                {/* a funded deposit is a wait, not a success, until Avenia's payout completes the entry */}
+                {/* a funded withdrawal is a wait, not a success, until the provider's payout completes the entry */}
                 <IconBubble
                     icon={outcome === 'arrived' ? 'check' : failed || outcome === 'needs-key' ? 'alert' : 'clock'}
                     size="l"
@@ -113,7 +117,7 @@ export function PixWithdrawOutcome({
                         {tCommon('done')}
                     </Button>
                 )}
-                <ProviderFinePrint providerId="avenia-br" />
+                {providerId && <ProviderFinePrint providerId={providerId} />}
             </PageStack.Center>
         </PageStack>
     )

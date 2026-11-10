@@ -9,21 +9,20 @@ export function findPixRoute(
     return routes?.find((route) => route.operation === operation && route.method === PIX_METHOD)
 }
 
-/** Whose screens a Pix deposit or withdrawal mounts, from the backend's route. */
-export type PixScreen = 'loading' | 'paused' | 'avenia' | 'manteca' | 'unavailable'
+/** What a Pix deposit or withdrawal page shows, from the backend's route: one flow for every provider. */
+export type PixScreen = 'loading' | 'paused' | 'flow' | 'unavailable'
 
 /**
- * The route names the provider. A paused route shows the provider-outage
- * screen; a refused route shows "not available" with its reason, never another
- * provider's screens.
+ * A paused route shows the outage screen; a refused route, or none, shows "not
+ * available" with its reason. Any other route mounts the Pix flow, whichever
+ * provider it names: the flow reads the user's step from the route, and the
+ * provider's differences from the API's answers.
  */
 export function pixScreen(route: CapabilityRoute | undefined, isLoading: boolean): PixScreen {
     if (isLoading) return 'loading'
     if (!route || route.state === 'refused') return 'unavailable'
     if (route.state === 'paused') return 'paused'
-    if (route.provider === 'avenia') return 'avenia'
-    if (route.provider === 'manteca') return 'manteca'
-    return 'unavailable'
+    return 'flow'
 }
 
 /**

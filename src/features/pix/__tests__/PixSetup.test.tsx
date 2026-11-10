@@ -26,6 +26,13 @@ const mockTermsHook = jest.fn((key: string | undefined) => ({
 jest.mock('@/hooks/useRouteTermsAcceptance', () => ({
     useRouteTermsAcceptance: (key: string | undefined) => mockTermsHook(key),
 }))
+const mockGate = jest.fn()
+jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
+    KycFeatureActivationGate: (props: { feature: string; scope: unknown }) => {
+        mockGate(props.feature, props.scope)
+        return <div>activation gate</div>
+    },
+}))
 
 import { PixSetup } from '../components/PixSetup'
 
@@ -78,5 +85,26 @@ describe('PixSetup', () => {
         fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
         expect(mockPush).toHaveBeenCalledWith('/verify')
         expect(mockTermsHook).toHaveBeenCalledWith(undefined)
+    })
+
+    // the first use opens the provider's account (route action `activate`): the activation gate opens it,
+    // and the route turns ready once it is open
+    it('opens the account the first use needs through the activation gate', () => {
+        renderSetup(route({ provider: 'manteca', action: 'activate' }))
+        expect(screen.getByText('activation gate')).toBeInTheDocument()
+        expect(mockGate).toHaveBeenCalledWith('local', { channel: 'bank', country: 'BR' })
+        expect(mockTermsHook).toHaveBeenCalledWith(undefined)
+    })
+
+    it('sends a terms step whose provider this build has no record of to support, never an unnamed consent', () => {
+        renderSetup(
+            route({
+                provider: 'rain',
+                action: 'accept-tos:avenia',
+                reason: { code: 'terms_required', userMessage: '' },
+            })
+        )
+        expect(screen.queryByRole('link')).toBeNull()
+        expect(screen.getByText(en.pix.setup.notAvailable)).toBeInTheDocument()
     })
 })

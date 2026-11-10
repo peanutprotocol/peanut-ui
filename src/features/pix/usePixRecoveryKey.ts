@@ -30,7 +30,7 @@ export interface PixRecoveryKey {
     /** Sends a key the lookup resolved to the user's own account. */
     submit: (pixKey: string) => Promise<void>
     phase: PixRecoveryKeyPhase
-    /** Localized refusal (someone else's key, a blocked bank, Avenia unavailable); null when there is none. */
+    /** Localized refusal (someone else's key, a blocked bank, the provider unavailable); null when there is none. */
     refusal: PixRecoveryKeyRefusal | null
 }
 

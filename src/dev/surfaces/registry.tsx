@@ -338,6 +338,7 @@ function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }
             <PixWithdrawOutcome
                 title="Withdraw"
                 intentId="fixture-avenia-withdrawal"
+                providerId="avenia-br"
                 sent={{ phase: 'funded', display }}
                 onStartAgain={noop}
             />
@@ -357,6 +358,7 @@ function AveniaWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'af
             <PixWithdrawReview
                 title="Withdraw"
                 display={AVENIA_SURFACE_DISPLAY}
+                providerId="avenia-br"
                 isLoading={false}
                 isSubmitting={false}
                 error={error}
