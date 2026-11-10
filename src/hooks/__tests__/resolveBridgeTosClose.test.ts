@@ -9,6 +9,7 @@ import posthog from 'posthog-js'
 import { resolveBridgeTosClose } from '@/hooks/useMultiPhaseKycFlow'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
+import type { FeatureReport, FeatureReportEntry, NextAction, UserCapabilities } from '@/types/capabilities'
 
 const mockConfirmBridgeTos = jest.fn()
 jest.mock('@/app/actions/users', () => ({
@@ -18,13 +19,26 @@ jest.mock('@/app/actions/users', () => ({
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn(), useSubmissionWindow: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-const fetchUser = jest.fn().mockResolvedValue(null)
+const terms: NextAction = { key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }
+const requiresTerms: FeatureReportEntry = { state: 'action_required', action: terms.key }
+const settledFeatures: FeatureReport = {
+    qr: { state: 'on' },
+    card: { state: 'ready' },
+    local: { state: 'pending', accounts: {} },
+    bank: { ...requiresTerms, accounts: { USD: { state: 'setting_up' }, EUR: requiresTerms } },
+}
+const settled: UserCapabilities = { rails: [], restrictions: [], nextActions: [terms], features: settledFeatures }
+const pending: UserCapabilities = {
+    ...settled,
+    features: { ...settledFeatures, bank: { ...requiresTerms, accounts: { USD: requiresTerms, EUR: requiresTerms } } },
+}
+const fetchUser = jest.fn()
 
 describe('resolveBridgeTosClose', () => {
     beforeEach(() => {
         jest.useFakeTimers()
         mockConfirmBridgeTos.mockReset()
-        fetchUser.mockClear()
+        fetchUser.mockReset().mockResolvedValue({ capabilities: settled })
         ;(markSubmitted as jest.Mock).mockClear()
         ;(posthog.capture as jest.Mock).mockClear()
     })
@@ -32,9 +46,9 @@ describe('resolveBridgeTosClose', () => {
 
     // Drives the helper to completion while its sleeps are faked away.
     const run = async (source: Exclude<IframeCloseSource, 'manual'>) => {
-        const pending = resolveBridgeTosClose(fetchUser, source)
+        const verdict = resolveBridgeTosClose(fetchUser, source, 'US')
         await jest.runAllTimersAsync()
-        return pending
+        return verdict
     }
 
     it("reports Bridge's yes and records the acceptance with how the page closed", async () => {
@@ -70,11 +84,30 @@ describe('resolveBridgeTosClose', () => {
         await expect(run('returned')).resolves.toBe(false)
     })
 
-    it("treats Bridge's own signature report as accepted even if the confirm endpoint lags", async () => {
+    it('does not advance on an early signature when confirmation is negative', async () => {
         mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: false } })
+        await expect(run('tos_accepted')).resolves.toBe(false)
+        expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(2)
+        expect(markSubmitted).not.toHaveBeenCalled()
+        expect(fetchUser).not.toHaveBeenCalled()
+    })
+
+    it('waits for USD terms after a signature, even when EUR still needs terms', async () => {
+        mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: true } })
+        fetchUser.mockResolvedValueOnce({ capabilities: pending }).mockResolvedValueOnce({ capabilities: settled })
         await expect(run('tos_accepted')).resolves.toBe(true)
         expect(markSubmitted).toHaveBeenCalled()
-        expect(fetchUser).toHaveBeenCalled()
+        expect(fetchUser).toHaveBeenCalledTimes(2)
         expect(posthog.capture).toHaveBeenCalledWith('kyc_tos_accepted', { source: 'tos_accepted' })
+    })
+
+    it.each([
+        ['missing', null],
+        ['blocked on USD terms', { capabilities: pending }],
+    ])('does not complete when the confirmed profile remains %s', async (_label, profile) => {
+        mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: true } })
+        fetchUser.mockResolvedValue(profile)
+        await expect(run('returned')).resolves.toBe(false)
+        expect(fetchUser).toHaveBeenCalledTimes(3)
     })
 })
