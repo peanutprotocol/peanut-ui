@@ -2033,12 +2033,12 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/pix',
         about: 'Avenia cannot receive the verification yet: the wait says it is sent again each day.',
         isLoadingState: true,
-        responses: aveniaPending('avenia_import_unavailable'),
+        responses: aveniaPending('identity_import_unavailable'),
     },
     'avenia-setup-cpf-missing': {
         route: '/add-money/pix',
         about: 'The verification has no CPF for Avenia: the step sends the user to support.',
-        responses: aveniaPending('avenia_cpf_missing'),
+        responses: aveniaPending('tax_id_missing'),
     },
     'avenia-setup-support': {
         route: '/withdraw/pix',

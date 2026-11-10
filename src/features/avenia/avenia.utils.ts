@@ -8,8 +8,8 @@ import { awaitsNewPixKey } from '@/features/avenia/aveniaRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 /** The pending route's reasons while Avenia reviews the shared verification (api `kyc/capabilities`). */
-const AVENIA_IMPORT_UNAVAILABLE_REASON = 'avenia_import_unavailable'
-const AVENIA_CPF_MISSING_REASON = 'avenia_cpf_missing'
+const IDENTITY_IMPORT_UNAVAILABLE_REASON = 'identity_import_unavailable'
+const TAX_ID_MISSING_REASON = 'tax_id_missing'
 
 /** R$0.75 fixed on R$10 is 7.5%, so Avenia deposits start at R$20 (plan H2). The eligibility route has the live value. */
 export const AVENIA_MIN_DEPOSIT_BRL = 20
@@ -47,8 +47,8 @@ export function aveniaSetupState(
 export type AveniaPendingReason = 'reviewing' | 'import-unavailable' | 'cpf-missing'
 
 export function aveniaPendingReason(code: string | undefined): AveniaPendingReason {
-    if (code === AVENIA_CPF_MISSING_REASON) return 'cpf-missing'
-    return code === AVENIA_IMPORT_UNAVAILABLE_REASON ? 'import-unavailable' : 'reviewing'
+    if (code === TAX_ID_MISSING_REASON) return 'cpf-missing'
+    return code === IDENTITY_IMPORT_UNAVAILABLE_REASON ? 'import-unavailable' : 'reviewing'
 }
 
 /** The API's arrival estimate in whole minutes, at least one, for the Arrives row. */

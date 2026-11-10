@@ -60,7 +60,7 @@ describe('AveniaPixSetup', () => {
 
     it.each([
         ['provider_reviewing', en.avenia.setup.reviewing],
-        ['avenia_import_unavailable', en.avenia.setup.importUnavailable],
+        ['identity_import_unavailable', en.avenia.setup.importUnavailable],
     ])('waits with the reason as user text (%s)', (code, text) => {
         renderSetup(route({ state: 'pending', reason: { code, userMessage: '' } }))
         expect(screen.getByText(text)).toBeInTheDocument()
@@ -68,7 +68,7 @@ describe('AveniaPixSetup', () => {
     })
 
     it('sends a missing CPF to support', () => {
-        renderSetup(route({ state: 'pending', reason: { code: 'avenia_cpf_missing', userMessage: '' } }))
+        renderSetup(route({ state: 'pending', reason: { code: 'tax_id_missing', userMessage: '' } }))
         expect(screen.getByText(en.avenia.setup.cpfRequired)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
         expect(mockOpenSupport).toHaveBeenCalled()

@@ -46,8 +46,8 @@ describe('aveniaSetupState', () => {
 describe('aveniaPendingReason', () => {
     it('names why the route waits', () => {
         expect(aveniaPendingReason('provider_reviewing')).toBe('reviewing')
-        expect(aveniaPendingReason('avenia_import_unavailable')).toBe('import-unavailable')
-        expect(aveniaPendingReason('avenia_cpf_missing')).toBe('cpf-missing')
+        expect(aveniaPendingReason('identity_import_unavailable')).toBe('import-unavailable')
+        expect(aveniaPendingReason('tax_id_missing')).toBe('cpf-missing')
         expect(aveniaPendingReason(undefined)).toBe('reviewing')
     })
 })
