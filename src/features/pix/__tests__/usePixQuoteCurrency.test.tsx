@@ -71,6 +71,24 @@ describe('usePixQuoteCurrency', () => {
         expect(result.current.price).toBeNull()
     })
 
+    // the old two-query hook fell back to the opening price when the typed amount's quote failed
+    it("never keeps an earlier price when the typed amount's quote fails: the step offers a retry", async () => {
+        mockQuote.mockImplementation(async (request: { amountBrl?: string }) => {
+            if (request.amountBrl === '106.75') throw new Error('503')
+            return MINIMUM
+        })
+        const { result, rerender } = renderHook(
+            ({ typed }: { typed: string | undefined }) => usePixQuoteCurrency('withdraw', typed, '20', true),
+            { wrapper, initialProps: { typed: undefined as string | undefined } }
+        )
+        await waitFor(() => expect(result.current.price).not.toBeNull())
+
+        rerender({ typed: '106.75' })
+
+        await waitFor(() => expect(result.current.isError).toBe(true))
+        expect(result.current.price).toBeNull()
+    })
+
     it('asks for no quote while the amount step is not on screen', async () => {
         const { result } = renderHook(() => usePixQuoteCurrency('withdraw', '100', '20', false), { wrapper })
         await new Promise((resolve) => setTimeout(resolve, 0))
