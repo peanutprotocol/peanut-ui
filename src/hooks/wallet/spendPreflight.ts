@@ -198,9 +198,10 @@ export interface CollateralSpendPreflightArgs<TClient extends { account?: unknow
  *    `withdrawAsset` verifies that sig via ERC-1271 — so the op always
  *    reverts ("Delegatecall failed"). Migrate first as a standalone userOp,
  *    then rebuild the client so the sig is signed AND verified under v0.0.3.
- *    `collateral-only` is exempt on purpose: its withdrawal is submitted
- *    against the CURRENT (pre-migration) on-chain state, where the old
- *    validator still verifies — no reason to add a passkey tap there.
+ *    `collateral-only` migrates too: the backend submits its withdrawal with
+ *    the session key, and ZeroDev's paymaster refuses that userOp (HTTP 403)
+ *    while the on-chain root is still v0.0.2. Auto top-up keeps these wallets
+ *    empty, so no smart or mixed spend ever upgrades them (TASK-24722).
  * 2. Overview validation for the sign-only engine.
  *
  * The session-key grant does NOT belong here: it binds to a coordinator, and
@@ -234,7 +235,7 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
     }
 
     let activeClient = kernelClient
-    if (strategy === 'mixed' && isMigrationWrapperAccount(kernelClient.account)) {
+    if (touchesCollateral && isMigrationWrapperAccount(kernelClient.account)) {
         // The migration adds one passkey tap + a few seconds of confirmation
         // wait. Show the security-verification overlay for the whole beat
         // (same pattern as the mixed flow's admin-sig → userOp gap) so the
@@ -251,7 +252,7 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
                         event === 'attempted'
                             ? ANALYTICS_EVENTS.KERNEL_MIGRATION_ATTEMPTED
                             : ANALYTICS_EVENTS.KERNEL_MIGRATION_SUCCEEDED,
-                        { trigger: migrationTrigger, kind }
+                        { trigger: migrationTrigger, kind, strategy }
                     ),
             })
         } finally {

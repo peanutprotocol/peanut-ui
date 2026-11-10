@@ -204,6 +204,32 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
         })
     })
 
+    // TASK-24722: the preflight migrates an unmigrated wallet and hands back a
+    // rebuilt client. A signature from the old client is checked by a validator
+    // that is no longer the on-chain root.
+    it('signs the admin EIP-712 with the client the preflight returns', async () => {
+        const rebuiltSignTypedData = jest.fn(async () => '0xrebuiltsig')
+        mockPreflight.mockResolvedValue({ account: { address: ACCOUNT, signTypedData: rebuiltSignTypedData } })
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let artifact: Awaited<ReturnType<typeof result.current.signSpend>> | undefined
+        await act(async () => {
+            artifact = await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+                forceStrategy: 'collateral-only',
+            })
+        })
+        expect(mockPreflight).toHaveBeenCalledWith(expect.objectContaining({ strategy: 'collateral-only' }))
+        expect(rebuiltSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(artifact).toEqual({
+            strategy: 'collateral-only',
+            rainWithdrawal: expect.objectContaining({ adminSignature: '0xrebuiltsig' }),
+        })
+    })
+
     it('insufficient collateral: captures the funnel event, refreshes the overview, throws', async () => {
         const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
         const { result } = renderHook(() => useSignSpendBundle(), { wrapper })

@@ -32,6 +32,7 @@ export async function getBinaryInfo(): Promise<BinaryInfo | null> {
                 binaryInfo = { appVersion: info.version, appBuild: info.build }
                 return binaryInfo
             } catch {
+                binaryInfoPending = undefined
                 return null
             }
         })()

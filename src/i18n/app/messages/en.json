@@ -5386,6 +5386,6 @@
     },
     "brazilPause": {
         "title": "Brazil services paused",
-        "body": "BRL deposits, withdrawals and Pix payments are currently unavailable."
+        "body": "BRL deposits and withdrawals are currently unavailable. Pix payments are unavailable for residents of Brazil."
     }
 }
