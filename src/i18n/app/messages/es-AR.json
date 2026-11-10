@@ -201,6 +201,10 @@
             "label": "Próximos pasos"
         }
     },
+    "appUpdateAttention": {
+        "title": "Actualizá Peanut",
+        "description": "Obtené la última versión para disfrutar de una mejor experiencia."
+    },
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",

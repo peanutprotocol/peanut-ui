@@ -80,6 +80,7 @@ export const MIGRATION_SURFACES = {
     SETUP: 'setup',
     GUEST_FLOW: 'guest_flow',
     PROFILE_UPDATE: 'profile_update',
+    ATTENTION_UPDATE: 'attention_update',
     // the /app smart link itself: the store buttons a scanner lands on
     SMART_LINK: 'smart_link',
     // landing folds that get their own download CTA once the flag is on
