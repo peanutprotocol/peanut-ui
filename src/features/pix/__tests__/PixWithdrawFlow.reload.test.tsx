@@ -49,14 +49,24 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 const mockPreview = jest.fn()
 const mockInit = jest.fn()
+const mockSubmitTransfer = jest.fn()
 jest.mock('@/services/pix', () => ({
     pixApi: {
         previewWithdrawal: (request: unknown) => mockPreview(request),
         openWithdrawal: (request: unknown) => mockInit(request),
+        submitWithdrawal: (request: unknown) => mockSubmitTransfer(request),
     },
 }))
 const mockEntry = jest.fn()
 jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => mockEntry() }))
+// the transfer-then-submit signer: these withdrawals sign a deposit with its id
+const mockSignSpend = jest.fn()
+jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
+    useSignSpendBundle: () => ({ signSpend: (input: unknown) => mockSignSpend(input) }),
+}))
+jest.mock('@/hooks/wallet/useRainControllerRepair', () => ({ useRainControllerRepair: () => jest.fn() }))
+jest.mock('@/hooks/wallet/useSignedSpendRecovery', () => ({ useSignedSpendRecovery: () => jest.fn() }))
+jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: null }) }))
 
 import { PixWithdrawFlow } from '../components/PixWithdrawFlow'
 
@@ -192,6 +202,53 @@ describe('PixWithdrawFlow after a reload', () => {
         expect([...opened.keys()].sort()).toEqual(['intentId', 'step'])
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
+    })
+
+    // the other sign kind: nothing opens until the API takes the signed transfer, and its answer names the withdrawal
+    it('opens a transfer-then-submit withdrawal at its submit, then drops the form and shows it on its way', async () => {
+        const display = {
+            amountBrl: '503.00',
+            pixKey: '09579927189',
+            ownAccount: null,
+            holderName: 'Ana Souza',
+            bankName: null,
+            withdrawUsd: '92.504310',
+            rate: '5.437525',
+            fixedFeeBrl: '0',
+            arrivalEstimateSeconds: 300,
+            provider: 'Manteca',
+        }
+        mockPreview.mockResolvedValue(display)
+        mockInit.mockResolvedValue({
+            provider: 'manteca',
+            intentId: null,
+            display,
+            sign: {
+                kind: 'transfer-then-submit',
+                depositAddress: '0x00000000000000000000000000000000000000d3',
+                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                payAmount: '92.504310',
+                payAmountUnits: '92504310',
+                priceLockCode: 'lock-1',
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+        })
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: { sender: '0xabc' }, chainId: '42161', entryPointAddress: '0xe' },
+        })
+        mockSubmitTransfer.mockResolvedValue({ provider: 'manteca', intentId: 'm1', status: 'PROCESSING' })
+        mockEntry.mockReturnValue({ data: undefined, isLoading: true })
+        const urls: string[] = []
+        renderAt('?step=review&destination=09579927189&destinationAmount=503', (event) => urls.push(event.queryString))
+
+        fireEvent.click(await screen.findByRole('button', { name: en.common.confirm }))
+
+        expect(
+            await screen.findByText(en.pix.withdraw.sentTo.replace('{destination}', 'Ana Souza'))
+        ).toBeInTheDocument()
+        await waitFor(() => expect(urls.some((url) => url.includes('intentId=m1'))).toBe(true))
+        expect([...new URLSearchParams(urls.at(-1)).keys()].sort()).toEqual(['intentId', 'step'])
     })
 })
 

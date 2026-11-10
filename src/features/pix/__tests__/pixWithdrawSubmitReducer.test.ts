@@ -8,19 +8,31 @@ import {
     type WithdrawSubmitState,
 } from '../pixWithdrawSubmitReducer'
 
+// open at the provider (deposit-with-id), and not open yet (transfer-then-submit: it opens at its submit)
 const withdrawal = { intentId: 'w1' } as OpenedWithdrawal
 const other = { intentId: 'w2' } as OpenedWithdrawal
+const unopened = { intentId: null } as OpenedWithdrawal
+const otherUnopened = { intentId: null, display: { pixKey: 'k' } } as OpenedWithdrawal
 
 const STATES: Record<string, WithdrawSubmitState> = {
     idle: INITIAL_WITHDRAW_SUBMIT,
     'idle after a refusal': { phase: 'idle', error: 'refused' },
     starting: { phase: 'starting' },
     reconfirm: { phase: 'reconfirm', withdrawal },
+    'reconfirm, not open yet': { phase: 'reconfirm', withdrawal: unopened },
     'opened, re-sign free': { phase: 'opened', withdrawal, error: 'dismissed', resignable: true, resigned: false },
     'opened, no re-sign': { phase: 'opened', withdrawal, error: 'maybe sent', resignable: false, resigned: false },
     'opened, re-sign used': { phase: 'opened', withdrawal, error: 'dismissed', resignable: false, resigned: true },
+    'maybe sent, not open': {
+        phase: 'opened',
+        withdrawal: unopened,
+        error: 'lost',
+        resignable: false,
+        resigned: false,
+    },
     signing: { phase: 'signing', withdrawal, resigned: false },
     're-signing': { phase: 'signing', withdrawal, resigned: true },
+    'signing, not open yet': { phase: 'signing', withdrawal: unopened, resigned: false },
     funded: { phase: 'funded', withdrawal },
     unconfirmed: { phase: 'unconfirmed', withdrawal },
 }
@@ -36,6 +48,7 @@ const EVENTS: Record<WithdrawSubmitEvent['type'], WithdrawSubmitEvent> = {
     SENT_NOTHING: { type: 'SENT_NOTHING', error: 'dismissed again' },
     MAYBE_SENT: { type: 'MAYBE_SENT', error: 'network' },
     MINED: { type: 'MINED' },
+    SUBMITTED: { type: 'SUBMITTED', intentId: 'w9' },
     NO_RECEIPT: { type: 'NO_RECEIPT' },
 }
 
@@ -54,6 +67,11 @@ const TRANSITIONS: Partial<Record<string, Partial<Record<WithdrawSubmitEvent['ty
         SIGN_START: { phase: 'signing', withdrawal, resigned: false },
         QUOTE_EXPIRED: { phase: 'opened', withdrawal, error: 'expired', resignable: false, resigned: false },
     },
+    // nothing is open at the provider: an expired lock leaves nothing to hold, and Confirm starts anew
+    'reconfirm, not open yet': {
+        SIGN_START: { phase: 'signing', withdrawal: unopened, resigned: false },
+        QUOTE_EXPIRED: { phase: 'idle', error: 'expired' },
+    },
     'opened, re-sign free': {
         SIGN_START: { phase: 'signing', withdrawal, resigned: true },
         QUOTE_EXPIRED: { phase: 'opened', withdrawal, error: 'expired', resignable: false, resigned: false },
@@ -62,6 +80,8 @@ const TRANSITIONS: Partial<Record<string, Partial<Record<WithdrawSubmitEvent['ty
         SENT_NOTHING: { phase: 'opened', withdrawal, error: 'dismissed again', resignable: true, resigned: false },
         MAYBE_SENT: { phase: 'opened', withdrawal, error: 'network', resignable: false, resigned: false },
         MINED: { phase: 'funded', withdrawal },
+        // a submit that names its withdrawal keeps the open one's id for a deposit-with-id withdrawal
+        SUBMITTED: { phase: 'funded', withdrawal: { ...withdrawal, intentId: 'w9' } },
         NO_RECEIPT: { phase: 'unconfirmed', withdrawal },
     },
     're-signing': {
@@ -69,7 +89,17 @@ const TRANSITIONS: Partial<Record<string, Partial<Record<WithdrawSubmitEvent['ty
         SENT_NOTHING: { phase: 'opened', withdrawal, error: 'dismissed again', resignable: false, resigned: true },
         MAYBE_SENT: { phase: 'opened', withdrawal, error: 'network', resignable: false, resigned: true },
         MINED: { phase: 'funded', withdrawal },
+        SUBMITTED: { phase: 'funded', withdrawal: { ...withdrawal, intentId: 'w9' } },
         NO_RECEIPT: { phase: 'unconfirmed', withdrawal },
+    },
+    'signing, not open yet': {
+        // nothing open and nothing sent: Confirm opens a new withdrawal, with a new lock
+        SENT_NOTHING: { phase: 'idle', error: 'dismissed again' },
+        // it may have gone out: held, never signed again
+        MAYBE_SENT: { phase: 'opened', withdrawal: unopened, error: 'network', resignable: false, resigned: false },
+        MINED: { phase: 'funded', withdrawal: unopened },
+        SUBMITTED: { phase: 'funded', withdrawal: { ...unopened, intentId: 'w9' } },
+        NO_RECEIPT: { phase: 'unconfirmed', withdrawal: unopened },
     },
 }
 
@@ -86,17 +116,29 @@ describe('withdrawSubmitReducer', () => {
         else expect(next).toBe(state)
     })
 
-    it('holds the opened withdrawal in every state from the open ticket on, so nothing opens twice', () => {
+    it('stops a withdrawal that is not open yet at idle when its lock expires or its contract breaks', () => {
+        for (const type of ['QUOTE_EXPIRED', 'OFF_CONTRACT'] as const) {
+            const next = withdrawSubmitReducer({ phase: 'starting' }, { type, withdrawal: otherUnopened, error: 'x' })
+            expect(next).toEqual({ phase: 'idle', error: 'x' })
+        }
+    })
+
+    it('keeps a submitted withdrawal that could not be named, with nothing lost', () => {
+        const next = withdrawSubmitReducer(STATES['signing, not open yet'], { type: 'SUBMITTED', intentId: null })
+        expect(next).toEqual({ phase: 'funded', withdrawal: unopened })
+    })
+
+    it('holds the opened withdrawal in every state from the open on, so nothing opens twice', () => {
         for (const [name, state] of Object.entries(STATES)) {
             const opened = !['idle', 'idle after a refusal', 'starting'].includes(name)
             expect(openedWithdrawal(state) !== null).toBe(opened)
         }
     })
 
-    it('allows a signature of the open ticket only for a moved quote or a free re-sign', () => {
+    it('allows a signature of the open withdrawal only for a moved quote or a free re-sign', () => {
         const signable = Object.entries(STATES)
             .filter(([, state]) => canSignOpened(state))
             .map(([name]) => name)
-        expect(signable).toEqual(['reconfirm', 'opened, re-sign free'])
+        expect(signable).toEqual(['reconfirm', 'reconfirm, not open yet', 'opened, re-sign free'])
     })
 })

@@ -71,8 +71,10 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const pixKey = completePixKey(destination)
     const amount = pixWithdrawAmount({ amountUsd, amountBrl, spendUsd })
     const submit = usePixWithdrawSubmit({
-        // From the open ticket on, the URL names the withdrawal, not the form: step and intentId
-        // only. The key and the amount live in the ticket, and a reload reads its outcome.
+        provider: route.provider,
+        // From the open withdrawal on, the URL names it, not the form: step and intentId only. The
+        // key and the amount live with the provider, and a reload reads its outcome. A submit that
+        // could not name its withdrawal still drops the form, so a reload cannot send it twice.
         onOpened: (id) => {
             void setIntentId(id)
             void setDestination(null)
@@ -83,21 +85,21 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     })
     const { hasPendingTransactions } = usePendingTransactions()
 
+    const isSent = submit.phase === 'funded' || submit.phase === 'unconfirmed'
     const stepper = useFlowStepper({
         steps: PIX_WITHDRAW_STEPS,
         guards: {
             amount: { ok: !!pixKey, fallback: 'pix-key' },
             // an opened withdrawal stays on its review: the URL then holds only its id
             review: { ok: (!!pixKey && !!amount) || !!intentId, fallback: pixKey ? 'amount' : 'pix-key' },
-            success: { ok: !!intentId },
+            success: { ok: !!intentId || isSent },
         },
     })
     const step = stepper.step
     const { goTo } = stepper
-    const isSent = submit.phase === 'funded' || submit.phase === 'unconfirmed'
-    // The deposit was sent, or the page reloaded after Confirm opened the withdrawal (the
+    // The funding was sent, or the page reloaded after Confirm opened the withdrawal (the
     // signature is gone with the memory): the last step is the only way on.
-    const showOutcome = !!intentId && (isSent || !submit.opened)
+    const showOutcome = isSent || (!!intentId && !submit.opened)
     useEffect(() => {
         if (showOutcome && step !== 'success') void goTo('success')
     }, [showOutcome, step, goTo])
@@ -140,7 +142,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         return (
             <PixWithdrawOutcome
                 title={title}
-                intentId={intentId}
+                intentId={submit.opened?.intentId ?? (intentId || null)}
                 providerId={providerId}
                 // nothing left the wallet: the same key and amount, quoted again
                 // nothing left the wallet: a new withdrawal, from its key (the URL dropped the old form)

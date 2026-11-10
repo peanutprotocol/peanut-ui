@@ -36,7 +36,8 @@ export function PixWithdrawOutcome({
     onStartAgain,
 }: {
     title: string
-    intentId: string
+    /** Null when the submit could not name the withdrawal: the screen then shows what was signed. */
+    intentId: string | null
     /** The provider the route names, for its row and sheet; null shows no row. */
     providerId: ProviderId | null
     sent: { phase: 'funded' | 'unconfirmed'; display: PixWithdrawDisplay } | null
@@ -57,7 +58,7 @@ export function PixWithdrawOutcome({
         sent?.display.amountBrl ?? (entry.data?.currency?.code === 'BRL' ? entry.data.currency.amount : undefined)
     const to = sent ? [sent.display.bankName, sent.display.holderName].filter(Boolean).join(' · ') : ''
     const outcome = pixWithdrawOutcome(
-        sent?.phase ?? (depositMaybeSent(intentId) ? 'unconfirmed' : 'unsigned'),
+        sent?.phase ?? (intentId && depositMaybeSent(intentId) ? 'unconfirmed' : 'unsigned'),
         entry.data
     )
     const failed = outcome === 'not-sent' || outcome === 'refunded' || outcome === 'stuck'
@@ -92,7 +93,7 @@ export function PixWithdrawOutcome({
                         <Button
                             variant="primary"
                             className="w-full"
-                            onClick={() => router.push(pixNewKeyUrl(intentId))}
+                            onClick={() => intentId && router.push(pixNewKeyUrl(intentId))}
                         >
                             {tShared('recovery.addKey')}
                         </Button>

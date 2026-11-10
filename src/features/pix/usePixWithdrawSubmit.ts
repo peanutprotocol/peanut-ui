@@ -9,17 +9,34 @@ import * as Sentry from '@/utils/sentry-lazy'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { pixApi, type PixWithdrawDisplay, type PixWithdrawRequest } from '@/services/pix'
-import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useSignSpendBundle, type SignedSpendArtifact } from '@/hooks/wallet/useSignSpendBundle'
+import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
+import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
+import {
+    isRainControllerChanged,
+    isSpendRecoveryOutcome,
+    isStructuredBroadcastFailure,
+    SpendRecoveryQuoteReviewError,
+    submitSignedSpend,
+} from '@/hooks/wallet/signSpendRetry'
+import {
+    pixApi,
+    type PixWithdrawDisplay,
+    type PixWithdrawRequest,
+    type PixWithdrawSign,
+    type PixWithdrawSubmitRequest,
+} from '@/services/pix'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
 import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/pix/pixFlow.utils'
+import { pixSignedFunding } from '@/features/pix/pixSignedFunding'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import {
     canSignOpened,
     INITIAL_WITHDRAW_SUBMIT,
     openedWithdrawal,
     withdrawSubmitReducer,
-    type DepositWithIdSign,
     type OpenedWithdrawal,
     type WithdrawSubmitEvent,
     type WithdrawSubmitPhase,
@@ -31,12 +48,30 @@ import { BALANCE_DECREASE, PIX_WITHDRAW, TRANSACTIONS } from '@/constants/query.
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isUserCancellation } from '@/hooks/wallet/spendPreflight'
 import { areEvmAddressesEqual, isTxReverted } from '@/utils/general.utils'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
 
 const flowTags = (step: string) => ({ ...criticalFlowTags('withdraw-pix'), withdraw_step: step })
+
+type DepositWithIdSign = Extract<PixWithdrawSign, { kind: 'deposit-with-id' }>
+type TransferSign = Extract<PixWithdrawSign, { kind: 'transfer-then-submit' }>
+
+/**
+ * A submit the API answered before it broadcast moved nothing: a refusal (4xx), the route's pause
+ * (503), a broadcast that provably reverted, or a card controller that changed before the order.
+ * A 502 or a lost answer can come after the broadcast.
+ */
+function submitSentNothing(caught: unknown): boolean {
+    const status = apiErrorStatus(caught)
+    return (
+        isStructuredBroadcastFailure(caught) ||
+        isRainControllerChanged(caught) ||
+        (status !== undefined && ((status >= 400 && status < 500) || status === 503))
+    )
+}
 
 export interface PixWithdrawSubmit {
     /** Opens the withdrawal for the reviewed quote; signs at once unless the opened quote is worse. */
@@ -48,46 +83,58 @@ export interface PixWithdrawSubmit {
     confirmOpened: () => Promise<void>
     /**
      * The opened withdrawal can be signed now: its quote moved and waits for the user, or the
-     * first signature was dismissed or reverted. One such re-sign per ticket, while Rhino's quote
-     * holds; after an unexplained failure the deposit may have gone out, so never.
+     * first signature was dismissed or reverted. One such re-sign per withdrawal, while its quote
+     * holds; after an unexplained failure the funding may have gone out, so never.
      */
     canSignOpened: boolean
     /** The states are documented on `WithdrawSubmitState`. */
     phase: WithdrawSubmitPhase
-    /** The opened withdrawal: what the wallet signs, and what the review and success screens show. */
-    opened: { intentId: string; display: PixWithdrawDisplay } | null
+    /** The opened withdrawal: its id once the provider holds it, and what the review and success screens show. */
+    opened: { intentId: string | null; display: PixWithdrawDisplay } | null
     error: string | null
     /**
-     * True once Avenia's ticket is open. From then on only that ticket can be
-     * signed: a second withdrawal could pay twice, and the API refuses one
-     * while the first ticket is open anyway.
+     * True once Confirm opened a withdrawal. From then on only that withdrawal can be signed: a
+     * second one could pay twice, and the API refuses one while the first is open anyway.
      */
     lockedAfterInit: boolean
 }
 
 /**
- * Confirm of a Pix withdrawal: POST /avenia/withdraw/init opens Avenia's
- * ticket and commits Rhino's quote, then the wallet signs the Rhino deposit
- * (approve + depositWithId, the same calls as a cross-chain bridge commit)
- * and the app reports the mined transaction. Rhino delivers the USDC to the
- * user's Avenia wallet on Base and Avenia pays the Pix.
+ * Confirm of a Pix withdrawal. POST /pix/withdraw opens it with the provider the route names and
+ * says how the wallet funds it (`sign.kind`), the one provider difference this hook handles:
  *
- * Init quotes again, seconds after the review. When that quote takes any more
- * USD or pays any fewer reais than the reviewed one, nothing is signed until
- * the user confirms the new amounts.
+ * - `deposit-with-id`: the withdrawal is open at once. The wallet approves the token and calls
+ *   depositWithId on the bridge contract (the same calls as a cross-chain bridge commit), then the
+ *   app reports the mined transaction.
+ * - `transfer-then-submit`: nothing is open yet. The wallet signs a transfer to the deposit address
+ *   without broadcasting it; POST /pix/withdraw/submit opens the payout order for the locked price,
+ *   then broadcasts, so no money leaves for an order that could not open.
  *
- * `onOpened` gets the withdrawal's id as soon as the ticket is open, before
- * anything is signed, so the flow can put it in the URL. The signature is a
- * balance-decreasing mutation: while one is pending (`usePendingTransactions`),
- * no second withdrawal opens.
+ * The open quotes again, seconds after the review. When that quote takes any more USD or pays any
+ * fewer reais than the reviewed one, nothing is signed until the user confirms the new amounts.
+ *
+ * `onOpened` gets the withdrawal's id once the provider holds it (null when the submit could not
+ * name it), so the flow can put it in the URL. Funding is a balance-decreasing mutation: while one
+ * is pending (`usePendingTransactions`), no second withdrawal opens.
  */
-export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: string) => void } = {}): PixWithdrawSubmit {
+export function usePixWithdrawSubmit({
+    provider,
+    onOpened,
+}: {
+    /** The route's provider, for analytics only. */
+    provider?: string | null
+    onOpened?: (intentId: string | null) => void
+} = {}): PixWithdrawSubmit {
     const tShared = useTranslations('pix')
-    const initError = usePixRefusalMessage()
+    const refusalMessage = usePixRefusalMessage()
     const toFriendlyError = useFriendlyError()
     const queryClient = useQueryClient()
     const { fetchUser } = useAuth()
     const { sendTransactions } = useWallet()
+    const { signSpend } = useSignSpendBundle()
+    const repairRainController = useRainControllerRepair()
+    const recoverSignedSpend = useSignedSpendRecovery()
+    const { overview: rainCardOverview } = useRainCardOverview()
     const { hasPendingTransactions } = usePendingTransactions()
     const { mutateAsync: sendDeposit } = useMutation({
         mutationKey: [BALANCE_DECREASE, PIX_WITHDRAW],
@@ -103,11 +150,17 @@ export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: strin
                 }),
                 {
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    // Rhino's pay amount, so the collateral top-up covers what leaves
+                    // the pay amount, so the collateral top-up covers what leaves
                     requiredUsdcAmount: amount,
                     kind: 'FIAT_OFFRAMP',
                 }
             ),
+    })
+    const { mutateAsync: submitTransfer } = useMutation({
+        mutationKey: [BALANCE_DECREASE, PIX_WITHDRAW],
+        // the API broadcasts; a second submit of the same transfer could pay twice
+        retry: false,
+        mutationFn: (run: () => Promise<Awaited<ReturnType<typeof pixApi.submitWithdrawal>>>) => run(),
     })
     const [state, dispatchToReact] = useReducer(withdrawSubmitReducer, INITIAL_WITHDRAW_SUBMIT)
     // React applies a dispatch at the next render. The handlers read this copy, which every dispatch
@@ -118,10 +171,22 @@ export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: strin
         dispatchToReact(event)
     }, [])
 
-    const sign = useCallback(
-        async (withdrawal: OpenedWithdrawal) => {
-            const { intentId, sign: request } = withdrawal
-            // Rhino's quote lives 3 minutes; a deposit on an expired commitment is not bridged
+    /** A failure on the money leg: analytics, and Sentry when it is not a user action or a known state. */
+    const reportSignFailure = useCallback(
+        (caught: unknown, intentId: string | null) => {
+            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, { method_type: provider, stage: 'sign' })
+            const classified = friendlyError(caught)
+            if ((classified.kind === 'code' && classified.code === 'genericSupport') || isNetworkLayerFailure(caught)) {
+                void captureNetworkTriagedFailure(caught, { tags: flowTags('sign'), extra: { intentId } })
+            }
+        },
+        [provider]
+    )
+
+    const signDeposit = useCallback(
+        async (withdrawal: OpenedWithdrawal & { intentId: string }, request: DepositWithIdSign) => {
+            const { intentId } = withdrawal
+            // the bridge quote lives minutes; a deposit on an expired commitment is not bridged
             if (!(Date.parse(request.quoteExpiresAt) > Date.now())) {
                 dispatch({ type: 'QUOTE_EXPIRED', withdrawal, error: tShared('withdraw.errors.quoteExpired') })
                 return
@@ -140,17 +205,8 @@ export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: strin
                 }
                 minedHash = result.receipt?.transactionHash
             } catch (caught) {
-                posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, { method_type: 'avenia', stage: 'sign' })
-                // A classified error is a user action or a known state; an unclassified or network
-                // failure on the money leg is what prod-watch must see (as on the Manteca flow).
-                const classified = friendlyError(caught)
-                if (
-                    (classified.kind === 'code' && classified.code === 'genericSupport') ||
-                    isNetworkLayerFailure(caught)
-                ) {
-                    void captureNetworkTriagedFailure(caught, { tags: flowTags('sign'), extra: { intentId } })
-                }
-                // A dismissed passkey or a reverted transaction moved nothing, so the ticket can be
+                reportSignFailure(caught, intentId)
+                // A dismissed passkey or a reverted transaction moved nothing, so the withdrawal can be
                 // signed once more. Any other failure may have sent the deposit: never again.
                 const nothingSent = reverted || isUserCancellation(caught)
                 if (nothingSent) clearDepositMaybeSent(intentId)
@@ -165,13 +221,127 @@ export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: strin
                 return
             }
             dispatch({ type: 'MINED' })
-            // Optional for the money (Avenia's webhook moves it either way); it names the
+            // Optional for the money (the provider's events move it either way); it names the
             // funding transaction on the receipt sooner. Only a mined hash can be checked.
             pixApi.reportFunding(intentId, minedHash).catch((caught) => {
                 Sentry.captureException(caught, { tags: flowTags('report-funding'), extra: { intentId } })
             })
         },
-        [dispatch, queryClient, sendDeposit, tShared, toFriendlyError]
+        [dispatch, queryClient, reportSignFailure, sendDeposit, tShared, toFriendlyError]
+    )
+
+    const signTransfer = useCallback(
+        async (withdrawal: OpenedWithdrawal, request: TransferSign) => {
+            // The locked price bounds every attempt: a passkey sheet is unbounded, and a recovery
+            // re-sign comes later still. An expired lock submits nothing.
+            const lockExpiresAt = Date.parse(request.quoteExpiresAt)
+            const expired = () => !(lockExpiresAt > Date.now())
+            const quoteExpired = tShared('withdraw.errors.quoteExpired')
+            if (expired()) {
+                dispatch({ type: 'QUOTE_EXPIRED', withdrawal, error: quoteExpired })
+                return
+            }
+            dispatch({ type: 'SIGN_START', withdrawal })
+            const signInput = () => ({
+                requiredUsdcAmount: BigInt(request.payAmountUnits),
+                recipient: request.depositAddress as Address,
+                rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
+                kind: 'FIAT_OFFRAMP' as const,
+                lockExpiresAt,
+            })
+            let artifact: SignedSpendArtifact
+            try {
+                artifact = await signSpend(signInput())
+            } catch (caught) {
+                // nothing is ordered or broadcast before the submit: any signing failure sent nothing
+                reportSignFailure(caught, null)
+                dispatch({
+                    type: 'SENT_NOTHING',
+                    error: caught instanceof SpendRecoveryQuoteReviewError ? quoteExpired : toFriendlyError(caught),
+                })
+                return
+            }
+            if (expired()) {
+                dispatch({ type: 'SENT_NOTHING', error: quoteExpired })
+                return
+            }
+            const body = (candidate: SignedSpendArtifact): PixWithdrawSubmitRequest => ({
+                priceLockCode: request.priceLockCode,
+                pixKey: withdrawal.display.pixKey,
+                amountUsd: request.payAmount,
+                funding: pixSignedFunding(candidate),
+            })
+            let submitted: Awaited<ReturnType<typeof pixApi.submitWithdrawal>>
+            try {
+                submitted = await submitTransfer(() =>
+                    submitSignedSpend(
+                        artifact,
+                        (candidate) => {
+                            if (expired()) {
+                                throw new SpendRecoveryQuoteReviewError(new Error('quote expired before send'))
+                            }
+                            return pixApi.submitWithdrawal(body(candidate))
+                        },
+                        {
+                            // observes the final failure only: the card controller's cache repair, no retry
+                            onFailure: (failure) =>
+                                isSpendRecoveryOutcome(failure)
+                                    ? undefined
+                                    : void repairRainController({ strategy: artifact.strategy, error: failure }),
+                            // the same lock and terms: only the card preparation and the signature are fresh
+                            recover: (failure, current) =>
+                                recoverSignedSpend(
+                                    failure,
+                                    current,
+                                    () => signSpend({ ...signInput(), suppressCooldownEvent: true }),
+                                    { lockExpiresAt }
+                                ),
+                        }
+                    )
+                )
+            } catch (caught) {
+                // a recovery that handed back, or an answer from before the broadcast, moved nothing
+                const nothingSent = isSpendRecoveryOutcome(caught) || submitSentNothing(caught)
+                reportSignFailure(caught, null)
+                dispatch({
+                    type: nothingSent ? 'SENT_NOTHING' : 'MAYBE_SENT',
+                    error: isSpendRecoveryOutcome(caught)
+                        ? quoteExpired
+                        : wireErrorCode(caught)
+                          ? refusalMessage(caught)
+                          : toFriendlyError(caught),
+                })
+                return
+            }
+            void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            void queryClient.invalidateQueries({ queryKey: ['balance'] })
+            dispatch({ type: 'SUBMITTED', intentId: submitted.intentId })
+            onOpened?.(submitted.intentId)
+        },
+        [
+            dispatch,
+            onOpened,
+            queryClient,
+            rainCardOverview?.balance?.spendingPower,
+            recoverSignedSpend,
+            refusalMessage,
+            repairRainController,
+            reportSignFailure,
+            signSpend,
+            submitTransfer,
+            tShared,
+            toFriendlyError,
+        ]
+    )
+
+    const sign = useCallback(
+        async (withdrawal: OpenedWithdrawal) => {
+            const { sign: request, intentId } = withdrawal
+            if (request.kind === 'transfer-then-submit') return signTransfer(withdrawal, request)
+            // `submit` dispatches a deposit-with-id withdrawal only with its id
+            if (intentId) return signDeposit({ ...withdrawal, intentId }, request)
+        },
+        [signDeposit, signTransfer]
     )
 
     const submit = useCallback(
@@ -184,40 +354,32 @@ export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: strin
             } catch (caught) {
                 const code = wireErrorCode(caught)
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
-                    method_type: 'avenia',
+                    method_type: provider,
                     stage: 'init',
                     error_code: code ?? 'unknown',
                 })
                 // a wire code is the API's own refusal; anything else is a failure to look at
                 if (!code) void captureNetworkTriagedFailure(caught, { tags: flowTags('init') })
-                dispatch({ type: 'INIT_REFUSED', error: initError(caught) })
+                dispatch({ type: 'INIT_REFUSED', error: refusalMessage(caught) })
                 // the route moved since the screen loaded: the capabilities say where the user stands now
                 if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) {
                     void fetchUser().catch(() => undefined)
                 }
                 return
             }
-            const { intentId, sign: signRequest } = init
-            // this hook signs a deposit with its id only; a withdrawal that opens at its submit opened nothing yet
-            if (signRequest.kind !== 'deposit-with-id' || !intentId) {
-                Sentry.captureException(new Error('Pix withdrawal sign kind not handled'), {
-                    tags: flowTags('sign-request'),
-                    extra: { intentId, kind: signRequest.kind },
-                })
-                dispatch({ type: 'INIT_REFUSED', error: tShared('unavailable') })
-                return
-            }
-            const withdrawal: OpenedWithdrawal = { intentId, display: init.display, sign: signRequest }
-            onOpened?.(intentId)
-            // The wallet only ever approves its own USDC, for exactly the USD the user is shown;
-            // anything else is a contract break.
+            const withdrawal: OpenedWithdrawal = { intentId: init.intentId, display: init.display, sign: init.sign }
+            // a deposit-with-id withdrawal is open now; a transfer-then-submit one opens at its submit
+            if (init.sign.kind === 'deposit-with-id' && init.intentId) onOpened?.(init.intentId)
+            // The wallet only ever spends its own USDC, for exactly the USD the user is shown, and
+            // a deposit-with-id withdrawal is always open; anything else is a contract break.
             if (
-                !areEvmAddressesEqual(signRequest.tokenAddress, PEANUT_WALLET_TOKEN) ||
-                !signMatchesDisplay(init.display, signRequest)
+                !areEvmAddressesEqual(init.sign.tokenAddress, PEANUT_WALLET_TOKEN) ||
+                !signMatchesDisplay(init.display, init.sign) ||
+                (init.sign.kind === 'deposit-with-id' && !init.intentId)
             ) {
-                Sentry.captureException(new Error('Avenia withdrawal sign request off-contract'), {
+                Sentry.captureException(new Error('Pix withdrawal sign request off-contract'), {
                     tags: flowTags('sign-request'),
-                    extra: { intentId, kind: signRequest.kind },
+                    extra: { intentId: init.intentId, kind: init.sign.kind },
                 })
                 dispatch({ type: 'OFF_CONTRACT', withdrawal, error: tShared('unavailable') })
                 return
@@ -228,7 +390,7 @@ export function usePixWithdrawSubmit({ onOpened }: { onOpened?: (intentId: strin
             }
             await sign(withdrawal)
         },
-        [dispatch, fetchUser, hasPendingTransactions, initError, onOpened, sign, tShared]
+        [dispatch, fetchUser, hasPendingTransactions, onOpened, provider, refusalMessage, sign, tShared]
     )
 
     const confirmOpened = useCallback(async () => {

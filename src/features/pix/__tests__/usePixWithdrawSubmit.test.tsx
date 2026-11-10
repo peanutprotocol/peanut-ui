@@ -35,11 +35,25 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 const mockInit = jest.fn()
 const mockReportFunding = jest.fn()
+const mockSubmitTransfer = jest.fn()
 jest.mock('@/services/pix', () => ({
     pixApi: {
         openWithdrawal: (request: unknown) => mockInit(request),
         reportFunding: (intentId: string, hash: string) => mockReportFunding(intentId, hash),
+        submitWithdrawal: (request: unknown) => mockSubmitTransfer(request),
     },
+}))
+// the transfer-then-submit signature: the card-aware signer, and its recovery, which finds nothing to replace
+const mockSignSpend = jest.fn()
+jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
+    useSignSpendBundle: () => ({ signSpend: (input: unknown) => mockSignSpend(input) }),
+}))
+jest.mock('@/hooks/wallet/useRainControllerRepair', () => ({ useRainControllerRepair: () => jest.fn() }))
+jest.mock('@/hooks/wallet/useSignedSpendRecovery', () => ({
+    useSignedSpendRecovery: () => () => Promise.resolve(null),
+}))
+jest.mock('@/hooks/useRainCardOverview', () => ({
+    useRainCardOverview: () => ({ overview: { balance: { spendingPower: 1250 } } }),
 }))
 
 import { usePixWithdrawSubmit } from '../usePixWithdrawSubmit'
@@ -124,7 +138,7 @@ describe('usePixWithdrawSubmit', () => {
             order.push('sign')
             return { receipt: { status: 'success', transactionHash: MINED, logs: [] } }
         })
-        const onOpened = jest.fn((id: string) => order.push(`opened ${id}`))
+        const onOpened = jest.fn((id: string | null) => order.push(`opened ${id}`))
         const { result } = renderHook(() => usePixWithdrawSubmit({ onOpened }), { wrapper })
 
         await act(async () => {
@@ -460,6 +474,175 @@ describe('usePixWithdrawSubmit', () => {
             expect(mockSendTransactions).toHaveBeenCalledTimes(1)
             expect(result.current.error).toBe('withdraw.errors.quoteExpired')
             expect(result.current.canSignOpened).toBe(false)
+        })
+    })
+
+    // Manteca's kind: nothing is open until the API takes the signed transfer, opens the order and broadcasts
+    describe('a transfer-then-submit withdrawal', () => {
+        const DEPOSIT_ADDRESS = '0x00000000000000000000000000000000000000d3'
+        const dismissed = () => Object.assign(new Error('The operation was not allowed.'), { name: 'NotAllowedError' })
+        const transferInit = (overrides: Record<string, unknown> = {}) => ({
+            provider: 'manteca',
+            intentId: null,
+            display: { ...display, fixedFeeBrl: '0', provider: 'Manteca' },
+            sign: {
+                kind: 'transfer-then-submit',
+                depositAddress: DEPOSIT_ADDRESS,
+                tokenAddress: USDC,
+                payAmount: display.withdrawUsd,
+                payAmountUnits: units(display.withdrawUsd),
+                priceLockCode: 'lock-1',
+                quoteExpiresAt: inAMinute(),
+                ...overrides,
+            },
+        })
+        const signedUserOp = { sender: '0xabc', nonce: 1n, callData: '0x', signature: '0x1' }
+        const artifact = {
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
+        }
+
+        it('signs a transfer of exactly the pay amount to the deposit address, and opens nothing before the submit', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            const order: string[] = []
+            mockSignSpend.mockImplementation(async () => {
+                order.push('sign')
+                return artifact
+            })
+            mockSubmitTransfer.mockImplementation(async () => {
+                order.push('submit')
+                return { provider: 'manteca', intentId: 'm1', status: 'PROCESSING' }
+            })
+            const onOpened = jest.fn((id: string | null) => order.push(`opened ${id}`))
+            const { result } = renderHook(() => usePixWithdrawSubmit({ onOpened }), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+
+            expect(mockSignSpend).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    requiredUsdcAmount: 92_504_310n,
+                    recipient: DEPOSIT_ADDRESS,
+                    rainSpendingPower: 12_500_000n,
+                    kind: 'FIAT_OFFRAMP',
+                })
+            )
+            expect(mockSubmitTransfer).toHaveBeenCalledWith({
+                priceLockCode: 'lock-1',
+                pixKey: display.pixKey,
+                amountUsd: display.withdrawUsd,
+                funding: { kind: 'userOp', signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
+            })
+            // the withdrawal opens at the submit: its id reaches the flow after it, never before the signature
+            expect(order).toEqual(['sign', 'submit', 'opened m1'])
+            expect(mockSendTransactions).not.toHaveBeenCalled()
+            expect(mockReportFunding).not.toHaveBeenCalled()
+            expect(result.current.phase).toBe('funded')
+            expect(result.current.opened?.intentId).toBe('m1')
+        })
+
+        it('sends a card collateral withdrawal as its own funding kind', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            const rainWithdrawal = { preparationId: 'p1', amount: '92504310' }
+            mockSignSpend.mockResolvedValue({ strategy: 'collateral-only', rainWithdrawal })
+            mockSubmitTransfer.mockResolvedValue({ provider: 'manteca', intentId: 'm1', status: 'PROCESSING' })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+
+            expect(mockSubmitTransfer.mock.calls[0][0].funding).toEqual({
+                kind: 'rainWithdrawal',
+                signedRainWithdrawal: rainWithdrawal,
+                chainId: '42161',
+            })
+        })
+
+        it('goes back to Confirm after a dismissed signature: nothing is open, so a new tap opens a new one', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            mockSignSpend.mockRejectedValueOnce(dismissed()).mockResolvedValueOnce(artifact)
+            mockSubmitTransfer.mockResolvedValue({ provider: 'manteca', intentId: 'm1', status: 'PROCESSING' })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            expect(result.current.phase).toBe('idle')
+            expect(result.current.lockedAfterInit).toBe(false)
+            expect(mockSubmitTransfer).not.toHaveBeenCalled()
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            expect(mockInit).toHaveBeenCalledTimes(2)
+            expect(result.current.phase).toBe('funded')
+        })
+
+        it('reads a submit the API refused before it broadcast as nothing sent', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            mockSignSpend.mockResolvedValue(artifact)
+            mockSubmitTransfer.mockRejectedValue(
+                new ApiError('This Pix key was not found.', { status: 404, code: 'PIX_KEY_NOT_FOUND' })
+            )
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+
+            expect(result.current.phase).toBe('idle')
+            expect(result.current.error).toBe('pixKey.notFound')
+        })
+
+        it('holds a submit whose answer was lost, or failed after the broadcast: it may have sent', async () => {
+            for (const failure of [
+                new ApiError('Pix is not available right now.', { status: 502, code: 'PROVIDER_UNAVAILABLE' }),
+                new TypeError('Failed to fetch'),
+            ]) {
+                mockInit.mockResolvedValue(transferInit())
+                mockSignSpend.mockResolvedValue(artifact)
+                mockSubmitTransfer.mockRejectedValueOnce(failure)
+                const { result, unmount } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+                await act(async () => {
+                    await result.current.submit(REQUEST, display)
+                })
+
+                expect(result.current.phase).toBe('opened')
+                expect(result.current.canSignOpened).toBe(false)
+                expect(result.current.lockedAfterInit).toBe(true)
+                unmount()
+            }
+        })
+
+        it('signs nothing once the lock has expired, and lets Confirm open a new one', async () => {
+            mockInit.mockResolvedValue(transferInit({ quoteExpiresAt: new Date(Date.now() - 1000).toISOString() }))
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+
+            expect(mockSignSpend).not.toHaveBeenCalled()
+            expect(result.current.phase).toBe('idle')
+            expect(result.current.error).toBe('withdraw.errors.quoteExpired')
+        })
+
+        it('reads a submit that could not name its withdrawal as sent, and still tells the flow', async () => {
+            mockInit.mockResolvedValue(transferInit())
+            mockSignSpend.mockResolvedValue(artifact)
+            mockSubmitTransfer.mockResolvedValue({ provider: 'manteca', intentId: null, status: 'PROCESSING' })
+            const onOpened = jest.fn()
+            const { result } = renderHook(() => usePixWithdrawSubmit({ onOpened }), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+
+            expect(result.current.phase).toBe('funded')
+            expect(onOpened).toHaveBeenCalledWith(null)
         })
     })
 })

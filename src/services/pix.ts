@@ -8,8 +8,10 @@
 
 import { apiErrorFromResponse } from '@/services/api-error'
 import { apiFetch } from '@/utils/api-fetch'
+import { jsonStringify } from '@/utils/cookie-url.utils'
 import type { paths } from '@/types/api.generated'
 
+type ApiFetchInit = NonNullable<Parameters<typeof apiFetch>[1]>
 type Json<T> = T extends { content: { 'application/json': infer Body } } ? Body : never
 type QuoteOperation = paths['/pix/quote']['get']
 
@@ -33,7 +35,7 @@ export type PixWithdrawRequest = { pixKey: string } & (
     | { spendUsd: string }
 )
 
-async function call<T>(path: string, init: RequestInit, fallbackMessage: string): Promise<T> {
+async function call<T>(path: string, init: ApiFetchInit, fallbackMessage: string): Promise<T> {
     const response = await apiFetch(path, init)
     if (!response.ok) throw await apiErrorFromResponse(response, fallbackMessage)
     return (await response.json()) as T
@@ -68,9 +70,16 @@ export const pixApi = {
     openWithdrawal: (request: PixWithdrawRequest) =>
         call<PixWithdrawOpened>('/pix/withdraw', post(request), 'Could not start the withdrawal'),
 
-    /** `transfer-then-submit`: the API opens the payout order for the locked price, then broadcasts the signed transfer. */
+    /**
+     * `transfer-then-submit`: the API opens the payout order for the locked price, then broadcasts the
+     * signed transfer. The signed UserOp carries bigints, and the broadcast can take a while.
+     */
     submitWithdrawal: (request: PixWithdrawSubmitRequest) =>
-        call<PixWithdrawSubmitted>('/pix/withdraw/submit', post(request), 'Could not send the withdrawal'),
+        call<PixWithdrawSubmitted>(
+            '/pix/withdraw/submit',
+            { method: 'POST', body: jsonStringify(request), timeoutMs: 120_000 },
+            'Could not send the withdrawal'
+        ),
 
     /** `deposit-with-id`: the mined transaction that funds the withdrawal. Optional for the money: the provider's events move it either way. */
     reportFunding: (intentId: string, txHash: string) =>
