@@ -27,6 +27,7 @@ import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejec
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPrivateDataPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
+import { isTrackedLinkEntry } from '@/features/tracked-links/eligibility'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
 import {
     AUTOCAPTURE_SETTINGS,
@@ -62,7 +63,8 @@ if (
     // Web journeys begin at the first pageview. Native journeys are created
     // at registration unless a deferred store handoff restores this context
     // first; the native app cannot observe the pre-install browser page.
-    const signupAttribution = isNativeBuild ? null : captureSignupAttribution({ includeDocumentReferrer: true })
+    const signupAttribution =
+        isNativeBuild || isTrackedLinkEntry() ? null : captureSignupAttribution({ includeDocumentReferrer: true })
 
     // An empty key means this build sends nothing (see posthogProjectKey).
     if (POSTHOG_KEY) {

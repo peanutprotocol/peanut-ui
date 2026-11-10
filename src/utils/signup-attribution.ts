@@ -4,6 +4,8 @@ import publicAttributionPaths from '@/constants/signup-attribution-paths.generat
 import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
 import { isAnalyticsCaptureBuild, posthogProjectKey } from './posthog-setup'
+import { isTrackedLinkEntry, trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
+import type { AcquisitionCampaign } from '@/features/tracked-links/contract'
 
 export const SIGNUP_ATTRIBUTION_COOKIE = 'signupAttribution'
 export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
@@ -309,11 +311,57 @@ export function hasMarketingTouch(): boolean {
 export function captureSignupAttribution({
     includeDocumentReferrer = false,
 }: { includeDocumentReferrer?: boolean } = {}): SignupAttributionContext | null {
-    if (!analyticsCollectionAvailable()) return null
+    if (isTrackedLinkEntry() || !analyticsCollectionAvailable()) return null
     const touch = currentTouch(includeDocumentReferrer)
     if (!touch) return null
 
-    const existing = readSignupAttribution()
+    return captureTouch(touch)
+}
+
+/** Registered campaigns are projected identically on web and native; URL tags are not trusted. */
+export async function captureTrackedLinkJourney(
+    campaign?: AcquisitionCampaign,
+    signal?: AbortSignal
+): Promise<SignupAttributionContext | null> {
+    if (signal?.aborted || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
+    const existing = await boundedNativeContext(readSignupAttributionAsync())
+    // An unavailable native store must not replace a prior journey with a new one.
+    if (existing === undefined || signal?.aborted || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable())
+        return null
+    const touch: SignupAttributionTouch = {
+        occurredAt: new Date().toISOString(),
+        ...(campaign
+            ? {
+                  utmSource: campaign.source,
+                  utmMedium: campaign.medium,
+                  utmCampaign: campaign.campaign,
+                  ...(campaign.content ? { utmContent: campaign.content } : {}),
+              }
+            : {}),
+    }
+    const context = captureTouch(touch, existing)
+    if (context) await boundedNativeContext(persistNativeSignupAttribution(context))
+    return context
+}
+
+async function boundedNativeContext<T>(operation: Promise<T>): Promise<T | undefined> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+        return await Promise.race([
+            operation,
+            new Promise<undefined>((resolve) => {
+                timer = setTimeout(() => resolve(undefined), 500)
+            }),
+        ])
+    } finally {
+        if (timer !== undefined) clearTimeout(timer)
+    }
+}
+
+function captureTouch(
+    touch: SignupAttributionTouch,
+    existing = readSignupAttribution()
+): SignupAttributionContext | null {
     const context: SignupAttributionContext = {
         schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
         journeyId: existing?.journeyId ?? newJourneyId(),

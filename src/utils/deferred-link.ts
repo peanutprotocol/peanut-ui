@@ -13,7 +13,15 @@ import { nativeCapability } from './native-capability'
 import { sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
-import { readInviteCode, stashInvite } from '@/utils/invite-stash'
+import {
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashInvite,
+    stashAcquisitionInvite,
+} from '@/utils/invite-stash'
+import { isTrackedLinkEntry, trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
+import { isAcquisitionSlug, isInviteUsername } from '@/features/tracked-links/contract'
 import { EInviteType } from '@/services/services.types'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,
@@ -69,6 +77,10 @@ function persistRestoredLocale(locale: AppLocale): void {
 export interface DeferredPayload {
     lang?: string
     invite?: string
+    /** Passive provenance uses a new key so old apps never accept it on session startup. */
+    acquisitionInvite?: string
+    /** A tracked journey must recheck strict device consent before restoration. */
+    trackedLink?: string
     /** Current lossless multi-badge-campaign shape. */
     badgeCampaigns?: string[]
     /** Legacy single-campaign payload accepted during app upgrade. */
@@ -305,7 +317,7 @@ export function buildDeferredPayload(
     dest?: string,
     invite?: string,
     store: 'android' | 'ios' = 'android',
-    options: { includeInviteAndBadgeContext?: boolean } = {}
+    options: { includeInviteAndBadgeContext?: boolean; acquisitionInvite?: string } = {}
 ): string {
     const params = new URLSearchParams({ [MARKER]: '1' })
 
@@ -314,17 +326,31 @@ export function buildDeferredPayload(
 
     if (options.includeInviteAndBadgeContext !== false) {
         const inviteCode = invite || readInviteCode()
-        if (inviteCode) params.set('invite', inviteCode)
+        if (inviteCode)
+            params.set(!invite && readInviteIntent() === 'acquisition' ? 'acq_invite' : 'invite', inviteCode)
 
         for (const badgeCampaign of getPendingBadgeCampaigns()) {
             params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
         }
     }
 
-    const attribution = readSignupAttribution()
+    if (options.acquisitionInvite) {
+        const existing = readInviteCode()
+        const guarded = existing && (readInviteIntent() !== 'acquisition' || readInviteUserId())
+        const code = toInviteCode(guarded ? existing : options.acquisitionInvite)
+        if (guarded) params.set(readInviteIntent() === 'acquisition' ? 'acq_invite' : 'invite', code)
+        else if (isInviteUsername(code)) params.set('acq_invite', code)
+    }
+
+    const entry = new URLSearchParams(window.location.search)
+    const trackedLink = entry.get('tl') ?? entry.get('tracked_link')
+    if (isAcquisitionSlug(trackedLink)) params.set('tl', trackedLink)
+
+    const allowed = (!isTrackedLinkEntry() && !params.has('acq_invite')) || trackedLinkAnalyticsAllowed()
+    const attribution = allowed ? readSignupAttribution() : null
     if (attribution) params.set(ATTRIBUTION_PARAM, serializeAttributionHandoff(attribution))
 
-    const webDistinctId = webAnalyticsId()
+    const webDistinctId = allowed ? webAnalyticsId() : null
     if (webDistinctId) params.set(WEB_ANALYTICS_ID_PARAM, webDistinctId)
 
     // a page whose url carries the claim secret in the fragment (#p=) must not
@@ -384,7 +410,10 @@ export function buildDeferredPayload(
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         // A malformed or unexpectedly long invite must not break the store link.
         params.delete('invite')
+        params.delete('acq_invite')
     }
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) params.delete('tl')
 
     return params.toString()
 }
@@ -440,6 +469,8 @@ export function parseDeferredPayload(raw: string): DeferredPayload | null {
     return {
         lang: pick('lang'),
         invite: pick('invite'),
+        acquisitionInvite: pick('acq_invite'),
+        trackedLink: pick('tl'),
         badgeCampaigns: badgeCampaigns.length > 0 ? badgeCampaigns : undefined,
         attribution: attribution ?? undefined,
         webDistinctId: webDistinctId && ANALYTICS_ID_PATTERN.test(webDistinctId) ? webDistinctId : undefined,
@@ -621,7 +652,7 @@ async function doRestore(): Promise<RestoredContext | null> {
     }
 
     const restored = applyDeferredPayload(payload)
-    if (payload.attribution && signupAnalyticsState() === 'enabled') {
+    if (payload.attribution && deferredAnalyticsAllowed(payload)) {
         // WKWebView can discard the cookie immediately. Await the native
         // write using the decoded evidence before registration or a restart.
         const persisted = readSignupAttribution() ?? { ...payload.attribution, captureMethod: 'deferred_link' as const }
@@ -630,7 +661,7 @@ async function doRestore(): Promise<RestoredContext | null> {
     const restoreFields: Record<string, boolean | string> = {
         has_dest: !!restored.dest,
         has_locale: !!restored.locale,
-        has_invite: !!payload.invite,
+        has_invite: !!(payload.invite || payload.acquisitionInvite),
         has_campaign: !!(payload.badgeCampaigns?.length || payload.campaign),
     }
     // Keep the legacy event shape for old payloads, while making attribution
@@ -640,13 +671,16 @@ async function doRestore(): Promise<RestoredContext | null> {
     // referrer and the clipboard can carry an id somebody else chose, and an
     // alias would merge that person into this one. A property only lets
     // analysis join this install to the web journey.
-    if (payload.webDistinctId) restoreFields.web_distinct_id = payload.webDistinctId
-    captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
+    if (payload.webDistinctId && deferredAnalyticsAllowed(payload))
+        restoreFields.web_distinct_id = payload.webDistinctId
+    if (!(payload.acquisitionInvite || payload.trackedLink) || deferredAnalyticsAllowed(payload)) {
+        captureRestore(channel, DEFERRED_LINK_OUTCOMES.RESTORED, restoreFields)
+    }
 
     // Register only after the privacy-preserving restore event above. The
     // journey id is useful on subsequent native events, but must not turn the
     // restore telemetry into a payload dump.
-    if (payload.attribution && typeof posthog.register === 'function') {
+    if (payload.attribution && deferredAnalyticsAllowed(payload) && typeof posthog.register === 'function') {
         try {
             posthog.register(signupAttributionPosthogProperties(readSignupAttribution()))
         } catch {}
@@ -656,7 +690,7 @@ async function doRestore(): Promise<RestoredContext | null> {
     // $identify at signup or login, so the join holds after the app person is
     // created. A $set_once now would be dropped: an anonymous app user has no
     // person yet (person_profiles: identified_only).
-    if (payload.webDistinctId && typeof posthog.register_once === 'function') {
+    if (payload.webDistinctId && deferredAnalyticsAllowed(payload) && typeof posthog.register_once === 'function') {
         try {
             posthog.register_once({ web_distinct_id: payload.webDistinctId })
         } catch {}
@@ -698,8 +732,15 @@ async function restoreReferrerCampaign(attribution: SignupAttributionContext): P
  * sanitized destination + normalized locale. shared by the real restore and
  * the /dev/deferred simulator so there is exactly one apply path.
  */
+function deferredAnalyticsAllowed(payload: DeferredPayload): boolean {
+    return (
+        signupAnalyticsState() === 'enabled' &&
+        (!(payload.acquisitionInvite || payload.trackedLink) || trackedLinkAnalyticsAllowed())
+    )
+}
+
 export function applyDeferredPayload(payload: DeferredPayload): RestoredContext {
-    if (payload.attribution) restoreSignupAttribution(payload.attribution)
+    if (payload.attribution && deferredAnalyticsAllowed(payload)) restoreSignupAttribution(payload.attribution)
 
     // the invite stash routes /setup past Landing — the only screen with
     // Log In — so it expires after a day (invite-stash.ts): long enough for
@@ -710,6 +751,7 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     // a deferred link carries only a bare code — DIRECT, and through the one
     // writer so the type can never be a stale leftover from an earlier flow
     if (invite) stashInvite(invite, EInviteType.DIRECT)
+    if (payload.acquisitionInvite) stashAcquisitionInvite(toInviteCode(payload.acquisitionInvite))
     // Badge campaigns do not gate the setup step, so they can safely outlive the
     // session for a network/configuration retry. Preserve the first trimmed
     // spelling; backend resolution is case-insensitive.

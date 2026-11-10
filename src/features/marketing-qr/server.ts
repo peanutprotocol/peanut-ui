@@ -1,4 +1,5 @@
 import { MARKETING_QR_EVENT, getMarketingQrRegistration, parseMarketingQrQuery } from './contract'
+import { deliverOpening } from '@/features/tracked-links/delivery'
 
 export const MARKETING_QR_HEADERS = {
     'Cache-Control': 'private, no-store, max-age=0',
@@ -100,40 +101,35 @@ export async function captureMarketingQrOpening(
     const key = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim()
     if (process.env.VERCEL_ENV !== 'production' || requestOrigin !== 'https://peanut.me' || !key) return
     const { registration, campaign } = opening
-    try {
-        await fetch('https://eu.i.posthog.com/i/v0/e/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(2000),
-            body: JSON.stringify({
-                api_key: key,
-                uuid: opening.event_id,
-                timestamp: opening.opened_at,
-                event: MARKETING_QR_EVENT,
-                distinct_id: `marketing-qr:${opening.event_id}`,
-                properties: {
-                    schema_version: 1,
-                    qr_id: registration.qr_id,
-                    page_id: registration.page_id,
-                    surface_type: registration.surface_type,
-                    placement: registration.placement,
-                    locale: registration.locale,
-                    destination_key: registration.destination_key,
-                    utm_source: campaign.source,
-                    utm_medium: campaign.medium,
-                    utm_campaign: campaign.campaign,
-                    ...(campaign.content ? { utm_content: campaign.content } : {}),
-                    attribution_origin: opening.attributionOrigin,
-                    attribution_adjustment: opening.attributionAdjustment,
-                    opened_in: openedIn,
-                    $process_person_profile: false,
-                    $geoip_disable: true,
-                },
-            }),
-        })
-    } catch {
-        // Best-effort, without retaining visitor data or creating a retry queue.
-    }
+    await deliverOpening(
+        'https://eu.i.posthog.com/i/v0/e/',
+        JSON.stringify({
+            api_key: key,
+            uuid: opening.event_id,
+            timestamp: opening.opened_at,
+            event: MARKETING_QR_EVENT,
+            distinct_id: `marketing-qr:${opening.event_id}`,
+            properties: {
+                schema_version: 1,
+                qr_id: registration.qr_id,
+                page_id: registration.page_id,
+                surface_type: registration.surface_type,
+                placement: registration.placement,
+                locale: registration.locale,
+                destination_key: registration.destination_key,
+                utm_source: campaign.source,
+                utm_medium: campaign.medium,
+                utm_campaign: campaign.campaign,
+                ...(campaign.content ? { utm_content: campaign.content } : {}),
+                attribution_origin: opening.attributionOrigin,
+                attribution_adjustment: opening.attributionAdjustment,
+                opened_in: openedIn,
+                $process_person_profile: false,
+                $geoip_disable: true,
+            },
+        }),
+        'marketing_qr'
+    )
 }
 
 /** Enforce the byte limit even when Content-Length is absent or misleading. */

@@ -1,4 +1,5 @@
 import { EInviteType } from '@/services/services.types'
+import { isInviteUsername } from '@/features/tracked-links/contract'
 
 /**
  * Invite hand-off between surfaces: a payment/claim/invite page, a deep link,
@@ -41,6 +42,8 @@ interface InviteStash {
     userId: string
     /** Epoch ms after which the stash is treated as absent. */
     expiresAt: number
+    /** Passive acquisition may first bind only at registration. Older records stay explicit. */
+    intent?: 'acquisition'
 }
 
 function isInviteType(value: unknown): value is EInviteType {
@@ -70,6 +73,7 @@ function readStash(): InviteStash | null {
             type: isInviteType(parsed.type) ? parsed.type : EInviteType.DIRECT,
             userId: typeof parsed.userId === 'string' ? parsed.userId : '',
             expiresAt: parsed.expiresAt,
+            ...(parsed.intent === 'acquisition' ? { intent: 'acquisition' as const } : {}),
         }
     } catch {
         writeStash(null)
@@ -98,6 +102,26 @@ export function stashInvite(code: string, type: EInviteType): void {
 
 export function readInviteCode(): string {
     return readStash()?.code ?? ''
+}
+
+/** A passive opening cannot replace a typed choice or an account's pending retry. */
+export function stashAcquisitionInvite(code: string): boolean {
+    if (!isInviteUsername(code)) return false
+    const current = readStash()
+    if (current && (current.intent !== 'acquisition' || current.userId)) return false
+    writeStash({
+        code,
+        type: EInviteType.DIRECT,
+        userId: '',
+        intent: 'acquisition',
+        expiresAt: Date.now() + INVITE_STASH_TTL_MS,
+    })
+    return readStash()?.code === code && readStash()?.intent === 'acquisition'
+}
+
+export function readInviteIntent(): 'explicit' | 'acquisition' | null {
+    const stash = readStash()
+    return stash ? (stash.intent ?? 'explicit') : null
 }
 
 export function readInviteType(): EInviteType {

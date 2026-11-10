@@ -26,6 +26,7 @@ import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssS
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { isMarketingRoute } from '@/utils/marketing-routes'
 import { captureSignupAttribution } from '@/utils/signup-attribution'
+import { isTrackedLinkEntry } from '@/features/tracked-links/eligibility'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
@@ -162,7 +163,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 /** Capture every App Router entry after the document-level bootstrap. */
 export function SignupAttributionNavigationCapture({ pathname }: { pathname: string | null }) {
     useEffect(() => {
-        if (!isCapacitor()) {
+        if (!isCapacitor() && !isTrackedLinkEntry()) {
             // instrumentation-client owns the one document-referrer capture.
             // Every React entry is therefore referrer-free, including hydration
             // of the initial URL and all later SPA transitions.

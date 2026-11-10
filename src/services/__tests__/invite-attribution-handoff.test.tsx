@@ -8,7 +8,13 @@
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { EInviteType } from '@/services/services.types'
 import { applyDeferredPayload, iosHandoffString, parseDeferredPayload } from '@/utils/deferred-link'
-import { readInviteCode, stashInvite } from '@/utils/invite-stash'
+import {
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashInvite,
+    stashAcquisitionInvite,
+} from '@/utils/invite-stash'
 import { settlePendingInviteAttribution } from '../pending-invite-attribution'
 
 const mockAcceptInvite = jest.fn()
@@ -52,6 +58,60 @@ afterEach(() => {
 })
 
 describe('invite attribution hand-off in an iOS WebView without cookies', () => {
+    it('a passive opening cannot accept an inviter during existing-account hydration', async () => {
+        expect(stashAcquisitionInvite('alice')).toBe(true)
+        expect(await settlePendingInviteAttribution('existing-account', 'session')).toEqual({ status: 'none' })
+        expect(await settlePendingInviteAttribution('existing-account', 'setup_invite_step')).toEqual({
+            status: 'none',
+        })
+        expect(readInviteUserId()).toBe('')
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
+    })
+
+    it('registration wins an auth-provider race without duplicate acceptance', async () => {
+        stashAcquisitionInvite('alice')
+        const [session, registration] = await Promise.all([
+            settlePendingInviteAttribution('passive-race', 'session'),
+            settlePendingInviteAttribution('passive-race', 'registration'),
+        ])
+        expect(session.status).toBe('none')
+        expect(registration.status).toBe('attributed')
+        expect(mockAcceptInvite).toHaveBeenCalledTimes(1)
+    })
+
+    it('a passive opening cannot overwrite a typed inviter retained after a 503', async () => {
+        stashInvite('alice', EInviteType.DIRECT)
+        mockAcceptInvite.mockResolvedValueOnce({ success: false, retryable: true, status: 503 })
+        await settlePendingInviteAttribution('typed-retry', 'setup_invite_step')
+        expect(stashAcquisitionInvite('bob')).toBe(false)
+        expect(readInviteCode()).toBe('alice')
+        expect(readInviteIntent()).toBe('explicit')
+        expect(readInviteUserId()).toBe('typed-retry')
+        expect((await settlePendingInviteAttribution('typed-retry', 'session')).status).toBe('attributed')
+    })
+
+    it('only the registration-bound account can retry a passive invite after restart', async () => {
+        stashAcquisitionInvite('alice')
+        mockAcceptInvite.mockResolvedValueOnce({ success: false, retryable: true, status: 503 })
+        await settlePendingInviteAttribution('passive-retry', 'registration')
+        expect(readInviteIntent()).toBe('acquisition')
+        expect(readInviteUserId()).toBe('passive-retry')
+        expect(stashAcquisitionInvite('bob')).toBe(false)
+        expect((await settlePendingInviteAttribution('other-account', 'session')).status).toBe('account_mismatch')
+        await jest.isolateModulesAsync(async () => {
+            const fresh = await import('../pending-invite-attribution')
+            expect((await fresh.settlePendingInviteAttribution('passive-retry', 'session')).status).toBe('attributed')
+        })
+        expect(mockAcceptInvite).toHaveBeenCalledTimes(2)
+    })
+
+    it('a later explicit choice replaces an unbound passive invite', async () => {
+        stashAcquisitionInvite('alice')
+        stashInvite('bob', EInviteType.DIRECT)
+        expect(readInviteIntent()).toBe('explicit')
+        await settlePendingInviteAttribution('explicit-after-passive', 'setup_invite_step')
+        expect(mockAcceptInvite).toHaveBeenCalledWith('bob', EInviteType.DIRECT)
+    })
     it('a friend’s link restored after the App Store install reaches /invites/accept', async () => {
         // what the store bounce writes to the clipboard, read back on first launch
         const payload = parseDeferredPayload(iosHandoffString('pnutdl=1&invite=Alice&dest=%2Fsetup'))
