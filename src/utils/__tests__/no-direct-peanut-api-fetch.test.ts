@@ -39,6 +39,9 @@ const EXEMPT = new Set<string>([
     // harness-only reproduce bootstrap reading NEXT_PUBLIC_PEANUT_API_URL —
     // runs pre-session by design
     'context/ReproduceBootstrap.tsx',
+    // server-only public metadata lookup: no session or Sentry enrichment;
+    // its explicit 1.8-second deadline keeps acquisition redirects bounded
+    'features/tracked-links/server.ts',
     // the wrapper itself — apiFetch IS the one sanctioned fetchWithSentry(PEANUT_API_URL…) call
     'utils/api-fetch.ts',
     // transport canary: a BARE fetch against the API is the instrument here —
