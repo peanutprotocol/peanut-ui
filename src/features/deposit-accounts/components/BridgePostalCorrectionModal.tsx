@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PostalCodeField } from '@/features/paperwork-verification/components/PostalCodeField'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { apiFetch } from '@/utils/api-fetch'
 
 const path = '/users/kyc/bridge-postal-code'
@@ -116,14 +117,18 @@ export function BridgePostalCorrectionModal({
         }
     }
     const editing = state === 'editing'
+    const close = () => {
+        if (state === 'queued') {
+            markSubmitted()
+            onQueued()
+        }
+        onClose()
+    }
     return (
         <ActionModal
             visible={visible}
             data-testid={`bridge-postal-correction-${state}`}
-            onClose={() => {
-                if (state === 'queued') onQueued()
-                onClose()
-            }}
+            onClose={close}
             title={state === 'queued' ? t('queuedTitle') : t('title')}
             description={state === 'queued' ? t('queuedBody') : t('description')}
             tone={state === 'queued' ? 'success' : 'info'}
@@ -156,15 +161,7 @@ export function BridgePostalCorrectionModal({
                       : state === 'unavailable'
                         ? [{ text: common('contactSupport'), onClick: onSupport }]
                         : state === 'queued'
-                          ? [
-                                {
-                                    text: common('done'),
-                                    onClick: () => {
-                                        onQueued()
-                                        onClose()
-                                    },
-                                },
-                            ]
+                          ? [{ text: common('done'), onClick: close }]
                           : undefined
             }
             tertiaryCta={

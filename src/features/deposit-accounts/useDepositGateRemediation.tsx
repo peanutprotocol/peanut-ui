@@ -12,6 +12,7 @@ import { useGateActions } from '@/hooks/useGateActions'
 import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
+import { USER } from '@/constants/query.consts'
 import { useOptionalAuth } from '@/context/authContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
@@ -190,6 +191,7 @@ export function useDepositGateRemediation(): {
                     setPostalGate(undefined)
                 }}
                 onQueued={() => {
+                    void queryClient.invalidateQueries({ queryKey: [USER] })
                     void queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
                 }}
             />

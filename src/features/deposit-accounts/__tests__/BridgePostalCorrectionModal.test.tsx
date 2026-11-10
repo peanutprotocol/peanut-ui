@@ -1,9 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { apiFetch } from '@/utils/api-fetch'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { BridgePostalCorrectionModal } from '../components/BridgePostalCorrectionModal'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
+jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))
 const request = apiFetch as jest.MockedFunction<typeof apiFetch>
 const revision = 'a'.repeat(64)
 const reply = (status: number, body: unknown) =>
@@ -17,7 +19,10 @@ const setup = () => {
     return { onQueued, onSupport }
 }
 
-beforeEach(() => request.mockReset())
+beforeEach(() => {
+    request.mockReset()
+    jest.clearAllMocks()
+})
 
 it('keeps the postal draft after a field refusal and queues a corrected code', async () => {
     request
@@ -35,7 +40,9 @@ it('keeps the postal draft after a field refusal and queues a corrected code', a
     fireEvent.change(refusedField, { target: { value: '02108' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await screen.findByText('Bank setup queued')
+    expect(markSubmitted).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    expect(markSubmitted).toHaveBeenCalledTimes(1)
     expect(onQueued).toHaveBeenCalledTimes(1)
     expect(JSON.parse(request.mock.calls[2][1]!.body as string)).toEqual({ postCode: '02108', revision })
 })
@@ -45,6 +52,7 @@ it.each([404, 409])('retains support when the API returns %s', async (status) =>
     const { onSupport } = setup()
     fireEvent.click(await screen.findByRole('button', { name: 'Contact support' }))
     expect(onSupport).toHaveBeenCalledTimes(1)
+    expect(markSubmitted).not.toHaveBeenCalled()
     expect(screen.queryByTestId('verify-input-postCode')).not.toBeInTheDocument()
 })
 
