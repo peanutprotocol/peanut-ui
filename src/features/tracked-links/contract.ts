@@ -114,6 +114,7 @@ export function parseResolvedAcquisitionLink(value: unknown): ResolvedAcquisitio
         !isAcquisitionSlug(value.slug) ||
         typeof value.linkId !== 'string' ||
         !/^[a-z][a-z0-9_-]{1,127}$/.test(value.linkId) ||
+        typeof value.revision !== 'number' ||
         parseAcquisitionRevision(value.revision) !== value.revision ||
         !['active', 'retired'].includes(String(value.status)) ||
         !object(value.destination) ||

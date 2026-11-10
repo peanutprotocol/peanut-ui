@@ -3,15 +3,16 @@
 // QR destination shared by both stores. Client-side routing also works in the native static export.
 
 import { useNativePlatform } from '@/utils/native-platform'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { parseAsString, useQueryStates } from 'nuqs'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import { MIGRATION_SURFACES, STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { isNativeBridge } from '@/utils/capacitor'
+import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { twMerge } from '@/utils/tw'
 import {
     applyDeferredPayload,
@@ -27,23 +28,117 @@ import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attr
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
 
+import {
+    bootstrapTrackedLinkEntry,
+    hasTrackedLinkEntry,
+    type TrackedLinkBootstrap,
+} from '@/features/tracked-links/bootstrap'
+import { isInviteUsername, TRACKED_LINK_ORIGIN } from '@/features/tracked-links/contract'
+
 // '/' sends no destination, so a new install opens to its normal first screen.
 const AD_ENTRY_DEST = '/'
 
 export default function SmartStoreRedirect() {
+    return (
+        <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
+            <SmartStoreContent />
+        </Suspense>
+    )
+}
+
+function SmartStoreContent() {
     const nativePlatform = useNativePlatform()
 
     const t = useTranslations('migration')
     const { deviceType } = useDeviceType()
     const router = useRouter()
+    const [entryQuery] = useQueryStates({
+        tl: parseAsString,
+        tr: parseAsString,
+        tracked_link: parseAsString,
+        code: parseAsString,
+        tl_seen: parseAsString,
+        pnutdl: parseAsString,
+    })
+    const entryKey = JSON.stringify(entryQuery)
+    const trackedEntry = entryQuery.tl !== null || entryQuery.tracked_link !== null || isInviteUsername(entryQuery.code)
 
     // Keep SSR and the first client render identical; device and URL context are browser-only.
     const [mounted, setMounted] = useState(false)
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
+    const [entryReady, setEntryReady] = useState(false)
+    const [openAppHref, setOpenAppHref] = useState<string | null>(null)
+    const bootstrap = useRef<{
+        key: string
+        promise: Promise<TrackedLinkBootstrap>
+        controller: AbortController
+    } | null>(null)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
+        const params = new URLSearchParams(search)
+        if (hasTrackedLinkEntry(params)) {
+            let disposed = false
+            let timeout: ReturnType<typeof setTimeout> | undefined
+            setEntryReady(false)
+            setPayload(null)
+            setIosPayload(null)
+            setOpenAppHref(null)
+            const doc = document as Document & { prerendering?: boolean }
+            const start = () => {
+                if (doc.prerendering) return
+                const native = isNativeBridge()
+                const key = `${native}:${search}`
+                if (bootstrap.current?.key !== key) {
+                    bootstrap.current?.controller.abort()
+                    const controller = new AbortController()
+                    bootstrap.current = {
+                        key,
+                        controller,
+                        promise: bootstrapTrackedLinkEntry(params, native, controller.signal),
+                    }
+                }
+                const activeBootstrap = bootstrap.current
+                const fallback = new Promise<TrackedLinkBootstrap>((resolve) => {
+                    timeout = setTimeout(() => {
+                        activeBootstrap.controller.abort()
+                        resolve({ payload: null, iosPayload: null })
+                    }, 3000)
+                })
+                void Promise.race([activeBootstrap.promise, fallback])
+                    .catch(() => ({ payload: null, iosPayload: null }) as TrackedLinkBootstrap)
+                    .then((entry) => {
+                        if (timeout) clearTimeout(timeout)
+                        if (disposed) return
+                        setPayload(entry.payload)
+                        setIosPayload(entry.iosPayload)
+                        setOpenAppHref(entry.openAppHref ?? null)
+                        if (native) {
+                            if (entry.publicPageHref)
+                                void openExternalUrl(`${TRACKED_LINK_ORIGIN}${entry.publicPageHref}`).catch(() => {})
+                            router.replace('/home')
+                        } else if (entry.publicPageHref) {
+                            window.location.replace(entry.publicPageHref)
+                            return
+                        }
+                        setEntryReady(true)
+                    })
+            }
+            if (doc.prerendering) doc.addEventListener('prerenderingchange', start, { once: true })
+            else start()
+            return () => {
+                disposed = true
+                if (timeout) clearTimeout(timeout)
+                doc.removeEventListener('prerenderingchange', start)
+            }
+        }
+        bootstrap.current?.controller.abort()
+        bootstrap.current = null
+        setPayload(null)
+        setIosPayload(null)
+        setOpenAppHref(null)
+        setEntryReady(true)
         const parsed = parseDeferredPayload(search)
         const marketing = parseMarketingQrHandoff(new URLSearchParams(search))
         if (marketing && !isNativeBridge()) {
@@ -88,7 +183,7 @@ export default function SmartStoreRedirect() {
         // Installed apps apply the QR's context immediately, then open its destination.
         const dest = parsed ? applyDeferredPayload(parsed).dest : null
         router.replace(dest ?? '/home')
-    }, [router])
+    }, [router, entryKey])
     const inNativeApp = mounted && nativePlatform.isNativeBridge
 
     const targetStore: StoreKind | null = mounted ? storeForDevice(deviceType) : null
@@ -100,15 +195,20 @@ export default function SmartStoreRedirect() {
 
     // Count the automatic redirect and any fallback taps as one handoff per visit.
     const handoffCounted = useRef(false)
-    const countHandoff = useCallback((platform: StoreKind) => {
-        if (handoffCounted.current) return
-        handoffCounted.current = true
-        trackDeferredHandoffCreated(platform)
-    }, [])
+    const countHandoff = useCallback(
+        (platform: StoreKind) => {
+            if (trackedEntry && !marketingQrAnalyticsAllowed()) return
+            if (handoffCounted.current) return
+            handoffCounted.current = true
+            trackDeferredHandoffCreated(platform)
+        },
+        [trackedEntry]
+    )
 
     // Start the clipboard write inside the tap handler to preserve the browser's user gesture.
     const onStoreTap = (store: StoreKind) => {
-        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
+        if (!trackedEntry || marketingQrAnalyticsAllowed())
+            trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
         const handoff = store === 'ios' ? (iosPayload ?? payload) : payload
         if (!handoff) return
         if (store === 'android') {
@@ -122,7 +222,7 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (inNativeApp || !targetStore) return
+        if (!entryReady || inNativeApp || !targetStore) return
         // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
         if (payload && targetStore === 'android') countHandoff('android')
@@ -131,7 +231,7 @@ export default function SmartStoreRedirect() {
         // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [inNativeApp, targetStore, payload, storeHref, countHandoff])
+    }, [entryReady, inNativeApp, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
@@ -152,7 +252,12 @@ export default function SmartStoreRedirect() {
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {mounted ? (
+                    {entryReady && openAppHref && !redirecting && (
+                        <Button variant="secondary" href={openAppHref} plainAnchor className="w-full">
+                            {t('smartLink.openApp')}
+                        </Button>
+                    )}
+                    {mounted && entryReady ? (
                         stores.map((s, i) => (
                             <Button
                                 key={s}

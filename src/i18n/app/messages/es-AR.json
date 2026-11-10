@@ -2118,6 +2118,7 @@
             "logIn": "Iniciá sesión en la web"
         },
         "smartLink": {
+            "openApp": "Abrir Peanut",
             "pickStore": "Elegí tu tienda y descargá la app."
         }
     },

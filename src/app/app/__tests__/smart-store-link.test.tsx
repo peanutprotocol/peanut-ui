@@ -37,6 +37,13 @@ jest.mock('next/navigation', () => ({
     notFound: () => mockNotFound(),
 }))
 
+jest.mock('nuqs', () => ({
+    parseAsString: {},
+    useQueryStates: (keys: Record<string, unknown>) => [
+        Object.fromEntries(Object.keys(keys).map((key) => [key, new URLSearchParams(window.location.search).get(key)])),
+    ],
+}))
+
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 let mockNative = false

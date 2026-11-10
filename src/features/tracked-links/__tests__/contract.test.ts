@@ -32,6 +32,7 @@ it('allows actual historical usernames and separates passive invite transport', 
 })
 it.each([
     { ...invite, policy: 'personless' },
+    { ...campaign, revision: null },
     { ...invite, slug: 'c-alice' },
     { ...invite, invite: { code: 'bob' } },
     { ...invite, userId: 'private' },
@@ -53,4 +54,16 @@ it('reserves each alias and identity through retirement and forbids mutable revi
     expect(() => validateCampaignRegistry([campaign, campaign])).toThrow()
     expect(() => validateCampaignRegistry([campaign, { ...campaign, revision: 2, linkId: 'campaign_other' }])).toThrow()
     expect(() => validateCampaignRegistry([{ ...campaign, slug: 'qr-home-hero-en' }])).toThrow()
+})
+
+it('accepts digit-start historical aliases, free registered sources and optional campaign inviter', () => {
+    expect(parseResolvedAcquisitionLink({ ...invite, slug: '1old', invite: { code: '1old' } })).not.toBeNull()
+    expect(
+        parseResolvedAcquisitionLink({
+            ...campaign,
+            campaign: { ...campaign.campaign, source: 'specific-creator' },
+            invite: { code: 'alice' },
+        })
+    ).not.toBeNull()
+    expect(parseResolvedAcquisitionLink({ ...campaign, invite: { code: 'bad-name' } })).toBeNull()
 })
