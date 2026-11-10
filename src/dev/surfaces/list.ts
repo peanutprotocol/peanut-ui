@@ -456,52 +456,52 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'country=AR', 'kyc=false'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
-    '94-f-avenia-pix-deposit': {
-        name: 'Avenia Pix deposit — the dynamic code',
+    '94-f-pix-deposit': {
+        name: 'Pix deposit — the dynamic code',
         path: 'features/pix/components/PixQrDeposit.tsx',
         captureState: ['amountBrl=100', 'expiresAt=+10 min'],
         // the signed-in Brazilian resident the CPF line's avatar is drawn for
-        shotFixture: 'avenia-deposit-amount',
+        shotFixture: 'pix-deposit-amount',
         expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
     },
-    '94-g-avenia-withdraw-on-its-way': {
-        name: 'Avenia Pix withdrawal — funded, on its way to the account',
+    '94-g-pix-withdraw-on-its-way': {
+        name: 'Pix withdrawal — funded, on its way to the account',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
         captureState: ['phase=funded', 'entry=PENDING', 'destination=Banco Inter · Ana Souza'],
-        shotFixture: 'avenia-withdraw-unconfirmed',
+        shotFixture: 'pix-withdraw-unconfirmed',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
-    '94-h-avenia-withdraw-arrived-to': {
-        name: 'Avenia Pix withdrawal — arrived at the account',
+    '94-h-pix-withdraw-arrived-to': {
+        name: 'Pix withdrawal — arrived at the account',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
         captureState: ['phase=funded', 'entry=COMPLETED', 'destination=Banco Inter · Ana Souza'],
-        shotFixture: 'avenia-withdraw-arrived',
+        shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
-    '94-i-avenia-withdraw-sent-unnamed': {
-        name: 'Avenia Pix withdrawal — on its way, no holder named',
+    '94-i-pix-withdraw-sent-unnamed': {
+        name: 'Pix withdrawal — on its way, no holder named',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
         captureState: ['phase=funded', 'entry=PENDING', 'destination=none'],
-        shotFixture: 'avenia-withdraw-unconfirmed',
+        shotFixture: 'pix-withdraw-unconfirmed',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
-    '94-j-avenia-review-quote-moved': {
-        name: 'Avenia Pix review — the opened quote moved, confirm again',
+    '94-j-pix-review-quote-moved': {
+        name: 'Pix review — the opened quote moved, confirm again',
         path: 'features/pix/components/PixWithdrawReview.tsx',
         captureState: ['phase=reconfirm'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
-    '94-k-avenia-review-after-init': {
-        name: 'Avenia Pix review — the opened quote expired before the signature',
+    '94-k-pix-review-after-init': {
+        name: 'Pix review — the opened quote expired before the signature',
         path: 'features/pix/components/PixWithdrawReview.tsx',
         captureState: ['phase=idle', 'lockedAfterInit=true', 'error=quoteExpired'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
-    '94-l-avenia-withdraw-stuck': {
-        name: 'Avenia Pix withdrawal — funded, but the withdrawal ended with no recovery',
+    '94-l-pix-withdraw-stuck': {
+        name: 'Pix withdrawal — funded, but the withdrawal ended with no recovery',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
         captureState: ['phase=funded', 'entry=CANCELLED', 'outcome=stuck'],
-        shotFixture: 'avenia-withdraw-not-sent',
+        shotFixture: 'pix-withdraw-not-sent',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '70-d-activationctas-outbound': {

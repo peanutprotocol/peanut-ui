@@ -170,27 +170,27 @@
         "route": "/withdraw/pix"
     },
     {
-        "id": "fixture-avenia-setup-verify",
+        "id": "fixture-pix-setup-verify",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-setup-reviewing",
+        "id": "fixture-pix-setup-reviewing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-setup-import-unavailable",
+        "id": "fixture-pix-setup-import-unavailable",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-setup-cpf-missing",
+        "id": "fixture-pix-setup-cpf-missing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-setup-support",
+        "id": "fixture-pix-setup-support",
         "flow": "Setup and login",
         "route": "/withdraw/pix"
     },
@@ -298,7 +298,7 @@
         "route": "/history"
     },
     {
-        "id": "fixture-avenia-activity-new-key",
+        "id": "fixture-pix-activity-new-key",
         "flow": "Home and shared states",
         "route": "/history"
     },
@@ -1011,42 +1011,42 @@
         "route": "/add-money/spain"
     },
     {
-        "id": "fixture-avenia-first-use",
+        "id": "fixture-pix-first-use",
         "flow": "Add money",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-deposit-amount",
+        "id": "fixture-pix-deposit-amount",
         "flow": "Add money",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-deposit-minimum",
+        "id": "fixture-pix-deposit-minimum",
         "flow": "Add money",
         "route": "/add-money/pix?amount=10&currency=BRL"
     },
     {
-        "id": "fixture-avenia-deposit-expired",
+        "id": "fixture-pix-deposit-expired",
         "flow": "Add money",
-        "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
-        "id": "fixture-avenia-deposit-returned",
+        "id": "fixture-pix-deposit-returned",
         "flow": "Add money",
-        "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
-        "id": "fixture-avenia-deposit-processing",
+        "id": "fixture-pix-deposit-processing",
         "flow": "Add money",
-        "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
-        "id": "fixture-avenia-deposit-received",
+        "id": "fixture-pix-deposit-received",
         "flow": "Add money",
-        "route": "/add-money/pix?step=showQR&intentId=fixture-avenia-deposit"
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
-        "id": "fixture-avenia-deposit-quote-failed",
+        "id": "fixture-pix-deposit-quote-failed",
         "flow": "Add money",
         "route": "/add-money/pix"
     },
@@ -1056,9 +1056,9 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-receipt-pay-code",
+        "id": "fixture-pix-receipt-pay-code",
         "flow": "Add money",
-        "route": "/history?tx=fixture-avenia-deposit"
+        "route": "/history?tx=fixture-pix-deposit"
     },
     {
         "id": "fixture-pix-route-method-not-served",
@@ -1066,9 +1066,14 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-avenia-withdraw-key-code",
+        "id": "fixture-pix-withdraw-key-code",
         "flow": "Add money",
         "route": "/withdraw/pix?destination=00020126680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fdemo-avenia-deposit5204000053039865802BR5925AVENIA%20SOCIEDADE%20PRESTADO6009SAO%20PAULO62070503***63044D3A"
+    },
+    {
+        "id": "fixture-pix-manteca-deposit-code",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
     },
     {
         "id": "fixture-get-paid",
@@ -1326,12 +1331,12 @@
         "route": "/add-money/argentina/manteca"
     },
     {
-        "id": "p80-avenia-terms-not-saved",
+        "id": "p80-pix-terms-not-saved",
         "flow": "Add money",
         "route": "/add-money/pix"
     },
     {
-        "id": "p81-avenia-deposit-limit",
+        "id": "p81-pix-deposit-limit",
         "flow": "Add money",
         "route": "/add-money/pix?amount=100&currency=BRL"
     },
@@ -1366,9 +1371,9 @@
         "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
-        "id": "94-f-avenia-pix-deposit",
+        "id": "94-f-pix-deposit",
         "flow": "Add money",
-        "route": "/dev/surfaces?s=94-f-avenia-pix-deposit",
+        "route": "/dev/surfaces?s=94-f-pix-deposit",
         "source": "features/pix/components/PixQrDeposit.tsx"
     },
     {
@@ -2087,37 +2092,37 @@
         "route": "/withdraw/manteca?country=brazil&method=pix"
     },
     {
-        "id": "fixture-avenia-withdraw-key",
+        "id": "fixture-pix-withdraw-key",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189"
     },
     {
-        "id": "fixture-avenia-withdraw-key-other",
+        "id": "fixture-pix-withdraw-key-other",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=%2B5511987654321"
     },
     {
-        "id": "fixture-avenia-withdraw-review",
+        "id": "fixture-pix-withdraw-review",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
-        "id": "fixture-avenia-new-key",
+        "id": "fixture-pix-new-key",
         "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189"
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
     },
     {
         "id": "fixture-pix-new-key-not-waiting",
         "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal"
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal"
     },
     {
-        "id": "fixture-avenia-withdraw-amount",
+        "id": "fixture-pix-withdraw-amount",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&step=amount"
     },
     {
-        "id": "fixture-avenia-withdraw-quote-failed",
+        "id": "fixture-pix-withdraw-quote-failed",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&step=amount"
     },
@@ -2137,74 +2142,84 @@
         "route": "/withdraw/pix"
     },
     {
-        "id": "fixture-avenia-withdraw-key-lookup-failed",
+        "id": "fixture-pix-withdraw-key-lookup-failed",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189"
     },
     {
-        "id": "fixture-avenia-withdraw-key-blocked",
+        "id": "fixture-pix-withdraw-key-blocked",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189"
     },
     {
-        "id": "fixture-avenia-withdraw-review-limit",
+        "id": "fixture-pix-withdraw-review-limit",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
-        "id": "fixture-avenia-withdraw-review-key-not-own",
+        "id": "fixture-pix-withdraw-review-key-not-own",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
-        "id": "fixture-avenia-withdraw-review-in-progress",
+        "id": "fixture-pix-withdraw-review-in-progress",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
-        "id": "fixture-avenia-withdraw-review-quote-changed",
+        "id": "fixture-pix-withdraw-review-quote-changed",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
-        "id": "fixture-avenia-withdraw-arrived",
+        "id": "fixture-pix-withdraw-arrived",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-avenia-withdraw-unconfirmed",
+        "id": "fixture-pix-withdraw-unconfirmed",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-avenia-withdraw-refunded",
+        "id": "fixture-pix-withdraw-refunded",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-avenia-withdraw-not-sent",
+        "id": "fixture-pix-withdraw-not-sent",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-avenia-withdraw-not-signed",
+        "id": "fixture-pix-withdraw-not-signed",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-avenia-withdraw-needs-key",
+        "id": "fixture-pix-withdraw-needs-key",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-avenia-refused-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-refused-withdrawal"
     },
     {
-        "id": "fixture-avenia-new-key-unnamed",
+        "id": "fixture-pix-new-key-unnamed",
         "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189"
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
     },
     {
-        "id": "fixture-avenia-receipt-new-key",
+        "id": "fixture-pix-receipt-new-key",
         "flow": "Withdraw",
-        "route": "/history?tx=fixture-avenia-refused-withdrawal"
+        "route": "/history?tx=fixture-pix-refused-withdrawal"
+    },
+    {
+        "id": "fixture-pix-manteca-withdraw-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?destination=09579927189"
+    },
+    {
+        "id": "fixture-pix-manteca-withdraw-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
         "id": "fixture-withdraw-bank-form",
@@ -2312,17 +2327,17 @@
         "route": "/withdraw/crypto"
     },
     {
-        "id": "p82-avenia-new-key-saved",
+        "id": "p82-pix-new-key-saved",
         "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189"
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
     },
     {
-        "id": "p83-avenia-new-key-saved-unnamed",
+        "id": "p83-pix-new-key-saved-unnamed",
         "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal&destination=09579927189"
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
     },
     {
-        "id": "p84-avenia-provider-sheet",
+        "id": "p84-pix-provider-sheet",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
@@ -2387,39 +2402,39 @@
         "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
-        "id": "94-g-avenia-withdraw-on-its-way",
+        "id": "94-g-pix-withdraw-on-its-way",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-g-avenia-withdraw-on-its-way",
+        "route": "/dev/surfaces?s=94-g-pix-withdraw-on-its-way",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
-        "id": "94-h-avenia-withdraw-arrived-to",
+        "id": "94-h-pix-withdraw-arrived-to",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-h-avenia-withdraw-arrived-to",
+        "route": "/dev/surfaces?s=94-h-pix-withdraw-arrived-to",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
-        "id": "94-i-avenia-withdraw-sent-unnamed",
+        "id": "94-i-pix-withdraw-sent-unnamed",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-i-avenia-withdraw-sent-unnamed",
+        "route": "/dev/surfaces?s=94-i-pix-withdraw-sent-unnamed",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
-        "id": "94-j-avenia-review-quote-moved",
+        "id": "94-j-pix-review-quote-moved",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-j-avenia-review-quote-moved",
+        "route": "/dev/surfaces?s=94-j-pix-review-quote-moved",
         "source": "features/pix/components/PixWithdrawReview.tsx"
     },
     {
-        "id": "94-k-avenia-review-after-init",
+        "id": "94-k-pix-review-after-init",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-k-avenia-review-after-init",
+        "route": "/dev/surfaces?s=94-k-pix-review-after-init",
         "source": "features/pix/components/PixWithdrawReview.tsx"
     },
     {
-        "id": "94-l-avenia-withdraw-stuck",
+        "id": "94-l-pix-withdraw-stuck",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-l-avenia-withdraw-stuck",
+        "route": "/dev/surfaces?s=94-l-pix-withdraw-stuck",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {

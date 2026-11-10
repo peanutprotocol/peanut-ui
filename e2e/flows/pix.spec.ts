@@ -1,10 +1,12 @@
 /**
- * Brazil Pix on Avenia for Brazilian residents: the first-use step, the
- * deposit amount's minimum, the own-key rule on the withdrawal key, the
- * review's rows, and the new key for a payout the bank refused. UI state only: every API answer comes from a fixture
- * (`?__fixture=avenia-*`, src/dev/fixtures/registry.ts), so nothing here
- * reaches Avenia, Rhino or a chain. Backend truth (tickets, the Rhino join,
- * the payout) belongs to the API's integration tests and Nutcracker.
+ * The one Pix flow, on the route of either provider: the first-use step, the
+ * deposit amount's minimum from the route, the own-key rule on the withdrawal
+ * key, the review's rows, and the new key for a payout the bank refused; then
+ * the same screens on Manteca's route, where the answers differ. UI state only:
+ * every API answer comes from a fixture (`?__fixture=pix-*`,
+ * src/dev/fixtures/registry.ts), so nothing here reaches a provider or a chain.
+ * Backend truth (tickets, the bridge join, the payout) belongs to the API's
+ * integration tests and Nutcracker.
  */
 
 import { expect, test, type Page } from '@playwright/test'
@@ -13,7 +15,7 @@ import { dismissModals } from '../utils/dismiss-modals'
 test.use({ viewport: { width: 375, height: 667 } })
 
 const WITHDRAW = '/withdraw/pix'
-const NEW_KEY = '/withdraw/new-pix-key?intentId=fixture-avenia-refused-withdrawal'
+const NEW_KEY = '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal'
 
 async function open(page: Page, url: string) {
     await page.goto(url, { waitUntil: 'domcontentloaded' })
@@ -21,9 +23,9 @@ async function open(page: Page, url: string) {
     await dismissModals(page)
 }
 
-test.describe('Avenia Pix', () => {
+test.describe('Pix on the Avenia route', () => {
     test("the terms step names and links Avenia's terms before the user accepts them", async ({ page }) => {
-        await open(page, '/add-money/pix?__fixture=avenia-first-use')
+        await open(page, '/add-money/pix?__fixture=pix-first-use')
         await expect(page.getByText('Set up Pix')).toBeVisible({ timeout: 60_000 })
         const terms = page.getByRole('link', { name: 'Avenia terms and conditions' })
         await expect(terms).toHaveAttribute('href', 'https://app.avenia.io/Avenia-TC.pdf')
@@ -33,7 +35,7 @@ test.describe('Avenia Pix', () => {
     })
 
     test('a deposit under R$20 says the minimum and cannot continue', async ({ page }) => {
-        await open(page, '/add-money/pix?__fixture=avenia-deposit-amount')
+        await open(page, '/add-money/pix?__fixture=pix-deposit-amount')
         const input = page.locator('input[inputmode="decimal"]').first()
         await expect(input).toBeVisible({ timeout: 60_000 })
         await input.fill('10')
@@ -48,7 +50,7 @@ test.describe('Avenia Pix', () => {
     })
 
     test("the user's own key resolves to holder and bank, and continues", async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=avenia-withdraw-key`)
+        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=pix-withdraw-key`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Ana Souza')
@@ -58,7 +60,7 @@ test.describe('Avenia Pix', () => {
     })
 
     test("someone else's key shows as such, with the field error, and cannot continue", async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=%2B5511987654321&__fixture=avenia-withdraw-key-other`)
+        await open(page, `${WITHDRAW}?destination=%2B5511987654321&__fixture=pix-withdraw-key-other`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText("Someone else's")
@@ -66,16 +68,16 @@ test.describe('Avenia Pix', () => {
         await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
     })
 
-    test("the review leads with the reais, puts the fees in the rate and shows Avenia's flat fee apart", async ({
+    test('the review leads with the reais, puts the fees in the rate and shows the flat fee apart', async ({
         page,
     }) => {
         await open(
             page,
-            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=avenia-withdraw-review`
+            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-withdraw-review`
         )
         await expect(page.getByText('R$503')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('to Banco Inter · Ana Souza')).toBeVisible()
-        await expect(page.getByText('Avenia fee')).toHaveCount(1)
+        await expect(page.getByText('Fee', { exact: true })).toHaveCount(1)
         await expect(page.getByText('R$0.75')).toBeVisible()
         await expect(page.getByText('1 USD = BRL 5.445946')).toBeVisible()
         await expect(page.getByText('About 1 minute')).toBeVisible()
@@ -85,16 +87,16 @@ test.describe('Avenia Pix', () => {
     })
 
     test("a refused payout's receipt asks for another key and opens the new-key screen", async ({ page }) => {
-        await open(page, '/history?tx=fixture-avenia-refused-withdrawal&__fixture=avenia-receipt-new-key')
+        await open(page, '/history?tx=fixture-pix-refused-withdrawal&__fixture=pix-receipt-new-key')
         const notice = page.getByTestId('pix-new-key-notice')
         await expect(notice).toBeVisible({ timeout: 60_000 })
         await expect(notice).toContainText('The bank refused this payout.')
         await notice.getByRole('button', { name: 'Add Pix key' }).click()
-        await expect(page).toHaveURL(/\/withdraw\/new-pix-key\?intentId=fixture-avenia-refused-withdrawal/)
+        await expect(page).toHaveURL(/\/withdraw\/new-pix-key\?intentId=fixture-pix-refused-withdrawal/)
     })
 
     test('a new own key for a refused payout is saved and says where the money goes', async ({ page }) => {
-        await open(page, `${NEW_KEY}&destination=09579927189&__fixture=avenia-new-key`)
+        await open(page, `${NEW_KEY}&destination=09579927189&__fixture=pix-new-key`)
         await expect(page.getByText('The bank refused the payout to the previous key.')).toBeVisible({
             timeout: 60_000,
         })
@@ -111,5 +113,42 @@ test.describe('Avenia Pix', () => {
         await expect(state).toContainText('This withdrawal is no longer waiting for a new Pix key.')
         await expect(state).toContainText('Completed')
         await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
+    })
+})
+
+test.describe('Pix on the Manteca route', () => {
+    test('the code has no expiry, payer or fee line, and names Manteca', async ({ page }) => {
+        await open(
+            page,
+            '/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit&__fixture=pix-manteca-deposit-code'
+        )
+        await expect(page.getByText('R$100')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText(/^Expires in/)).toHaveCount(0)
+        await expect(page.getByText(/under your CPF/)).toHaveCount(0)
+        await expect(page.getByText(/^Fee /)).toHaveCount(0)
+        await expect(page.getByText('Provider · Manteca')).toBeVisible()
+    })
+
+    test('a key whose holder the provider cannot check shows no badge and continues', async ({ page }) => {
+        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=pix-manteca-withdraw-key`)
+        const holder = page.getByTestId('pix-key-holder')
+        await expect(holder).toBeVisible({ timeout: 60_000 })
+        await expect(holder).toContainText('Ana Souza')
+        await expect(holder).not.toContainText('Own account')
+        await expect(holder).not.toContainText("Someone else's")
+        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+    })
+
+    test('the review shows no flat-fee line and names Manteca', async ({ page }) => {
+        await open(
+            page,
+            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-manteca-withdraw-review`
+        )
+        await expect(page.getByText('R$503')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('to Ana Souza')).toBeVisible()
+        await expect(page.getByText('Fee', { exact: true })).toHaveCount(0)
+        await expect(page.getByText('About 5 minutes')).toBeVisible()
+        await expect(page.getByText('Manteca')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
     })
 })

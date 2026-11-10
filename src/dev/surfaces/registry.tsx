@@ -285,7 +285,7 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
 
 // the code screen right after POST /pix/deposit, with ten minutes on the clock: the
 // create seeds the deposit's query, as the flow does, so no read is needed to draw it
-function AveniaPixDepositSurface() {
+function PixDepositSurface() {
     const queryClient = useQueryClient()
     useState(() =>
         queryClient.setQueryData(pixDepositQueryKey('demo-pix-deposit'), {
@@ -317,7 +317,7 @@ function AveniaPixDepositSurface() {
 }
 
 // the withdrawal this session signed, for the last step's in-memory destination
-const AVENIA_SURFACE_DISPLAY: PixWithdrawDisplay = {
+const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
     pixKey: '09579927189',
     ownAccount: true,
@@ -331,13 +331,13 @@ const AVENIA_SURFACE_DISPLAY: PixWithdrawDisplay = {
 }
 
 // the last step right after the signature: the destination comes from what was signed
-function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
-    const display = unnamed ? { ...AVENIA_SURFACE_DISPLAY, bankName: null, holderName: null } : AVENIA_SURFACE_DISPLAY
+function PixWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
+    const display = unnamed ? { ...PIX_SURFACE_DISPLAY, bankName: null, holderName: null } : PIX_SURFACE_DISPLAY
     return (
         <AppPageSurface>
             <PixWithdrawOutcome
                 title="Withdraw"
-                intentId="fixture-avenia-withdrawal"
+                intentId="fixture-pix-withdrawal"
                 providerId="avenia-br"
                 sent={{ phase: 'funded', display }}
                 onStartAgain={noop}
@@ -347,7 +347,7 @@ function AveniaWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }
 }
 
 // the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
-function AveniaWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
+function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
     const t = useTranslations('pix.withdraw')
     const error =
         variant === 'quote-moved'
@@ -357,7 +357,7 @@ function AveniaWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'af
         <AppPageSurface>
             <PixWithdrawReview
                 title="Withdraw"
-                display={AVENIA_SURFACE_DISPLAY}
+                display={PIX_SURFACE_DISPLAY}
                 providerId="avenia-br"
                 isLoading={false}
                 isSubmitting={false}
@@ -1420,34 +1420,34 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['93-f-withdraw-account-closed'],
         render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
     },
-    '94-f-avenia-pix-deposit': {
-        ...SURFACE_META['94-f-avenia-pix-deposit'],
-        render: () => <AveniaPixDepositSurface />,
+    '94-f-pix-deposit': {
+        ...SURFACE_META['94-f-pix-deposit'],
+        render: () => <PixDepositSurface />,
     },
-    '94-g-avenia-withdraw-on-its-way': {
-        ...SURFACE_META['94-g-avenia-withdraw-on-its-way'],
-        render: () => <AveniaWithdrawOutcomeSurface />,
+    '94-g-pix-withdraw-on-its-way': {
+        ...SURFACE_META['94-g-pix-withdraw-on-its-way'],
+        render: () => <PixWithdrawOutcomeSurface />,
     },
-    '94-h-avenia-withdraw-arrived-to': {
-        ...SURFACE_META['94-h-avenia-withdraw-arrived-to'],
-        render: () => <AveniaWithdrawOutcomeSurface />,
+    '94-h-pix-withdraw-arrived-to': {
+        ...SURFACE_META['94-h-pix-withdraw-arrived-to'],
+        render: () => <PixWithdrawOutcomeSurface />,
     },
-    '94-i-avenia-withdraw-sent-unnamed': {
-        ...SURFACE_META['94-i-avenia-withdraw-sent-unnamed'],
-        render: () => <AveniaWithdrawOutcomeSurface unnamed />,
+    '94-i-pix-withdraw-sent-unnamed': {
+        ...SURFACE_META['94-i-pix-withdraw-sent-unnamed'],
+        render: () => <PixWithdrawOutcomeSurface unnamed />,
     },
-    '94-j-avenia-review-quote-moved': {
-        ...SURFACE_META['94-j-avenia-review-quote-moved'],
-        render: () => <AveniaWithdrawReviewSurface variant="quote-moved" />,
+    '94-j-pix-review-quote-moved': {
+        ...SURFACE_META['94-j-pix-review-quote-moved'],
+        render: () => <PixWithdrawReviewSurface variant="quote-moved" />,
     },
-    '94-k-avenia-review-after-init': {
-        ...SURFACE_META['94-k-avenia-review-after-init'],
-        render: () => <AveniaWithdrawReviewSurface variant="after-init" />,
+    '94-k-pix-review-after-init': {
+        ...SURFACE_META['94-k-pix-review-after-init'],
+        render: () => <PixWithdrawReviewSurface variant="after-init" />,
     },
     // the shot fixture's entry ended CANCELLED after this session funded it: support, never "on its way"
-    '94-l-avenia-withdraw-stuck': {
-        ...SURFACE_META['94-l-avenia-withdraw-stuck'],
-        render: () => <AveniaWithdrawOutcomeSurface />,
+    '94-l-pix-withdraw-stuck': {
+        ...SURFACE_META['94-l-pix-withdraw-stuck'],
+        render: () => <PixWithdrawOutcomeSurface />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

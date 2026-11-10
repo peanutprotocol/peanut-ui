@@ -20,6 +20,20 @@ let warned = false
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
 
+/**
+ * The baseline's routes are the demo user's, a resident of Brazil (Avenia's Pix, Pix payments
+ * refused). A fixture that writes its own capability block describes another user: it states its
+ * routes, or it has none, so the demo's Brazil routes never close its Pix payments or answer for its
+ * BRL account.
+ */
+function withFixtureRoutes(
+    user: IUserProfile | null,
+    override: Partial<IUserProfile> | null | undefined
+): IUserProfile | null {
+    if (!user?.capabilities || !override?.capabilities || override.capabilities.routes !== undefined) return user
+    return { ...user, capabilities: { ...user.capabilities, routes: [] } }
+}
+
 /** Objects merge key by key. Arrays and primitives replace, so `[]` empties a list. */
 function merge(base: unknown, patch: unknown): unknown {
     if (!isPlainObject(base) || !isPlainObject(patch)) return patch
@@ -73,10 +87,13 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         const paperworkData = await paperworkBase.json().catch(() => ({}))
         const paperworkOverride = fixture.responses?.['GET /users/kyc/paperwork']
         const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
-        merged = withFixtureFeatureReport(
-            merged as IUserProfile | null,
-            override as Partial<IUserProfile> | null | undefined,
-            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        merged = withFixtureRoutes(
+            withFixtureFeatureReport(
+                merged as IUserProfile | null,
+                override as Partial<IUserProfile> | null | undefined,
+                paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+            ),
+            override as Partial<IUserProfile> | null | undefined
         )
     }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
