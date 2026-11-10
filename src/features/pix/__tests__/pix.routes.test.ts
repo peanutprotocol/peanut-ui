@@ -1,5 +1,5 @@
 import { COUNTRY_SPECIFIC_METHODS } from '@/components/AddMoney/consts'
-import { isPixPagePath, pixDepositCodeUrl, pixWithdrawUrl } from '../pix.routes'
+import { isPixPagePath, pixDepositCodeUrl } from '../pix.routes'
 
 describe('the neutral Pix pages', () => {
     it("are where Brazil's add-money and own-account withdraw rows go", () => {
@@ -17,14 +17,9 @@ describe('the neutral Pix pages', () => {
     })
 
     it('are recognised as pages that run their own flow', () => {
-        expect(isPixPagePath('/withdraw/pix?destination=x')).toBe(true)
+        expect(isPixPagePath('/withdraw/pix?step=amount')).toBe(true)
         expect(isPixPagePath(pixDepositCodeUrl('d1'))).toBe(true)
         expect(isPixPagePath('/withdraw/manteca?country=argentina')).toBe(false)
         expect(isPixPagePath(undefined)).toBe(false)
-    })
-
-    it("open the withdraw page's key step on a saved key", () => {
-        expect(pixWithdrawUrl('09579927189')).toBe('/withdraw/pix?destination=09579927189')
-        expect(pixWithdrawUrl('ana@example.com')).toBe('/withdraw/pix?destination=ana%40example.com')
     })
 })

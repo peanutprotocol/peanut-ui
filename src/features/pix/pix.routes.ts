@@ -14,8 +14,3 @@ export function pixDepositCodeUrl(intentId: string): string {
 export function isPixPagePath(path: string | undefined): boolean {
     return !!path && (path.startsWith(PIX_ADD_MONEY_PATH) || path.startsWith(PIX_WITHDRAW_PATH))
 }
-
-/** /withdraw/pix with a saved Pix key in the key step (`?destination=`). */
-export function pixWithdrawUrl(pixKey: string): string {
-    return `${PIX_WITHDRAW_PATH}?${new URLSearchParams({ destination: pixKey }).toString()}`
-}

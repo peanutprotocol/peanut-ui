@@ -23,7 +23,8 @@ import {
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
-import { DEMO_ADDRESS, DEMO_PIX_BR_CODE } from '@/constants/demo-data'
+import { DEMO_ADDRESS, DEMO_PIX_BR_CODE, DEMO_USER } from '@/constants/demo-data'
+import { EMPTY_PIX_WITHDRAW_DRAFT, pixWithdrawDraftKey, type PixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 
 const ROUTES = {
     bank: '/add-money/germany/bank',
@@ -360,6 +361,10 @@ const MANTECA_PIX_DEPOSIT_ID = 'fixture-pix-manteca-deposit'
 const AVENIA_OWN_KEY = '09579927189'
 const AVENIA_OTHER_KEY = '+5511987654321'
 const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
+/** The Pix withdraw form, which lives in the account's session draft and never in the URL. */
+const pixWithdrawForm = (fields: Partial<PixWithdrawDraft>) => ({
+    [pixWithdrawDraftKey(DEMO_USER.user.userId)]: JSON.stringify({ ...EMPTY_PIX_WITHDRAW_DRAFT, ...fields }),
+})
 const AVENIA_OWN_KEY_INFO = {
     provider: 'avenia',
     holderName: 'Ana Souza',
@@ -1961,7 +1966,8 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'pix-withdraw-key': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
         about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
         waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
@@ -1976,7 +1982,8 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-withdraw-key-other': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(AVENIA_OTHER_KEY)}`,
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }),
         about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
         waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
@@ -1991,7 +1998,8 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-withdraw-review': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
         about: 'Avenia Pix withdrawal review: reais as the headline, the rate with the fees in, the flat fee apart.',
         responses: aveniaResponses('enabled', {
             'POST /pix/withdraw/preview': {
@@ -2066,12 +2074,14 @@ export const FIXTURES: Record<string, Fixture> = {
         fails: ['GET /pix/quote'],
     },
     'pix-withdraw-amount': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&step=amount`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=amount`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
         about: 'Avenia Pix withdrawal: the amount in reais, estimated with the Pix quote, R$20 minimum.',
         responses: aveniaResponses('enabled'),
     },
     'pix-withdraw-quote-failed': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&step=amount`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=amount`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
         about: 'The withdraw amount step when the Pix quote fails: the rate is unavailable, with a retry.',
         responses: aveniaResponses('enabled'),
         fails: ['GET /pix/quote'],
@@ -2194,18 +2204,21 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-withdraw-key-code': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${encodeURIComponent(DEMO_PIX_BR_CODE)}`,
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: DEMO_PIX_BR_CODE }),
         about: 'A Pix code pasted where a withdrawal needs a key: the field asks for a key.',
         responses: aveniaResponses('enabled'),
     },
     'pix-withdraw-key-lookup-failed': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
         about: 'The Pix key lookup failed: the field asks to try again.',
         responses: aveniaResponses('enabled'),
         fails: ['POST /pix/key'],
     },
     'pix-withdraw-key-blocked': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
         about: "A key at a bank on Avenia's deny-list: withdrawals there are not available.",
         waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', {
@@ -2213,7 +2226,8 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-withdraw-review-limit': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
         about: 'A withdrawal over the monthly Pix limit: the review says so (PIX_LIMIT_EXCEEDED).',
         responses: aveniaResponses('enabled'),
         rejects: {
@@ -2224,7 +2238,8 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'pix-withdraw-review-key-not-own': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
         about: "The preview refuses a key that is not the user's: the review offers Change key, not Retry.",
         responses: aveniaResponses('enabled'),
         rejects: {
@@ -2235,7 +2250,8 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'pix-withdraw-review-in-progress': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
         about: 'Too many Pix withdrawals still on their way: the review asks to try later.',
         responses: aveniaResponses('enabled'),
         rejects: {
@@ -2246,7 +2262,8 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'pix-withdraw-review-quote-changed': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
         about: 'The amount changed while it was quoted (PIX_QUOTE_CHANGED): the review asks to try again.',
         responses: aveniaResponses('enabled'),
         rejects: {
@@ -2340,7 +2357,8 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-manteca-withdraw-key': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}`,
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
         about: "A Pix key on Manteca's route: the holder is named, no ownership badge, and the key continues.",
         waitFor: '[data-testid="pix-key-holder"]',
         responses: mantecaPixResponses({
@@ -2356,7 +2374,8 @@ export const FIXTURES: Record<string, Fixture> = {
         }),
     },
     'pix-manteca-withdraw-review': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
         about: "A Pix withdrawal review on Manteca's route: the fees in the rate, no flat-fee line, Manteca named.",
         responses: mantecaPixResponses({
             'POST /pix/withdraw/preview': {

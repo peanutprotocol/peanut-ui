@@ -24,9 +24,9 @@ import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
 import { usePixRefusalMessage } from '@/features/pix/usePixRefusalMessage'
 import { usePixWithdrawSubmit } from '@/features/pix/usePixWithdrawSubmit'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
-import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { usePixPendingTransfer } from '@/features/pix/usePixPendingTransfer'
+import { usePixWithdrawDraft } from '@/features/pix/usePixWithdrawDraft'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
@@ -45,10 +45,13 @@ import { pixProviderId } from '@/utils/provider.utils'
 
 /**
  * Withdraw by Pix, for whichever provider the withdraw route names: the own
- * Pix key, the amount, the review, then the signature. The key and the
- * amount live in the URL (`?destination=`, `?amount=` in USD,
- * `?destinationAmount=` in reais or `?spend=` for the whole balance), so a
- * refresh keeps the step; nothing is opened at the provider before Confirm.
+ * Pix key, the amount, the review, then the signature. The URL holds the step
+ * and, once Confirm opened the withdrawal, its `?intentId=`; nothing else. The
+ * key and the amount (in USD, in reais, or the whole balance) live in the
+ * account's draft in this tab's session (`pixWithdrawDraft`), never in the URL,
+ * so a refresh keeps the step and the form without the Pix key reaching
+ * analytics, history or request logs. Nothing is opened at the provider before
+ * Confirm.
  */
 export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('pix.withdraw')
@@ -66,26 +69,21 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const providerId = pixProviderId(route.provider)
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
-    const [destination, setDestination] = useQueryState('destination', parseAsString.withDefault(''))
     // set once Confirm opened the withdrawal: from then on the URL shows its outcome, never the form again
     const [intentId, setIntentId] = useQueryState('intentId', parseAsString.withDefault(''))
-    const [amountUsd, setAmountUsd] = useWithdrawAmount()
-    const [amountBrl, setAmountBrl] = useWithdrawDestinationAmount()
-    // "Use balance": the USDC that leaves the wallet, every fee included, so the whole balance can go
-    const [spendUsd, setSpendUsd] = useQueryState('spend', parseAsString.withDefault(''))
+    // the key and the one amount ("Use balance" is spendUsd: the USDC that leaves the wallet, every fee included)
+    const { draft, update: updateDraft, clear: clearDraft } = usePixWithdrawDraft()
+    const { destination, amountUsd, amountBrl, spendUsd } = draft
     const pixKey = completePixKey(destination)
     const amount = pixWithdrawAmount({ amountUsd, amountBrl, spendUsd })
     const submit = usePixWithdrawSubmit({
         provider: route.provider,
-        // From the open withdrawal on, the URL names it, not the form: step and intentId only. The
-        // key and the amount live with the provider, and a reload reads its outcome. A submit that
-        // could not name its withdrawal still drops the form, so a reload cannot send it twice.
+        // From the open withdrawal on, the URL names it and the draft goes: the key and the amount
+        // live with the provider, and a reload reads its outcome. A submit that could not name its
+        // withdrawal still drops the draft, so a reload cannot send it twice.
         onOpened: (id) => {
             void setIntentId(id)
-            void setDestination(null)
-            void setAmountUsd(null)
-            void setAmountBrl(null)
-            void setSpendUsd(null)
+            clearDraft()
         },
     })
     const { hasPendingTransactions } = usePendingTransactions()
@@ -160,12 +158,12 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 title={title}
                 intentId={submit.opened?.intentId ?? (intentId || null)}
                 providerId={providerId}
-                // nothing left the wallet: the same key and amount, quoted again
-                // nothing left the wallet: a new withdrawal, from its key (the URL dropped the old form)
+                // nothing left the wallet: a new withdrawal, from its key (the draft went when it opened)
                 onStartAgain={() => {
                     void setIntentId(null)
                     void stepper.goTo('pix-key')
                 }}
+                onDone={clearDraft}
                 sent={
                     isSent && submit.opened
                         ? {
@@ -189,7 +187,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 initialKey={destination}
                 onBack={leaveFlow}
                 onContinue={(key) => {
-                    void setDestination(key)
+                    updateDraft({ destination: key })
                     void stepper.goTo('amount')
                 }}
             />
@@ -267,10 +265,12 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                                 enteredIn === 'balance' && spendableBalance !== undefined
                                     ? formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS)
                                     : null
-                            const typedLocal = enteredIn === 'local' && typedBrl ? typedBrl : null
-                            void setSpendUsd(balanceUsd)
-                            void setAmountBrl(balanceUsd ? null : typedLocal)
-                            void setAmountUsd(balanceUsd || typedLocal ? null : (typedUsd ?? null))
+                            const typedLocal = enteredIn === 'local' && typedBrl ? typedBrl : ''
+                            updateDraft({
+                                spendUsd: balanceUsd ?? '',
+                                amountBrl: balanceUsd ? '' : typedLocal,
+                                amountUsd: balanceUsd || typedLocal ? '' : (typedUsd ?? ''),
+                            })
                             void stepper.goTo('review')
                         }}
                     >

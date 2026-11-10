@@ -1066,11 +1066,6 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-withdraw-key-code",
-        "flow": "Add money",
-        "route": "/withdraw/pix?destination=00020126680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fdemo-avenia-deposit5204000053039865802BR5925AVENIA%20SOCIEDADE%20PRESTADO6009SAO%20PAULO62070503***63044D3A"
-    },
-    {
         "id": "fixture-pix-manteca-deposit-code",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
@@ -2099,17 +2094,17 @@
     {
         "id": "fixture-pix-withdraw-key",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189"
+        "route": "/withdraw/pix"
     },
     {
         "id": "fixture-pix-withdraw-key-other",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=%2B5511987654321"
+        "route": "/withdraw/pix"
     },
     {
         "id": "fixture-pix-withdraw-review",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-new-key",
@@ -2124,12 +2119,12 @@
     {
         "id": "fixture-pix-withdraw-amount",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&step=amount"
+        "route": "/withdraw/pix?step=amount"
     },
     {
         "id": "fixture-pix-withdraw-quote-failed",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&step=amount"
+        "route": "/withdraw/pix?step=amount"
     },
     {
         "id": "fixture-pix-route-paused-withdraw",
@@ -2147,34 +2142,39 @@
         "route": "/withdraw/pix"
     },
     {
+        "id": "fixture-pix-withdraw-key-code",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
         "id": "fixture-pix-withdraw-key-lookup-failed",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189"
+        "route": "/withdraw/pix"
     },
     {
         "id": "fixture-pix-withdraw-key-blocked",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189"
+        "route": "/withdraw/pix"
     },
     {
         "id": "fixture-pix-withdraw-review-limit",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-withdraw-review-key-not-own",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-withdraw-review-in-progress",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-withdraw-review-quote-changed",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-withdraw-arrived",
@@ -2219,12 +2219,12 @@
     {
         "id": "fixture-pix-manteca-withdraw-key",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189"
+        "route": "/withdraw/pix"
     },
     {
         "id": "fixture-pix-manteca-withdraw-review",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-withdraw-bank-form",
@@ -2344,12 +2344,12 @@
     {
         "id": "p84-pix-provider-sheet",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "p86-pix-manteca-provider-sheet",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "standalone-error-send",

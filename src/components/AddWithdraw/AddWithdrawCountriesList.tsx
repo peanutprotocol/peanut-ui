@@ -65,7 +65,8 @@ import { PIX_BRAZIL_ONRAMP_MAINTENANCE } from '@/features/kill-switches/kill-swi
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { isPixPagePath } from '@/features/pix/pix.routes'
+import { isPixPagePath, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
+import { keepPixWithdrawDraft, readPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 
 interface AddWithdrawCountriesListProps {
     flow: 'add' | 'withdraw'
@@ -233,9 +234,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         if (!mantecaForwardPath) return
         const extra = new URLSearchParams()
         if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
-        if (urlAmount) extra.set('amount', urlAmount)
+        // the Pix withdraw form never rides in the URL: the amount goes in the account's draft
+        if (urlAmount && mantecaForwardPath.startsWith(PIX_WITHDRAW_PATH))
+            keepPixWithdrawDraft(userId, {
+                ...readPixWithdrawDraft(userId),
+                amountUsd: urlAmount,
+                amountBrl: '',
+                spendUsd: '',
+            })
+        else if (urlAmount) extra.set('amount', urlAmount)
         router.replace(rewriteMethodPath(mantecaForwardPath, extra.toString()))
-    }, [mantecaForwardPath, router, isBankFromSend, methodParam, urlAmount])
+    }, [mantecaForwardPath, router, isBankFromSend, methodParam, urlAmount, userId])
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through

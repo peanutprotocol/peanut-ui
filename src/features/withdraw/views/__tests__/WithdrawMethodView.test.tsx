@@ -241,7 +241,7 @@ const BANK_ACCOUNTS = [
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: mockUserAccounts } }),
+    useAuth: () => ({ user: { accounts: mockUserAccounts, user: { userId: 'u-saved' } } }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -321,12 +321,18 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
             expect(pushed).toContain('destination=maria%40silva.com.br')
         })
 
-        it('in a withdrawal, keeps the first-party BRL offramp', () => {
+        // the key is a CPF, phone or email: it goes in the account's draft, never the URL
+        it("in a withdrawal, opens the Pix withdraw page with the key in the account's draft", () => {
             mockUserAccounts = [BR_PIX_ACCOUNT]
             renderView()
             fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
 
-            expect(mockRouterPush.mock.calls.at(-1)?.[0] as string).not.toContain('method=pix')
+            expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix')
+            expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')!)).toMatchObject({
+                destination: BR_PIX_ACCOUNT.identifier,
+                amountUsd: '',
+            })
+            window.sessionStorage.clear()
         })
 
         it("offers someone else's key, saved from a payment, in Send but not in a withdrawal", () => {

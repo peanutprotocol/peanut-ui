@@ -348,15 +348,15 @@ export function usePixWithdrawSubmit({
                     return
                 }
                 // A lost answer, or a failure after the broadcast: the payout may be on its way. The
-                // last step says it is not confirmed yet, the mark stays for a reload, and the URL
-                // drops the form, so nothing offers the same withdrawal again.
+                // last step says it is not confirmed yet, the mark stays for a reload, and the flow
+                // drops its draft, so nothing offers the same withdrawal again.
                 dispatch({ type: 'NO_RECEIPT' })
                 onOpened?.(null)
                 return
             }
             void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
-            // a named withdrawal is the URL's from now on; an unnamed one keeps the mark until history shows it
+            // a named withdrawal is the URL's from now on; an unnamed one keeps the mark until its window has passed
             if (submitted.intentId) clearTransferPending(userId, request.priceLockCode)
             dispatch({ type: 'SUBMITTED', intentId: submitted.intentId })
             onOpened?.(submitted.intentId)

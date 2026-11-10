@@ -341,6 +341,7 @@ function PixWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
                 providerId="avenia-br"
                 sent={{ phase: 'funded', display }}
                 onStartAgain={noop}
+                onDone={noop}
             />
         </AppPageSurface>
     )

@@ -30,6 +30,14 @@ it('reads and writes through a healthy localStorage', () => {
     expect(readStoredValue('k')).toBeNull()
 })
 
+it("reads and writes this tab's session storage when asked, apart from localStorage", () => {
+    writeStoredValue('k', 'session', 'sessionStorage')
+    expect(readStoredValue('k', 'sessionStorage')).toBe('session')
+    expect(readStoredValue('k')).toBeNull()
+    removeStoredValue('k', 'sessionStorage')
+    expect(sessionStorage.getItem('k')).toBeNull()
+})
+
 it('lists only the stored keys with the prefix asked', () => {
     writeStoredValue('mark:u1:a', '1')
     writeStoredValue('mark:u1:b', '2')

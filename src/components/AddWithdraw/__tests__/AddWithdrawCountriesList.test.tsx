@@ -1056,6 +1056,35 @@ it('a direct Manteca country link preserves the send marker and incoming amount'
     }
 })
 
+// A Pix key or amount in the URL reaches analytics and logs: the Pix withdraw page takes its form
+// from the account's draft, so the forward carries the amount there instead
+it("a forward to the Pix withdraw page hands the amount to the account's draft, not the URL", () => {
+    const { COUNTRY_SPECIFIC_METHODS } = jest.requireMock('@/components/AddMoney/consts')
+    const rail = COUNTRY_SPECIFIC_METHODS.US.withdraw[0]
+    const previousPath = rail.path
+    const previousUser = mockAuthUser
+    mockAuthUser = { ...(previousUser as object), user: { userId: 'u-pix' } }
+    mockSearchParams = new URLSearchParams('method=bank')
+    mockUrlAmount = '50'
+    rail.path = '/withdraw/pix'
+    try {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
+        expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-pix')!)).toEqual({
+            destination: '',
+            amountUsd: '50',
+            amountBrl: '',
+            spendUsd: '',
+        })
+    } finally {
+        rail.path = previousPath
+        mockAuthUser = previousUser
+        mockSearchParams = new URLSearchParams()
+        mockUrlAmount = ''
+        window.sessionStorage.clear()
+    }
+})
+
 // The screen serves both flows off one component. Gating a withdrawal against
 // the deposit capability wrongly blocks a withdraw-enabled/deposit-blocked user.
 describe('AddWithdrawCountriesList — gates on the flow it is running', () => {

@@ -34,6 +34,7 @@ export function PixWithdrawOutcome({
     providerId,
     sent,
     onStartAgain,
+    onDone,
 }: {
     title: string
     /** Null when the submit could not name the withdrawal: the screen then shows what was signed. */
@@ -43,12 +44,18 @@ export function PixWithdrawOutcome({
     sent: { phase: 'funded' | 'unconfirmed'; display: PixWithdrawDisplay } | null
     /** Nothing left the wallet: a new withdrawal. */
     onStartAgain: () => void
+    /** The user leaves the flow through this screen: the flow forgets its form. */
+    onDone: () => void
 }) {
     const t = useTranslations('pix.withdraw')
     const tShared = useTranslations('pix')
     const tCommon = useTranslations('common')
     const router = useRouter()
-    const leaveToHome = useReturnTo('/home')
+    const returnHome = useReturnTo('/home')
+    const leaveToHome = () => {
+        onDone()
+        returnHome()
+    }
     const { setIsSupportModalOpen } = useModalsContext()
     const entry = useHistoryEntry(intentId, 'OFFRAMP')
 

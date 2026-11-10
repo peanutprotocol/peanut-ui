@@ -6,6 +6,13 @@ import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 import { clearFixture, FIXTURE_PARAM, fixtureHref } from '@/dev/fixtures/active'
 import { FIXTURES } from '@/dev/fixtures/registry'
 
+/** The session values a fixture's screen reads as it loads; the link opens in this tab, which keeps them. */
+function seedSession(values: Record<string, string> | undefined) {
+    try {
+        for (const [key, value] of Object.entries(values ?? {})) window.sessionStorage.setItem(key, value)
+    } catch {}
+}
+
 export default function FixtureList() {
     const names = Object.keys(FIXTURES).sort()
 
@@ -22,7 +29,7 @@ export default function FixtureList() {
                     // React Query cache, so the screen would show stale state.
                     const href = fixtureHref(fixture.route, name)
                     return (
-                        <a key={name} href={href} className="block">
+                        <a key={name} href={href} className="block" onClick={() => seedSession(fixture.sessionStorage)}>
                             <ListItem
                                 className="cursor-pointer"
                                 title={name}

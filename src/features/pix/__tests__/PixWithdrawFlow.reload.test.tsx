@@ -54,8 +54,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 const mockPreview = jest.fn()
 const mockInit = jest.fn()
 const mockSubmitTransfer = jest.fn()
+const mockLookup = jest.fn()
 jest.mock('@/services/pix', () => ({
     pixApi: {
+        lookupKey: (key: string) => mockLookup(key),
         previewWithdrawal: (request: unknown) => mockPreview(request),
         openWithdrawal: (request: unknown) => mockInit(request),
         submitWithdrawal: (request: unknown) => mockSubmitTransfer(request),
@@ -78,6 +80,7 @@ jest.mock('@/hooks/wallet/useSignedSpendRecovery', () => ({ useSignedSpendRecove
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: null }) }))
 
 import { PixWithdrawFlow } from '../components/PixWithdrawFlow'
+import { forgetPixWithdrawDraft, type PixWithdrawDraft } from '../pixWithdrawDraft'
 
 const route: CapabilityRoute = {
     operation: 'withdraw',
@@ -91,21 +94,42 @@ const entry = (status: string, intentStatus?: string) => ({
     isLoading: false,
 })
 
-const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) => void) =>
+// `keepMountUpdates`: the adapter otherwise drops a URL update made while the page mounts
+const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) => void, keepMountUpdates = false) =>
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-            <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
+            <NuqsTestingAdapter
+                searchParams={searchParams}
+                onUrlUpdate={onUrlUpdate}
+                hasMemory
+                resetUrlUpdateQueueOnMount={!keepMountUpdates}
+            >
                 <PixWithdrawFlow route={route} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
+
+// The form lives in the account's draft in this tab's session, never in the URL (`pixWithdrawDraft`).
+const KEY = '09579927189'
+const REVIEW_FORM = { destination: KEY, amountBrl: '503' }
+const DRAFT_KEY = (userId = 'u1') => `pix-withdraw-draft:${userId}`
+const withForm = (fields: Partial<PixWithdrawDraft>, userId = 'u1') =>
+    window.sessionStorage.setItem(
+        DRAFT_KEY(userId),
+        JSON.stringify({ destination: '', amountUsd: '', amountBrl: '', spendUsd: '', ...fields })
+    )
+const storedForm = (userId = 'u1') => JSON.parse(window.sessionStorage.getItem(DRAFT_KEY(userId)) ?? 'null')
+beforeEach(() => {
+    window.sessionStorage.clear()
+    forgetPixWithdrawDraft('u1')
+})
 
 describe('PixWithdrawFlow after a reload', () => {
     beforeEach(() => jest.clearAllMocks())
 
     it('shows the opened withdrawal, not the filled review, so a second Confirm is not on screen', () => {
         mockEntry.mockReturnValue(entry('PENDING'))
-        renderAt('?step=review&destination=09579927189&destinationAmount=503&intentId=w1')
+        renderAt('?step=review&intentId=w1')
 
         expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
         expect(screen.getByText('R$503')).toBeInTheDocument()
@@ -165,7 +189,8 @@ describe('PixWithdrawFlow after a reload', () => {
 
     it('without an opened withdrawal, the success step falls back to the form', () => {
         mockEntry.mockReturnValue(entry('PENDING'))
-        renderAt('?step=success&destination=09579927189')
+        withForm({ destination: KEY })
+        renderAt('?step=success')
 
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
     })
@@ -200,7 +225,8 @@ describe('PixWithdrawFlow after a reload', () => {
             },
         })
         const urls: string[] = []
-        renderAt('?step=review&destination=09579927189&destinationAmount=503', (event) => urls.push(event.queryString))
+        withForm(REVIEW_FORM)
+        renderAt('?step=review', (event) => urls.push(event.queryString))
 
         fireEvent.click(await screen.findByRole('button', { name: en.common.confirm }))
 
@@ -209,6 +235,8 @@ describe('PixWithdrawFlow after a reload', () => {
         // from the open ticket on, the URL holds the step and the id only; the review stays
         const opened = new URLSearchParams(urls.at(-1))
         expect([...opened.keys()].sort()).toEqual(['intentId', 'step'])
+        // the open withdrawal holds the form now: the draft goes
+        expect(storedForm()).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
     })
@@ -249,7 +277,8 @@ describe('PixWithdrawFlow after a reload', () => {
         mockSubmitTransfer.mockResolvedValue({ provider: 'manteca', intentId: 'm1', status: 'PROCESSING' })
         mockEntry.mockReturnValue({ data: undefined, isLoading: true })
         const urls: string[] = []
-        renderAt('?step=review&destination=09579927189&destinationAmount=503', (event) => urls.push(event.queryString))
+        withForm(REVIEW_FORM)
+        renderAt('?step=review', (event) => urls.push(event.queryString))
 
         fireEvent.click(await screen.findByRole('button', { name: en.common.confirm }))
 
@@ -258,13 +287,14 @@ describe('PixWithdrawFlow after a reload', () => {
         ).toBeInTheDocument()
         await waitFor(() => expect(urls.some((url) => url.includes('intentId=m1'))).toBe(true))
         expect([...new URLSearchParams(urls.at(-1)).keys()].sort()).toEqual(['intentId', 'step'])
+        expect(storedForm()).toBeNull()
     })
 })
 
 // A transfer-then-submit withdrawal whose submit answer was lost: no intent id, so a device mark
 // keeps the page on it after a reload, even with the form still in the URL.
 describe('PixWithdrawFlow after a reload with a submit that may have gone out', () => {
-    const FORM = '?step=review&destination=09579927189&destinationAmount=503'
+    const FORM = '?step=review'
     const SUBMITTED_AT = Date.now() - 60_000
     const display = (amountBrl: string) => ({
         amountBrl,
@@ -294,6 +324,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
         jest.clearAllMocks()
         window.localStorage.clear()
         mockUserId = 'u1'
+        withForm(REVIEW_FORM)
         mockHistoryEntries = []
         mockEntry.mockReturnValue({ data: undefined, isLoading: false })
     })
@@ -388,20 +419,22 @@ describe('PixWithdrawFlow amount step', () => {
 
     it('quotes only while the amount step is on screen', () => {
         mockPreview.mockReturnValue(new Promise(() => {}))
-        const enabledAt = (search: string) => {
+        const enabledAt = (search: string, form: Partial<PixWithdrawDraft>) => {
             mockQuote.mockClear()
+            withForm(form)
             const view = renderAt(search)
             const enabled = mockQuote.mock.calls.at(-1)?.[3]
             view.unmount()
             return enabled
         }
-        expect(enabledAt('?step=amount&destination=09579927189')).toBe(true)
-        expect(enabledAt('?step=review&destination=09579927189&destinationAmount=503')).toBe(false)
-        expect(enabledAt('?step=pix-key')).toBe(false)
+        expect(enabledAt('?step=amount', { destination: KEY })).toBe(true)
+        expect(enabledAt('?step=review', REVIEW_FORM)).toBe(false)
+        expect(enabledAt('?step=pix-key', {})).toBe(false)
     })
 
     it('shows reais with the R$ symbol, as the deposit amount and the review do', () => {
-        renderAt('?step=amount&destination=09579927189')
+        withForm({ destination: KEY })
+        renderAt('?step=amount')
         expect(screen.getByText('R$')).toBeInTheDocument()
         expect(screen.queryByText('BRL')).toBeNull()
     })
@@ -409,7 +442,8 @@ describe('PixWithdrawFlow amount step', () => {
     it('offers a retry, not a spinner, when the quote fails', () => {
         const refetch = jest.fn()
         mockQuote.mockReturnValue({ ...QUOTED, price: null, isError: true, refetch } as never)
-        renderAt('?step=amount&destination=09579927189')
+        withForm({ destination: KEY })
+        renderAt('?step=amount')
 
         expect(screen.getByText(en.errors.rateUnavailable)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.common.continue })).toBeDisabled()
@@ -422,7 +456,8 @@ describe('PixWithdrawFlow refused preview', () => {
     beforeEach(() => jest.clearAllMocks())
     const refuse = (status: number, code: string) =>
         mockPreview.mockRejectedValue(new ApiError('refused', { status, code }))
-    const REVIEW = '?step=review&destination=09579927189&destinationAmount=503'
+    const REVIEW = '?step=review'
+    beforeEach(() => withForm(REVIEW_FORM))
 
     it('over the monthly limit: Change amount goes back to the amount step and keeps the key', async () => {
         refuse(422, 'PIX_LIMIT_EXCEEDED')
@@ -432,7 +467,8 @@ describe('PixWithdrawFlow refused preview', () => {
         fireEvent.click(await screen.findByRole('button', { name: en.pix.withdraw.changeAmount }))
 
         await waitFor(() => expect(urls.at(-1)).toContain('step=amount'))
-        expect(urls.at(-1)).toContain('destination=09579927189')
+        expect(urls.at(-1)).not.toContain('destination')
+        expect(storedForm().destination).toBe(KEY)
         expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
     })
 
@@ -477,7 +513,7 @@ describe('PixWithdrawFlow refused preview', () => {
             fireEvent.click(await screen.findByRole('button', { name: en.pix.withdraw.changeKey }))
 
             expect(await screen.findByDisplayValue('09579927189')).toBeInTheDocument()
-            expect(new URLSearchParams(urls.at(-1)).get('destination')).toBe('09579927189')
+            expect(urls.at(-1)).not.toContain('destination')
             expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
         }
     )
@@ -499,5 +535,99 @@ describe('PixWithdrawFlow refused preview', () => {
         fireEvent.click(await screen.findByRole('button', { name: en.common.retry }))
 
         await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2))
+    })
+})
+
+// A Pix key is a CPF, a phone number or an email: it never rides in the URL, where it would reach
+// analytics, the browser history and the request logs (`pixWithdrawDraft`)
+describe('PixWithdrawFlow form draft', () => {
+    const OWN_KEY = {
+        provider: 'avenia',
+        holderName: 'Ana Souza',
+        holderTaxIdMasked: '095.***.***-89',
+        bankName: 'Banco Inter',
+        ispb: '00416968',
+        ownAccount: true,
+        blocked: false,
+    }
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUserId = 'u1'
+        mockPreview.mockReturnValue(new Promise(() => {}))
+        mockLookup.mockResolvedValue(OWN_KEY)
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    it('keeps a typed key in the draft, not the URL, and a refresh restores the form', async () => {
+        const urls: string[] = []
+        const view = renderAt('', (event) => urls.push(event.queryString))
+        fireEvent.change(screen.getByLabelText(en.withdraw.pixKey.placeholder), { target: { value: KEY } })
+        await screen.findByTestId('pix-key-holder')
+        fireEvent.click(screen.getByRole('button', { name: en.common.continue }))
+
+        await waitFor(() => expect(urls.at(-1)).toBe('?step=amount'))
+        expect(storedForm()).toEqual({ destination: KEY, amountUsd: '', amountBrl: '', spendUsd: '' })
+
+        // the reload opens the URL the user was on: the amount step, its key from the draft
+        view.unmount()
+        renderAt('?step=amount')
+        expect(screen.getByText('R$')).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.withdraw.keyIntro)).toBeNull()
+    })
+
+    it('reviews the key and amount the draft holds', () => {
+        withForm(REVIEW_FORM)
+        renderAt('?step=review')
+
+        expect(mockPreview).toHaveBeenCalledWith(expect.objectContaining({ pixKey: KEY, amountBrl: '503' }))
+    })
+
+    // an old link or a tab left open from an earlier build
+    it('moves a form in the URL into the draft and replaces the URL without it', async () => {
+        const urls: string[] = []
+        renderAt(
+            `?step=review&destination=${KEY}&destinationAmount=503&sendMethod=bank`,
+            (event) => urls.push(event.queryString),
+            true
+        )
+
+        await waitFor(() => expect(urls.at(-1)).toBe('?step=review&sendMethod=bank'))
+        expect(storedForm()).toEqual({ destination: KEY, amountUsd: '', amountBrl: '503', spendUsd: '' })
+        expect(mockPreview).toHaveBeenCalledWith(expect.objectContaining({ pixKey: KEY, amountBrl: '503' }))
+    })
+
+    it("never reads another account's draft, and leaves it where it is", () => {
+        withForm(REVIEW_FORM, 'someone-else')
+        renderAt('?step=review')
+
+        expect(screen.getByText(en.pix.withdraw.keyIntro)).toBeInTheDocument()
+        expect(mockPreview).not.toHaveBeenCalled()
+        expect(storedForm('someone-else').destination).toBe(KEY)
+    })
+
+    // private mode, blocked or full storage: the form holds in memory, and only a refresh loses it
+    it('carries on without session storage', async () => {
+        const failing = (key: string) => {
+            if (key.startsWith('pix-withdraw-draft')) throw new DOMException('denied', 'SecurityError')
+        }
+        const setItem = Storage.prototype.setItem
+        const getItem = Storage.prototype.getItem
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+            failing(key)
+            setItem.call(this, key, value)
+        })
+        jest.spyOn(Storage.prototype, 'getItem').mockImplementation(function (this: Storage, key) {
+            failing(key)
+            return getItem.call(this, key)
+        })
+        const urls: string[] = []
+        renderAt('', (event) => urls.push(event.queryString))
+        fireEvent.change(screen.getByLabelText(en.withdraw.pixKey.placeholder), { target: { value: KEY } })
+        await screen.findByTestId('pix-key-holder')
+        fireEvent.click(screen.getByRole('button', { name: en.common.continue }))
+
+        await waitFor(() => expect(urls.at(-1)).toBe('?step=amount'))
+        expect(screen.getByText('R$')).toBeInTheDocument()
+        expect(window.sessionStorage.length).toBe(0)
     })
 })

@@ -14,7 +14,8 @@ import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
-import { pixWithdrawUrl } from '@/features/pix/pix.routes'
+import { PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
+import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
@@ -264,11 +265,17 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
                             const ownBrazilWithdrawal = countryPath === 'brazil' && !isBankFromSend
+                            // the Pix key goes in the account's draft, never the URL (`pixWithdrawDraft`)
+                            if (ownBrazilWithdrawal)
+                                keepPixWithdrawDraft(user?.user?.userId, {
+                                    ...EMPTY_PIX_WITHDRAW_DRAFT,
+                                    destination: account.identifier,
+                                })
                             router.push(
                                 // Brazil's own-account withdrawal has one page, where the backend's route
                                 // picks the provider; a saved Brazil key in Send pays over Pix (the key screen).
                                 ownBrazilWithdrawal
-                                    ? pixWithdrawUrl(account.identifier)
+                                    ? PIX_WITHDRAW_PATH
                                     : mantecaWithdrawUrl({
                                           country: countryPath,
                                           destination: account.identifier,
