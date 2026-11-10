@@ -41,7 +41,7 @@ jobs:
             # Branch off the SAME ref we target, so the PR is content-only by
             # construction — branching off a different base is what let unrelated
             # code drift leak into the auto-PR (#2226) and conflict (#2247).
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   ref: main
                   # Without this, the persisted GITHUB_TOKEN header overrides the
