@@ -17,6 +17,6 @@ export function PixPausedScreen({
     route: CapabilityRoute | undefined
     action: 'deposits' | 'withdrawals'
 }) {
-    if (route?.reason?.code === 'residence_paused') return <BrazilPausedScreen />
+    if (route?.reason?.code === 'residence_paused') return <BrazilPausedScreen block="paused" />
     return <MantecaTransfersMaintenanceView action={action} />
 }

@@ -639,11 +639,6 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
 // MantecaTransfersMaintenanceView — the outage screen shown when a currency is
 // in disabledMantecaCurrencies. Mocked to a testid so GROUP 7 can assert which
 // branch the regional-method route renders without pulling the real Card tree.
-// the Brazil pause, per test; GROUP 7 asserts which branch the regional-method route renders
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
-}))
 jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
     BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
 }))
@@ -1732,7 +1727,6 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     afterEach(() => {
         // reset the per-currency outage list so its default value can't leak between tests
         killSwitches.disabledMantecaCurrencies = []
-        mockBrazilPaused = false
     })
 
     // Brazil's Pix lives on /add-money/pix (features/pix/__tests__): the old URL goes there.
@@ -1742,14 +1736,6 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
 
         expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
         expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix')
-    })
-
-    test('AR + manteca stays open during the Brazil pause', () => {
-        mockBrazilPaused = true
-        setParams({ country: 'argentina', 'regional-method': 'manteca' })
-        renderWithProviders(<AddMoneyRegionalMethodPage />)
-
-        expect(screen.getByTestId('manteca-add-money')).toBeInTheDocument()
     })
 
     test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {

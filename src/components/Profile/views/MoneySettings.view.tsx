@@ -1,7 +1,7 @@
 'use client'
 
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
-import { useBrazilResident } from '@/features/brazil-pause/useBrazilPixPaused'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -110,7 +110,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
     const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
-    const pixResidenceBlocked = useBrazilResident()
+    // the pay:PIX_BR route, not the app, says whether Pix payments and sends serve this residence
+    const pixResidenceBlocked = usePixPayBlock() === 'residence'
     const {
         capabilities,
         rails,

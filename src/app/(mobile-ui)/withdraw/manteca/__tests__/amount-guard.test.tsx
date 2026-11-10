@@ -65,20 +65,15 @@ jest.mock('@/components/Global/NavHeader', () => ({
     ),
 }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
-}))
-let mockResidenceIso2s: string[] = []
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
+let mockPixBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
 jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
-    BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
+    BrazilPausedScreen: ({ block }: { block: string }) => <div data-testid="brazil-paused-screen" data-block={block} />,
 }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
 beforeEach(() => {
-    mockBrazilPaused = false
-    mockResidenceIso2s = []
+    mockPixBlock = null
     mockBalance = parseUnits('10', 6)
     mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 })
@@ -165,10 +160,10 @@ describe('the Brazil pause', () => {
     }
 
     test('shows the paused screen for a Pix send', () => {
-        mockBrazilPaused = true
+        mockPixBlock = 'paused'
         mockParams = 'country=brazil&method=pix'
         render()
-        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+        expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'paused')
         expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
     })
 
@@ -181,15 +176,16 @@ describe('the Brazil pause', () => {
         expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
     })
 
-    test('shows the paused screen for a Brazil resident sending to a Pix key once the pause is off', () => {
-        mockResidenceIso2s = ['BR']
+    // the pay:PIX_BR route, not the app, refuses the residence
+    test('shows the residence words for a Pix send the pay route refuses for the residence', () => {
+        mockPixBlock = 'residence'
         mockParams = 'country=brazil&method=pix'
         render()
-        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+        expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'residence')
     })
 
     test('leaves Argentina open', () => {
-        mockBrazilPaused = true
+        mockPixBlock = 'paused'
         render()
         expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
         expect(screen.getByRole('textbox')).toBeInTheDocument()

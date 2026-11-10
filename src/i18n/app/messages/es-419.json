@@ -2544,7 +2544,8 @@
         "rolloutClosed": "Pix todavía no está disponible para tu cuenta.",
         "residenceNotServed": "Pix no se ofrece donde vives.",
         "unavailableTitle": "Pix no disponible",
-        "rejected": "La verificación no fue aceptada. Contacta a soporte."
+        "rejected": "La verificación no fue aceptada. Contacta a soporte.",
+        "payResidence": "Los pagos con Pix aún no están disponibles donde vives."
     },
     "avenia": {
         "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",

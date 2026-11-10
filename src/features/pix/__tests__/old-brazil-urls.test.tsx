@@ -14,7 +14,7 @@ jest.mock('@/components/Global/RouteAlias', () => ({
 jest.mock('@/features/kill-switches/useKillSwitches', () => ({
     useKillSwitches: () => ({ disabledMantecaCurrencies: [] }),
 }))
-jest.mock('@/features/brazil-pause/useBrazilPixPaused', () => ({ useBrazilPixPaused: () => false }))
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => null }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({
     __esModule: true,
     default: () => <div>pix key send</div>,

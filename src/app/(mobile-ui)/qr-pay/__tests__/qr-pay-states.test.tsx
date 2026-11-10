@@ -368,21 +368,25 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     isArgentinaMantecaQrPayment: jest.fn(() => false),
 }))
 
-// the Brazil pause, per test (its own suite covers who it covers). A store, so a
-// test can switch it on while a payment is already on screen.
-const mockBrazilPause = { on: false, listeners: new Set<() => void>() }
-const setBrazilPaused = (on: boolean) => {
-    mockBrazilPause.on = on
-    mockBrazilPause.listeners.forEach((listener) => listener())
+// what the pay:PIX_BR route blocks, per test (its own suite covers the route reading). A
+// store, so a test can switch it on while a payment is already on screen.
+const mockPixBlock: { block: 'paused' | 'residence' | null; listeners: Set<() => void> } = {
+    block: null,
+    listeners: new Set<() => void>(),
 }
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () =>
+const setPixBlock = (block: 'paused' | 'residence' | null) => {
+    mockPixBlock.block = block
+    mockPixBlock.listeners.forEach((listener) => listener())
+}
+const setBrazilPaused = (on: boolean) => setPixBlock(on ? 'paused' : null)
+jest.mock('@/features/pix/usePixPayBlock', () => ({
+    usePixPayBlock: () =>
         jest.requireActual('react').useSyncExternalStore(
             (listener: () => void) => {
-                mockBrazilPause.listeners.add(listener)
-                return () => mockBrazilPause.listeners.delete(listener)
+                mockPixBlock.listeners.add(listener)
+                return () => mockPixBlock.listeners.delete(listener)
             },
-            () => mockBrazilPause.on
+            () => mockPixBlock.block
         ),
 }))
 
@@ -1373,6 +1377,21 @@ describe('GROUP 2: Payment Form States', () => {
             expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
         } finally {
             setBrazilPaused(false)
+        }
+    })
+
+    test('A residence the pay route does not serve shows its own words for a Pix code and never calls /init', async () => {
+        setPixBlock('residence')
+        setupMantecaPayment()
+
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            expect(await screen.findByText(en.pix.payResidence)).toBeInTheDocument()
+            expect(screen.queryByText(en.brazilPause.body)).not.toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            setPixBlock(null)
         }
     })
 

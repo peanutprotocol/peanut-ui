@@ -56,7 +56,7 @@ import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
-import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -228,7 +228,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const isProviderDisabled = useMemo(() => {
         return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor, disabledPaymentProviders])
-    const isBrazilPaused = useBrazilPixPaused() && (qrType === EQrType.PIX || isPixEmvcoQr(qrCode))
+    // the pay:PIX_BR route says whether a Pix payment can start: the Brazil pause, or a residence it does not serve
+    const pixBlock = usePixPayBlock()
+    const qrPixBlock = qrType === EQrType.PIX || isPixEmvcoQr(qrCode) ? pixBlock : null
+    const isBrazilPaused = qrPixBlock !== null
     // Neither an outage nor the Brazil pause starts a payment. The view keeps them
     // apart: a payment made before the pause still shows its status (TASK-24197).
     const blocksNewPayment = isProviderDisabled || isBrazilPaused
@@ -1300,6 +1303,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     return {
         view,
+        /** What the BRAZIL_PAUSED view says: the API's refusal for the residence, else the pay route's block. */
+        pixPayBlock: refusedForResidence ? ('residence' as const) : qrPixBlock,
         // scan identity
         qrCode,
         timestamp,

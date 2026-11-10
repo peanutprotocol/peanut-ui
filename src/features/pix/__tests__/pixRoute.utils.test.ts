@@ -1,4 +1,4 @@
-import { findPixRoute, pixRefusalCopy, pixScreen } from '../pixRoute.utils'
+import { findPixRoute, pixPayBlock, pixRefusalCopy, pixScreen } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { DEMO_USER } from '@/constants/demo-data'
@@ -69,5 +69,32 @@ describe('demo mode', () => {
         for (const operation of ['deposit', 'withdraw'] as const) {
             expect(pixScreen(findPixRoute(DEMO_USER.capabilities?.routes, operation), false)).toBe('avenia')
         }
+    })
+})
+
+describe('pixPayBlock', () => {
+    const pay = (overrides: Partial<CapabilityRoute>) => route({ operation: 'pay', provider: 'manteca', ...overrides })
+
+    it('stops a Pix payment only for the pause or a residence the pay route does not serve', () => {
+        expect(pixPayBlock(pay({ state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }))).toBe(
+            'paused'
+        )
+        expect(
+            pixPayBlock(
+                pay({ provider: null, state: 'refused', reason: { code: 'residence_not_served', userMessage: '' } })
+            )
+        ).toBe('residence')
+        // other refusals are the payment's own gates (identity, rollout), not this block
+        expect(
+            pixPayBlock(pay({ provider: null, state: 'refused', reason: { code: 'rollout_closed', userMessage: '' } }))
+        ).toBeNull()
+        expect(pixPayBlock(pay({ state: 'ready' }))).toBeNull()
+        // an API with no pay route lets the payment's own gates decide
+        expect(pixPayBlock(undefined)).toBeNull()
+    })
+
+    it('reads the pay route, not the deposit or withdraw route', () => {
+        const routes = [route({ state: 'paused' }), pay({ state: 'ready' })]
+        expect(pixPayBlock(findPixRoute(routes, 'pay'))).toBeNull()
     })
 })

@@ -177,6 +177,21 @@ const mockCapabilityBlock = () => {
     )
     if (mockApiCard && block.features) block.features = { ...block.features, card: mockApiCard }
     if (mockApiBank && block.features) block.features = { ...block.features, bank: mockApiBank }
+    // the API's pay:PIX_BR route, which no provider serves for a resident of Brazil yet; the view reads it
+    if (residence === 'BR')
+        block.routes = [
+            {
+                operation: 'pay',
+                method: 'PIX_BR',
+                provider: null,
+                state: 'refused',
+                reason: {
+                    code: 'residence_not_served',
+                    userMessage: 'Pix payments are not available where you live yet.',
+                },
+                candidates: [],
+            },
+        ]
     return block
 }
 let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null

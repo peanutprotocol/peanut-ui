@@ -14,7 +14,6 @@ export const DEFAULT_KILL_SWITCHES: KillSwitches = {
     disableXchainWithdraw: false,
     disableXchainSend: true,
     pixBrazilOnrampMaintenance: false,
-    brazilServicesPaused: false,
     kycVerificationDown: false,
     disabledAttentionAsks: [],
 }

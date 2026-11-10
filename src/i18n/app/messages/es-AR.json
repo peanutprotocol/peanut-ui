@@ -1307,7 +1307,8 @@
     },
     "pix": {
         "residenceNotServed": "Pix no se ofrece donde vivís.",
-        "rejected": "La verificación no fue aceptada. Contactá a soporte."
+        "rejected": "La verificación no fue aceptada. Contactá a soporte.",
+        "payResidence": "Los pagos con Pix aún no están disponibles donde vivís."
     },
     "avenia": {
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
