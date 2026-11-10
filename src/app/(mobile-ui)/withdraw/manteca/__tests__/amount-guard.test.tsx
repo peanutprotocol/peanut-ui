@@ -1,6 +1,6 @@
 import React from 'react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
-import { fireEvent, screen, waitFor, act } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor, act } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
@@ -71,6 +71,9 @@ jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
 }))
 let mockResidenceIso2s: string[] = []
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
+jest.mock('@/features/brazil-pause/useBrazilPauseResidences', () => ({
+    useBrazilPauseResidences: () => mockResidenceIso2s,
+}))
 jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
     BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
 }))
@@ -178,6 +181,19 @@ describe('the Brazil pause', () => {
     test('shows the paused screen for a Brazil resident sending to a Pix key once the pause is off', () => {
         mockResidenceIso2s = ['BR']
         mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
+    })
+
+    test('keeps Pix-key sends open for a resident elsewhere while their BRL withdrawals pause (TASK-24724)', () => {
+        mockBrazilPaused = true
+        mockResidenceIso2s = ['AR']
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+        cleanup()
+
+        mockParams = 'country=brazil&method=bank-transfer'
         render()
         expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
     })

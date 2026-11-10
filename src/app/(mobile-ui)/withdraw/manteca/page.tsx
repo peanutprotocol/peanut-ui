@@ -16,8 +16,6 @@ export default function MantecaWithdrawFlow() {
     const { disabledMantecaCurrencies } = useKillSwitches()
     const brazilPaused = useBrazilServicesPaused()
     const pixPaused = useBrazilPixPaused()
-    // Before the Pix delegation below: the pause stops Pix sends and BRL withdrawals alike.
-    if (brazilPaused && searchParams.get('country') === 'brazil') return <BrazilPausedScreen />
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
     // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
     // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
@@ -29,6 +27,8 @@ export default function MantecaWithdrawFlow() {
         if (pixPaused) return <BrazilPausedScreen />
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }
+    // After the Pix delegation: the pause can stop BRL withdrawals for a user whose Pix sends stay open.
+    if (brazilPaused && searchParams.get('country') === 'brazil') return <BrazilPausedScreen />
     // Manteca provider outage — block the offramp only for currencies still
     // down. Placed AFTER the Brazil-PIX delegation so PIX-over-QR sends (which
     // ride the QR-payment endpoint, not Manteca offramp) stay open.
