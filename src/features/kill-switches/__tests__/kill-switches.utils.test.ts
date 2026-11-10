@@ -1,6 +1,26 @@
 import { DEFAULT_KILL_SWITCHES } from '../kill-switches.consts'
 import type { KillSwitches } from '../kill-switches.types'
-import { maintenanceRedirectTarget, resolveKillSwitches } from '../kill-switches.utils'
+import { maintenanceRedirectTarget, parseAppUpdateCutoffs, resolveKillSwitches } from '../kill-switches.utils'
+
+describe('parseAppUpdateCutoffs', () => {
+    it('distinguishes a confirmed empty policy from an absent or malformed policy', () => {
+        expect(parseAppUpdateCutoffs({})).toEqual({})
+        expect(parseAppUpdateCutoffs({ ios: '1.0.1', android: '2100000000' })).toEqual({
+            ios: '1.0.1',
+            android: '2100000000',
+        })
+        expect(parseAppUpdateCutoffs(undefined)).toBeUndefined()
+        expect(parseAppUpdateCutoffs({ ios: '2.0', windows: '2.0' })).toBeUndefined()
+    })
+
+    it.each(['0', '0.0.0', '1.02', '1.2.3.4', '1000000000.0', '１.０', '1.0\n'])('rejects iOS cutoff %p', (ios) => {
+        expect(parseAppUpdateCutoffs({ ios, android: '1' })).toBeUndefined()
+    })
+
+    it.each(['0', '01', '1.5', '-1', '2100000001', '１', '1\n', 1])('rejects Play cutoff %p', (android) => {
+        expect(parseAppUpdateCutoffs({ android, ios: '1.0' })).toBeUndefined()
+    })
+})
 
 describe('resolveKillSwitches', () => {
     it('retains every release switch with the KYC and Brazil pauses defaulting off', () => {

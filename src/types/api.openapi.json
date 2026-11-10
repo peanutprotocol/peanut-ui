@@ -4094,6 +4094,17 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"appUpdateCutoffs": {
+											"properties": {
+												"android": {
+													"type": "string"
+												},
+												"ios": {
+													"type": "string"
+												}
+											},
+											"type": "object"
+										},
 										"brazilServicesPaused": {
 											"type": "boolean"
 										},
@@ -34568,6 +34579,11 @@
 											"tier": 1
 										},
 										{
+											"id": "app-update-important",
+											"rank": 8,
+											"tier": 1
+										},
+										{
 											"id": "blocked-card",
 											"rank": 2,
 											"tier": 2
@@ -34640,6 +34656,11 @@
 										{
 											"id": "add-email",
 											"rank": 3,
+											"tier": 4
+										},
+										{
+											"id": "app-update-regular",
+											"rank": 4,
 											"tier": 4
 										},
 										{

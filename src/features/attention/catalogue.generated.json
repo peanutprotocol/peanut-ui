@@ -1,6 +1,6 @@
 {
     "source": "peanut-api-ts/src/attention/catalogue.ts",
-    "sourceDigest": "810ac415202c18a52ddac707446ecde248e3d58be4fc1792959dd143f028f70d",
+    "sourceDigest": "87e63b67936a1b2e79c12aee34a5f529511f32c050e5e7b1f78913e6a59e4efc",
     "catalogueVersion": 1,
     "settings": {
         "settleMs": 4000,
@@ -100,6 +100,15 @@
             "surfaces": ["interrupt"],
             "policy": { "interrupt": "always", "expiryDays": 0 },
             "analyticsKey": "finish_card_funding",
+            "emailMappings": []
+        },
+        {
+            "id": "app-update-important",
+            "tier": 1,
+            "rank": 8,
+            "surfaces": ["interrupt"],
+            "policy": { "interrupt": "always", "snoozeDays": 1 },
+            "analyticsKey": "app_update_important",
             "emailMappings": []
         },
         {
@@ -248,6 +257,15 @@
             "surfaces": ["zone"],
             "policy": { "interrupt": "session", "snoozeDays": 7 },
             "analyticsKey": "add_email",
+            "emailMappings": []
+        },
+        {
+            "id": "app-update-regular",
+            "tier": 4,
+            "rank": 4,
+            "surfaces": ["zone"],
+            "policy": { "interrupt": "session", "snoozeDays": 7 },
+            "analyticsKey": "app_update_regular",
             "emailMappings": []
         },
         {

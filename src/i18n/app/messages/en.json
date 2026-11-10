@@ -378,6 +378,10 @@
             "label": "Next steps"
         }
     },
+    "appUpdateAttention": {
+        "title": "Update Peanut",
+        "description": "Get the latest version for a better experience."
+    },
     "profile": {
         "showFullNameConfirm": {
             "title": "Show full name?",

@@ -2,8 +2,9 @@
 
 import type { BundleInfo } from '@capgo/capacitor-updater'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { getStoreUpdatePrompt, type StoreUpdatePrompt } from '@/features/attention/store-update-prompt'
 import { completeOtaLaunchDecision, isSplashVisible } from '@/hooks/useSplashGate'
-import { useStoreUpdateAvailable } from '@/hooks/useStoreUpdateAvailable'
+import { useStoreUpdateOffer } from '@/hooks/useStoreUpdateOffer'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
@@ -23,6 +24,7 @@ export interface OtaUpdateContextValue {
     pendingBundle: BundleInfo | null
     /** a newer native binary is needed and a newer release is confirmed available in this platform's store */
     storeUpdateRequired: boolean
+    storeUpdatePrompt: StoreUpdatePrompt | null
     applyState: OtaApplyState
     /** restart onto `pendingBundle` now (native only) */
     applyNow: () => Promise<void>
@@ -35,6 +37,7 @@ const RELOAD_GRACE_MS = 3_000
 const OtaUpdateContext = createContext<OtaUpdateContextValue>({
     pendingBundle: null,
     storeUpdateRequired: false,
+    storeUpdatePrompt: null,
     applyState: 'idle',
     applyNow: async () => {},
 })
@@ -48,7 +51,9 @@ const OtaUpdateContext = createContext<OtaUpdateContextValue>({
 export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     const [pendingBundle, setPendingBundle] = useState<BundleInfo | null>(null)
     const [nativeUpdateRequired, setNativeUpdateRequired] = useState(false)
-    const storeUpdateRequired = useStoreUpdateAvailable(nativeUpdateRequired)
+    const { offer, cutoffs } = useStoreUpdateOffer()
+    const storeUpdateRequired = nativeUpdateRequired && offer !== null
+    const storeUpdatePrompt = useMemo(() => getStoreUpdatePrompt(offer, cutoffs), [offer, cutoffs])
     const [applyState, setApplyState] = useState<OtaApplyState>('idle')
     const fallbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
     // Read and written synchronously: two taps landing in the same tick both see
@@ -201,8 +206,8 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
     }, [pendingBundle, applyState])
 
     const value = useMemo(
-        () => ({ pendingBundle, storeUpdateRequired, applyState, applyNow }),
-        [pendingBundle, storeUpdateRequired, applyState, applyNow]
+        () => ({ pendingBundle, storeUpdateRequired, storeUpdatePrompt, applyState, applyNow }),
+        [pendingBundle, storeUpdateRequired, storeUpdatePrompt, applyState, applyNow]
     )
 
     return <OtaUpdateContext.Provider value={value}>{children}</OtaUpdateContext.Provider>

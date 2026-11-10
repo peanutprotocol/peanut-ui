@@ -2128,6 +2128,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            appUpdateCutoffs?: {
+                                android?: string;
+                                ios?: string;
+                            };
                             brazilServicesPaused?: boolean;
                             disableXchainSend?: boolean;
                             disableXchainWithdraw?: boolean;
@@ -16574,6 +16578,11 @@ export interface paths {
                          *           "tier": 1
                          *         },
                          *         {
+                         *           "id": "app-update-important",
+                         *           "rank": 8,
+                         *           "tier": 1
+                         *         },
+                         *         {
                          *           "id": "blocked-card",
                          *           "rank": 2,
                          *           "tier": 2
@@ -16646,6 +16655,11 @@ export interface paths {
                          *         {
                          *           "id": "add-email",
                          *           "rank": 3,
+                         *           "tier": 4
+                         *         },
+                         *         {
+                         *           "id": "app-update-regular",
+                         *           "rank": 4,
                          *           "tier": 4
                          *         },
                          *         {

@@ -378,6 +378,10 @@
             "label": "Próximos pasos"
         }
     },
+    "appUpdateAttention": {
+        "title": "Actualiza Peanut",
+        "description": "Obtén la última versión para disfrutar de una mejor experiencia."
+    },
     "profile": {
         "showFullNameConfirm": {
             "title": "¿Mostrar nombre completo?",

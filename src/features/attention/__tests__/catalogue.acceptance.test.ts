@@ -175,6 +175,24 @@ test('a truncated catalogue cannot silently mix live and generated policy', () =
     expect(server?.catalogue).toBeUndefined()
 })
 
+test('the previous catalogue preserves live rules and verdicts while update asks use bundled rules', () => {
+    const catalogue = DEFAULT_CATALOGUE.filter((row) => !row.id.startsWith('app-update-')).map((row) =>
+        row.id === 'balance-backup' ? { ...row, rank: 99 } : row
+    )
+    const server = asServerAttention(envelope({ catalogue, verdicts: { invite: 'show' } }))
+    expect(server?.catalogue).toHaveLength(DEFAULT_CATALOGUE.length - 2)
+    const asks = applyServerRanking(ASKS, server)
+    expect(asks.find((ask) => ask.id === 'balance-backup')?.rank).toBe(99)
+    expect(asks.find((ask) => ask.id === 'invite')?.eligible({} as JourneyState)).toBe('show')
+    expect(asks.find((ask) => ask.id === 'app-update-important')).toMatchObject({ tier: 1, rank: 8 })
+})
+
+test.each(['app-update-important', 'app-update-regular'])('a catalogue missing only %s is rejected', (id) => {
+    const server = asServerAttention(envelope({ catalogue: DEFAULT_CATALOGUE.filter((row) => row.id !== id) }))
+    expect(server?.catalogue).toBeUndefined()
+    expect(server?.verdicts).toEqual({})
+})
+
 test('partially unknown server onboarding keeps the known local checklist', () => {
     const state = {
         userId: 'user-a',
