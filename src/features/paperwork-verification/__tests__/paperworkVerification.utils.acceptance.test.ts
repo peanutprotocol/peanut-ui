@@ -18,6 +18,7 @@ describe('canonical identity and actionable validation acceptance', () => {
         ['too_short', 'tooShort'],
         ['street_number_missing', 'streetNumberMissing'],
         ['po_box_not_accepted', 'poBoxNotAccepted'],
+        ['invalid_postal_code', 'invalidPostalCode'],
     ])('keeps %s distinct from generic invalid input', (code, key) => {
         expect(fieldErrorKey(code)).toBe(key)
     })
