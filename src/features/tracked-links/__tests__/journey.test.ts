@@ -14,6 +14,7 @@ import { readInviteCode, readInviteIntent, stashAcquisitionInvite, stashInvite }
 import { EInviteType } from '@/services/services.types'
 import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
 import type { AcquisitionCampaign } from '../contract'
+import { Preferences } from '@capacitor/preferences'
 
 const mockNative = new Map<string, string>()
 jest.mock('@capacitor/preferences', () => ({
@@ -58,6 +59,7 @@ beforeEach(() => {
 })
 afterEach(() => {
     jest.restoreAllMocks()
+    jest.useRealTimers()
     delete (navigator as Navigator & { doNotTrack?: string }).doNotTrack
     delete (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl
     delete (document as Document & { prerendering?: boolean }).prerendering
@@ -68,11 +70,17 @@ afterEach(() => {
 
 it.each([
     '/app?tl=alice',
+    '/app/?tl=alice',
     '/home?tl=alice',
+    '/home/?tl=alice',
     '/app?tracked_link=alice',
     '/go/alice',
     '/app?code=alice',
     '/home?app_entry=1&code=alice',
+    '/home/?app_entry=1&code=alice',
+    '/app/?code=alice',
+    '/app?code=Alice',
+    '/home/?app_entry=1&code=Alice',
 ])('default document/navigation capture waits for descriptor bootstrap on %s', (path) => {
     window.history.replaceState({}, '', path)
     expect(captureSignupAttribution({ includeDocumentReferrer: true })).toBeNull()
@@ -149,6 +157,33 @@ it('persists and recovers the native journey before a later tracked touch', asyn
     expect(later.journeyId).toBe(first.journeyId)
     expect(later.firstTouch).toEqual(first.firstTouch)
     expect(JSON.parse(mockNative.get('signup-attribution')!).lastTouch.utmCampaign).toBe('later')
+})
+
+it('does not create a replacement journey when native storage is stuck', async () => {
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+    jest.useFakeTimers()
+    jest.spyOn(Preferences, 'get').mockReturnValue(new Promise(() => {}))
+    const pending = captureTrackedLinkJourney(campaign)
+    await jest.advanceTimersByTimeAsync(500)
+    expect(await pending).toBeNull()
+    expect(document.cookie).not.toContain('signupAttribution=')
+    expect(mockNative.size).toBe(0)
+})
+
+it('does not write a late journey after bootstrap cancellation', async () => {
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+    let release!: (value: { value: string | null }) => void
+    jest.spyOn(Preferences, 'get').mockReturnValue(
+        new Promise((resolve) => {
+            release = resolve
+        })
+    )
+    const controller = new AbortController()
+    const pending = captureTrackedLinkJourney(campaign, controller.signal)
+    controller.abort()
+    release({ value: null })
+    expect(await pending).toBeNull()
+    expect(document.cookie).not.toContain('signupAttribution=')
 })
 
 it.each(['ios', 'android'] as const)('carries passive provenance in %s while old decoders ignore it', (store) => {

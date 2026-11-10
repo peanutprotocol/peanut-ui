@@ -20,6 +20,7 @@ export async function deliverOpening(
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         const controller = new AbortController()
         let timer: ReturnType<typeof setTimeout> | undefined
+        let retryAfterMs = 0
         try {
             const response = await Promise.race([
                 fetch(url, {
@@ -54,6 +55,12 @@ export async function deliverOpening(
             if (status === '2xx') return record({ surface, outcome: 'accepted', status, attempts: attempt })
             if (status !== '429' && status !== '5xx')
                 return record({ surface, outcome: 'rejected', status, attempts: attempt })
+            const retryAfter = response.headers.get('retry-after')
+            if (retryAfter) {
+                retryAfterMs = /^\d+(?:\.\d+)?$/.test(retryAfter)
+                    ? Number(retryAfter) * 1000
+                    : Math.max(0, Date.parse(retryAfter) - Date.now()) || 0
+            }
         } catch {
             status = 'transport'
         } finally {
@@ -62,6 +69,13 @@ export async function deliverOpening(
         if (attempt === maxAttempts || Date.now() >= deadline) {
             return record({ surface, outcome: 'exhausted', status, attempts: attempt })
         }
+        const delay = Math.max(100 + Math.floor(Math.random() * 151), retryAfterMs)
+        // Never shorten an upstream cooldown merely to squeeze in another attempt.
+        if (Date.now() + delay >= deadline) {
+            return record({ surface, outcome: 'exhausted', status, attempts: attempt })
+        }
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        if (Date.now() >= deadline) return record({ surface, outcome: 'exhausted', status, attempts: attempt })
     }
     return record({ surface, outcome: 'exhausted', status, attempts: maxAttempts })
 }
@@ -69,6 +83,8 @@ export async function deliverOpening(
 function record(outcome: OpeningDeliveryOutcome): OpeningDeliveryOutcome {
     // Do not use request-scoped error reporting: it can enrich with cookies,
     // user identity or URL. This envelope has only fixed operational categories.
-    console.info('acquisition_opening_delivery', outcome)
+    try {
+        console.info('acquisition_opening_delivery', outcome)
+    } catch {}
     return outcome
 }
