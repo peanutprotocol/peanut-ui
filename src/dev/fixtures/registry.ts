@@ -1132,6 +1132,15 @@ const BLOCKED_BANK_CAPABILITIES = {
     restrictions: [],
 }
 
+/** The pay:PIX_BR route for a user who lives outside Brazil: Manteca pays the code. */
+const PIX_PAY_READY_ROUTE = {
+    operation: 'pay',
+    method: 'PIX_BR',
+    provider: 'manteca',
+    state: 'ready',
+    candidates: [{ provider: 'manteca', state: 'ready' }],
+}
+
 /**
  * QR pay closed for this user: the one case the Home checklist has no payment
  * row (QR pay is open to every verified user unless the capabilities block it).
@@ -1167,6 +1176,23 @@ const qrIdentityPausedCapabilities = (code: string, userMessage: string) => ({
     ],
     nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: code }],
     restrictions: [],
+    // the router reads the paused rail: the pay route asks for the identity restart
+    routes: [
+        {
+            ...PIX_PAY_READY_ROUTE,
+            state: 'action_required',
+            action: 'restart-identity',
+            reason: { code, userMessage },
+            candidates: [
+                {
+                    provider: 'manteca',
+                    state: 'action_required',
+                    action: 'restart-identity',
+                    reason: { code, userMessage },
+                },
+            ],
+        },
+    ],
 })
 const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
     'identity_missing',
@@ -1179,6 +1205,12 @@ const PIX_ELIGIBLE_RESIDENCE = {
     declared: null,
     secondaryDeclaredCountry: null,
 }
+
+/**
+ * A user the pay:PIX_BR route serves. The demo user lives in Brazil, where the route refuses Pix
+ * payments, so a Pix payment fixture sends both the residence and the route.
+ */
+const PIX_ELIGIBLE_USER = { residence: PIX_ELIGIBLE_RESIDENCE, capabilities: { routes: [PIX_PAY_READY_ROUTE] } }
 
 const PIX_QR_ROUTE =
     '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
@@ -2314,7 +2346,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'An open-amount QR whose live exchange rate failed: Retry remains reachable before currency is set.',
         waitFor: 'div.my-auto button',
         responses: {
-            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
+            'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 code: '',
                 type: 'PIX',
@@ -2335,7 +2367,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
-            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
+            'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: 'MARIA DA SILVA',
@@ -2356,7 +2388,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
-            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE },
+            'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: '12345678909',
@@ -2372,7 +2404,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'qr-pay-payer-blocked': {
         route: PIX_QR_ROUTE,
         about: 'A payer blocked by the payment provider: terminal guidance with support and another payment method.',
-        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        responses: { 'GET /users/me': PIX_ELIGIBLE_USER },
         rejects: {
             'POST /manteca/qr-payment/init': {
                 status: 422,
@@ -2383,7 +2415,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'qr-pay-merchant-blocked': {
         route: PIX_QR_ROUTE,
         about: 'A merchant blocked by the payment provider: ask for another QR or payment method.',
-        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        responses: { 'GET /users/me': PIX_ELIGIBLE_USER },
         rejects: {
             'POST /manteca/qr-payment/init': {
                 status: 422,
@@ -2408,7 +2440,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,
         about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
-        responses: { 'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE } },
+        responses: { 'GET /users/me': PIX_ELIGIBLE_USER },
         rejects: {
             'POST /manteca/qr-payment/init': {
                 status: 400,
