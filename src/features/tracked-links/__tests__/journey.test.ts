@@ -79,6 +79,8 @@ it.each([
     '/home?app_entry=1&code=alice',
     '/home/?app_entry=1&code=alice',
     '/app/?code=alice',
+    '/app?code=Alice',
+    '/home/?app_entry=1&code=Alice',
 ])('default document/navigation capture waits for descriptor bootstrap on %s', (path) => {
     window.history.replaceState({}, '', path)
     expect(captureSignupAttribution({ includeDocumentReferrer: true })).toBeNull()

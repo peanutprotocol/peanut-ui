@@ -9,7 +9,7 @@ export function isTrackedLinkEntry(): boolean {
     const codes = url.searchParams.getAll('code')
     const legacyCreator =
         codes.length === 1 &&
-        isInviteUsername(codes[0]) &&
+        isInviteUsername(codes[0].toLowerCase()) &&
         (pathname === '/app' || (pathname === '/home' && url.searchParams.get('app_entry') === '1'))
     return (
         legacyCreator ||
