@@ -33,6 +33,11 @@ import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/pix/pixFlo
 import { pixSignedFunding } from '@/features/pix/pixSignedFunding'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import {
+    clearTransferPending,
+    markTransferPending,
+    PENDING_TRANSFER_MARGIN_MS,
+} from '@/features/pix/pixWithdrawPending'
+import {
     canSignOpened,
     INITIAL_WITHDRAW_SUBMIT,
     openedWithdrawal,
@@ -108,7 +113,9 @@ export interface PixWithdrawSubmit {
  *   app reports the mined transaction.
  * - `transfer-then-submit`: nothing is open yet. The wallet signs a transfer to the deposit address
  *   without broadcasting it; POST /pix/withdraw/submit opens the payout order for the locked price,
- *   then broadcasts, so no money leaves for an order that could not open.
+ *   then broadcasts, so no money leaves for an order that could not open. A submit whose answer is
+ *   lost may still have paid: it reads as not confirmed (`unconfirmed`), and a device mark
+ *   (`pixWithdrawPending`) keeps the page on it after a reload until its history row shows.
  *
  * The open quotes again, seconds after the review. When that quote takes any more USD or pays any
  * fewer reais than the reviewed one, nothing is signed until the user confirms the new amounts.
@@ -271,6 +278,15 @@ export function usePixWithdrawSubmit({
                 amountUsd: request.payAmount,
                 funding: pixSignedFunding(candidate),
             })
+            // From here the payout may go out with no answer naming it: the device keeps the mark until
+            // its history row shows, the API refuses the submit, or the lock's window has passed.
+            markTransferPending({
+                priceLockCode: request.priceLockCode,
+                display: withdrawal.display,
+                withdrawUsd: request.payAmount,
+                submittedAt: Date.now(),
+                settleBy: lockExpiresAt + PENDING_TRANSFER_MARGIN_MS,
+            })
             let submitted: Awaited<ReturnType<typeof pixApi.submitWithdrawal>>
             try {
                 submitted = await submitTransfer(() =>
@@ -300,21 +316,31 @@ export function usePixWithdrawSubmit({
                     )
                 )
             } catch (caught) {
-                // a recovery that handed back, or an answer from before the broadcast, moved nothing
-                const nothingSent = isSpendRecoveryOutcome(caught) || submitSentNothing(caught)
                 reportSignFailure(caught, null)
-                dispatch({
-                    type: nothingSent ? 'SENT_NOTHING' : 'MAYBE_SENT',
-                    error: isSpendRecoveryOutcome(caught)
-                        ? quoteExpired
-                        : wireErrorCode(caught)
-                          ? refusalMessage(caught)
-                          : toFriendlyError(caught),
-                })
+                // a recovery that handed back, or an answer from before the broadcast, moved nothing
+                if (isSpendRecoveryOutcome(caught) || submitSentNothing(caught)) {
+                    clearTransferPending()
+                    dispatch({
+                        type: 'SENT_NOTHING',
+                        error: isSpendRecoveryOutcome(caught)
+                            ? quoteExpired
+                            : wireErrorCode(caught)
+                              ? refusalMessage(caught)
+                              : toFriendlyError(caught),
+                    })
+                    return
+                }
+                // A lost answer, or a failure after the broadcast: the payout may be on its way. The
+                // last step says it is not confirmed yet, the mark stays for a reload, and the URL
+                // drops the form, so nothing offers the same withdrawal again.
+                dispatch({ type: 'NO_RECEIPT' })
+                onOpened?.(null)
                 return
             }
             void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
+            // a named withdrawal is the URL's from now on; an unnamed one keeps the mark until history shows it
+            if (submitted.intentId) clearTransferPending()
             dispatch({ type: 'SUBMITTED', intentId: submitted.intentId })
             onOpened?.(submitted.intentId)
         },

@@ -60,6 +60,11 @@ jest.mock('@/services/pix', () => ({
 }))
 const mockEntry = jest.fn()
 jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => mockEntry() }))
+// the latest history rows, which the page reads for a withdrawal submitted with no answer
+let mockHistoryEntries: unknown[] = []
+jest.mock('@/hooks/useTransactionHistory', () => ({
+    useTransactionHistory: () => ({ data: { entries: mockHistoryEntries, hasMore: false }, refetch: jest.fn() }),
+}))
 // the transfer-then-submit signer: these withdrawals sign a deposit with its id
 const mockSignSpend = jest.fn()
 jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
@@ -250,6 +255,79 @@ describe('PixWithdrawFlow after a reload', () => {
         ).toBeInTheDocument()
         await waitFor(() => expect(urls.some((url) => url.includes('intentId=m1'))).toBe(true))
         expect([...new URLSearchParams(urls.at(-1)).keys()].sort()).toEqual(['intentId', 'step'])
+    })
+})
+
+// A transfer-then-submit withdrawal whose submit answer was lost: no intent id, so a device mark
+// keeps the page on it after a reload, even with the form still in the URL.
+describe('PixWithdrawFlow after a reload with a submit that may have gone out', () => {
+    const FORM = '?step=review&destination=09579927189&destinationAmount=503'
+    const SUBMITTED_AT = Date.now() - 60_000
+    const mark = (settleBy: number) =>
+        window.localStorage.setItem(
+            'pix-withdraw-pending',
+            JSON.stringify({
+                priceLockCode: 'lock-1',
+                display: {
+                    amountBrl: '503.00',
+                    pixKey: '09579927189',
+                    ownAccount: null,
+                    holderName: 'Ana Souza',
+                    bankName: null,
+                    withdrawUsd: '92.504310',
+                    rate: '5.437838',
+                    fixedFeeBrl: '0',
+                    arrivalEstimateSeconds: 300,
+                    provider: 'Manteca',
+                },
+                withdrawUsd: '92.504310',
+                submittedAt: SUBMITTED_AT,
+                settleBy,
+            })
+        )
+    beforeEach(() => {
+        jest.clearAllMocks()
+        window.localStorage.clear()
+        mockHistoryEntries = []
+        mockEntry.mockReturnValue({ data: undefined, isLoading: false })
+    })
+
+    it('shows it as not confirmed yet, never the review and its Confirm', () => {
+        mark(Date.now() + 10 * 60_000)
+        renderAt(FORM)
+
+        expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
+        expect(screen.getByText('R$503')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.confirm })).toBeNull()
+        expect(mockPreview).not.toHaveBeenCalled()
+    })
+
+    it('becomes that withdrawal once its history row shows, and the mark goes', async () => {
+        mark(Date.now() + 10 * 60_000)
+        mockHistoryEntries = [
+            {
+                uuid: 'm1',
+                amount: '92.50431',
+                timestamp: new Date(SUBMITTED_AT + 5_000),
+                extraData: { kind: 'OFFRAMP' },
+            },
+        ]
+        const urls: string[] = []
+        renderAt(FORM, (event) => urls.push(event.queryString))
+
+        await waitFor(() => expect(urls.some((url) => url.includes('intentId=m1'))).toBe(true))
+        expect([...new URLSearchParams(urls.at(-1)).keys()].sort()).toEqual(['intentId', 'step'])
+        expect(window.localStorage.getItem('pix-withdraw-pending')).toBeNull()
+    })
+
+    it("lets a new withdrawal through once the lock's window has passed with no row", async () => {
+        mark(Date.now() - 1_000)
+        mockPreview.mockReturnValue(new Promise(() => {}))
+        renderAt(FORM)
+
+        expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
+        expect(await screen.findByRole('button', { name: en.common.confirm })).toBeInTheDocument()
+        await waitFor(() => expect(window.localStorage.getItem('pix-withdraw-pending')).toBeNull())
     })
 })
 

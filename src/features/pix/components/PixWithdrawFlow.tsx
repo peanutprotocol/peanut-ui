@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -26,6 +26,7 @@ import { usePixWithdrawSubmit } from '@/features/pix/usePixWithdrawSubmit'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useWithdrawAmount, useWithdrawDestinationAmount } from '@/features/withdraw/useWithdrawAmount'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
+import { usePixPendingTransfer } from '@/features/pix/usePixPendingTransfer'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
@@ -90,20 +91,36 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { hasPendingTransactions } = usePendingTransactions()
 
     const isSent = submit.phase === 'funded' || submit.phase === 'unconfirmed'
+    // A withdrawal submitted with no answer naming it, from this visit or an earlier one: until its
+    // history row shows or its lock's window has passed, the page shows it, never a new Confirm.
+    // While this visit signs one, the reducer holds it instead.
+    const pending = usePixPendingTransfer({
+        enabled: !intentId && (!submit.opened || isSent),
+        onFound: useCallback(
+            (id: string) => {
+                void setIntentId(id)
+                void setDestination(null)
+                void setAmountUsd(null)
+                void setAmountBrl(null)
+                void setSpendUsd(null)
+            },
+            [setIntentId, setDestination, setAmountUsd, setAmountBrl, setSpendUsd]
+        ),
+    })
     const stepper = useFlowStepper({
         steps: PIX_WITHDRAW_STEPS,
         guards: {
             amount: { ok: !!pixKey, fallback: 'pix-key' },
             // an opened withdrawal stays on its review: the URL then holds only its id
             review: { ok: (!!pixKey && !!amount) || !!intentId, fallback: pixKey ? 'amount' : 'pix-key' },
-            success: { ok: !!intentId || isSent },
+            success: { ok: !!intentId || isSent || !!pending },
         },
     })
     const step = stepper.step
     const { goTo } = stepper
-    // The funding was sent, or the page reloaded after Confirm opened the withdrawal (the
-    // signature is gone with the memory): the last step is the only way on.
-    const showOutcome = isSent || (!!intentId && !submit.opened)
+    // The funding was sent, the page reloaded after Confirm opened the withdrawal (the signature
+    // is gone with the memory), or a submit may have gone out: the last step is the only way on.
+    const showOutcome = isSent || (!!intentId && !submit.opened) || !!pending
     useEffect(() => {
         if (showOutcome && step !== 'success') void goTo('success')
     }, [showOutcome, step, goTo])
@@ -113,7 +130,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         queryKey: ['pix-withdraw-preview', request],
         queryFn: () => pixApi.previewWithdrawal(request!),
         // the review shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
-        enabled: step === 'review' && !!request && !intentId && !submit.lockedAfterInit,
+        enabled: step === 'review' && !!request && !intentId && !submit.lockedAfterInit && !pending,
         retry: false,
         staleTime: 30_000,
     })
@@ -167,7 +184,9 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                               phase: submit.phase === 'funded' ? 'funded' : 'unconfirmed',
                               display: submit.opened.display,
                           }
-                        : null
+                        : pending
+                          ? { phase: 'unconfirmed', display: pending.display }
+                          : null
                 }
             />
         )

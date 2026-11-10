@@ -502,6 +502,9 @@ describe('usePixWithdrawSubmit', () => {
             signedUserOp: { signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
         }
 
+        const pendingMark = () => window.localStorage.getItem('pix-withdraw-pending')
+        beforeEach(() => window.localStorage.clear())
+
         it('signs a transfer of exactly the pay amount to the deposit address, and opens nothing before the submit', async () => {
             mockInit.mockResolvedValue(transferInit())
             const order: string[] = []
@@ -510,7 +513,8 @@ describe('usePixWithdrawSubmit', () => {
                 return artifact
             })
             mockSubmitTransfer.mockImplementation(async () => {
-                order.push('submit')
+                // the device mark is down before the submit leaves: a reload from here shows it, not a new Confirm
+                order.push(`submit, marked ${JSON.parse(pendingMark()!).priceLockCode}`)
                 return { provider: 'manteca', intentId: 'm1', status: 'PROCESSING' }
             })
             const onOpened = jest.fn((id: string | null) => order.push(`opened ${id}`))
@@ -535,7 +539,9 @@ describe('usePixWithdrawSubmit', () => {
                 funding: { kind: 'userOp', signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
             })
             // the withdrawal opens at the submit: its id reaches the flow after it, never before the signature
-            expect(order).toEqual(['sign', 'submit', 'opened m1'])
+            expect(order).toEqual(['sign', 'submit, marked lock-1', 'opened m1'])
+            // a named withdrawal is the URL's: the mark goes
+            expect(pendingMark()).toBeNull()
             expect(mockSendTransactions).not.toHaveBeenCalled()
             expect(mockReportFunding).not.toHaveBeenCalled()
             expect(result.current.phase).toBe('funded')
@@ -594,25 +600,36 @@ describe('usePixWithdrawSubmit', () => {
 
             expect(result.current.phase).toBe('idle')
             expect(result.current.error).toBe('pixKey.notFound')
+            // refused before the broadcast: nothing to wait for
+            expect(pendingMark()).toBeNull()
         })
 
-        it('holds a submit whose answer was lost, or failed after the broadcast: it may have sent', async () => {
+        it('reads a submit whose answer was lost, or failed after the broadcast, as not confirmed, and keeps the mark', async () => {
             for (const failure of [
                 new ApiError('Pix is not available right now.', { status: 502, code: 'PROVIDER_UNAVAILABLE' }),
                 new TypeError('Failed to fetch'),
             ]) {
+                window.localStorage.clear()
                 mockInit.mockResolvedValue(transferInit())
                 mockSignSpend.mockResolvedValue(artifact)
                 mockSubmitTransfer.mockRejectedValueOnce(failure)
-                const { result, unmount } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+                const onOpened = jest.fn()
+                const { result, unmount } = renderHook(() => usePixWithdrawSubmit({ onOpened }), { wrapper })
 
                 await act(async () => {
                     await result.current.submit(REQUEST, display)
                 })
 
-                expect(result.current.phase).toBe('opened')
+                // it may be paying: the last step, never a second Confirm, and the URL drops the form
+                expect(result.current.phase).toBe('unconfirmed')
                 expect(result.current.canSignOpened).toBe(false)
                 expect(result.current.lockedAfterInit).toBe(true)
+                expect(onOpened).toHaveBeenCalledWith(null)
+                // the device mark outlives this page, so a reload shows the same withdrawal
+                expect(JSON.parse(pendingMark()!)).toMatchObject({
+                    priceLockCode: 'lock-1',
+                    withdrawUsd: display.withdrawUsd,
+                })
                 unmount()
             }
         })
@@ -643,6 +660,8 @@ describe('usePixWithdrawSubmit', () => {
 
             expect(result.current.phase).toBe('funded')
             expect(onOpened).toHaveBeenCalledWith(null)
+            // unnamed: the mark stays until the history row shows it
+            expect(pendingMark()).not.toBeNull()
         })
     })
 })
