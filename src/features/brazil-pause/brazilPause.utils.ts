@@ -17,8 +17,9 @@ const BRAZIL_MONEY_RAILS: { railId: RailId; op: RailOperation }[] = [
  * True for a user the Brazil pause covers: a Brazil resident (verified, else
  * declared), or anyone who can move BRL through a Brazil rail of their own.
  *
- * The rails catch accounts with no residence on file. A Pix payer who lives
- * elsewhere matches neither, so their Pix payments stay open.
+ * The rails catch accounts with no residence on file. They also match a
+ * resident elsewhere whose Argentine account the API rates for Brazil, so Pix
+ * payments add a residence check (`useBrazilPixPaused`).
  */
 export function isBrazilServicesUser(
     residenceIso2s: string[],

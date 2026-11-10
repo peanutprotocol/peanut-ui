@@ -5386,6 +5386,6 @@
     },
     "brazilPause": {
         "title": "Servicios en Brasil en pausa",
-        "body": "Los depósitos y retiros en BRL y los pagos con Pix no están disponibles por ahora."
+        "body": "Los depósitos y retiros en BRL no están disponibles por ahora. Los pagos con Pix no están disponibles para residentes de Brasil."
     }
 }
