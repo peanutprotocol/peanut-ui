@@ -15738,6 +15738,7 @@
 								"example": {
 									"amountBrl": "106.75",
 									"fixedFeeBrl": "0.75",
+									"minAmountBrl": "20",
 									"operation": "withdraw",
 									"provider": "avenia",
 									"rate": "5.369543",
@@ -15750,6 +15751,10 @@
 										},
 										"fixedFeeBrl": {
 											"description": "The flat fee in reais, shown as its own line",
+											"type": "string"
+										},
+										"minAmountBrl": {
+											"description": "The least amountBrl the provider takes for this operation; amount entry shows it",
 											"type": "string"
 										},
 										"operation": {
@@ -15787,7 +15792,8 @@
 										"amountBrl",
 										"usdcAmount",
 										"rate",
-										"fixedFeeBrl"
+										"fixedFeeBrl",
+										"minAmountBrl"
 									],
 									"type": "object"
 								}
@@ -26688,8 +26694,15 @@
 																			"withdraw"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pay"
+																		],
+																		"type": "string"
 																	}
-																]
+																],
+																"description": "pay: a QR payment on the method"
 															},
 															"payableDepositIntentId": {
 																"description": "Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another.",
@@ -36689,8 +36702,15 @@
 																			"withdraw"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pay"
+																		],
+																		"type": "string"
 																	}
-																]
+																],
+																"description": "pay: a QR payment on the method"
 															},
 															"payableDepositIntentId": {
 																"description": "Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /avenia/deposit/{intentId}) instead of creating another.",
