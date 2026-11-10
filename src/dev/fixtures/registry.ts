@@ -2124,6 +2124,17 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'avenia-withdraw-review-key-not-own': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
+        about: "The preview refuses a key that is not the user's: the review offers Change key, not Retry.",
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /avenia/withdraw/preview': {
+                status: 422,
+                body: { code: 'PIX_KEY_NOT_OWN', error: 'This key belongs to someone else' },
+            },
+        },
+    },
     'avenia-withdraw-review-in-progress': {
         route: `${AVENIA_WITHDRAW_ROUTE}?destination=${AVENIA_OWN_KEY}&destinationAmount=503&step=review`,
         about: 'Too many Pix withdrawals still on their way: the review asks to try later.',

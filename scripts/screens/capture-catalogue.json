@@ -2152,6 +2152,11 @@
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
     },
     {
+        "id": "fixture-avenia-withdraw-review-key-not-own",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
+    },
+    {
         "id": "fixture-avenia-withdraw-review-in-progress",
         "flow": "Withdraw",
         "route": "/withdraw/pix?destination=09579927189&destinationAmount=503&step=review"
