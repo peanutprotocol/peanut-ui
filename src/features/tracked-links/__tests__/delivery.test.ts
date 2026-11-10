@@ -6,6 +6,7 @@ const body = JSON.stringify({ event_id: 'one-stable-event', signup_journey_id: '
 beforeEach(() => {
     global.fetch = jest.fn()
     jest.spyOn(console, 'info').mockImplementation(() => {})
+    jest.spyOn(Math, 'random').mockReturnValue(0)
 })
 afterEach(() => {
     global.fetch = originalFetch
@@ -46,10 +47,59 @@ it('bounds even a fetch that ignores AbortSignal to two seconds per attempt and 
     jest.mocked(fetch).mockImplementation(() => new Promise(() => {}))
     const task = deliverOpening('https://capture.test', body, 'tracked_link')
     await jest.advanceTimersByTimeAsync(2000)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    await jest.advanceTimersByTimeAsync(100)
     expect(fetch).toHaveBeenCalledTimes(2)
     await jest.advanceTimersByTimeAsync(2000)
     expect(await task).toMatchObject({ outcome: 'exhausted', attempts: 2 })
     expect(jest.mocked(fetch).mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true)
+    expect(jest.getTimerCount()).toBe(0)
+})
+
+it.each(['seconds', 'date'])('honors Retry-After %s before the bounded second attempt', async (format) => {
+    jest.useFakeTimers({ now: new Date('2026-11-10T12:00:00Z') })
+    const retryAfter = format === 'seconds' ? '1' : new Date(Date.now() + 1000).toUTCString()
+    jest.mocked(fetch)
+        .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'Retry-After': retryAfter } }))
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    const pending = deliverOpening('https://capture.test', body, 'tracked_link')
+    await jest.advanceTimersByTimeAsync(999)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    await jest.advanceTimersByTimeAsync(1)
+    expect(await pending).toMatchObject({ outcome: 'accepted', attempts: 2 })
+})
+
+it('stops when Retry-After exceeds the remaining delivery deadline', async () => {
+    jest.mocked(fetch).mockResolvedValue(new Response(null, { status: 503, headers: { 'Retry-After': '5' } }))
+    expect(await deliverOpening('https://capture.test', body, 'tracked_link')).toMatchObject({
+        outcome: 'exhausted',
+        attempts: 1,
+        status: '5xx',
+    })
+    expect(fetch).toHaveBeenCalledTimes(1)
+})
+
+it('limits the second attempt to the time left after an upstream cooldown', async () => {
+    jest.useFakeTimers()
+    jest.mocked(fetch)
+        .mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    setTimeout(
+                        () => resolve(new Response(null, { status: 429, headers: { 'Retry-After': '2' } })),
+                        1900
+                    )
+                })
+        )
+        .mockImplementationOnce(() => new Promise(() => {}))
+    const pending = deliverOpening('https://capture.test', body, 'tracked_link')
+    await jest.advanceTimersByTimeAsync(3899)
+    expect(fetch).toHaveBeenCalledTimes(1)
+    await jest.advanceTimersByTimeAsync(1)
+    expect(fetch).toHaveBeenCalledTimes(2)
+    await jest.advanceTimersByTimeAsync(600)
+    expect(await pending).toMatchObject({ outcome: 'exhausted', attempts: 2 })
+    expect(jest.mocked(fetch).mock.calls[1][1]?.signal?.aborted).toBe(true)
     expect(jest.getTimerCount()).toBe(0)
 })
 
