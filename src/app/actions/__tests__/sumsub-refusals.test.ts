@@ -139,6 +139,13 @@ describe('restartIdentityVerification — wire shape', () => {
             json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1' }),
         }) as unknown as Response
 
+    it('passes the captured session guard to the restart transport', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const beforeDispatch = jest.fn(() => true)
+        await restartIdentityVerification(undefined, undefined, beforeDispatch)
+        expect(mockFetch).toHaveBeenCalledWith('/users/identity/restart', expect.objectContaining({ beforeDispatch }))
+    })
+
     it('posts the region intent as JSON so the backend mints the matching level', async () => {
         mockFetch.mockResolvedValue(okResponse())
         const result = await restartIdentityVerification('LATAM')

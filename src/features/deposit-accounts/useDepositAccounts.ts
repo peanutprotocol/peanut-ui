@@ -6,6 +6,7 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSubmissionWindow } from '@/hooks/useSubmissionWindow'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
+import type { NextAction } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -131,9 +132,11 @@ export function useDepositAccounts({
      * not done yet. The caller starts it; the claim screen stays where it is,
      * so the user comes back to the same corridor.
      */
-    onVerificationRequired?: (corridor: DepositCorridor) => void
+    onVerificationRequired?: (corridor: DepositCorridor, nextAction?: NextAction) => void
 } = {}): UseDepositAccountsResult {
     const { userId } = useAuth()
+    const claimOwner = useRef(userId)
+    claimOwner.current = userId
     const queryClient = useQueryClient()
     const { gateFor, rails, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
     const { isInWindow: justSubmitted } = useSubmissionWindow()
@@ -207,12 +210,19 @@ export function useDepositAccounts({
                 return next
             })
             trackClaimStarted(corridor)
+            return userId
         },
-        onSuccess: (result, method: string) => {
+        onSuccess: (result, method: string, ownerAtClaim) => {
             const corridor = method as DepositCorridor
             if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
-            if (result.outcome === 'verification_required') onVerificationRequired?.(corridor)
+            if (result.outcome === 'verification_required' && ownerAtClaim === claimOwner.current) {
+                if (result.nextAction?.kind === 'restart-identity') {
+                    onVerificationRequired?.(corridor, result.nextAction)
+                } else {
+                    onVerificationRequired?.(corridor)
+                }
+            }
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor

@@ -33,6 +33,8 @@ interface CountryListViewProps {
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
     /** returns false when it answered in place (a drawer over this list), so the row does not wait */
     onCountryClick: (country: CountryData) => void | boolean
+    /** Reports a real country tap before the selected route or waitlist opens. */
+    onCountrySelect?: (country: CountryData, outcome: 'route' | 'waitlist') => void
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
@@ -85,6 +87,7 @@ export const CountryList = ({
     inputDescription,
     viewMode,
     onCountryClick,
+    onCountrySelect,
     onCryptoClick,
     flow,
     getRightContent,
@@ -269,6 +272,7 @@ export const CountryList = ({
                                         setEasterEggCountry(country.id)
                                         return
                                     }
+                                    onCountrySelect?.(country, isSupported ? 'route' : 'waitlist')
                                     if (!isSupported) {
                                         setWaitlistCountry(country)
                                         return

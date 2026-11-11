@@ -346,7 +346,7 @@ export function DepositAccountsFlow({
                 ? { kind: gate.kind, message: null, action: 'residence-restricted' as const }
                 : withheldAction
                   ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
-                  : rawGateNotice?.action === 'verify' && reviewWaitsOnUser
+                  : rawGateNotice?.action === 'verify' && reviewWaitsOnUser && gate.kind !== 'restart-identity'
                     ? { ...rawGateNotice, action: 'provider-review' as const }
                     : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
                       ? { ...rawGateNotice, action: 'support' as const }

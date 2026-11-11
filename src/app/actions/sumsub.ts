@@ -266,7 +266,8 @@ const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU
 
 export const restartIdentityVerification = async (
     regionIntent?: KYCRegionIntent,
-    replacement?: KycReplacementChoices
+    replacement?: KycReplacementChoices,
+    beforeDispatch?: () => boolean
 ): Promise<{
     data?: RestartIdentityResponse
     error?: string
@@ -279,6 +280,7 @@ export const restartIdentityVerification = async (
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
+            ...(beforeDispatch && { beforeDispatch }),
             headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', ...kycClientHeaders() },
             body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })

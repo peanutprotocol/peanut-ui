@@ -76,10 +76,14 @@ export function useDepositCountryRouting({
 
     /** false when the country opened in place, on the account screens over the list */
     const openCountry = (country: CountryData): boolean => {
-        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
-            method_type: 'bank',
-            country: country.path,
-        })
+        try {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
+                method_type: 'bank',
+                country: country.path,
+            })
+        } catch {
+            // Analytics must not interrupt navigation.
+        }
         void offerPushPrompt(PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT)
 
         const routes = addMoneyRoutesForCountry(country, offeredCorridors, depositAccountsEnabled)

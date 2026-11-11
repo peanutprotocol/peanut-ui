@@ -16,7 +16,9 @@ import {
     type KycReplacementChoices,
 } from './types/kyc-workflow.types'
 
-async function readResponse<T>(path: string, options?: RequestInit): Promise<T> {
+type GuardedRequest = RequestInit & { beforeDispatch?: () => boolean }
+
+async function readResponse<T>(path: string, options?: GuardedRequest): Promise<T> {
     const response = await serverFetch(path, {
         ...options,
         headers: { ...kycClientHeaders(), ...(options?.headers as Record<string, string> | undefined) },
@@ -47,7 +49,7 @@ async function readResponse<T>(path: string, options?: RequestInit): Promise<T> 
     }
     return body as T
 }
-async function read<T>(path: string, options?: RequestInit): Promise<T> {
+async function read<T>(path: string, options?: GuardedRequest): Promise<T> {
     try {
         return await readResponse<T>(path, options)
     } catch (error) {
@@ -191,11 +193,12 @@ export async function startKycDocumentReplacement(replacement: KycReplacementCho
         return { kind: 'failed', code: 'invalid_response' }
     }
 }
-export async function resumeKycDocumentAttempt(attemptId: string) {
+export async function resumeKycDocumentAttempt(attemptId: string, beforeDispatch?: () => boolean) {
     let status: number | undefined
     try {
         const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
             method: 'POST',
+            ...(beforeDispatch && { beforeDispatch }),
             body: '{}',
             headers: kycClientHeaders(),
             cache: 'no-store',
@@ -222,7 +225,11 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
         // Conflicts carry a stable `code`; older bodies name it only in `error`.
         if (response.status === 409 && [body?.code, body?.error].includes('replacement_reset_required'))
             return validSession(
-                await read<KycAttemptSession>('/users/identity/restart', { method: 'POST', body: '{}' })
+                await read<KycAttemptSession>('/users/identity/restart', {
+                    method: 'POST',
+                    body: '{}',
+                    ...(beforeDispatch && { beforeDispatch }),
+                })
             )
         throw Object.assign(new Error('KYC request failed'), {
             code: body?.code ?? body?.error,

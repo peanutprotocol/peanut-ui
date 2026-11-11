@@ -140,6 +140,29 @@ describe('CountryList — the tapped row', () => {
         fireEvent.click(row('Germany'))
         expect(row('Germany')).not.toHaveAttribute('aria-disabled', 'true')
     })
+
+    it.each([
+        [true, 'route'],
+        [false, 'waitlist'],
+    ] as const)('reports a country selection that opens the %s path', (supported, outcome) => {
+        const onCountrySelect = jest.fn()
+        const onCountryClick = jest.fn()
+        render(
+            <CountryList
+                viewMode="add-withdraw"
+                flow="add"
+                isCountrySupported={() => supported}
+                onCountryClick={onCountryClick}
+                onCountrySelect={onCountrySelect}
+            />
+        )
+        fireEvent.click(row('Germany'))
+
+        expect(onCountrySelect).toHaveBeenCalledTimes(1)
+        expect(onCountrySelect).toHaveBeenCalledWith(expect.objectContaining({ path: 'germany' }), outcome)
+        expect(onCountryClick).toHaveBeenCalledTimes(supported ? 1 : 0)
+        if (!supported) expect(screen.getByTestId('country-waitlist')).toBeInTheDocument()
+    })
 })
 
 describe('CountryList — which country comes first', () => {

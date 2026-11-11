@@ -261,6 +261,55 @@ describe('useDepositGateRemediation', () => {
         expect(gateFor).toHaveBeenCalledWith('deposit', { railId: 'bridge.bank_transfer_co' })
         expect(handleInitiateKyc).toHaveBeenCalledWith(undefined, undefined, true, undefined, 'BANK_TRANSFER_CO')
     })
+
+    it('opens the explicit SEPA identity restart despite a stale ready gate and waits for confirmation', async () => {
+        gateFor.mockReturnValueOnce({ kind: 'ready' })
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        render(<Host />)
+        const nextAction = {
+            key: 'restart-identity',
+            kind: 'restart-identity' as const,
+            purpose: 'identity_document_insufficient',
+        }
+        act(() => remediation!.verifyCorridor('SEPA_EU', nextAction))
+
+        expect(modalVisible).toBe(true)
+        expect(handleRestartIdentity).not.toHaveBeenCalled()
+        await act(async () => verify())
+        expect(handleRestartIdentity).toHaveBeenCalledTimes(1)
+        expect(handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('does not let an older claim restart identity after a terminal hold is known', async () => {
+        let remediation: Remediation | undefined
+        function Host() {
+            remediation = useDepositGateRemediation()
+            return <>{remediation.modals}</>
+        }
+        render(<Host />)
+        const nextAction = {
+            key: 'restart-identity',
+            kind: 'restart-identity' as const,
+            purpose: 'identity_document_insufficient',
+        }
+        gateFor.mockReturnValueOnce({ kind: 'ready' })
+        act(() => remediation!.verifyCorridor('SEPA_EU', nextAction))
+        expect(modalVisible).toBe(true)
+
+        gateFor.mockReturnValueOnce({
+            kind: 'blocked-rejection',
+            userMessage: null,
+            reason: { code: 'duplicate_account', userMessage: '' },
+        })
+        await act(async () => verify())
+        expect(modalVisible).toBe(false)
+        expect(handleRestartIdentity).not.toHaveBeenCalled()
+        expect(mockOpenSupportWithMessage).toHaveBeenCalledTimes(1)
+    })
 })
 
 /** TASK-24662: the drawer explained the address step, so its button opens it with no modal in front. */

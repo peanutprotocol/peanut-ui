@@ -4,6 +4,12 @@ import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { startKycAction } from '@/app/actions/sumsub'
+import { restartIdentityVerification } from '@/app/actions/sumsub'
+import { findKycReplacementPlan, resumeKycDocumentAttempt } from '@/app/actions/kyc-workflow'
+
+jest.mock('@/utils/session-fence', () => ({
+    captureSessionFence: (_owner: string, active: () => boolean) => ({ current: active }),
+}))
 
 jest.mock('@/app/actions/kyc-workflow', () => {
     const getKycDocumentPlan = jest.fn(async () => ({ available: false, routes: [] }))
@@ -14,6 +20,102 @@ jest.mock('@/app/actions/kyc-workflow', () => {
         resumeKycDocumentAttempt: jest.fn(),
         findKycReplacementPlan: jest.fn(async () => null),
     }
+})
+
+describe('identity restart account isolation', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ;(findKycReplacementPlan as jest.Mock).mockReset().mockResolvedValue(null)
+        mockUserId = 'account-A'
+    })
+
+    it.each([null, { activeAttemptId: 'attempt-A' }, { available: true }])(
+        'does not dispatch or navigate after account change while replacement plan is pending (%s)',
+        async (plan) => {
+            let finishPlan!: (value: any) => void
+            ;(findKycReplacementPlan as jest.Mock).mockImplementationOnce(
+                () => new Promise((resolve) => (finishPlan = resolve))
+            )
+            const { result, rerender } = renderHook(() => useSumsubKycFlow())
+            let pending!: Promise<void>
+            await act(async () => {
+                pending = result.current.handleRestartIdentity()
+                await Promise.resolve()
+            })
+            mockUserId = 'account-B'
+            rerender()
+            await act(async () => {
+                finishPlan(plan)
+                await pending
+            })
+            expect(restartIdentityVerification).not.toHaveBeenCalled()
+            expect(resumeKycDocumentAttempt).not.toHaveBeenCalled()
+            expect(mockRouterPush).not.toHaveBeenCalled()
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.accessToken).toBeNull()
+        }
+    )
+
+    it('does not show a late restart token after account change', async () => {
+        let finishRestart!: (value: any) => void
+        ;(restartIdentityVerification as jest.Mock).mockImplementationOnce(
+            () => new Promise((resolve) => (finishRestart = resolve))
+        )
+        const { result, rerender } = renderHook(() => useSumsubKycFlow())
+        let pending!: Promise<void>
+        await act(async () => {
+            pending = result.current.handleRestartIdentity()
+            await Promise.resolve()
+            await Promise.resolve()
+        })
+        expect(restartIdentityVerification).toHaveBeenCalledTimes(1)
+        mockUserId = 'account-B'
+        rerender()
+        await act(async () => {
+            finishRestart({ data: { token: 'A-token' } })
+            await pending
+        })
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+    })
+
+    it('clears loading and ignores the plan after the restart is closed', async () => {
+        let finishPlan!: (value: any) => void
+        ;(findKycReplacementPlan as jest.Mock).mockImplementationOnce(
+            () => new Promise((resolve) => (finishPlan = resolve))
+        )
+        const { result } = renderHook(() => useSumsubKycFlow())
+        let pending!: Promise<void>
+        await act(async () => {
+            pending = result.current.handleRestartIdentity()
+            await Promise.resolve()
+        })
+        act(() => result.current.handleClose())
+        expect(result.current.isLoading).toBe(false)
+        await act(async () => {
+            finishPlan(null)
+            await pending
+        })
+        expect(restartIdentityVerification).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(false)
+    })
+
+    it('opens a current attempt for the same account', async () => {
+        ;(findKycReplacementPlan as jest.Mock).mockResolvedValueOnce({ activeAttemptId: 'attempt-A' })
+        ;(resumeKycDocumentAttempt as jest.Mock).mockResolvedValueOnce({
+            attemptId: 'attempt-A',
+            token: 'current-token',
+            applicantId: 'applicant-A',
+            sdkConfig: {},
+        })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleRestartIdentity()
+        })
+        expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('attempt-A', expect.any(Function))
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.accessToken).toBe('current-token')
+    })
 })
 
 const mockWs: { handler?: (status: string, labels?: string[]) => void } = {}

@@ -682,6 +682,51 @@ describe('deposit-account cache isolation', () => {
         await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('BANK_TRANSFER_CO'))
         expect(result.current.claimError).toBeUndefined()
     })
+
+    it('passes the explicit SEPA identity restart through even when capabilities are stale', async () => {
+        resolveAccounts([])
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        const nextAction = {
+            key: 'restart-identity',
+            kind: 'restart-identity',
+            purpose: 'identity_document_insufficient',
+        }
+        claimDepositAccount.mockResolvedValue({ outcome: 'verification_required', nextAction })
+        const onVerificationRequired = jest.fn()
+
+        const { result } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('SEPA_EU'))
+
+        await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('SEPA_EU', nextAction))
+        expect(result.current.claimError).toBeUndefined()
+    })
+
+    it('does not forward a late SEPA restart after the signed-in user changes', async () => {
+        resolveAccounts([])
+        let resolveClaim!: (value: unknown) => void
+        claimDepositAccount.mockImplementation(() => new Promise((resolve) => (resolveClaim = resolve)))
+        const onVerificationRequired = jest.fn()
+        const { result, rerender } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('SEPA_EU'))
+        await waitFor(() => expect(claimDepositAccount).toHaveBeenCalledTimes(1))
+
+        mockUserId = 'user-b'
+        rerender()
+        await act(async () => {
+            resolveClaim({
+                outcome: 'verification_required',
+                nextAction: {
+                    key: 'restart-identity',
+                    kind: 'restart-identity',
+                    purpose: 'identity_document_insufficient',
+                },
+            })
+        })
+        await waitFor(() => expect(result.current.claimingCorridor).toBeUndefined())
+        expect(onVerificationRequired).not.toHaveBeenCalled()
+    })
 })
 
 /*

@@ -8,6 +8,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { CountryList } from '@/components/Common/CountryList'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchInput'
+import { ANALYTICS_EVENTS, type AnalyticsEvent } from '@/constants/analytics.consts'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
 import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
 import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
@@ -19,7 +20,8 @@ import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
-import { useState } from 'react'
+import posthog from 'posthog-js'
+import { useEffect, useRef, useState } from 'react'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
@@ -32,6 +34,14 @@ const CRYPTO_HREF = '/add-money/crypto'
 
 /** where a flow opened from this screen returns to */
 const HUB_HREF = '/add-money?method=bank'
+
+function trackAddMoney(event: AnalyticsEvent, properties?: Record<string, unknown>) {
+    try {
+        posthog.capture(event, properties)
+    } catch {
+        // Analytics must not interrupt navigation.
+    }
+}
 
 /**
  * Add money: the list Accounts and payments shows, plus crypto and every
@@ -110,6 +120,12 @@ export function DepositAccountsListScreen({
     const [countriesOpen, setCountriesOpen] = useState(false)
     const [search, setSearch] = useState('')
     const term = bankAccount ? '' : search.trim().toLowerCase()
+    const viewed = useRef(false)
+    useEffect(() => {
+        if (bankAccount || viewed.current) return
+        viewed.current = true
+        trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_VIEWED)
+    }, [bankAccount])
 
     // A bank row opens the transfer the user sends themselves. The flow is a
     // page of its own, so it carries where the user came from — leaving
@@ -142,6 +158,15 @@ export function DepositAccountsListScreen({
             // the field above owns the search
             searchTerm={term}
             onCountryClick={openCountry}
+            onCountrySelect={(country, outcome) => {
+                if (!bankAccount) {
+                    trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_COUNTRY_SELECTED, {
+                        country: country.path,
+                        source: term ? 'search' : 'all_countries',
+                        outcome,
+                    })
+                }
+            }}
             isCountrySupported={isCountrySupported}
         />
     )
@@ -156,7 +181,17 @@ export function DepositAccountsListScreen({
             collapsible
             variant="detached"
             value={countriesOpen ? 'countries' : ''}
-            onValueChange={(value) => setCountriesOpen(!!value)}
+            onValueChange={(value) => {
+                const open = !!value
+                setCountriesOpen(open)
+                if (!bankAccount) {
+                    trackAddMoney(
+                        open
+                            ? ANALYTICS_EVENTS.ADD_MONEY_COUNTRY_LIST_OPENED
+                            : ANALYTICS_EVENTS.ADD_MONEY_COUNTRY_LIST_CLOSED
+                    )
+                }
+            }}
         >
             <Accordion.Item value="countries">
                 <Accordion.Trigger
@@ -174,7 +209,14 @@ export function DepositAccountsListScreen({
         <PageStack gap={bankAccount ? '6' : '8'} className={bankAccount ? 'pb-10' : undefined}>
             <NavHeader
                 title={bankAccount ? tProfile('titles.bank') : t('list.addTitle')}
-                onPrev={onBack}
+                onPrev={() => {
+                    if (!bankAccount) {
+                        trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_BACK_TAPPED, {
+                            country_list_source: term ? 'search' : countriesOpen ? 'all_countries' : 'none',
+                        })
+                    }
+                    onBack()
+                }}
                 titleClassName={bankAccount ? 'py-2 text-heading-xs md:py-1 md:text-heading-s' : undefined}
             />
             <div className="flex flex-col gap-4">
