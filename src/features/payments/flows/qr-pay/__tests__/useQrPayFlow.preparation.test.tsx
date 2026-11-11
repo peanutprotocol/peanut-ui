@@ -44,13 +44,15 @@ jest.mock('next/navigation', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mp.png', PIX: '/pix.png' }))
-let mockResidence: { verified?: { country: string }; declared?: { country: string } } | undefined
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1', username: 'tester' }, residence: mockResidence },
+        user: { user: { userId: 'u1', username: 'tester' } },
         fetchUser: jest.fn(),
     }),
 }))
+// what the pay:PIX_BR route blocks (its own suite covers reading the route)
+let mockPixBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
 const mockUseWallet = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => mockUseWallet() }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
@@ -352,7 +354,7 @@ function expectNoSuccessReported() {
 }
 
 beforeEach(() => {
-    mockResidence = undefined
+    mockPixBlock = null
     jest.clearAllMocks()
     surface = null
     fakeClient = makeFakeClient()
@@ -961,27 +963,28 @@ describe('honest Pay failure copy', () => {
 
 const PIX_PAYLOAD =
     '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
-describe('residence before a new Pix payment', () => {
+describe('the pay route before a new Pix payment', () => {
     test.each(['PIX', 'MERCADO_PAGO'])(
-        'shows the Brazil pause for the actual Pix payload before init even with type %s',
+        'a residence the pay route refuses stops the actual Pix payload before init even with type %s',
         async (qrType) => {
-            mockResidence = { verified: { country: 'BR' } }
+            mockPixBlock = 'residence'
             renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'blocked', qrType })
             await act(async () => {})
             expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
             expect(surface?.view).toBe('BRAZIL_PAUSED')
+            expect(surface?.pixPayBlock).toBe('residence')
             expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
         }
     )
-    test('a declared Brazil residence with nothing verified gets the pause too', async () => {
-        mockResidence = { declared: { country: 'BR' } }
-        renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'declared', qrType: 'PIX' })
+    test('a paused pay route stops a new Pix payment before init too', async () => {
+        mockPixBlock = 'paused'
+        renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'paused', qrType: 'PIX' })
         await act(async () => {})
         expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
         expect(surface?.view).toBe('BRAZIL_PAUSED')
+        expect(surface?.pixPayBlock).toBe('paused')
     })
-    test('an API residence refusal the app did not foresee shows the pause, without retries', async () => {
-        mockResidence = { verified: { country: 'PT' }, declared: { country: 'BR' } }
+    test('an API residence refusal the route did not foresee shows the residence words, without retries', async () => {
         mockMantecaApi.initiateQrPayment.mockRejectedValue(
             Object.assign(new Error('PIX_RESIDENCE_NOT_SUPPORTED'), {
                 code: 'PIX_RESIDENCE_NOT_SUPPORTED',
@@ -990,14 +993,15 @@ describe('residence before a new Pix payment', () => {
         )
         renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'api-refusal', qrType: 'PIX' })
         await waitFor(() => expect(surface?.view).toBe('BRAZIL_PAUSED'))
+        expect(surface?.pixPayBlock).toBe('residence')
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     })
-    test('hydrated residence cannot sign an already quoted new Pix payment', async () => {
+    test('a pay route that turns refused cannot sign an already quoted new Pix payment', async () => {
         mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ type: 'PIX' }))
         const view = renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'hydrate', qrType: 'PIX' })
         await waitForLockedForm()
         await waitForWarmup()
-        mockResidence = { verified: { country: 'BR' } }
+        mockPixBlock = 'residence'
         view.refresh()
         await pay()
         expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
@@ -1020,7 +1024,7 @@ describe('residence before a new Pix payment', () => {
             payment = surface!.payQR()
         })
         await waitFor(() => expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1))
-        mockResidence = { verified: { country: 'BR' } }
+        mockPixBlock = 'residence'
         view.refresh()
         await act(async () => {
             rejectRequest(Object.assign(new Error('timed out'), { name: 'ConnectionTimeoutError' }))

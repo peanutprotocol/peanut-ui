@@ -1,5 +1,7 @@
 import { setupChannelsForResidence } from '../paymentChannels'
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
+import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 
 it.each([
     ['BR', ['brlBank', 'bank', 'crypto', 'peanut'], ['card', 'qr']],
@@ -20,6 +22,20 @@ it.each([
         payment,
     })
 })
+// the API refuses a resident of Brazil the local feature because Pix comes from another entry, its route
+it("keeps Brazil's bank where another entry serves the residence, and closes it for a residence refusal", () => {
+    const brazil = (reason: string) => ({
+        ...KYC_INTENTS_BY_COUNTRY.BR,
+        local: { available: false, reason } as typeof KYC_INTENTS_BY_COUNTRY.BR.local,
+    })
+    expect(
+        setupChannelsForResidence(RESIDENCE_RESTRICTION_SETS, 'BR', true, brazil(LOCAL_SERVED_ELSEWHERE_REASON)).funding
+    ).toEqual(['brlBank', 'bank', 'crypto', 'peanut'])
+    expect(
+        setupChannelsForResidence(RESIDENCE_RESTRICTION_SETS, 'BR', true, brazil('local_residence_unsupported')).funding
+    ).toEqual(['bank', 'crypto', 'peanut'])
+})
+
 it('offers only universal channels before the server lookup settles', () => {
     expect(setupChannelsForResidence(RESIDENCE_RESTRICTION_SETS, 'PT', false)).toEqual({
         funding: ['crypto', 'peanut'],

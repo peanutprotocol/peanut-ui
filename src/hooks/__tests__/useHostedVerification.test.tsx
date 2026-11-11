@@ -210,6 +210,19 @@ describe('useHostedVerification (native)', () => {
         expect(mockFetchUser.mock.calls.length).toBeGreaterThanOrEqual(1)
     })
 
+    // the Pix provider's page arrives with its link: a native open that throws says so and frees the button
+    it('reports a carried link the in-app browser could not open, and stops starting', async () => {
+        mockOpenExternalUrl.mockRejectedValueOnce(new Error('Browser unavailable'))
+        const hook = renderHook(() =>
+            useHostedVerification('hosted-identity', { url: 'https://avenia.example/identity/u1' })
+        )
+        await act(async () => {
+            await hook.result.current.start()
+        })
+        expect(hook.result.current.error).toMatch(/couldn't open/i)
+        expect(hook.result.current.isStarting).toBe(false)
+    })
+
     it('reports a task still pending when the window ends, and a new start clears that', async () => {
         jest.useFakeTimers()
         try {

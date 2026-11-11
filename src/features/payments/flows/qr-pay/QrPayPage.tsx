@@ -21,7 +21,7 @@ import { QrPayProcessingView } from './views/QrPayProcessingView'
 // internal component that switches views — the precedence itself lives in
 // deriveQrPayView, so this stays a flat map from view to component
 function QrPayFlowContent() {
-    const { view, loadingState, retryRate } = useQrPayFlow()
+    const { view, loadingState, retryRate, pixPayBlock } = useQrPayFlow()
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tLoading = useTranslations('loadingStates')
@@ -35,7 +35,7 @@ function QrPayFlowContent() {
         case 'KYC_GATE':
             return <QrPayKycGateView />
         case 'BRAZIL_PAUSED':
-            return <BrazilPausedScreen />
+            return <BrazilPausedScreen block={pixPayBlock ?? 'paused'} />
         case 'MAINTENANCE':
         case 'INIT_ERROR':
         case 'ORDER_NOT_READY':

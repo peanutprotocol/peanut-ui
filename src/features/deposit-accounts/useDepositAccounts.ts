@@ -25,6 +25,7 @@ import {
     railIdFor,
 } from './rails'
 import { closeRefusedCorridors } from './reportClosures'
+import { findPixRoute, pixRouteGate, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { holdsSlot } from './resolveScreen'
 import type {
     ClaimableCorridor,
@@ -300,17 +301,24 @@ export function useDepositAccounts({
             // honest answer.
             out[corridor] = gateFor('deposit', { railId: railIdFor(corridor) })
         }
+        // Pix is the route's, whichever provider serves it: a resident of Brazil has no local rail for it
+        const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+        if (pixRoute) out.PIX_BR = pixRouteGate(pixRoute)
         return out
-    }, [gateFor])
+    }, [gateFor, capabilities.routes])
 
     const { claimable, unavailable } = useMemo(
         () =>
-            closeRefusedCorridors(capabilities.features, rails, {
-                accounts,
-                claimable: offeredClaimable,
-                unavailable: withheldUnavailable,
-            }),
-        [capabilities.features, rails, accounts, offeredClaimable, withheldUnavailable]
+            closeRefusedCorridors(
+                capabilities.features && withPixRoute(capabilities.features, capabilities.routes),
+                rails,
+                {
+                    accounts,
+                    claimable: offeredClaimable,
+                    unavailable: withheldUnavailable,
+                }
+            ),
+        [capabilities.features, capabilities.routes, rails, accounts, offeredClaimable, withheldUnavailable]
     )
 
     /**

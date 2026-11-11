@@ -241,7 +241,7 @@ const BANK_ACCOUNTS = [
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: mockUserAccounts } }),
+    useAuth: () => ({ user: { accounts: mockUserAccounts, user: { userId: 'u-saved' } } }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -249,12 +249,6 @@ const mockSetSelectedMethod = jest.fn()
 const mockSetRecipient = jest.fn()
 const mockSetIsValidRecipient = jest.fn()
 const mockSetNetworkUnconfirmed = jest.fn()
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
-}))
-let mockPixPaused = false
-jest.mock('@/features/brazil-pause/useBrazilPixPaused', () => ({ useBrazilPixPaused: () => mockPixPaused }))
 
 jest.mock('@/features/withdraw/WithdrawFlowContext', () => ({
     useWithdrawFlow: () => ({
@@ -283,9 +277,6 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockBrazilPaused = false
-    mockPixPaused = false
-    closeBrazilPausedDrawer()
     mockIsBankFromSend = false
     mockUserAccounts = BANK_ACCOUNTS
     mockSavedAddresses = [mockSavedBaseAddress]
@@ -294,70 +285,6 @@ beforeEach(() => {
 // ---------- tests ----------
 
 import { stashScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
-import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
-
-// TASK-24197: with the Brazil pause on, a Brazil tap opens the paused drawer and goes nowhere
-describe('WithdrawMethodView — the Brazil pause', () => {
-    it('the Brazil country opens the paused drawer when Pix is paused too', () => {
-        mockBrazilPaused = true
-        mockPixPaused = true
-        renderView({ showAll: 'true' })
-        fireEvent.click(screen.getByTestId('country-brazil'))
-
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
-        expect(mockRouterPush).not.toHaveBeenCalled()
-    })
-
-    // TASK-24724: an Argentine account reads as a Brazil rail, so the BRL pause covers
-    // a resident elsewhere, but their Pix-key sends stay open
-    it('Send → Bank → Brazil reaches the Pix-key send for a resident elsewhere', () => {
-        mockBrazilPaused = true
-        mockIsBankFromSend = true
-        renderView({ showAll: 'true', method: 'bank' })
-        fireEvent.click(screen.getByTestId('country-brazil'))
-
-        expect(isBrazilPausedDrawerOpen()).toBe(false)
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
-    })
-
-    it('in Send, a saved Brazil key follows the Pix pause', () => {
-        mockBrazilPaused = true
-        mockIsBankFromSend = true
-        mockUserAccounts = [{ type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }]
-        const { unmount } = renderView()
-        fireEvent.click(screen.getByTestId('account-maria@silva.com.br'))
-
-        expect(isBrazilPausedDrawerOpen()).toBe(false)
-        expect(mockRouterPush.mock.calls.at(-1)?.[0] as string).toContain('method=pix')
-        unmount()
-
-        mockRouterPush.mockClear()
-        mockPixPaused = true
-        renderView()
-        fireEvent.click(screen.getByTestId('account-maria@silva.com.br'))
-
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
-        expect(mockRouterPush).not.toHaveBeenCalled()
-    })
-
-    it('in a withdrawal, a saved Brazil account opens the paused drawer', () => {
-        mockBrazilPaused = true
-        mockUserAccounts = [{ type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }]
-        renderView()
-        fireEvent.click(screen.getByTestId('account-maria@silva.com.br'))
-
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
-        expect(mockRouterPush).not.toHaveBeenCalled()
-    })
-
-    it('other countries still open their flow', () => {
-        mockBrazilPaused = true
-        renderView({ showAll: 'true' })
-        fireEvent.click(screen.getByTestId('country-argentina'))
-
-        expect(isBrazilPausedDrawerOpen()).toBe(false)
-    })
-})
 
 describe('WithdrawMethodView — destination state and routing (Chip review round 7)', () => {
     it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca', () => {
@@ -394,12 +321,18 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
             expect(pushed).toContain('destination=maria%40silva.com.br')
         })
 
-        it('in a withdrawal, keeps the first-party BRL offramp', () => {
+        // the key is a CPF, phone or email: it goes in the account's draft, never the URL
+        it("in a withdrawal, opens the Pix withdraw page with the key in the account's draft", () => {
             mockUserAccounts = [BR_PIX_ACCOUNT]
             renderView()
             fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
 
-            expect(mockRouterPush.mock.calls.at(-1)?.[0] as string).not.toContain('method=pix')
+            expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix')
+            expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')!)).toMatchObject({
+                destination: BR_PIX_ACCOUNT.identifier,
+                amountUsd: '',
+            })
+            window.sessionStorage.clear()
         })
 
         it("offers someone else's key, saved from a payment, in Send but not in a withdrawal", () => {

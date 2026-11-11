@@ -38,15 +38,15 @@ beforeEach(() => {
 })
 
 describe('kill-switches store', () => {
-    it('refreshes and persists both pause switches independently across reloads', async () => {
+    it('refreshes and persists two switches independently across reloads', async () => {
         localStorage.setItem(
             KILL_SWITCHES_STORAGE_KEY,
-            JSON.stringify({ kycVerificationDown: true, brazilServicesPaused: false })
+            JSON.stringify({ kycVerificationDown: true, pixBrazilOnrampMaintenance: false })
         )
         const store = loadStore()
         expect(store.getKillSwitches()).toEqual({ ...DEFAULT_KILL_SWITCHES, kycVerificationDown: true })
 
-        const server = { kycVerificationDown: false, brazilServicesPaused: true }
+        const server = { kycVerificationDown: false, pixBrazilOnrampMaintenance: true }
         respond(200, server)
         await store.refreshKillSwitches()
 

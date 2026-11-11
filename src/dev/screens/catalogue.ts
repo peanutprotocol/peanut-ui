@@ -196,6 +196,7 @@ const definitions: Screen[] = [
         fixture: id,
         waitFor: f.waitFor,
         geoCountry: f.geoCountry,
+        sessionStorage: f.sessionStorage,
         clicks: [],
         actions:
             fixtureCapture[id]?.actions ??
@@ -226,6 +227,8 @@ const definitions: Screen[] = [
     })),
     ...PAGE_CAPTURES.map((p) => ({
         ...p,
+        // a page capture served by a fixture opens with that fixture's session values too
+        sessionStorage: p.fixture ? FIXTURES[p.fixture]?.sessionStorage : undefined,
         flow: flow(p.route),
         kind: (p.route.startsWith('/dev/') ? 'component' : 'route') as Screen['kind'],
         defaultScreen:
@@ -318,7 +321,7 @@ const orderedDefinitions = definitions
 
 const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
-    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
+    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : screen.sessionStorage,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??

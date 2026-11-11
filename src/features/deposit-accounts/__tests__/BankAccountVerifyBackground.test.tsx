@@ -53,7 +53,7 @@ jest.mock('@/hooks/useBankRows', () => ({ useBankRows: () => ({ rows: [] }) }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
 }))
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => null }))
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: ({ searchTerm }: { searchTerm: string }) => (
         <div data-testid="country-list" data-search={searchTerm}>

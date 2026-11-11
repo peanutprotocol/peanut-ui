@@ -250,6 +250,34 @@ describe('logoutUser', () => {
         expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
     })
 
+    // the same account signing back in before the withdrawal settles still finds its guard;
+    // another account never reads it (the key is the account's)
+    it("keeps the account's pending Pix withdrawal marks", async () => {
+        const mark = JSON.stringify({ priceLockCode: 'lock-a', settleBy: Date.now() + 60_000 })
+        localStorage.setItem('pix-withdraw-pending:u1:lock-a', mark)
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('pix-withdraw-pending:u1:lock-a')).toBe(mark)
+    })
+
+    // a Pix withdraw form not yet sent holds the Pix key: the next user of this tab never sees it
+    it("forgets the account's Pix withdraw draft", async () => {
+        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '09579927189' }))
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(sessionStorage.getItem('pix-withdraw-draft:u1')).toBeNull()
+    })
+
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
         localStorage.setItem('posthog-person-properties-sent', 'abc123')
         stubLocation()

@@ -562,7 +562,7 @@
                 "usd": "Adicione ou saque dólares por transferências bancárias dos Estados Unidos.",
                 "mxn": "Adicione ou saque pesos mexicanos pela rede SPEI.",
                 "sepa": "Adicione ou saque euros por transferências SEPA.",
-                "qrPay": "Pague em lojas no Brasil e na Argentina escaneando um código QR.",
+                "qrPay": "Pague em lojas escaneando um código QR.",
                 "qrPayArgentina": "Escaneie um código QR para pagar na Argentina. Pagamentos com Pix no Brasil estão indisponíveis.",
                 "bankAccount": "Adicione e saque dinheiro por transferência bancária"
             },
@@ -2274,12 +2274,10 @@
         "processingDepositTitle": "Processando o depósito",
         "processingDepositBody": "Estamos confirmando seu depósito.",
         "pix": {
-            "payWithPix": "Pagar com Pix",
             "depositReceived": "Depósito recebido!",
             "balanceUpdated": "Seu saldo foi atualizado.",
             "expiresIn": "Expira em {time}",
             "qrExpired": "Este código QR expirou.",
-            "goBack": "Voltar",
             "scanWithBankApp": "Escaneie com o app do seu banco ou copie o código Pix."
         },
         "confirmationModal": {
@@ -2545,6 +2543,88 @@
             "flagAlt": "Bandeira de {currency}",
             "otherCountriesTitle": "Outros países",
             "otherCountriesPitch": "Escolha um país"
+        }
+    },
+    "pix": {
+        "methodNotServed": "O Peanut não oferece isso.",
+        "rolloutClosed": "O Pix ainda não está disponível para a sua conta.",
+        "residenceNotServed": "O Pix não é oferecido onde você mora.",
+        "unavailableTitle": "Pix indisponível",
+        "rejected": "A verificação não foi aceita. Fale com o suporte.",
+        "payResidence": "Os pagamentos Pix ainda não estão disponíveis onde você mora.",
+        "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
+        "setup": {
+            "importUnavailable": "Nosso parceiro de pagamentos ainda não consegue receber a sua verificação. Enviamos de novo todos os dias.",
+            "reviewing": "Nosso parceiro de pagamentos está conferindo a sua verificação. Esta tela avança quando terminar.",
+            "verifyCta": "Verificar identidade",
+            "title": "Configurar o Pix",
+            "body": "Nosso parceiro de pagamentos oferece o Pix.",
+            "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
+            "cpfRequired": "O Pix precisa de um CPF, e a verificação registrada não tem. Fale com o suporte para incluir.",
+            "termsNotSaved": "O seu aceite dos termos não foi salvo. Tente de novo.",
+            "notAvailable": "Não foi possível configurar o Pix. Fale com o suporte para concluir.",
+            "hosted": {
+                "body": "Faça a verificação na página do nosso parceiro de pagamentos.",
+                "expired": "Este link expirou.",
+                "newLink": "Pedir um novo link",
+                "failed": "Não deu certo. Tente de novo."
+            }
+        },
+        "deposit": {
+            "startNew": "Iniciar um novo depósito",
+            "fee": "Taxa {amount}",
+            "showCode": "Mostrar código",
+            "youGet": "Você recebe ≈ {amount}",
+            "blockedBanks": "Um Pix de {banks} é devolvido.",
+            "minimum": "O mínimo é {amount}.",
+            "limitExceeded": "Este depósito passa do limite mensal do Pix.",
+            "ownCpf": "De uma conta no seu CPF {cpf}",
+            "returnedTitle": "Pix devolvido",
+            "returnedBody": "Pague de novo de uma conta no seu CPF."
+        },
+        "withdraw": {
+            "changeAmount": "Alterar valor",
+            "stuck": "Este saque não foi concluído. Fale com o suporte.",
+            "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
+            "fee": "Taxa",
+            "keyIntro": "Digite uma chave Pix registrada no seu CPF.",
+            "notACode": "Digite uma chave Pix, não um código Pix.",
+            "lookupFailed": "Não foi possível conferir esta chave. Tente de novo.",
+            "keyNotOwn": "Esta chave é de outra pessoa. Saques vão só para contas no seu CPF.",
+            "keyBlocked": "Saques por Pix para este banco não estão disponíveis.",
+            "unknownHolder": "Nome não exibido",
+            "ownAccount": "Conta própria",
+            "someoneElses": "De outra pessoa",
+            "toAccount": "para {destination}",
+            "sent": "A caminho.",
+            "sentTo": "A caminho de {destination}.",
+            "arrivedTo": "Enviado para {destination}.",
+            "arrived": "O dinheiro foi enviado.",
+            "refunded": "O banco recusou este pagamento. O dinheiro voltou para o seu saldo.",
+            "quoteMoved": "A cotação mudou. Confira os novos valores e confirme de novo.",
+            "unconfirmed": "Ainda sem confirmação. Confira o Histórico antes de tentar de novo.",
+            "notSent": "Este saque não foi concluído. Seu saldo não mudou.",
+            "errors": {
+                "limitExceeded": "Este saque passa do limite mensal do Pix.",
+                "inProgress": "Há saques por Pix demais ainda a caminho. Tente de novo mais tarde.",
+                "quoteExpired": "A cotação demorou demais. Tente de novo.",
+                "afterInit": "Confira o Histórico antes de tentar de novo.",
+                "quoteChanged": "O valor mudou durante a cotação. Tente de novo.",
+                "noRecord": "Este navegador não consegue guardar o registro deste saque, então ele não foi enviado. Tente outro navegador."
+            },
+            "changeKey": "Alterar chave",
+            "withdrawing": "Sacando"
+        },
+        "recovery": {
+            "actionNeeded": "Ação necessária",
+            "intro": "O banco recusou o pagamento para a chave anterior. O seu dinheiro está aguardando. Digite uma chave Pix de outra conta no seu CPF.",
+            "notice": "O banco recusou este pagamento. O dinheiro aguarda outra chave no seu CPF.",
+            "addKey": "Adicionar chave Pix",
+            "savedTitle": "Chave Pix salva",
+            "savedTo": "O dinheiro será enviado para {destination}.",
+            "saved": "O dinheiro será enviado para a nova chave.",
+            "notWaitingTitle": "Nenhuma chave nova necessária",
+            "notWaiting": "Este saque não está mais aguardando uma nova chave Pix."
         }
     },
     "transaction": {
@@ -3710,7 +3790,8 @@
             "later": "Fazer isso depois",
             "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
             "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação.",
-            "unavailable": "{feature}: este recurso não está disponível com a verificação atual."
+            "unavailable": "{feature}: este recurso não está disponível com a verificação atual.",
+            "servedElsewhere": "Depósitos e saques por Pix estão disponíveis onde você mora."
         },
         "paperworkVerification": {
             "back": "Voltar",
@@ -5369,16 +5450,19 @@
             "rhino": "Endereços de depósito entre redes e liquidez de ponte. O Peanut é cliente da Rhino; você não tem conta na Rhino.",
             "thirdNational": "Emissor do cartão, subsidiária da Rain",
             "bridgeEea": "Provedor de depósitos, saques e IBANs virtuais em moeda fiduciária",
-            "mantecaAr": "Depósitos (ARS), saques, pagamentos por QR e titular da conta de depósito em ARS",
-            "mantecaBr": "Depósitos (Pix em BRL), saques e pagamentos por Pix e QR"
+            "mantecaAr": "Depósitos, saques e pagamentos por QR na Argentina",
+            "mantecaBr": "Pagamentos e transferências por Pix para quem não mora no Brasil",
+            "aveniaBr": "Depósitos e saques por Pix para residentes no Brasil"
         },
         "about": "Sobre a {brand}",
         "execution": {
             "bridge": "Você assina, a {brand} paga",
             "bridgeEea": "Você assina, a {brand} paga",
             "mantecaAr": "Liquidado pela {brand}",
+            "mantecaBr": "Liquidado pela {brand}",
             "rhino": "Você assina, a {brand} faz a ponte",
-            "thirdNational": "A Third National emite e liquida"
+            "thirdNational": "A Third National emite e liquida",
+            "aveniaBr": "Liquidado pela {brand}"
         },
         "peanutRole": "Provedor de software de carteira autocustodial; não é parte das operações do provedor",
         "cardRelationship": "Você tem uma relação direta com a Third National, nos termos do cartão.",

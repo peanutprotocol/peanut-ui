@@ -327,7 +327,7 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
+                "qrPay": "Pagá en comercios escaneando un código QR.",
                 "qrPayArgentina": "Escaneá un código QR para pagar en Argentina. Los pagos con Pix en Brasil no están disponibles."
             },
             "valueProp": {
@@ -1313,6 +1313,46 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         }
     },
+    "pix": {
+        "residenceNotServed": "Pix no se ofrece donde vivís.",
+        "rejected": "La verificación no fue aceptada. Contactá a soporte.",
+        "payResidence": "Los pagos con Pix aún no están disponibles donde vivís.",
+        "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
+        "setup": {
+            "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
+            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
+            "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo.",
+            "hosted": {
+                "body": "Hacé la verificación en la página de nuestro socio de pagos.",
+                "failed": "No funcionó. Intentá de nuevo."
+            }
+        },
+        "deposit": {
+            "youGet": "Recibís ≈ {amount}",
+            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF."
+        },
+        "withdraw": {
+            "stuck": "Este retiro no se completó. Contactá a soporte.",
+            "keyIntro": "Ingresá una clave Pix registrada con tu CPF.",
+            "notACode": "Ingresá una clave Pix, no un código Pix.",
+            "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
+            "quoteMoved": "La cotización cambió. Revisá los nuevos montos y confirmá de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisá el Historial antes de intentar de nuevo.",
+            "errors": {
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
+                "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",
+                "afterInit": "Revisá el Historial antes de intentar de nuevo.",
+                "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo.",
+                "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Probá con otro navegador."
+            },
+            "changeAmount": "Cambiar monto",
+            "changeKey": "Cambiar clave"
+        },
+        "recovery": {
+            "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresá una clave Pix de otra cuenta con tu CPF."
+        }
+    },
     "transaction": {
         "name": {
             "depositOrderExpired": "La orden de depósito venció"
@@ -1697,7 +1737,8 @@
         },
         "supplement": {
             "proofOfAddressTitle": "Agregá un comprobante de domicilio",
-            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."
+            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos.",
+            "servedElsewhere": "Los depósitos y retiros por Pix están disponibles donde vivís."
         },
         "paperworkVerification": {
             "phoneHelp": "Incluí el código de tu país, como +54.",

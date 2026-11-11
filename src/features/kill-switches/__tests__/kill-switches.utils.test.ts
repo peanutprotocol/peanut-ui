@@ -23,7 +23,7 @@ describe('parseAppUpdateCutoffs', () => {
 })
 
 describe('resolveKillSwitches', () => {
-    it('retains every release switch with the KYC and Brazil pauses defaulting off', () => {
+    it('retains every release switch with the KYC pause defaulting off', () => {
         expect(Object.keys(DEFAULT_KILL_SWITCHES).sort()).toEqual(
             [
                 'enableFullMaintenance',
@@ -36,34 +36,18 @@ describe('resolveKillSwitches', () => {
                 'disableXchainSend',
                 'pixBrazilOnrampMaintenance',
                 'kycVerificationDown',
-                'brazilServicesPaused',
             ].sort()
         )
-        expect(DEFAULT_KILL_SWITCHES).toEqual(
-            expect.objectContaining({ kycVerificationDown: false, brazilServicesPaused: false })
-        )
+        expect(DEFAULT_KILL_SWITCHES).toEqual(expect.objectContaining({ kycVerificationDown: false }))
         expect(DEFAULT_KILL_SWITCHES.disabledAttentionAsks).toEqual([])
     })
 
-    const pauseKeys: (keyof KillSwitches)[] = ['kycVerificationDown', 'brazilServicesPaused']
+    const pauseKeys: (keyof KillSwitches)[] = ['kycVerificationDown']
     it.each(pauseKeys)('resolves %s independently and rejects malformed values', (key) => {
         expect(resolveKillSwitches({ [key]: true }, { [key]: false })[key]).toBe(true)
         expect(resolveKillSwitches({ [key]: false }, { [key]: true })[key]).toBe(false)
         expect(resolveKillSwitches({ [key]: 'true' }, { [key]: true })[key]).toBe(true)
         expect(resolveKillSwitches({ [key]: 'true' }, { [key]: 1 })[key]).toBe(false)
-    })
-
-    it('keeps the KYC and Brazil pauses independent', () => {
-        expect(resolveKillSwitches({ kycVerificationDown: false, brazilServicesPaused: true }, null)).toEqual({
-            ...DEFAULT_KILL_SWITCHES,
-            kycVerificationDown: false,
-            brazilServicesPaused: true,
-        })
-        expect(resolveKillSwitches({ kycVerificationDown: true, brazilServicesPaused: false }, null)).toEqual({
-            ...DEFAULT_KILL_SWITCHES,
-            kycVerificationDown: true,
-            brazilServicesPaused: false,
-        })
     })
 
     it('uses the built-in defaults when nothing is served or saved', () => {

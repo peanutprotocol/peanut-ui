@@ -20,7 +20,14 @@ import { useToast } from '@/components/0_Bruddle/Toast'
  * than shooting an empty page.
  */
 
-import React from 'react'
+import React, { useState } from 'react'
+import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
+import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
+import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
+import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
+import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
+import { useQueryClient } from '@tanstack/react-query'
+import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
@@ -272,6 +279,95 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
                 countryCode={action === 'deposit' ? 'BR' : 'AR'}
                 onBack={noop}
                 onSupport={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the code screen right after POST /pix/deposit, with ten minutes on the clock: the
+// create seeds the deposit's query, as the flow does, so no read is needed to draw it
+function PixDepositSurface() {
+    const queryClient = useQueryClient()
+    useState(() =>
+        queryClient.setQueryData(pixDepositQueryKey('demo-pix-deposit'), {
+            provider: 'avenia',
+            intentId: 'demo-pix-deposit',
+            status: 'AWAITING_USER_ACTION',
+            codePayable: true,
+            pixReceived: false,
+            brCode: DEMO_PIX_BR_CODE,
+            amountBrl: '100.00',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
+            expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
+            payerCpfMasked: '095.***.***-89',
+        } satisfies PixDeposit)
+    )
+    return (
+        <AppPageSurface>
+            <PixQrDeposit
+                intentId="demo-pix-deposit"
+                blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
+                onBack={noop}
+                onDone={noop}
+                onNewDeposit={noop}
+                onComplete={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the withdrawal this session signed, for the last step's in-memory destination
+const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
+    amountBrl: '503.00',
+    pixKey: '09579927189',
+    ownAccount: true,
+    holderName: 'Ana Souza',
+    bankName: 'Banco Inter',
+    withdrawUsd: '92.504310',
+    rate: '5.445692',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+}
+
+// the last step right after the signature: the destination comes from what was signed
+function PixWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
+    const display = unnamed ? { ...PIX_SURFACE_DISPLAY, bankName: null, holderName: null } : PIX_SURFACE_DISPLAY
+    return (
+        <AppPageSurface>
+            <PixWithdrawOutcome
+                title="Withdraw"
+                intentId="fixture-pix-withdrawal"
+                providerId="avenia-br"
+                sent={{ phase: 'funded', display }}
+                onStartAgain={noop}
+                onDone={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
+function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
+    const t = useTranslations('pix.withdraw')
+    const error =
+        variant === 'quote-moved'
+            ? { message: t('quoteMoved'), priority: 'attention' as const }
+            : { message: `${t('errors.quoteExpired')} ${t('errors.afterInit')}` }
+    return (
+        <AppPageSurface>
+            <PixWithdrawReview
+                title="Withdraw"
+                display={PIX_SURFACE_DISPLAY}
+                providerId="avenia-br"
+                isLoading={false}
+                isSubmitting={false}
+                error={error}
+                canConfirm={variant === 'quote-moved'}
+                onBack={noop}
+                onConfirm={noop}
+                onCancel={noop}
             />
         </AppPageSurface>
     )
@@ -1354,6 +1450,35 @@ export const SURFACES: Record<string, Surface> = {
     '93-f-withdraw-account-closed': {
         ...SURFACE_META['93-f-withdraw-account-closed'],
         render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
+    },
+    '94-f-pix-deposit': {
+        ...SURFACE_META['94-f-pix-deposit'],
+        render: () => <PixDepositSurface />,
+    },
+    '94-g-pix-withdraw-on-its-way': {
+        ...SURFACE_META['94-g-pix-withdraw-on-its-way'],
+        render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-h-pix-withdraw-arrived-to': {
+        ...SURFACE_META['94-h-pix-withdraw-arrived-to'],
+        render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-i-pix-withdraw-sent-unnamed': {
+        ...SURFACE_META['94-i-pix-withdraw-sent-unnamed'],
+        render: () => <PixWithdrawOutcomeSurface unnamed />,
+    },
+    '94-j-pix-review-quote-moved': {
+        ...SURFACE_META['94-j-pix-review-quote-moved'],
+        render: () => <PixWithdrawReviewSurface variant="quote-moved" />,
+    },
+    '94-k-pix-review-after-init': {
+        ...SURFACE_META['94-k-pix-review-after-init'],
+        render: () => <PixWithdrawReviewSurface variant="after-init" />,
+    },
+    // the shot fixture's entry ended CANCELLED after this session funded it: support, never "on its way"
+    '94-l-pix-withdraw-stuck': {
+        ...SURFACE_META['94-l-pix-withdraw-stuck'],
+        render: () => <PixWithdrawOutcomeSurface />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

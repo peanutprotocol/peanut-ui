@@ -68,11 +68,10 @@ const MantecaDepositShareDetails = ({
         if (!currentCountryDetails) return fallback
         return MANTECA_COUNTRIES_CONFIG[currentCountryDetails.id]?.depositAddressLabel ?? fallback
     }, [currentCountryDetails, t])
-    // the deposit account belongs to manteca's local entity
-    const providerId = currentCountryDetails?.id === 'BR' ? 'manteca-br' : 'manteca-ar'
+    // the deposit account belongs to manteca's local entity (Brazil's Pix lives on /add-money/pix)
+    const providerId = 'manteca-ar'
 
-    // BRL synthetics no longer carry these (QR-only) — but BRL routes to the QR
-    // screen, never here; the fallback just keeps the ARS/static path total.
+    // the fallback keeps the static path total
     const depositAddress = depositDetails.details.depositAddress ?? ''
     const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
     const depositAlias = depositDetails.details.depositAlias

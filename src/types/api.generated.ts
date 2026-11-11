@@ -315,6 +315,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/avenia/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Avenia webhook handler
+         * @description Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Base64 RSA-PSS signature of the raw body */
+                    signature?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        event: {
+                            accountId: string;
+                            createdAt?: string;
+                            data: {
+                                type: string;
+                            };
+                            id: string;
+                            subscription: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "received": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            received: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/badge/award": {
         parameters: {
             query?: never;
@@ -2214,24 +2300,24 @@ export interface paths {
                                 bank: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 } & {
                                     currencies: string[];
                                 };
                                 card: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 };
                                 local: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 };
                                 qr: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 };
                             };
                             residence: string;
@@ -5726,6 +5812,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthz/avenia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "checkedAt": "2026-01-01T00:00:00.000Z",
+                         *       "provider": "avenia",
+                         *       "responseTime": 120,
+                         *       "status": "healthy",
+                         *       "timestamp": "2026-01-01T00:00:00.000Z"
+                         *     }
+                         */
+                        "application/json": {
+                            /** Format: date-time */
+                            checkedAt: string;
+                            provider: string;
+                            responseTime: number;
+                            /** @enum {string} */
+                            status: "healthy";
+                            /** Format: date-time */
+                            timestamp: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz/bridge": {
         parameters: {
             query?: never;
@@ -5951,7 +6090,28 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            extraData?: {
+                                /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
+                                intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
+                                pixDeposit?: {
+                                    codePayable: boolean;
+                                    expiresAt: string | null;
+                                };
+                                pixRecovery?: {
+                                    failureCode: string | null;
+                                    reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
+                                    state: "awaiting-key" | "in-progress" | "done";
+                                } | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
                 };
             };
         };
@@ -6751,6 +6911,8 @@ export interface paths {
                         kind: "userOp";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
+                        /** @description Bounded client Pix host label for outcome telemetry; unrecognized values are ignored. */
+                        pixQrHost?: unknown;
                         /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
                         qrType?: string;
                         rainPreparationId?: string;
@@ -6779,6 +6941,8 @@ export interface paths {
                         kind: "rainWithdrawal";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
+                        /** @description Bounded client Pix host label for outcome telemetry; unrecognized values are ignored. */
+                        pixQrHost?: unknown;
                         qrType?: string;
                         signedRainWithdrawal: {
                             adminNonce: string;
@@ -7569,6 +7733,1647 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Pix deposit (BRL → USDC)
+         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "100.00",
+                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+                         *       "codePayable": true,
+                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+                         *       "payerCpfMasked": "123.***.***-09",
+                         *       "pixReceived": false,
+                         *       "provider": "avenia",
+                         *       "status": "AWAITING_USER_ACTION",
+                         *       "usdcAmount": "17.920175"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            brCode?: string;
+                            /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
+                            expiresAt: string | null;
+                            /** @description The flat fee in reais, where the provider charges one */
+                            fixedFeeBrl?: string;
+                            intentId: string;
+                            /** @description The CPF the Pix must come from, masked, where the provider requires one */
+                            payerCpfMasked?: string;
+                            /** @description The provider received the Pix; the USDC is on its way to the wallet */
+                            pixReceived: boolean;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                            /** @description USDC the wallet receives, after every fee */
+                            usdcAmount: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pix deposit rules for the amount step
+         * @description The least amount and the banks the user’s Pix provider refuses a deposit from, for the provider the deposit route names (capabilities.routes).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "blockedBanks": [
+                         *         {
+                         *           "ispb": "00360305",
+                         *           "name": "Caixa Economica Federal"
+                         *         }
+                         *       ],
+                         *       "minAmountBrl": "20"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description Banks the provider refuses a Pix from: the app tells the user before they pay */
+                            blockedBanks: {
+                                ispb: string;
+                                name: string | null;
+                            }[];
+                            minAmountBrl: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit/{intentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pix deposit: its code while payable, then its status
+         * @description Owner only. Read-only: the provider’s webhook and poller move the deposit. After a reload the app draws the code again from here while codePayable is true, and the outcome after that. The deposit route in capabilities names the payable deposit (payableDepositIntentId).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "100.00",
+                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+                         *       "codePayable": true,
+                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+                         *       "payerCpfMasked": "123.***.***-09",
+                         *       "pixReceived": false,
+                         *       "provider": "avenia",
+                         *       "status": "AWAITING_USER_ACTION",
+                         *       "usdcAmount": "17.920175"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            brCode?: string;
+                            /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
+                            expiresAt: string | null;
+                            /** @description The flat fee in reais, where the provider charges one */
+                            fixedFeeBrl?: string;
+                            intentId: string;
+                            /** @description The CPF the Pix must come from, masked, where the provider requires one */
+                            payerCpfMasked?: string;
+                            /** @description The provider received the Pix; the USDC is on its way to the wallet */
+                            pixReceived: boolean;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                            /** @description USDC the wallet receives, after every fee */
+                            usdcAmount: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve a Pix key to its holder and bank
+         * @description A directory read through the provider the withdrawal route names (or, while that route is closed, the provider that serves the user): holder, masked tax id, bank, whether the key looks like the user’s own, and whether the provider pays it. Moves no money. Rate limited per user.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pixKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "bankName": "Nu Pagamentos S.A.",
+                         *       "blocked": false,
+                         *       "holderName": "Ana Souza",
+                         *       "holderTaxIdMasked": "***.456.789-**",
+                         *       "ispb": "18236120",
+                         *       "ownAccount": true,
+                         *       "provider": "avenia"
+                         *     }
+                         */
+                        "application/json": {
+                            bankName: string | null;
+                            /** @description The provider will not pay this key’s bank or holder */
+                            blocked: boolean;
+                            holderName: string | null;
+                            holderTaxIdMasked: string | null;
+                            ispb: string | null;
+                            /** @description Precheck: the holder looks like the user. Null when the provider cannot tell. */
+                            ownAccount: boolean | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicative Pix quote for amount entry
+         * @description For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take, with the percentage fees in the rate and the flat fee apart. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.
+         */
+        get: {
+            parameters: {
+                query: {
+                    operation: "deposit" | "withdraw";
+                    /** @description Reais */
+                    amountBrl?: string;
+                    /** @description USDC to receive (deposit) or to convert (withdraw) */
+                    amountUsd?: string;
+                    /** @description Withdraw only: USDC to leave the wallet, the bridge fee included */
+                    spendUsd?: string;
+                };
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "106.75",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "minAmountBrl": "20",
+                         *       "operation": "withdraw",
+                         *       "provider": "avenia",
+                         *       "rate": "5.369543",
+                         *       "usdcAmount": "20.020325"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string;
+                            /** @description The flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
+                            minAmountBrl: string;
+                            operation: "deposit" | "withdraw";
+                            /** @description The provider the route names, e.g. avenia */
+                            provider: string;
+                            /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
+                            rate: string;
+                            /** @description USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw) */
+                            usdcAmount: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a Pix withdrawal
+         * @description Opens the withdrawal with the provider the withdrawal route names and returns what the wallet signs (sign.kind says how). Send one of amountUsd, amountBrl or spendUsd.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl?: string;
+                        /** @description USDC, at most six decimals */
+                        amountUsd?: string;
+                        pixKey: string;
+                        /** @description USDC to leave the wallet, every fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "display": {
+                         *         "amountBrl": "106.75",
+                         *         "arrivalEstimateSeconds": 60,
+                         *         "bankName": "Nu Pagamentos S.A.",
+                         *         "fixedFeeBrl": "0.75",
+                         *         "holderName": "Ana Souza",
+                         *         "ownAccount": true,
+                         *         "pixKey": "12345678909",
+                         *         "provider": "Avenia",
+                         *         "rate": "5.369543",
+                         *         "withdrawUsd": "20.020325"
+                         *       },
+                         *       "intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
+                         *       "provider": "avenia",
+                         *       "sign": {
+                         *         "commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+                         *         "contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+                         *         "kind": "deposit-with-id",
+                         *         "payAmount": "20.020325",
+                         *         "payAmountUnits": "20020325",
+                         *         "quoteExpiresAt": "2026-11-04T12:03:00.000Z",
+                         *         "ticketExpiresAt": "2026-11-04T12:10:00.000Z",
+                         *         "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            display: {
+                                /** @description The headline: reais credited to the account */
+                                amountBrl: string;
+                                /** @description About how long from the signature to the Pix paid */
+                                arrivalEstimateSeconds: number;
+                                bankName: string | null;
+                                /** @description The flat fee in reais, shown as its own line */
+                                fixedFeeBrl: string;
+                                holderName: string | null;
+                                ownAccount: boolean | null;
+                                pixKey: string;
+                                /** @description The payments partner’s name, for the review’s "processed by" line */
+                                provider: string;
+                                /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                                rate: string;
+                                /** @description USDC that leaves the wallet */
+                                withdrawUsd: string;
+                            };
+                            /** @description The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit */
+                            intentId: string | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description How the wallet funds the withdrawal */
+                            sign: {
+                                commitmentId: string;
+                                contractAddress: string;
+                                /** @enum {string} */
+                                kind: "deposit-with-id";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                quoteExpiresAt: string;
+                                ticketExpiresAt: string;
+                                tokenAddress: string;
+                            } | {
+                                depositAddress: string;
+                                /** @enum {string} */
+                                kind: "transfer-then-submit";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                priceLockCode: string;
+                                quoteExpiresAt: string;
+                                tokenAddress: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review a Pix withdrawal
+         * @description Checks the key with the provider the withdrawal route names and quotes the amount. Opens nothing. Send one of amountUsd, amountBrl or spendUsd.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl?: string;
+                        /** @description USDC, at most six decimals */
+                        amountUsd?: string;
+                        pixKey: string;
+                        /** @description USDC to leave the wallet, every fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "106.75",
+                         *       "arrivalEstimateSeconds": 60,
+                         *       "bankName": "Nu Pagamentos S.A.",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "holderName": "Ana Souza",
+                         *       "ownAccount": true,
+                         *       "pixKey": "12345678909",
+                         *       "provider": "Avenia",
+                         *       "rate": "5.369543",
+                         *       "withdrawUsd": "20.020325"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description The headline: reais credited to the account */
+                            amountBrl: string;
+                            /** @description About how long from the signature to the Pix paid */
+                            arrivalEstimateSeconds: number;
+                            bankName: string | null;
+                            /** @description The flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            holderName: string | null;
+                            ownAccount: boolean | null;
+                            pixKey: string;
+                            /** @description The payments partner’s name, for the review’s "processed by" line */
+                            provider: string;
+                            /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                            rate: string;
+                            /** @description USDC that leaves the wallet */
+                            withdrawUsd: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a transfer-then-submit withdrawal’s signed funding
+         * @description For sign.kind transfer-then-submit: the API opens the payout order for the locked price first, then broadcasts the signed transfer, so no money leaves for an order that could not open.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The sign step’s payAmount */
+                        amountUsd: string;
+                        funding: {
+                            chainId: string;
+                            entryPointAddress: string;
+                            /** @enum {string} */
+                            kind: "userOp";
+                            /** @description The mixed strategy: the UserOp also withdraws card collateral */
+                            rainPreparationId?: string;
+                            signedUserOp: {
+                                callData: string;
+                                callGasLimit: unknown;
+                                factory?: string;
+                                factoryData?: string;
+                                maxFeePerGas: unknown;
+                                maxPriorityFeePerGas: unknown;
+                                nonce: unknown;
+                                paymaster?: string;
+                                paymasterData?: string;
+                                paymasterPostOpGasLimit: unknown;
+                                paymasterVerificationGasLimit: unknown;
+                                preVerificationGas: unknown;
+                                sender: string;
+                                signature: string;
+                                verificationGasLimit: unknown;
+                            };
+                        } | {
+                            chainId: string;
+                            /** @enum {string} */
+                            kind: "rainWithdrawal";
+                            signedRainWithdrawal: {
+                                adminNonce: string;
+                                adminSalt: string;
+                                adminSignature: string;
+                                amount: string;
+                                directTransfer: boolean;
+                                executorSalt: string;
+                                executorSignature: string;
+                                expiresAt: number;
+                                /** Format: uuid */
+                                preparationId: string;
+                                preparedCoordinatorAddress?: string;
+                                recipientAddress: string;
+                            };
+                        };
+                        pixKey: string;
+                        /** @description The sign step’s priceLockCode */
+                        priceLockCode: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "intentId": "3c7a9e2b-5d14-4f8a-9b6c-0e2d4f6a8b1c",
+                         *       "provider": "manteca",
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            intentId: string | null;
+                            provider: string;
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/{intentId}/funded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a deposit-with-id withdrawal’s funding
+         * @description For sign.kind deposit-with-id: the wallet broadcast the deposit. The API checks the receipt funds exactly this withdrawal; the provider’s events move it after that. Idempotent.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        txHash: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/{intentId}/recovery-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Name a new own Pix key for a refused payout
+         * @description For a withdrawal whose payout was refused for its key: the provider pays the reais to this key instead. Own key only. Open whatever the route says: it returns the user’s own money.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pixKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "accepted": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            accepted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -12893,17 +14698,19 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    expiresAt?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
-                                        provider: "bridge" | "manteca" | "rain";
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
                                         reason: string;
                                     }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
+                                    url?: string;
                                 }[];
                                 rails: {
                                     blockingActions?: string[];
@@ -12921,7 +14728,7 @@ export interface paths {
                                     };
                                     /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
                                     pendingSince?: string;
-                                    provider: "bridge" | "manteca" | "rain";
+                                    provider: "bridge" | "manteca" | "rain" | "avenia";
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -12938,17 +14745,19 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            expiresAt?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
-                                                provider: "bridge" | "manteca" | "rain";
+                                                provider: "bridge" | "manteca" | "rain" | "avenia";
                                                 reason: string;
                                             }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
+                                            url?: string;
                                         };
                                         status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
@@ -12958,6 +14767,43 @@ export interface paths {
                                     affectedRailIds: string[];
                                     code: string;
                                     userMessage: string;
+                                }[];
+                                routes: {
+                                    /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                    action?: string;
+                                    /** @description Every provider that serves the operation on the method, best first, each with its reason. */
+                                    candidates: {
+                                        /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                        action?: string;
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        reason?: {
+                                            code: string;
+                                            details?: string;
+                                            userMessage: string;
+                                        };
+                                        state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                    }[];
+                                    /** @description The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote. */
+                                    limits?: {
+                                        /** @description The currency of the amount: the method’s, e.g. BRL */
+                                        currency: string;
+                                        /** @description The least amount the provider takes for this operation */
+                                        minAmount: string;
+                                    };
+                                    /** @description Rail method code, e.g. PIX_BR */
+                                    method: string;
+                                    /** @description pay: a QR payment on the method */
+                                    operation: "deposit" | "withdraw" | "pay";
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
+                                    payableDepositIntentId?: string;
+                                    /** @description The provider the money routes use. Null when every candidate is refused. */
+                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    reason?: {
+                                        code: string;
+                                        details?: string;
+                                        userMessage: string;
+                                    };
+                                    state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
                         };
@@ -13483,17 +15329,19 @@ export interface paths {
                             nextAction?: {
                                 currency?: string;
                                 effectiveDate?: string;
+                                expiresAt?: string;
                                 feature?: "bank" | "card" | "local";
                                 key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
-                                    provider: "bridge" | "manteca" | "rain";
+                                    provider: "bridge" | "manteca" | "rain" | "avenia";
                                     reason: string;
                                 }[];
                                 requirementKey?: string;
                                 tosUrl?: string;
+                                url?: string;
                             };
                             outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
@@ -14174,22 +16022,22 @@ export interface paths {
                             features?: {
                                 bank: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                             };
@@ -14231,6 +16079,96 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/kyc/accept-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a payments partner’s terms
+         * @description Records the acceptance of the terms the step names (nextActions[].tosUrl) in the consent ledger, then enrols the user with that provider. The capabilities route shows the enrolment from then on. 409 when the user’s route does not name this step now.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia */
+                        key: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "accepted": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            accepted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -14767,6 +16705,13 @@ export interface paths {
                     content: {
                         /**
                          * @example {
+                         *       "address": {
+                         *         "buildingNumber": "12",
+                         *         "country": "PT",
+                         *         "postCode": "1100-053",
+                         *         "street": "Rua Augusta",
+                         *         "town": "Lisboa"
+                         *       },
                          *       "document": {
                          *         "country": "PT",
                          *         "type": "PASSPORT"
@@ -14785,10 +16730,19 @@ export interface paths {
                          *         "cityOfBirth": "Lisboa",
                          *         "countryOfBirth": "PT",
                          *         "dateOfBirth": "1992-06-15"
-                         *       }
+                         *       },
+                         *       "taxId": null
                          *     }
                          */
                         "application/json": {
+                            address: {
+                                buildingNumber?: string;
+                                country?: string;
+                                postCode?: string;
+                                state?: string;
+                                street?: string;
+                                town?: string;
+                            } | null;
                             document: {
                                 country: string;
                                 type: string;
@@ -14820,6 +16774,7 @@ export interface paths {
                                 sex?: string;
                                 sourceOfFunds?: string;
                             };
+                            taxId: string | null;
                         };
                     };
                 };
@@ -15015,7 +16970,7 @@ export interface paths {
                          */
                         "application/json": {
                             action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                             state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                         };
                     };
@@ -15484,7 +17439,8 @@ export interface paths {
                          *           "id": "eea"
                          *         }
                          *       ],
-                         *       "temporaryProtection": null
+                         *       "temporaryProtection": null,
+                         *       "terminal": null
                          *     }
                          */
                         "application/json": {
@@ -15516,7 +17472,7 @@ export interface paths {
                                     code: "IDENTITY";
                                     countries: string[];
                                     key: string;
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                     types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                 }[];
                                 id: string;
@@ -15526,6 +17482,7 @@ export interface paths {
                                 proofOfAddress: boolean;
                                 until: string;
                             } | null;
+                            terminal?: "rejected" | null;
                         };
                     };
                 };
@@ -15703,7 +17660,7 @@ export interface paths {
                                         code: "IDENTITY";
                                         countries: string[];
                                         key: string;
-                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                         types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                     }[];
                                     levelName?: string;
@@ -15713,7 +17670,7 @@ export interface paths {
                                         code: string;
                                         key: string;
                                         levelName: string;
-                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN")[];
+                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                     }[];
                                 };
                                 /** Format: date-time */
@@ -15722,7 +17679,7 @@ export interface paths {
                                 id: string;
                                 kind: "IDENTITY" | "SUPPLEMENTAL" | "ONBOARDING";
                                 policyVersion: string;
-                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN";
+                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA";
                                 reasonCode: string | null;
                                 requirements: ({
                                     code: string;
@@ -15733,20 +17690,20 @@ export interface paths {
                                     key: string;
                                     /** @enum {string} */
                                     kind: "DOCUMENT";
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 } | {
                                     code: string;
                                     key: string;
                                     /** @enum {string} */
                                     kind: "QUESTIONNAIRE";
                                     questionnaireKey: string;
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 } | {
                                     code: string;
                                     key: string;
                                     /** @enum {string} */
                                     kind: "CHECK";
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 })[];
                                 reviewedAt: string | null;
                                 revision: number;
@@ -15812,6 +17769,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                rejectType?: "FINAL" | "RETRY" | null;
                                 reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
@@ -16081,6 +18039,7 @@ export interface paths {
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
+                            terminal?: "rejected" | null;
                         };
                     };
                 };
@@ -16395,17 +18354,19 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
+                                    expiresAt?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
-                                        provider: "bridge" | "manteca" | "rain";
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
                                         reason: string;
                                     }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
+                                    url?: string;
                                 }[];
                                 rails: {
                                     blockingActions?: string[];
@@ -16423,7 +18384,7 @@ export interface paths {
                                     };
                                     /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
                                     pendingSince?: string;
-                                    provider: "bridge" | "manteca" | "rain";
+                                    provider: "bridge" | "manteca" | "rain" | "avenia";
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -16440,17 +18401,19 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
+                                            expiresAt?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
-                                                provider: "bridge" | "manteca" | "rain";
+                                                provider: "bridge" | "manteca" | "rain" | "avenia";
                                                 reason: string;
                                             }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
+                                            url?: string;
                                         };
                                         status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
@@ -16460,6 +18423,43 @@ export interface paths {
                                     affectedRailIds: string[];
                                     code: string;
                                     userMessage: string;
+                                }[];
+                                routes: {
+                                    /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                    action?: string;
+                                    /** @description Every provider that serves the operation on the method, best first, each with its reason. */
+                                    candidates: {
+                                        /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                        action?: string;
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        reason?: {
+                                            code: string;
+                                            details?: string;
+                                            userMessage: string;
+                                        };
+                                        state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                    }[];
+                                    /** @description The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote. */
+                                    limits?: {
+                                        /** @description The currency of the amount: the method’s, e.g. BRL */
+                                        currency: string;
+                                        /** @description The least amount the provider takes for this operation */
+                                        minAmount: string;
+                                    };
+                                    /** @description Rail method code, e.g. PIX_BR */
+                                    method: string;
+                                    /** @description pay: a QR payment on the method */
+                                    operation: "deposit" | "withdraw" | "pay";
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
+                                    payableDepositIntentId?: string;
+                                    /** @description The provider the money routes use. Null when every candidate is refused. */
+                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    reason?: {
+                                        code: string;
+                                        details?: string;
+                                        userMessage: string;
+                                    };
+                                    state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
                             depositAccounts: {
@@ -16517,6 +18517,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                rejectType?: "FINAL" | "RETRY" | null;
                                 reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";

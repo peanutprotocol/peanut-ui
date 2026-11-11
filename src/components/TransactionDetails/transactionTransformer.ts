@@ -18,6 +18,8 @@ import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
+import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
+import { pixCodePayable } from '@/features/pix/pixDepositCode'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -38,24 +40,12 @@ function isDisputeStatus(value: unknown): value is DisputeStatus {
     return typeof value === 'string' && DISPUTE_STATUSES.has(value)
 }
 
-// Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
-// on provider (e.g. Manteca-specific deposit-info row) use this typed
-// value via `extraDataForDrawer.provider` for positive identity rather
-// than inferring from the absence of other fields.
-//
-// Stays a string union (not an enum) so it stays interchangeable with the
-// wire string at runtime and so adding a value here forces TS-side updates
-// at every gate that switches on it. Deprecated values are kept so old
-// rows that still carry them on the wire don't blow up the type system.
-export type Provider =
-    | 'PEANUT'
-    | 'BRIDGE'
-    | 'MANTECA'
-    | 'RHINO'
-    | 'RAIN'
-    | 'ONCHAIN'
-    | 'DEPRECATED_SIMPLEFI'
-    | 'DEPRECATED_SQUID'
+// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, AVENIA,
+// RAIN, ...). The history schema types `extraData.provider` as a plain string, so the app reads a
+// string too: a new provider needs no change here, and its legal record comes from the registry
+// (`providerIdFor` in provider.utils). Receipts that branch on a provider compare this value for
+// positive identity rather than infer it from the absence of other fields.
+export type Provider = string
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -441,6 +431,10 @@ export interface TransactionDetails {
          *  `hasPublicReceipt`: it is the one gate for the receipt link, its
          *  share and the anonymous PDF. */
         publicReceipt?: boolean
+        /** A Pix withdrawal whose payout the bank refused: the money waits for another own Pix key. */
+        awaitsNewPixKey?: boolean
+        /** A Pix deposit whose code can still be paid: the receipt opens it again. */
+        pixCodePayable?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -827,6 +821,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
             publicReceipt: entry.extraData?.publicReceipt || undefined,
+            awaitsNewPixKey: awaitsNewPixKey(entry.extraData) || undefined,
+            pixCodePayable: pixCodePayable(entry.extraData, Date.now()) || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,
