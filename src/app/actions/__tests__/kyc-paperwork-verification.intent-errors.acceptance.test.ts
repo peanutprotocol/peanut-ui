@@ -123,7 +123,14 @@ describe('getKycQuestions', () => {
     })
 
     it.each([
-        ['invalid JSON', { json: async () => { throw new SyntaxError('private body text') } }],
+        [
+            'invalid JSON',
+            {
+                json: async () => {
+                    throw new SyntaxError('private body text')
+                },
+            },
+        ],
         ['null', { json: async () => null }],
         ['an array', { json: async () => [] }],
         ['missing boolean availability', { json: async () => ({ steps: [] }) }],
@@ -135,13 +142,18 @@ describe('getKycQuestions', () => {
         mockFetch.mockResolvedValueOnce(reply(200, body))
         await expect(getKycQuestions()).resolves.toEqual(body)
         expect(mockFetch).toHaveBeenCalledTimes(2)
-        for (const [, options] of mockFetch.mock.calls) expect(options).toEqual(expect.objectContaining({ redactTelemetry: true }))
+        for (const [, options] of mockFetch.mock.calls)
+            expect(options).toEqual(expect.objectContaining({ redactTelemetry: true }))
         expect(JSON.stringify(mockFetch.mock.calls)).not.toContain('private body text')
         expect(JSON.stringify(mockFetch.mock.calls)).not.toContain('private answer')
     })
 
     it('exhausts exactly one retry, rejects with the stable unavailable error, and can be explicitly retried later', async () => {
-        mockFetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ available: true, steps: null }) } as unknown as Response)
+        mockFetch.mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({ available: true, steps: null }),
+        } as unknown as Response)
         await expect(getKycQuestions()).rejects.toEqual(new Error('KYC questions unavailable'))
         expect(mockFetch).toHaveBeenCalledTimes(2)
         const valid = { available: false, attemptId: null, residence: null, steps: [], firstUnanswered: null }
@@ -152,7 +164,10 @@ describe('getKycQuestions', () => {
 
     it.each([
         ['non-success HTTP', () => mockFetch.mockResolvedValue(reply(503, null))],
-        ['existing-verification hand-back', () => mockFetch.mockResolvedValue(reply(409, { code: 'existing_verification' }))],
+        [
+            'existing-verification hand-back',
+            () => mockFetch.mockResolvedValue(reply(409, { code: 'existing_verification' })),
+        ],
         ['other 409', () => mockFetch.mockResolvedValue(reply(409, { code: 'feature_not_selected' }))],
         ['transport failure', () => mockFetch.mockRejectedValue(new Error('offline'))],
     ])('does not retry %s', async (_label, arrange) => {
@@ -207,7 +222,9 @@ describe('getKycQuestions', () => {
             ...mockSentryCaptureException.mock.calls,
             ...mockSentryCaptureMessage.mock.calls,
         ])
-        expect(mockSentryCaptureException.mock.calls.length + mockSentryCaptureMessage.mock.calls.length).toBeGreaterThan(0)
+        expect(
+            mockSentryCaptureException.mock.calls.length + mockSentryCaptureMessage.mock.calls.length
+        ).toBeGreaterThan(0)
         for (const secret of secrets) expect(exported).not.toContain(secret)
         expect(exported).toContain('200')
         expect(exported).toMatch(/json/i)

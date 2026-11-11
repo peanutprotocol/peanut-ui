@@ -1204,4 +1204,23 @@ describe('card first-use activation', () => {
         })
         expect(result.current.supportRequiredReason).toBeNull()
     })
+
+    it('waits safely while the authenticated user id is not available, then remains neutral after login', () => {
+        mockUser = { user: { userId: undefined as never } }
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.supportRequiredReason).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockGetFundingAccess).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        mockUser = { user: { userId: 'user-after-login' } }
+        rerender()
+        expect(result.current.supportRequiredReason).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
 })

@@ -194,7 +194,7 @@ export function useCardFlow() {
     const [supportRequired, setSupportRequired] = useState<{ userId: string; reason: 'verified-name-missing' } | null>(
         null
     )
-    const supportRequiredReason = supportRequired?.userId === userId ? supportRequired.reason : null
+    const supportRequiredReason = supportRequired && supportRequired.userId === userId ? supportRequired.reason : null
     useEffect(() => {
         setPendingApplication(null)
         setSupportRequired(null)

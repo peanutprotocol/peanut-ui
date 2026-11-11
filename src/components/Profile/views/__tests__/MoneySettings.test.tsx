@@ -265,7 +265,7 @@ jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({
                 ) : null}
             </div>
         ) : null
-    }
+    },
 }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
@@ -2037,7 +2037,13 @@ describe('ARS Accounts and Payments use the scoped bank-account report', () => {
             argentina()
             mockApiLocal = { state: 'on', accounts: { ARS: { state } } }
             mockRails = [
-                { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status: 'enabled' },
+                {
+                    id: 'manteca.bank_transfer_ar',
+                    provider: 'manteca',
+                    channel: 'bank',
+                    country: 'AR',
+                    status: 'enabled',
+                },
                 { id: 'manteca.qr_ar', provider: 'manteca', channel: 'qr', country: 'AR', status: 'enabled' },
                 { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'requires-info' },
             ]
@@ -2100,8 +2106,9 @@ describe('ARS Accounts and Payments use the scoped bank-account report', () => {
         )
 
         expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
-        expect(within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Action needed'))
-            .toBeInTheDocument()
+        expect(
+            within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Action needed')
+        ).toBeInTheDocument()
         fireEvent.click(screen.getByText('ARS'))
         expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
         expect(mockInitiateKyc).not.toHaveBeenCalled()

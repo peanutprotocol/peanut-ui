@@ -3975,7 +3975,7 @@
                 },
                 "replace": "Change the number"
             },
-            "addressMinimum": "Street and number together must have at least {count} characters.",
+            "addressMinimum": "Street and number: {count} characters minimum.",
             "errors": {
                 "required": "Answer this to continue.",
                 "invalidOption": "Choose one of the options.",
@@ -4161,7 +4161,7 @@
                 "description": "We can’t verify you with this document.",
                 "cta": "Use a different ID"
             },
-            "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
+            "taxWarning": "We couldn’t verify this number. Is it correct?",
             "taxConfirm": "I confirm",
             "documentMismatch": {
                 "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
