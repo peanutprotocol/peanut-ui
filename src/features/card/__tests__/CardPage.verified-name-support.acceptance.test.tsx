@@ -282,7 +282,7 @@ describe('CardPage maps verified-name support state to the support screen', () =
         fireEvent.click(support)
         expect(mockSetSupportOpen).toHaveBeenCalledWith(true)
         expect(screen.queryByRole('button', { name: /apply|try again|retry/i })).not.toBeInTheDocument()
-        expect((rainApi.applyForCard as jest.Mock)).not.toHaveBeenCalled()
+        expect(rainApi.applyForCard as jest.Mock).not.toHaveBeenCalled()
         expect(startActionKeys()).toEqual([])
         expect(openSdkTokens()).toEqual([])
     })

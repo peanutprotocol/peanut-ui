@@ -16088,10 +16088,10 @@ export interface paths {
                                     key: string;
                                     kind: string;
                                     locked?: boolean;
+                                    minAddressLineLength?: number;
                                     options?: string[];
                                     required: boolean;
                                     value: string | null;
-                                    minAddressLineLength?: number;
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];

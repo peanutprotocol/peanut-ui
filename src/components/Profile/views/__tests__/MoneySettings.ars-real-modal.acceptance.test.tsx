@@ -14,10 +14,9 @@ import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { railVerdict } from '@/utils/capability-gate'
 import type { NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
-import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
-import en from '@/i18n/app/messages/en.json'
 import MoneySettings from '@/components/Profile/views/MoneySettings.view'
 
 // The view reaches for the query client (residence-change invalidation), so
@@ -314,10 +313,12 @@ beforeEach(() => {
     mockOpenView = null
 })
 
-
 describe('independent real-modal verification after the scoped ARS wait correction', () => {
     const argentina = () => {
-        mockUser = { residence: normalizeResidence({ declared: 'AR', verified: 'AR' }), user: { userId: 'synthetic-ars-user' } }
+        mockUser = {
+            residence: normalizeResidence({ declared: 'AR', verified: 'AR' }),
+            user: { userId: 'synthetic-ars-user' },
+        }
         mockIsKycApproved = true
         mockIdentity = { status: 'verified' }
         mockSendsToVerify = true
@@ -330,8 +331,14 @@ describe('independent real-modal verification after the scoped ARS wait correcti
         argentina()
         mockApiLocal = { state: 'on', accounts: { ARS: { state } } }
         mockRails = [
-            { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status,
-              pendingSince: new Date(Date.now() - 2 * 86400000).toISOString() },
+            {
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'AR',
+                status,
+                pendingSince: new Date(Date.now() - 2 * 86400000).toISOString(),
+            },
             { id: 'manteca.qr_ar', provider: 'manteca', channel: 'qr', country: 'AR', status: 'enabled' },
         ]
         render('accounts')
@@ -350,8 +357,14 @@ describe('independent real-modal verification after the scoped ARS wait correcti
         argentina()
         mockApiLocal = { state: 'pending', accounts: {} }
         mockRails = [
-            { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status: 'pending',
-              pendingSince: new Date(Date.now() - 2 * 86400000).toISOString() },
+            {
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'AR',
+                status: 'pending',
+                pendingSince: new Date(Date.now() - 2 * 86400000).toISOString(),
+            },
             { id: 'manteca.qr_ar', provider: 'manteca', channel: 'qr', country: 'AR', status: 'enabled' },
         ]
         expect(mockCapabilityBlock().features?.local.accounts?.ARS).toBeUndefined()
