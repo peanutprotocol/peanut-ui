@@ -381,6 +381,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'components/AddMoney/views/RhinoDeposit.view.tsx',
         captureState: ['received=33', 'asked=58.51'],
     },
+    '82-e-card-creating': {
+        name: 'Card application — creating card',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=creating-card'],
+        expectSelector: '[data-testid="app-page-surface-content"] h1',
+    },
     '82-f-choice-card-requires-info': {
         name: 'Card application — more information required',
         path: 'Card/ApplicationStatusScreen.tsx',

@@ -1710,6 +1710,12 @@
         "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
     },
     {
+        "id": "82-e-card-creating",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-e-card-creating",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
         "id": "82-f-choice-card-requires-info",
         "flow": "Card",
         "route": "/dev/surfaces?s=82-f-choice-card-requires-info",

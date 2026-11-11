@@ -1889,6 +1889,8 @@
         },
         "status": {
             "mascotAlt": "Peanutman crying",
+            "creatingCardTitle": "Creating your card…",
+            "creatingCardBody": "This usually takes a few seconds.",
             "pendingTitle": "Setting up card…",
             "pendingBody": "Hang tight while we finish setting up your card. This usually takes a few seconds.",
             "manualReviewTitle": "Manual review needed",

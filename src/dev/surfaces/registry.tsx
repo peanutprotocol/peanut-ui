@@ -1232,6 +1232,14 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['81-g-request-pot-partial'],
         render: () => <RequestPotPartialSurface />,
     },
+    '82-e-card-creating': {
+        ...SURFACE_META['82-e-card-creating'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen variant="creating-card" />
+            </AppPageSurface>
+        ),
+    },
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],
         render: () => (
