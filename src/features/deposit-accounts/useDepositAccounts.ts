@@ -26,6 +26,7 @@ import {
     isClaimable,
     railIdFor,
 } from './rails'
+import { applyDepositPreviewGate } from './depositGate'
 import { closeRefusedCorridors } from './reportClosures'
 import { holdsSlot } from './resolveScreen'
 import type {
@@ -326,21 +327,9 @@ export function useDepositAccounts({
         for (const corridor of DEPOSIT_RAIL_ORDER) {
             const gate = gateFor('deposit', { railId: railIdFor(corridor) })
             const cause = unavailable[corridor]?.cause
-            const setupUnderWay = cause === 'setup-pending' || cause === 'review-pending' || cause === 'review-action'
-            // The account preview can see setup before capabilities catch up.
-            // Keep the currency blocked and preserve any concrete terms action.
-            if (gate.kind === 'ready' || gate.kind === 'needs-enrollment') {
-                if (setupUnderWay) {
-                    gates[corridor] = { kind: 'pending' }
-                    if (cause === 'review-action') staleReviewAction = true
-                    continue
-                }
-                if (cause === 'review-closed') {
-                    gates[corridor] = { kind: 'blocked-rejection', userMessage: null }
-                    continue
-                }
-            }
-            gates[corridor] = gate
+            const effectiveGate = applyDepositPreviewGate(gate, cause)
+            if (effectiveGate !== gate && cause === 'review-action') staleReviewAction = true
+            gates[corridor] = effectiveGate
         }
         return { gates, staleReviewAction }
     }, [gateFor, unavailable])

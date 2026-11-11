@@ -1257,6 +1257,31 @@
         "route": "/add-money?method=bank"
     },
     {
+        "id": "fixture-add-money-picker-first-time",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
+        "id": "add-money-method-picker",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
+        "id": "add-money-account-currencies",
+        "flow": "Add money",
+        "route": "/add-money/options?method=account"
+    },
+    {
+        "id": "add-money-transfer-currencies",
+        "flow": "Add money",
+        "route": "/add-money/options?method=transfer"
+    },
+    {
+        "id": "add-money-pix-currency",
+        "flow": "Add money",
+        "route": "/add-money/options?method=pix"
+    },
+    {
         "id": "p18-add-money-crypto",
         "flow": "Add money",
         "route": "/add-money/crypto"

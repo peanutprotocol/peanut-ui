@@ -6,27 +6,34 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
-import { homeDrawerOptions, type AddMethodKey, type DrawerOption, type HomeDrawerKey } from '../home-drawer-options'
+import { homeDrawerOptions } from '../home-drawer-options'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useRouter } from 'next/navigation'
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
+import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
+import PIX from '@/assets/payment-apps/pix.svg'
+import Image from 'next/image'
 
 /**
  * home IA bottom drawers (figma boards 17831:79186 / 17830:76839): the Add and
  * Send quick actions open a drawer with routing options instead of navigating.
  * open state is url-backed via useHomeDrawer (?drawer=add|send).
  */
-export function HomeActionDrawers() {
+export function HomeActionDrawers({
+    addMoney,
+}: {
+    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'isLoading'>
+}) {
     const [drawer, setDrawer] = useHomeDrawer()
     const t = useTranslations('home.drawers')
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
+    const tProfile = useTranslations('profile.unlockPayments')
     const router = useRouter()
-    // the bare /add-money redirect carries the caller's returnTo here — read
-    // it via nuqs (URL as state) so it can ride onto the chosen destination
+    // Carry origins from existing Add drawer links into the chosen destination.
     const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
     // keep the last open drawer rendered through vaul's exit animation so the
     // sheet doesn't empty mid-slide when the url param clears
@@ -34,27 +41,76 @@ export function HomeActionDrawers() {
     if (drawer) lastDrawerRef.current = drawer
     const content = drawer ?? lastDrawerRef.current
     const depositAccounts = useDepositAccountsEnabled()
-    const options = content ? homeDrawerOptions(content, depositAccounts) : []
+    const redirecting = useRef(false)
+    const navigating = useRef(false)
+    const suppressAdd = drawer === 'add' && addMoney.entry === 'picker'
+    const staleAdd = suppressAdd && !addMoney.isLoading
+    useEffect(() => {
+        if (staleAdd && !redirecting.current) {
+            redirecting.current = true
+            const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
+            void Promise.all([setDrawer(null), setReturnTo(null)]).then(() =>
+                router.replace(origin ? withReturnTo('/add-money', origin) : '/add-money')
+            )
+        }
+        if (drawer !== 'add') redirecting.current = false
+    }, [drawer, staleAdd, returnTo, router, setDrawer, setReturnTo])
+    const options =
+        content === 'add'
+            ? addMoney.drawerMethods.map((method) => ({
+                  key: method,
+                  title:
+                      method === 'account'
+                          ? tProfile('titles.bank')
+                          : method === 'transfer'
+                            ? tMethods('oneTimeTransfer')
+                            : method === 'pix'
+                              ? tMethods('payPix')
+                              : method === 'crypto'
+                                ? tMethods('crypto')
+                                : tMethods('moreWays'),
+                  leading:
+                      method === 'pix' ? (
+                          <Image src={PIX} alt="" width={32} height={32} />
+                      ) : method === 'account' ? (
+                          <IconBubble icon="bank" color="green" size="s" />
+                      ) : (
+                          <IconBubble {...(method === 'crypto' ? CONCEPT_ICONS.crypto : CONCEPT_ICONS.bank)} size="s" />
+                      ),
+                  href:
+                      method === 'more'
+                          ? '/add-money'
+                          : method === 'crypto'
+                            ? '/add-money/crypto'
+                            : `/add-money/options?method=${method}&ready=1`,
+              }))
+            : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
+                  key: option.key,
+                  href: option.href,
+                  leading: <IconBubble {...CONCEPT_ICONS[option.concept]} size="s" />,
+                  title: t(option.titleKey),
+                  body: option.bodyKey ? t(option.bodyKey) : undefined,
+              }))
 
-    const navigate = async (option: DrawerOption) => {
-        const href = option.href
-        // clear the drawer param first so browser-back from the destination
-        // lands on a closed home; nuqs queues url updates, so await the reset
-        // before routing or the ?drawer entry can survive in history
-        // a caller's returnTo (carried here by the bare /add-money redirect)
-        // rides to the chosen destination — and is CLEARED from home's own
-        // history entry, or reopening Add later would forward a stale origin
-        // into an unrelated flow (chip P15-minor)
-        const origin = returnTo
-        await Promise.all([setDrawer(null), setReturnTo(null)])
-        const target = origin
-            ? `${href}${href.includes('?') ? '&' : '?'}${RETURN_TO_PARAM}=${encodeURIComponent(origin)}`
-            : href
-        router.push(target)
+    const navigate = async (option: { href: string }) => {
+        if (navigating.current) return
+        navigating.current = true
+        const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/home')
+        try {
+            // Clear Home's drawer state before navigating so Back lands on closed Home.
+            await Promise.all([setDrawer(null), setReturnTo(null)])
+            router.push(origin ? withReturnTo(option.href, origin) : option.href)
+        } finally {
+            navigating.current = false
+        }
     }
 
     return (
-        <Drawer open={drawer !== null} onOpenChange={(isOpen) => !isOpen && setDrawer(null)} hideBottomNav>
+        <Drawer
+            open={drawer !== null && !suppressAdd}
+            onOpenChange={(isOpen) => !isOpen && setDrawer(null)}
+            hideBottomNav
+        >
             <DrawerContent className="pb-2">
                 {content && (
                     <div className="flex flex-col gap-4">
@@ -66,19 +122,9 @@ export function HomeActionDrawers() {
                                 <ListItem
                                     key={option.key}
                                     position={getCardPosition(index, all.length)}
-                                    leading={<IconBubble {...CONCEPT_ICONS[option.concept]} size="s" />}
-                                    title={
-                                        option.titleKey[0] === 'methods'
-                                            ? tMethods(option.titleKey[1] as AddMethodKey)
-                                            : t(option.titleKey[1] as HomeDrawerKey)
-                                    }
-                                    body={
-                                        option.bodyKey
-                                            ? option.bodyKey[0] === 'methods'
-                                                ? tMethods(option.bodyKey[1])
-                                                : t(option.bodyKey[1])
-                                            : undefined
-                                    }
+                                    leading={option.leading}
+                                    title={option.title}
+                                    body={'body' in option ? option.body : undefined}
                                     // the descriptions are a sentence, and a one-line
                                     // cut ate half of it in pt-BR and es-419
                                     bodyWrap

@@ -62,6 +62,8 @@ const readiness: Record<string, string> = {
     '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
 const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
+    'home-add-drawer': { expectSelector: '[data-testid="home-drawer-add-more"]' },
+    'add-money-picker-first-time': { expectSelector: '[data-testid="add-money-method-crypto"]' },
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
     'paperwork-verification-bridge-postal-correction': {
@@ -108,7 +110,7 @@ const routeOverrides: Record<
     '57-d-raincooldownintromodal': { route: '/home', fixture: 'home', event: 'rain:cooldown' },
     '58-d-stalecardapprovalreenablemodal': { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
     '18-a-reconsentmodal': { route: '/home', fixture: 'reconsent' },
-    '51-d-homeactiondrawers': { route: '/home?drawer=add', fixture: 'home' },
+    '51-d-homeactiondrawers': { route: '/home?drawer=add', fixture: 'home-add-drawer' },
 
     '66-e-avatarpicker': { route: FIXTURES['avatar-picker'].route, fixture: 'avatar-picker' },
 }

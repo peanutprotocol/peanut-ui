@@ -8,7 +8,8 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { CountryList } from '@/components/Common/CountryList'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchInput'
-import { ANALYTICS_EVENTS, type AnalyticsEvent } from '@/constants/analytics.consts'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { trackAddMoney } from '@/features/add-money/analytics'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
 import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
 import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
@@ -20,7 +21,6 @@ import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
-import posthog from 'posthog-js'
 import { useEffect, useRef, useState } from 'react'
 import { residenceAllows } from '../residenceGate'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
@@ -36,14 +36,6 @@ const CRYPTO_HREF = '/add-money/crypto'
 
 /** where a flow opened from this screen returns to */
 const HUB_HREF = '/add-money?method=bank'
-
-function trackAddMoney(event: AnalyticsEvent, properties?: Record<string, unknown>) {
-    try {
-        posthog.capture(event, properties)
-    } catch {
-        // Analytics must not interrupt navigation.
-    }
-}
 
 /**
  * Add money: the list Accounts and payments shows, plus crypto and every

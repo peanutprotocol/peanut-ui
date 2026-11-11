@@ -3384,7 +3384,29 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'home-add-drawer': {
         route: '/home?drawer=add',
-        about: 'The Add drawer — where bank transfer now leads to the standing account.',
+        about: 'Returning user with a usable EUR account and a completed peer payment.',
+        responses: {
+            ...PROFILE_ACCOUNTS_MIX,
+            'GET /users/me': {
+                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
+                user: { firstPaymentAt: '2026-09-15T00:00:00Z' },
+            },
+        },
+    },
+    'add-money-picker-first-time': {
+        route: '/add-money',
+        balance: '0',
+        about: 'First-time Add money picker, with Crypto available before identity verification.',
+        responses: {
+            'GET /users/me': {
+                user: { activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+                depositAccounts: { enabled: true },
+                residence: { declared: { country: 'PT' }, verified: null },
+            },
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [] },
+        },
     },
     'home-request-drawer': {
         route: '/home?drawer=request',

@@ -14,7 +14,7 @@ import { useBalanceVisibility } from './useBalanceVisibility'
  * stay dumb (same model as features/payments/flows/semantic-request).
  */
 export function useHomeFlow() {
-    const { spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
+    const { address, spendableBalance, isFetchingSpendableBalance, isSpendableBalanceStale } = useWallet()
     const { user, isFetchingUser, fetchUser } = useAuth()
     const { isActivated, onboarding, isOnboardingComplete } = useActivationStatus()
     const { resetFlow: resetClaimBankFlow } = useClaimBankFlow()
@@ -50,6 +50,7 @@ export function useHomeFlow() {
     }, [isWagmiConnected, disconnectWagmi])
 
     return {
+        address,
         isPageLoading,
         username,
         isActivated,

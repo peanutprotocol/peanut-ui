@@ -1,5 +1,6 @@
 'use client'
 
+import { AddMoneyPicker } from '@/features/add-money/AddMoneyPicker'
 import { useAddMoneyFlow } from '@/features/add-money/useAddMoneyFlow'
 import { DepositAccountsFlowContainer } from '@/features/deposit-accounts/components/DepositAccountsFlowContainer'
 import dynamic from 'next/dynamic'
@@ -14,7 +15,7 @@ const AddWithdrawCountriesList = dynamic(() => import('@/components/AddWithdraw/
 })
 
 export default function AddMoneyPage() {
-    const { countryFromQuery, viewFromQuery, isBareRoot, handleBack } = useAddMoneyFlow()
+    const { countryFromQuery, viewFromQuery, isBareRoot, returnTo, handleBack } = useAddMoneyFlow()
 
     // native app: render sub-views based on query params
     if (countryFromQuery && viewFromQuery === 'bank') {
@@ -28,8 +29,7 @@ export default function AddMoneyPage() {
         return <AddWithdrawCountriesList flow="add" />
     }
 
-    // redirecting — render nothing for the one frame before replace() lands
-    if (isBareRoot) return null
+    if (isBareRoot) return <AddMoneyPicker onBack={handleBack} origin={returnTo} />
 
     // ?method=bank: the accounts this user holds, crypto, and every country
     // they can send money in from
