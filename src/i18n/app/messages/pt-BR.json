@@ -2566,7 +2566,8 @@
             "hosted": {
                 "body": "Faça a verificação na página do nosso parceiro de pagamentos.",
                 "expired": "Este link expirou.",
-                "newLink": "Pedir um novo link"
+                "newLink": "Pedir um novo link",
+                "failed": "Não deu certo. Tente de novo."
             }
         },
         "deposit": {

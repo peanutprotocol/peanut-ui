@@ -23,6 +23,8 @@ const MAX_TIMER_MS = 2_147_483_647
  * provider's page (`action.url`). Back from that page, or on "I'm done", the app reads the
  * capabilities again: the route then waits on the provider's decision (the waiting screen) or still
  * names this step. A link past `expiresAt` offers a new one, which that read mints.
+ * A page that did not open, or a read that failed, says so in the line under the
+ * title, and the same button tries again.
  */
 export function PixHostedVerification({
     title,
@@ -49,11 +51,20 @@ export function PixHostedVerification({
     }, [expired, expiresAt])
     const hosted = useHostedVerification('hosted-identity', { url: expired ? undefined : action.url })
     const [isReading, setIsReading] = useState(false)
+    const [readFailed, setReadFailed] = useState(false)
     const readAgain = async () => {
         setIsReading(true)
-        await fetchUser().catch(() => undefined)
-        setIsReading(false)
+        setReadFailed(false)
+        try {
+            await fetchUser({ throwOnError: true })
+        } catch {
+            setReadFailed(true)
+        } finally {
+            setIsReading(false)
+        }
     }
+    // the hand-off could not open the page, or the read failed: the line says so, the button retries
+    const failed = readFailed || (!expired && !!hosted.error)
 
     return (
         <PageStack>
@@ -64,7 +75,14 @@ export function PixHostedVerification({
                     <TitleBlock
                         align="center"
                         title={t('title')}
-                        description={t(expired ? 'hosted.expired' : 'hosted.body')}
+                        description={
+                            <span
+                                role={failed ? 'alert' : undefined}
+                                className={failed ? 'text-foreground-error' : undefined}
+                            >
+                                {t(failed ? 'hosted.failed' : expired ? 'hosted.expired' : 'hosted.body')}
+                            </span>
+                        }
                     />
                 </div>
                 <div className="flex flex-col gap-4" data-testid="pix-hosted-verification">

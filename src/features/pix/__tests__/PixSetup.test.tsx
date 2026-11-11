@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { act, fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import type { CapabilityRoute, NextAction } from '@/types/capabilities'
@@ -173,6 +173,49 @@ describe('PixSetup', () => {
             expect(mockHostedHook).toHaveBeenLastCalledWith('hosted-identity', { url: undefined })
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.hosted.newLink }))
             expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        })
+
+        // the browser or the native bridge could not open the page: the line says so, and Verify tries again
+        it('says the page did not open and keeps Verify to try again', () => {
+            mockNextActions = [hosted(SOON())]
+            mockHostedHook.mockReturnValue({
+                start: mockHostedStart,
+                isStarting: false,
+                error: "We couldn't open the verification. Please try again in a moment.",
+                isSettling: false,
+                stillPendingAfterReturn: false,
+            })
+            try {
+                renderSetup(hostedStep())
+                expect(screen.getByRole('alert')).toHaveTextContent(en.pix.setup.hosted.failed)
+                const verify = screen.getByRole('button', { name: en.pix.setup.verifyCta })
+                expect(verify).toBeEnabled()
+                fireEvent.click(verify)
+                expect(mockHostedStart).toHaveBeenCalledTimes(1)
+            } finally {
+                mockHostedHook.mockReset()
+                mockHostedHook.mockImplementation(() => ({
+                    start: mockHostedStart,
+                    isStarting: false,
+                    error: null,
+                    isSettling: false,
+                    stillPendingAfterReturn: false,
+                }))
+            }
+        })
+
+        it('says the read for a new link failed and keeps Get a new link to try again', async () => {
+            mockNextActions = [hosted(new Date(Date.now() - 1_000).toISOString())]
+            mockFetchUser.mockRejectedValueOnce(new Error('offline'))
+            renderSetup(hostedStep())
+
+            fireEvent.click(screen.getByRole('button', { name: en.pix.setup.hosted.newLink }))
+            expect(await screen.findByRole('alert')).toHaveTextContent(en.pix.setup.hosted.failed)
+            expect(mockFetchUser).toHaveBeenCalledWith({ throwOnError: true })
+            const again = screen.getByRole('button', { name: en.pix.setup.hosted.newLink })
+            expect(again).toBeEnabled()
+            fireEvent.click(again)
+            await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
         })
 
         it('turns to a new link when the link runs out on screen', () => {

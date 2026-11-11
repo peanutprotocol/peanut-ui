@@ -1324,7 +1324,8 @@
             "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
             "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo.",
             "hosted": {
-                "body": "Hacé la verificación en la página de nuestro socio de pagos."
+                "body": "Hacé la verificación en la página de nuestro socio de pagos.",
+                "failed": "No funcionó. Intentá de nuevo."
             }
         },
         "deposit": {
