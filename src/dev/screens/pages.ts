@@ -73,7 +73,8 @@ export const PAGE_CAPTURES: PageCapture[] = [
         id: 'add-money-crypto-euro-token-network',
         name: 'Add money — euro token network tooltip',
         route: '/add-money/crypto?network=EVM',
-        actions: [{ tap: 'EURe · Gnosis' }],
+        // the chip names the credited variant, as the deposit token list does (rhino.consts EURe v2)
+        actions: [{ tap: 'EURe v2 · Gnosis' }],
         expectSelector: '[role="tooltip"]',
     },
     {
