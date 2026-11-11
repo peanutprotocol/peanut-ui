@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -65,6 +66,7 @@ export function PixHostedVerification({
     }
     // the hand-off could not open the page, or the read failed: the line says so, the button retries
     const failed = readFailed || (!expired && !!hosted.error)
+    const line = t(failed ? 'hosted.failed' : expired ? 'hosted.expired' : 'hosted.body')
 
     return (
         <PageStack>
@@ -75,14 +77,8 @@ export function PixHostedVerification({
                     <TitleBlock
                         align="center"
                         title={t('title')}
-                        description={
-                            <span
-                                role={failed ? 'alert' : undefined}
-                                className={failed ? 'text-foreground-error' : undefined}
-                            >
-                                {t(failed ? 'hosted.failed' : expired ? 'hosted.expired' : 'hosted.body')}
-                            </span>
-                        }
+                        // the design system's error line (role="alert") when it failed
+                        description={failed ? <FieldError>{line}</FieldError> : line}
                     />
                 </div>
                 <div className="flex flex-col gap-4" data-testid="pix-hosted-verification">
