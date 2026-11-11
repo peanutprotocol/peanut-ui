@@ -7,6 +7,7 @@ import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '@/featu
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 const mockPush = jest.fn()
+const mockOnOpen = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
     usePathname: () => '/add-money',
@@ -75,7 +76,7 @@ function showCountries(residence: string | null) {
                     isLoading={false}
                     isError={false}
                     onBack={jest.fn()}
-                    onOpen={jest.fn()}
+                    onOpen={mockOnOpen}
                     onRetry={jest.fn()}
                 />
             </NuqsTestingAdapter>
@@ -88,26 +89,41 @@ function argentinaRow() {
     return screen.getByRole('button', { name: /Argentina/i })
 }
 
-it('marks Argentina unavailable before selection, keeps it searchable, and blocks pointer and keyboard selection', () => {
-    showCountries('DE')
-    expect(argentinaRow()).toBeVisible()
-    expect(argentinaRow()).toHaveTextContent(/unavailable|not available|residents only/i)
+it.each(['pointer', 'Enter', 'Space'])(
+    'keeps unavailable Argentina searchable and opens its residence explanation with %s',
+    (input) => {
+        showCountries('DE')
+        expect(argentinaRow()).toBeVisible()
+        expect(argentinaRow()).toHaveTextContent(/not available/i)
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Argent' } })
-    const row = argentinaRow()
-    expect(row).toBeVisible()
-    expect(row).toHaveTextContent(/unavailable|not available|residents only/i)
-    expect(row.matches(':disabled, [aria-disabled="true"]')).toBe(true)
+        const search = screen.getByRole('textbox')
+        fireEvent.change(search, { target: { value: 'Argent' } })
+        const row = argentinaRow()
+        expect(row).toBeVisible()
+        expect(row).toHaveTextContent(/not available/i)
+        expect(row).toBeEnabled()
+        expect(row).not.toHaveAttribute('aria-disabled', 'true')
 
-    fireEvent.click(row)
-    for (const key of ['Enter', ' ']) {
-        fireEvent.keyDown(row, { key })
-        fireEvent.keyUp(row, { key })
+        if (input === 'pointer') {
+            fireEvent.click(row)
+        } else {
+            expect(row).toHaveAttribute('tabindex', '0')
+            row.focus()
+            fireEvent.keyDown(row, { key: input === 'Enter' ? 'Enter' : ' ' })
+        }
+
+        expect(
+            screen.getByText(/(?:resid(?:e|en)|live).*argentina|argentin(?:a|e).*resid/i, { selector: 'p' })
+        ).toBeVisible()
+        expect(screen.getByRole('button', { name: /update residence/i })).toBeVisible()
+        expect(screen.getByRole('button', { name: /pay a qr code/i })).toBeVisible()
+        expect(screen.queryByRole('button', { name: /waitlist/i })).not.toBeInTheDocument()
+        expect(mockOnOpen).not.toHaveBeenCalled()
+        expect(mockOpenCountry).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(capture.mock.calls.some(([event]) => event === 'add_money_country_selected')).toBe(false)
     }
-    expect(mockOpenCountry).not.toHaveBeenCalled()
-    expect(mockPush).not.toHaveBeenCalled()
-    expect(capture).not.toHaveBeenCalledWith('add_money_country_selected', expect.anything())
-})
+)
 
 it.each(['AR', null])('preserves ordinary Argentina selection for residence %s', (residence) => {
     showCountries(residence)

@@ -1593,7 +1593,7 @@ describe('the hub copy exists in every catalog', () => {
         'badgeLimitReached',
         'notOfferedBody',
         'countriesTitle',
-        'countriesPitch',
+        'badgeNotOffered',
     ]
 
     it('es-419 and pt-BR carry every key the hub reads', () => {

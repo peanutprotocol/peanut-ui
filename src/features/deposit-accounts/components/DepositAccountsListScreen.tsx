@@ -29,6 +29,7 @@ import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
 import { useResidenceIso2s } from '../useResidenceIso2s'
 import { AccountsHubList } from './AccountsHubList'
+import { ClosedRowDrawer } from './ClosedRowDrawer'
 
 /** the crypto entry point, reached from this screen and from the home Add drawer */
 const CRYPTO_HREF = '/add-money/crypto'
@@ -119,6 +120,12 @@ export function DepositAccountsListScreen({
 
     // Transient UI: neither survives a refresh nor belongs in a shared link.
     const [countriesOpen, setCountriesOpen] = useState(false)
+    const [showArgentinaRestriction, setShowArgentinaRestriction] = useState(false)
+    const argentinaUnavailable = residenceIso2s.length > 0 && !residenceAllows('BANK_TRANSFER_AR', residenceIso2s)
+    useEffect(() => {
+        if (!argentinaUnavailable) setShowArgentinaRestriction(false)
+    }, [argentinaUnavailable])
+    const openResidenceSettings = () => router.push(withReturnTo('/settings/details?open=residence', HUB_HREF))
     const [search, setSearch] = useState('')
     const term = bankAccount ? '' : search.trim().toLowerCase()
     const viewed = useRef(false)
@@ -169,9 +176,13 @@ export function DepositAccountsListScreen({
                 }
             }}
             isCountrySupported={isCountrySupported}
-            countryUnavailableReason={(country) =>
-                country.id === 'AR' && residenceIso2s.length > 0 && !residenceAllows('BANK_TRANSFER_AR', residenceIso2s)
-                    ? t('list.argentinaUnavailable')
+            restrictedCountry={
+                argentinaUnavailable
+                    ? {
+                          id: 'AR',
+                          label: t('list.badgeNotOffered'),
+                          onExplain: () => setShowArgentinaRestriction(true),
+                      }
                     : undefined
             }
         />
@@ -203,7 +214,6 @@ export function DepositAccountsListScreen({
                 <Accordion.Trigger
                     leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
                     title={t('list.countriesTitle')}
-                    body={t('list.countriesPitch')}
                     data-testid="other-countries-toggle"
                 />
                 <Accordion.Content flush>{countryList}</Accordion.Content>
@@ -257,12 +267,20 @@ export function DepositAccountsListScreen({
                             ? () => onOpen('PIX_BR')
                             : undefined
                     }
-                    onChangeResidence={() => router.push(withReturnTo('/settings/details?open=residence', HUB_HREF))}
+                    onChangeResidence={openResidenceSettings}
                     searchTerm={term}
                     extraRows={cryptoRow ? [cryptoRow] : []}
                     footer={bankAccount ? undefined : countries}
                 />
             </div>
+            {!bankAccount && showArgentinaRestriction && argentinaUnavailable && (
+                <ClosedRowDrawer
+                    closed={{ kind: 'residence', corridor: 'BANK_TRANSFER_AR' }}
+                    onClose={() => setShowArgentinaRestriction(false)}
+                    onChangeResidence={openResidenceSettings}
+                    onPayQr={() => router.push('/qr-pay')}
+                />
+            )}
         </PageStack>
     )
 }

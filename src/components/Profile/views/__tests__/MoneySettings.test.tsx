@@ -1446,7 +1446,7 @@ describe('MoneySettings', () => {
             const bubbleOf = (title: string) =>
                 (screen.getByText(title).closest('.border') as HTMLElement).querySelector('.rounded-full')
             expect(bubbleOf('Peanut card')).toHaveClass('bg-background-icon-bubble-yellow')
-            expect(bubbleOf('Crypto')).toHaveClass('bg-background-icon-bubble-blue')
+            expect(bubbleOf('Crypto')).toHaveClass('bg-background-icon-bubble-yellow')
         })
 
         // TASK-23054 (hugo): the QR row leads with the flags of the two

@@ -9,9 +9,7 @@ import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { useKycControl } from './analytics'
-import { useModalsContextOptional } from '@/context/ModalsContext'
 import type { FeatureReportEntry } from '@/types/capabilities'
-import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 
 export function KycFeatureActivationStatus({
     feature,
@@ -33,9 +31,6 @@ export function KycFeatureActivationStatus({
     const t = useTranslations('kyc.paperworkVerification')
     const controls = useKycControl('feature-status', 'kyc_status')
     const tKyc = useTranslations('kyc')
-    const tIdentity = useTranslations('identity')
-    const tDeposit = useTranslations('depositAccounts')
-    const tErrors = useTranslations('errors')
     const report = accountStatus ?? (result?.kind === 'report' ? result.report : null)
     if (report?.state === 'action_required' && report.action?.startsWith('supplement:')) {
         return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />
@@ -48,21 +43,6 @@ export function KycFeatureActivationStatus({
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
         (!accountStatus && result?.kind === 'conflict' && !identityRequired)
-    const reasonKey = reasonCodeKey(report?.reason)
-    const selectedRefused = !!accountCurrency && report?.state === 'refused'
-    const refusalBody =
-        selectedRefused && report?.reason === 'account_unavailable_in_residence'
-            ? tDeposit('list.residenceRestrictedBody', { currency: accountCurrency })
-            : selectedRefused && report?.reason === 'manteca_account_rejected'
-              ? tErrors('mantecaAccountRejected')
-              : selectedRefused && reasonKey
-                ? tIdentity(reasonKey)
-                : (accountStatus?.message ??
-                  (selectedRefused && !report?.reason
-                      ? tDeposit('gate.blockedBody', { currency: accountCurrency })
-                      : tKyc(kycFeatureRefusalCopy(report?.reason), {
-                            feature: tKyc(`documents.${feature}` as never),
-                        })))
     if (!consent && !failed && !refused && feature !== 'qr')
         return (
             <FeatureReadyScreen
@@ -84,9 +64,7 @@ export function KycFeatureActivationStatus({
                     : failed
                       ? t('loadFailed.title')
                       : refused && feature !== 'qr'
-                        ? selectedRefused
-                            ? tDeposit('gate.blockedTitle', { currency: accountCurrency })
-                            : t(`addLater.title.${feature}`)
+                        ? t(`addLater.title.${feature}`)
                         : tKyc('processingTitle')
             }
             description={
@@ -95,7 +73,10 @@ export function KycFeatureActivationStatus({
                     : failed
                       ? t('loadFailed.description')
                       : refused
-                        ? refusalBody
+                        ? (accountStatus?.message ??
+                          tKyc(kycFeatureRefusalCopy(report?.reason), {
+                              feature: tKyc(`documents.${feature}` as never),
+                          }))
                         : tKyc('processingDescription')
             }
             footer={
@@ -105,11 +86,6 @@ export function KycFeatureActivationStatus({
                             <ReplacementDocumentAction
                                 onTap={(action) => controls.track(action, 'tap')}
                                 returnToFeature
-                            />
-                        ) : selectedRefused ? (
-                            <AccountRefusalAction
-                                onBack={onBack}
-                                onSupport={() => controls.track('contact_support', 'tap')}
                             />
                         ) : (
                             <Button
@@ -134,22 +110,5 @@ export function KycFeatureActivationStatus({
                 />
             }
         />
-    )
-}
-
-function AccountRefusalAction({ onBack, onSupport }: { onBack: () => void; onSupport: () => void }) {
-    const t = useTranslations('common')
-    const modals = useModalsContextOptional()
-    return (
-        <Button
-            className="w-full"
-            onClick={() => {
-                if (!modals) return onBack()
-                onSupport()
-                modals.setIsSupportModalOpen(true)
-            }}
-        >
-            {t(modals ? 'contactSupport' : 'gotIt')}
-        </Button>
     )
 }

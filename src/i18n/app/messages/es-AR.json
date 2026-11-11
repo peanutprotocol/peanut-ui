@@ -2211,11 +2211,10 @@
             "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
             "countriesTitle": "Todos los países",
-            "argentinaUnavailable": "No disponible · Requiere residencia en Argentina",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
-            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué.",
+            "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vivís. Soporte puede revisarlo.",
             "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos."
         },
         "claim": {
