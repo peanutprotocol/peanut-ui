@@ -8,6 +8,8 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import VirtualAccountsHub from './VirtualAccountsHub'
 import { AccountsHubList } from '@/features/deposit-accounts/components/AccountsHubList'
 import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
+import { CorridorGateDrawer } from '@/features/deposit-accounts/components/CorridorGateDrawer'
+import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { virtualAccountRows, type ClosedRow } from '@/features/deposit-accounts/hubRows'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
@@ -152,6 +154,16 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         rails,
     }).kycGateState
     const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
+
+    const [arsSupportOpen, setArsSupportOpen] = useState(false)
+    const arsAccount = capabilities.features?.local.accounts?.ARS
+    const arsSupportEntry =
+        arsAccount?.state === 'action_required' && entryAction(arsAccount, nextActions)?.kind === 'contact-support'
+            ? arsAccount
+            : undefined
+    useEffect(() => {
+        if (!arsSupportEntry) setArsSupportOpen(false)
+    }, [arsSupportEntry])
 
     const cardEntry = capabilities.features?.card ?? UNKNOWN_REPORT.card
     const cardChip = entryChip(cardEntry, nextActions)
@@ -385,9 +397,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
-            const account = row.labelKey === 'ars' ? capabilities.features?.local.accounts?.ARS : undefined
-            if (account?.state === 'action_required' && entryAction(account, nextActions)?.kind === 'contact-support') {
-                setIsSupportModalOpen(true)
+            if (row.labelKey === 'ars' && arsSupportEntry) {
+                setArsSupportOpen(true)
                 return
             }
             if (
@@ -419,7 +430,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t, isKycDegraded, cardEntry, capabilities.features, nextActions, setIsSupportModalOpen]
+        [router, t, isKycDegraded, cardEntry, arsSupportEntry, nextActions, setIsSupportModalOpen]
     )
 
     // What both forms of the shared list take from this screen.
@@ -554,6 +565,23 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                             />
                         )
                 )}
+            {arsSupportEntry && (
+                <CorridorGateDrawer
+                    open={arsSupportOpen}
+                    rail={DEPOSIT_RAILS.BANK_TRANSFER_AR}
+                    notice={{
+                        kind: 'blocked-rejection',
+                        action: 'support',
+                        reasonCode: arsSupportEntry.reason,
+                        message: arsSupportEntry.message ?? null,
+                    }}
+                    onClose={() => setArsSupportOpen(false)}
+                    onAct={() => {
+                        setArsSupportOpen(false)
+                        setIsSupportModalOpen(true)
+                    }}
+                />
+            )}
             <ClosedRowDrawer
                 closed={closedSpendRow}
                 onClose={() => setClosedSpendRow(null)}

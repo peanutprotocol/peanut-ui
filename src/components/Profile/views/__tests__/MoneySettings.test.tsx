@@ -2024,6 +2024,8 @@ describe('card refusal rows follow the feature report', () => {
 })
 
 describe('ARS Accounts and Payments use the scoped bank-account report', () => {
+    const arsSupportReason =
+        "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
     const argentina = () => {
         mockUser = { residence: normalizeResidence({ declared: 'AR', verified: 'AR' }), user: { userId: 'ars-user' } }
         mockIsKycApproved = true
@@ -2074,6 +2076,12 @@ describe('ARS Accounts and Payments use the scoped bank-account report', () => {
         const row = within(screen.getByText('ARS').closest('.border') as HTMLElement)
         expect(row.getByText('Action needed')).toBeInTheDocument()
         fireEvent.click(screen.getByText('ARS'))
+        expect(screen.getByText(arsSupportReason)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
@@ -2110,6 +2118,12 @@ describe('ARS Accounts and Payments use the scoped bank-account report', () => {
             within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Action needed')
         ).toBeInTheDocument()
         fireEvent.click(screen.getByText('ARS'))
+        expect(screen.getByText(arsSupportReason)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
         expect(mockInitiateKyc).not.toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalledWith('/verify')
