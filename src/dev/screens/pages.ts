@@ -73,7 +73,7 @@ export const PAGE_CAPTURES: PageCapture[] = [
         id: 'add-money-crypto-euro-token-network',
         name: 'Add money — euro token network tooltip',
         route: '/add-money/crypto?network=EVM',
-        actions: [{ tap: 'EURe · Gnosis' }],
+        actions: [{ tap: 'EURe v2 · Gnosis' }],
         expectSelector: '[role="tooltip"]',
     },
     {
