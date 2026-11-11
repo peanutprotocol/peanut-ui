@@ -191,8 +191,13 @@ export function useCardFlow() {
     }, [])
     // Smart Paperwork Verification: POST /rain/cards answered `questions-required` with the step to ask; the card questions come first.
     const [pendingQuestions, setPendingQuestions] = useState<string | null>(null)
+    const [supportRequired, setSupportRequired] = useState<{ userId: string; reason: 'verified-name-missing' } | null>(
+        null
+    )
+    const supportRequiredReason = supportRequired && supportRequired.userId === userId ? supportRequired.reason : null
     useEffect(() => {
         setPendingApplication(null)
+        setSupportRequired(null)
     }, [userId])
 
     const state = computeCardState({
@@ -396,6 +401,16 @@ export function useCardFlow() {
     // and stays inline. A held claim is not a successful application.
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse): boolean => {
+            if (res.status === 'requires-support' && 'reason' in res && res.reason === 'verified-name-missing') {
+                setPendingApplication(null)
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setPendingQuestions(null)
+                setApplyError(null)
+                if (userId) setSupportRequired({ userId, reason: 'verified-name-missing' })
+                return false
+            }
+            setSupportRequired(null)
             const pendingWithoutProvider = res.status === 'pending' && !('rainUserId' in res && res.rainUserId)
             if (pendingWithoutProvider && user?.identityVerification?.oneShot !== true) {
                 // An older API uses this response for a held legacy claim.
@@ -500,6 +515,7 @@ export function useCardFlow() {
             fetchUser,
             blockIfFinal,
             user?.identityVerification?.oneShot,
+            userId,
             t,
         ]
     )
@@ -948,6 +964,7 @@ export function useCardFlow() {
         state,
         // apply flow
         applyError,
+        supportRequiredReason,
         setApplyError,
         pendingTerms,
         setPendingTerms,

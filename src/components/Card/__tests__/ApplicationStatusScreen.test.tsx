@@ -307,6 +307,23 @@ describe('ApplicationStatusScreen — one self-serve action at a time', () => {
     })
 })
 
+describe('ApplicationStatusScreen — verified-name support refusal', () => {
+    it('shows the localized guidance and contact-support CTA without offering application retry', () => {
+        const onContactSupport = jest.fn()
+        render(
+            <ApplicationStatusScreen
+                variant="requires-support"
+                reasonCode="verified-name-missing"
+                onContactSupport={onContactSupport}
+            />
+        )
+        expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+        fireEvent.click(screen.getByText(en.common.contactSupport))
+        expect(onContactSupport).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('button', { name: /apply|try again|retry/i })).not.toBeInTheDocument()
+    })
+})
+
 describe('ApplicationStatusScreen — a collected proof of address', () => {
     const SUPPORT_BODY = en.card.status.requiresInfoBody
 

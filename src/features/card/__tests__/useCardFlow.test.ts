@@ -1159,4 +1159,68 @@ describe('card first-use activation', () => {
         expect(mockApplyForCard).not.toHaveBeenCalled()
         mockRouterPush.mockReset()
     })
+
+    it('keeps verified-name refusal in the support state with no application success or retry error', async () => {
+        mockApplyForCard.mockResolvedValue({
+            status: 'requires-support',
+            reason: 'verified-name-missing',
+            message: 'We could not confirm your full name for the card. Please contact support.',
+        })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.supportRequiredReason).toBe('verified-name-missing')
+        expect(result.current.pendingTerms).toBeNull()
+        expect(result.current.pendingCountryConfirmation).toBeNull()
+        expect(result.current.pendingQuestions).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(result.current.applyError).toBeNull()
+        expect(mockGrantFunding).not.toHaveBeenCalled()
+        expect(mockSerializeGrant).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_APPLY_FAILED, expect.anything())
+    })
+
+    it('does not let a late account A support result latch on account B', async () => {
+        let answer!: (value: unknown) => void
+        mockApplyForCard.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+        const { result, rerender } = renderHook(() => useCardFlow())
+        let pending!: Promise<void>
+        await act(async () => {
+            pending = result.current.handleApply()
+        })
+        mockUser = { user: { userId: 'user-2' } }
+        rerender()
+        await act(async () => {
+            answer({ status: 'requires-support', reason: 'verified-name-missing', message: 'Contact support.' })
+            await pending
+        })
+        expect(result.current.supportRequiredReason).toBeNull()
+
+        mockApplyForCard.mockResolvedValue({ status: 'pending', message: 'submitted' })
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.supportRequiredReason).toBeNull()
+    })
+
+    it('waits safely while the authenticated user id is not available, then remains neutral after login', () => {
+        mockUser = { user: { userId: undefined as never } }
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.supportRequiredReason).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockGetFundingAccess).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        mockUser = { user: { userId: 'user-after-login' } }
+        rerender()
+        expect(result.current.supportRequiredReason).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
 })

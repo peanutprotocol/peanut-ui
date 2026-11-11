@@ -3971,6 +3971,7 @@
                 },
                 "replace": "Alterar o número"
             },
+            "addressMinimum": "A rua e o número juntos devem ter pelo menos {count} caracteres.",
             "errors": {
                 "required": "Responda para continuar.",
                 "invalidOption": "Escolha uma das opções.",
@@ -4197,6 +4198,7 @@
             }
         },
         "reasons": {
+            "verified-name-missing": "Não conseguimos confirmar seu nome completo para o cartão. Fale com o suporte.",
             "tax_identification_number": "Precisamos do seu número de identificação fiscal para continuar.",
             "address_of_residence": "Precisamos do seu endereço residencial para continuar.",
             "residence_unresolved": "Ainda precisamos do seu endereço residencial para terminar de configurar as transferências bancárias. Adicione e tentaremos de novo automaticamente.",
