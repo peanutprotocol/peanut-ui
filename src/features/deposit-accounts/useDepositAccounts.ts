@@ -1,5 +1,6 @@
 'use client'
 
+import { USER } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSubmissionWindow } from '@/hooks/useSubmissionWindow'
@@ -163,7 +164,10 @@ export function useDepositAccounts({
             const reviewUnderWay =
                 (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending') ||
                 unavailable.some(
-                    (corridor) => corridor.cause === 'review-pending' || corridor.cause === 'address-in-review'
+                    (corridor) =>
+                        corridor.cause === 'review-pending' ||
+                        corridor.cause === 'setup-pending' ||
+                        corridor.cause === 'address-in-review'
                 ) ||
                 (justSubmitted && unavailable.some((corridor) => corridor.cause === 'address-required'))
             return reviewUnderWay ? ENDORSEMENT_POLL_MS : false
@@ -221,9 +225,16 @@ export function useDepositAccounts({
             })
             trackClaimFailed(corridor, error.message)
         },
-        onSettled: async () => {
+        onSettled: async (result) => {
+            // The claim can see a newer rail state than the cached capability.
+            // Refresh it too so the existing Bridge terms action can surface.
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY }),
+                ...(result?.outcome === 'endorsement_pending'
+                    ? [queryClient.invalidateQueries({ queryKey: [USER] })]
+                    : []),
+            ])
             setClaimingCorridor(undefined)
-            await queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
         },
     })
 
@@ -289,20 +300,6 @@ export function useDepositAccounts({
         return byCorridor
     }, [query.data])
 
-    const gates = useMemo((): Record<DepositCorridor, GateState> => {
-        const out = {} as Record<DepositCorridor, GateState>
-        for (const corridor of DEPOSIT_RAIL_ORDER) {
-            // railId, not { channel: 'bank' }: a channel-wide gate answers
-            // "ready" as soon as ANY bank rail is enabled, so one working
-            // Manteca rail was unlocking four Bridge corridors the user has no
-            // rail for at all. A corridor with no rail in the capability block
-            // resolves to needs-identity / needs-enrollment, which is the
-            // honest answer.
-            out[corridor] = gateFor('deposit', { railId: railIdFor(corridor) })
-        }
-        return out
-    }, [gateFor])
-
     const { claimable, unavailable } = useMemo(
         () =>
             closeRefusedCorridors(capabilities.features, rails, {
@@ -312,6 +309,37 @@ export function useDepositAccounts({
             }),
         [capabilities.features, rails, accounts, offeredClaimable, withheldUnavailable]
     )
+
+    const { gates, staleReviewAction } = useMemo(() => {
+        const gates = {} as Record<DepositCorridor, GateState>
+        let staleReviewAction = false
+        for (const corridor of DEPOSIT_RAIL_ORDER) {
+            const gate = gateFor('deposit', { railId: railIdFor(corridor) })
+            const cause = unavailable[corridor]?.cause
+            const setupUnderWay = cause === 'setup-pending' || cause === 'review-pending' || cause === 'review-action'
+            // The account preview can see setup before capabilities catch up.
+            // Keep the currency blocked and preserve any concrete terms action.
+            if (gate.kind === 'ready' || gate.kind === 'needs-enrollment') {
+                if (setupUnderWay) {
+                    gates[corridor] = { kind: 'pending' }
+                    if (cause === 'review-action') staleReviewAction = true
+                    continue
+                }
+                if (cause === 'review-closed') {
+                    gates[corridor] = { kind: 'blocked-rejection', userMessage: null }
+                    continue
+                }
+            }
+            gates[corridor] = gate
+        }
+        return { gates, staleReviewAction }
+    }, [gateFor, unavailable])
+
+    useEffect(() => {
+        // A withheld corridor cannot be tapped through to a claim. Fetch its
+        // missing action even when the user never presses the claim button.
+        if (enabled && userId && staleReviewAction) void queryClient.invalidateQueries({ queryKey: [USER] })
+    }, [enabled, queryClient, staleReviewAction, userId])
 
     /**
      * The rows this user gets: their own rails, plus any corridor they already
