@@ -3971,6 +3971,7 @@
                 },
                 "replace": "Cambiar el número"
             },
+            "addressMinimum": "La calle y el número juntos deben tener al menos {count} caracteres.",
             "errors": {
                 "required": "Responde esto para continuar.",
                 "invalidOption": "Elige una de las opciones.",
@@ -4237,6 +4238,7 @@
             "region_block": "La Peanut Card todavía no está disponible en tu región.",
             "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",
+            "verified-name-missing": "No pudimos confirmar tu nombre completo para la tarjeta. Contacta a soporte.",
             "card_needs_review": "Nuestro socio de tarjetas necesita revisar algunos detalles más.",
             "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
             "country_not_supported": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",

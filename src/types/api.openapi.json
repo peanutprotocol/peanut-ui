@@ -14489,6 +14489,34 @@
 						},
 						"description": "Default Response"
 					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"status": {
+											"type": "string"
+										},
+										"statusCode": {
+											"type": "number"
+										}
+									},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
 					"403": {
 						"content": {
 							"application/json": {
@@ -32456,6 +32484,9 @@
 																},
 																"locked": {
 																	"type": "boolean"
+																},
+																"minAddressLineLength": {
+																	"type": "number"
 																},
 																"options": {
 																	"items": {
