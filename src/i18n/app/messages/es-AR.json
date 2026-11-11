@@ -327,7 +327,7 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
+                "qrPay": "Pagá en comercios escaneando un código QR.",
                 "qrPayArgentina": "Escaneá un código QR para pagar en Argentina. Los pagos con Pix en Brasil no están disponibles."
             },
             "valueProp": {

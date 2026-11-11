@@ -562,7 +562,7 @@
                 "usd": "Add and withdraw dollars using US bank transfers.",
                 "mxn": "Add and withdraw Mexican pesos over the SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
-                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code.",
+                "qrPay": "Pay in shops by scanning a QR code.",
                 "qrPayArgentina": "Scan a QR code to pay in Argentina. Pix payments in Brazil are unavailable.",
                 "bankAccount": "Add and withdraw money by bank transfer"
             },

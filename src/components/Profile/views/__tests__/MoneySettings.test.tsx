@@ -1470,9 +1470,7 @@ describe('MoneySettings', () => {
             const qrRow = screen.getByText('QR payments')
             fireEvent.click(qrRow)
             const drawer = screen.getByRole('dialog')
-            expect(
-                within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
-            ).toBeInTheDocument()
+            expect(within(drawer).getByText('Pay in shops by scanning a QR code.')).toBeInTheDocument()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
 
