@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
 import { useEffect, useRef, useState } from 'react'
+import { residenceAllows } from '../residenceGate'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
@@ -168,6 +169,11 @@ export function DepositAccountsListScreen({
                 }
             }}
             isCountrySupported={isCountrySupported}
+            countryUnavailableReason={(country) =>
+                country.id === 'AR' && residenceIso2s.length > 0 && !residenceAllows('BANK_TRANSFER_AR', residenceIso2s)
+                    ? t('list.argentinaUnavailable')
+                    : undefined
+            }
         />
     )
 
@@ -246,6 +252,11 @@ export function DepositAccountsListScreen({
                     claimsEnabled={claimsEnabled}
                     bankRows={bankRows}
                     onBankRowClick={openTopUp}
+                    onVerifyPix={
+                        bankAccount && gates.PIX_BR?.kind === 'needs-identity' && !brazilPaused
+                            ? () => onOpen('PIX_BR')
+                            : undefined
+                    }
                     onChangeResidence={() => router.push(withReturnTo('/settings/details?open=residence', HUB_HREF))}
                     searchTerm={term}
                     extraRows={cryptoRow ? [cryptoRow] : []}

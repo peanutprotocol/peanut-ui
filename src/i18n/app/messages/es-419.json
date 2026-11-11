@@ -5050,6 +5050,7 @@
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Vuelve a intentarlo en un momento.",
             "countriesTitle": "Todos los países",
+            "argentinaUnavailable": "No disponible · Requiere residencia en Argentina",
             "countriesPitch": "Elige un país",
             "badgeReady": "Lista",
             "badgeActive": "Activo",

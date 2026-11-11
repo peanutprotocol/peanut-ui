@@ -5050,6 +5050,7 @@
             "uncheckedTitle": "We could not check the {currency} account",
             "uncheckedBody": "Try again in a moment.",
             "countriesTitle": "All countries",
+            "argentinaUnavailable": "Unavailable · Argentine residence required",
             "countriesPitch": "Pick a country",
             "badgeReady": "Ready",
             "badgeActive": "Active",

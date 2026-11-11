@@ -177,7 +177,9 @@ export function DepositAccountsFlow({
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const gate: GateState =
-        !isHeld(account) && unavailable?.[corridor]?.cause === 'not_started' ? { kind: 'ready' } : gates[corridor]
+        isClaimable(rail) && !isHeld(account) && unavailable?.[corridor]?.cause === 'not_started'
+            ? { kind: 'ready' }
+            : gates[corridor]
     // A read that failed says nothing about what the user holds, so a deep link
     // must not resolve past the list: the empty fallback map would read as "not
     // claimed yet" and offer to open an account the user may already have. The
@@ -356,8 +358,13 @@ export function DepositAccountsFlow({
     // The gate belongs to this corridor only while the user cannot open it. The
     // drawer stays mounted after it closes (`?step=list`, same corridor), so
     // it slides out instead of vanishing.
+    const pixNeedsIdentity =
+        listPresentation === 'bank-account' && corridor === 'PIX_BR' && gate.kind === 'needs-identity'
     const gateApplies =
-        claimsEnabled && !namesUnknownCorridor && !isLoading && !isError && isClaimable(rail) && !isHeld(account)
+        !namesUnknownCorridor &&
+        !isLoading &&
+        !isError &&
+        ((claimsEnabled && isClaimable(rail) && !isHeld(account)) || pixNeedsIdentity)
     const gateOpen = gateApplies && screen !== 'list' && !!gateNotice
     const closeGate = () => setParams({ step: 'list' })
     const gateDrawer =
@@ -398,7 +405,7 @@ export function DepositAccountsFlow({
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
                     if (!isDepositBlock(gateNotice.kind)) {
-                        setResumeCorridor(corridor)
+                        if (isClaimable(rail)) setResumeCorridor(corridor)
                         if (addressStep) {
                             addressStepCorridor.current = corridor
                             trackAddressStepStarted(corridor, addressStep === 'rejected')

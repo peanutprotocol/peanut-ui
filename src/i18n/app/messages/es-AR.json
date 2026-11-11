@@ -2211,6 +2211,7 @@
             "countriesPitch": "Elegí un país",
             "accountCounterOverCap": "{used} cuentas",
             "countriesTitle": "Todos los países",
+            "argentinaUnavailable": "No disponible · Requiere residencia en Argentina",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",

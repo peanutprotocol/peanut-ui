@@ -14,13 +14,15 @@ export function KycFeatureActivationGate({
     feature,
     children,
     scope,
+    selectedCurrency,
 }: {
     feature: KycActivationFeature
     children: ReactNode
     scope?: ReportScope
+    selectedCurrency?: string
 }) {
     const degraded = useKycDegraded()
-    const activation = useKycFeatureActivation(feature, { scope, enabled: !degraded })
+    const activation = useKycFeatureActivation(feature, { scope, enabled: !degraded, selectedCurrency })
     const onBack = useSafeBack('/home')
     if (activation.allowed) return <>{children}</>
     if (degraded) return <VerificationOutage onBack={onBack} />
@@ -29,7 +31,8 @@ export function KycFeatureActivationGate({
         <KycFeatureActivationStatus
             feature={feature}
             result={activation.result}
-            accountCurrency={activation.arsProvisioning ? 'ARS' : undefined}
+            accountCurrency={selectedCurrency ?? (activation.arsProvisioning ? 'ARS' : undefined)}
+            accountStatus={activation.selectedStatus}
             isLoading={activation.isLoading}
             onRetry={() => void activation.activate()}
             onBack={onBack}

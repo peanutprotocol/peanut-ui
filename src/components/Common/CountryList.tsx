@@ -38,6 +38,8 @@ interface CountryListViewProps {
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
+    /** A visible reason to disable selection for this person while keeping the country searchable. */
+    countryUnavailableReason?: (country: CountryData) => string | undefined
     // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
     showLoadingState?: boolean
@@ -91,6 +93,7 @@ export const CountryList = ({
     onCryptoClick,
     flow,
     getRightContent,
+    countryUnavailableReason,
     enforceSupportedCountries,
     showLoadingState = true, // true by default to show loading state when clicking a country
     isCountrySupported,
@@ -250,6 +253,7 @@ export const CountryList = ({
                             isSupported = true
                         }
 
+                        const unavailableReason = countryUnavailableReason?.(country)
                         const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
                         const trailing =
                             customRight ??
@@ -260,13 +264,15 @@ export const CountryList = ({
                                 key={country.id}
                                 title={displayName}
                                 trailing={trailing}
-                                chevron={!trailing}
+                                chevron={!trailing && !unavailableReason}
                                 // A caller-supplied set is "the countries this currency
                                 // pays out in", and the caller's own row names that
                                 // currency. The country's local code under it ("Poland
                                 // PLN" inside EUR) promised a payout the rail does not make.
-                                body={countries ? undefined : country.currency}
+                                body={unavailableReason ?? (countries ? undefined : country.currency)}
+                                bodyWrap={!!unavailableReason}
                                 onClick={() => {
+                                    if (unavailableReason) return
                                     // check for easter egg countries first
                                     if (EASTER_EGG_COUNTRIES[country.id]) {
                                         setEasterEggCountry(country.id)
@@ -282,7 +288,7 @@ export const CountryList = ({
                                     if (onCountryClick(country) === false) setClickedCountryId(null)
                                 }}
                                 position={position}
-                                disabled={clickedCountryId === country.id}
+                                disabled={!!unavailableReason || clickedCountryId === country.id}
                                 leading={
                                     <div className="relative h-8 w-8">
                                         <Image
