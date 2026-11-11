@@ -208,6 +208,18 @@
         "source": "features/card/components/CardResidenceAddressScreen.tsx"
     },
     {
+        "id": "07-d-notification-switches",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-switches",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
+        "id": "07-d-notification-defaults-on",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-defaults-on",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -1167,6 +1179,11 @@
         "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
     },
     {
+        "id": "fixture-add-money-picker-first-time",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
         "id": "fixture-paperwork-verification-ars-setting-up",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"
@@ -1255,11 +1272,6 @@
         "id": "p17-add-money",
         "flow": "Add money",
         "route": "/add-money?method=bank"
-    },
-    {
-        "id": "fixture-add-money-picker-first-time",
-        "flow": "Add money",
-        "route": "/add-money"
     },
     {
         "id": "add-money-method-picker",

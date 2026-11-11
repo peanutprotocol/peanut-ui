@@ -35,7 +35,7 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
                       key: 'account',
                       title: t('openAccount'),
                       description: t('accountDetails'),
-                      icon: <IconBubble icon="bank" color="green" size="s" />,
+                      icon: <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />,
                   },
               ]
             : []),

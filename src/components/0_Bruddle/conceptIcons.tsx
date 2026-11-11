@@ -24,6 +24,7 @@ import { type IconBubbleColor } from './IconBubble'
  */
 export const CONCEPT_ICONS = {
     bank: { icon: 'bank', color: 'blue' },
+    bankAccount: { icon: 'bank', color: 'green' },
     cash: { icon: 'currency', color: 'blue' },
     balance: { icon: 'dollar', color: 'yellow' },
     crypto: { icon: 'coins', color: 'yellow' },

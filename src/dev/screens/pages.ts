@@ -20,6 +20,8 @@ export type PageCapture = {
     defaultScreen?: boolean
 }
 
+export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
+
 export const PAGE_CAPTURES: PageCapture[] = [
     // The page you flagged, then each of its three inline FAQ sheets.
     { id: 'p01-backup', name: 'Backup', route: '/profile/backup' },
@@ -158,7 +160,7 @@ export const PAGE_CAPTURES: PageCapture[] = [
         name: 'Home — Add money drawer',
         route: '/home?drawer=add',
         fixture: 'home-add-drawer',
-        expectSelector: '[data-testid="home-drawer-add-more"]',
+        expectSelector: HOME_ADD_DRAWER_CHECKPOINT,
     },
     { id: 'p42-home-send-drawer', name: 'Home — Send drawer (no mark)', route: '/home?drawer=send' },
 ]

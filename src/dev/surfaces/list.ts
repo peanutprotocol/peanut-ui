@@ -168,6 +168,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '04-b-advantage-fees': { name: 'Setup benefit — accounts', path: 'Setup/Views/Advantage.tsx' },
     '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
     '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
+    '07-d-notification-switches': { name: 'Setup — notification switches', path: 'Setup/Views/Notifications.tsx' },
+    '07-d-notification-defaults-on': {
+        name: 'Setup — notification defaults on',
+        path: 'Setup/Views/Notifications.tsx',
+    },
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
     '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },

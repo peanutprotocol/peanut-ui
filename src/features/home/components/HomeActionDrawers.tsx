@@ -73,7 +73,7 @@ export function HomeActionDrawers({
                       method === 'pix' ? (
                           <Image src={PIX} alt="" width={32} height={32} />
                       ) : method === 'account' ? (
-                          <IconBubble icon="bank" color="green" size="s" />
+                          <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />
                       ) : (
                           <IconBubble {...(method === 'crypto' ? CONCEPT_ICONS.crypto : CONCEPT_ICONS.bank)} size="s" />
                       ),
