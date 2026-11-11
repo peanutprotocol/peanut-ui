@@ -1159,4 +1159,49 @@ describe('card first-use activation', () => {
         expect(mockApplyForCard).not.toHaveBeenCalled()
         mockRouterPush.mockReset()
     })
+
+    it('keeps verified-name refusal in the support state with no application success or retry error', async () => {
+        mockApplyForCard.mockResolvedValue({
+            status: 'requires-support',
+            reason: 'verified-name-missing',
+            message: 'We could not confirm your full name for the card. Please contact support.',
+        })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.supportRequiredReason).toBe('verified-name-missing')
+        expect(result.current.pendingTerms).toBeNull()
+        expect(result.current.pendingCountryConfirmation).toBeNull()
+        expect(result.current.pendingQuestions).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(result.current.applyError).toBeNull()
+        expect(mockGrantFunding).not.toHaveBeenCalled()
+        expect(mockSerializeGrant).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_APPLY_FAILED, expect.anything())
+    })
+
+    it('does not let a late account A support result latch on account B', async () => {
+        let answer!: (value: unknown) => void
+        mockApplyForCard.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+        const { result, rerender } = renderHook(() => useCardFlow())
+        let pending!: Promise<void>
+        await act(async () => {
+            pending = result.current.handleApply()
+        })
+        mockUser = { user: { userId: 'user-2' } }
+        rerender()
+        await act(async () => {
+            answer({ status: 'requires-support', reason: 'verified-name-missing', message: 'Contact support.' })
+            await pending
+        })
+        expect(result.current.supportRequiredReason).toBeNull()
+
+        mockApplyForCard.mockResolvedValue({ status: 'pending', message: 'submitted' })
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.supportRequiredReason).toBeNull()
+    })
 })

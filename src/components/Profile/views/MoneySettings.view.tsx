@@ -66,7 +66,7 @@ import {
 } from '@/utils/unlock-payments.utils'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -262,11 +262,28 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // A finally rejected identity cannot pass a new check, so an unlock tap
     // explains the decision instead of starting one (the region refusal has
     // its own screen below). The rows read Attention for it (`qrPayChip`).
-    const baseModalVariant = !selectedRegion
-        ? null
-        : isIdentityFinallyRejected
-          ? ('rejected' as const)
-          : getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
+    const scopedArs = selectedRowKey === 'ars' ? capabilities.features?.local.accounts?.ARS : undefined
+    const arsProvisioning = scopedArs?.state === 'pending' || scopedArs?.state === 'setting_up'
+    const wasArsProvisioning = useRef(false)
+    useEffect(() => {
+        if (selectedRowKey !== 'ars' || !selectedRegion) {
+            wasArsProvisioning.current = false
+            return
+        }
+        if (wasArsProvisioning.current && !arsProvisioning) {
+            setSelectedRegion(null)
+            setSelectedRowKey(null)
+        }
+        wasArsProvisioning.current = arsProvisioning
+    }, [selectedRowKey, selectedRegion, arsProvisioning])
+    const baseModalVariant =
+        !selectedRegion || (wasArsProvisioning.current && !arsProvisioning)
+            ? null
+            : arsProvisioning
+              ? ('processing' as const)
+              : isIdentityFinallyRejected
+                ? ('rejected' as const)
+                : getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
     // Only support can unblock a terminally rejected rail. This surface holds
     // none of the Sumsub reject fields the modal reads, so it always offered
     // "Try again" — a retry that cannot succeed, on the one screen of three
@@ -308,7 +325,10 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         clickedRegionProvider !== null &&
         (isSumsubApproved || isDocumentRestart) &&
         providerRejectionForRegion.state !== 'happy'
-    const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
+    const modalVariant =
+        baseModalVariant && hasProviderRejectionForRegion && !arsProvisioning
+            ? ('provider_rejection' as const)
+            : baseModalVariant
     // A Smart Paperwork Verification user goes straight to /verify (or the add-later screen), as from
     // every other entry point: this intro would be a shorter copy of the one /verify opens with, and
     // its Continue only lands there (the start answers paperwork_verification_required).
@@ -365,6 +385,11 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
+            const account = row.labelKey === 'ars' ? capabilities.features?.local.accounts?.ARS : undefined
+            if (account?.state === 'action_required' && entryAction(account, nextActions)?.kind === 'contact-support') {
+                setIsSupportModalOpen(true)
+                return
+            }
             if (
                 row.labelKey === 'card' &&
                 row.chip === 'attention' &&
@@ -394,7 +419,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t, isKycDegraded, cardEntry, nextActions, setIsSupportModalOpen]
+        [router, t, isKycDegraded, cardEntry, capabilities.features, nextActions, setIsSupportModalOpen]
     )
 
     // What both forms of the shared list take from this screen.
@@ -562,7 +587,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 visible={modalVariant === 'processing'}
                 onClose={handleModalClose}
                 pendingSince={clickedRegionRail?.pendingSince}
-                waitingOnProvider={clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                waitingOnProvider={arsProvisioning || clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
                 reason={clickedRegionRail?.reason}
                 onResume={handleStartKyc}
                 onContactSupport={() => {

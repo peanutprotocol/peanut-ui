@@ -8042,6 +8042,23 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error?: string;
+                            message?: string;
+                            status?: string;
+                            statusCode?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -16078,6 +16095,7 @@ export interface paths {
                                     options?: string[];
                                     required: boolean;
                                     value: string | null;
+                                    minAddressLineLength?: number;
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
