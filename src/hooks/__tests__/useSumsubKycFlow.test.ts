@@ -502,7 +502,7 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
             await result.current.handleRestartIdentity('LATAM')
         })
 
-        expect(mockRestart).toHaveBeenCalledWith('LATAM')
+        expect(mockRestart).toHaveBeenCalledWith('LATAM', undefined, expect.any(Function))
         expect(result.current.showWrapper).toBe(true)
         expect(result.current.isMultiLevel).toBe(true)
     })
@@ -612,7 +612,7 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
             await result.current.handleRestartIdentity()
         })
 
-        expect(mockRestart).toHaveBeenCalledWith(undefined)
+        expect(mockRestart).toHaveBeenCalledWith(undefined, undefined, expect.any(Function))
         expect(result.current.isMultiLevel).toBe(true)
     })
 
@@ -1287,7 +1287,7 @@ describe('useSumsubKycFlow — restart forwards only an explicit override', () =
             await result.current.handleRestartIdentity()
         })
 
-        expect(mockRestart).toHaveBeenCalledWith(undefined)
+        expect(mockRestart).toHaveBeenCalledWith(undefined, undefined, expect.any(Function))
     })
 
     it('forwards an explicit override — the residence-change caller supplies the NEW intent', async () => {
@@ -1300,7 +1300,7 @@ describe('useSumsubKycFlow — restart forwards only an explicit override', () =
             await result.current.handleRestartIdentity('LATAM')
         })
 
-        expect(mockRestart).toHaveBeenCalledWith('LATAM')
+        expect(mockRestart).toHaveBeenCalledWith('LATAM', undefined, expect.any(Function))
     })
 })
 
@@ -1320,7 +1320,7 @@ it('a legacy-approved identity answered with the restart restarts in place, neve
     await act(async () => {
         await result.current.handleSelfHealResubmit('BRIDGE')
     })
-    expect(mockRestart).toHaveBeenCalledWith(undefined)
+    expect(mockRestart).toHaveBeenCalledWith(undefined, undefined, expect.any(Function))
     expect(result.current.accessToken).toBe('restart-token')
     expect(result.current.showWrapper).toBe(true)
     expect(result.current.error).toBeNull()
@@ -1636,7 +1636,7 @@ describe('a user the plan keeps off Smart Paperwork Verification keeps the legac
         })
         expect(findKycReplacementPlan).toHaveBeenCalledTimes(1)
         expect(mockRestart).toHaveBeenCalledTimes(1)
-        expect(mockRestart).toHaveBeenCalledWith(undefined)
+        expect(mockRestart).toHaveBeenCalledWith(undefined, undefined, expect.any(Function))
         expect(getKycDocumentPlan).not.toHaveBeenCalled()
         expect(result.current.accessToken).toBe('restart-token')
         expect(mockRouterPush).not.toHaveBeenCalled()
@@ -1948,7 +1948,7 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
         await act(async () => {
             await result.current.handleRestartIdentity()
         })
-        expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('replacement-1')
+        expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('replacement-1', expect.any(Function))
         expect(result.current.accessToken).toBe('replacement-token')
         expect(result.current.documentConfig).toEqual(frozen.sdkConfig)
         expect(result.current.showWrapper).toBe(true)
