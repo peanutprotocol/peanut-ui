@@ -184,6 +184,15 @@ describe('the Brazil pause', () => {
         expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'residence')
     })
 
+    // TASK-24724: the pay route the API sends a resident elsewhere is open, so the Pix-key send is too;
+    // their BRL withdrawal goes to /withdraw/pix, whose own route carries any pause (test above)
+    test('keeps a Pix-key send open while the pay route is open, whatever Brazil rails the account holds', () => {
+        mockPixBlock = null
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+    })
+
     test('leaves Argentina open', () => {
         mockPixBlock = 'paused'
         render()

@@ -5470,6 +5470,6 @@
     },
     "brazilPause": {
         "title": "Serviços no Brasil pausados",
-        "body": "Depósitos e saques em BRL e pagamentos com Pix estão indisponíveis no momento."
+        "body": "Depósitos e saques em BRL estão indisponíveis no momento. Pagamentos com Pix estão indisponíveis para residentes do Brasil."
     }
 }

@@ -433,7 +433,7 @@ export const ANALYTICS_EVENTS = {
     CARD_ADD_TO_WALLET_CANCELED: 'card_add_to_wallet_canceled',
     CARD_ADD_TO_WALLET_FAILED: 'card_add_to_wallet_failed',
     // Spend routing across collateral / smart / mixed buckets. `strategy` is SpendStrategy.
-    // Root-validator migration userOp fired ahead of a mixed spend (pre-2025-09-18
+    // Root-validator migration userOp fired ahead of a collateral or mixed spend (pre-2025-09-18
     // accounts still on the unpatched validator) — see kernelMigration.utils.ts.
     KERNEL_MIGRATION_ATTEMPTED: 'kernel_migration_attempted',
     KERNEL_MIGRATION_SUCCEEDED: 'kernel_migration_succeeded',
