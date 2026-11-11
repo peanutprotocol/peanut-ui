@@ -41,6 +41,7 @@ export interface AddCardToWalletResult {
 }
 
 interface PushProvisioningPlugin {
+    getGoogleWalletCardStatus(options: { cardId: string }): Promise<{ status: string }>
     isAvailable(options: { last4?: string }): Promise<PushProvisioningAvailability>
     rememberCard(options: { peanutCardId: string; last4: string; displayName?: string }): Promise<void>
     setWalletAuthorizationToken(options: { cardId: string; token: string; expiresIn: number }): Promise<void>
@@ -68,6 +69,27 @@ const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvision
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
     return PushProvisioning.call('isAvailable', { last4 }, () => ({ available: false, alreadyInWallet: false }))
+}
+
+export type GoogleWalletCardStatus = 'present' | 'absent' | 'pending' | 'unknown' | 'unsupported'
+
+export async function getGoogleWalletCardStatus(cardId: string): Promise<GoogleWalletCardStatus> {
+    if (!cardId) return 'unknown'
+    const result = await PushProvisioning.call('getGoogleWalletCardStatus', { cardId }, (error) => ({
+        status:
+            error && typeof error === 'object' && 'code' in error && error.code === 'UNIMPLEMENTED'
+                ? 'unsupported'
+                : 'unknown',
+    }))
+    switch (result?.status) {
+        case 'present':
+        case 'absent':
+        case 'pending':
+        case 'unsupported':
+            return result.status
+        default:
+            return 'unknown'
+    }
 }
 
 /**
