@@ -26,6 +26,7 @@ const display = {
     provider: 'Avenia' as const,
 }
 const noop = () => {}
+const save = { savedName: null, isOffered: false, checked: false, nickname: '', setChecked: noop, setNickname: noop }
 const amount = {
     seed: { amount: '503', denomination: 'BRL' as const },
     price: 5.4,
@@ -44,6 +45,7 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
             title="Withdraw"
             onBack={noop}
             recipient={{ pixKey: display.pixKey, holderName: 'Ana Souza', bankName: 'Banco Inter', taxIdMasked: null }}
+            save={save}
             amount={amount}
             display={display}
             total="$92.50"
@@ -80,8 +82,6 @@ describe('PixWithdrawForm', () => {
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()
-        // no "Save to favorites" on the withdrawal until the API has an own-key save path (TASK-24841)
-        expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
     })
 
@@ -145,5 +145,17 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.queryByText('$92.50')).toBeNull()
         expect(container.querySelector('.animate-spin')).not.toBeNull()
+    })
+
+    it('offers to save the key under its holder, as the payment form does', () => {
+        renderForm({ save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' } })
+        expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
+        expect(screen.getByDisplayValue('Ana Souza')).toBeInTheDocument()
+    })
+
+    it('names the key the user already saved', () => {
+        renderForm({ save: { ...save, savedName: 'Inter' } })
+        expect(screen.getByTestId('pix-key-saved-as')).toHaveTextContent('Saved as Inter')
+        expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
     })
 })

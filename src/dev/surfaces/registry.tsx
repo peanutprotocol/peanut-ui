@@ -377,6 +377,14 @@ function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-i
                     bankName: PIX_SURFACE_DISPLAY.bankName,
                     taxIdMasked: null,
                 }}
+                save={{
+                    savedName: null,
+                    isOffered: true,
+                    checked: true,
+                    nickname: 'Ana Souza',
+                    setChecked: noop,
+                    setNickname: noop,
+                }}
                 amount={{
                     seed: { amount: PIX_SURFACE_DISPLAY.amountBrl, denomination: 'BRL' },
                     price: Number(PIX_SURFACE_DISPLAY.amountBrl) / Number(PIX_SURFACE_DISPLAY.withdrawUsd),

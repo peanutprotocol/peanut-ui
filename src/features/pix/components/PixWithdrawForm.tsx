@@ -13,6 +13,7 @@ import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { AmountCard } from '@/features/payments/shared/components/AmountCard'
 import { PaymentDetailsCard } from '@/features/payments/shared/components/PaymentDetailsCard'
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
+import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
 import { pixShownRate } from '@/features/pix/pixFlow.utils'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
@@ -28,22 +29,21 @@ export interface PixWithdrawAmountSeed {
 /**
  * The one form of a Pix withdrawal, after the key resolved: the Pix-key
  * payment form with "Withdrawing" as its lead word and Confirm as its button
- * (ruling 2026-11-12, providers are cattle). The recipient card, the amount
- * card and the details card are the payment form's own parts; the details
- * card adds the provider's flat fee where the quote carries one, and the exact
- * reais and wallet debit the quote names. Dumb view: the flow owns the quote,
- * the preview, the draft and the confirm.
+ * (ruling 2026-11-12, providers are cattle). The recipient card, the save
+ * card, the amount card and the details card are the payment form's own
+ * parts; the details card adds the provider's flat fee where the quote
+ * carries one, and the exact reais and wallet debit the quote names. Dumb
+ * view: the flow owns the quote, the preview, the draft and the confirm.
  *
- * No "Save to favorites" card yet (the payment form keeps it): POST
- * /manteca/pix-key/saved stores a key as a Pix recipient (Send → Bank) and
- * needs Pix payment eligibility, so a resident's own key could fail to save
- * and would never be offered to a withdrawal. It comes back with an own-key
- * save path in the API (TASK-24841).
+ * The save card stores the key through POST /manteca/pix-key/saved; an own key
+ * lands under Withdraw once api#2129 is deployed (before it, the save stores a
+ * recipient, as today).
  */
 export function PixWithdrawForm({
     title,
     onBack,
     recipient,
+    save,
     amount,
     display,
     payout,
@@ -58,6 +58,7 @@ export function PixWithdrawForm({
     onBack: () => void
     /** The resolved key: its holder and bank from the lookup, or from the quote after a reload. */
     recipient: { pixKey: string; holderName: string | null; bankName: string | null; taxIdMasked: string | null }
+    save: SaveRecipientState
     amount: {
         /** Read once, when the form mounts: the field is never re-seeded while the user types. */
         seed: PixWithdrawAmountSeed | null
@@ -119,6 +120,8 @@ export function PixWithdrawForm({
                     taxId={details?.taxId}
                     bankName={recipient.bankName}
                 />
+
+                <SaveRecipientCard save={save} />
 
                 {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
                 {amount.isError ? (

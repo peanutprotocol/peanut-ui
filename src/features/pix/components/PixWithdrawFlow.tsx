@@ -19,6 +19,7 @@ import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { TYPING_SETTLE_MS, usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { usePixPendingTransfer } from '@/features/pix/usePixPendingTransfer'
 import { usePixWithdrawDraft } from '@/features/pix/usePixWithdrawDraft'
+import { usePixKeySavePrompt } from '@/features/payments/flows/qr-pay/usePixKeySavePrompt'
 import { isUnderPixMinimum, pixQuotePrice } from '@/features/pix/pixQuote.utils'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -222,6 +223,13 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     // the holder and bank, from any quote of this key or from the key step
     const named = submit.opened?.display ?? preview.data ?? null
     const holderName = named?.holderName ?? keyInfo?.holderName ?? null
+    // "Save to favorites", as the Pix-key payment offers it: the key the withdrawal pays (the draft
+    // goes when the withdrawal opens), named after its holder, saved once the funding is sent
+    const pixKeySave = usePixKeySavePrompt(submit.opened?.display.pixKey ?? pixKey, holderName ?? undefined)
+    const { saveAfterPayment: saveKey } = pixKeySave
+    useEffect(() => {
+        if (isSent) saveKey()
+    }, [isSent, saveKey])
     // Once the quote is in hand the field converts with its exact ratio; until then the indicative
     // price. Typed reais, or the balance: reais per USD that leaves the wallet, so the USD under the
     // amount is the debit itself and agrees with the Total row. Typed USD: reais per USD entered,
@@ -338,6 +346,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 bankName: named?.bankName ?? keyInfo?.bankName ?? null,
                 taxIdMasked: keyInfo?.holderTaxIdMasked ?? null,
             }}
+            save={pixKeySave}
             amount={{
                 seed,
                 price,
@@ -376,6 +385,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 !fundsShort &&
                 // another balance-decreasing send is still in flight
                 !hasPendingTransactions &&
+                // a ticked "Save to favorites" needs its name, as on the payment form
+                !pixKeySave.blocksPay &&
                 // the open ticket signs from its own numbers; only a new one needs the form's request
                 (submit.canSignOpened || (!submit.lockedAfterInit && !!request && !amountError))
             }
