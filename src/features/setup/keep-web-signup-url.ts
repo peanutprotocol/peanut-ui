@@ -1,7 +1,8 @@
 import { BASE_URL } from '@/constants/general.consts'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
 import { BADGE_CAMPAIGN_QUERY_PARAM, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
-import { readInviteCode } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
+import { INVITE_TYPE_PARAM, readInviteCode, readInviteType } from '@/utils/invite-stash'
 import { getStoredRedirect, getValidRedirectUrl } from '@/utils/general.utils'
 
 /**
@@ -10,15 +11,18 @@ import { getStoredRedirect, getValidRedirectUrl } from '@/utils/general.utils'
  * note, so the passkey signs in the layout the wallet validator reads.
  *
  * The browser does not share the app's storage, so the signup context travels
- * in the params /setup already restores: the invite (`code`, so the inviter
- * gets the credit), the queued badge campaigns (`badge_campaign`) and the
- * return path (`redirect_uri`). /setup stashes a bare `code` as a DIRECT
- * invite, as it does for every invite deep link.
+ * in the params /setup restores: the invite (`code`, so the inviter gets the
+ * credit, and `invite_type` when it is a PAYMENT_LINK invite, which the
+ * referral edge and `invite_acceptance` record), the queued badge campaigns
+ * (`badge_campaign`) and the return path (`redirect_uri`).
  */
 export function keepWebSignupUrl(): string {
     const params = new URLSearchParams({ [KEEP_WEB_COOKIE]: KEEP_WEB_TOKEN })
     const inviteCode = readInviteCode()
-    if (inviteCode) params.set('code', inviteCode)
+    if (inviteCode) {
+        params.set('code', inviteCode)
+        if (readInviteType() === EInviteType.PAYMENT_LINK) params.set(INVITE_TYPE_PARAM, EInviteType.PAYMENT_LINK)
+    }
     for (const badgeCampaign of getPendingBadgeCampaigns()) params.append(BADGE_CAMPAIGN_QUERY_PARAM, badgeCampaign)
     const redirect = signupReturnPath()
     if (redirect) params.set('redirect_uri', redirect)

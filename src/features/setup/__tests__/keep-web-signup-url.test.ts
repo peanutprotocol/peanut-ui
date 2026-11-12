@@ -8,7 +8,7 @@ import {
 import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 import { EInviteType } from '@/services/services.types'
 import { setRedirectUrl, toInviteCode } from '@/utils/general.utils'
-import { readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
+import { INVITE_TYPE_PARAM, readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
 import { keepWebSignupUrl } from '../keep-web-signup-url'
 
 const HATCH = `${BASE_URL}/setup?keep-web=walnut-still-cracks`
@@ -26,7 +26,9 @@ function freshBrowser() {
 function restoreAsSetupDoes(url: string) {
     const params = new URL(url).searchParams
     const code = params.get('code')
-    if (code && toInviteCode(code)) stashInvite(toInviteCode(code), EInviteType.DIRECT)
+    const type =
+        params.get(INVITE_TYPE_PARAM) === EInviteType.PAYMENT_LINK ? EInviteType.PAYMENT_LINK : EInviteType.DIRECT
+    if (code && toInviteCode(code)) stashInvite(toInviteCode(code), type)
     const campaigns = badgeCampaignsFromSearchParams(params)
     if (campaigns.length > 0) queuePendingBadgeCampaigns(campaigns, 30)
     return consumePostAuthRedirect(params.get('redirect_uri'))
@@ -51,10 +53,16 @@ describe('keepWebSignupUrl (TASK-24498)', () => {
         expect(url.startsWith(`${HATCH}&`)).toBe(true)
         const redirect = restoreAsSetupDoes(url)
         expect(readInviteCode()).toBe('alice')
-        // A bare code is a DIRECT invite, as every invite deep link is; the inviter keeps the credit.
-        expect(readInviteType()).toBe(EInviteType.DIRECT)
+        // The referral edge and invite_acceptance record the type, so a payment-link invite stays one.
+        expect(readInviteType()).toBe(EInviteType.PAYMENT_LINK)
         expect(getPendingBadgeCampaigns()).toEqual(['nita', 'bug_whisperer'])
         expect(redirect).toMatchObject({ destination: '/add-money', source: 'explicit' })
+    })
+
+    it('carries a DIRECT invite as a bare code', () => {
+        stashInvite('bob', EInviteType.DIRECT)
+
+        expect(keepWebSignupUrl()).toBe(`${HATCH}&code=bob`)
     })
 
     it('carries a stored deep-link destination when the URL names none', () => {
