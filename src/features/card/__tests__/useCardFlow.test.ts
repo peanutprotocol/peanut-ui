@@ -393,40 +393,30 @@ describe('useCardFlow', () => {
         consoleSpy.mockRestore()
     })
 
-    it('surfaces a retryable error when a pending apply lands back on the entry screen', async () => {
-        // BE answers 'pending' even when the inline card-create failed (e.g.
-        // Rain 400 on virtualCardArt) — the rail lands ENABLED with no card
-        // and the state machine routes back to add-card. That must not be
-        // silent: the entry screen shows the retryable notification.
-        mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
-        const { result, rerender } = renderHook(() => useCardFlow())
-        await act(async () => {
-            await result.current.handleApply(true)
-        })
-        expect(result.current.applyError).toBeNull()
-        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
-        rerender()
-        expect(result.current.applyError).toBe('page.issueFailed')
-    })
-
-    it('stays armed through pending review and still catches a later failed issuance', async () => {
-        // async approval path: apply lands on the pending screen first. If
-        // Rain approves later and auto-issuance fails, the overview moves to
-        // ENABLED with no card — the detector must not have disarmed on the
-        // intermediate pending state (chip review finding on 28c2a767).
+    it('stays armed through pending review and waits for issuance after approval', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
         const { result, rerender } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply(true)
         })
         mockState = 'pending'
-        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'PENDING' } }
+        mockOverview = {
+            cards: [],
+            status: { hasApplication: true, railStatus: 'PENDING', applicationStatus: 'pending', rainUserId: 'ru-1' },
+        }
         rerender()
+        expect(result.current.state).toBe('pending')
         expect(result.current.applyError).toBeNull()
+
         mockState = 'add-card'
-        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
+        mockOverview = {
+            cards: [],
+            status: { hasApplication: true, railStatus: 'ENABLED', applicationStatus: 'approved', rainUserId: 'ru-1' },
+        }
         rerender()
-        expect(result.current.applyError).toBe('page.issueFailed')
+        expect(result.current.state).toBe('creating-card')
+        expect(result.current.applyError).toBeNull()
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
     })
 
     it('disarms silently once a card exists', async () => {

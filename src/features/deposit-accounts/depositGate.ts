@@ -1,5 +1,5 @@
 import { gateSupportCase, getGateReasonCode, type GateState } from '@/utils/capability-gate'
-import type { ClaimableCorridor } from './types'
+import type { UnavailableCause, ClaimableCorridor } from './types'
 
 /**
  * What the corridor list does with the app's capability gate.
@@ -220,4 +220,12 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
             tosUrl: gate.kind === 'accept-tos' ? gate.tosUrl : undefined,
         },
     }
+}
+
+/** The provider preview can see setup or review before the rail report catches up. */
+export function applyDepositPreviewGate(gate: GateState, cause: UnavailableCause | undefined): GateState {
+    if (gate.kind !== 'ready' && gate.kind !== 'needs-enrollment') return gate
+    if (cause === 'setup-pending' || cause === 'review-pending' || cause === 'review-action') return { kind: 'pending' }
+    if (cause === 'review-closed') return { kind: 'blocked-rejection', userMessage: null }
+    return gate
 }

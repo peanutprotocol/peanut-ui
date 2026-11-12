@@ -17,14 +17,14 @@ export default function NotificationsStepLayout({
     children: ReactNode
 }) {
     return (
-        <div className="flex w-full flex-1 flex-col gap-8 compact:gap-6 short:gap-4 tight:gap-3">
+        <div className="flex min-h-0 w-full flex-1 flex-col gap-8 compact:gap-6 short:gap-4 tight:gap-3">
             <SetupTitleBlock
                 title={title}
                 description={description}
                 className="md:max-h-48 md:max-w-xs"
                 titleClassName={titleClassName}
             />
-            <div className="flex w-full flex-1 flex-col gap-6">{children}</div>
+            <div className="flex min-h-0 w-full flex-1 flex-col gap-6">{children}</div>
         </div>
     )
 }

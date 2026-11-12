@@ -6,8 +6,8 @@ type IconBubbleSize = 'xs' | 's' | 'm' | 'l' | 'xl'
  * One meaning per color (TASK-22761, TASK-23054). A product concept takes its
  * pair from CONCEPT_ICONS, and its color names the concept, never its status:
  * the row's badge carries the status.
- * - blue: a method or plain information (bank, crypto, links, add money, withdraw).
- * - yellow: Peanut's own (the Peanut user, friends, card, rewards, badges), and
+ * - blue: a method or plain information (bank, links, add money, withdraw).
+ * - yellow: crypto, Peanut's own concepts (the Peanut user, friends, card, rewards, badges), and
  *   attention in a modal or callout (pending, warnings).
  * - brand (pink): the primary action, QR pay, the same pink as the bottom nav QR button.
  * - green: done. success screens, completed steps.

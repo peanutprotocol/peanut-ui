@@ -50,6 +50,10 @@ describe('CONCEPT_ICONS', () => {
     })
 
     // QA-32: the Send picker drew crypto with the card glyph
+    test('crypto uses the shared blue coins icon', () => {
+        expect(CONCEPT_ICONS.crypto).toEqual({ icon: 'coins', color: 'blue' })
+    })
+
     test('crypto, bank and card are three different glyphs', () => {
         const glyphs = [CONCEPT_ICONS.crypto.icon, CONCEPT_ICONS.bank.icon, CONCEPT_ICONS.card.icon]
         expect(new Set(glyphs).size).toBe(3)
@@ -60,13 +64,21 @@ describe('CONCEPT_ICONS', () => {
         expect(CONCEPT_ICONS.withdraw.icon).toBe('arrow-up')
     })
 
-    test('only the two link concepts share a glyph', () => {
+    test('reusable bank accounts use green and one-time bank transfers use blue', () => {
+        expect(CONCEPT_ICONS.bankAccount).toEqual({ icon: 'bank', color: 'green' })
+        expect(CONCEPT_ICONS.bank).toEqual({ icon: 'bank', color: 'blue' })
+    })
+
+    test('only the bank concepts and the link concepts share a glyph', () => {
         const byGlyph = new Map<unknown, Concept[]>()
         for (const concept of CONCEPTS) {
             const { icon } = CONCEPT_ICONS[concept]
             byGlyph.set(icon, [...(byGlyph.get(icon) ?? []), concept])
         }
         const shared = [...byGlyph.values()].filter((concepts) => concepts.length > 1)
-        expect(shared).toEqual([['sendLink', 'requestLink']])
+        expect(shared).toEqual([
+            ['bank', 'bankAccount'],
+            ['sendLink', 'requestLink'],
+        ])
     })
 })

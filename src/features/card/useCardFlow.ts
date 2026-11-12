@@ -36,6 +36,10 @@ import { useKycFeatureActivation } from '@/features/paperwork-verification/useKy
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import { ApiError } from '@/services/api-error'
+
+const CARD_ISSUANCE_WAIT_MS = 12_000
+const CARD_ISSUANCE_POLL_MS = 2_000
+
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -70,6 +74,7 @@ export function useCardFlow() {
         overview,
         isLoading: overviewLoading,
         error: overviewError,
+        refetch: refetchOverview,
     } = useRainCardOverview({
         pendingApplication: pendingApplication === 'pending',
     })
@@ -200,12 +205,38 @@ export function useCardFlow() {
         setSupportRequired(null)
     }, [userId])
 
-    const state = computeCardState({
+    const issuanceIdentityRef = useRef({ userId, connectedAddress })
+    useEffect(() => {
+        if (sameIdentity(issuanceIdentityRef.current, { userId, connectedAddress })) return
+        issuanceIdentityRef.current = { userId, connectedAddress }
+        setIssuanceReadError(false)
+        setIssuanceStillCreating(false)
+        setIssuanceExpired(false)
+        setApplyError(null)
+        setPendingApplication(null)
+        issuanceDeadlineRef.current = null
+        awaitingIssuanceRef.current = false
+        issuanceOwnerRef.current = null
+    }, [userId, connectedAddress])
+    const [issuanceExpired, setIssuanceExpired] = useState(false)
+    const [issuanceReadError, setIssuanceReadError] = useState(false)
+    const [issuanceStillCreating, setIssuanceStillCreating] = useState(false)
+    const issuanceDeadlineRef = useRef<number | null>(null)
+    const awaitingIssuanceRef = useRef(false)
+    const issuanceOwnerRef = useRef<{ userId: string | undefined; connectedAddress: string | undefined } | null>(null)
+    const baseState = computeCardState({
         overview,
         cardInfo,
         overviewLoading,
         cardInfoLoading: cardInfoLoading,
     })
+    const ownsIssuance =
+        issuanceOwnerRef.current !== null && sameIdentity(issuanceOwnerRef.current, { userId, connectedAddress })
+    let state: CardTopLevelState = baseState
+    if (awaitingIssuanceRef.current && ownsIssuance && !issuanceExpired && baseState === 'add-card') {
+        if (!overview?.status.hasApplication) state = 'pending'
+        else if (overview.status.railStatus === 'ENABLED') state = 'creating-card'
+    }
 
     // Fire CARD_STATE_VIEWED on each distinct top-level state entry. Skip the
     // initial 'loading' state — it would inflate the funnel without signal.
@@ -503,7 +534,15 @@ export function useCardFlow() {
             // no card, and the state machine routes back to add-card — which
             // read as a silent reset. Remember the promise so that landing
             // surfaces a retryable error instead (effect below).
-            if (res.status === 'pending') awaitingIssuanceRef.current = true
+            if (res.status === 'pending') {
+                issuanceOwnerRef.current = { userId, connectedAddress }
+                awaitingIssuanceRef.current = true
+                setPendingApplication('pending')
+                setIssuanceExpired(false)
+                setIssuanceReadError(false)
+                setIssuanceStillCreating(false)
+                issuanceDeadlineRef.current = null
+            }
             invalidateOverview()
             return true
         },
@@ -516,27 +555,140 @@ export function useCardFlow() {
             blockIfFinal,
             user?.identityVerification?.oneShot,
             userId,
+            connectedAddress,
             t,
         ]
     )
 
-    // Card-create-after-apply failure detector (see advanceFromApplyResponse).
-    // Waits for the refetched overview to reflect the application, then: back
-    // on the entry screen means the promised card never got created — show the
-    // same retryable notification the entry screen uses for apply errors.
-    // Stays armed through pending/manual-review: an asynchronous approval can
-    // fail auto-issuance too, landing ENABLED-without-card later in the mount.
-    // Disarms only once a card exists or a terminal state (incl. the surfaced
-    // add-card error) is reached.
-    const awaitingIssuanceRef = useRef(false)
+    // The approval event can arrive before the card row commits. Read the
+    // overview for a short window, then offer retry only after a fresh empty
+    // response. A failed read remains an unknown state.
     useEffect(() => {
         if (!awaitingIssuanceRef.current) return
-        if (!overview?.status?.hasApplication) return
-        if (state === 'loading' || state === 'pending' || state === 'manual-review') return
-        awaitingIssuanceRef.current = false
-        if (state === 'add-card') setApplyError(t('page.issueFailed'))
-        if (state === 'active') void offerPushPrompt(PUSH_PROMPT_TRIGGERS.CARD_READY)
-    }, [overview, state, t])
+        if (!issuanceOwnerRef.current || !sameIdentity(issuanceOwnerRef.current, { userId, connectedAddress })) {
+            awaitingIssuanceRef.current = false
+            issuanceOwnerRef.current = null
+            issuanceDeadlineRef.current = null
+            setIssuanceReadError(false)
+            setIssuanceExpired(false)
+            setApplyError(null)
+            return
+        }
+        if (overview?.status.hasApplication) setPendingApplication(null)
+        if (baseState === 'active') {
+            setIssuanceReadError(false)
+            awaitingIssuanceRef.current = false
+            issuanceOwnerRef.current = null
+            void offerPushPrompt(PUSH_PROMPT_TRIGGERS.CARD_READY)
+            return
+        }
+        if (
+            baseState !== 'loading' &&
+            baseState !== 'add-card' &&
+            baseState !== 'pending' &&
+            baseState !== 'manual-review'
+        ) {
+            awaitingIssuanceRef.current = false
+            issuanceOwnerRef.current = null
+        }
+    }, [baseState, userId, connectedAddress, overview?.status.hasApplication])
+
+    const refreshIssuanceRef = useRef(refetchOverview)
+    refreshIssuanceRef.current = refetchOverview
+    const translateIssuanceRef = useRef(t)
+    translateIssuanceRef.current = t
+    const finishIssuanceWait = useCallback((data: typeof overview) => {
+        if (
+            data?.status.hasApplication &&
+            data.status.railStatus === 'ENABLED' &&
+            data.cards.every((card) => card.status === 'CANCELED')
+        ) {
+            awaitingIssuanceRef.current = false
+            issuanceOwnerRef.current = null
+            setIssuanceExpired(true)
+            setApplyError(translateIssuanceRef.current('page.issueFailed'))
+        }
+    }, [])
+
+    useEffect(() => {
+        if (
+            state !== 'creating-card' ||
+            overviewError ||
+            issuanceReadError ||
+            issuanceStillCreating ||
+            !refreshIssuanceRef.current
+        )
+            return
+        const deadline = issuanceDeadlineRef.current ?? Date.now() + CARD_ISSUANCE_WAIT_MS
+        issuanceDeadlineRef.current = deadline
+        if (Date.now() >= deadline) {
+            setIssuanceReadError(true)
+            return
+        }
+        const owner = issuanceOwnerRef.current
+        if (!owner) return
+        const ownsAttempt = () => issuanceOwnerRef.current === owner && sameIdentity(owner, identityRef.current)
+        let stopped = false
+        let busy = false
+        const timer = setInterval(() => {
+            if (stopped || busy || !ownsAttempt() || Date.now() >= deadline) return
+            busy = true
+            void refreshIssuanceRef.current({ cancelRefetch: false }).then((result) => {
+                busy = false
+                if (stopped || !ownsAttempt()) return
+                if (result.isError) {
+                    clearInterval(timer)
+                    setIssuanceReadError(true)
+                }
+            })
+        }, CARD_ISSUANCE_POLL_MS)
+        const timeout = setTimeout(
+            () => {
+                clearInterval(timer)
+                if (stopped || !ownsAttempt()) return
+                stopped = true
+                const query = queryClient.getQueryState([RAIN_CARD_OVERVIEW_QUERY_KEY, userId])
+                const current =
+                    query?.status === 'success' &&
+                    query.fetchStatus === 'idle' &&
+                    query.dataUpdatedAt > deadline - CARD_ISSUANCE_WAIT_MS
+                        ? (query.data as typeof overview)
+                        : undefined
+                if (busy || !current) {
+                    setIssuanceStillCreating(true)
+                } else {
+                    finishIssuanceWait(current)
+                }
+            },
+            Math.max(0, deadline - Date.now())
+        )
+        return () => {
+            stopped = true
+            clearInterval(timer)
+            clearTimeout(timeout)
+        }
+    }, [
+        state,
+        userId,
+        connectedAddress,
+        overviewError,
+        issuanceReadError,
+        issuanceStillCreating,
+        finishIssuanceWait,
+        queryClient,
+    ])
+
+    const retryIssuance = useCallback(async () => {
+        const owner = issuanceOwnerRef.current
+        if (!owner || !sameIdentity(owner, identityRef.current) || !refreshIssuanceRef.current) return
+        const result = await refreshIssuanceRef.current({ cancelRefetch: false })
+        if (issuanceOwnerRef.current !== owner || !sameIdentity(owner, identityRef.current) || result.isError) return
+        if (issuanceDeadlineRef.current && Date.now() >= issuanceDeadlineRef.current) {
+            finishIssuanceWait(result.data)
+        }
+        setIssuanceReadError(false)
+        setIssuanceStillCreating(false)
+    }, [finishIssuanceWait])
 
     // The user picked their residence country on the confirmation screen.
     // Re-apply with the pick — the backend validates it against its own
@@ -593,7 +745,8 @@ export function useCardFlow() {
                 // one changes nothing.
                 const startedFor = { userId, connectedAddress }
                 const changed = () => !sameIdentity(identityRef.current, startedFor)
-                if (changed()) return undefined
+                const issuanceOwner = issuanceOwnerRef.current
+                if (changed() || (issuanceOwner && sameIdentity(issuanceOwner, startedFor))) return undefined
                 if (addressBlockedRef.current) {
                     if (residenceAddressStep === 'required' || residenceAddressStep === 'rejected') {
                         if (addressStartingRef.current) return undefined
@@ -953,6 +1106,10 @@ export function useCardFlow() {
         cardInfo,
         cardInfoError,
         refetchCardInfo,
+        refetchOverview,
+        retryIssuance,
+        issuanceStillCreating: issuanceStillCreating && ownsIssuance && state === 'creating-card',
+        issuanceReadError: issuanceReadError && ownsIssuance && state === 'creating-card',
         overview,
         overviewError,
         capabilitiesLoading,

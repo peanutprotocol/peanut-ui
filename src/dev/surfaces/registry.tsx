@@ -1,5 +1,6 @@
 'use client'
 
+import { NotificationSwitches } from '@/components/Setup/Views/Notifications'
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
@@ -601,6 +602,22 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['07-d-notification-settings'],
         render: () => <SetupScreen screenId="notification-permission" />,
     },
+    '07-d-notification-switches': {
+        ...SURFACE_META['07-d-notification-switches'],
+        render: () => (
+            <SetupScreen screenId="notification-permission">
+                <NotificationSwitches variant="switches" />
+            </SetupScreen>
+        ),
+    },
+    '07-d-notification-defaults-on': {
+        ...SURFACE_META['07-d-notification-defaults-on'],
+        render: () => (
+            <SetupScreen screenId="notification-permission">
+                <NotificationSwitches variant="defaults_on" />
+            </SetupScreen>
+        ),
+    },
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
         render: () => (
@@ -930,6 +947,23 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    '45-d-residence-review': {
+        ...SURFACE_META['45-d-residence-review'],
+        render: () => (
+            <ResidenceChangeDrawer
+                visible
+                onClose={noop}
+                userId="demo-user"
+                declared="ES"
+                verified="BR"
+                pending="ES"
+                pendingStatus="REVIEW_PENDING"
+                onSaved={asyncNoop}
+                onReverify={noop}
+                onContactSupport={noop}
+            />
+        ),
+    },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',
@@ -1214,6 +1248,14 @@ export const SURFACES: Record<string, Surface> = {
     '81-g-request-pot-partial': {
         ...SURFACE_META['81-g-request-pot-partial'],
         render: () => <RequestPotPartialSurface />,
+    },
+    '82-e-card-creating': {
+        ...SURFACE_META['82-e-card-creating'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen variant="creating-card" />
+            </AppPageSurface>
+        ),
     },
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],

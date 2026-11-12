@@ -448,7 +448,7 @@ export function rewriteMethodPath(path: string, extraParams?: string, native = i
         const country = addMoneyMatch[1]
         const subView = addMoneyMatch[2] // bank, manteca, etc.
         // static routes, not [country] — same carve-out as withdraw below
-        if (country === 'crypto' || country === 'us') {
+        if (country === 'crypto' || country === 'us' || country === 'options') {
             return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
         }
         let url = `/add-money?country=${country}`

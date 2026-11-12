@@ -79,6 +79,17 @@ beforeEach(() => {
 })
 
 describe('useDepositCountryRouting', () => {
+    it('opens the country when the analytics client throws', () => {
+        mockCapture.mockImplementationOnce(() => {
+            throw new Error('PostHog unavailable')
+        })
+        const { result } = renderRouting()
+
+        act(() => result.current.openCountry(ARGENTINA as any))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+    })
+
     it('sends a euro-zone country to the one euro account, in place', async () => {
         mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
         const updates: UrlUpdateEvent[] = []

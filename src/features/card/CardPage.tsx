@@ -47,6 +47,10 @@ export const CardPage: FC = () => {
         fetchUser,
         cardInfoError,
         refetchCardInfo,
+        refetchOverview,
+        retryIssuance,
+        issuanceReadError,
+        issuanceStillCreating,
         overview,
         overviewError,
         residenceAddressStep,
@@ -132,12 +136,34 @@ export const CardPage: FC = () => {
         )
     }
 
-    if (cardInfoError || overviewError) {
+    if (cardInfoError || overviewError || issuanceReadError) {
         return (
             <PageContainer>
                 <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
                     <CenteredStatusCard title={tCommon('cardCouldNotLoad')} description={t('page.loadFailed')}>
-                        <Button onClick={() => refetchCardInfo()} variant="primary" shadowSize="4">
+                        <Button
+                            onClick={() => {
+                                void refetchCardInfo()
+                                if (issuanceReadError || state === 'creating-card') void retryIssuance()
+                                else void refetchOverview()
+                            }}
+                            variant="primary"
+                            shadowSize="4"
+                        >
+                            {tCommon('retry')}
+                        </Button>
+                    </CenteredStatusCard>
+                </div>
+            </PageContainer>
+        )
+    }
+
+    if (issuanceStillCreating) {
+        return (
+            <PageContainer>
+                <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                    <CenteredStatusCard title={t('status.stillCreatingTitle')}>
+                        <Button onClick={() => void retryIssuance()} variant="primary" shadowSize="4">
                             {tCommon('retry')}
                         </Button>
                     </CenteredStatusCard>
@@ -327,6 +353,8 @@ export const CardPage: FC = () => {
             )
         }
         switch (state) {
+            case 'creating-card':
+                return <ApplicationStatusScreen variant="creating-card" onPrev={onBack} />
             case 'add-card':
                 return (
                     <CardAcquisitionScreen

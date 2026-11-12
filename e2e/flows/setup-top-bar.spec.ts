@@ -15,6 +15,38 @@
 
 import { expect, test, type Page } from '@playwright/test'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
+import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
+import { blockExternal, seenOnceModals } from '../shots/fixture-page'
+
+const SETUP_FIXTURE = 'profile-edit'
+
+async function enableWebSignup(page: Page, baseURL: string) {
+    await page.context().addCookies([
+        {
+            name: KEEP_WEB_COOKIE,
+            value: encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN)),
+            url: baseURL,
+        },
+    ])
+}
+
+async function prepareSetupSurface(page: Page) {
+    await blockExternal(page, SETUP_FIXTURE)
+    await page.addInitScript(seenOnceModals)
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
+}
+
+async function openSetupSurface(page: Page, id: string) {
+    await page.goto(`/dev/surfaces?s=${id}&__fixture=${SETUP_FIXTURE}`, { waitUntil: 'domcontentloaded' })
+    await expect(page, id).toHaveURL(new RegExp(`/dev/surfaces\\?s=${id}`))
+    await expect
+        .poll(() => page.evaluate((key) => sessionStorage.getItem(key), FIXTURE_STORAGE_KEY), {
+            message: `${id}: setup fixture engaged`,
+        })
+        .toBe(SETUP_FIXTURE)
+}
 
 type Box = { x: number; y: number }
 type Sample = { switchers: Box[]; back: Box | null; heroes: string[] }
@@ -75,9 +107,9 @@ for (const viewport of VIEWPORTS) {
                 : route.abort()
         )
         // web signup is app-only; the support keep-web cookie reopens it in this browser
-        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
+        await enableWebSignup(page, baseURL!)
         await page.goto('/setup')
-        const signUp = page.getByRole('button', { name: 'Sign up' })
+        const signUp = page.locator('[data-setup-footer]').getByRole('button', { name: 'Sign up', exact: true })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await page.waitForTimeout(1500)
 
@@ -104,27 +136,32 @@ for (const viewport of VIEWPORTS) {
     })
 }
 
-test('the residence capture paints its safe area and positions the top bar once', async ({ page }) => {
+test('the default web landing offers app download without the signup footer', async ({ page }) => {
+    await prepareSetupSurface(page)
+    await openSetupSurface(page, '01-a-landing')
+    await expect(page.getByRole('button', { name: 'Google Play', exact: true })).toBeVisible()
+    await expect(page.locator('[data-setup-footer]')).toHaveCount(0)
+})
+
+test('the fullscreen residence comparison paints its safe area and positions the top bar once', async ({ page }) => {
     await page.setViewportSize({ width: 393, height: 852 })
-    await page.addInitScript(() => {
-        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
-    })
-    await page.goto('/dev/surfaces?s=03-b-residence-compare&__fixture=profile-edit')
+    await prepareSetupSurface(page)
+    await openSetupSurface(page, '03-b-residence-compare')
     const hero = page.locator('[data-setup-hero]')
-    await expect(hero).toBeVisible()
+    await expect(page.getByTestId('setup-residence-select-PT')).toBeVisible()
+    await expect(hero).toHaveCount(0)
     await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
 
     const shell = page.locator('#scrollable-content')
     const strip = shell.locator('xpath=preceding-sibling::*[1]')
     await expect(strip).toHaveCSS('height', '59px')
-    await expect(strip).toHaveCSS(
-        'background-color',
-        await hero.evaluate((node) => getComputedStyle(node).backgroundColor)
-    )
-    expect(await hero.evaluate((node) => node.getBoundingClientRect().top)).toBe(59)
-    expect(await page.locator('[data-setup-top-bar]').evaluate((node) => node.getBoundingClientRect().top)).toBe(75)
+    await expect(strip).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+    expect(await shell.evaluate((node) => node.getBoundingClientRect().top)).toBe(59)
+    const topBar = page.locator('[data-setup-top-bar]')
+    await expect(topBar).toHaveCount(1)
+    expect(await topBar.evaluate((node) => node.getBoundingClientRect().top)).toBe(75)
 
-    await page.goto('/dev/surfaces?s=84-f-choice-public-profile-guest&__fixture=profile-edit')
+    await openSetupSurface(page, '84-f-choice-public-profile-guest')
     await expect(shell.getByText('Create your wallet')).toBeVisible()
     await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
     await expect(strip).toHaveCSS('height', '59px')
@@ -149,27 +186,29 @@ const STEP_SURFACES = [
 for (const viewport of VIEWPORTS) {
     test(`every step keeps the board's hero and a reachable primary at ${viewport.width}x${viewport.height}`, async ({
         page,
+        baseURL,
     }) => {
         await page.setViewportSize(viewport)
+        await enableWebSignup(page, baseURL!)
+        await prepareSetupSurface(page)
         await page.addInitScript(() => {
             const w = window as unknown as {
                 PublicKeyCredential: { isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean> }
             }
             w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
             w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
-            // Fixture mode lets /dev pages render without a login; this hides its banner over the footer.
-            ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
         })
         const heroes = new Set<number>()
         for (const id of STEP_SURFACES) {
-            await page.goto(`/dev/surfaces?s=${id}&__fixture=profile-edit`)
-            // a redirect to /setup would measure the landing every time
-            await expect(page).toHaveURL(new RegExp(`/dev/surfaces\\?s=${id}`))
-            const primary = page.locator('[data-setup-footer] button').first()
-            await expect(primary).toBeVisible({ timeout: 60_000 })
+            await openSetupSurface(page, id)
+            const footer = page.locator('[data-setup-footer]')
+            const primary =
+                id === '01-a-landing'
+                    ? footer.getByRole('button', { name: 'Sign up', exact: true })
+                    : footer.getByRole('button').first()
+            await expect(primary, `${id}: signup action`).toBeVisible()
             await expect(primary).toBeInViewport({ ratio: 1 })
-            const layout = await page.evaluate(() => {
-                const button = document.querySelector('[data-setup-footer] button')!
+            const layout = await primary.evaluate((button) => {
                 const r = button.getBoundingClientRect()
                 const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
                 return {
@@ -186,6 +225,51 @@ for (const viewport of VIEWPORTS) {
         const [hero] = [...heroes]
         expect(Math.abs(hero - boardHero(viewport))).toBeLessThanOrEqual(boardHero(viewport) * 0.05)
     })
+}
+
+for (const viewport of VIEWPORTS) {
+    for (const variant of ['switches', 'defaults-on']) {
+        test(`notification ${variant} keeps both actions reachable at ${viewport.width}x${viewport.height}`, async ({
+            page,
+        }) => {
+            await page.setViewportSize(viewport)
+            await prepareSetupSurface(page)
+            await openSetupSurface(page, `07-d-notification-${variant}`)
+            const choices = page.getByTestId('setup-notification-choices')
+            await expect(choices.getByRole('switch')).toHaveCount(3)
+            const footer = page.locator('[data-setup-footer]')
+            const next = footer.getByRole('button', { name: 'Continue', exact: true })
+            const skip = footer.getByRole('button', { name: 'Not now', exact: true })
+            await expect(next).toBeInViewport({ ratio: 1 })
+            await expect(skip).toBeInViewport({ ratio: 1 })
+            if (variant === 'switches') {
+                await expect(next).toBeDisabled()
+                await choices.getByRole('switch', { name: 'Important alerts' }).click()
+            }
+            for (const action of [next, skip]) {
+                await expect(action).toBeEnabled()
+                await expect(action).toBeInViewport({ ratio: 1 })
+                expect(
+                    await action.evaluate((button) => {
+                        const r = button.getBoundingClientRect()
+                        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+                        return hit === button || (!!hit && button.contains(hit))
+                    })
+                ).toBe(true)
+            }
+            if (viewport.width === 320) {
+                const top = await next.evaluate((button) => button.getBoundingClientRect().top)
+                const email = choices.getByRole('switch', { name: 'Email updates' })
+                await email.scrollIntoViewIfNeeded()
+                expect(await choices.evaluate((panel) => panel.scrollTop)).toBeGreaterThan(0)
+                const checked = await email.getAttribute('aria-checked')
+                await email.click()
+                await expect(email).toHaveAttribute('aria-checked', checked === 'true' ? 'false' : 'true')
+                expect(await next.evaluate((button) => button.getBoundingClientRect().top)).toBe(top)
+            }
+            expect(await page.evaluate(() => document.scrollingElement!.scrollHeight > innerHeight)).toBe(false)
+        })
+    }
 }
 
 test('desktop keeps the full-height side hero', async ({ page }) => {

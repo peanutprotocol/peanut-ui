@@ -19,14 +19,14 @@ const COLORS: { color: IconBubbleColor; icon: IconName; means: string; useFor: s
         color: 'blue',
         icon: 'bank',
         means: 'A method or plain information',
-        useFor: 'Bank, crypto, exchange, links, add money, withdraw, verification, other countries, support, info',
+        useFor: 'Bank, exchange, links, add money, withdraw, verification, other countries, support, info',
         never: 'A state',
     },
     {
         color: 'yellow',
         icon: 'credit-card',
         means: "Peanut's own, and attention",
-        useFor: 'The Peanut user, friends, card, rewards (the star), badges; in a modal or callout: pending, warnings, confirms',
+        useFor: 'Crypto, the Peanut user, friends, card, rewards (the star), badges; in a modal or callout: pending, warnings, confirms',
         never: 'An error',
     },
     {

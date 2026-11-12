@@ -36,6 +36,7 @@ export function ClosedRowDrawer({
     closed,
     onClose,
     onChangeResidence,
+    onPayQr,
     onRetry,
 }: {
     /** the tapped row and why it is closed; null keeps the drawer shut */
@@ -43,6 +44,7 @@ export function ClosedRowDrawer({
     onClose: () => void
     /** opens the residence change, on this screen or on Accounts and payments */
     onChangeResidence: () => void
+    onPayQr?: () => void
     /** reads the accounts again, for a row the backend could not check */
     onRetry?: () => void
 }) {
@@ -75,6 +77,7 @@ export function ClosedRowDrawer({
                     // paying a QR code or a Pix key needs no residence, so that way stays open
                     body: `${t(`${base}.residenceRequired`)} ${t(`${base}.qrPay`)}`,
                     cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                    link: onPayQr ? { label: t('details.qrPayCta'), act: onPayQr } : undefined,
                 }
             }
             case 'not-offered':

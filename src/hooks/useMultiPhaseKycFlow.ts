@@ -440,6 +440,8 @@ export const useMultiPhaseKycFlow = ({
         handleClose,
         refreshToken,
         isVerificationProgressModalOpen,
+        isResidenceReviewOpen,
+        dismissResidenceReview,
         closeVerificationProgressModal,
         isActionFlow,
         isResidenceChangeFlow,
@@ -1005,6 +1007,8 @@ export const useMultiPhaseKycFlow = ({
 
         // multi-phase modal
         isModalOpen,
+        isResidenceReviewOpen,
+        dismissResidenceReview,
         modalPhase,
         handleModalClose,
         handleAcceptTerms,

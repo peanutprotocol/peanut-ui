@@ -266,7 +266,8 @@ const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU
 
 export const restartIdentityVerification = async (
     regionIntent?: KYCRegionIntent,
-    replacement?: KycReplacementChoices
+    replacement?: KycReplacementChoices,
+    beforeDispatch?: () => boolean
 ): Promise<{
     data?: RestartIdentityResponse
     error?: string
@@ -279,6 +280,7 @@ export const restartIdentityVerification = async (
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
+            ...(beforeDispatch && { beforeDispatch }),
             headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', ...kycClientHeaders() },
             body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
@@ -374,6 +376,9 @@ export const startResidenceChangeVerification = async (
         status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (responseJson.code === 'RESIDENCE_ACTION_REVIEW_PENDING') {
+                return { error: 'Residence verification is under review', code: responseJson.code }
+            }
             if (response.status >= 500)
                 Sentry.captureException(new Error('KYC request failed'), {
                     tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_session' },
