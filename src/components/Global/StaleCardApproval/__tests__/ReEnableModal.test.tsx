@@ -134,7 +134,8 @@ describe('StaleCardApprovalReEnableModal', () => {
         expect(screen.getByText(/contact support/i)).toBeInTheDocument()
         expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
         expect(screen.queryByText('Re-enable card')).not.toBeInTheDocument()
-        expect(screen.getByText('Not now')).toBeInTheDocument()
+        expect(screen.getAllByText('Not now')).toHaveLength(1)
+        expect(screen.getByText('Not now').closest('button')).not.toBeNull()
     })
 
     it('can be dismissed with "Not now"', () => {

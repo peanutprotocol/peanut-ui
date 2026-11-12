@@ -210,7 +210,9 @@ describe('EnableAutoBalanceBanner', () => {
         expect(screen.queryByText(/couldn't finish setting up your card/i)).not.toBeInTheDocument()
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Continue')).not.toBeInTheDocument()
-        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+        // the one exit is the primary action, not a link under a button-less modal
+        expect(screen.getAllByText('Skip for now')).toHaveLength(1)
+        expect(screen.getByText('Skip for now').closest('button')).not.toBeNull()
     })
 
     it('keys off the ACTIVE card, not cards[0] — a CANCELED newest row with a granted older card hides the modal', () => {

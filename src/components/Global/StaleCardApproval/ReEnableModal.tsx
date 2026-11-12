@@ -109,9 +109,20 @@ export default function StaleCardApprovalReEnableModal() {
                     ? t('staleCardApprovalModal.successDescription')
                     : (errorMessage ?? t('staleCardApprovalModal.description'))
             }
-            // a spent permission id cannot be fixed by re-enabling, so no retry button
-            ctas={errorKind === 'permission-spent' ? [] : ctas}
-            tertiaryCta={tertiaryCta}
+            // a spent permission id cannot be fixed by re-enabling, so Not now replaces the retry button
+            ctas={
+                errorKind === 'permission-spent'
+                    ? [
+                          {
+                              text: t('staleCardApprovalModal.notNowCta'),
+                              variant: 'primary',
+                              shadowSize: '4',
+                              onClick: close,
+                          },
+                      ]
+                    : ctas
+            }
+            tertiaryCta={errorKind === 'permission-spent' ? undefined : tertiaryCta}
         />
     )
 }
