@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { useBankChipFor, useBankEntryFor, useBankRows } from '@/hooks/useBankRows'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
-import type { CapabilityRoute, UserCapabilities } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction, UserCapabilities } from '@/types/capabilities'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 
 let mockCapabilities: UserCapabilities
@@ -154,6 +154,24 @@ describe('the BRL row reads the Pix route', () => {
             state: 'ready',
             action: 'avenia-hosted',
         })
+    })
+
+    // TASK-24841: before our own check, the provider's own set-up is the Pix setup's to run
+    it.each([
+        ['its terms', 'accept-tos:avenia', 'accept-tos'],
+        ['its own identity check', 'avenia-hosted', 'hosted-identity'],
+    ])("reads the provider's %s as Set up and opens the Pix setup, never our verification", (_name, action, kind) => {
+        brazilResident()
+        mockCapabilities.nextActions = [{ key: action, kind, purpose: 'unlock-avenia' } as NextAction]
+        mockCapabilities.routes = [pixRoute({ state: 'action_required', action })]
+        expect(brl()).toMatchObject({ chip: 'unlock', href: '/add-money/pix' })
+    })
+
+    it('leaves the row on our verification where the route asks for it first', () => {
+        brazilResident()
+        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'verify' })]
+        expect(brl().chip).toBe('unlock')
+        expect(brl().href).toBeUndefined()
     })
 
     it('keeps the report for the other rows, and for BRL when the API sends no Pix route', () => {

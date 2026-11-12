@@ -11,6 +11,7 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import NavHeader from '@/components/Global/NavHeader'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { useAuth } from '@/context/authContext'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import type { NextAction } from '@/types/capabilities'
@@ -66,7 +67,8 @@ export function PixHostedVerification({
     }
     // the hand-off could not open the page, or the read failed: the line says so, the button retries
     const failed = readFailed || (!expired && !!hosted.error)
-    const line = t(failed ? 'hosted.failed' : expired ? 'hosted.expired' : 'hosted.body')
+    const brand = providerId ? PROVIDERS[providerId].brand : ''
+    const line = t(failed ? 'hosted.failed' : expired ? 'hosted.expired' : 'hosted.body', { brand })
 
     return (
         <PageStack>

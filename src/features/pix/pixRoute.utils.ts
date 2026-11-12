@@ -1,5 +1,5 @@
 import { VERIFY_ACTION } from '@/features/kyc-features/report'
-import type { CapabilityRoute, FeatureReport, FeatureReportEntry } from '@/types/capabilities'
+import type { CapabilityRoute, FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 
 export const PIX_METHOD = 'PIX_BR'
@@ -9,6 +9,20 @@ export function findPixRoute(
     operation: CapabilityRoute['operation']
 ): CapabilityRoute | undefined {
     return routes?.find((route) => route.operation === operation && route.method === PIX_METHOD)
+}
+
+/**
+ * Whether the route's step is the provider's own set-up, its terms or its own identity check on its
+ * page, rather than the Peanut identity check (`verify`). A user on such a step reaches Pix through
+ * the Pix setup, not through our verification.
+ */
+export function pixRouteOwnSetUp(
+    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
+    nextActions: readonly NextAction[]
+): boolean {
+    if (route?.state !== 'action_required' || !route.action || route.action === VERIFY_ACTION) return false
+    const kind = nextActions.find((action) => action.key === route.action)?.kind
+    return kind === 'accept-tos' || kind === 'hosted-identity'
 }
 
 /** The least reais the route's provider takes for the operation (`route.limits`), or null where it states none. */

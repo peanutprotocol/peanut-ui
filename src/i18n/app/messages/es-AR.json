@@ -1320,12 +1320,12 @@
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
+            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contactá a soporte.",
             "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo.",
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte.",
             "hosted": {
-                "body": "Hacé la verificación en la página de nuestro socio de pagos.",
-                "failed": "No funcionó. Intentá de nuevo."
+                "body": "Verificá con {brand}.",
+                "failed": "Falló. Intentá de nuevo."
             }
         },
         "deposit": {

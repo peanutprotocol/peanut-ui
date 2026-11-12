@@ -8,7 +8,8 @@ import {
     isLocalResidenceRefusal,
     UNKNOWN_REPORT,
 } from '@/features/kyc-features/report'
-import { withPixRoute } from '@/features/pix/pixRoute.utils'
+import { findPixRoute, pixRouteOwnSetUp, withPixRoute } from '@/features/pix/pixRoute.utils'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -84,9 +85,12 @@ export function useBankChipFor(): (key: BankRowKey) => UnlockChip {
  */
 export function useBankRows() {
     const { user } = useAuth()
-    const { nextActions } = useCapabilities()
+    const { nextActions, capabilities } = useCapabilities()
     const report = useAccountsReport()
     const entryFor = useBankEntryFor()
+    // The provider's own set-up (its terms, its own identity check) is the Pix setup's to run, never our
+    // verification's: the BRL row opens it (TASK-24841)
+    const brlSetsUpThroughPix = pixRouteOwnSetUp(findPixRoute(capabilities.routes, 'deposit'), nextActions)
 
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
@@ -131,7 +135,13 @@ export function useBankRows() {
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
         }
     }, [entryFor, nextActions, residenceIso2, secondResidenceIso2])
-    const rows = useMemo(() => buildBankRows(input), [input])
+    const rows = useMemo(
+        () =>
+            buildBankRows(input).map((row) =>
+                row.labelKey === 'brl' && brlSetsUpThroughPix ? { ...row, href: PIX_ADD_MONEY_PATH } : row
+            ),
+        [input, brlSetsUpThroughPix]
+    )
     // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.
     const accountChip = bestChip([
         entryChip(report.bank, nextActions),
