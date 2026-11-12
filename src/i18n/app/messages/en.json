@@ -1924,11 +1924,6 @@
             "slideToCancel": "Slide to cancel",
             "canceledTitle": "Card canceled",
             "canceledBody": "It can no longer be used for payments. You can request a new card, subject to eligibility.",
-            "feedbackLabel": "Help us improve",
-            "feedbackPlaceholder": "Why cancel?",
-            "submit": "Submit",
-            "thanksTitle": "Thank you for the feedback",
-            "thanksBody": "We appreciate your feedback, it helps us improve the experience of our app.",
             "failed": "Failed to cancel card"
         },
         "lockModal": {

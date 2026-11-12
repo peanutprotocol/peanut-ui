@@ -46,7 +46,6 @@ jest.mock('@/services/rain', () => ({
         lockCard: jest.fn(),
         activateCard: jest.fn(),
         cancelCard: jest.fn(),
-        submitCancellationFeedback: jest.fn(),
         getOverview: jest.fn(),
         getCardFunding: jest.fn(),
     },
@@ -440,8 +439,8 @@ describe('CancelCardModal', () => {
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(await screen.findByText(/still in progress/)).toBeInTheDocument()
         expect(screen.queryByText(/are stopped/)).not.toBeInTheDocument()
-        // the feedback step is still offered
-        expect(screen.getByPlaceholderText('Why cancel?')).toBeInTheDocument()
+        // the modal stays open on the notice until the user closes it
+        expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
     })
 
     it('a failed status read keeps "Card canceled" and shows no failure', async () => {
@@ -705,8 +704,8 @@ describe('CancelCardModal: the cancel waits for the card balance', () => {
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(screen.getByText('$5.50 stays in the card for pending payments.')).toBeInTheDocument()
         expect(screen.getByText('$12.34 is refund credit. Spend it with a new card.')).toBeInTheDocument()
-        // the feedback step is still offered
-        expect(screen.getByPlaceholderText('Why cancel?')).toBeInTheDocument()
+        // the modal stays open on the notice until the user closes it
+        expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
     })
 
     it('a backend without the codes keeps its own sentence, and the refused signature is not sent again', async () => {
@@ -732,7 +731,7 @@ describe('CancelCardModal: the cancel waits for the card balance', () => {
  * reads or changes it.
  */
 describe('CancelCardModal — no permission removal step', () => {
-    it('goes straight from the cancel to the feedback step, with no removal offer', async () => {
+    it('ends on "Card canceled", with no removal offer', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
         fireEvent.click(screen.getByRole('button', { name: /slide to cancel/i }))
@@ -743,5 +742,48 @@ describe('CancelCardModal — no permission removal step', () => {
         expect(screen.queryByText(/permission/i)).not.toBeInTheDocument()
         // the cancel flow reads no funding state and no card list beyond the overview
         expect(mockGetOverview).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * The cancel ends on "Card canceled". It asks for no reason: the modal stays
+ * open, so the notices can be read, and Close is its only action. The card
+ * screen is refreshed only then, because the refresh unmounts this modal.
+ */
+describe('CancelCardModal: after the cancel', () => {
+    const cancelNow = async (onClose = jest.fn()) => {
+        setup({ balance: { spendingPower: 0 } })
+        render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        return onClose
+    }
+
+    it('asks for no cancel reason and offers Close alone', async () => {
+        await cancelNow()
+
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+        expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Close'])
+        expect(screen.getByText(/It can no longer be used for payments/)).toBeInTheDocument()
+    })
+
+    it('stays open until Close, and refreshes the card screen only then', async () => {
+        const onClose = await cancelNow()
+        expect(onClose).not.toHaveBeenCalled()
+        expect(mockInvalidateQueries).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
+    })
+
+    it('a dismissed confirm step refreshes nothing: the card is unchanged', () => {
+        setup(OVERVIEW)
+        const onClose = jest.fn()
+        render(<CancelCardModal cardId="card-1" isOpen onClose={onClose} />, { wrapper: Wrapper })
+        fireEvent.click(screen.getByRole('button', { name: 'Keep card' }))
+
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(mockInvalidateQueries).not.toHaveBeenCalled()
     })
 })

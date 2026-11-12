@@ -420,7 +420,6 @@ export const ANALYTICS_EVENTS = {
     CARD_LOCK_FAILED: 'card_lock_failed',
     CARD_CANCEL_OPENED: 'card_cancel_opened',
     CARD_CANCEL_CONFIRMED: 'card_cancel_confirmed',
-    CARD_CANCEL_FEEDBACK_SUBMITTED: 'card_cancel_feedback_submitted',
     CARD_CANCEL_FAILED: 'card_cancel_failed',
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',

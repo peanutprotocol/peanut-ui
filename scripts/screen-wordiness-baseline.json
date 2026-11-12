@@ -30,7 +30,7 @@
         "app/recover-wallet/page.tsx": 63,
         "components/AddMoney/views/CryptoDeposit.view.tsx": 205,
         "components/AddMoney/views/RhinoDeposit.view.tsx": 138,
-        "components/Card/CancelCardModal.tsx": 193,
+        "components/Card/CancelCardModal.tsx": 184,
         "components/Card/CardPinScreen.tsx": 105,
         "components/Card/CardTermsScreen.tsx": 118,
         "components/Card/LockCardModal.tsx": 101,

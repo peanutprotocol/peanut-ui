@@ -1924,11 +1924,6 @@
             "slideToCancel": "Desliza y cancela",
             "canceledTitle": "Tarjeta cancelada",
             "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
-            "feedbackLabel": "Ayúdanos a mejorar",
-            "feedbackPlaceholder": "¿Por qué cancelar?",
-            "submit": "Enviar",
-            "thanksTitle": "Gracias por los comentarios",
-            "thanksBody": "Agradecemos tus comentarios, nos ayudan a mejorar la experiencia de nuestra app.",
             "failed": "No se pudo cancelar la tarjeta"
         },
         "lockModal": {

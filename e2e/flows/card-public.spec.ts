@@ -264,7 +264,10 @@ test('cancelling a card is an ordinary cancel with no permission-removal step', 
     await expect(page.getByText('Card canceled', { exact: true })).toBeVisible()
     await expect(page.getByText(/permission/i)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Not now', exact: true })).toHaveCount(0)
-    await shot(page, 'cancel-feedback')
+    // the cancel asks for no reason: Close is the only action left (by text: the modal's X is labelled Close too)
+    await expect(page.getByRole('textbox')).toHaveCount(0)
+    await expect(page.getByText('Close', { exact: true })).toBeVisible()
+    await shot(page, 'cancel-done')
 })
 
 // A card lock/cancel stops managed wallet payments too. The card is done at once; "stopped" shows only

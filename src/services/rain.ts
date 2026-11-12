@@ -1071,15 +1071,6 @@ export const rainApi = {
         })
     },
 
-    /** Attach feedback to an already-canceled card. Non-fatal on failure. */
-    submitCancellationFeedback: async (cardId: string, feedback: string): Promise<void> => {
-        await rainRequest<{ ok: boolean }>({
-            method: 'POST',
-            path: `/rain/cards/${cardId}/cancellation-feedback`,
-            body: { feedback },
-        })
-    },
-
     /** Reveal a card's PAN/CVV/expiry. Throws RainCardRateLimitError on 429. */
     getCardDetails: async (cardId: string): Promise<RainCardDetailsResponse> => {
         return rainRequest<RainCardDetailsResponse>({

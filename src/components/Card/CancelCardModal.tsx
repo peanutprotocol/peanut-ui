@@ -4,13 +4,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import CardReturnNotice from '@/components/Card/CardReturnNotice'
 import CardReturnWait from '@/components/Card/CardReturnWait'
 import CardStopNotice from '@/components/Card/CardStopNotice'
+import { cardReturnFacts } from '@/components/Card/cardReturn.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { rainApi, type CardCollateralReturn, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -22,7 +22,7 @@ import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hook
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 
-type Phase = 'confirm' | 'canceling' | 'feedback' | 'submitting-feedback' | 'thanks'
+type Phase = 'confirm' | 'canceling' | 'canceled'
 
 interface Props {
     cardId: string
@@ -35,9 +35,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
     const t = useTranslations('card')
     const tCommon = useTranslations('common')
     const [phase, setPhase] = useState<Phase>('confirm')
-    const [feedback, setFeedback] = useState('')
     const [error, setError] = useState<string | null>(null)
-    const [canceled, setCanceled] = useState(false)
     const [stop, setStop] = useState<
         { attemptId: string; stop?: CardFundingStop | null; collateralReturn?: CardCollateralReturn } | undefined
     >()
@@ -61,19 +59,18 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
             // Reset so reopening after dismiss starts fresh. A wait for the card
             // balance stays: it belongs to the card, not to this visit.
             setPhase('confirm')
-            setFeedback('')
             setError(null)
-            setCanceled(false)
             setStop(undefined)
         }
     }, [isOpen])
 
     // Invalidating the overview query *during* the cancel flow would unmount
     // YourCardScreen (the state machine flips away from 'active'), taking
-    // this modal with it — user would never see the feedback phase. Defer
-    // the invalidation until the modal is actually closed.
+    // this modal with it — user would never see "Card canceled" or what the
+    // cancel left in the card. Defer the invalidation until the modal is
+    // actually closed.
     const handleClose = () => {
-        if (canceled) {
+        if (phase === 'canceled') {
             void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
         }
         onClose()
@@ -128,8 +125,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
             // The card page keeps this once the card screen is gone.
             if (fundingStop && fundingStop.state !== 'not_applicable') report({ attemptId, stop: fundingStop })
             setStop({ attemptId, stop: fundingStop, collateralReturn: result?.collateralReturn })
-            setCanceled(true)
-            setPhase('feedback')
+            setPhase('canceled')
         } catch (e) {
             balanceIsStale.current = true
             // A signature the backend used or can never verify is signed again on the next try.
@@ -163,52 +159,23 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
         }
     }
 
-    const submitFeedback = async () => {
-        const trimmed = feedback.trim()
-        if (!trimmed) {
-            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FEEDBACK_SUBMITTED, {
-                gave_feedback: false,
-                feedback_length: 0,
-            })
-            setPhase('thanks')
-            return
-        }
-        setPhase('submitting-feedback')
-        setError(null)
-        try {
-            await rainApi.submitCancellationFeedback(cardId, trimmed)
-            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FEEDBACK_SUBMITTED, {
-                gave_feedback: true,
-                feedback_length: trimmed.length,
-            })
-            setPhase('thanks')
-        } catch (e) {
-            // Non-fatal: cancel already succeeded, so show thanks and log the feedback failure.
-            console.warn('[CancelCardModal] feedback submit failed:', e)
-            posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FEEDBACK_SUBMITTED, {
-                gave_feedback: true,
-                feedback_length: trimmed.length,
-                feedback_submit_failed: true,
-            })
-            setPhase('thanks')
-        }
-    }
-
     const isConfirm = phase === 'confirm' || phase === 'canceling'
-    const isFeedback = phase === 'feedback' || phase === 'submitting-feedback'
     // A wait with a known end holds the slide until that end.
     const mustWait = !!wait && wait.retryAtMs !== null && !waitOver
+    // After the cancel: what stays in the card, and how far stopping wallet payments got.
+    const hasNotices =
+        !!cardReturnFacts('cancel', stop?.collateralReturn) || (!!stop?.stop && stop.stop.state !== 'not_applicable')
 
     return (
         <ActionModal
             visible={isOpen}
             onClose={handleClose}
-            preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
-            hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
+            preventClose={phase === 'canceling'}
+            hideModalCloseButton={phase === 'canceling'}
             tone={isConfirm ? 'error' : 'attention'}
-            icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
-            title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
-            description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
+            icon={isConfirm ? 'alert' : 'alert-filled'}
+            title={t(isConfirm ? 'cancel.title' : 'cancel.canceledTitle')}
+            description={t(isConfirm ? 'cancel.body' : 'cancel.canceledBody')}
             content={
                 isConfirm ? (
                     // visual-qa verdict: cancel keeps the slide friction — a
@@ -229,60 +196,23 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
                             disabled={phase === 'canceling' || mustWait}
                         />
                     </>
-                ) : isFeedback || stop ? (
-                    // The card is canceled; this says what stays in it and how far
-                    // stopping wallet payments got.
-                    <>
-                        {/* the modal stacks its body with no gap, and two notices must not touch */}
-                        <div className="flex w-full flex-col gap-2">
-                            <CardReturnNotice action="cancel" collateralReturn={stop?.collateralReturn} />
-                            {stop && (
-                                <CardStopNotice
-                                    key={stop.attemptId}
-                                    stop={stop.stop}
-                                    attemptId={stop.attemptId}
-                                    wallet={smartWalletAddress}
-                                />
-                            )}
-                        </div>
-                        {isFeedback && (
-                            <Field label={t('cancel.feedbackLabel')} htmlFor="cancel-feedback">
-                                <textarea
-                                    id="cancel-feedback"
-                                    value={feedback}
-                                    onChange={(e) => setFeedback(e.target.value)}
-                                    placeholder={t('cancel.feedbackPlaceholder')}
-                                    rows={4}
-                                    maxLength={2000}
-                                    className="input h-auto resize-y py-3"
-                                    disabled={phase === 'submitting-feedback'}
-                                />
-                            </Field>
+                ) : hasNotices ? (
+                    // the modal stacks its body with no gap, and two notices must not touch
+                    <div className="flex w-full flex-col gap-2">
+                        <CardReturnNotice action="cancel" collateralReturn={stop?.collateralReturn} />
+                        {stop && (
+                            <CardStopNotice
+                                key={stop.attemptId}
+                                stop={stop.stop}
+                                attemptId={stop.attemptId}
+                                wallet={smartWalletAddress}
+                            />
                         )}
-                    </>
+                    </div>
                 ) : undefined
             }
-            ctas={
-                isFeedback
-                    ? [
-                          {
-                              text: t('cancel.submit'),
-                              variant: 'primary',
-                              onClick: submitFeedback,
-                              loading: phase === 'submitting-feedback',
-                              disabled: phase === 'submitting-feedback',
-                          },
-                      ]
-                    : phase === 'thanks'
-                      ? [
-                            {
-                                text: tCommon('close'),
-                                variant: 'primary',
-                                onClick: handleClose,
-                            },
-                        ]
-                      : undefined
-            }
+            // The card is canceled: the modal stays until the user has read it.
+            ctas={isConfirm ? undefined : [{ text: tCommon('close'), variant: 'primary', onClick: handleClose }]}
             tertiaryCta={
                 isConfirm
                     ? { text: t('cancel.keepCard'), onClick: handleClose, disabled: phase === 'canceling' }

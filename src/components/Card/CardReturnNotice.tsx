@@ -19,21 +19,19 @@ interface Props {
  */
 const CardReturnNotice: FC<Props> = ({ action, collateralReturn }) => {
     const t = useTranslations('card.return')
-    const facts = cardReturnFacts(collateralReturn)
+    const facts = cardReturnFacts(action, collateralReturn)
     if (!facts) return null
 
     const isLock = action === 'lock'
     const lines: string[] = []
-    // A cancel is refused while the user's balance is in the card, so only a lock reports it.
-    if (isLock && facts.leftCents > 0) lines.push(t('lockLeft', { amount: formatCardCents(facts.leftCents) }))
-    if (isLock && facts.unknown) lines.push(t('lockUnknown'))
+    if (facts.leftCents > 0) lines.push(t('lockLeft', { amount: formatCardCents(facts.leftCents) }))
+    if (facts.unknown) lines.push(t('lockUnknown'))
     if (facts.heldCents > 0) lines.push(t('held', { amount: formatCardCents(facts.heldCents) }))
     if (facts.creditCents > 0) {
         lines.push(t(isLock ? 'lockCredit' : 'cancelCredit', { amount: formatCardCents(facts.creditCents) }))
     }
-    if (lines.length === 0) return null
 
-    const needsAttention = isLock && (facts.leftCents > 0 || facts.unknown)
+    const needsAttention = facts.leftCents > 0 || facts.unknown
     return (
         <Callout priority={needsAttention ? 'attention' : 'info'} data-testid="card-return-notice">
             <div className="flex flex-col gap-1">

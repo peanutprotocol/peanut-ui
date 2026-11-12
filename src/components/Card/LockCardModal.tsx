@@ -148,7 +148,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
             posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
             // Stay open only when there is something true to say: about wallet
             // payments, or about a balance the freeze left in the card.
-            if (unlock || (stop && stop.state !== 'not_applicable') || cardReturnFacts(collateralReturn)) {
+            if (unlock || (stop && stop.state !== 'not_applicable') || cardReturnFacts('lock', collateralReturn)) {
                 setDone({ attemptId, stop, unlock, collateralReturn })
                 setPhase('done')
                 return
