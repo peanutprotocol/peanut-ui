@@ -61,7 +61,7 @@ export function PixWithdrawForm({
     amount: {
         /** Read once, when the form mounts: the field is never re-seeded while the user types. */
         seed: PixWithdrawAmountSeed | null
-        /** BRL per USD the field converts with: the quote in hand's exact ratio, else the indicative quote's; null while it loads. */
+        /** BRL per USD the field converts with: the quote in hand's ratio for the amount as entered (payout per USD entered, or per USD debited for typed reais), else the indicative quote's; null while it loads. */
         price: number | null
         isLoading: boolean
         isError: boolean

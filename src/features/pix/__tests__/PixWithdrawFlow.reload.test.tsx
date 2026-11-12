@@ -119,7 +119,12 @@ const entry = (status: string, intentStatus?: string) => ({
 })
 
 // `keepMountUpdates`: the adapter otherwise drops a URL update made while the page mounts
-const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) => void, keepMountUpdates = false) =>
+const renderAt = (
+    searchParams: string,
+    onUrlUpdate?: (event: UrlUpdateEvent) => void,
+    keepMountUpdates = false,
+    at: CapabilityRoute = route
+) =>
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <NuqsTestingAdapter
@@ -128,7 +133,7 @@ const renderAt = (searchParams: string, onUrlUpdate?: (event: UrlUpdateEvent) =>
                 hasMemory
                 resetUrlUpdateQueueOnMount={!keepMountUpdates}
             >
-                <PixWithdrawFlow route={route} />
+                <PixWithdrawFlow route={at} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
@@ -546,6 +551,37 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.queryByText(/93\.1\d/)).toBeNull()
         // typed reais are credited as typed: no payout row
         expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()
+    })
+
+    // a route with the provider's minimum, as Avenia's carries R$20
+    const WITH_MINIMUM: CapabilityRoute = { ...route, limits: { minAmount: '20', currency: 'BRL' } }
+
+    // A bridge fee makes the debit larger than the USD entered. The reais under the amount are the
+    // payout per USD entered, never the payout over the debit, and the quote decides the minimum.
+    it('converts a USD amount with the provider input, so a bridge fee cannot hold it under the minimum', async () => {
+        // the indicative price alone would read USD 4 as R$19.20, under the R$20 minimum
+        mockQuote.mockReturnValue({ ...QUOTED, price: { sell: 4.8, buy: 4.8 } })
+        mockPreview.mockResolvedValue({ ...display, amountBrl: '20.00', withdrawUsd: '4.100000' })
+        withForm({ destination: KEY, amountUsd: '4' })
+        renderAt('?step=review', undefined, false, WITH_MINIMUM)
+
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountUsd: '4' }))
+        expect(await screen.findByText('$4.10')).toBeInTheDocument()
+        expect(screen.getByText('R$20')).toBeInTheDocument()
+        // the field converts USD 4 with the payout over the USD entered: R$20, not 20 / 4.10 ≈ R$19.51
+        expect(screen.getByText(/≈ R\$ 20(\.00)?$/)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.deposit.minimum.replace('{amount}', 'R$20'))).toBeNull()
+        await waitFor(() => expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled())
+    })
+
+    it('still refuses typed reais under the minimum before any quote', () => {
+        mockPreview.mockResolvedValue(display)
+        withForm({ destination: KEY, amountBrl: '10' })
+        renderAt('?step=review', undefined, false, WITH_MINIMUM)
+
+        expect(screen.getByText(en.pix.deposit.minimum.replace('{amount}', 'R$20'))).toBeInTheDocument()
+        expect(mockPreview).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
     // the user typed USD: the reais are the quote's, so the form names them next to the total

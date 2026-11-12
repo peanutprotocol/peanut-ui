@@ -175,10 +175,13 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 !isAmountWithinBalance(typedUsd, spendableBalance)
               ? insufficient
               : undefined
-    // the reais the field shows, typed or converted; the API checks the credited amount again
+    // Typed reais are checked against the provider's minimum here; the API checks the credited amount
+    // again. Reais converted from USD or the balance are an estimate that a bridge fee can put under
+    // the minimum while the payout is not (USD 4 can debit 4.10 USDC and still pay R$20), so there
+    // the quote's own payout decides: a short one comes back as the API's minimum refusal.
     const amountError =
         balanceError ??
-        (minimumBrl && isUnderPixMinimum(typedBrl, minimumBrl)
+        (enteredIn === 'local' && minimumBrl && isUnderPixMinimum(typedBrl, minimumBrl)
             ? tShared('deposit.minimum', { amount: formatBankAmount(minimumBrl, 'BRL') })
             : undefined)
 
@@ -219,12 +222,19 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     // the holder and bank, from any quote of this key or from the key step
     const named = submit.opened?.display ?? preview.data ?? null
     const holderName = named?.holderName ?? keyInfo?.holderName ?? null
-    // Once the quote is in hand, the field converts with its exact ratio, so the USD under the
-    // amount is the wallet debit itself and agrees with the Total row; until then the indicative price.
-    const price =
-        (display ? pixQuotePrice({ amountBrl: display.amountBrl, usdcAmount: display.withdrawUsd }) : null) ??
-        brl.price?.sell ??
-        null
+    // Once the quote is in hand the field converts with its exact ratio; until then the indicative
+    // price. Typed reais, or the balance: reais per USD that leaves the wallet, so the USD under the
+    // amount is the debit itself and agrees with the Total row. Typed USD: reais per USD entered,
+    // the provider input the quote converts, so the reais under the amount are the payout itself
+    // and the debit, a bridge fee larger, stands in the Total row alone. The payout over the debit
+    // would read R$19.51 for a USD 4 that pays R$20, and hold the form under the minimum (Chip, ui#4082).
+    const exactPrice = display
+        ? pixQuotePrice({
+              amountBrl: display.amountBrl,
+              usdcAmount: settledTyped.enteredIn === 'usd' ? (settledTyped.entered ?? '') : display.withdrawUsd,
+          })
+        : null
+    const price = exactPrice ?? brl.price?.sell ?? null
 
     if (showOutcome) {
         return (
