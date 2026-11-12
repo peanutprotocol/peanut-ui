@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
+import { resolveAddMoneyMethods } from '@/features/add-money/addMoneyMethods'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
 
@@ -10,8 +11,9 @@ const NavProbe = () => <span data-testid="nav-hidden">{String(useBottomNavHidden
 // ?drawer= URL contract was asserted nowhere.
 
 const mockPush = jest.fn()
+const mockReplace = jest.fn()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }))
 
 jest.mock('next-intl', () => ({
@@ -57,8 +59,24 @@ beforeEach(() => {
     depositAccountsEnabled = true
 })
 
-const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
-    render(<HomeActionDrawers />, {
+const returning = resolveAddMoneyMethods({
+    cryptoReady: true,
+    standingEnabled: true,
+    brazilPaused: false,
+    residenceIso2s: ['PT'],
+    activeAccounts: ['EUR'],
+    readyTopUps: [],
+})
+const firstTime = resolveAddMoneyMethods({
+    cryptoReady: true,
+    standingEnabled: true,
+    brazilPaused: false,
+    residenceIso2s: ['PT'],
+    activeAccounts: [],
+    readyTopUps: [],
+})
+const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void, addMoney = returning) =>
+    render(<HomeActionDrawers addMoney={{ ...addMoney, isLoading: false }} />, {
         wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }),
     })
 
@@ -85,37 +103,45 @@ describe('HomeActionDrawers', () => {
         expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
-    it('opens the add drawer with bank and crypto options only', async () => {
+    it('offers only ready methods and opens the ready-only currency list', async () => {
         renderWithUrl('?drawer=add')
 
-        // Both bank rows lead to the country selector — the single entry to
-        // every bank route, standing account and one-off top-up alike.
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+        expect(screen.getByTestId('home-drawer-add-account')).toBeInTheDocument()
+        expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
+        expect(screen.getByTestId('home-drawer-add-more')).toBeInTheDocument()
+        expect(screen.queryByTestId('home-drawer-add-transfer')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
-
-        // withdraw is reachable via the SEND drawer only (product ruling)
-        expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('home-drawer-add-account'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/options?method=account&ready=1'))
+        expect(mockCapture).not.toHaveBeenCalled()
     })
 
-    it('lists bank before crypto (2026-09-18 decision: bank leads the add drawer)', () => {
-        renderWithUrl('?drawer=add')
-
-        const bank = screen.getByTestId('home-drawer-add-bank')
-        const crypto = screen.getByTestId('home-drawer-add-crypto')
-        // Node.DOCUMENT_POSITION_FOLLOWING: bank comes before crypto in the DOM
-        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    it('opens the full method picker from More ways and clears the drawer', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderWithUrl('?drawer=add', (event) => urlUpdates.push(event))
+        fireEvent.click(screen.getByTestId('home-drawer-add-more'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money'))
+        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
-    /*
-     * The middle link of the returnTo chain (chip P23): bare /add-money
-     * redirects to /home?drawer=add&returnTo=X, and choosing an option must
-     * carry X onto the destination while CLEARING it from home's own history
-     * entry — a stale origin left behind would be forwarded into an
-     * unrelated flow on a later Add open.
-     */
+    it('does not redirect or show stale rows while an old Add link checks readiness', () => {
+        render(<HomeActionDrawers addMoney={{ ...firstTime, isLoading: true }} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?drawer=add' }),
+        })
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('routes an old Add drawer link to the full picker for a first-time user', async () => {
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`, undefined, firstTime)
+        await waitFor(() =>
+            expect(mockReplace).toHaveBeenCalledWith(`/add-money?returnTo=${encodeURIComponent(origin)}`)
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
     it('carries returnTo onto the crypto destination and clears it from home', async () => {
         const urlUpdates: UrlUpdateEvent[] = []
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
@@ -128,28 +154,6 @@ describe('HomeActionDrawers', () => {
         const last = urlUpdates[urlUpdates.length - 1]
         expect(last.searchParams.get('drawer')).toBeNull()
         expect(last.searchParams.get('returnTo')).toBeNull()
-    })
-
-    it('sends the bank row to the country list while get-paid is off', async () => {
-        depositAccountsEnabled = false
-        renderWithUrl('?drawer=add')
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
-    })
-
-    /*
-     * Both bank rows land on the country list, so the country click is the one
-     * place the bank arm of deposit_method_selected is reported. A capture
-     * here too counted the same user twice as soon as the flag went on.
-     */
-    it.each([true, false])('leaves the bank funnel event to the country click (get-paid on: %s)', async (enabled) => {
-        depositAccountsEnabled = enabled
-        renderWithUrl('?drawer=add')
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
-        expect(mockCapture).not.toHaveBeenCalled()
     })
 
     it('opens the request drawer with both share actions and routes each on click', async () => {
@@ -181,16 +185,18 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-request-share-bank')).not.toBeInTheDocument()
     })
 
-    it('carries a query-bearing returnTo onto the bank destination', async () => {
+    it('carries a query-bearing returnTo onto the ready bank-account chooser', async () => {
         // The origin holds its own query string, so the value has to survive
         // encoding whole — an unencoded `&to=EUR` would arrive as a separate
         // param and the back button would land on half a URL.
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        fireEvent.click(screen.getByTestId('home-drawer-add-account'))
         await waitFor(() =>
-            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
+            expect(mockPush).toHaveBeenCalledWith(
+                `/add-money/options?method=account&ready=1&returnTo=${encodeURIComponent(origin)}`
+            )
         )
     })
 
@@ -198,7 +204,7 @@ describe('HomeActionDrawers', () => {
         render(
             <>
                 <NavProbe />
-                <HomeActionDrawers />
+                <HomeActionDrawers addMoney={{ ...returning, isLoading: false }} />
             </>,
             { wrapper: withNuqsTestingAdapter({ searchParams: '?drawer=send' }) }
         )
@@ -214,7 +220,7 @@ describe('HomeActionDrawers', () => {
         render(
             <>
                 <NavProbe />
-                <HomeActionDrawers />
+                <HomeActionDrawers addMoney={{ ...returning, isLoading: false }} />
             </>,
             { wrapper: withNuqsTestingAdapter({ searchParams: '' }) }
         )

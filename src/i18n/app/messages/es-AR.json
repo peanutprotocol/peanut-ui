@@ -1170,6 +1170,14 @@
         "howMuchToAdd": "Monto a agregar",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
+            "moreWays": "Más formas de agregar dinero",
+            "accountDetails": "Datos bancarios reutilizables",
+            "oneTimeDetails": "Datos para una transferencia",
+            "pixDetails": "Escaneá o copiá el código",
+            "cryptoDetails": "Desde billeteras o exchanges",
+            "openAccount": "Abrir una cuenta bancaria",
+            "oneTimeTransfer": "Transferencia bancaria única",
+            "payPix": "Pagar con Pix",
             "cryptoDescription": "Depositá desde una billetera o exchange",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
@@ -2257,7 +2265,7 @@
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
-            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué.",
+            "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vivís. Soporte puede revisarlo.",
             "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos."
         },
         "claim": {

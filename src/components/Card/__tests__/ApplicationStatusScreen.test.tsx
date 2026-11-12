@@ -35,6 +35,16 @@ jest.mock('next/image', () => ({
 
 const REASSURANCE = en.card.status.rejectedBody
 
+describe('ApplicationStatusScreen — creating card', () => {
+    it('shows progress without offering a duplicate application', () => {
+        render(<ApplicationStatusScreen variant="creating-card" />)
+        expect(screen.getByRole('heading', { name: en.card.status.creatingCardTitle })).toBeInTheDocument()
+        expect(screen.getByText(en.card.status.creatingCardBody)).toBeInTheDocument()
+        expect(screen.queryByText(en.card.page.issueFailed)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /get card/i })).not.toBeInTheDocument()
+    })
+})
+
 describe('ApplicationStatusScreen — rejected', () => {
     it('renders the specific reason above the reassurance body', () => {
         render(

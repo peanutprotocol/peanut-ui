@@ -9,11 +9,13 @@ import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { useKycControl } from './analytics'
+import type { FeatureReportEntry } from '@/types/capabilities'
 
 export function KycFeatureActivationStatus({
     feature,
     result,
     accountCurrency,
+    accountStatus,
     isLoading,
     onRetry,
     onBack,
@@ -21,6 +23,7 @@ export function KycFeatureActivationStatus({
     feature: KycActivationFeature
     result: KycFeatureActivationResult | null
     accountCurrency?: string
+    accountStatus?: FeatureReportEntry
     isLoading: boolean
     onRetry: () => void
     onBack: () => void
@@ -28,18 +31,18 @@ export function KycFeatureActivationStatus({
     const t = useTranslations('kyc.paperworkVerification')
     const controls = useKycControl('feature-status', 'kyc_status')
     const tKyc = useTranslations('kyc')
-    const report = result?.kind === 'report' ? result.report : null
+    const report = accountStatus ?? (result?.kind === 'report' ? result.report : null)
     if (report?.state === 'action_required' && report.action?.startsWith('supplement:')) {
         return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />
     }
-    const identityRequired = result?.kind === 'conflict' && result.code === 'identity_not_approved'
-    const consent = !result || identityRequired
-    const failed = result?.kind === 'failed'
+    const identityRequired = !accountStatus && result?.kind === 'conflict' && result.code === 'identity_not_approved'
+    const consent = (!accountStatus && !result) || identityRequired
+    const failed = !accountStatus && result?.kind === 'failed'
     const needsReplacement = report?.state === 'refused' && report.reason === 'identity_document_insufficient'
     const refused =
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
-        (result?.kind === 'conflict' && !identityRequired)
+        (!accountStatus && result?.kind === 'conflict' && !identityRequired)
     if (!consent && !failed && !refused && feature !== 'qr')
         return (
             <FeatureReadyScreen
@@ -70,9 +73,10 @@ export function KycFeatureActivationStatus({
                     : failed
                       ? t('loadFailed.description')
                       : refused
-                        ? tKyc(kycFeatureRefusalCopy(report?.reason), {
+                        ? (accountStatus?.message ??
+                          tKyc(kycFeatureRefusalCopy(report?.reason), {
                               feature: tKyc(`documents.${feature}` as never),
-                          })
+                          }))
                         : tKyc('processingDescription')
             }
             footer={

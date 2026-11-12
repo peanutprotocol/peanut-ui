@@ -139,6 +139,13 @@ describe('restartIdentityVerification — wire shape', () => {
             json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1' }),
         }) as unknown as Response
 
+    it('passes the captured session guard to the restart transport', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const beforeDispatch = jest.fn(() => true)
+        await restartIdentityVerification(undefined, undefined, beforeDispatch)
+        expect(mockFetch).toHaveBeenCalledWith('/users/identity/restart', expect.objectContaining({ beforeDispatch }))
+    })
+
     it('posts the region intent as JSON so the backend mints the matching level', async () => {
         mockFetch.mockResolvedValue(okResponse())
         const result = await restartIdentityVerification('LATAM')
@@ -285,6 +292,19 @@ describe('startResidenceChangeVerification — wire shape', () => {
         expect(result.code).toBe('residence_change_failed')
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
+    })
+
+    it('preserves the provider review-hold code without returning an SDK token', async () => {
+        respondWith(409, {
+            error: 'This residence action is already under review.',
+            code: 'RESIDENCE_ACTION_REVIEW_PENDING',
+        })
+
+        const result = await startResidenceChangeVerification('PT')
+
+        expect(result.code).toBe('RESIDENCE_ACTION_REVIEW_PENDING')
+        expect(result.data?.token).toBeUndefined()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('preserves a residence-action retry window from a 409 response', async () => {

@@ -186,10 +186,11 @@ describe('GettingStartedChecklist', () => {
         })
     })
 
-    it('Add money is tappable before verify and opens the Add drawer', () => {
+    it('Add money is tappable before verify and opens the full picker', () => {
         render()
         fireEvent.click(screen.getByText('Add money'))
-        expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
+        expect(mockPush).toHaveBeenCalledWith('/add-money')
+        expect(mockSetHomeDrawer).not.toHaveBeenCalled()
     })
 
     it('money in before the ID check: Add money done, verify still open, 2 of 4', () => {
@@ -365,7 +366,8 @@ describe('GettingStartedChecklist — welcome card and one done row', () => {
         expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 of 4 done')
         expect(screen.getAllByTestId(/^checklist-/)).toHaveLength(4)
         fireEvent.click(screen.getByText('Add money'))
-        expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
+        expect(mockPush).toHaveBeenCalledWith('/add-money')
+        expect(mockSetHomeDrawer).not.toHaveBeenCalled()
     })
 
     it('welcomes with the real step count and the progress', () => {

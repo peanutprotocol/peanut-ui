@@ -30,6 +30,12 @@ test('open selectors are separate checkpoints and require a visible selected opt
     }
     for (const screen of screens.filter((screen) => /Drawer\b/.test(screen.name) || screen.route.includes('drawer=')))
         assert.match(screen.expectSelector, /\[role="dialog"\]/)
+    for (const id of ['fixture-home-add-drawer', 'p41-home-add-drawer', '51-d-homeactiondrawers'])
+        assert.equal(
+            screens.find((screen) => screen.id === id)?.expectSelector,
+            '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]',
+            id
+        )
 })
 
 test('the actual screen catalogue produces valid capture manifests in every locale', () => {

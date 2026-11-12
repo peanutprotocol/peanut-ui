@@ -126,7 +126,19 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
     const { rails, nextActions, isLoading: areCapabilitiesLoading } = useCapabilities()
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
-    const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
+    const mantecaRejection = useMemo(
+        () =>
+            deriveProviderRejection(
+                residenceGatedCountry
+                    ? rails.filter(
+                          (rail) => rail.channel === 'bank' && rail.country.toUpperCase() === residenceGatedCountry
+                      )
+                    : rails,
+                'MANTECA',
+                nextActions
+            ),
+        [rails, residenceGatedCountry, nextActions]
+    )
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.

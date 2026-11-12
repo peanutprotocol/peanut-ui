@@ -1,7 +1,7 @@
 import { FIXTURES } from '../fixtures/registry'
 import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
 import { SURFACE_META } from '../surfaces/list'
-import { PAGE_CAPTURES, type PageCapture } from './pages'
+import { HOME_ADD_DRAWER_CHECKPOINT, PAGE_CAPTURES, type PageCapture } from './pages'
 import { FLAG_VARIANTS } from './flag-variants'
 
 export type Screen = {
@@ -62,6 +62,7 @@ const readiness: Record<string, string> = {
     '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
 const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
+    'add-money-picker-first-time': { expectSelector: '[data-testid="add-money-method-crypto"]' },
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
     'paperwork-verification-bridge-postal-correction': {
@@ -108,7 +109,7 @@ const routeOverrides: Record<
     '57-d-raincooldownintromodal': { route: '/home', fixture: 'home', event: 'rain:cooldown' },
     '58-d-stalecardapprovalreenablemodal': { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
     '18-a-reconsentmodal': { route: '/home', fixture: 'reconsent' },
-    '51-d-homeactiondrawers': { route: '/home?drawer=add', fixture: 'home' },
+    '51-d-homeactiondrawers': { route: '/home?drawer=add', fixture: 'home-add-drawer' },
 
     '66-e-avatarpicker': { route: FIXTURES['avatar-picker'].route, fixture: 'avatar-picker' },
 }
@@ -325,6 +326,7 @@ const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??
+        (screen.fixture === 'home-add-drawer' ? HOME_ADD_DRAWER_CHECKPOINT : undefined) ??
         // The QR drawer intentionally rests at a small peek snap. Its visible
         // title proves it is open without requiring half its full-height box.
         (screen.id === '54-d-qrbottomdrawer' ? '[role="dialog"][data-state="open"] h2' : undefined) ??

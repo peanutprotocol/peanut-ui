@@ -253,6 +253,18 @@
         "source": "features/card/components/CardResidenceAddressScreen.tsx"
     },
     {
+        "id": "07-d-notification-switches",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-switches",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
+        "id": "07-d-notification-defaults-on",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-defaults-on",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -268,6 +280,12 @@
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
+        "id": "45-d-residence-review",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-d-residence-review",
         "source": "Profile/views/ResidenceChangeDrawer.tsx"
     },
     {
@@ -1277,6 +1295,11 @@
         "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
     },
     {
+        "id": "fixture-add-money-picker-first-time",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
         "id": "fixture-paperwork-verification-ars-setting-up",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"
@@ -1365,6 +1388,26 @@
         "id": "p17-add-money",
         "flow": "Add money",
         "route": "/add-money?method=bank"
+    },
+    {
+        "id": "add-money-method-picker",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
+        "id": "add-money-account-currencies",
+        "flow": "Add money",
+        "route": "/add-money/options?method=account"
+    },
+    {
+        "id": "add-money-transfer-currencies",
+        "flow": "Add money",
+        "route": "/add-money/options?method=transfer"
+    },
+    {
+        "id": "add-money-pix-currency",
+        "flow": "Add money",
+        "route": "/add-money/options?method=pix"
     },
     {
         "id": "p18-add-money-crypto",
@@ -1802,6 +1845,12 @@
         "flow": "Card",
         "route": "/dev/surfaces?s=81-g-request-pot-partial",
         "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
+    },
+    {
+        "id": "82-e-card-creating",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-e-card-creating",
+        "source": "Card/ApplicationStatusScreen.tsx"
     },
     {
         "id": "82-f-choice-card-requires-info",

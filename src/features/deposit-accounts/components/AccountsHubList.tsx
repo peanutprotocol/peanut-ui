@@ -60,6 +60,7 @@ export function AccountsHubList({
     claimsEnabled,
     bankRows,
     onBankRowClick,
+    onVerifyPix,
     onChangeResidence,
     isKycDegraded = false,
     searchTerm = '',
@@ -74,6 +75,8 @@ export function AccountsHubList({
     bankRows: UnlockRow[]
     /** a bank row the user can use or unlock */
     onBankRowClick: (row: UnlockRow) => void
+    /** The Bank account list can open a verification drawer for the Pix top-up. */
+    onVerifyPix?: () => void
     onChangeResidence: () => void
     /** verification is down, so a bank row that needs it explains that instead */
     isKycDegraded?: boolean
@@ -294,19 +297,27 @@ export function AccountsHubList({
     const bankRow = (row: UnlockRow) => {
         const label = tRows(`rows.${row.labelKey}`)
         const identityRefused = bankRowRefusedByIdentity(row, bankIdentity(row))
+        const verifyPix = row.corridor === 'PIX_BR' && row.chip === 'unlock' && !identityRefused && onVerifyPix
         return (
             <ListItem
                 key={row.id}
                 // a bank row with no country flag still names a bank
                 leading={row.flag ? <CorridorFlag iso2={row.flag} /> : <IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                 title={row.currency ?? label}
-                trailing={rowStatusBadge(identityRefused ? { ...row, chip: 'attention' } : row, tRows)}
+                trailing={
+                    verifyPix ? (
+                        <Badge status="pending" customText={t('list.badgeVerifyId')} />
+                    ) : (
+                        rowStatusBadge(identityRefused ? { ...row, chip: 'attention' } : row, tRows)
+                    )
+                }
                 body={row.note && tRows(row.note)}
                 bodyWrap
                 chevron
                 onClick={() => {
                     const reason = closedBankRow(row, isKycDegraded, bankIdentity(row))
                     if (reason) setClosed(reason)
+                    else if (verifyPix) verifyPix()
                     else onBankRowClick(row)
                 }}
                 data-testid={`bank-row-${row.labelKey}`}

@@ -60,7 +60,7 @@ const DEFAULTS_ON: NotificationChoices = {
  * user changes one, and Offers and perks still starts off.
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
-function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
+export function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     const t = useTranslations('setup.notifications')
     const tSetup = useTranslations('setup')
     const {
@@ -164,7 +164,10 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     return (
         // Balanced, so the two-line title breaks after "notifications" instead of leaving the last words alone.
         <NotificationsStepLayout title={tSetup('steps.notification-permission.title')} titleClassName="text-balance">
-            <div className="flex flex-1 flex-col justify-center gap-3">
+            <div
+                className="flex min-h-0 flex-1 flex-col justify-center-safe gap-3 overflow-y-auto overscroll-contain"
+                data-testid="setup-notification-choices"
+            >
                 {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
                 <ListGroup>
                     {SWITCHES.map(({ key, icon, label }) => (

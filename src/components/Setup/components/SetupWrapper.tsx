@@ -461,6 +461,9 @@ export const SetupWrapper = memo(function SetupWrapper({
         <div
             className={twMerge(
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
+                // A minimum height alone lets notification choices grow the whole setup page.
+                screenId === 'notification-permission' &&
+                    'max-md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]',
                 // The first panel rises from below the viewport. Fill the exposed
                 // space with the same blue as the hero, not the page beige.
                 screenId === 'landing' && 'bg-background-setup-hero',
@@ -531,6 +534,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                 <div
                                     className={twMerge(
                                         'flex w-full flex-1 flex-col justify-between md:flex-1',
+                                        screenId === 'notification-permission' && 'min-h-0',
                                         contentClassName,
                                         'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
                                         // signup matches residence: the field sits 24px under the description
@@ -560,7 +564,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         className={twMerge(
                                             'mx-auto w-full',
                                             fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                            !sunsetLanding && 'flex flex-1 flex-col'
+                                            !sunsetLanding && 'flex flex-1 flex-col',
+                                            screenId === 'notification-permission' && 'min-h-0'
                                         )}
                                     >
                                         <SetupFullScreenContext.Provider value={setFullScreenForScreen}>

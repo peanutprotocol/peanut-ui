@@ -9,7 +9,14 @@ import { useTosGuard } from '@/hooks/useTosGuard'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { useGateActions } from '@/hooks/useGateActions'
-import { getGateReasonCode, getGateUserMessage, resolveKycModalVariant, type GateState } from '@/utils/capability-gate'
+import type { NextAction } from '@/types/capabilities'
+import {
+    gateFromEntry,
+    getGateReasonCode,
+    getGateUserMessage,
+    resolveKycModalVariant,
+    type GateState,
+} from '@/utils/capability-gate'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { USER } from '@/constants/query.consts'
@@ -38,7 +45,7 @@ import { AddressLaunchModal } from './components/AddressLaunchModal'
 export function useDepositGateRemediation(): {
     resolveGate: (gate: GateState, corridor?: DepositCorridor) => void
     /** the claim answered `verification_required`: start the level this corridor needs */
-    verifyCorridor: (corridor: DepositCorridor) => void
+    verifyCorridor: (corridor: DepositCorridor, nextAction?: NextAction) => void
     modals: ReactNode
 } {
     const t = useTranslations('depositAccounts')
@@ -65,6 +72,7 @@ export function useDepositGateRemediation(): {
     const [postalGate, setPostalGate] = useState<GateState>()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const [kycModalGate, setKycModalGate] = useState<GateState | undefined>()
+    const kycModalOwner = useRef(owner)
     // The corridor the verification is for. It is what the backend opens the
     // level from — the same request for every corridor, from every entry point
     // (the list, the country pick, the claim) — so the user lands back on the
@@ -84,6 +92,7 @@ export function useDepositGateRemediation(): {
         addressPending.current = false
         setAddressLaunch(undefined)
         setPostalGate(undefined)
+        setKycModalGate(undefined)
         setAddressStarting(false)
         setAddressLaunchError(null)
         return () => {
@@ -170,6 +179,7 @@ export function useDepositGateRemediation(): {
                 // needs-identity, needs-enrollment, fixable-rejection,
                 // restart-identity: all start in the same modal, which reads the
                 // gate to pick its words and which run to start (gateRemedy)
+                kycModalOwner.current = owner
                 setKycModalGate(gate)
         }
     }
@@ -212,10 +222,18 @@ export function useDepositGateRemediation(): {
             />
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
-                visible={kycModalGate !== undefined}
+                visible={kycModalGate !== undefined && kycModalOwner.current === owner}
                 onClose={() => setKycModalGate(undefined)}
                 onVerify={async () => {
-                    if (!kycModalGate) return
+                    if (!kycModalGate || ownerRef.current !== owner || kycModalOwner.current !== owner) return
+                    if (kycModalGate.kind === 'restart-identity' && kycCorridor) {
+                        const currentGate = gateFor('deposit', { railId: railIdFor(kycCorridor) })
+                        if (currentGate.kind === 'blocked-rejection') {
+                            setKycModalGate(undefined)
+                            resolveGate(currentGate, kycCorridor)
+                            return
+                        }
+                    }
                     // The corridor, where there is one, names the level: a
                     // verified user moves on to it, a new one starts there.
                     await gateActions.verify(kycModalGate, {
@@ -261,8 +279,17 @@ export function useDepositGateRemediation(): {
         </>
     )
 
-    const verifyCorridor = (corridor: DepositCorridor) =>
-        resolveGate(gateFor('deposit', { railId: railIdFor(corridor) }), corridor)
+    const verifyCorridor = (corridor: DepositCorridor, nextAction?: NextAction) => {
+        const currentGate = gateFor('deposit', { railId: railIdFor(corridor) })
+        const gate =
+            nextAction?.kind === 'restart-identity' && currentGate.kind !== 'blocked-rejection'
+                ? gateFromEntry(
+                      { state: 'action_required', reason: nextAction.purpose, action: nextAction.key },
+                      { rails: [], nextActions: [nextAction] }
+                  )
+                : currentGate
+        resolveGate(gate, corridor)
+    }
 
     return { resolveGate, verifyCorridor, modals }
 }

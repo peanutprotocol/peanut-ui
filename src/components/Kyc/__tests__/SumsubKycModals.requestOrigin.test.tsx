@@ -6,7 +6,12 @@ import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { initiateSelfHealResubmission, initiateSumsubKyc, startKycAction } from '@/app/actions/sumsub'
+import {
+    initiateSelfHealResubmission,
+    initiateSumsubKyc,
+    startKycAction,
+    startResidenceChangeVerification,
+} from '@/app/actions/sumsub'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
@@ -34,6 +39,7 @@ jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: () => undefined }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), replace: jest.fn() }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
 const mockFetchUser = jest.fn()
+const mockSetIsSupportModalOpen = jest.fn()
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' } } }),
 }))
@@ -42,7 +48,10 @@ jest.mock('@/hooks/useSumsubReloadResume', () => ({ useSumsubReloadResume: jest.
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))
 jest.mock('@/hooks/useBridgeProviderId', () => ({ useBridgeProviderId: () => 'bridge' }))
 jest.mock('@/app/actions/users', () => ({ getBridgeTosLink: jest.fn(), confirmBridgeTos: jest.fn() }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+    useModalsContextOptional: () => ({ setIsSupportModalOpen: mockSetIsSupportModalOpen }),
+}))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/DocsLink', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Modal', () => ({
@@ -67,13 +76,19 @@ jest.mock('@/components/Global/ActionModal', () => ({
         visible,
         ctas = [],
         tertiaryCta,
+        title,
+        footer,
     }: {
         visible: boolean
+        title?: string
+        footer?: React.ReactNode
         ctas?: Array<{ text: string; onClick: () => void }>
         tertiaryCta?: { text: string; onClick: () => void }
     }) =>
         visible ? (
             <div>
+                {title && <h2>{title}</h2>}
+                {footer}
                 {ctas.map((cta) => (
                     <button key={cta.text} onClick={cta.onClick}>
                         {cta.text}
@@ -136,6 +151,23 @@ afterEach(() => {
     const payload = JSON.stringify(capture.mock.calls)
     for (const secret of ['private-token', 'private-action', 'private-requirement'])
         expect(payload).not.toContain(secret)
+})
+
+it('opens support from an existing residence review hold and dismisses the review modal', async () => {
+    jest.mocked(startResidenceChangeVerification).mockResolvedValue({
+        error: 'Under review',
+        code: 'RESIDENCE_ACTION_REVIEW_PENDING',
+    })
+    renderWithIntl(<FlowHarness />)
+
+    await act(async () => {
+        await flow.handleResidenceChange('PT')
+    })
+
+    expect(screen.getByRole('heading', { name: 'Under review' })).toBeInTheDocument()
+    tap('Contact support')
+    expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+    expect(screen.queryByRole('heading', { name: 'Under review' })).not.toBeInTheDocument()
 })
 
 it('keeps a provider action the provider request through its SDK and the modal after it, until a legacy start', async () => {

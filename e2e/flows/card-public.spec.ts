@@ -5,7 +5,7 @@
  * it answers every API call inside api-fetch and the kernel client skips the
  * passkey path for an active fixture, so no harness build flag is needed.
  * The guest test intercepts the network instead — a signed-out visitor has no
- * fixture session, and the assertion is about the signup redirect.
+ * fixture session, and the assertion is about the deferred card destination.
  */
 import { expect, test, type Page } from '@playwright/test'
 
@@ -291,9 +291,9 @@ test('a cancel whose wallet stop is still in progress says so, and the card page
 
 test('a lock confirmed by the funding read says payments from the wallet are stopped', async ({ page }) => {
     await page.goto('/card?__fixture=card-lock-stop-confirmed')
-    await page.getByRole('button', { name: 'Lock card', exact: true }).click()
-    await slideTo(page, 'Slide to Lock')
-    await expect(page.getByText('Card locked', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Freeze', exact: true }).click()
+    await slideTo(page, 'Slide to freeze')
+    await expect(page.getByText('Card frozen', { exact: true })).toBeVisible()
     await expect(page.getByTestId('card-stop-notice')).toContainText(
         'Payments from your wallet to this card are stopped'
     )
@@ -302,9 +302,9 @@ test('a lock confirmed by the funding read says payments from the wallet are sto
 
 test('a lock that cannot stop wallet payments asks for support and never says stopped', async ({ page }) => {
     await page.goto('/card?__fixture=card-lock-stop-unavailable')
-    await page.getByRole('button', { name: 'Lock card', exact: true }).click()
-    await slideTo(page, 'Slide to Lock')
-    await expect(page.getByText('Card locked', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Freeze', exact: true }).click()
+    await slideTo(page, 'Slide to freeze')
+    await expect(page.getByText('Card frozen', { exact: true })).toBeVisible()
     await expect(page.getByTestId('card-stop-notice')).toContainText("couldn't confirm")
     await expect(page.getByText(/are stopped/i)).toHaveCount(0)
     await shot(page, 'lock-stop-unavailable')
@@ -341,11 +341,17 @@ test('a signed-out visitor to /card is redirected to /setup — public access is
     await page.waitForURL(/\/setup/, { timeout: 10_000 })
 })
 
-test('the public landing sends a guest to signup with the card destination', async ({ page }) => {
+test('the public landing opens Google Play with the deferred card destination', async ({ page, context }) => {
     await stubSignedOutApi(page)
+    await context.route('https://play.google.com/**', (route) => route.fulfill({ body: 'Store handoff' }))
     await page.goto('/shhhhh')
     await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card Go Pink.' })).toBeVisible()
     await shot(page, 'landing')
+
+    const opened = page.waitForEvent('popup')
     await page.getByRole('button', { name: 'Get card', exact: true }).first().click()
-    await expect(page).toHaveURL(/\/setup\?redirect_uri=%2Fcard/)
+    const store = await opened
+    await expect(store).toHaveURL(/^https:\/\/play\.google\.com\/store\/apps\/details\?/)
+    const referrer = new URL(store.url()).searchParams.get('referrer') ?? ''
+    expect(new URLSearchParams(referrer).get('dest')).toBe('/card')
 })

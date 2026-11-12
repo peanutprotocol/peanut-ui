@@ -10,6 +10,7 @@ import { useHomeFlow } from './useHomeFlow'
 import { BalanceSection } from './views/BalanceSection'
 import { HomeTopNav } from './views/HomeTopNav'
 import { useHomeViewAnalytics } from './useHomeViewAnalytics'
+import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 
 /**
  * home page (figma board 17830:75689): top nav (menu / rewards), balance
@@ -22,6 +23,7 @@ import { useHomeViewAnalytics } from './useHomeViewAnalytics'
 export function HomePage() {
     const {
         isPageLoading,
+        address,
         username,
         isActivated,
         isOnboardingComplete,
@@ -31,6 +33,7 @@ export function HomePage() {
         isBalanceHidden,
         toggleBalanceVisibility,
     } = useHomeFlow()
+    const addMoney = useAddMoneyReadiness(!!address)
     useHomeViewAnalytics(isPageLoading)
 
     if (isPageLoading) {
@@ -42,6 +45,7 @@ export function HomePage() {
             <div className="flex h-full w-full flex-col gap-6">
                 <HomeTopNav showRewards={isActivated} />
                 <BalanceSection
+                    addMoneyEntry={addMoney.entry}
                     balance={spendableBalance}
                     isFetching={isFetchingSpendableBalance}
                     isStale={isSpendableBalanceStale}
@@ -58,7 +62,7 @@ export function HomePage() {
                 </div>
             </div>
             <HomeModals />
-            <HomeActionDrawers />
+            <HomeActionDrawers addMoney={addMoney} />
         </PageContainer>
     )
 }

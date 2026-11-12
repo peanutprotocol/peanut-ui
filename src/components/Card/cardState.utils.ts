@@ -15,6 +15,7 @@ export function findActiveCard(overview: RainCardOverview | undefined): RainCard
 export type CardTopLevelState =
     | 'loading'
     | 'add-card'
+    | 'creating-card'
     | 'pending'
     | 'manual-review'
     /** Provider needs more information from the user (rail REQUIRES_INFORMATION /

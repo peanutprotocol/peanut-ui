@@ -168,6 +168,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '04-b-advantage-fees': { name: 'Setup benefit — accounts', path: 'Setup/Views/Advantage.tsx' },
     '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
     '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
+    '07-d-notification-switches': { name: 'Setup — notification switches', path: 'Setup/Views/Notifications.tsx' },
+    '07-d-notification-defaults-on': {
+        name: 'Setup — notification defaults on',
+        path: 'Setup/Views/Notifications.tsx',
+    },
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
     '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
@@ -285,6 +290,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
+    '45-d-residence-review': {
+        name: 'Residence change under review',
+        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+        captureState: ['pendingStatus=REVIEW_PENDING'],
+    },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
@@ -375,6 +385,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request pot — deposit card after a short external-wallet deposit',
         path: 'components/AddMoney/views/RhinoDeposit.view.tsx',
         captureState: ['received=33', 'asked=58.51'],
+    },
+    '82-e-card-creating': {
+        name: 'Card application — creating card',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=creating-card'],
+        expectSelector: '[data-testid="app-page-surface-content"] h1',
     },
     '82-f-choice-card-requires-info': {
         name: 'Card application — more information required',
