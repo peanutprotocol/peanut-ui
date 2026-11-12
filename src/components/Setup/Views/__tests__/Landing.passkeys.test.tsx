@@ -148,7 +148,8 @@ const advance = async (milliseconds: number) => {
 const login = () => screen.queryByRole('button', { name: 'logIn' })
 const expectEntryActions = () => {
     expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
-    expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
+    // The recovery link appears only after a manual login fails.
+    expect(screen.queryByText('landing.recoverWallet')).not.toBeInTheDocument()
 }
 function ios() {
     mockNative = { ...mockNative, platform: 'ios', isIOSNative: true, isAndroidNativeBridge: false }
@@ -459,58 +460,51 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockLogin).not.toHaveBeenCalled()
     })
 
-    function selectIOSFallback(action: 'signup' | 'recovery') {
+    function selectIOSFallback(action: 'signup') {
         if (action === 'signup') fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
-        else fireEvent.click(screen.getByText('landing.recoverWallet'))
     }
 
-    it.each(['signup', 'recovery'] as const)(
-        'does not start iOS auto-login after %s during capability lookup',
-        async (action) => {
-            ios()
-            const capability = deferred<boolean>()
-            mockIOSCapability.mockReturnValue(capability.promise)
-            render(<Landing />)
+    it.each(['signup'] as const)('does not start iOS auto-login after %s during capability lookup', async (action) => {
+        ios()
+        const capability = deferred<boolean>()
+        mockIOSCapability.mockReturnValue(capability.promise)
+        render(<Landing />)
 
-            selectIOSFallback(action)
-            await act(async () => capability.resolve(true))
+        selectIOSFallback(action)
+        await act(async () => capability.resolve(true))
 
-            if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
-            expect(mockLogin).not.toHaveBeenCalled()
-            expect(mockCancelIOS).not.toHaveBeenCalled()
-        }
-    )
+        if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(mockLogin).not.toHaveBeenCalled()
+        expect(mockCancelIOS).not.toHaveBeenCalled()
+    })
 
-    it.each(['signup', 'recovery'] as const)(
-        'prevents a late iOS picker after %s during options fetch',
-        async (action) => {
-            ios()
-            mockIOSCapability.mockResolvedValue(true)
-            const options = deferred<void>()
-            const dispatchPicker = jest.fn()
-            mockLogin.mockImplementationOnce(
-                ({ immediateSignal, cancelSignal }: { immediateSignal: AbortSignal; cancelSignal: AbortSignal }) => {
-                    // The SDK options request and outer ceremony guard observe different signals.
-                    void options.promise.then(() => {
-                        if (!immediateSignal.aborted) dispatchPicker()
-                    })
-                    return new Promise<void>((resolve) => {
-                        cancelSignal.addEventListener('abort', () => resolve(), { once: true })
-                    })
-                }
-            )
-            render(<Landing />)
-            await flush()
-            expect(mockLogin).toHaveBeenCalledTimes(1)
+    it.each(['signup'] as const)('prevents a late iOS picker after %s during options fetch', async (action) => {
+        ios()
+        mockIOSCapability.mockResolvedValue(true)
+        const options = deferred<void>()
+        const dispatchPicker = jest.fn()
+        mockLogin.mockImplementationOnce(
+            ({ immediateSignal, cancelSignal }: { immediateSignal: AbortSignal; cancelSignal: AbortSignal }) => {
+                // The SDK options request and outer ceremony guard observe different signals.
+                void options.promise.then(() => {
+                    if (!immediateSignal.aborted) dispatchPicker()
+                })
+                return new Promise<void>((resolve) => {
+                    cancelSignal.addEventListener('abort', () => resolve(), { once: true })
+                })
+            }
+        )
+        render(<Landing />)
+        await flush()
+        expect(mockLogin).toHaveBeenCalledTimes(1)
 
-            selectIOSFallback(action)
-            await act(async () => options.resolve())
+        selectIOSFallback(action)
+        await act(async () => options.resolve())
 
-            if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
-            expect(dispatchPicker).not.toHaveBeenCalled()
-            expect(mockCancelIOS).toHaveBeenCalledTimes(1)
-        }
-    )
+        if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(dispatchPicker).not.toHaveBeenCalled()
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+    })
 
     it('ignores iOS capability confirmed after timeout or unmount', async () => {
         ios()

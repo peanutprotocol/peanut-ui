@@ -57,6 +57,7 @@ const LandingStep = () => {
     const toast = useToast()
     const { track } = useSignupControl()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
+    const [loginFailed, setLoginFailed] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
@@ -176,6 +177,8 @@ const LandingStep = () => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         const passkeyErrorCode = getPasskeyErrorCode(error)
         const recovery = offersRecovery(passkeyErrorCode)
+        // A single dismissal of the passkey sheet is a choice, not a failed login.
+        if (passkeyErrorCode !== 'LOGIN_CANCELED' || recovery) setLoginFailed(true)
         if (passkeyErrorCode === 'ACCOUNT_DELETED') {
             setIsAccountDeleted(true)
         } else if (recovery) {
@@ -288,7 +291,7 @@ const LandingStep = () => {
         />
     )
 
-    const recoveryLink = (
+    const recoveryLink = loginFailed && (
         <SetupDocLink
             kind="account-recovery"
             href="/en/help/account-recovery"
@@ -336,7 +339,7 @@ const LandingStep = () => {
                         </LinkButton>
                     </div>
                     {/* pt-1: two stacked text links need ~28px between their hit areas */}
-                    <div className="pt-1 text-center">{recoveryLink}</div>
+                    {recoveryLink && <div className="pt-1 text-center">{recoveryLink}</div>}
                     {/* Not a product element: staging, previews and local builds only, so
                         the team can still create web accounts. The dashed frame and badge
                         keep it from reading as a real option in screenshots. */}
@@ -356,7 +359,7 @@ const LandingStep = () => {
     return (
         <>
             <div className="flex flex-1 flex-col">
-                <div className="text-left">{recoveryLink}</div>
+                {recoveryLink && <div className="text-left">{recoveryLink}</div>}
                 <SetupFooter
                     actions={
                         <>
