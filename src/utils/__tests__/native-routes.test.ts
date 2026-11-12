@@ -736,7 +736,33 @@ describe('native-routes', () => {
                 deepLinkToNativePath(
                     'https://peanut.me/home?app_entry=1&tl=alice&acq_invite=alice&tl_seen=1&pnutdl=1&wid=w&at=t'
                 )
-            ).toBe('/app?tl=alice&acq_invite=alice&tl_seen=1&pnutdl=1&wid=w&at=t')
+            ).toBe('/app?tl=alice&tl_seen=1&acq_invite=alice&pnutdl=1&at=t&wid=w')
+        })
+
+        it('runs the /go handoff with its passive inviter and drops every other field', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?app_entry=1&tl=alice&acq_invite=alice&invite=mallory&pnutdl=1&dest=%2Fsend'
+                )
+            ).toBe('/app?tl=alice&acq_invite=alice')
+        })
+
+        it('forwards only whitelisted, single-valued continuation fields', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?tl=alice&tl_seen=1&invite=bob&lang=es&dest=%2Fsend&code=mallory&at=1&at=2'
+                )
+            ).toBe('/app?tl=alice&tl_seen=1&lang=es&invite=bob')
+        })
+
+        it.each([
+            ['another peanut.me host', 'https://evil.peanut.me/home?tl=alice'],
+            ['an http origin', 'http://peanut.me/home?tl=alice'],
+            ['credentials in the URL', 'https://user:pass@peanut.me/home?tl=alice'],
+            ['two tl values', 'https://peanut.me/home?tl=alice&tl=bob'],
+            ['a slug that cannot be a username', 'https://peanut.me/home?tl=Al-ice'],
+        ])('opens no tracked handoff from %s', (_case, url) => {
+            expect(deepLinkToNativePath(url)).toBeNull()
         })
 
         it('has no native page for /go, which is not an associated path', () => {
