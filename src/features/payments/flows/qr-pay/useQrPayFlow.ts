@@ -31,7 +31,11 @@ import { useSmartSpendPreparation } from '@/hooks/wallet/useSmartSpendPreparatio
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
 import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
-import { SessionKeyGrantRequiredError, type SpendStrategy } from '@/hooks/wallet/spendPreflight'
+import {
+    InsufficientSpendableError,
+    SessionKeyGrantRequiredError,
+    type SpendStrategy,
+} from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { isPasskeyBusyError, isPasskeyCleanupPendingError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -68,6 +72,7 @@ import {
 import { useQrFailureCopy } from './useQrFailureCopy'
 import { useQrPayKycGate } from './useQrPayKycGate'
 import { deriveQrPayView } from './derive-view'
+import { largestLocalAmountWithinBalance, usdShortfall } from './quote-gap'
 import {
     boundedQrType,
     createQrPaymentAttemptTelemetry,
@@ -150,6 +155,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         submittedPaymentRef.current = false
     }, [scanIdempotencyKey])
     const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
+    // Bumped when the flow itself replaces the typed amount: the amount field
+    // ignores a new initialAmount once the user has typed, so it must remount.
+    const [amountInputRevision, setAmountInputRevision] = useState(0)
     const [isQuoteRecovering, setIsQuoteRecovering] = useState(false)
     /** A replacement quote failed to mint: the payment did NOT fail, so Pay
      *  stays available and one more tap retries the whole thing. */
@@ -318,6 +326,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const [rateUnavailable, setRateUnavailable] = useState(false)
     const [rateAttempt, setRateAttempt] = useState(0)
+    // The rate of the last lock minted for a typed amount that the balance
+    // could not pay. The form converts at it after that, not at a fresh rate: a
+    // lower fresh rate would put the amount lowered to the balance back above it.
+    const lastLockRateRef = useRef<string | null>(null)
     const retryRate = useCallback(() => {
         setRateUnavailable(false)
         setRateAttempt((attempt) => attempt + 1)
@@ -335,7 +347,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             let price: number
             currencyCode = paymentLock.paymentAsset
             if (paymentLock.code === '') {
-                price = (await getCurrencyPrice(currencyCode)).sell
+                price = lastLockRateRef.current
+                    ? Number(lastLockRateRef.current)
+                    : (await getCurrencyPrice(currencyCode)).sell
             } else {
                 price = Number(paymentLock.paymentPrice)
             }
@@ -904,6 +918,33 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 setLoadingState('Idle')
                 return
             }
+            // The lock this tap minted for a typed amount needs more than the
+            // balance (TASK-24621). Nothing was signed: the form goes back to
+            // the open amount, which stays the user's to change.
+            if (error instanceof InsufficientSpendableError && paymentLock.code === '') {
+                const fittedAmount = largestLocalAmountWithinBalance({
+                    localAmount: currencyAmount,
+                    shownUsd: amount,
+                    lockedUsdc: error.required,
+                    availableUsdc: error.available,
+                })
+                lastLockRateRef.current = finalPaymentLock.paymentPrice
+                setPaymentLock(paymentLock)
+                setAmount(amount)
+                setCurrencyAmount(fittedAmount ?? currencyAmount)
+                if (fittedAmount) {
+                    // Waiting cannot help. The field shows the largest amount
+                    // that fits, and the next tap pays it.
+                    setAmountInputRevision((revision) => revision + 1)
+                    setErrorMessage(null)
+                } else {
+                    setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
+                }
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                finishAttempt('failed')
+                return
+            }
             // Route through the shared classifier so backend wire codes reach this
             // screen too; the two branches ahead of it are deliberately per-flow.
             const classified = friendlyError(error)
@@ -1145,6 +1186,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         recoverSignedSpend,
         rainCardOverview,
         qrCode,
+        amount,
         currencyAmount,
         scanFailureCopy,
         amountEntryFailureCopy,
@@ -1156,6 +1198,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         toFriendlyError,
         setErrorMessage,
         setIsSuccess,
+        setAmount,
+        setCurrencyAmount,
         setPaymentLock,
         setQrPayment,
     ])
@@ -1223,11 +1267,29 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
         if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
-            // fails late with the settling message at execution.
+            // fails late with the settling message at execution. A locked amount
+            // cannot be lowered here, so the copy says how much is missing.
+            if (paymentLock?.code) {
+                return tErrors('balanceShortBy', { amount: usdShortfall(paymentAmount, balance) })
+            }
             return tErrors('notEnoughBalanceAddFunds')
         }
         return null
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, pixKeyLabel, t, tErrors])
+    }, [
+        usdAmount,
+        balance,
+        paymentProcessor,
+        paymentLock?.code,
+        currency?.code,
+        currencyAmount,
+        pixKeyLabel,
+        t,
+        tErrors,
+    ])
+
+    // "Try again in a few seconds" is untrue once the refreshed balance cannot
+    // cover the amount: the field error says what is short instead.
+    const flowErrorMessage = errorCode === 'balanceSettling' && balanceErrorMessage ? null : errorMessage
 
     // Use points confetti hook for animation - must be called unconditionally
     usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
@@ -1322,7 +1384,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         currencyAmount,
         currency,
         isSuccess,
-        errorMessage,
+        errorMessage: flowErrorMessage,
         errorInitiatingPayment,
         initErrorNeedsSupport,
         initErrorNeedsVerification,
@@ -1330,6 +1392,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balanceErrorMessage,
         rateUnavailable,
         retryRate,
+        amountInputRevision,
         // controller-rotation quote handoff
         quoteUpdatedNotice,
         isQuoteRecovering,
