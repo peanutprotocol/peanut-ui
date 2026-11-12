@@ -6,6 +6,24 @@
         "source": "Setup/Views/Landing.tsx"
     },
     {
+        "id": "01-a-landing-flag-welcome-headline-copy-every-border",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
+    },
+    {
+        "id": "01-a-landing-flag-welcome-headline-copy-whole-world",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
+    },
+    {
+        "id": "01-a-landing-flag-welcome-headline-copy-travels-free",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
+    },
+    {
         "id": "04-b-advantage-fees",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=04-b-advantage-fees",
