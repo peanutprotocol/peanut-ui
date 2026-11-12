@@ -99,6 +99,18 @@ describe('the BRL row reads the Pix route', () => {
     }
     const brl = () => renderHook(() => useBankRows()).result.current.rows.find((row) => row.labelKey === 'brl')!
 
+    // a refused Pix route closes the row for its own reason, which its drawer says; never the residence rule
+    it.each(['provider_unavailable', 'rollout_closed', 'residence_paused', 'provider_paused', 'residence_not_served'])(
+        'closes the row for the route reason (%s), not as a residence refusal',
+        (code) => {
+            brazilResident()
+            mockCapabilities.routes = [
+                pixRoute({ provider: null, state: 'refused', reason: { code, userMessage: '' } }),
+            ]
+            expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'pix-route' })
+        }
+    )
+
     it('reads a ready route as an active row, where the refused local account alone reads closed', () => {
         brazilResident()
         expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })

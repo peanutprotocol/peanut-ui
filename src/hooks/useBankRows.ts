@@ -8,7 +8,7 @@ import {
     isLocalResidenceRefusal,
     UNKNOWN_REPORT,
 } from '@/features/kyc-features/report'
-import { withPixRoute } from '@/features/pix/pixRoute.utils'
+import { findPixRoute, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -84,8 +84,10 @@ export function useBankChipFor(): (key: BankRowKey) => UnlockChip {
  */
 export function useBankRows() {
     const { user } = useAuth()
-    const { nextActions } = useCapabilities()
+    const { nextActions, capabilities } = useCapabilities()
     const report = useAccountsReport()
+    // the BRL row reads the Pix deposit route; a refused route explains itself, never as a residence rule
+    const pixRouteRefused = findPixRoute(capabilities.routes, 'deposit')?.state === 'refused'
     const entryFor = useBankEntryFor()
 
     // Server copy first; the localStorage mirror of the signup answer covers
@@ -125,12 +127,17 @@ export function useBankRows() {
             bankChips: Object.fromEntries(
                 entries.map(([key, entry]) => [key, entryChip(entry, nextActions)])
             ) as Record<BankRowKey, BankRegionChip>,
-            closedBecause: Object.fromEntries(entries.map(([key, entry]) => [key, closedBecause(entry.reason)])),
+            closedBecause: Object.fromEntries(
+                entries.map(([key, entry]) => [
+                    key,
+                    key === 'brl' && pixRouteRefused ? 'pix-route' : closedBecause(entry.reason),
+                ])
+            ),
             residenceIso2,
             secondResidenceIso2,
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
         }
-    }, [entryFor, nextActions, residenceIso2, secondResidenceIso2])
+    }, [entryFor, nextActions, pixRouteRefused, residenceIso2, secondResidenceIso2])
     const rows = useMemo(() => buildBankRows(input), [input])
     // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.
     const accountChip = bestChip([

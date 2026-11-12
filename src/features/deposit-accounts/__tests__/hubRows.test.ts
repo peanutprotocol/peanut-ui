@@ -373,6 +373,17 @@ describe('a refused identity', () => {
         ).toEqual({ kind: 'residence', corridor: 'PIX_BR' })
         expect(closedBankRow({ ...brl, chip: 'active' }, false, { failed: true })).toBeNull()
     })
+
+    // the BRL row's Pix route refused for its own reason: the drawer that says it as the Pix pages do
+    it('sends a BRL row its Pix route refuses to the route drawer', () => {
+        const [brl] = buildBankRows({
+            bankChips: { brl: 'notAvailable', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
+            closedBecause: { brl: 'pix-route' },
+            residenceIso2: 'BR',
+            isEuropeResidence: false,
+        })
+        expect(closedBankRow(brl, false)).toEqual({ kind: 'pix-route' })
+    })
 })
 
 describe('closedBankRow', () => {

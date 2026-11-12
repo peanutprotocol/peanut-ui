@@ -82,10 +82,12 @@ export interface UnlockRow {
     corridor?: DepositCorridor
     /**
      * why a `notAvailable` bank row is closed: the residence country, the
-     * rail's own country rule, or the provider not offering this one account
-     * in the user's residence (the paperwork engine)
+     * rail's own country rule, the provider not offering this one account
+     * in the user's residence (the paperwork engine), or the BRL row's Pix
+     * route refused for its own reason (`pix-route`: an outage, the rollout,
+     * a pause), which the drawer words as the Pix pages do
      */
-    unavailableBecause?: 'restricted-country' | 'residence' | 'account-residence'
+    unavailableBecause?: 'restricted-country' | 'residence' | 'account-residence' | 'pix-route'
 }
 
 /** The two lists beside the bank rows: the always-on Peanut rows and the spending methods. */
