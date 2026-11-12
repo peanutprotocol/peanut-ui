@@ -125,7 +125,12 @@ it('a failed re-verification offers a retry of the same move, and support under 
 })
 
 it('labels a submitted residence change under review without promising a short wait', () => {
-    mockResidence = normalizeResidence({ declared: 'BR', verified: 'BR', pending: 'ES', pendingStatus: 'REVIEW_PENDING' })
+    mockResidence = normalizeResidence({
+        declared: 'BR',
+        verified: 'BR',
+        pending: 'ES',
+        pendingStatus: 'REVIEW_PENDING',
+    })
     render()
 
     expect(screen.getByText(/under review/i)).toBeInTheDocument()

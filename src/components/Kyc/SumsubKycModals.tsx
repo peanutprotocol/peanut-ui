@@ -8,8 +8,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import IframeWrapper, { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { KycControlFlowProvider, useKycControl } from '@/features/paperwork-verification/analytics'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { useModalsContextOptional } from '@/context/ModalsContext'
+import { ResidenceReviewModal } from './ResidenceReviewModal'
 
 interface SumsubKycModalsProps {
     flow: ReturnType<typeof useMultiPhaseKycFlow>
@@ -23,33 +22,6 @@ interface SumsubKycModalsProps {
  *
  * pair with useMultiPhaseKycFlow hook for the logic.
  */
-const ResidenceReviewModal = ({ onClose }: { onClose: () => void }) => {
-    const residence = useTranslations('profile.unlockPayments.changeModal')
-    const common = useTranslations('common')
-    const modals = useModalsContextOptional()
-    return (
-        <ActionModal
-            visible
-            onClose={onClose}
-            title={residence('reviewTitle')}
-            description={residence('reviewBody')}
-            tone="info"
-            footer={
-                modals && (
-                    <LinkButton
-                        onClick={() => {
-                            onClose()
-                            modals.setIsSupportModalOpen(true)
-                        }}
-                    >
-                        {common('contactSupport')}
-                    </LinkButton>
-                )
-            }
-        />
-    )
-}
-
 export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps) => {
     const controlFlow = flow.isProviderRequest ? 'kyc_provider_request' : 'kyc_legacy'
     const { track } = useKycControl('correction', controlFlow)
