@@ -281,7 +281,7 @@ async function trace<T>(
     const base = {
         seq: ++seq,
         kind,
-        purpose: purposeStack.length > 0 ? purposeStack.join('>') : 'unknown',
+        purpose: currentCeremonyPurpose(),
         flow: flow?.name ?? null,
         flowId: flow?.id ?? null,
         startedAt,
@@ -413,6 +413,11 @@ export async function withCeremonyFlow<T>(
         })
         throw error
     }
+}
+
+/** The purpose stack of the ceremony running now, innermost last, e.g. `kernel_migration>user_op`. */
+export function currentCeremonyPurpose(): string {
+    return purposeStack.length > 0 ? purposeStack.join('>') : 'unknown'
 }
 
 export async function withCeremonyPurpose<T>(purpose: CeremonyPurpose, fn: () => Promise<T>): Promise<T> {

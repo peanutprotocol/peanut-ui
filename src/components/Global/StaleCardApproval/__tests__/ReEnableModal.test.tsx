@@ -107,6 +107,20 @@ describe('StaleCardApprovalReEnableModal', () => {
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 
+    it('a rejected approval signature names the wrong passkey and keeps the retry CTA', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'wrong-passkey' } })
+        render(<StaleCardApprovalReEnableModal />)
+        fireStaleEvent()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Re-enable card'))
+        })
+
+        expect(screen.getByText(/signed with a passkey that is not on this account/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
+        expect(screen.getByText('Re-enable card')).toBeInTheDocument()
+    })
+
     it('can be dismissed with "Not now"', () => {
         render(<StaleCardApprovalReEnableModal />)
         fireStaleEvent()

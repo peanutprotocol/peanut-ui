@@ -456,6 +456,10 @@ export const ANALYTICS_EVENTS = {
     PASSKEY_NATIVE_LIFECYCLE: 'passkey_native_lifecycle',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
+    // A passkey signature failed the on-chain validator's checks on the device
+    // (TASK-24840): `reason` is the first check that failed, `method` the
+    // validator call. Log-only; the signature is still used.
+    PASSKEY_SIGNATURE_MISMATCH: 'passkey_signature_mismatch',
 
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.

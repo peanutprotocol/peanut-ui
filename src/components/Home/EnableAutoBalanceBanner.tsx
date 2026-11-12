@@ -180,9 +180,11 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
             concept="card"
             title={t(isUpdate ? 'updateTitle' : 'title')}
             description={
-                hardError || stuckAfterSuccess
-                    ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
-                    : t(isUpdate ? 'updateApprove' : 'description')
+                hardError && lastError!.kind === 'wrong-passkey'
+                    ? t('descriptionWrongPasskey')
+                    : hardError || stuckAfterSuccess
+                      ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
+                      : t(isUpdate ? 'updateApprove' : 'description')
             }
             ctas={ctas}
             tertiaryCta={tertiaryCta}

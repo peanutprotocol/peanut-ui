@@ -282,6 +282,34 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         })
     })
 
+    // The 400 the grant store returns when the chain would refuse the enable
+    // signature: the phone signed with a passkey that is not this account's.
+    it('maps a rejected approval signature to the wrong-passkey kind', async () => {
+        mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(
+            Object.assign(
+                new Error('The passkey signature was not accepted — try again and pick your Peanut passkey'),
+                {
+                    name: 'ApiError',
+                    code: 'CARD_APPROVAL_SIGNATURE_REJECTED',
+                }
+            )
+        )
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).toEqual({
+            ok: false,
+            error: {
+                kind: 'wrong-passkey',
+                message: 'The passkey signature was not accepted — try again and pick your Peanut passkey',
+            },
+        })
+    })
+
     it('a grant-store failure without that code stays unexpected', async () => {
         mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(new Error('could not deserialize'))
         const { result } = renderHook(() => useGrantSessionKey())

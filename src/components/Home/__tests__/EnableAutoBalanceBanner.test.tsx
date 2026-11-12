@@ -177,6 +177,23 @@ describe('EnableAutoBalanceBanner', () => {
         expect(screen.getByText('Try again')).toBeInTheDocument()
     })
 
+    it('names the wrong passkey when the grant store refused its signature', () => {
+        mockLastError = { kind: 'wrong-passkey', message: 'rejected' }
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
+        expect(screen.getByText(/signed with a passkey that is not on this account/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't finish setting up your card/i)).not.toBeInTheDocument()
+        expect(screen.getByText('Try again')).toBeInTheDocument()
+        expect(screen.getByText('Skip for now')).toBeInTheDocument()
+    })
+
     it('keys off the ACTIVE card, not cards[0] — a CANCELED newest row with a granted older card hides the modal', () => {
         // The post-remediation nicnode shape: duplicate canceled, real card granted.
         mockCards = [

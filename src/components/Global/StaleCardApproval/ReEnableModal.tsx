@@ -6,7 +6,7 @@ import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta }
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
 
-type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'unexpected'
+type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'wrong-passkey' | 'unexpected'
 
 /**
  * Global recovery modal for the stale-card-approval case.
@@ -59,7 +59,9 @@ export default function StaleCardApprovalReEnableModal() {
             // the controller moved again while this grant was being saved, and
             // trying once more is exactly the right advice.
             const kind = result.error.kind
-            setErrorKind(kind === 'user-cancelled' || kind === 'stale-approval' ? kind : 'unexpected')
+            setErrorKind(
+                kind === 'user-cancelled' || kind === 'stale-approval' || kind === 'wrong-passkey' ? kind : 'unexpected'
+            )
         }
     }, [grant])
 
@@ -68,9 +70,11 @@ export default function StaleCardApprovalReEnableModal() {
             ? t('staleCardApprovalModal.cancelledError')
             : errorKind === 'stale-approval'
               ? t('staleCardApprovalModal.rotatedError')
-              : errorKind === 'unexpected'
-                ? t('staleCardApprovalModal.unexpectedError')
-                : null
+              : errorKind === 'wrong-passkey'
+                ? t('staleCardApprovalModal.wrongPasskeyError')
+                : errorKind === 'unexpected'
+                  ? t('staleCardApprovalModal.unexpectedError')
+                  : null
 
     const ctas: ActionModalButtonProps[] = succeeded
         ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'primary', shadowSize: '4', onClick: close }]
