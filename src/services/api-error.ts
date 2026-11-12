@@ -27,9 +27,9 @@ export const API_ERROR_CODES = {
     WITHDRAWAL_PENDING_CONFIRMATION: 'WITHDRAWAL_PENDING_CONFIRMATION',
     STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
     /** The card permission store refused an approval the chain would refuse:
-     *  its enable signature does not verify against the wallet's key, in
-     *  practice because the phone signed with another passkey. Nothing was
-     *  stored; a new passkey tap can succeed. */
+     *  its enable signature does not verify against the wallet's key at the
+     *  live nonce (another passkey, other signed bytes, an unreadable layout,
+     *  or a moved nonce). Nothing was stored. */
     CARD_APPROVAL_SIGNATURE_REJECTED: 'CARD_APPROVAL_SIGNATURE_REJECTED',
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by

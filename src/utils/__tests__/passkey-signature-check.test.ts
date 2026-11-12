@@ -168,6 +168,16 @@ describe('withPasskeySignatureCheck (log-only)', () => {
         )
     })
 
+    it('sends every mismatch to PostHog but one Sentry warning per method and reason', async () => {
+        const checked = wrap(fakeValidator(otherPasskey))
+
+        await checked.signUserOperation(userOperation)
+        await checked.signUserOperation(userOperation)
+
+        expect(capture).toHaveBeenCalledTimes(2)
+        expect(captureMessage).toHaveBeenCalledTimes(1)
+    })
+
     it('passes a failed ceremony through untouched, without a report', async () => {
         const validator = fakeValidator()
         validator.signMessage.mockRejectedValueOnce(new Error('NotAllowedError'))

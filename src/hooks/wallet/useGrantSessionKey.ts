@@ -59,9 +59,10 @@ export type GrantSessionKeyError =
      *  as a rotation candidate — and the re-enable modal can say so. */
     | { kind: 'stale-approval'; message: string }
     /** The grant store refused the approval (400 CARD_APPROVAL_SIGNATURE_REJECTED):
-     *  the chain would refuse its signature, in practice because the phone
-     *  signed with a passkey that is not this account's. Nothing was stored. */
-    | { kind: 'wrong-passkey'; message: string }
+     *  the chain would refuse its enable signature (another key, other signed
+     *  bytes, a layout the validator cannot read, or a moved nonce). The copy
+     *  names no cause, since the code does not say which. Nothing was stored. */
+    | { kind: 'signature-rejected'; message: string }
     | { kind: 'unexpected'; message: string }
 
 export interface GrantSessionKeyResult {
@@ -268,14 +269,14 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                 await rainApi.submitWithdrawSessionApproval({ serializedApproval: r.serialized })
             } catch (e) {
                 // Structured codes only: the approval we just signed targets a
-                // controller the backend no longer has on record, or its
-                // signature is not this account's passkey.
+                // controller the backend no longer has on record, or the chain
+                // would refuse its signature.
                 const code = wireErrorCode(e)
                 const kind =
                     code === API_ERROR_CODES.STALE_CARD_APPROVAL
                         ? 'stale-approval'
                         : code === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
-                          ? 'wrong-passkey'
+                          ? 'signature-rejected'
                           : ('unexpected' as const)
                 return { ok: false, error: { kind, message: (e as Error).message } as const }
             }

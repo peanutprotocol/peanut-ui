@@ -35,7 +35,7 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { useKycFeatureActivation } from '@/features/paperwork-verification/useKycFeatureActivation'
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
-import { API_ERROR_CODES, ApiError } from '@/services/api-error'
+import { API_ERROR_CODES, ApiError, wireErrorCode } from '@/services/api-error'
 /**
  * flow hook for the card page — owns every behaviour so the page stays dumb
  * (same model as features/home/useHomeFlow).
@@ -639,10 +639,10 @@ export function useCardFlow() {
                         router.push('/verify')
                         return undefined
                     }
-                    // A re-issue whose card permission was signed by a passkey that is not this account's.
+                    // A re-issue whose card permission signature the chain would refuse.
                     const message =
-                        e instanceof ApiError && e.code === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
-                            ? t('page.setupWrongPasskey')
+                        wireErrorCode(e) === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
+                            ? t('page.setupSignatureRejected')
                             : e instanceof Error
                               ? e.message
                               : t('page.applyFailed')

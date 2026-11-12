@@ -6,7 +6,7 @@ import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta }
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
 
-type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'wrong-passkey' | 'unexpected'
+type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'signature-rejected' | 'unexpected'
 
 /**
  * Global recovery modal for the stale-card-approval case.
@@ -60,7 +60,9 @@ export default function StaleCardApprovalReEnableModal() {
             // trying once more is exactly the right advice.
             const kind = result.error.kind
             setErrorKind(
-                kind === 'user-cancelled' || kind === 'stale-approval' || kind === 'wrong-passkey' ? kind : 'unexpected'
+                kind === 'user-cancelled' || kind === 'stale-approval' || kind === 'signature-rejected'
+                    ? kind
+                    : 'unexpected'
             )
         }
     }, [grant])
@@ -70,8 +72,8 @@ export default function StaleCardApprovalReEnableModal() {
             ? t('staleCardApprovalModal.cancelledError')
             : errorKind === 'stale-approval'
               ? t('staleCardApprovalModal.rotatedError')
-              : errorKind === 'wrong-passkey'
-                ? t('staleCardApprovalModal.wrongPasskeyError')
+              : errorKind === 'signature-rejected'
+                ? t('staleCardApprovalModal.signatureRejectedError')
                 : errorKind === 'unexpected'
                   ? t('staleCardApprovalModal.unexpectedError')
                   : null

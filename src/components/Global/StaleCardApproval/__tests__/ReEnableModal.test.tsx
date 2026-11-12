@@ -107,8 +107,8 @@ describe('StaleCardApprovalReEnableModal', () => {
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 
-    it('a rejected approval signature names the wrong passkey and keeps the retry CTA', async () => {
-        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'wrong-passkey' } })
+    it('a rejected approval signature gets its own message and keeps the retry CTA', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'signature-rejected' } })
         render(<StaleCardApprovalReEnableModal />)
         fireStaleEvent()
 
@@ -116,7 +116,7 @@ describe('StaleCardApprovalReEnableModal', () => {
             fireEvent.click(screen.getByText('Re-enable card'))
         })
 
-        expect(screen.getByText(/signed with a passkey that is not on this account/i)).toBeInTheDocument()
+        expect(screen.getByText(/passkey signature for this card could not be verified/i)).toBeInTheDocument()
         expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })

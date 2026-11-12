@@ -177,8 +177,8 @@ describe('EnableAutoBalanceBanner', () => {
         expect(screen.getByText('Try again')).toBeInTheDocument()
     })
 
-    it('names the wrong passkey when the grant store refused its signature', () => {
-        mockLastError = { kind: 'wrong-passkey', message: 'rejected' }
+    it('explains a rejected approval signature without blaming a passkey', () => {
+        mockLastError = { kind: 'signature-rejected', message: 'rejected' }
         render(
             <EnableAutoBalanceBanner
                 presentation="modal"
@@ -188,7 +188,7 @@ describe('EnableAutoBalanceBanner', () => {
                 onSnoozed={onSnoozed}
             />
         )
-        expect(screen.getByText(/signed with a passkey that is not on this account/i)).toBeInTheDocument()
+        expect(screen.getByText(/passkey signature for this card could not be verified/i)).toBeInTheDocument()
         expect(screen.queryByText(/couldn't finish setting up your card/i)).not.toBeInTheDocument()
         expect(screen.getByText('Try again')).toBeInTheDocument()
         expect(screen.getByText('Skip for now')).toBeInTheDocument()

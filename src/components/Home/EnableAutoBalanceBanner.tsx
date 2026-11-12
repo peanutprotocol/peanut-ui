@@ -180,8 +180,8 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
             concept="card"
             title={t(isUpdate ? 'updateTitle' : 'title')}
             description={
-                hardError && lastError!.kind === 'wrong-passkey'
-                    ? t('descriptionWrongPasskey')
+                hardError && lastError!.kind === 'signature-rejected'
+                    ? t('descriptionSignatureRejected')
                     : hardError || stuckAfterSuccess
                       ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
                       : t(isUpdate ? 'updateApprove' : 'description')

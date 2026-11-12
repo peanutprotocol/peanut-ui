@@ -72,6 +72,11 @@ function checked(method: SigningMethod, signature: Hex, ctx: SignatureCheckConte
     return signature
 }
 
+// One Sentry warning per method and reason per page load: an account that fails
+// every signature (Android sorted layout, TASK-23931) would otherwise send one per
+// signature. PostHog keeps every event; it is the count the enforcement call reads.
+const sentryReported = new Set<string>()
+
 function report(method: SigningMethod, reason: PasskeySignatureRejection | 'check_error', challengeOffset?: number) {
     try {
         const properties = {
@@ -82,6 +87,9 @@ function report(method: SigningMethod, reason: PasskeySignatureRejection | 'chec
             challenge_offset: challengeOffset,
         }
         posthog.capture(ANALYTICS_EVENTS.PASSKEY_SIGNATURE_MISMATCH, properties)
+        const sentryKey = `${method}:${reason}`
+        if (sentryReported.has(sentryKey)) return
+        sentryReported.add(sentryKey)
         Sentry.captureMessage('Passkey signature fails the on-chain validator check', {
             level: 'warning',
             tags: { method, reason, platform: properties.platform, purpose: properties.purpose },

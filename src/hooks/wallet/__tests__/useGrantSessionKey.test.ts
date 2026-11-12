@@ -284,7 +284,7 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
 
     // The 400 the grant store returns when the chain would refuse the enable
     // signature: the phone signed with a passkey that is not this account's.
-    it('maps a rejected approval signature to the wrong-passkey kind', async () => {
+    it('maps a rejected approval signature to its own kind', async () => {
         mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(
             Object.assign(
                 new Error('The passkey signature was not accepted — try again and pick your Peanut passkey'),
@@ -304,7 +304,7 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         expect(out).toEqual({
             ok: false,
             error: {
-                kind: 'wrong-passkey',
+                kind: 'signature-rejected',
                 message: 'The passkey signature was not accepted — try again and pick your Peanut passkey',
             },
         })
