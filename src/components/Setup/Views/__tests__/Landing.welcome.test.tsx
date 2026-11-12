@@ -63,6 +63,8 @@ jest.mock('@/components/Setup/setup-entry', () => ({
 }))
 jest.mock('@/utils/native-platform', () => ({ useNativePlatform: () => mockNative }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative.isCapacitor }))
+// signup-draft's import chain calls isCapacitor() at load, before mockNative exists; no draft is stored here.
+jest.mock('@/features/setup/signup-draft', () => ({ readSignupDraft: () => null, discardSignupDraft: jest.fn() }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => mockKeepWeb }))
 jest.mock('@/hooks/useLogin', () => ({
     useLogin: () => ({ handleLoginClick: jest.fn(), isLoggingIn: false }),
