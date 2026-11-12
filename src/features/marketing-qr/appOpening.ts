@@ -1,5 +1,4 @@
 import { SELF_URL } from '@/constants/general.consts'
-import { deliverOpening } from '@/features/tracked-links/delivery'
 import { isAnalyticsCaptureBuild } from '@/utils/posthog-setup'
 import { marketingQrAnalyticsAllowed } from './consent'
 import {
@@ -23,13 +22,15 @@ export function sendMarketingQrAppOpening(url: URL): void {
     if (!attribution.valid || typeof crypto?.randomUUID !== 'function') return
     // No keepalive: the app keeps its document while it navigates, and some webviews reject a
     // keepalive request that needs a CORS preflight.
-    void deliverOpening(
-        `${SELF_URL}/api/marketing-qr/open`,
-        JSON.stringify({
+    void fetch(`${SELF_URL}/api/marketing-qr/open`, {
+        method: 'POST',
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
             ...marketingQrEventFields(registration, attribution),
             event_id: crypto.randomUUID(),
             opened_at: new Date().toISOString(),
         }),
-        'marketing_qr'
-    ).catch(() => {})
+    }).catch(() => {})
 }

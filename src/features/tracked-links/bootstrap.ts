@@ -1,124 +1,59 @@
-import { applyDeferredPayload, buildDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
+import {
+    applyDeferredPayload,
+    buildDeferredPayload,
+    parseDeferredPayload,
+    registerWebDistinctId,
+} from '@/utils/deferred-link'
 import { stashAcquisitionInvite } from '@/utils/invite-stash'
 import { captureTrackedLinkJourney } from '@/utils/signup-attribution'
-import { sendMarketingQrAppOpening } from '@/features/marketing-qr/appOpening'
-import { captureTrackedLinkVisit } from './capture-client'
-import {
-    TRACKED_LINK_ORIGIN,
-    acquisitionCampaignParams,
-    acquisitionHandoffPath,
-    isAcquisitionSlug,
-    isInviteUsername,
-    parseAcquisitionCampaign,
-    parseAcquisitionRevision,
-    type ResolvedAcquisitionLink,
-} from './contract'
-import { resolveAcquisitionLinkClient } from './resolve-client'
+import { captureTrackedLinkVisit } from './capture'
+import { isAcquisitionSlug, TRACKED_LINK_ORIGIN } from './contract'
 
-export type TrackedLinkBootstrap = {
-    payload: string | null
-    iosPayload: string | null
-    openAppHref?: string
-    publicPageHref?: string
-    link?: ResolvedAcquisitionLink
-}
-const EMPTY: TrackedLinkBootstrap = { payload: null, iosPayload: null }
+export type TrackedLinkBootstrap = { payload: string | null; iosPayload: string | null; openAppHref?: string }
+export const EMPTY_TRACKED_LINK_BOOTSTRAP: TrackedLinkBootstrap = { payload: null, iosPayload: null }
 
-export function hasTrackedLinkEntry(params: URLSearchParams): boolean {
-    return (
-        params.has('tl') ||
-        params.has('tracked_link') ||
-        (params.getAll('code').length === 1 && isInviteUsername(params.get('code')?.toLowerCase()))
-    )
-}
-
-/** Resolving a passive invite never accepts it. Registration owns that later decision. */
+/**
+ * Runs on /app for a /go handoff (`tl`, inviter in `acq_invite`) or a legacy `?code=<username>`.
+ * The inviter is trusted like the existing `invite=` param: stashed passively, never accepted.
+ * Registration owns that later decision.
+ */
 export async function bootstrapTrackedLinkEntry(
     params: URLSearchParams,
-    native: boolean,
-    signal?: AbortSignal
+    native: boolean
 ): Promise<TrackedLinkBootstrap> {
-    const tracked = params.has('tl') || params.has('tracked_link')
-    const slug = params.get('tracked_link') ?? params.get('tl') ?? params.get('code')?.toLowerCase()
-    if (
-        !isAcquisitionSlug(slug) ||
-        ['tl', 'tr', 'tracked_link', 'code', 'tl_seen'].some((key) => params.getAll(key).length > 1) ||
-        (params.has('tl') && params.has('tracked_link') && params.get('tl') !== params.get('tracked_link'))
-    )
-        return EMPTY
-    const rawRevision = params.get('tr')
-    if (rawRevision !== null && parseAcquisitionRevision(rawRevision) === null) return EMPTY
-    // Always resolve the current revision. Caller-supplied tr is transport, never navigation authority.
-    const result = await resolveAcquisitionLinkClient(slug)
-    if (signal?.aborted) return EMPTY
-    if (result.status !== 200) return EMPTY
-    const link = result.link
-    if (link.kind === 'marketing_qr') {
-        if (native) {
-            sendMarketingQrAppOpening(new URL(`/home?mqr=${encodeURIComponent(link.qr.id)}`, TRACKED_LINK_ORIGIN))
-            return EMPTY
-        }
-        return { ...EMPTY, publicPageHref: `/q/${encodeURIComponent(link.qr.id)}` }
-    }
-    if (!tracked && link.kind !== 'invite') return EMPTY
-    if (link.invite) stashAcquisitionInvite(link.invite.code)
+    const legacyCode = params.get('code')?.toLowerCase()
+    const slug = params.get('tl') ?? legacyCode
+    if (!isAcquisitionSlug(slug)) return EMPTY_TRACKED_LINK_BOOTSTRAP
 
-    const restored = parseDeferredPayload(params.toString())
-    if (native && restored)
-        applyDeferredPayload({
-            lang: restored.lang,
-            trackedLink: link.slug,
-            ...(link.policy === 'journey'
-                ? { attribution: restored.attribution, webDistinctId: restored.webDistinctId }
-                : {}),
-        })
-    const legacyCampaign = tracked
-        ? null
-        : parseAcquisitionCampaign({
-              source: params.get('utm_source'),
-              medium: params.get('utm_medium'),
-              campaign: params.get('utm_campaign'),
-              ...(params.has('utm_content') ? { content: params.get('utm_content') } : {}),
-              ...(params.has('utm_term') ? { term: params.get('utm_term') } : {}),
-          })
-    const journey =
-        link.policy === 'journey'
-            ? await captureTrackedLinkJourney(link.campaign ?? legacyCampaign ?? undefined, signal)
-            : null
-    if (signal?.aborted) return EMPTY
-    if (tracked)
-        captureTrackedLinkVisit(link, {
+    if (native) {
+        // A browser-to-app continuation carries the browser's handoff; its explicit invite wins.
+        const handoff = parseDeferredPayload(params.toString())
+        if (handoff) {
+            applyDeferredPayload(handoff)
+            registerWebDistinctId(handoff)
+        }
+    }
+    stashAcquisitionInvite(params.has('tl') ? params.get('acq_invite') : legacyCode)
+
+    const journey = await captureTrackedLinkJourney()
+    // Legacy codes predate the visit event, so only /go openings count as visits.
+    if (params.has('tl'))
+        captureTrackedLinkVisit(slug, {
             openedIn: native ? 'app' : 'web',
-            seen: params.get('tl_seen') === '1' || !!restored,
+            seen: params.get('tl_seen') === '1',
             journey,
         })
+    if (native) return EMPTY_TRACKED_LINK_BOOTSTRAP
 
-    let payload: string | null = null
-    let iosPayload: string | null = null
-    try {
-        // Build again after bootstrap; forwarding the incoming payload would omit the new journey.
-        if (link.invite || journey) {
-            const options = {
-                includeInviteAndBadgeContext: false,
-                acquisitionInvite: link.invite?.code,
-                trackedLink: link.slug,
-            }
-            payload = buildDeferredPayload('/home', undefined, 'android', options)
-            iosPayload = buildDeferredPayload('/home', undefined, 'ios', options)
-        }
-    } catch {
-        // Functional navigation must survive blocked storage and handoff construction.
-    }
-    // Existing associated /home URL only. Released clients ignore acq_invite; updated clients preserve its intent.
-    const appUrl = new URL(acquisitionHandoffPath(link, true), TRACKED_LINK_ORIGIN)
-    if (iosPayload) {
-        new URLSearchParams(iosPayload).forEach((value, key) => {
-            if (!['dest', 'tl', 'tr'].includes(key)) appUrl.searchParams.set(key, value)
-        })
-    }
-    const publicPageHref =
-        link.destination.key === 'public-page'
-            ? `${link.destination.continuation}${link.campaign && journey ? `?${acquisitionCampaignParams(link.campaign)}` : ''}`
-            : undefined
-    return { payload, iosPayload, link, openAppHref: appUrl.href, publicPageHref }
+    // The stash decides the carried invite: an explicit choice travels as `invite`, a passive one as `acq_invite`.
+    const payload = buildDeferredPayload('/home', undefined, 'android', { trackedLink: slug })
+    const iosPayload = buildDeferredPayload('/home', undefined, 'ios', { trackedLink: slug })
+    // The existing associated /home URL only. The seen marker stops the app counting this visit twice.
+    const openApp = new URL('/home', TRACKED_LINK_ORIGIN)
+    openApp.searchParams.set('app_entry', '1')
+    new URLSearchParams(iosPayload).forEach((value, key) => {
+        if (key !== 'dest') openApp.searchParams.append(key, value)
+    })
+    openApp.searchParams.set('tl_seen', '1')
+    return { payload, iosPayload, openAppHref: openApp.href }
 }

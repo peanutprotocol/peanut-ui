@@ -6,8 +6,8 @@ import {
     marketingQrAppCorsHeaders,
     readMarketingQrBody,
 } from '@/features/marketing-qr/server'
-import { parseTrackedLinkOpening, captureTrackedLinkOpening } from '@/features/tracked-links/capture-server'
-import { resolveAcquisitionLink } from '@/features/tracked-links/server'
+import { captureTrackedLinkOpening, parseTrackedLinkOpening } from '@/features/tracked-links/capture'
+import { lookupInviteLink } from '@/features/tracked-links/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -29,10 +29,11 @@ export async function POST(request: Request): Promise<Response> {
     ) {
         return new Response(null, { status: 204, headers })
     }
-    const resolved = await resolveAcquisitionLink(opening.slug, opening.revision)
-    if (resolved.status !== 200) return new Response(null, { status: resolved.status, headers })
-    if (resolved.link.policy !== 'journey') return new Response(null, { status: 400, headers })
-    after(() => captureTrackedLinkOpening(opening, resolved.link, origin, fromApp ? 'app' : 'web'))
+    // The client names only the slug; the link ID in the event comes from the identity lookup.
+    const lookup = await lookupInviteLink(opening.slug)
+    if (lookup.status !== 'found')
+        return new Response(null, { status: lookup.status === 'not_found' ? 404 : 503, headers })
+    after(() => captureTrackedLinkOpening(opening, lookup.linkId, origin, fromApp ? 'app' : 'web'))
     return new Response(null, { status: 204, headers })
 }
 

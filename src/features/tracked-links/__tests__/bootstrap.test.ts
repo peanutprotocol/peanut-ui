@@ -1,285 +1,253 @@
 /** @jest-environment jsdom */
-import { bootstrapTrackedLinkEntry } from '../bootstrap'
-import { resolveAcquisitionLinkClient } from '../resolve-client'
-import { sendMarketingQrAppOpening } from '@/features/marketing-qr/appOpening'
-import { captureTrackedLinkVisit } from '../capture-client'
-import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '@/utils/invite-stash'
-import { readSignupAttribution, captureSignupAttribution } from '@/utils/signup-attribution'
-import { parseDeferredPayload } from '@/utils/deferred-link'
+import { randomUUID } from 'node:crypto'
+import posthog from 'posthog-js'
+import { Preferences } from '@capacitor/preferences'
 import { EInviteType } from '@/services/services.types'
-import type { ResolvedAcquisitionLink } from '../contract'
+import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
+import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '@/utils/invite-stash'
+import { deepLinkToNativePath } from '@/utils/native-routes'
+import {
+    captureSignupAttribution,
+    captureTrackedLinkJourney,
+    readSignupAttribution,
+    readSignupAttributionAsync,
+} from '@/utils/signup-attribution'
+import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
+import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '../bootstrap'
 
-jest.mock('@/features/marketing-qr/appOpening', () => ({ sendMarketingQrAppOpening: jest.fn() }))
-jest.mock('../resolve-client', () => ({ resolveAcquisitionLinkClient: jest.fn() }))
-jest.mock('../capture-client', () => ({ captureTrackedLinkVisit: jest.fn() }))
+const WEB_ID = '44444444-4444-4444-8444-444444444444'
+const mockNative = new Map<string, string>()
+jest.mock('@capacitor/preferences', () => ({
+    Preferences: {
+        get: async ({ key }: { key: string }) => ({ value: mockNative.get(key) ?? null }),
+        set: async ({ key, value }: { key: string; value: string }) => {
+            mockNative.set(key, value)
+        },
+        remove: async ({ key }: { key: string }) => {
+            mockNative.delete(key)
+        },
+    },
+}))
+jest.mock('@capacitor/core', () => ({ registerPlugin: jest.fn(() => ({})) }))
 jest.mock('@/utils/capacitor', () => ({
+    isCapacitor: () => true,
     isNativeBridge: () => false,
-    isCapacitor: () => false,
     isAndroidNative: () => false,
     isIOSNative: () => false,
 }))
-jest.mock('posthog-js', () => ({
-    has_opted_out_capturing: () => false,
-    capture: jest.fn(),
-    register: jest.fn(),
-    get_distinct_id: () => null,
+jest.mock('@/utils/posthog-setup', () => ({
+    ...jest.requireActual('@/utils/posthog-setup'),
+    isAnalyticsCaptureBuild: () => true,
 }))
-const resolve = jest.mocked(resolveAcquisitionLinkClient)
-const invite: ResolvedAcquisitionLink = {
-    schemaVersion: 1,
-    linkId: `invite_${'a'.repeat(64)}`,
-    slug: 'alice',
-    revision: 1,
-    status: 'active',
-    kind: 'invite',
-    policy: 'journey',
-    destination: { key: 'app-entry', continuation: '/home' },
-    invite: { code: 'alice' },
-}
-const campaign: ResolvedAcquisitionLink = {
-    schemaVersion: 1,
-    linkId: 'campaign_launch',
-    slug: 'c-launch',
-    revision: 2,
-    status: 'active',
-    kind: 'campaign',
-    policy: 'journey',
-    destination: { key: 'app-entry', continuation: '/home' },
-    campaign: { source: 'twitter', medium: 'cpc', campaign: 'launch', content: 'creative' },
-}
-const originalKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
-function visit(search: string) {
-    Object.defineProperty(window, 'location', {
-        configurable: true,
-        value: {
-            origin: 'https://peanut.me',
-            pathname: '/app',
-            search,
-            href: `https://peanut.me/app${search}`,
-            hash: '',
-        },
-    })
-}
-function clearCookies() {
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: {
+        has_opted_out_capturing: () => false,
+        get_distinct_id: () => '44444444-4444-4444-8444-444444444444',
+        _isIdentified: () => false,
+        register_once: jest.fn(),
+        register: jest.fn(),
+        capture: jest.fn(),
+    },
+}))
+
+const fetchMock = jest.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }))
+const visits = () => fetchMock.mock.calls.map(([url, init]) => ({ url, body: JSON.parse(init!.body as string) }))
+// The visit dedupe is per slug per page load; a fresh slug per test keeps each visit observable.
+let n = 0
+let slug = ''
+const savedKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+
+function clearDevice() {
+    localStorage.clear()
+    mockNative.clear()
     for (const cookie of document.cookie.split(';'))
         document.cookie = `${cookie.split('=')[0].trim()}=; Max-Age=0; path=/`
 }
+function visit(path: string) {
+    window.history.replaceState({}, '', path)
+    return new URLSearchParams(window.location.search)
+}
+/** What the native app's /app page receives when the OS hands it this URL. */
+function openInApp(href: string) {
+    return visit(deepLinkToNativePath(href)!)
+}
+
 beforeEach(() => {
     jest.clearAllMocks()
-    localStorage.clear()
-    clearCookies()
-    process.env.NEXT_PUBLIC_POSTHOG_KEY = 'test-key'
-    Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: undefined })
-    Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: false })
-    resolve.mockResolvedValue({ status: 200, link: invite })
-    visit('?tl=alice&tr=1')
+    clearDevice()
+    slug = `creator${n++}`
+    process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_tracked_test'
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'false'
+    global.fetch = fetchMock as unknown as typeof fetch
+    // jsdom lacks randomUUID; every browser this page supports has it.
+    Object.defineProperty(crypto, 'randomUUID', { configurable: true, value: randomUUID })
 })
-afterAll(() => {
-    if (originalKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
-    else process.env.NEXT_PUBLIC_POSTHOG_KEY = originalKey
-})
-it('captures passive identity before both store payloads and never creates explicit intent', async () => {
-    expect(captureSignupAttribution()).toBeNull()
-    const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    expect(readInviteCode()).toBe('alice')
-    expect(readInviteIntent()).toBe('acquisition')
-    for (const raw of [result.payload, result.iosPayload]) {
-        const payload = parseDeferredPayload(raw!)!
-        expect(payload.acquisitionInvite).toBe('alice')
-        expect(payload.invite).toBeUndefined()
-        expect(payload.attribution?.journeyId).toBe(readSignupAttribution()?.journeyId)
-        expect(payload.dest ?? '/home').toBe('/home')
-    }
-    expect(new URL(result.openAppHref!).pathname).toBe('/home')
-    expect(new URL(result.openAppHref!).searchParams.get('tl_seen')).toBe('1')
-})
-it.each(['denied', 'dnt', 'gpc'])('keeps functional invite while suppressing journey for %s', async (reason) => {
-    if (reason === 'denied') localStorage.setItem('__ph_opt_in_out_test-key', '0')
-    if (reason === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
-    if (reason === 'gpc') Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
-    const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    expect(readInviteIntent()).toBe('acquisition')
-    expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe('alice')
-    expect(parseDeferredPayload(result.payload!)?.attribution).toBeUndefined()
-    expect(readSignupAttribution()).toBeNull()
-    expect(captureTrackedLinkVisit).toHaveBeenCalledWith(invite, expect.objectContaining({ journey: null }))
-})
-it('preserves explicit pending inviter priority through a passive opening', async () => {
-    stashInvite('bob', EInviteType.DIRECT)
-    const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    expect(readInviteCode()).toBe('bob')
-    expect(readInviteIntent()).toBe('explicit')
-    expect(parseDeferredPayload(result.payload!)?.invite).toBeUndefined()
-    expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe('alice')
-})
-it('projects the same registered campaign into web and native journeys and both store handoffs', async () => {
-    resolve.mockResolvedValue({ status: 200, link: campaign })
-    let expected: unknown
-    for (const native of [false, true]) {
-        clearCookies()
-        visit('?tl=c-launch&tr=1&utm_source=mallory&utm_medium=email&utm_campaign=untrusted')
-        expect(captureSignupAttribution()).toBeNull()
-        const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), native)
-        const touch = readSignupAttribution()!.firstTouch
-        expect(touch).toMatchObject({
-            utmSource: 'twitter',
-            utmMedium: 'cpc',
-            utmCampaign: 'launch',
-            utmContent: 'creative',
-        })
-        const { occurredAt, ...marketing } = touch
-        if (expected) expect(marketing).toEqual(expected)
-        expected = marketing
-        for (const raw of [result.payload, result.iosPayload]) {
-            const attribution = parseDeferredPayload(raw!)?.attribution
-            expect(attribution?.lastTouch ?? attribution?.firstTouch).toMatchObject(marketing)
-        }
-    }
-})
-it('preserves earlier genuine first touch while updating registered last touch', async () => {
-    visit('?utm_source=google&utm_medium=cpc&utm_campaign=earlier')
-    const first = captureSignupAttribution()!
-    visit('?tl=c-launch')
-    resolve.mockResolvedValue({ status: 200, link: campaign })
-    await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    expect(readSignupAttribution()?.journeyId).toBe(first.journeyId)
-    expect(readSignupAttribution()?.firstTouch).toEqual(first.firstTouch)
-    expect(readSignupAttribution()?.lastTouch?.utmCampaign).toBe('launch')
-})
-it('marks browser-to-app continuation and install restoration as already observed', async () => {
-    const browser = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    jest.mocked(captureTrackedLinkVisit).mockClear()
-    const params = new URL(browser.openAppHref!).searchParams
-    await bootstrapTrackedLinkEntry(params, true)
-    expect(captureTrackedLinkVisit).toHaveBeenCalledWith(
-        invite,
-        expect.objectContaining({ openedIn: 'app', seen: true })
-    )
-})
-it('does not forward stale handoff campaign context without rebuilding the captured journey', async () => {
-    visit('?tl=c-launch&pnutdl=1&dest=%2Fsend')
-    resolve.mockResolvedValue({ status: 200, link: campaign })
-    const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    const attribution = parseDeferredPayload(result.iosPayload!)?.attribution
-    expect((attribution?.lastTouch ?? attribution?.firstTouch)?.utmCampaign).toBe('launch')
-    expect(parseDeferredPayload(result.iosPayload!)?.dest).toBe('/home')
-})
-it('rejects duplicate ownership and unknown legacy campaign codes without a stash write', async () => {
-    expect(await bootstrapTrackedLinkEntry(new URLSearchParams('tl=alice&tl=bob'), false)).toEqual({
-        payload: null,
-        iosPayload: null,
-    })
-    expect(resolve).not.toHaveBeenCalled()
-    resolve.mockResolvedValue({ status: 404 })
-    await bootstrapTrackedLinkEntry(new URLSearchParams('code=campaign2026'), false)
-    expect(readInviteCode()).toBe('')
-})
-it('does not capture after the navigation deadline cancels resolution', async () => {
-    const controller = new AbortController()
-    resolve.mockImplementation(async () => {
-        controller.abort()
-        return { status: 200, link: invite }
-    })
-    await bootstrapTrackedLinkEntry(new URLSearchParams('tl=alice'), false, controller.signal)
-    expect(readInviteCode()).toBe('')
-    expect(captureTrackedLinkVisit).not.toHaveBeenCalled()
+afterEach(() => {
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+    Reflect.deleteProperty(navigator, 'doNotTrack')
+    Reflect.deleteProperty(navigator, 'globalPrivacyControl')
+    Reflect.deleteProperty(document, 'prerendering')
+    if (savedKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+    else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
 })
 
-it('keeps a functional handoff under blocked storage without creating a journey', async () => {
-    const blocked = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-        throw new Error('blocked')
-    })
-    try {
-        const result = await bootstrapTrackedLinkEntry(new URLSearchParams('tl=alice'), false)
-        expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe('alice')
-        expect(parseDeferredPayload(result.payload!)?.attribution).toBeUndefined()
-    } finally {
-        blocked.mockRestore()
-    }
-})
-
-it('validates historical mixed-case legacy codes without treating them as campaign identities', async () => {
-    visit('?code=Alice')
-    const result = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    expect(resolve).toHaveBeenCalledWith('alice')
+it('stashes the creator passively and builds both store handoffs around the new journey', async () => {
+    const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    expect(readInviteCode()).toBe(slug)
     expect(readInviteIntent()).toBe('acquisition')
-    expect(captureTrackedLinkVisit).not.toHaveBeenCalled()
-    for (const raw of [result.payload, result.iosPayload]) {
-        expect(parseDeferredPayload(raw!)?.trackedLink).toBe('alice')
-        expect(parseDeferredPayload(raw!)?.acquisitionInvite).toBe('alice')
+    const journeyId = readSignupAttribution()?.journeyId
+    expect(journeyId).toBeDefined()
+    for (const raw of [result.payload!, result.iosPayload!]) {
+        expect(parseDeferredPayload(raw)).toMatchObject({ acquisitionInvite: slug, trackedLink: slug, dest: '/home' })
+        expect(parseDeferredPayload(raw)?.invite).toBeUndefined()
+        expect(parseLegacyPayload(raw)?.invite).toBeUndefined()
+        expect(parseDeferredPayload(raw)?.attribution?.journeyId).toBe(journeyId)
     }
-})
-
-it('does not import a caller journey through a campaign with measurement disabled', async () => {
-    visit('?utm_source=newsletter&utm_medium=email&utm_campaign=fall')
-    const context = captureSignupAttribution()!
-    expect(context).not.toBeNull()
-    clearCookies()
-    localStorage.clear()
-    visit('?tl=c-launch')
-    resolve.mockResolvedValue({ status: 200, link: { ...campaign, policy: 'none' } })
-    const params = new URLSearchParams({ tl: 'c-launch', pnutdl: '1', attribution: JSON.stringify(context) })
-    expect(parseDeferredPayload(params.toString())?.attribution).toBeDefined()
-    await bootstrapTrackedLinkEntry(params, true)
-    expect(readSignupAttribution()).toBeNull()
-})
-it('routes QR aliases through the existing personless sender without making a journey', async () => {
-    resolve.mockResolvedValue({
-        status: 200,
-        link: {
-            ...campaign,
-            slug: 'qr-home-hero-en',
-            kind: 'marketing_qr',
-            invite: undefined,
-            policy: 'personless',
-            qr: { id: 'home-hero-en' },
+    const openApp = new URL(result.openAppHref!)
+    expect(openApp.origin + openApp.pathname).toBe('https://peanut.me/home')
+    expect(openApp.searchParams.get('app_entry')).toBe('1')
+    expect(openApp.searchParams.get('tl_seen')).toBe('1')
+    expect(openApp.searchParams.has('dest')).toBe(false)
+    expect(visits()).toEqual([
+        {
+            url: '/api/tracked-links/open',
+            body: expect.objectContaining({ slug, signup_journey_id: journeyId }),
         },
-    })
-    await bootstrapTrackedLinkEntry(new URLSearchParams('tracked_link=qr-home-hero-en'), true)
-    expect(sendMarketingQrAppOpening).toHaveBeenCalledWith(new URL('https://peanut.me/home?mqr=home-hero-en'))
-    expect(readSignupAttribution()).toBeNull()
-    expect(captureTrackedLinkVisit).not.toHaveBeenCalled()
+    ])
 })
 
-it('keeps an app-owned retry when opening a passive handoff from a different browser choice', async () => {
-    stashInvite('bob', EInviteType.DIRECT)
-    const browser = await bootstrapTrackedLinkEntry(new URLSearchParams(window.location.search), false)
-    const params = new URL(browser.openAppHref!).searchParams
-    expect(params.has('invite')).toBe(false)
-    localStorage.clear()
+it('carries an explicit invite through a tracked handoff to the installed app', async () => {
+    // The visitor accepted a friend's /invite link, then opened a creator's /go link.
+    stashInvite('friend', EInviteType.DIRECT)
+    const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    expect(readInviteCode()).toBe('friend')
+    const payload = parseDeferredPayload(result.payload!)!
+    expect(payload.invite).toBe('friend')
+    expect(payload.acquisitionInvite).toBeUndefined()
+    expect(new URL(result.openAppHref!).searchParams.get('invite')).toBe('friend')
+
+    clearDevice()
+    applyDeferredPayload(payload)
+    expect(readInviteCode()).toBe('friend')
+    expect(readInviteIntent()).toBe('explicit')
+})
+
+it.each(['dnt', 'gpc', 'declined', 'prerender'] as const)(
+    'keeps the passive inviter but creates no journey or visit under %s',
+    async (condition) => {
+        if (condition === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+        if (condition === 'gpc')
+            Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
+        if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked_test', '0')
+        if (condition === 'prerender')
+            Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
+        const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+        expect(readInviteIntent()).toBe('acquisition')
+        expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe(slug)
+        expect(parseDeferredPayload(result.payload!)?.attribution).toBeUndefined()
+        expect(parseDeferredPayload(result.payload!)?.webDistinctId).toBeUndefined()
+        expect(readSignupAttribution()).toBeNull()
+        expect(fetchMock).not.toHaveBeenCalled()
+    }
+)
+
+it('continues the browser journey in the app without a second visit, and joins the web visitor id', async () => {
+    const browser = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    const journeyId = readSignupAttribution()!.journeyId
+    expect(new URL(browser.openAppHref!).searchParams.get('wid')).toBe(WEB_ID)
+    fetchMock.mockClear()
+    clearDevice()
+
+    expect(await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)).toEqual(EMPTY_TRACKED_LINK_BOOTSTRAP)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(readInviteCode()).toBe(slug)
+    expect(readInviteIntent()).toBe('acquisition')
+    expect(readSignupAttribution()?.journeyId).toBe(journeyId)
+    expect(posthog.register_once).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+})
+
+it('counts a direct app opening once, against the web origin', async () => {
+    await bootstrapTrackedLinkEntry(openInApp(`https://peanut.me/home?app_entry=1&tl=${slug}&acq_invite=${slug}`), true)
+    expect(readInviteIntent()).toBe('acquisition')
+    expect(visits()).toEqual([
+        { url: 'https://peanut.me/api/tracked-links/open', body: expect.objectContaining({ slug }) },
+    ])
+})
+
+it('does not count an opening the browser already counted', async () => {
+    await bootstrapTrackedLinkEntry(
+        openInApp(`https://peanut.me/home?app_entry=1&tl=${slug}&acq_invite=${slug}&tl_seen=1`),
+        true
+    )
+    expect(readInviteIntent()).toBe('acquisition')
+    expect(fetchMock).not.toHaveBeenCalled()
+})
+
+it("keeps the app's own pending retry when a passive browser handoff arrives", async () => {
+    const browser = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    clearDevice()
     stashInvite('carol', EInviteType.DIRECT)
     bindInviteToUser('account-a')
-    await bootstrapTrackedLinkEntry(params, true)
+    await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)
     expect(readInviteCode()).toBe('carol')
     expect(readInviteIntent()).toBe('explicit')
     expect(readInviteUserId()).toBe('account-a')
 })
-it.each(['tl=alice', 'tracked_link=alice', 'code=alice'])(
-    'uses the resolved inviter on %s and preserves an app retry',
-    async (entry) => {
-        const params = new URLSearchParams(`${entry}&pnutdl=1&invite=bob`)
-        await bootstrapTrackedLinkEntry(params, true)
-        expect(readInviteCode()).toBe('alice')
-        expect(readInviteIntent()).toBe('acquisition')
-        expect(readInviteUserId()).toBe('')
-        stashInvite('carol', EInviteType.DIRECT)
-        bindInviteToUser('account-a')
-        await bootstrapTrackedLinkEntry(params, true)
-        expect(readInviteCode()).toBe('carol')
-        expect(readInviteIntent()).toBe('explicit')
-        expect(readInviteUserId()).toBe('account-a')
-    }
-)
 
-it.each(['invite=bob', 'acq_invite=bob', 'invite=bob&acq_invite=carol'])(
-    'ignores caller referral fields after descriptor resolution: %s',
-    async (fields) => {
-        await bootstrapTrackedLinkEntry(new URLSearchParams(`tl=alice&pnutdl=1&${fields}`), true)
-        expect(readInviteCode()).toBe('alice')
-        expect(readInviteIntent()).toBe('acquisition')
-        localStorage.clear()
-        resolve.mockResolvedValue({ status: 200, link: campaign })
-        await bootstrapTrackedLinkEntry(new URLSearchParams(`tl=c-launch&pnutdl=1&${fields}`), true)
+it('upgrades a distributed legacy /app?code= link without counting a visit', async () => {
+    const result = await bootstrapTrackedLinkEntry(visit('/app?code=Alice'), false)
+    expect(readInviteCode()).toBe('alice')
+    expect(readInviteIntent()).toBe('acquisition')
+    expect(parseDeferredPayload(result.payload!)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
+    expect(fetchMock).not.toHaveBeenCalled()
+})
+
+it.each(['/app?tl=al-ice&acq_invite=alice', '/app?code=al%2Fice', '/app?tl=alice&acq_invite=Mallory%20'])(
+    'stashes nothing that is not a username: %s',
+    async (path) => {
+        await bootstrapTrackedLinkEntry(visit(path), false)
         expect(readInviteCode()).toBe('')
     }
 )
+
+it.each(['/app?tl=alice', '/app/?tl=alice', '/app?code=alice', '/app/?code=Alice'])(
+    'leaves %s to the bootstrap instead of default attribution capture',
+    (path) => {
+        visit(path)
+        expect(captureSignupAttribution({ includeDocumentReferrer: true })).toBeNull()
+        expect(captureSignupAttribution()).toBeNull()
+        expect(document.cookie).not.toContain('signupAttribution=')
+    }
+)
+
+it('keeps an earlier genuine first touch in the same journey', async () => {
+    visit('/?utm_source=google&utm_medium=cpc&utm_campaign=earlier')
+    const first = captureSignupAttribution()!
+    await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    expect(readSignupAttribution()?.journeyId).toBe(first.journeyId)
+    expect(readSignupAttribution()?.firstTouch).toEqual(first.firstTouch)
+})
+
+it('persists and recovers the native journey before a later tracked touch', async () => {
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+    const first = (await captureTrackedLinkJourney())!
+    for (const cookie of document.cookie.split(';'))
+        document.cookie = `${cookie.split('=')[0].trim()}=; Max-Age=0; path=/`
+    expect(await readSignupAttributionAsync()).toEqual(first)
+    const later = (await captureTrackedLinkJourney())!
+    expect(later.journeyId).toBe(first.journeyId)
+    expect(later.firstTouch).toEqual(first.firstTouch)
+})
+
+it('does not create a replacement journey when native storage is stuck', async () => {
+    process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+    jest.useFakeTimers()
+    jest.spyOn(Preferences, 'get').mockReturnValue(new Promise(() => {}))
+    const pending = captureTrackedLinkJourney()
+    await jest.advanceTimersByTimeAsync(500)
+    expect(await pending).toBeNull()
+    expect(document.cookie).not.toContain('signupAttribution=')
+    expect(mockNative.size).toBe(0)
+})

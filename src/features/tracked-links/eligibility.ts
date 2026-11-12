@@ -1,21 +1,14 @@
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
-import { isInviteUsername } from './contract'
+import { isAcquisitionSlug } from './contract'
 
-/** Descriptor resolution owns these entries, before any default journey write. */
-export function isTrackedLinkEntry(): boolean {
-    if (typeof window === 'undefined') return false
-    const url = new URL(window.location.href)
-    const pathname = url.pathname.replace(/\/$/, '') || '/'
-    const codes = url.searchParams.getAll('code')
-    const legacyCreator =
-        codes.length === 1 &&
-        isInviteUsername(codes[0].toLowerCase()) &&
-        (pathname === '/app' || (pathname === '/home' && url.searchParams.get('app_entry') === '1'))
-    return (
-        legacyCreator ||
-        pathname.startsWith('/go/') ||
-        (['/app', '/home'].includes(pathname) && (url.searchParams.has('tl') || url.searchParams.has('tracked_link')))
-    )
+/**
+ * The one tracked-entry detector: /go's handoff (`tl`) or a distributed legacy `/app?code=<username>`.
+ * The bootstrap owns these entries, so default attribution capture stays out of them.
+ */
+export function isTrackedLinkEntry({ pathname, search }: { pathname: string; search: string }): boolean {
+    if (pathname.replace(/\/$/, '') !== '/app') return false
+    const params = new URLSearchParams(search)
+    return params.has('tl') || isAcquisitionSlug(params.get('code')?.toLowerCase())
 }
 
 export function trackedLinkAnalyticsAllowed(): boolean {

@@ -17,7 +17,7 @@ import { STORE_URL } from '@/constants/migration.consts'
 import { parseDeferredPayload } from '@/utils/deferred-link'
 import { captureSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
 import { saveToCookie } from '@/utils/cookie-url.utils'
-import { stashInvite } from '@/utils/invite-stash'
+import { readInviteCode, readInviteIntent, stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
 
 let mockAnalyticsAllowed = true
@@ -37,13 +37,6 @@ jest.mock('next/navigation', () => ({
     notFound: () => mockNotFound(),
 }))
 
-jest.mock('nuqs', () => ({
-    parseAsString: {},
-    useQueryStates: (keys: Record<string, unknown>) => [
-        Object.fromEntries(Object.keys(keys).map((key) => [key, new URLSearchParams(window.location.search).get(key)])),
-    ],
-}))
-
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 let mockNative = false
@@ -52,7 +45,6 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => false,
     isAndroidNative: () => false,
     isIOSNative: () => false,
-    openExternalUrl: jest.fn(),
 }))
 
 jest.mock('@/utils/migration.utils', () => ({
@@ -83,9 +75,6 @@ jest.mock('@/components/Migration/MigrationHero', () => ({
 
 import { trackStoreClick } from '@/utils/migration.utils'
 import SmartStoreRedirect from '../page'
-import { resolveAcquisitionLinkClient } from '@/features/tracked-links/resolve-client'
-import type { ResolvedAcquisitionLink } from '@/features/tracked-links/contract'
-jest.mock('@/features/tracked-links/resolve-client', () => ({ resolveAcquisitionLinkClient: jest.fn() }))
 
 const PAYLOAD = 'pnutdl=1&lang=pt-br&invite=ABC123&dest=%2Fsend'
 const locationReplace = jest.fn()
@@ -385,93 +374,66 @@ describe('ad landing link (/app with campaign parameters)', () => {
     })
 })
 
-describe('validated acquisition bootstrap before navigation', () => {
-    const link: ResolvedAcquisitionLink = {
-        schemaVersion: 1,
-        linkId: `invite_${'a'.repeat(64)}`,
-        slug: 'alice',
-        revision: 1,
-        status: 'active',
-        kind: 'invite',
-        policy: 'journey',
-        destination: { key: 'app-entry', continuation: '/home' },
-        invite: { code: 'alice' },
-    }
+describe('tracked-link entry', () => {
     afterEach(() => {
-        jest.useRealTimers()
-        Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+        Reflect.deleteProperty(document, 'prerendering')
     })
-    it('does not let Android auto-navigation outrun inviter bootstrap', async () => {
-        let finish!: (value: { status: 200; link: ResolvedAcquisitionLink }) => void
-        jest.mocked(resolveAcquisitionLinkClient).mockImplementation(
-            () =>
-                new Promise((resolve) => {
-                    finish = resolve
-                })
-        )
+    it('sends Android to the store with the passive inviter on the install referrer', async () => {
         mockDeviceType = 'android'
-        visit('?tl=alice&tr=1')
+        visit('?tl=alice&acq_invite=alice')
         renderPage()
-        expect(locationReplace).not.toHaveBeenCalled()
-        await act(async () => {
-            finish({ status: 200, link })
-        })
         await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
         const payload = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
         expect(parseDeferredPayload(payload)?.acquisitionInvite).toBe('alice')
         expect(parseDeferredPayload(payload)?.invite).toBeUndefined()
+        expect(readInviteIntent()).toBe('acquisition')
     })
     it('holds iOS for the clipboard gesture, and offers the existing app association', async () => {
-        jest.mocked(resolveAcquisitionLinkClient).mockResolvedValue({ status: 200, link })
         mockDeviceType = 'ios'
-        visit('?tl=alice&tr=1')
+        visit('?tl=alice&acq_invite=alice')
         renderPage()
-        await waitFor(() => expect(screen.getByRole('link', { name: 'Open Peanut' })).toBeInTheDocument())
+        const openAppLink = await screen.findByRole('link', { name: 'Open Peanut' })
         expect(locationReplace).not.toHaveBeenCalled()
         expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
-        const openApp = new URL(screen.getByRole('link', { name: 'Open Peanut' }).getAttribute('href')!)
-        expect(openApp.origin).toBe('https://peanut.me')
-        expect(openApp.pathname).toBe('/home')
+        const openApp = new URL(openAppLink.getAttribute('href')!)
+        expect(openApp.origin + openApp.pathname).toBe('https://peanut.me/home')
         expect(openApp.searchParams.get('tl_seen')).toBe('1')
         fireEvent.click(storeButton(/app store/i))
         expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
     })
-    it('keeps passive handoff functional while denying existing store and handoff telemetry', async () => {
+    it('keeps the handoff functional while sending no store or handoff telemetry without consent', async () => {
         mockAnalyticsAllowed = false
-        jest.mocked(resolveAcquisitionLinkClient).mockResolvedValue({ status: 200, link })
         mockDeviceType = 'ios'
-        visit('?tl=alice')
+        visit('?tl=alice&acq_invite=alice')
         renderPage()
-        await waitFor(() => expect(screen.getByRole('link', { name: 'Open Peanut' })).toBeInTheDocument())
+        await screen.findByRole('link', { name: 'Open Peanut' })
         fireEvent.click(storeButton(/app store/i))
         await act(async () => {})
         expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
         expect(trackStoreClick).not.toHaveBeenCalled()
         expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
     })
-    it('waits for prerender activation before descriptor bootstrap or store navigation', async () => {
+    it('waits for a prerendered page to be shown before bootstrap or store navigation', async () => {
         Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
-        jest.mocked(resolveAcquisitionLinkClient).mockResolvedValue({ status: 200, link })
         mockDeviceType = 'android'
-        visit('?tl=alice')
+        visit('?tl=alice&acq_invite=alice')
         renderPage()
-        expect(resolveAcquisitionLinkClient).not.toHaveBeenCalled()
+        await act(async () => {})
+        expect(readInviteCode()).toBe('')
         expect(locationReplace).not.toHaveBeenCalled()
         await act(async () => {
             Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
             document.dispatchEvent(new Event('prerenderingchange'))
         })
         await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
+        expect(readInviteCode()).toBe('alice')
     })
-    it('reaches the normal store after the bounded deadline when bootstrap stalls', async () => {
-        jest.useFakeTimers()
-        jest.mocked(resolveAcquisitionLinkClient).mockReturnValue(new Promise(() => {}))
-        mockDeviceType = 'android'
-        visit('?tl=alice')
+    it('stashes the inviter in the installed app and opens home', async () => {
+        mockNative = true
+        visit('?tl=alice&acq_invite=alice')
         renderPage()
-        await act(async () => {
-            jest.advanceTimersByTime(3000)
-        })
-        expect(locationReplace).toHaveBeenCalledWith(STORE_URL.android)
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
+        expect(readInviteIntent()).toBe('acquisition')
+        expect(locationReplace).not.toHaveBeenCalled()
     })
 })

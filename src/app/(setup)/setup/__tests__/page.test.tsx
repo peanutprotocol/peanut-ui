@@ -1,7 +1,7 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 import { getFromCookie, toInviteCode } from '@/utils/general.utils'
-import { readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
+import { readInviteCode, readInviteIntent, readInviteType, stashInvite } from '@/utils/invite-stash'
 import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
 import { EInviteType } from '@/services/services.types'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
@@ -106,6 +106,7 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 jest.mock('@/utils/invite-stash', () => ({
     INVITE_TYPE_PARAM: 'invite_type',
     readInviteCode: jest.fn(),
+    readInviteIntent: jest.fn(),
     readInviteType: jest.fn(),
     stashInvite: jest.fn(),
 }))
@@ -190,6 +191,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     jest.mocked(getFromCookie).mockReset()
     jest.mocked(readInviteCode).mockReset()
+    jest.mocked(readInviteIntent).mockReset().mockReturnValue(null)
     jest.mocked(readInviteType).mockReset()
     jest.mocked(toInviteCode).mockReset()
     mockNoBackLock = null
@@ -303,6 +305,19 @@ it('routes web guests to landing without browser capability checks', async () =>
         })
     )
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
+it.each([
+    ['explicit', true],
+    ['acquisition', false],
+] as const)('lets only a chosen invite skip Landing: %s stash', async (intent, hasInviteCode) => {
+    jest.mocked(readInviteCode).mockReturnValue('alice')
+    jest.mocked(readInviteIntent).mockReturnValue(intent)
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ hasInviteCode }))
 })
 
 it('keeps the signup fast path in a keep-web browser', async () => {

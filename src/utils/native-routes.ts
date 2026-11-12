@@ -3,7 +3,6 @@
 // on web, use the normal path-based urls.
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
-import { isAcquisitionSlug, parseAcquisitionRevision, TRACKED_LINK_ORIGIN } from '@/features/tracked-links/contract'
 import { LOTTIE_PROFILE_ENABLED } from '@/constants/dev-tools.consts'
 import { isCapacitor } from './capacitor'
 import { sanitizeRedirectURL } from './cookie-url.utils'
@@ -103,26 +102,11 @@ function mapDeepLink(url: string): string | null {
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
-    if (
-        parsed.pathname.startsWith('/go/') ||
-        (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl'))
-    ) {
-        if (parsed.origin !== TRACKED_LINK_ORIGIN || parsed.username || parsed.password) return null
-        const slug = parsed.pathname.startsWith('/go/') ? parsed.pathname.slice(4) : parsed.searchParams.get('tl')
-        if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null
-        const params = new URLSearchParams({ tracked_link: slug })
-        // Public /go input never owns attribution or continuation state.
-        if (parsed.pathname.startsWith('/go/')) return `/app?${params}`
-        const revision = parseAcquisitionRevision(parsed.searchParams.get('tr'))
-        if (revision !== null) params.set('tr', String(revision))
-        if (parsed.searchParams.get('tl_seen') === '1') {
-            params.set('tl_seen', '1')
-            params.set('tl', slug)
-            // Deferred fields are parsed by their existing owner after the descriptor resolves.
-            for (const key of ['pnutdl', 'at', 'attribution', 'lang', 'invite', 'acq_invite']) {
-                if (parsed.searchParams.getAll(key).length === 1) params.set(key, parsed.searchParams.get(key)!)
-            }
-        }
+    // A tracked handoff opening the app runs the exported /app bootstrap, which checks its fields
+    // exactly as the web page does. /go itself is not an associated path.
+    if (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl')) {
+        const params = new URLSearchParams(parsed.search)
+        params.delete('app_entry')
         return `/app?${params}`
     }
 

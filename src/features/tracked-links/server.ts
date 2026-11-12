@@ -1,13 +1,4 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import {
-    TRACKED_LINK_TIMEOUT_MS,
-    isAcquisitionSlug,
-    isInviteUsername,
-    parseAcquisitionRevision,
-    parseResolvedAcquisitionLink,
-    type AcquisitionLinkResolution,
-} from './contract'
-import { resolveRegisteredAcquisitionLink } from './registry'
 
 export const TRACKED_LINK_HEADERS = {
     'Cache-Control': 'private, no-store, max-age=0',
@@ -15,47 +6,42 @@ export const TRACKED_LINK_HEADERS = {
     'Referrer-Policy': 'no-referrer',
 }
 
-/** No cookies, profile joins or side effects. Historical revisions serve measurement, never navigation overrides. */
-export async function resolveAcquisitionLink(slug: string, revision?: number): Promise<AcquisitionLinkResolution> {
-    if (!isAcquisitionSlug(slug) || (revision !== undefined && parseAcquisitionRevision(revision) === null))
-        return { status: 400 }
-    const registered = resolveRegisteredAcquisitionLink(slug, revision)
-    if (registered) {
-        if (registered.status === 'retired') return { status: 410 }
-        if (registered.invite) {
-            const identity = await resolveAcquisitionLink(registered.invite.code)
-            if (identity.status !== 200) return identity
-        }
-        return { status: 200, link: registered }
+export type InviteLinkLookup = { status: 'found'; linkId: string } | { status: 'not_found' } | { status: 'unavailable' }
+
+const LOOKUP_TIMEOUT_MS = 1800
+const CACHE_TTL_MS = 60_000
+// Unknown slugs are caller-chosen, so the cache is bounded rather than precisely evicted.
+const CACHE_MAX_ENTRIES = 1000
+const cache = new Map<string, { lookup: InviteLinkLookup; expiresAt: number }>()
+
+/**
+ * Resolve a creator username to its stable link ID. Requests share Vercel egress IPs,
+ * so found and unknown answers are reused briefly; an outage is never cached.
+ */
+export async function lookupInviteLink(slug: string): Promise<InviteLinkLookup> {
+    const cached = cache.get(slug)
+    if (cached && cached.expiresAt > Date.now()) return cached.lookup
+    const lookup = await fetchInviteLink(slug)
+    if (lookup.status !== 'unavailable') {
+        if (cache.size >= CACHE_MAX_ENTRIES) cache.clear()
+        cache.set(slug, { lookup, expiresAt: Date.now() + CACHE_TTL_MS })
     }
-    if (!isInviteUsername(slug) || (revision !== undefined && revision !== 1)) return { status: 404 }
+    return lookup
+}
+
+async function fetchInviteLink(slug: string): Promise<InviteLinkLookup> {
     try {
         const response = await fetch(`${PEANUT_API_URL}/tracked-links/invites/${encodeURIComponent(slug)}`, {
             cache: 'no-store',
-            credentials: 'omit',
             redirect: 'error',
-            signal: AbortSignal.timeout(TRACKED_LINK_TIMEOUT_MS),
+            signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
             headers: { Accept: 'application/json' },
         })
-        if (response.status === 404) return { status: 404 }
-        if (!response.ok) return { status: 503 }
-        const identity: unknown = await response.json()
-        if (!identity || typeof identity !== 'object') return { status: 503 }
-        const body = identity as Record<string, unknown>
-        if (body.schemaVersion !== 1 || body.username !== slug) return { status: 503 }
-        const link = parseResolvedAcquisitionLink({
-            schemaVersion: 1,
-            linkId: body.linkId,
-            slug: body.username,
-            revision: 1,
-            kind: 'invite',
-            status: 'active',
-            policy: 'journey',
-            invite: { code: body.username },
-            destination: { key: 'app-entry', continuation: '/home' },
-        })
-        return link ? { status: 200, link } : { status: 503 }
+        if (response.status === 404) return { status: 'not_found' }
+        if (!response.ok) return { status: 'unavailable' }
+        const { linkId } = (await response.json()) as { linkId?: unknown }
+        return typeof linkId === 'string' ? { status: 'found', linkId } : { status: 'unavailable' }
     } catch {
-        return { status: 503 }
+        return { status: 'unavailable' }
     }
 }

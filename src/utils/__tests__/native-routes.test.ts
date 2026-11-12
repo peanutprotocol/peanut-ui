@@ -730,6 +730,18 @@ describe('native-routes', () => {
             mockIsCapacitor.mockReturnValue(false)
             expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
         })
+
+        it('runs a tracked /home handoff through the /app bootstrap with its continuation fields', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?app_entry=1&tl=alice&acq_invite=alice&tl_seen=1&pnutdl=1&wid=w&at=t'
+                )
+            ).toBe('/app?tl=alice&acq_invite=alice&tl_seen=1&pnutdl=1&wid=w&at=t')
+        })
+
+        it('has no native page for /go, which is not an associated path', () => {
+            expect(deepLinkToNativePath('https://peanut.me/go/alice')).toBeNull()
+        })
     })
 })
 

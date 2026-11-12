@@ -1,5 +1,5 @@
 import { EInviteType } from '@/services/services.types'
-import { isInviteUsername } from '@/features/tracked-links/contract'
+import { isAcquisitionSlug } from '@/features/tracked-links/contract'
 
 /**
  * Invite hand-off between surfaces: a payment/claim/invite page, a deep link,
@@ -107,11 +107,14 @@ export function readInviteCode(): string {
     return readStash()?.code ?? ''
 }
 
-/** A passive opening cannot replace a typed choice or an account's pending retry. */
-export function stashAcquisitionInvite(code: string): boolean {
-    if (!isInviteUsername(code)) return false
+/**
+ * The single trust boundary for passive inviters from URLs and store handoffs. A passive
+ * opening cannot replace a typed choice or an account's pending retry.
+ */
+export function stashAcquisitionInvite(code: string | null | undefined): void {
+    if (!isAcquisitionSlug(code)) return
     const current = readStash()
-    if (current && (current.intent !== 'acquisition' || current.userId)) return false
+    if (current && (current.intent !== 'acquisition' || current.userId)) return
     writeStash({
         code,
         type: EInviteType.DIRECT,
@@ -119,7 +122,6 @@ export function stashAcquisitionInvite(code: string): boolean {
         intent: 'acquisition',
         expiresAt: Date.now() + INVITE_STASH_TTL_MS,
     })
-    return readStash()?.code === code && readStash()?.intent === 'acquisition'
 }
 
 export function readInviteIntent(): 'explicit' | 'acquisition' | null {

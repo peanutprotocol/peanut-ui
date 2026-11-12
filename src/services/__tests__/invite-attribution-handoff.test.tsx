@@ -59,7 +59,7 @@ afterEach(() => {
 
 describe('invite attribution hand-off in an iOS WebView without cookies', () => {
     it('a passive opening cannot accept an inviter during existing-account hydration', async () => {
-        expect(stashAcquisitionInvite('alice')).toBe(true)
+        stashAcquisitionInvite('alice')
         expect(await settlePendingInviteAttribution('existing-account', 'session')).toEqual({ status: 'none' })
         expect(await settlePendingInviteAttribution('existing-account', 'setup_invite_step')).toEqual({
             status: 'none',
@@ -83,7 +83,7 @@ describe('invite attribution hand-off in an iOS WebView without cookies', () => 
         stashInvite('alice', EInviteType.DIRECT)
         mockAcceptInvite.mockResolvedValueOnce({ success: false, retryable: true, status: 503 })
         await settlePendingInviteAttribution('typed-retry', 'setup_invite_step')
-        expect(stashAcquisitionInvite('bob')).toBe(false)
+        stashAcquisitionInvite('bob')
         expect(readInviteCode()).toBe('alice')
         expect(readInviteIntent()).toBe('explicit')
         expect(readInviteUserId()).toBe('typed-retry')
@@ -96,7 +96,8 @@ describe('invite attribution hand-off in an iOS WebView without cookies', () => 
         await settlePendingInviteAttribution('passive-retry', 'registration')
         expect(readInviteIntent()).toBe('acquisition')
         expect(readInviteUserId()).toBe('passive-retry')
-        expect(stashAcquisitionInvite('bob')).toBe(false)
+        stashAcquisitionInvite('bob')
+        expect(readInviteCode()).toBe('alice')
         expect((await settlePendingInviteAttribution('other-account', 'session')).status).toBe('account_mismatch')
         await jest.isolateModulesAsync(async () => {
             const fresh = await import('../pending-invite-attribution')

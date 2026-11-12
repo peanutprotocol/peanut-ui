@@ -5,7 +5,6 @@ import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
 import { isAnalyticsCaptureBuild, posthogProjectKey } from './posthog-setup'
 import { isTrackedLinkEntry, trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
-import type { AcquisitionCampaign } from '@/features/tracked-links/contract'
 
 export const SIGNUP_ATTRIBUTION_COOKIE = 'signupAttribution'
 export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
@@ -311,35 +310,20 @@ export function hasMarketingTouch(): boolean {
 export function captureSignupAttribution({
     includeDocumentReferrer = false,
 }: { includeDocumentReferrer?: boolean } = {}): SignupAttributionContext | null {
-    if (isTrackedLinkEntry() || !analyticsCollectionAvailable()) return null
+    if (!analyticsCollectionAvailable() || isTrackedLinkEntry(window.location)) return null
     const touch = currentTouch(includeDocumentReferrer)
     if (!touch) return null
 
     return captureTouch(touch)
 }
 
-/** Registered campaigns are projected identically on web and native; URL tags are not trusted. */
-export async function captureTrackedLinkJourney(
-    campaign?: AcquisitionCampaign,
-    signal?: AbortSignal
-): Promise<SignupAttributionContext | null> {
-    if (signal?.aborted || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
+/** A tracked link carries no campaign tags: its touch is the opening itself, never URL input. */
+export async function captureTrackedLinkJourney(): Promise<SignupAttributionContext | null> {
+    if (!trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
     const existing = await boundedNativeContext(readSignupAttributionAsync())
     // An unavailable native store must not replace a prior journey with a new one.
-    if (existing === undefined || signal?.aborted || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable())
-        return null
-    const touch: SignupAttributionTouch = {
-        occurredAt: new Date().toISOString(),
-        ...(campaign
-            ? {
-                  utmSource: campaign.source,
-                  utmMedium: campaign.medium,
-                  utmCampaign: campaign.campaign,
-                  ...(campaign.content ? { utmContent: campaign.content } : {}),
-              }
-            : {}),
-    }
-    const context = captureTouch(touch, existing)
+    if (existing === undefined || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
+    const context = captureTouch({ occurredAt: new Date().toISOString() }, existing)
     if (context) await boundedNativeContext(persistNativeSignupAttribution(context))
     return context
 }

@@ -20,9 +20,14 @@ import {
     ensureSignupAttributionForRegistration,
     readSignupAttribution,
 } from '../signup-attribution'
-import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '../invite-stash'
-import { resolveAcquisitionLinkClient } from '@/features/tracked-links/resolve-client'
-import type { AcquisitionLinkResolution } from '@/features/tracked-links/contract'
+import {
+    bindInviteToUser,
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import {
@@ -31,8 +36,6 @@ import {
 } from './fixtures/legacy-native-attribution'
 
 const getReferrer = jest.fn()
-jest.mock('@/features/tracked-links/resolve-client', () => ({ resolveAcquisitionLinkClient: jest.fn() }))
-const resolveTracked = jest.mocked(resolveAcquisitionLinkClient)
 
 jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({ getReferrer: () => getReferrer() })),
@@ -831,144 +834,6 @@ describe('applyDeferredPayload', () => {
 })
 
 describe('restoreDeferredContext', () => {
-    const trackedInvite = {
-        schemaVersion: 1 as const,
-        linkId: `invite_${'a'.repeat(64)}`,
-        slug: 'alice',
-        revision: 1,
-        status: 'active' as const,
-        kind: 'invite' as const,
-        policy: 'journey' as const,
-        destination: { key: 'app-entry' as const, continuation: '/home' as const },
-        invite: { code: 'alice' },
-    }
-
-    it.each(['none', 'personless', 'unavailable', 'journey'] as const)(
-        'imports tracked install analytics only under resolved journey policy: %s',
-        async (policy) => {
-            const previousKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
-            process.env.NEXT_PUBLIC_POSTHOG_KEY = 'test-key'
-            mockIsAndroidNative.mockReturnValue(true)
-            const attribution = {
-                schemaVersion: '1',
-                journeyId: '33333333-3333-4333-8333-333333333333',
-                platform: 'web',
-                analyticsState: 'enabled',
-                captureMethod: 'browser',
-                firstTouch: { occurredAt: new Date().toISOString(), utmSource: 'newsletter', path: '/home' },
-            }
-            const params = new URLSearchParams({
-                pnutdl: '1',
-                tl: 'c-launch',
-                attribution: JSON.stringify(attribution),
-                wid: '44444444-4444-4444-8444-444444444444',
-            })
-            expect(parseDeferredPayload(params.toString())?.attribution).toBeDefined()
-            getReferrer.mockResolvedValue({ referrer: params.toString() })
-            const resolved: AcquisitionLinkResolution =
-                policy === 'unavailable'
-                    ? { status: 503 }
-                    : {
-                          status: 200,
-                          link:
-                              policy === 'personless'
-                                  ? {
-                                        ...trackedInvite,
-                                        kind: 'marketing_qr',
-                                        policy,
-                                        invite: undefined,
-                                        qr: { id: 'home-hero-en' },
-                                        campaign: { source: 'qr', medium: 'content', campaign: 'launch' },
-                                    }
-                                  : {
-                                        ...trackedInvite,
-                                        kind: 'campaign',
-                                        policy,
-                                        invite: undefined,
-                                        campaign: { source: 'twitter', medium: 'cpc', campaign: 'launch' },
-                                    },
-                      }
-            resolveTracked.mockResolvedValue(resolved)
-            try {
-                await restoreDeferredContext()
-                if (policy === 'journey') {
-                    expect(readSignupAttribution()?.journeyId).toBe(attribution.journeyId)
-                    expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: params.get('wid') })
-                } else {
-                    expect(readSignupAttribution()).toBeNull()
-                    expect(posthogRegister).not.toHaveBeenCalled()
-                    expect(posthogRegisterOnce).not.toHaveBeenCalled()
-                }
-            } finally {
-                if (previousKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
-                else process.env.NEXT_PUBLIC_POSTHOG_KEY = previousKey
-            }
-        }
-    )
-
-    it.each(['invite=bob', 'acq_invite=bob', 'invite=bob&acq_invite=carol'])(
-        'synchronous tracked restoration never trusts caller referral fields: %s',
-        (fields) => {
-            applyDeferredPayload(parseDeferredPayload(`pnutdl=1&tl=alice&badge_campaign=forged&${fields}`)!)
-            expect(readInviteCode()).toBe('')
-            expect(document.cookie).not.toContain('campaignTag=')
-        }
-    )
-
-    it.each(['android', 'ios'] as const)(
-        'resolves the %s tracked handoff before stashing an inviter',
-        async (store) => {
-            const payload = 'pnutdl=1&tl=alice&invite=bob&acq_invite=carol&badge_campaign=forged&dest=%2Fsend%2Fbob'
-            resolveTracked.mockResolvedValue({ status: 200, link: trackedInvite })
-            if (store === 'android') {
-                mockIsAndroidNative.mockReturnValue(true)
-                getReferrer.mockResolvedValue({ referrer: payload })
-            } else {
-                mockIsIOSNative.mockReturnValue(true)
-                mockClipboardHasStrings.mockResolvedValue(true)
-                mockClipboardHasProbableWebUrl.mockResolvedValue(true)
-                clipboardRead.mockResolvedValue({ value: `https://peanut.me/?${payload}` })
-            }
-            await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
-            expect(resolveTracked).toHaveBeenCalledWith('alice')
-            expect(readInviteCode()).toBe('alice')
-            expect(readInviteIntent()).toBe('acquisition')
-            expect(document.cookie).not.toContain('campaignTag=')
-        }
-    )
-
-    it.each(['no-inviter', 'unavailable', 'explicit', 'owned'])(
-        'tracked install restoration preserves referral authority for %s',
-        async (state) => {
-            mockIsAndroidNative.mockReturnValue(true)
-            getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&tl=c-launch&invite=bob&acq_invite=carol&dest=%2Fhome' })
-            if (state === 'explicit' || state === 'owned') stashInvite('dave', EInviteType.DIRECT)
-            if (state === 'owned') bindInviteToUser('account-a')
-            resolveTracked.mockResolvedValue(
-                state === 'unavailable'
-                    ? { status: 503 }
-                    : {
-                          status: 200,
-                          link: {
-                              ...trackedInvite,
-                              slug: 'c-launch',
-                              kind: 'campaign',
-                              campaign: { source: 'twitter', medium: 'cpc', campaign: 'launch' },
-                              invite: state === 'no-inviter' ? undefined : { code: 'alice' },
-                          },
-                      }
-            )
-            await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
-            expect(readInviteCode()).toBe(state === 'explicit' || state === 'owned' ? 'dave' : '')
-            expect(readInviteUserId()).toBe(state === 'owned' ? 'account-a' : '')
-            if (state === 'unavailable') {
-                resolveTracked.mockClear()
-                await expect(restoreDeferredContext()).resolves.toBeNull()
-                expect(resolveTracked).not.toHaveBeenCalled()
-            }
-        }
-    )
-
     it('restores the invite, campaign, locale and dest from the android referrer, once', async () => {
         mockIsAndroidNative.mockReturnValue(true)
         getReferrer.mockResolvedValue({
@@ -1376,5 +1241,126 @@ describe('web visitor identity hand-off', () => {
         expect(restored).not.toHaveProperty('web_distinct_id')
         expect(posthogRegisterOnce).not.toHaveBeenCalled()
         expect(posthogAlias).not.toHaveBeenCalled()
+    })
+})
+
+// A /go opening stashes a passive inviter and may carry a strict-consent journey.
+describe('tracked-link handoff', () => {
+    const WEB_ID = '44444444-4444-4444-8444-444444444444'
+    const savedKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    const journey = {
+        schemaVersion: '1',
+        journeyId: '33333333-3333-4333-8333-333333333333',
+        platform: 'web',
+        analyticsState: 'enabled',
+        captureMethod: 'browser',
+        firstTouch: { occurredAt: new Date().toISOString() },
+    }
+    const deny = (condition: 'dnt' | 'gpc' | 'declined') => {
+        if (condition === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+        if (condition === 'gpc')
+            Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
+        if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked', '0')
+    }
+    beforeEach(() => {
+        process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_tracked'
+        posthogDistinctId.mockReturnValue(WEB_ID)
+        posthogIsIdentified.mockReturnValue(false)
+    })
+    afterEach(() => {
+        Reflect.deleteProperty(navigator, 'doNotTrack')
+        Reflect.deleteProperty(navigator, 'globalPrivacyControl')
+        posthogDistinctId.mockReset()
+        posthogIsIdentified.mockReset()
+        if (savedKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+        else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
+    })
+
+    it.each(['android', 'ios'] as const)(
+        'carries a passive inviter as acq_invite, which installed apps never accept (%s)',
+        (store) => {
+            stashAcquisitionInvite('alice')
+            const encoded = buildDeferredPayload('/home', undefined, store, { trackedLink: 'alice' })
+            expect(new URLSearchParams(encoded).has('invite')).toBe(false)
+            expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
+            expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
+            localStorage.clear()
+            applyDeferredPayload(parseDeferredPayload(encoded)!)
+            expect(readInviteCode()).toBe('alice')
+            expect(readInviteIntent()).toBe('acquisition')
+        }
+    )
+
+    it('lets a payload invite win over a passive one on restore', () => {
+        stashAcquisitionInvite('creator')
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=creator&invite=friend&acq_invite=creator')!)
+        expect(readInviteCode()).toBe('friend')
+        expect(readInviteIntent()).toBe('explicit')
+    })
+
+    it.each(['explicit', 'explicit-owned', 'passive-owned'] as const)(
+        'never lets a passive payload replace a %s stash',
+        (state) => {
+            if (state === 'passive-owned') stashAcquisitionInvite('dave')
+            else stashInvite('dave', EInviteType.DIRECT)
+            if (state !== 'explicit') bindInviteToUser('account-a')
+            applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=alice')!)
+            expect(readInviteCode()).toBe('dave')
+            expect(readInviteUserId()).toBe(state === 'explicit' ? '' : 'account-a')
+        }
+    )
+
+    it('drops a passive inviter that is not a username', () => {
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=al%2Fice')!)
+        expect(readInviteCode()).toBe('')
+    })
+
+    it.each(['dnt', 'gpc', 'declined'] as const)(
+        'keeps the passive inviter but leaves the journey and web id behind under %s',
+        (condition) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            deny(condition)
+            const parsed = parseDeferredPayload(
+                buildDeferredPayload('/home', undefined, 'ios', { trackedLink: 'alice' })
+            )!
+            expect(parsed.acquisitionInvite).toBe('alice')
+            expect(parsed.attribution).toBeUndefined()
+            expect(parsed.webDistinctId).toBeUndefined()
+        }
+    )
+
+    it.each([true, false])(
+        'restores the journey and web id only under tracked consent (allowed: %s)',
+        async (allowed) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            const referrer = buildDeferredPayload('/home', undefined, 'android', { trackedLink: 'alice' })
+            expect(parseDeferredPayload(referrer)).toMatchObject({ webDistinctId: WEB_ID, trackedLink: 'alice' })
+            localStorage.clear()
+            clearCookies()
+            if (!allowed) deny('dnt')
+            mockIsAndroidNative.mockReturnValue(true)
+            getReferrer.mockResolvedValue({ referrer })
+            await restoreDeferredContext()
+            expect(readInviteCode()).toBe('alice')
+            expect(readSignupAttribution()?.journeyId).toBe(allowed ? journey.journeyId : undefined)
+            if (allowed) expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+            else expect(posthogRegisterOnce).not.toHaveBeenCalled()
+        }
+    )
+
+    it('trims Android payload bytes without downgrading the passive inviter', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            ...journey,
+            firstTouch: { ...journey.firstTouch, utmCampaign: 'x'.repeat(64), utmContent: 'y'.repeat(64) },
+        })
+        stashAcquisitionInvite('a'.repeat(64))
+        const encoded = buildDeferredPayload('/home?' + 'x'.repeat(600), undefined, 'android', {
+            trackedLink: 'a'.repeat(64),
+        })
+        expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('a'.repeat(64))
+        expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
     })
 })
