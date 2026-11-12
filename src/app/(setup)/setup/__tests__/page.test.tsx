@@ -948,21 +948,58 @@ describe('a signup interrupted after registration', () => {
 })
 
 describe('unknown account state and bounded initialization recovery', () => {
-    it.each([false, true])(
-        'does not enter signup or trust cached account data after a profile error (cached=%s)',
-        async (cached) => {
-            mockAuth.userFetchError = new Error('profile unavailable')
-            if (cached) mockAuth.user = { user: { username: 'cached', hasAppAccess: true }, accounts: WALLET }
-            renderWithIntl(<SetupPage />)
-            await advance(100)
-            expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
-            expect(mockRouter.replace).not.toHaveBeenCalled()
-            expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-            fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-            await advance(0)
-            expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
+    it('does not enter signup when a profile error leaves the account unknown', async () => {
+        mockAuth.userFetchError = new Error('profile unavailable')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        await advance(0)
+        expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    it('recovers an unknown profile and resumes the login redirect from Landing', async () => {
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        mockAuth.userFetchError = new Error('profile unavailable')
+        view.rerender(<SetupPage />)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
+        mockAuth.userFetchError = null
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: WALLET }
+        view.rerender(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    })
+
+    it('keeps a loaded signup step when a background profile refetch fails', async () => {
+        const emailStep = {
+            ...landing,
+            screenId: 'notification-email' as const,
+            component: () => <div>Email step</div>,
         }
-    )
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: [] }
+        mockStore.steps = [landing, { ...landing, screenId: 'residence' }, emailStep]
+        mockFlow.step = emailStep
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        mockAuth.userFetchError = new Error('429')
+        view.rerender(<SetupPage />)
+        expect(screen.getByText('Email step')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('routes a loaded completed profile despite a background error', async () => {
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: WALLET }
+        mockAuth.userFetchError = new Error('refetch unavailable')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
 
     it('automatically retries a failed initialization once and recovers when the second resolve succeeds', async () => {
         mockResolve

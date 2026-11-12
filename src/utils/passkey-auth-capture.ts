@@ -53,7 +53,7 @@ function retryAt(response: Response): number {
     if (header) {
         const seconds = /^\d+(?:\.\d+)?$/.test(header) ? Number(header) : NaN
         const deadline = Number.isFinite(seconds) ? Date.now() + seconds * 1000 : Date.parse(header)
-        if (Number.isSafeInteger(deadline)) return Math.max(Date.now() + 1000, deadline)
+        if (Number.isSafeInteger(deadline)) return Math.min(Date.now() + 60_000, Math.max(Date.now() + 1000, deadline))
     }
     return Date.now() + 1000
 }

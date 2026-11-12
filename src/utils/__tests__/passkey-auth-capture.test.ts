@@ -169,3 +169,30 @@ it.each(['options', 'verify'])(
         })
     }
 )
+
+it.each([
+    ['3600', 60_000],
+    ['Thu, 12 Nov 2026 15:00:00 GMT', 60_000],
+    ['5', 5_000],
+    ['Thu, 12 Nov 2026 14:00:05 GMT', 5_000],
+    ['0', 1_000],
+    ['Thu, 12 Nov 2026 13:59:59 GMT', 1_000],
+] as const)('bounds login verify Retry-After %s to %i ms', async (header, expectedDelay) => {
+    jest.clearAllMocks()
+    const now = Date.parse('2026-11-12T14:00:00Z')
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+    try {
+        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({}, 429, header))
+        await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).rejects.toMatchObject({
+            name: 'PasskeyVerifyRetryableError',
+        })
+        expect(getLoginRetryError()?.retryAt).toBe(now + expectedDelay)
+        expect(mockUnderlyingFetch).toHaveBeenCalledTimes(1)
+        clock.mockReturnValue(now + expectedDelay - 1)
+        expect(getLoginRetryError()).toBeDefined()
+        clock.mockReturnValue(now + expectedDelay)
+        expect(getLoginRetryError()).toBeUndefined()
+    } finally {
+        clock.mockRestore()
+    }
+})

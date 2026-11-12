@@ -683,6 +683,8 @@ export type FetchWithSentryOptions = RequestInit & {
     /** Report only status/method and static errors for sensitive requests. */
     redactTelemetry?: boolean
     preferNativeTransport?: boolean
+    /** Return at headers for downloads consumed outside the transport budget. */
+    drainResponseBody?: boolean
     /*
      * Opt out of the Sentry capture on timeout. For call sites that own a
      * designed fallback for exactly this failure — `useCardMarkupRate` returns
@@ -739,6 +741,7 @@ export const fetchWithSentry = async (
         callerReportsFailures,
         idempotent,
         beforeDispatch,
+        drainResponseBody = true,
         ...options
     } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
@@ -765,9 +768,12 @@ export const fetchWithSentry = async (
      * the late response is neither returned nor reported. The request itself
      * still reaches the server; SocketQueryRefresh keeps that to one per event.
      */
+    const method = (options.method || 'GET').toUpperCase()
+    let responseReceived = false
     const finishResponse = async (response: Response, signal: AbortSignal): Promise<Response> => {
+        responseReceived = true
         // Drain a clone under the transport budget, leaving the original body and metadata intact for callers.
-        if (response.body) await response.clone().arrayBuffer()
+        if (drainResponseBody && response.body) await response.clone().arrayBuffer()
         if (signal.aborted) throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
         await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures, signal)
         return response
@@ -801,7 +807,6 @@ export const fetchWithSentry = async (
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
     // fresh attempt (PEANUT-UI-R44).
-    const method = (options.method || 'GET').toUpperCase()
     const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
     let networkRetryLeft = idempotent === true && isMutatingMethod(method)
 
@@ -859,7 +864,9 @@ export const fetchWithSentry = async (
         try {
             const response = await nativeLeg(legTimeoutMs())
             return response
-        } catch {
+        } catch (error) {
+            if (callerSignal?.aborted) throw cancelError(callerSignal)
+            if (responseReceived && isMutatingMethod(method)) throw error
             // OS client failed, or the caller cancelled — the WebView path below
             // checks the cancel first and is otherwise the report of record
         }
@@ -917,6 +924,7 @@ export const fetchWithSentry = async (
                 // Draws on the remaining pool, so the call's worst case is unchanged.
                 if (
                     networkRetryLeft &&
+                    !responseReceived &&
                     isPreResponseNetworkError(error) &&
                     !isBackgrounded() &&
                     legTimeoutMs() >= minLegMs
@@ -947,7 +955,12 @@ export const fetchWithSentry = async (
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
-        if (!(lastLegInterrupted && isBackgrounded()) && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
+        if (
+            !(responseReceived && isMutatingMethod(method)) &&
+            !(lastLegInterrupted && isBackgrounded()) &&
+            canUseNativeHttp(url, options) &&
+            legTimeoutMs() >= minLegMs
+        ) {
             try {
                 const response = await nativeLeg(legTimeoutMs())
                 return response

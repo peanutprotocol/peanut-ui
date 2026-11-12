@@ -96,7 +96,7 @@ export default function EmailStep() {
                             attempt: saveAttemptsRef.current,
                         })
                     }
-                    if (protectedFailure) {
+                    if (protectedFailure && user.user.email?.trim()) {
                         setKeepCurrentEmail(true)
                         setEmail(user.user.email || '')
                         setNotificationEmail(user.user.email || '')

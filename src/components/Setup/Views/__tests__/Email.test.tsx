@@ -10,7 +10,7 @@ import { reportEmailSaveFailure } from '@/features/setup/report-email-save-failu
 
 const mockUpdateUser = jest.fn()
 const mockNext = jest.fn()
-let mockEmail = ''
+let mockEmail: string | null = ''
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUser(...args) }))
@@ -130,4 +130,26 @@ it('keeps EMAIL_IN_USE as a duplicate-address error', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByText('The user with this email was already registered.')).toBeInTheDocument()
     expect(mockNext).not.toHaveBeenCalled()
+})
+
+it.each(
+    [null, '', '   '].flatMap((email) => [
+        { email, status: 400, error: 'Email changes require a verification code' },
+        { email, status: 503, error: 'Email replacement is temporarily disabled' },
+    ])
+)('does not offer absent email "$email" after protected replacement $status', async ({ email, status, error }) => {
+    mockEmail = email
+    mockUpdateUser.mockResolvedValue({ status, error })
+    renderEmail()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email address' }), { target: { value: 'new@example.com' } })
+    for (const attempt of [1, 2]) {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await waitFor(() => expect(reportEmailSaveFailure).toHaveBeenCalledTimes(attempt))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+        expect(screen.getByText('We couldn’t save your email. Please try again.')).toBeInTheDocument()
+        expect(screen.queryByText(/profile/i)).not.toBeInTheDocument()
+        expect(screen.getAllByRole('button', { name: /continue/i })).toHaveLength(1)
+        expect(mockNext).not.toHaveBeenCalled()
+    }
+    expect(mockUpdateUser).toHaveBeenCalledTimes(2)
 })

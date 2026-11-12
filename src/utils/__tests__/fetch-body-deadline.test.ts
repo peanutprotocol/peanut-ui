@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { canUseNativeHttp, nativeHttpRequest } from '../native-http'
 import { fetchWithSentry, resolveDefaultTimeoutMs, TRANSPORT_TIMEOUT_RETRY_DELAY_MS } from '../sentry.utils'
 
 jest.mock('@sentry/nextjs', () => ({
@@ -45,6 +46,7 @@ function observe<T>(promise: Promise<T>) {
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    jest.mocked(canUseNativeHttp).mockReturnValue(false)
     jest.spyOn(console, 'info').mockImplementation(() => {})
 })
 
@@ -160,4 +162,81 @@ it('retains the existing GET retry when the first body stalls', async () => {
     expect(global.fetch).toHaveBeenCalledTimes(2)
     expect(outcome.state).toBe('fulfilled')
     await expect((await request).json()).resolves.toEqual({ ready: true })
+})
+
+it.each([
+    [false, 'broken'],
+    [true, 'broken'],
+    [false, 'stalled'],
+    [true, 'stalled'],
+] as const)('never replays a native POST after 201 headers (idempotent=%s, body=%s)', async (idempotent, failure) => {
+    jest.mocked(canUseNativeHttp).mockReturnValue(true)
+    const response = streamingResponse(201)
+    if (failure === 'broken') controllers[controllers.length - 1].error(new TypeError('Failed to fetch'))
+    jest.mocked(nativeHttpRequest).mockResolvedValue(response)
+    global.fetch = jest.fn().mockResolvedValue(new Response('{"created":true}', { status: 201 }))
+    const outcome = observe(fetchWithSentry(url, { method: 'POST', preferNativeTransport: true, idempotent }, 1_000))
+
+    await jest.advanceTimersByTimeAsync(2_000 + TRANSPORT_TIMEOUT_RETRY_DELAY_MS)
+
+    expect(outcome.state).toBe('rejected')
+    expect(nativeHttpRequest).toHaveBeenCalledTimes(1)
+    expect(global.fetch).not.toHaveBeenCalled()
+})
+
+it.each([false, true])('returns undrained headers and permits a body after 60 seconds (native=%s)', async (native) => {
+    jest.mocked(canUseNativeHttp).mockReturnValue(native)
+    const response = streamingResponse()
+    const controller = controllers[controllers.length - 1]
+    jest.mocked(nativeHttpRequest).mockResolvedValue(response)
+    global.fetch = jest.fn().mockResolvedValue(response)
+    const options = { method: 'GET', preferNativeTransport: native, drainResponseBody: false }
+    const request = fetchWithSentry(url, options, 60_000)
+    const outcome = observe(request)
+    await jest.advanceTimersByTimeAsync(1)
+    expect(outcome.state).toBe('fulfilled')
+    const headers = await request
+    expect(headers.status).toBe(200)
+    const body = headers.text()
+    const bodyOutcome = observe(body)
+    await jest.advanceTimersByTimeAsync(60_001)
+    expect(bodyOutcome.state).toBe('pending')
+    controller.enqueue(new TextEncoder().encode('"late"}'))
+    controller.close()
+    await expect(body).resolves.toBe('{"token":"late"}')
+    expect(nativeHttpRequest).toHaveBeenCalledTimes(native ? 1 : 0)
+    expect(global.fetch).toHaveBeenCalledTimes(native ? 0 : 1)
+    const init = native ? jest.mocked(nativeHttpRequest).mock.calls[0][1] : (global.fetch as jest.Mock).mock.calls[0][1]
+    expect(init).not.toHaveProperty('drainResponseBody')
+})
+
+it('preserves the caller cancellation reason after native mutation headers', async () => {
+    jest.mocked(canUseNativeHttp).mockReturnValue(true)
+    jest.mocked(nativeHttpRequest).mockResolvedValue(streamingResponse(201))
+    global.fetch = jest.fn()
+    const caller = new AbortController()
+    const reason = new Error('Caller retired this request')
+    const outcome = observe(
+        fetchWithSentry(url, { method: 'POST', preferNativeTransport: true, signal: caller.signal }, 1_000)
+    )
+    await jest.advanceTimersByTimeAsync(1)
+    caller.abort(reason)
+    await jest.advanceTimersByTimeAsync(1)
+    expect(outcome.state).toBe('rejected')
+    expect(outcome.error).toBe(reason)
+    expect(nativeHttpRequest).toHaveBeenCalledTimes(1)
+    expect(global.fetch).not.toHaveBeenCalled()
+})
+
+it.each([false, true])('never falls back after a WebView POST body breaks (idempotent=%s)', async (idempotent) => {
+    jest.mocked(canUseNativeHttp).mockReturnValue(true)
+    const response = streamingResponse(201)
+    controllers[controllers.length - 1].error(new TypeError('Failed to fetch'))
+    global.fetch = jest.fn().mockResolvedValue(response)
+    jest.mocked(nativeHttpRequest).mockResolvedValue(new Response('{"created":true}', { status: 201 }))
+    const outcome = observe(fetchWithSentry(url, { method: 'POST', idempotent }, 1_000))
+    await jest.advanceTimersByTimeAsync(2_000 + TRANSPORT_TIMEOUT_RETRY_DELAY_MS)
+    expect(outcome.state).toBe('rejected')
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    expect(nativeHttpRequest).not.toHaveBeenCalled()
 })

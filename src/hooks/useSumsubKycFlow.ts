@@ -485,7 +485,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // demo mode: skip Sumsub, treat KYC as complete.
             if (isDemoMode()) {
                 onKycSuccess?.()
-                return
+                return true
             }
             const entryUserId = user?.user?.userId
             const generation = ++startGeneration.current
@@ -553,6 +553,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     if (plan?.activeAttemptId) {
                         try {
                             acceptDocumentSession(await withinDeadline(resumeKycDocumentAttempt(plan.activeAttemptId)))
+                            return true
                         } catch (error) {
                             if (error === timeoutError) throw error
                             userInitiatedRef.current = false
@@ -604,7 +605,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         levelName: levelName ?? '',
                         sdkConfig: response.data.sdkConfig,
                     })
-                    return false
+                    return true
                 }
                 if (response.data?.session) {
                     userInitiatedRef.current = false
@@ -871,7 +872,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
         addressGeneration.current += 1
-        const refreshIdentity = showWrapperRef.current && !sdkSubmittedRef.current
+        const refreshIdentity =
+            showWrapperRef.current &&
+            !sdkSubmittedRef.current &&
+            !documentAttemptRef.current &&
+            !actionKeyRef.current &&
+            !residenceChangeRef.current
         const generation = showWrapperRef.current ? ++startGeneration.current : startGeneration.current
         const owner = actionOwnerRef.current
         showWrapperRef.current = false
@@ -889,19 +895,29 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 generation === startGeneration.current &&
                 owner === actionOwnerRef.current &&
                 !showWrapperRef.current &&
-                !userInitiatedRef.current
+                !userInitiatedRef.current &&
+                !documentAttemptRef.current &&
+                !actionKeyRef.current &&
+                !residenceChangeRef.current
             void (async () => {
                 try {
                     await refreshKycIdentityStatus()
+                    if (!isCurrent() || !regionIntent) return
+                    if ((await findKycDocumentPlan('status-sync'))?.flow === PAPERWORK_VERIFICATION_FLOW) return
                     if (!isCurrent()) return
-                    const response = await initiateSumsubKyc({ regionIntent: regionIntentRef.current })
+                    const response = await initiateSumsubKyc({
+                        corridor: corridorRef.current,
+                        regionIntent: regionIntentRef.current,
+                        levelName: levelNameRef.current,
+                        targetCountry: targetCountryRef.current,
+                    })
                     if (isCurrent() && response.data?.status) setLiveKycStatus(response.data.status)
                 } catch {
                     // Closing the SDK stays immediate even when status recovery is unavailable.
                 }
             })()
         }
-    }, [onManualClose])
+    }, [onManualClose, regionIntent])
 
     // token refresh function passed to the sdk for when the token expires.
     // routes by how the flow started: start-action key, self-heal provider, or

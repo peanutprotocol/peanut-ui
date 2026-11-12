@@ -217,7 +217,12 @@ function SetupPageContent() {
         }
     }, [])
 
-    const pendingRecoveryReason = userFetchError
+    const profileFetchFailed = !!userFetchError && !user
+    useEffect(() => {
+        if (profileFetchFailed) setSessionChecked(false)
+    }, [profileFetchFailed])
+
+    const pendingRecoveryReason = profileFetchFailed
         ? 'profile_fetch_failed'
         : isLeavingForHome
           ? null
@@ -253,13 +258,13 @@ function SetupPageContent() {
     }, [recoveryReason])
 
     useEffect(() => {
-        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome || userFetchError) return
+        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome || profileFetchFailed) return
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
         }, 15000)
         return () => clearTimeout(timeout)
-    }, [isLoading, sessionChecked, initializationError, isLeavingForHome, userFetchError, initializationAttempt])
+    }, [isLoading, sessionChecked, initializationError, isLeavingForHome, profileFetchFailed, initializationAttempt])
 
     // Only count steps that actually render, not while the entry step is being determined.
     const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
@@ -346,7 +351,7 @@ function SetupPageContent() {
      * separately so repeated invites cannot strand the loader.
      */
     useEffect(() => {
-        if (isFetchingUser || userFetchError) return
+        if (isFetchingUser || profileFetchFailed) return
         const isInitialSessionCheck = !sessionChecked
         const isNewSetupDeepLink =
             !isInitialSessionCheck &&
@@ -469,7 +474,7 @@ function SetupPageContent() {
     }, [
         sessionChecked,
         isFetchingUser,
-        userFetchError,
+        profileFetchFailed,
         user,
         router,
         fetchUser,
@@ -482,7 +487,7 @@ function SetupPageContent() {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
         const determineInitialStep = async () => {
-            if (userFetchError) return
+            if (profileFetchFailed) return
             const entryKey = JSON.stringify([inviteCodeParam, legacyStepParam])
             if (isObsolete() || resolvedEntry.current === entryKey) return
             // wait for layout to populate steps after logout/mount
@@ -557,7 +562,7 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam, userFetchError, initializationAttempt])
+    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam, profileFetchFailed, initializationAttempt])
 
     if (recoveryReason) {
         return (
@@ -568,7 +573,7 @@ function SetupPageContent() {
                     <Button
                         onClick={() => {
                             trackErrorScreen('try_again', 'tap', recoveryReason)
-                            if (userFetchError) {
+                            if (profileFetchFailed) {
                                 void fetchUser().catch(() => {})
                                 return
                             }

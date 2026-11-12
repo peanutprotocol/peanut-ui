@@ -304,10 +304,8 @@ export const useZeroDev = () => {
                 immediateSignal ? attempt() : withIOSPasskeyLoginRecovery(attempt)
             )
 
-            if (cancelSignal?.aborted) throw new DOMException('Automatic login retired', 'AbortError')
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
-            const loggedInUser = await hydrateLoginSession(cancelSignal)
-            if (cancelSignal?.aborted) throw new DOMException('Automatic login retired', 'AbortError')
+            const loggedInUser = await hydrateLoginSession()
             updateUserPreferences(loggedInUser.user.userId, { webAuthnKey })
             setWebAuthnKey(webAuthnKey)
         } catch (e) {
