@@ -1,6 +1,8 @@
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import { getMinimumAmount } from '@/utils/bridge.utils'
+import { getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
+import { isFeeFreeRoute } from '@/components/Global/TokenSelector/TokenSelector.utils'
 
 /**
  * Bridge bank offramps have a $1 wire minimum
@@ -96,12 +98,25 @@ export function validateBankOfframpAmount(amount: string, balance: bigint | unde
 }
 
 /**
+ * The USD minimum for a crypto withdrawal to this network and token. Same-chain
+ * USDC is a direct transfer with no minimum (parity with send-via-link); every
+ * other route rides Rhino, which parks deposits below its route minimum.
+ */
+export function cryptoWithdrawMinUsd(chainId: string | number, tokenAddress: string): number {
+    return isFeeFreeRoute(String(chainId), tokenAddress) ? 0 : getMinWithdrawUsdForChain(chainId)
+}
+
+/**
  * Same contract for the crypto withdraw page (Chip review round 4): `?amount=`
  * must be a finite positive plain-decimal within the loaded balance before any
- * request/charge is persisted, and again before broadcast. No rail floor here —
- * same-chain USDC has no minimum (parity with send-via-link); the per-chain
- * Rhino route minimums are enforced separately by the page.
+ * request/charge is persisted, and again before broadcast. `minUsd` is the
+ * route minimum (`cryptoWithdrawMinUsd`); the page checks it on every amount
+ * change so Continue is disabled below it, not only rejected at the tap.
  */
-export function validateCryptoWithdrawAmount(amount: string, balance: bigint | undefined): WithdrawAmountCheck {
-    return checkWithdrawUsdAmount(amount, balance, 0)
+export function validateCryptoWithdrawAmount(
+    amount: string,
+    balance: bigint | undefined,
+    minUsd: number
+): WithdrawAmountCheck {
+    return checkWithdrawUsdAmount(amount, balance, minUsd)
 }

@@ -18,7 +18,7 @@
         "app/(mobile-ui)/verify/page.tsx": 398,
         "app/(mobile-ui)/withdraw/[country]/bank/page.tsx": 211,
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 404,
-        "app/(mobile-ui)/withdraw/crypto/page.tsx": 127,
+        "app/(mobile-ui)/withdraw/crypto/page.tsx": 132,
         "app/(mobile-ui)/withdraw/manteca/page.tsx": 576,
         "app/(mobile-ui)/withdraw/new-pix-key/page.tsx": 166,
         "app/(mobile-ui)/withdraw/pix/page.tsx": 253,
