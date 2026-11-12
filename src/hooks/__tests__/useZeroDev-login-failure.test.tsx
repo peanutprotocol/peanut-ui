@@ -1,6 +1,7 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 import React from 'react'
+import posthog from 'posthog-js'
 import { act, render, renderHook, waitFor } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { clearAuthState } from '@/utils/auth.utils'
@@ -139,6 +140,31 @@ afterEach(() => {
     passkeyTestGlobals.__passkeyTestIOSNative = false
     jest.useRealTimers()
     delete passkeyTestGlobals.__capgoPasskeyShimInstalled
+})
+
+it('completes login when PostHog capture throws', async () => {
+    const key = { authenticatorId: 'verified-key' }
+    mockToWebAuthnKey.mockResolvedValue(key)
+    mockHydrateLoginSession.mockResolvedValue({ user: { userId: 'verified-user' } })
+    const capture = jest.mocked(posthog.capture)
+    capture.mockImplementation(() => {
+        throw new Error('analytics unavailable')
+    })
+    try {
+        const { result } = renderHook(() => useZeroDev())
+        await act(async () => {
+            await result.current.handleLogin()
+        })
+        expect(capture).toHaveBeenCalledWith(
+            'webauthn_ceremony',
+            expect.objectContaining({ outcome: 'ok', attempt_id: expect.any(String) })
+        )
+        expect(mockSetWebAuthnKey).toHaveBeenCalledWith(key)
+        expect(mockUpdateUserPreferences).toHaveBeenCalledWith('verified-user', { webAuthnKey: key })
+        expect(clearAuthState).not.toHaveBeenCalled()
+    } finally {
+        capture.mockReset()
+    }
 })
 
 describe('useZeroDev handleLogin — passkey-server failures keep the session', () => {
