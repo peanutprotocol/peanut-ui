@@ -8,6 +8,8 @@ let mockReport: FeatureReport | undefined
 let mockUserId: string | undefined
 let mockOneShot: boolean
 let mockStandingEnabled: boolean
+let mockRoutes: unknown[] | undefined
+let mockResidence: string[]
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -16,22 +18,64 @@ jest.mock('@/context/authContext', () => ({
     }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: mockGateFor, capabilities: { features: mockReport }, isLoading: false }),
+    useCapabilities: () => ({
+        gateFor: mockGateFor,
+        capabilities: { features: mockReport, routes: mockRoutes },
+        isLoading: false,
+    }),
 }))
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => ['PT'] }))
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidence }))
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockStandingEnabled,
 }))
 jest.mock('@tanstack/react-query', () => ({ useQuery: (...args: unknown[]) => mockQuery(...args) }))
 
 beforeEach(() => {
+    mockRoutes = undefined
+    mockResidence = ['PT']
     mockStandingEnabled = true
     mockUserId = 'current-owner'
     mockOneShot = false
     mockReport = undefined
-    mockGateFor.mockReset().mockReturnValue({ kind: 'not-offered' })
+    mockGateFor.mockReset().mockReturnValue({ kind: 'needs-enrollment' })
     mockQuery.mockReset().mockReturnValue({ data: { accounts: [], unavailable: [] }, isLoading: false, isError: false })
+})
+
+describe('Avenia Pix deposit route', () => {
+    beforeEach(() => {
+        mockResidence = ['BR']
+        mockOneShot = true
+        mockGateFor.mockReturnValue({ kind: 'needs-enrollment' })
+        mockReport = {
+            bank: { state: 'ready', accounts: {} },
+            local: { state: 'ready', accounts: { BRL: { state: 'refused' } } },
+            card: { state: 'ready' },
+            qr: { state: 'ready' },
+        }
+    })
+    it('offers ready Pix when Avenia serves Brazil despite the Manteca refusal', () => {
+        mockRoutes = [{ operation: 'deposit', method: 'PIX_BR', provider: 'avenia', state: 'ready', candidates: [] }]
+        const { result } = renderHook(() => useAddMoneyReadiness(true))
+        expect(result.current.topUpGates.PIX_BR).toEqual({ kind: 'ready' })
+        expect(result.current.ready.pix).toEqual(['BRL'])
+        expect(result.current.drawerMethods).toContain('pix')
+    })
+    it.each(['paused', 'refused'])('does not offer Pix as ready when the route is %s', (state) => {
+        mockRoutes = [{ operation: 'deposit', method: 'PIX_BR', provider: 'avenia', state, candidates: [] }]
+        mockGateFor.mockReturnValue({ kind: 'ready' })
+        const { result } = renderHook(() => useAddMoneyReadiness(true))
+        expect(result.current.ready.pix).toEqual([])
+        expect(result.current.topUpGates.PIX_BR.kind).toBe(
+            state === 'paused' ? 'waiting-on-provider' : 'blocked-rejection'
+        )
+    })
+    it('does not offer Pix as ready when no deposit route exists', () => {
+        mockGateFor.mockReturnValue({ kind: 'ready' })
+        const { result } = renderHook(() => useAddMoneyReadiness(true))
+        expect(result.current.ready.pix).toEqual([])
+        expect(result.current.pixOffered).toBe(false)
+        expect(result.current.topUpGates.PIX_BR.kind).toBe('blocked-rejection')
+    })
 })
 
 it('uses an owner-scoped account query and opens the picker when no profile is available', () => {
@@ -43,7 +87,7 @@ it('uses an owner-scoped account query and opens the picker when no profile is a
 
 it('keeps a pending EUR report out of the drawer even if the rail says ready', () => {
     mockGateFor.mockImplementation((_: string, scope: { railId: string }) =>
-        ['bridge.sepa_eu', 'bridge.ach_us'].includes(scope.railId) ? { kind: 'ready' } : { kind: 'not-offered' }
+        ['bridge.sepa_eu', 'bridge.ach_us'].includes(scope.railId) ? { kind: 'ready' } : { kind: 'needs-enrollment' }
     )
     mockReport = {
         bank: { state: 'on', accounts: { EUR: { state: 'setting_up' } } },
@@ -69,7 +113,7 @@ it('keeps a pending EUR report out of the drawer even if the rail says ready', (
 
 it('requires transfer coordinates before calling a held COP account usable', () => {
     mockGateFor.mockImplementation((_: string, scope: { railId: string }) =>
-        scope.railId === 'bridge.bank_transfer_co' ? { kind: 'ready' } : { kind: 'not-offered' }
+        scope.railId === 'bridge.bank_transfer_co' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
     )
     mockQuery.mockReturnValue({
         data: {
@@ -103,7 +147,7 @@ it('requires transfer coordinates before calling a held COP account usable', () 
 
 it('does not offer a pending provider preview even if the rail and exact report still say on', () => {
     mockGateFor.mockImplementation((_: string, scope: { railId: string }) =>
-        scope.railId === 'bridge.ach_us' ? { kind: 'ready' } : { kind: 'not-offered' }
+        scope.railId === 'bridge.ach_us' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
     )
     mockReport = {
         bank: { state: 'on', accounts: { USD: { state: 'on' } } },
@@ -125,7 +169,7 @@ it('does not offer a pending provider preview even if the rail and exact report 
 it('keeps a one-shot currency out of the drawer until its exact feature is on', () => {
     mockOneShot = true
     mockGateFor.mockImplementation((_: string, scope: { railId: string }) =>
-        scope.railId === 'bridge.ach_us' ? { kind: 'ready' } : { kind: 'not-offered' }
+        scope.railId === 'bridge.ach_us' ? { kind: 'ready' } : { kind: 'needs-enrollment' }
     )
     const { result, rerender } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.ready.transfer).toEqual([])

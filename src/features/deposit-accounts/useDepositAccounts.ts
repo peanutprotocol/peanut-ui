@@ -329,20 +329,18 @@ export function useDepositAccounts({
     const { gates, staleReviewAction } = useMemo(() => {
         const gates = {} as Record<DepositCorridor, GateState>
         let staleReviewAction = false
-        // Pix is the route's, whichever provider serves it: a resident of Brazil has no local rail for it
-        const pixRoute = findPixRoute(capabilities.routes, 'deposit')
         for (const corridor of DEPOSIT_RAIL_ORDER) {
-            const gate =
-                corridor === 'PIX_BR' && pixRoute
-                    ? pixRouteGate(pixRoute)
-                    : gateFor('deposit', { railId: railIdFor(corridor) })
+            const gate = gateFor('deposit', { railId: railIdFor(corridor) })
             const cause = unavailable[corridor]?.cause
             const effectiveGate = applyDepositPreviewGate(gate, cause)
             if (effectiveGate !== gate && cause === 'review-action') staleReviewAction = true
             gates[corridor] = effectiveGate
         }
+        // Pix follows the provider-neutral route in dev, including Avenia.
+        const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+        if (pixRoute) gates.PIX_BR = pixRouteGate(pixRoute)
         return { gates, staleReviewAction }
-    }, [gateFor, unavailable, capabilities.routes])
+    }, [capabilities.routes, gateFor, unavailable])
 
     useEffect(() => {
         // A withheld corridor cannot be tapped through to a claim. Fetch its

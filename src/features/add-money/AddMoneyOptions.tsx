@@ -236,11 +236,13 @@ export function AddMoneyOptions() {
                                     leading={<CorridorFlag iso2={rail.flagIso2} />}
                                     trailing={transferBadge(
                                         readiness.topUpGates[corridor],
-                                        paused || residenceRestricted
+                                        paused ||
+                                            residenceRestricted ||
+                                            (corridor === 'PIX_BR' && !readiness.pixOffered)
                                     )}
                                     chevron
                                     onClick={() => {
-                                        if (paused) return openBrazilPausedDrawer()
+                                        if (paused) return openBrazilPausedDrawer('paused')
                                         if (
                                             residenceRestricted &&
                                             (corridor === 'PIX_BR' || corridor === 'BANK_TRANSFER_AR')

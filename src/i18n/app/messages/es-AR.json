@@ -1805,7 +1805,6 @@
             "labels": {
                 "countryLocked": "Tu país de residencia. Podés cambiarlo en Perfil."
             },
-            "addressMinimum": "La calle y el número juntos deben tener al menos {count} caracteres.",
             "errors": {
                 "required": "Respondé esto para continuar.",
                 "invalidOption": "Elegí una de las opciones.",
@@ -1913,7 +1912,6 @@
         "unlockTitleGeneric": "Desbloqueá esta región",
         "unlockDescription": "Para enviar y recibir dinero aquí, confirmá tu identidad con un <b>documento oficial.</b>",
         "reasons": {
-            "verified-name-missing": "No pudimos confirmar tu nombre completo para la tarjeta. Contactá a soporte.",
             "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
             "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agregalo y lo reintentaremos automáticamente.",
             "bridge_answers_rejected": "Nuestro socio de pagos no pudo aceptar una de tus respuestas. Respondé las preguntas de nuevo.",

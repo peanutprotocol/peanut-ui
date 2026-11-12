@@ -4086,7 +4086,6 @@
                 },
                 "replace": "Change the number"
             },
-            "addressMinimum": "Street and number: {count} characters minimum.",
             "errors": {
                 "required": "Answer this to continue.",
                 "invalidOption": "Choose one of the options.",
@@ -4272,7 +4271,7 @@
                 "description": "We can’t verify you with this document.",
                 "cta": "Use a different ID"
             },
-            "taxWarning": "We couldn’t verify this number. Is it correct?",
+            "taxWarning": "We couldn’t verify this tax number. Are you sure it’s correct?",
             "taxConfirm": "I confirm",
             "documentMismatch": {
                 "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
@@ -4353,7 +4352,6 @@
             "region_block": "Peanut cards aren't available in your region yet.",
             "compliance_block": "We couldn't approve your card application after a compliance review.",
             "card_rejected": "Your card application couldn't be approved. Message support if you think this is a mistake.",
-            "verified-name-missing": "We could not confirm your full name for the card. Please contact support.",
             "card_needs_review": "Our card partner needs to check a few more details.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This payment method needs a document from a supported country. You can verify with a different ID.",

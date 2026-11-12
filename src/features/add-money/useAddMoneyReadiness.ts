@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
+import { findPixRoute, pixRouteGate } from '@/features/pix/pixRoute.utils'
 import { applyDepositPreviewGate } from '@/features/deposit-accounts/depositGate'
 import {
     hasCompleteDepositInstructions,
@@ -25,7 +25,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const { user, userId } = useAuth()
     const { gateFor, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
     const standingEnabled = useDepositAccountsEnabled()
-    const brazilPaused = useBrazilServicesPaused()
+    const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+    const brazilPaused = pixRoute?.state === 'paused'
     const residenceIso2s = useResidenceIso2s()
     const query = useQuery({
         queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
@@ -48,6 +49,10 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         return { kind: 'needs-enrollment' }
     })
     const topUpGates = corridorRecord<GateState>((corridor) => {
+        if (corridor === 'PIX_BR') {
+            if (pixRoute) return pixRouteGate(pixRoute)
+            return capabilitiesLoading ? { kind: 'loading' } : { kind: 'blocked-rejection', userMessage: null }
+        }
         const gate = accountGates[corridor]
         if (gate.kind !== 'ready' || user?.identityVerification?.oneShot !== true) return gate
         const rail = DEPOSIT_RAILS[corridor]
@@ -82,6 +87,7 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         isLoading,
         residenceIso2s,
         brazilPaused,
+        pixOffered: !!pixRoute || capabilitiesLoading,
         standingEnabled,
         topUpGates,
         entry: isLoading || (readAccounts && standingEnabled && query.isError) ? ('picker' as const) : resolved.entry,

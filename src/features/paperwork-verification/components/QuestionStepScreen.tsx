@@ -27,13 +27,7 @@ import {
 } from '../analytics'
 import { isE164 } from '../callingCodes'
 import { useAnswerForm, type AnswerFormError, type SaveOutcome } from '../useAnswerForm'
-import {
-    addressLineTooShort,
-    looksLikeItin,
-    questionPages,
-    stepComplete,
-    whyKeyOf,
-} from '../paperworkVerification.utils'
+import { looksLikeItin, questionPages, stepComplete, whyKeyOf } from '../paperworkVerification.utils'
 import { isZeroTaxId, taxIdOutcome, taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
@@ -301,17 +295,7 @@ export function QuestionStepScreen({
         state && (stateValue || (state.required && blurred.has(state.key))) && !state.options?.includes(stateValue)
             ? { [state.key]: stateValue ? 'invalid_option' : 'required' }
             : {}
-    const street = fields.find((field) => field.key === 'street')
-    const shortAddress = addressLineTooShort(fields, form.values)
-    const showAddressError = street && shortAddress && !!(form.values.street?.trim() || street.value?.trim())
-    const formErrors = { ...form.errors }
-    if (street?.minAddressLineLength && !shortAddress && formErrors.street === 'too_short') delete formErrors.street
-    const errors = {
-        ...shownTaxError,
-        ...shownStateError,
-        ...(showAddressError ? { street: 'too_short' } : {}),
-        ...formErrors,
-    }
+    const errors = { ...shownTaxError, ...shownStateError, ...form.errors }
 
     const previousPage = useRef(page)
     useEffect(() => {

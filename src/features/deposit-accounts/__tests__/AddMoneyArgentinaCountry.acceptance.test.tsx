@@ -50,7 +50,6 @@ jest.mock('@/hooks/useBankRows', () => ({ useBankRows: () => ({ rows: [] }) }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
 }))
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 
 beforeEach(() => {
     jest.clearAllMocks()

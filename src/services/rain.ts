@@ -451,7 +451,6 @@ const RAIN_COOLDOWN_PATH = '/rain/cards/withdraw/prepare'
  * - any other string: existing application in that state (ENABLED / REJECTED / …).
  */
 export type ApplyForCardResponse =
-    | { status: 'requires-support'; reason: 'verified-name-missing'; message: string }
     | {
           status: 'incomplete'
           missing?: string[]
@@ -980,9 +979,6 @@ export const rainApi = {
             // recoverable residence-management screen.
             if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
                 return { status: e.code, message: e.message }
-            }
-            if (e instanceof ApiError && e.code === 'verified-name-missing') {
-                return { status: 'requires-support', reason: 'verified-name-missing', message: e.message }
             }
             if (e instanceof ApiError && e.code === 'provider-not-in-plan') {
                 return { status: e.code, ...(e.reason ? { reason: e.reason } : {}), message: e.message }

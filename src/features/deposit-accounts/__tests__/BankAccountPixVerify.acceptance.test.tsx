@@ -78,7 +78,6 @@ jest.mock('@/hooks/useBankRows', () => ({
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
 }))
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: ({ searchTerm }: { searchTerm: string }) => (
         <div data-testid="country-list" data-search={searchTerm}>
@@ -158,7 +157,7 @@ it('keeps Set up and the Pix top-up path when verified identity only needs enrol
 
     expect(within(pixRow()).getByText(messages.depositAccounts.list.badgeSetUp)).toBeVisible()
     fireEvent.click(pixRow())
-    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/add-money\/brazil\/manteca(?:\?|$)/))
+    expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/add-money\/pix(?:\?|$)/))
     expect(mockClaim).not.toHaveBeenCalled()
     expect(mockVerify).not.toHaveBeenCalled()
     expect(mockResolve).not.toHaveBeenCalled()

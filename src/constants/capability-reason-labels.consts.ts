@@ -60,7 +60,6 @@ export const REASON_CODE_KEYS = {
     region_block: 'reasons.region_block',
     compliance_block: 'reasons.compliance_block',
     card_rejected: 'reasons.card_rejected',
-    'verified-name-missing': 'reasons.verified-name-missing',
     card_needs_review: 'reasons.card_needs_review',
     // identity (Sumsub) terminal causes — sibling of the rail codes above, but
     // sourced from `user.identityVerification.reason` rather than a rail.

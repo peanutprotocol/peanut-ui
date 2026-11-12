@@ -243,27 +243,12 @@ export const stepUnchanged = (step: PaperworkVerificationStep, values: Paperwork
         (f) => (stepPayload([f], values)[f.key] ?? '') === (stepPayload([f], { [f.key]: f.value ?? '' })[f.key] ?? '')
     )
 
-/** The bank address minimum applies to the composed line, not either input alone. */
-export function addressLineTooShort(
-    fields: PaperworkVerificationField[],
-    values: PaperworkVerificationAnswers
-): boolean {
-    const street = fields.find((field) => field.key === 'street')
-    const minimum = street?.minAddressLineLength
-    if (!street || typeof minimum !== 'number' || !Number.isInteger(minimum) || minimum <= 0) return false
-    const number = fields.find((field) => field.key === 'buildingNumber')
-    const value = (field: PaperworkVerificationField | undefined) =>
-        field ? (field.locked ? (field.value ?? '') : (values[field.key] ?? '')).trim() : ''
-    return [value(number), value(street)].filter(Boolean).join(' ').length < minimum
-}
-
 /** Continue waits for every required answer and none the screen refuses; the server still checks each one. */
 export const stepComplete = (
     fields: PaperworkVerificationField[],
     values: PaperworkVerificationAnswers,
     refused: ReadonlySet<string> = new Set()
 ) =>
-    !addressLineTooShort(fields, values) &&
     fields.every((f) => {
         const value = values[f.key]?.trim() ?? ''
         if (refused.has(f.key)) return false

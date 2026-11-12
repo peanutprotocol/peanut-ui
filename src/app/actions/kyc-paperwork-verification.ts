@@ -112,54 +112,18 @@ export async function searchKycPlaces(country: string, query: string): Promise<K
     }
 }
 
-const valueKind = (value: unknown): string => (value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value)
-
 export async function getKycQuestions(feature?: PaperworkVerificationFeature): Promise<PaperworkVerificationQuestions> {
-    for (let attempt = 0; attempt < 2; attempt++) {
-        const response = await call(`/users/kyc/questions${featureQuery(feature)}`, 'questions_read')
-        if (!response.ok) {
-            const body = await json(response)
-            if (handedBack(response, body)) throw new KycFlowHandedBackError()
-            throw new Error('KYC questions unavailable')
-        }
-        let body: unknown
-        let parsed = true
-        try {
-            body = await response.json()
-        } catch {
-            parsed = false
-        }
-        const record =
-            body !== null && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : null
-        if (record && typeof record.available === 'boolean' && Array.isArray(record.steps))
-            return body as PaperworkVerificationQuestions
-        // Only fixed labels are exported; the response and its values may contain KYC data.
-        try {
-            const contentType = response.headers?.get('content-type')?.toLowerCase() ?? ''
+    const response = await call(`/users/kyc/questions${featureQuery(feature)}`, 'questions_read')
+    const body = await json(response)
+    if (handedBack(response, body)) throw new KycFlowHandedBackError()
+    if (!response.ok || !body || typeof body.available !== 'boolean' || !Array.isArray(body.steps)) {
+        if (response.ok)
             Sentry.captureException(new Error('Invalid KYC questions response'), {
                 tags: { ...criticalFlowTags('kyc'), kyc_step: 'questions_read' },
-                extra: {
-                    status: response.status,
-                    contentType: contentType.includes('json')
-                        ? 'json'
-                        : contentType.includes('html')
-                          ? 'html'
-                          : contentType.startsWith('text/')
-                            ? 'text'
-                            : contentType
-                              ? 'other'
-                              : 'missing',
-                    parse: parsed ? 'ok' : 'failed',
-                    bodyKind: parsed ? valueKind(body) : 'unparsed',
-                    availableType: record ? valueKind(record.available) : 'unavailable',
-                    stepsType: record ? valueKind(record.steps) : 'unavailable',
-                },
             })
-        } catch {
-            // A reporting failure must not change recovery.
-        }
+        throw new Error('KYC questions unavailable')
     }
-    throw new Error('KYC questions unavailable')
+    return body as PaperworkVerificationQuestions
 }
 
 /** Every outcome the screen acts on; a network failure or a 5xx is a retry, never a lost answer. */

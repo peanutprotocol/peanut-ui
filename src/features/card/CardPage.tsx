@@ -60,7 +60,6 @@ export const CardPage: FC = () => {
         railsForProvider,
         state,
         applyError,
-        supportRequiredReason,
         setApplyError,
         pendingTerms,
         setPendingTerms,
@@ -182,16 +181,6 @@ export const CardPage: FC = () => {
     )
 
     const renderState = () => {
-        if (supportRequiredReason && state !== 'active') {
-            return (
-                <ApplicationStatusScreen
-                    variant="requires-support"
-                    reasonCode={supportRequiredReason}
-                    onContactSupport={() => setIsSupportModalOpen(true)}
-                    onPrev={onBack}
-                />
-            )
-        }
         // A finally rejected identity cannot apply: its reason and the way on, as /verify shows them.
         if (state !== 'active' && isDecidedRejection(user?.identityVerification)) {
             return <IdentityRejectedScreen onHome={() => router.replace('/home')} />
