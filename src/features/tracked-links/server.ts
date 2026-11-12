@@ -9,11 +9,13 @@ export const TRACKED_LINK_HEADERS = {
 
 export type InviteLinkLookup = { status: 'found'; linkId: string } | { status: 'not_found' } | { status: 'unavailable' }
 
-type InviteLinkBody = paths['/tracked-links/invites/{username}']['get']['responses'][200]['content']['application/json']
+type InviteLinkResponses = paths['/tracked-links/invites/{username}']['get']['responses']
+type InviteLinkBody = InviteLinkResponses[200]['content']['application/json']
+const LINK_NOT_FOUND: InviteLinkResponses[404]['content']['application/json']['error'] = 'Link not found'
 
 const LOOKUP_TIMEOUT_MS = 1800
 const CACHE_TTL_MS = 60_000
-// Unknown slugs are caller-chosen, so the cache is bounded rather than precisely evicted.
+// Unknown slugs are caller-chosen, so the cache is bounded.
 const CACHE_MAX_ENTRIES = 1000
 const cache = new Map<string, { lookup: InviteLinkLookup; expiresAt: number }>()
 
@@ -26,10 +28,22 @@ export async function lookupInviteLink(slug: string): Promise<InviteLinkLookup> 
     if (cached && cached.expiresAt > Date.now()) return cached.lookup
     const lookup = await fetchInviteLink(slug)
     if (lookup.status !== 'unavailable') {
-        if (cache.size >= CACHE_MAX_ENTRIES) cache.clear()
+        // Re-inserting keeps Map order equal to expiry order, so the oldest entry expires first.
+        cache.delete(slug)
+        evictForInsert()
         cache.set(slug, { lookup, expiresAt: Date.now() + CACHE_TTL_MS })
     }
     return lookup
+}
+
+function evictForInsert(): void {
+    if (cache.size < CACHE_MAX_ENTRIES) return
+    const now = Date.now()
+    for (const [slug, entry] of cache) {
+        if (entry.expiresAt > now) break
+        cache.delete(slug)
+    }
+    if (cache.size >= CACHE_MAX_ENTRIES) cache.delete(cache.keys().next().value!)
 }
 
 async function fetchInviteLink(slug: string): Promise<InviteLinkLookup> {
@@ -40,7 +54,10 @@ async function fetchInviteLink(slug: string): Promise<InviteLinkLookup> {
             signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
             headers: { Accept: 'application/json' },
         })
-        if (response.status === 404) return { status: 'not_found' }
+        // Only the route's own answer means "no such creator": a generic 404 (the route not
+        // deployed yet) must not turn every creator link into "Link not found".
+        if (response.status === 404)
+            return (await isLinkNotFound(response)) ? { status: 'not_found' } : { status: 'unavailable' }
         if (!response.ok) return { status: 'unavailable' }
         // A deploy mismatch must read as an outage, not as a link without an ID.
         const { linkId } = (await response.json()) as Partial<InviteLinkBody>
@@ -48,4 +65,14 @@ async function fetchInviteLink(slug: string): Promise<InviteLinkLookup> {
     } catch {
         return { status: 'unavailable' }
     }
+}
+
+async function isLinkNotFound(response: Response): Promise<boolean> {
+    const body: unknown = await response.json().catch(() => null)
+    return (
+        !!body &&
+        typeof body === 'object' &&
+        Object.keys(body).length === 1 &&
+        (body as { error?: unknown }).error === LINK_NOT_FOUND
+    )
 }

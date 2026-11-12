@@ -10,6 +10,7 @@ const location = (response: Response) => response.headers.get('location')
 // The lookup cache is module state; a fresh slug per test keeps each lookup observable.
 let n = 0
 const fresh = () => `creator${n++}`
+const linkNotFound = () => Response.json({ error: 'Link not found' }, { status: 404 })
 
 beforeEach(() => {
     jest.useRealTimers()
@@ -50,7 +51,7 @@ it.each(['al-ice', 'a'.repeat(65), 'ali%2Fce'])(
 )
 
 it('answers 404 for an unknown creator', async () => {
-    jest.mocked(global.fetch).mockResolvedValue(Response.json({ error: 'Link not found' }, { status: 404 }))
+    jest.mocked(global.fetch).mockImplementation(() => Promise.resolve(linkNotFound()))
     const response = await open(fresh())
     expect(response.status).toBe(404)
     expect(location(response)).toBeNull()
@@ -60,6 +61,18 @@ it.each([
     ['a 5xx', () => Promise.resolve(new Response(null, { status: 503 }))],
     ['a timeout', () => Promise.reject(new DOMException('timed out', 'TimeoutError'))],
     ['a malformed body', () => Promise.resolve(Response.json({ username: 'alice' }))],
+    // Fastify's answer while the backend route is not deployed yet.
+    [
+        'a generic route-not-found 404',
+        () =>
+            Promise.resolve(
+                Response.json(
+                    { message: 'Route GET:/tracked-links/invites/x not found', error: 'Not Found', statusCode: 404 },
+                    { status: 404 }
+                )
+            ),
+    ],
+    ['an empty 404', () => Promise.resolve(new Response(null, { status: 404 }))],
 ])('falls back to the plain store entry without attribution on %s', async (_case, reply) => {
     jest.mocked(global.fetch).mockImplementation(reply)
     const response = await open(fresh())
@@ -78,7 +91,7 @@ it('reuses found and unknown answers for a minute, but never an outage', async (
     expect(global.fetch).toHaveBeenCalledTimes(2)
 
     const unknown = fresh()
-    jest.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 404 }))
+    jest.mocked(global.fetch).mockImplementation(() => Promise.resolve(linkNotFound()))
     await open(unknown)
     expect((await open(unknown)).status).toBe(404)
     expect(global.fetch).toHaveBeenCalledTimes(3)
@@ -89,4 +102,11 @@ it('reuses found and unknown answers for a minute, but never an outage', async (
     jest.mocked(global.fetch).mockResolvedValue(Response.json({ linkId }))
     expect(location(await open(down))).toContain('acq_invite=')
     expect(global.fetch).toHaveBeenCalledTimes(5)
+
+    const notDeployed = fresh()
+    jest.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 404 }))
+    await open(notDeployed)
+    jest.mocked(global.fetch).mockResolvedValue(Response.json({ linkId }))
+    expect(location(await open(notDeployed))).toContain('acq_invite=')
+    expect(global.fetch).toHaveBeenCalledTimes(7)
 })
