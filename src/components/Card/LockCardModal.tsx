@@ -10,7 +10,7 @@ import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardReturnNotice from '@/components/Card/CardReturnNotice'
 import CardStopNotice from '@/components/Card/CardStopNotice'
-import { cardReturnFacts } from '@/components/Card/cardReturn.utils'
+import { cardReturnFacts, cardReturnUnits } from '@/components/Card/cardReturn.utils'
 import { rainApi, type CardCollateralReturn, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { newStopAttemptId, type StopAttempt } from '@/hooks/useCardStopConfirmation'
@@ -104,9 +104,11 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 // left in the card. A backend that predates it refuses the
                 // lock instead.
                 const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
+                // Never more than the card holds: refund credit is not signed for.
+                const returnUnits = cardReturnUnits(overview?.balance)
                 // A retry reuses the proof: signing again could be a second withdrawal.
                 let verifiedWithdrawal = withdrawalProof.get()
-                if (!verifiedWithdrawal && spendingPowerUnits > 0n) {
+                if (!verifiedWithdrawal && returnUnits > 0n) {
                     if (!smartWalletAddress) {
                         throw new Error(t('errors.walletNotReady'))
                     }
@@ -116,7 +118,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                     // leaves the collateral behind. (The `smartBalance: 0n` that
                     // used to force this was removed in cb302d35a.)
                     const artifact = await signSpend({
-                        requiredUsdcAmount: spendingPowerUnits,
+                        requiredUsdcAmount: returnUnits,
                         recipient: smartWalletAddress as `0x${string}`,
                         rainSpendingPower: spendingPowerUnits,
                         kind: 'CRYPTO_WITHDRAW',

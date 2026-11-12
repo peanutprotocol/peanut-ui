@@ -1,4 +1,5 @@
-import type { CardCollateralReturn } from '@/services/rain'
+import type { CardCollateralReturn, RainCardBalance } from '@/services/rain'
+import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 import { formatAmountNumber } from '@/utils/currency'
 
 /** One cent may stay behind: the provider signs whole cents, and the backend accepts the same. */
@@ -37,6 +38,34 @@ export const cardReturnFacts = (
         creditCents: wholeCents(collateralReturn.cardCreditCents),
     }
     return facts.leftCents || facts.unknown || facts.heldCents || facts.creditCents ? facts : null
+}
+
+/**
+ * What a lock or cancel signs a return for, in USDC units: the smaller of the
+ * provider's spending power and its credit limit, from one overview read.
+ *
+ * A merchant refund raises spending power and adds nothing on-chain, so the
+ * full spending power can be more than the card holds; the provider then
+ * refuses to sign and the freeze or cancel never reaches the backend. The
+ * credit limit is the provider's count of the collateral: on production on
+ * 2026-11-12, for 10 cardholders, it equaled the on-chain collateral, and a
+ * refund was a negative posted charge (mono
+ * ops/plans/2026-11-09-task-24511-card-return-plan.md, section 6, V4). An open
+ * signature lowers both numbers, so the minimum is never above spending power.
+ *
+ * A credit limit that is absent, not a finite number or negative says nothing:
+ * spending power decides, as before. A credit limit of 0 with spending power
+ * left means only refund credit remains: nothing is signed, and the backend
+ * reports the credit.
+ */
+export const cardReturnUnits = (
+    balance: Partial<Pick<RainCardBalance, 'spendingPower' | 'creditLimit'>> | null | undefined
+): bigint => {
+    const spendingPowerUnits = rainCentsToUsdcUnits(balance?.spendingPower)
+    const creditLimit = balance?.creditLimit
+    if (typeof creditLimit !== 'number' || !Number.isFinite(creditLimit) || creditLimit < 0) return spendingPowerUnits
+    const creditLimitUnits = rainCentsToUsdcUnits(creditLimit)
+    return creditLimitUnits < spendingPowerUnits ? creditLimitUnits : spendingPowerUnits
 }
 
 /** "$20", "$10.06": whole cents as a display amount. */

@@ -105,7 +105,7 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
     </IntlWrapper>
 )
 
-const setup = (overview?: { balance: { spendingPower: number } }) => {
+const setup = (overview?: { balance: { spendingPower: number; creditLimit?: number } }) => {
     mockOverview.mockReturnValue({ overview, refetch: mockRefetchOverview })
     mockRefetchOverview.mockResolvedValue({ data: overview })
     mockUseWallet.mockReturnValue({ address: WALLET })
@@ -773,6 +773,83 @@ describe('CancelCardModal — no permission removal step', () => {
         expect(screen.queryByText(/permission/i)).not.toBeInTheDocument()
         // the cancel flow reads no funding state and no card list beyond the overview
         expect(mockGetOverview).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * What a lock or cancel signs for. A merchant refund raises spending power and
+ * adds nothing on-chain, so the full spending power can be more than the card
+ * holds: the provider refused to sign, and the freeze or cancel never reached
+ * the backend. The amount is the smaller of spending power and the credit
+ * limit, which is the provider's count of the collateral.
+ */
+describe.each([
+    {
+        modal: 'lock',
+        slideAndWait: async () => {
+            renderLock()
+            fireEvent.click(screen.getByText('Slide to freeze'))
+            await waitFor(() => expect(mockLockCard).toHaveBeenCalledTimes(1))
+        },
+        api: mockLockCard,
+        sentWith: (proof?: typeof RAIN_WITHDRAWAL) => ['card-1', proof],
+        creditLine: '$12.34 is refund credit. Unfreeze the card to spend it.',
+    },
+    {
+        modal: 'cancel',
+        slideAndWait: async () => {
+            renderCancel()
+            fireEvent.click(screen.getByRole('button', { name: 'Slide to cancel' }))
+            await waitFor(() => expect(mockCancelCard).toHaveBeenCalledTimes(1))
+        },
+        api: mockCancelCard,
+        sentWith: (proof?: typeof RAIN_WITHDRAWAL) => ['card-1', { verifiedWithdrawal: proof }],
+        creditLine: '$12.34 is refund credit. Spend it with a new card.',
+    },
+])('$modal: the amount signed for the card balance return', ({ slideAndWait, api, sentWith, creditLine }) => {
+    it.each([
+        ['refund credit above the card balance: what the card holds', 3000, 2000, 20_000_000n],
+        ['no refund credit: the spending power, as before', 1006, 1006, 10_060_000n],
+        ['refund credit while an open signature lowers both numbers', 2500, 1500, 15_000_000n],
+        ['no refund credit while an open signature lowers both numbers', 1500, 1500, 15_000_000n],
+        ['a credit limit above the spending power (pending charges): the spending power', 1006, 5000, 10_060_000n],
+    ])('%s', async (_what, spendingPower, creditLimit, signedUnits) => {
+        setup({ balance: { spendingPower, creditLimit } })
+        await slideAndWait()
+
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: signedUnits,
+            // the preflight still checks the signed amount against the real spending power
+            rainSpendingPower: BigInt(spendingPower) * 10_000n,
+        })
+        expect(api).toHaveBeenCalledWith(...sentWith(RAIN_WITHDRAWAL))
+    })
+
+    it('only refund credit is left: signs nothing, still sends the action, and shows the credit it reports', async () => {
+        setup({ balance: { spendingPower: 1234, creditLimit: 0 } })
+        api.mockResolvedValue({
+            ...stopped('not_applicable'),
+            collateralReturn: returned('nothing', { cardCreditCents: 1234 }),
+        })
+        await slideAndWait()
+
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(api).toHaveBeenCalledWith(...sentWith(undefined))
+        expect(await screen.findByText(creditLine)).toBeInTheDocument()
+    })
+
+    it.each([
+        ['absent', undefined],
+        ['not a number', NaN],
+        ['negative', -1],
+    ])('a credit limit that is %s says nothing: the spending power decides', async (_what, creditLimit) => {
+        setup({ balance: { spendingPower: 1006, creditLimit } })
+        await slideAndWait()
+
+        expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
+        expect(api).toHaveBeenCalledWith(...sentWith(RAIN_WITHDRAWAL))
     })
 })
 

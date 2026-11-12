@@ -1669,7 +1669,7 @@ const CARD_HOLDER_OVERVIEW = {
 
 /** $25.00 the provider can release; holds already excluded. */
 const CARD_HOLDER_COLLATERAL = {
-    creditLimit: 0,
+    creditLimit: 2500,
     spendingPower: 2500,
     pendingCharges: 0,
     postedCharges: 0,

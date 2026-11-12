@@ -10,7 +10,7 @@ import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import CardReturnNotice from '@/components/Card/CardReturnNotice'
 import CardReturnWait from '@/components/Card/CardReturnWait'
 import CardStopNotice from '@/components/Card/CardStopNotice'
-import { cardReturnFacts } from '@/components/Card/cardReturn.utils'
+import { cardReturnFacts, cardReturnUnits } from '@/components/Card/cardReturn.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { rainApi, type CardCollateralReturn, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -105,15 +105,17 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
             // become unreachable), so we MUST drain it BEFORE the cancel.
             // Backend enforces order — this just delivers the signed body.
             const spendingPowerUnits = rainCentsToUsdcUnits(current.balance?.spendingPower)
+            // Never more than the card holds: refund credit is not signed for.
+            const returnUnits = cardReturnUnits(current.balance)
             // A retry reuses the proof: signing again could be a second withdrawal.
             let verifiedWithdrawal = withdrawalProof.get()
-            if (!verifiedWithdrawal && spendingPowerUnits > 0n) {
+            if (!verifiedWithdrawal && returnUnits > 0n) {
                 if (!smartWalletAddress) {
                     throw new Error(t('errors.walletNotReady'))
                 }
                 // Force collateral-only routing — same pattern as LockCardModal.
                 const artifact = await signSpend({
-                    requiredUsdcAmount: spendingPowerUnits,
+                    requiredUsdcAmount: returnUnits,
                     recipient: smartWalletAddress as `0x${string}`,
                     rainSpendingPower: spendingPowerUnits,
                     kind: 'CRYPTO_WITHDRAW',
