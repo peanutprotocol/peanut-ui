@@ -579,7 +579,8 @@ const reportNonOkResponse = async (
     options: RequestInit,
     response: Response,
     redactTelemetry = false,
-    callerReportsFailures = false
+    callerReportsFailures = false,
+    signal?: AbortSignal
 ): Promise<void> => {
     if (response.ok) return
     if (callerReportsFailures) {
@@ -620,6 +621,8 @@ const reportNonOkResponse = async (
             .text()
             .catch(() => '')
     }
+
+    if (signal?.aborted) return
 
     if (
         users404 &&
@@ -762,16 +765,37 @@ export const fetchWithSentry = async (
      * the late response is neither returned nor reported. The request itself
      * still reaches the server; SocketQueryRefresh keeps that to one per event.
      */
-    const nativeLeg = (legMs: number): Promise<Response> => {
-        const request = beforeDispatch
-            ? nativeHttpRequest(url, options, legMs, beforeDispatch)
-            : nativeHttpRequest(url, options, legMs)
-        if (!callerSignal) return request
-        return new Promise<Response>((resolve, reject) => {
-            const onCancel = () => reject(cancelError(callerSignal))
-            callerSignal.addEventListener('abort', onCancel, { once: true })
-            request.then(resolve, reject).finally(() => callerSignal.removeEventListener('abort', onCancel))
+    const finishResponse = async (response: Response, signal: AbortSignal): Promise<Response> => {
+        // Drain a clone under the transport budget, leaving the original body and metadata intact for callers.
+        if (response.body) await response.clone().arrayBuffer()
+        if (signal.aborted) throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
+        await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures, signal)
+        return response
+    }
+    const nativeLeg = async (legMs: number): Promise<Response> => {
+        const controller = new AbortController()
+        const onCancel = () => controller.abort()
+        callerSignal?.addEventListener('abort', onCancel, { once: true })
+        let timer: ReturnType<typeof setTimeout> | undefined
+        let onAbort: () => void = () => {}
+        const interrupted = new Promise<never>((_, reject) => {
+            onAbort = () => reject(Object.assign(new Error('native http timed out'), { name: 'AbortError' }))
+            controller.signal.addEventListener('abort', onAbort, { once: true })
+            timer = setTimeout(() => controller.abort(), legMs)
         })
+        try {
+            const request = beforeDispatch
+                ? nativeHttpRequest(url, options, legMs, beforeDispatch)
+                : nativeHttpRequest(url, options, legMs)
+            return await Promise.race([
+                request.then((response) => finishResponse(response, controller.signal)),
+                interrupted,
+            ])
+        } finally {
+            clearTimeout(timer)
+            callerSignal?.removeEventListener('abort', onCancel)
+            controller.signal.removeEventListener('abort', onAbort)
+        }
     }
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
@@ -834,7 +858,6 @@ export const fetchWithSentry = async (
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
             const response = await nativeLeg(legTimeoutMs())
-            await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
             return response
         } catch {
             // OS client failed, or the caller cancelled — the WebView path below
@@ -862,13 +885,20 @@ export const fetchWithSentry = async (
             const legStartedAt = Date.now()
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), legMs)
+            let onAbort: () => void = () => {}
+            const interrupted = new Promise<never>((_, reject) => {
+                onAbort = () => reject(Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' }))
+                controller.signal.addEventListener('abort', onAbort, { once: true })
+            })
             const cancelLeg = () => controller.abort()
             callerSignal?.addEventListener('abort', cancelLeg)
             try {
-                return await fetch(url, {
-                    ...options,
-                    signal: controller.signal,
-                })
+                return await Promise.race([
+                    fetch(url, { ...options, signal: controller.signal }).then((response) =>
+                        finishResponse(response, controller.signal)
+                    ),
+                    interrupted,
+                ])
             } catch (error) {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)
                 lastLegInterrupted = legInterrupted(legGeneration, legStartedAt, legMs)
@@ -900,6 +930,7 @@ export const fetchWithSentry = async (
                 throw error
             } finally {
                 clearTimeout(timeoutId)
+                controller.signal.removeEventListener('abort', onAbort)
                 callerSignal?.removeEventListener('abort', cancelLeg)
             }
         }
@@ -907,8 +938,6 @@ export const fetchWithSentry = async (
 
     try {
         const response = await attemptFetch()
-
-        await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
 
         return response
     } catch (error: unknown) {
@@ -921,7 +950,6 @@ export const fetchWithSentry = async (
         if (!(lastLegInterrupted && isBackgrounded()) && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
                 const response = await nativeLeg(legTimeoutMs())
-                await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
                 return response
             } catch {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)

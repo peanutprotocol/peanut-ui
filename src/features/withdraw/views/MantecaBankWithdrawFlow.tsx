@@ -1117,11 +1117,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                     } else if (mantecaRejection.state === 'fixable') {
                         await sumsubFlow.handleFixableRejection(mantecaRejection)
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
+                        const opened = await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
+                        if (opened) setShowKycModal(false)
                     }
-                    setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
+                error={sumsubFlow.error}
                 variant={
                     mantecaRejection.state === 'blocked'
                         ? 'blocked'

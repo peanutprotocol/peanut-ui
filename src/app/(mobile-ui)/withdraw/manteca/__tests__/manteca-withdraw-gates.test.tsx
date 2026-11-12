@@ -15,7 +15,7 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { us
  * and the real price-lock handler (mantecaApi.initiateWithdraw mocked).
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import { registerSpendArtifactMeta, SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 import { API_ERROR_CODES, ApiError } from '@/services/api-error'
@@ -205,12 +205,22 @@ jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: () => 
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
-let mockKycModal: { visible: boolean; variant?: string; reasonCode?: string; onVerify: () => Promise<void> } | null =
-    null
+let mockKycModal: {
+    visible: boolean
+    variant?: string
+    reasonCode?: string
+    error?: string | null
+    onVerify: () => Promise<unknown>
+} | null = null
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: NonNullable<typeof mockKycModal>) => {
         mockKycModal = props
-        return null
+        return props.visible ? (
+            <div role="dialog" aria-label="Identity verification">
+                {props.error && <div role="alert">{props.error}</div>}
+                <button onClick={() => void props.onVerify()}>Start verification</button>
+            </div>
+        ) : null
     },
 }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
@@ -300,7 +310,7 @@ jest.mock('@/utils/provider-rejection.utils', () => ({
 }))
 const sumsubFlowStub = {
     isLoading: false,
-    error: null,
+    error: null as string | null,
     showWrapper: false,
     accessToken: null,
     handleRestartIdentity: jest.fn(),
@@ -504,6 +514,86 @@ beforeEach(() => {
     mockVerifiedForCountry = true
     mockMantecaRejection = { state: 'none', userMessage: null }
     mockKycModal = null
+    sumsubFlowStub.error = null
+    sumsubFlowStub.handleInitiateKyc.mockReset().mockResolvedValue(true)
+    sumsubFlowStub.handleRestartIdentity.mockReset().mockResolvedValue(true)
+    sumsubFlowStub.handleFixableRejection.mockReset().mockResolvedValue(true)
+})
+
+describe('Manteca withdraw KYC start failure recovery', () => {
+    test.each([
+        ['ordinary onboarding', { state: 'none' }, 'handleInitiateKyc'],
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            { state: 'fixable', reasonCode: 'source_of_funds', actionKey: 'sumsub:source_of_funds' },
+            'handleFixableRejection',
+        ],
+    ] as const)('%s keeps its drawer open with the start error', async (_label, rejection, action) => {
+        mockVerifiedForCountry = false
+        mockMantecaRejection = rejection
+        const startError = 'Verification could not start. Please try again.'
+        sumsubFlowStub[action].mockImplementation(async () => {
+            sumsubFlowStub.error = startError
+            return false
+        })
+        mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        fireEvent.click(screen.getByText('common.continue'))
+        await waitFor(() => expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible())
+
+        await act(async () => {
+            await mockKycModal!.onVerify()
+        })
+        view.rerender(<MantecaWithdrawFlow />)
+
+        expect(sumsubFlowStub[action]).toHaveBeenCalledTimes(1)
+        const dialog = screen.getByRole('dialog', { name: 'Identity verification' })
+        expect(dialog).toBeVisible()
+        expect(within(dialog).getByRole('alert')).toHaveTextContent(startError)
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+        expect(mockSignSpend).not.toHaveBeenCalled()
+    })
+
+    test('waits for ordinary start to succeed before closing its drawer', async () => {
+        mockVerifiedForCountry = false
+        let finishStart!: (success: boolean) => void
+        sumsubFlowStub.handleInitiateKyc.mockImplementation(
+            () =>
+                new Promise<boolean>((resolve) => {
+                    finishStart = resolve
+                })
+        )
+        mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
+        view.rerender(<MantecaWithdrawFlow />)
+        fireEvent.click(screen.getByText('common.continue'))
+        await waitFor(() => expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible())
+        let verification!: Promise<unknown>
+        act(() => {
+            verification = mockKycModal!.onVerify()
+        })
+        expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+        await act(async () => {
+            finishStart(true)
+            await verification
+        })
+
+        expect(sumsubFlowStub.handleInitiateKyc).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+    })
 })
 
 it('wraps the limit-increase SDK shell in the provider-request flow, without destination or token data', () => {

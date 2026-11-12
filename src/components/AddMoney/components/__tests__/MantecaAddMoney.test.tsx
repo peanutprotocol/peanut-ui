@@ -22,7 +22,7 @@ jest.mock('@/context/authContext', () => ({
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/capabilities'
-import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { act, fireEvent, render as rtlRender, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
@@ -135,7 +135,7 @@ jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => mockIsVe
 let mockRejection: Record<string, unknown> = { state: 'happy' }
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => mockRejection }))
 const mockKycFlow = {
-    error: null,
+    error: null as string | null,
     isLoading: false,
     handleFixableRejection: jest.fn(),
     handleSelfHealResubmit: jest.fn(),
@@ -173,14 +173,20 @@ type KycModalProps = {
     variant?: string
     reasonCode?: string
     taxIdCountry?: string
+    error?: string | null
     onClose: () => void
-    onVerify: () => Promise<void>
+    onVerify: () => Promise<unknown>
 }
 let lastKycModalProps: KycModalProps | null = null
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: KycModalProps) => {
         lastKycModalProps = props
-        return null
+        return props.visible ? (
+            <div role="dialog" aria-label="Identity verification">
+                {props.error && <div role="alert">{props.error}</div>}
+                <button onClick={() => void props.onVerify()}>Start verification</button>
+            </div>
+        ) : null
     },
 }))
 jest.mock('@/components/AddMoney/components/MantecaDepositShareDetails', () => ({
@@ -229,6 +235,10 @@ beforeEach(() => {
     mockFetchUser.mockClear()
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
+    mockKycFlow.error = null
+    mockKycFlow.handleInitiateKyc.mockReset().mockResolvedValue(true)
+    mockKycFlow.handleRestartIdentity.mockReset().mockResolvedValue(true)
+    mockKycFlow.handleFixableRejection.mockReset().mockResolvedValue(true)
     mockDeposit.mockReset()
     mockOpenSupportWithMessage.mockReset()
     mockSetIsSupportModalOpen.mockReset()
@@ -455,6 +465,71 @@ describe('identity gate on arrival', () => {
         rerender(<MantecaAddMoney />)
 
         expect(lastKycModalProps!.visible).toBe(false)
+    })
+})
+
+describe('KYC start failure recovery', () => {
+    test.each([
+        ['ordinary onboarding', { state: 'happy' }, 'handleInitiateKyc'],
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            { state: 'fixable', reasonCode: 'source_of_funds', actionKey: 'sumsub:source_of_funds' },
+            'handleFixableRejection',
+        ],
+    ] as const)('%s keeps its drawer open with the start error', async (_label, rejection, action) => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockIsIdentityVerified = false
+        mockRejection = rejection
+        const startError = 'Verification could not start. Please try again.'
+        mockKycFlow[action].mockImplementation(async () => {
+            mockKycFlow.error = startError
+            return false
+        })
+        const view = render(<MantecaAddMoney />)
+        expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+        await act(async () => {
+            await lastKycModalProps!.onVerify()
+        })
+        view.rerender(<MantecaAddMoney />)
+
+        expect(mockKycFlow[action]).toHaveBeenCalledTimes(1)
+        const dialog = screen.getByRole('dialog', { name: 'Identity verification' })
+        expect(dialog).toBeVisible()
+        expect(within(dialog).getByRole('alert')).toHaveTextContent(startError)
+    })
+
+    test('waits for ordinary start to succeed before closing its drawer', async () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockIsIdentityVerified = false
+        let finishStart!: (success: boolean) => void
+        mockKycFlow.handleInitiateKyc.mockImplementation(
+            () =>
+                new Promise<boolean>((resolve) => {
+                    finishStart = resolve
+                })
+        )
+        render(<MantecaAddMoney />)
+        let verification!: Promise<unknown>
+        act(() => {
+            verification = lastKycModalProps!.onVerify()
+        })
+        expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+        await act(async () => {
+            finishStart(true)
+            await verification
+        })
+
+        expect(mockKycFlow.handleInitiateKyc).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
     })
 })
 

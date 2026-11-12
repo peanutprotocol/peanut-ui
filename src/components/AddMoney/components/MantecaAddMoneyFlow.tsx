@@ -457,11 +457,17 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                         } else if (mantecaRejection.state === 'fixable') {
                             await sumsubFlow.handleFixableRejection(mantecaRejection)
                         } else {
-                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
+                            const opened = await sumsubFlow.handleInitiateKyc(
+                                'LATAM',
+                                undefined,
+                                true,
+                                selectedCountry?.id
+                            )
+                            if (opened) closeKycModal()
                         }
-                        closeKycModal()
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    error={sumsubFlow.error}
                     variant={
                         mantecaRejection.state === 'blocked'
                             ? 'blocked'
