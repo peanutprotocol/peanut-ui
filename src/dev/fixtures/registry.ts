@@ -406,6 +406,27 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
 const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
 
 /** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
+/**
+ * TASK-24841: a resident of Brazil before our own identity check, whose plan adds money by Pix. With the
+ * API's flag on, the Pix routes start with Avenia's terms, then its own check, never our verification.
+ */
+const aveniaBeforeVerification = (user: Record<string, unknown> = {}) => {
+    const firstUse = aveniaResponses('first-use')
+    return {
+        ...firstUse,
+        'GET /users/me': {
+            ...firstUse['GET /users/me'],
+            user: { ...firstUse['GET /users/me'].user, ...user },
+            residence: {
+                verified: null,
+                declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null },
+                secondaryDeclaredCountry: null,
+            },
+            identityVerification: { status: 'not_started' },
+            signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
+        },
+    }
+}
 const AVENIA_BR_USER = {
     user: { fullName: 'Ana Souza' },
     residence: {
@@ -2210,6 +2231,11 @@ export const FIXTURES: Record<string, Fixture> = {
             action: 'verify',
             reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
         }),
+    },
+    'pix-setup-terms-before-verification': {
+        route: '/add-money/pix',
+        about: "Before our own check (TASK-24841): Avenia's terms come first, and the screen says Avenia checks the identity itself.",
+        responses: aveniaBeforeVerification(),
     },
     'pix-setup-hosted-verify': {
         route: '/add-money/pix',
@@ -4205,6 +4231,20 @@ export const FIXTURES: Record<string, Fixture> = {
                 identityVerification: { status: 'not_started' },
                 capabilities: BLOCKED_BANK_CAPABILITIES,
             },
+        },
+    },
+    'home-pix-plan-before-verification': {
+        route: '/home',
+        balance: '0',
+        about: 'A Pix plan before our own check (TASK-24841): Verify identity opens the Pix setup, where Avenia comes first.',
+        responses: {
+            ...aveniaBeforeVerification({
+                badges: [],
+                activationMilestone: 'registered',
+                isActivated: false,
+                firstPaymentAt: null,
+            }),
+            'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
         },
     },
     'home-verify-processing': {

@@ -31,6 +31,9 @@ import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdenti
 import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { findPixRoute, pixRouteOwnSetUp } from '@/features/pix/pixRoute.utils'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -127,12 +130,19 @@ export default function ActivationCTAs({
     // wherever they live: its questions cover every feature the residence opens.
     const opensPaperworkVerification = usePaperworkVerificationStart()
     const restrictions = useResidenceRestrictions()
+    // A plan that adds money by Pix, whose route starts with the provider's own set-up (its terms, then its
+    // own identity check): the Verify row opens the Pix setup, never our verification (TASK-24841)
+    const { capabilities, nextActions } = useCapabilities()
+    const verifiesThroughPix =
+        user?.signupPreferences?.fundingChannel === 'brlBank' &&
+        pixRouteOwnSetUp(findPixRoute(capabilities.routes, 'deposit'), nextActions)
     const startingRef = useRef(false)
     const startIdentityCheck = async () => {
         if (startingRef.current) return
         startingRef.current = true
         try {
-            if (await opensPaperworkVerification()) router.push('/verify')
+            if (verifiesThroughPix) router.push(PIX_ADD_MONEY_PATH)
+            else if (await opensPaperworkVerification()) router.push('/verify')
             // The legacy start is bank-shaped. Where bank rails are closed the
             // card is the door, and where the card is closed too, QR pay is
             // (Hugo, 2026-09-26: QR is open to every verified user).

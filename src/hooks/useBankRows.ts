@@ -8,7 +8,8 @@ import {
     isLocalResidenceRefusal,
     UNKNOWN_REPORT,
 } from '@/features/kyc-features/report'
-import { findPixRoute, withPixRoute } from '@/features/pix/pixRoute.utils'
+import { findPixRoute, pixRouteOwnSetUp, withPixRoute } from '@/features/pix/pixRoute.utils'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -86,9 +87,13 @@ export function useBankRows() {
     const { user } = useAuth()
     const { nextActions, capabilities } = useCapabilities()
     const report = useAccountsReport()
-    // the BRL row reads the Pix deposit route; a refused route explains itself, never as a residence rule
-    const pixRouteRefused = findPixRoute(capabilities.routes, 'deposit')?.state === 'refused'
     const entryFor = useBankEntryFor()
+    // The BRL row reads the Pix deposit route. A refused route explains itself, never as a residence rule;
+    // the provider's own set-up (its terms, its own identity check) is the Pix setup's to run, never our
+    // verification's, so the row opens it (TASK-24841)
+    const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+    const pixRouteRefused = pixRoute?.state === 'refused'
+    const brlSetsUpThroughPix = pixRouteOwnSetUp(pixRoute, nextActions)
 
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
@@ -138,7 +143,13 @@ export function useBankRows() {
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),
         }
     }, [entryFor, nextActions, pixRouteRefused, residenceIso2, secondResidenceIso2])
-    const rows = useMemo(() => buildBankRows(input), [input])
+    const rows = useMemo(
+        () =>
+            buildBankRows(input).map((row) =>
+                row.labelKey === 'brl' && brlSetsUpThroughPix ? { ...row, href: PIX_ADD_MONEY_PATH } : row
+            ),
+        [input, brlSetsUpThroughPix]
+    )
     // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.
     const accountChip = bestChip([
         entryChip(report.bank, nextActions),

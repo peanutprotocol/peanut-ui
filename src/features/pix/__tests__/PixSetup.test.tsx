@@ -12,6 +12,9 @@ const mockFetchUser = jest.fn(() => Promise.resolve(null))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'u1' } }, fetchUser: mockFetchUser }),
 }))
+// our own identity check: done, or not yet (TASK-24841: the provider checks first)
+let mockVerified = true
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: mockVerified }) }))
 // the hand-off to the provider's page: which link it opens, and the tap that opens it
 const mockHostedStart = jest.fn()
 const mockHostedHook = jest.fn((_key: string, _options: { url?: string }) => ({
@@ -68,6 +71,26 @@ describe('PixSetup', () => {
         mockNextActions = [
             { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia', tosUrl: TERMS_URL },
         ]
+    })
+
+    // TASK-24841: before our own check, the terms screen says the provider checks the identity itself
+    it('tells a user we have not verified that the provider checks them and other accounts may ask again', () => {
+        mockVerified = false
+        try {
+            renderSetup(route({ action: 'accept-tos:avenia', reason: { code: 'terms_required', userMessage: '' } }))
+            expect(
+                screen.getByText(en.pix.setup.bodyBeforeVerification.replace('{brand}', 'Avenia'))
+            ).toBeInTheDocument()
+            expect(screen.queryByText(en.pix.setup.body)).toBeNull()
+            expect(screen.getByRole('link')).toHaveAttribute('href', TERMS_URL)
+        } finally {
+            mockVerified = true
+        }
+    })
+
+    it('keeps the short line for a user we have verified', () => {
+        renderSetup(route({ action: 'accept-tos:avenia', reason: { code: 'terms_required', userMessage: '' } }))
+        expect(screen.getByText(en.pix.setup.body)).toBeInTheDocument()
     })
 
     it("names and links Avenia's terms, the document the API versions, before the tap that accepts them", () => {
@@ -135,7 +158,7 @@ describe('PixSetup', () => {
             mockNextActions = [hosted(SOON())]
             renderSetup(hostedStep())
 
-            expect(screen.getByText(en.pix.setup.hosted.body)).toBeInTheDocument()
+            expect(screen.getByText(en.pix.setup.hosted.body.replace('{brand}', 'Avenia'))).toBeInTheDocument()
             expect(mockHostedHook).toHaveBeenLastCalledWith('hosted-identity', { url: LINK })
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
             expect(mockHostedStart).toHaveBeenCalledTimes(1)
@@ -239,7 +262,7 @@ describe('PixSetup', () => {
             renderSetup(route({ action: 'verify' }))
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
             expect(mockPush).toHaveBeenCalledWith('/verify')
-            expect(screen.queryByText(en.pix.setup.hosted.body)).toBeNull()
+            expect(screen.queryByText(en.pix.setup.hosted.body.replace('{brand}', 'Avenia'))).toBeNull()
         })
     })
 

@@ -18,6 +18,7 @@ import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableSc
 import { pixPendingReason, pixSetupState } from '@/features/pix/pixFlow.utils'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useRouteTermsAcceptance } from '@/hooks/useRouteTermsAcceptance'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { pixProviderId } from '@/utils/provider.utils'
@@ -53,6 +54,8 @@ export function PixSetup({
     // the provider whose terms the user accepts, as the route names it
     const providerId = pixProviderId(route?.provider)
     const provider = providerId ? PROVIDERS[providerId] : null
+    // before our own check: the provider checks the identity itself, and other accounts may ask again
+    const { isVerified } = useIdentityVerification()
 
     // a consent screen names the terms it accepts: a provider this build has no record of goes to support
     if (
@@ -120,7 +123,13 @@ export function PixSetup({
             <PageStack.Center>
                 <div className="flex flex-col items-center gap-4 text-center">
                     <IconBubble {...CONCEPT_ICONS.verification} size="l" />
-                    <TitleBlock align="center" title={t('title')} description={t('body')} />
+                    <TitleBlock
+                        align="center"
+                        title={t('title')}
+                        description={t(isVerified ? 'body' : 'bodyBeforeVerification', {
+                            brand: provider?.brand ?? '',
+                        })}
+                    />
                 </div>
                 <div className="flex flex-col gap-4">
                     <Button

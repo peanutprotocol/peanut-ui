@@ -2554,20 +2554,21 @@
         "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
         "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
         "setup": {
-            "importUnavailable": "Nuestro socio de pagos todavía no puede recibir tu verificación. La enviamos de nuevo cada día.",
+            "importUnavailable": "Nuestro socio de pagos todavía no puede recibir tu verificación; la reenviamos cada día.",
             "reviewing": "Nuestro socio de pagos está revisando tu verificación. Esta pantalla avanza cuando termine.",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
             "body": "Nuestro socio de pagos ofrece Pix.",
+            "bodyBeforeVerification": "{brand}, nuestro nuevo socio de Pix, verifica tu identidad. Una tarjeta u otra cuenta puede pedirte tus datos de nuevo.",
             "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contacta a soporte para agregarlo.",
+            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contacta a soporte.",
             "termsNotSaved": "No se guardó tu aceptación de los términos. Intenta de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contacta a soporte para terminarlo.",
+            "notAvailable": "No se pudo configurar Pix. Contacta a soporte.",
             "hosted": {
-                "body": "Haz la verificación en la página de nuestro socio de pagos.",
+                "body": "Verifica con {brand}.",
                 "expired": "Este enlace venció.",
                 "newLink": "Pedir un enlace nuevo",
-                "failed": "No funcionó. Intenta de nuevo."
+                "failed": "Falló. Intenta de nuevo."
             }
         },
         "deposit": {

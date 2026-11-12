@@ -2554,20 +2554,21 @@
         "payResidence": "Pix payments are not available where you live yet.",
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
-            "importUnavailable": "Our payment partner cannot receive your verification yet. We send it again each day.",
-            "reviewing": "Our payment partner is checking your verification. This screen moves on once it is done.",
+            "importUnavailable": "Our payment partner cannot receive your verification yet; we resend it daily.",
+            "reviewing": "Our payment partner is checking your verification. This screen moves on when done.",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
             "body": "Our payment partner provides Pix.",
+            "bodyBeforeVerification": "{brand}, our new Pix partner, checks your identity. A card or another account may ask again.",
             "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix needs a CPF, and the verification on file has none. Contact support to add it.",
+            "cpfRequired": "Pix needs a CPF your verification lacks. Contact support.",
             "termsNotSaved": "Your acceptance of the terms was not saved. Try again.",
-            "notAvailable": "Pix could not be set up. Contact support to finish it.",
+            "notAvailable": "Pix could not be set up. Contact support.",
             "hosted": {
-                "body": "Verify on our payment partner's page.",
+                "body": "Verify with {brand}.",
                 "expired": "This link expired.",
                 "newLink": "Get a new link",
-                "failed": "That did not work. Try again."
+                "failed": "That failed. Try again."
             }
         },
         "deposit": {
