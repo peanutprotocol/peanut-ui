@@ -429,6 +429,13 @@ describe('the reservation (failures 2, 18)', () => {
         expect(mockHandleRegister).not.toHaveBeenCalled()
     })
 
+    it('goes back to Claim username when the server now refuses the name as reserved', async () => {
+        mockReservationAnswer = { status: 400, body: { code: 'USERNAME_INVALID', reason: 'This username is reserved' } }
+        renderAt()
+        await waitFor(() => expect(cursor()).toBe('signup'))
+        expect(mockHandleRegister).not.toHaveBeenCalled()
+    })
+
     it.each<[string, Answer]>([
         ['a refreshed reservation', { status: 200, body: { username: 'kimchi', expiresAt: '2026-11-12T10:30:00Z' } }],
         ['a server error', { status: 500 }],

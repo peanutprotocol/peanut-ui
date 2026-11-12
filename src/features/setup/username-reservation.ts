@@ -31,7 +31,11 @@ export async function getUsernameHoldToken(regenerate = false): Promise<string> 
     }
 }
 
-export type UsernameReservationResult = 'reserved' | 'taken' | 'invalid' | 'unavailable'
+// 'refused': the name is off limits (a route, a campaign code, or one that
+// impersonates Peanut, e.g. contains "peanut"), not malformed.
+export type UsernameReservationResult = 'reserved' | 'taken' | 'refused' | 'invalid' | 'unavailable'
+
+const RESERVED_REASON = 'This username is reserved'
 
 export async function reserveUsername(username: string): Promise<UsernameReservationResult> {
     try {
@@ -48,7 +52,8 @@ export async function reserveUsername(username: string): Promise<UsernameReserva
             if (response.ok) return 'reserved'
             const body = await response.json().catch(() => ({}))
             if (response.status === 409 && ['USERNAME_TAKEN', 'USERNAME_RESERVED'].includes(body?.code)) return 'taken'
-            if (response.status === 400 && body?.code === 'USERNAME_INVALID') return 'invalid'
+            if (response.status === 400 && body?.code === 'USERNAME_INVALID')
+                return body?.reason === RESERVED_REASON ? 'refused' : 'invalid'
             if (response.status === 400 && body?.code === 'HOLD_TOKEN_REQUIRED' && attempt === 0) {
                 token = await getUsernameHoldToken(true)
                 continue
