@@ -1,4 +1,5 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import type { paths } from '@/types/api.generated'
 
 export const TRACKED_LINK_HEADERS = {
     'Cache-Control': 'private, no-store, max-age=0',
@@ -7,6 +8,8 @@ export const TRACKED_LINK_HEADERS = {
 }
 
 export type InviteLinkLookup = { status: 'found'; linkId: string } | { status: 'not_found' } | { status: 'unavailable' }
+
+type InviteLinkBody = paths['/tracked-links/invites/{username}']['get']['responses'][200]['content']['application/json']
 
 const LOOKUP_TIMEOUT_MS = 1800
 const CACHE_TTL_MS = 60_000
@@ -39,7 +42,8 @@ async function fetchInviteLink(slug: string): Promise<InviteLinkLookup> {
         })
         if (response.status === 404) return { status: 'not_found' }
         if (!response.ok) return { status: 'unavailable' }
-        const { linkId } = (await response.json()) as { linkId?: unknown }
+        // A deploy mismatch must read as an outage, not as a link without an ID.
+        const { linkId } = (await response.json()) as Partial<InviteLinkBody>
         return typeof linkId === 'string' ? { status: 'found', linkId } : { status: 'unavailable' }
     } catch {
         return { status: 'unavailable' }

@@ -25255,8 +25255,6 @@
 						"name": "username",
 						"required": true,
 						"schema": {
-							"maxLength": 64,
-							"minLength": 1,
 							"pattern": "^[a-z0-9]{1,64}$",
 							"type": "string"
 						}
@@ -25266,31 +25264,15 @@
 					"200": {
 						"content": {
 							"application/json": {
-								"example": {
-									"linkId": "invite_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-									"schemaVersion": 1,
-									"username": "examplecreator"
-								},
 								"schema": {
 									"additionalProperties": false,
 									"properties": {
 										"linkId": {
 											"pattern": "^invite_[a-f0-9]{64}$",
 											"type": "string"
-										},
-										"schemaVersion": {
-											"enum": [
-												1
-											],
-											"type": "number"
-										},
-										"username": {
-											"type": "string"
 										}
 									},
 									"required": [
-										"schemaVersion",
-										"username",
 										"linkId"
 									],
 									"type": "object"
@@ -25319,30 +25301,9 @@
 							}
 						},
 						"description": "Default Response"
-					},
-					"503": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"enum": [
-												"Link lookup unavailable"
-											],
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
 					}
 				},
-				"summary": "Resolve an existing invite identity without recording an opening",
+				"summary": "Resolve a personal invite to a stable public link ID",
 				"tags": [
 					"tracked-links"
 				]

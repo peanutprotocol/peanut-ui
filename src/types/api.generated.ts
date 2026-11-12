@@ -14146,7 +14146,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Resolve an existing invite identity without recording an opening */
+        /** Resolve a personal invite to a stable public link ID */
         get: {
             parameters: {
                 query?: never;
@@ -14164,18 +14164,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "linkId": "invite_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                         *       "schemaVersion": 1,
-                         *       "username": "examplecreator"
-                         *     }
-                         */
                         "application/json": {
                             linkId: string;
-                            /** @enum {number} */
-                            schemaVersion: 1;
-                            username: string;
                         };
                     };
                 };
@@ -14188,18 +14178,6 @@ export interface paths {
                         "application/json": {
                             /** @enum {string} */
                             error: "Link not found";
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            error: "Link lookup unavailable";
                         };
                     };
                 };
