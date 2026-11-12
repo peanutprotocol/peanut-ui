@@ -100,7 +100,7 @@ describe('the BRL row reads the Pix route', () => {
     const brl = () => renderHook(() => useBankRows()).result.current.rows.find((row) => row.labelKey === 'brl')
 
     // a refused Pix route keeps the row, closed for its own reason, which its drawer says; never the residence rule
-    it.each(['provider_unavailable', 'rollout_closed', 'residence_paused', 'provider_paused', 'residence_not_served'])(
+    it.each(['provider_unavailable', 'rollout_closed', 'provider_setup_failed', 'residence_not_served'])(
         'keeps the row, closed for the route reason (%s), not as a residence refusal',
         (code) => {
             brazilResident()

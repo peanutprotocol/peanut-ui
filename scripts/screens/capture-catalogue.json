@@ -195,17 +195,12 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-import-unavailable",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-pix-setup-cpf-missing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-support",
+        "id": "fixture-pix-route-setup-failed",
         "flow": "Setup and login",
         "route": "/withdraw/pix"
     },

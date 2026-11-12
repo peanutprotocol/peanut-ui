@@ -108,12 +108,9 @@ describe('PixSetup', () => {
         expect(mockAccept).toHaveBeenCalled()
     })
 
-    it.each([
-        ['provider_reviewing', en.pix.setup.reviewing],
-        ['identity_import_unavailable', en.pix.setup.importUnavailable],
-    ])('waits with the reason as user text (%s)', (code, text) => {
-        renderSetup(route({ state: 'pending', reason: { code, userMessage: '' } }))
-        expect(screen.getByText(text)).toBeInTheDocument()
+    it('waits while the provider reviews, with the reason as user text', () => {
+        renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
+        expect(screen.getByText(en.pix.setup.reviewing)).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.common.continue })).toBeNull()
     })
 

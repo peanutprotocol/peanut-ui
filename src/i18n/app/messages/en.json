@@ -2280,7 +2280,6 @@
         "pix": {
             "depositReceived": "Deposit received!",
             "balanceUpdated": "Your balance has been updated.",
-            "expiresIn": "Expires in {time}",
             "qrExpired": "This QR code has expired.",
             "scanWithBankApp": "Scan with your bank app, or copy the Pix code."
         },
@@ -2558,8 +2557,7 @@
         "payResidence": "Pix payments are not available where you live yet.",
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
-            "importUnavailable": "Our payment partner cannot receive your verification yet; we resend it daily.",
-            "reviewing": "Our payment partner is checking your verification. This screen moves on when done.",
+            "reviewing": "Our payment partner is checking your verification.",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
             "body": "Our payment partner provides Pix.",
@@ -2582,10 +2580,9 @@
         },
         "deposit": {
             "startNew": "Start a new deposit",
-            "fee": "Fee {amount}",
             "showCode": "Show code",
             "youGet": "You get ≈ {amount}",
-            "blockedBanks": "A Pix from {banks} is returned.",
+            "codeValidFor": "Code valid for {time}",
             "minimum": "The minimum is {amount}.",
             "limitExceeded": "This deposit is over the monthly Pix limit.",
             "ownCpf": "From an account under your CPF {cpf}",
@@ -2596,7 +2593,7 @@
             "changeAmount": "Change amount",
             "stuck": "This withdrawal did not finish. Contact support.",
             "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
-            "fee": "Fee",
+            "fee": "Provider fee",
             "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",

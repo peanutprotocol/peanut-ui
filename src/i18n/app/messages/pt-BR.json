@@ -2280,7 +2280,6 @@
         "pix": {
             "depositReceived": "Depósito recebido!",
             "balanceUpdated": "Seu saldo foi atualizado.",
-            "expiresIn": "Expira em {time}",
             "qrExpired": "Este código QR expirou.",
             "scanWithBankApp": "Escaneie com o app do seu banco ou copie o código Pix."
         },
@@ -2558,8 +2557,7 @@
         "payResidence": "Os pagamentos Pix ainda não estão disponíveis onde você mora.",
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
         "setup": {
-            "importUnavailable": "Nosso parceiro de pagamentos ainda não consegue receber a sua verificação; reenviamos todos os dias.",
-            "reviewing": "Nosso parceiro de pagamentos está conferindo a sua verificação. Esta tela avança quando terminar.",
+            "reviewing": "Nosso parceiro de pagamentos está conferindo a sua verificação.",
             "verifyCta": "Verificar identidade",
             "title": "Configurar o Pix",
             "body": "Nosso parceiro de pagamentos oferece o Pix.",
@@ -2582,10 +2580,9 @@
         },
         "deposit": {
             "startNew": "Iniciar um novo depósito",
-            "fee": "Taxa {amount}",
             "showCode": "Mostrar código",
             "youGet": "Você recebe ≈ {amount}",
-            "blockedBanks": "Um Pix de {banks} é devolvido.",
+            "codeValidFor": "Código válido por {time}",
             "minimum": "O mínimo é {amount}.",
             "limitExceeded": "Este depósito passa do limite mensal do Pix.",
             "ownCpf": "De uma conta no seu CPF {cpf}",
@@ -2596,7 +2593,7 @@
             "changeAmount": "Alterar valor",
             "stuck": "Este saque não foi concluído. Fale com o suporte.",
             "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
-            "fee": "Taxa",
+            "fee": "Taxa do provedor",
             "keyIntro": "Digite uma chave Pix registrada no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
             "lookupFailed": "Não foi possível conferir esta chave. Tente de novo.",

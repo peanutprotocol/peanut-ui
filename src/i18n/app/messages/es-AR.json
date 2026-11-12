@@ -1337,7 +1337,8 @@
         },
         "deposit": {
             "youGet": "Recibís ≈ {amount}",
-            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF."
+            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF.",
+            "codeValidFor": "Código válido por {time}"
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contactá a soporte.",

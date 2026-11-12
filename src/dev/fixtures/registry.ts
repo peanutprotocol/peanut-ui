@@ -295,7 +295,6 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
             routes: aveniaRoutes(stage),
         },
     },
-    'GET /pix/deposit/rules': { minAmountBrl: '20', blockedBanks: [] },
     // the amount step's estimate: Avenia's indicative quote for the reais on screen
     'GET /pix/quote': {
         provider: 'avenia',
@@ -349,7 +348,6 @@ const mantecaPixResponses = (overrides: Record<string, unknown> = {}) => ({
             routes: mantecaPixRoutes(),
         },
     },
-    'GET /pix/deposit/rules': { minAmountBrl: '1', blockedBanks: [] },
     'GET /pix/quote': {
         provider: 'manteca',
         operation: 'withdraw',
@@ -2259,24 +2257,21 @@ export const FIXTURES: Record<string, Fixture> = {
         isLoadingState: true,
         responses: aveniaPending('provider_reviewing'),
     },
-    'pix-setup-import-unavailable': {
-        route: '/add-money/pix',
-        about: 'Avenia cannot receive the verification yet: the wait says it is sent again each day.',
-        isLoadingState: true,
-        responses: aveniaPending('identity_import_unavailable'),
-    },
     'pix-setup-cpf-missing': {
         route: '/add-money/pix',
         about: 'The verification has no CPF for Avenia: the step sends the user to support.',
         responses: aveniaPending('tax_id_missing'),
     },
-    'pix-setup-support': {
+    'pix-route-setup-failed': {
         route: '/withdraw/pix',
-        about: 'An Avenia step only support can finish: the step says so and offers support.',
+        about: "A Pix route refused because our own set-up of the Avenia rail failed (FAILED, REQUIRES_SUPPORT): not available, support's to fix.",
         responses: aveniaRouteResponses({
-            state: 'action_required',
-            action: 'contact-support:avenia',
-            reason: { code: 'provider_setup_failed', userMessage: 'Pix could not be set up.' },
+            provider: null,
+            state: 'refused',
+            reason: {
+                code: 'provider_setup_failed',
+                userMessage: 'Something went wrong while we set this up. Message support so we can fix it.',
+            },
         }),
     },
     'pix-route-rejected': {

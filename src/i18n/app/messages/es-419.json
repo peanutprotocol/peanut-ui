@@ -2280,7 +2280,6 @@
         "pix": {
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
-            "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
             "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
@@ -2558,8 +2557,7 @@
         "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
         "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
         "setup": {
-            "importUnavailable": "Nuestro socio de pagos todavía no puede recibir tu verificación; la reenviamos cada día.",
-            "reviewing": "Nuestro socio de pagos está revisando tu verificación. Esta pantalla avanza cuando termine.",
+            "reviewing": "Nuestro socio de pagos está revisando tu verificación.",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
             "body": "Nuestro socio de pagos ofrece Pix.",
@@ -2582,10 +2580,9 @@
         },
         "deposit": {
             "startNew": "Iniciar un nuevo depósito",
-            "fee": "Comisión {amount}",
             "showCode": "Ver código",
             "youGet": "Recibes ≈ {amount}",
-            "blockedBanks": "Un Pix desde {banks} se devuelve.",
+            "codeValidFor": "Código válido por {time}",
             "minimum": "El mínimo es {amount}.",
             "limitExceeded": "Este depósito supera el límite mensual de Pix.",
             "ownCpf": "Desde una cuenta con tu CPF {cpf}",
@@ -2596,7 +2593,7 @@
             "changeAmount": "Cambiar monto",
             "stuck": "Este retiro no se completó. Contacta a soporte.",
             "arrivesIn": "Unos {minutes, plural, one {# minuto} other {# minutos}}",
-            "fee": "Comisión",
+            "fee": "Comisión del proveedor",
             "keyIntro": "Ingresa una clave Pix registrada con tu CPF.",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",

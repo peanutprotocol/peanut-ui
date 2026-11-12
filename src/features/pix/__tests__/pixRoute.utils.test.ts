@@ -99,7 +99,6 @@ describe('pixRefusalCopy', () => {
         expect(pixRefusalCopy(reason('residence_not_served'))).toBe('residence')
         expect(pixRefusalCopy(reason('rollout_closed'))).toBe('not-yet')
         expect(pixRefusalCopy(reason('provider_unavailable'))).toBe('down')
-        expect(pixRefusalCopy(reason('provider_paused'))).toBe('down')
         expect(pixRefusalCopy(reason('method_not_served'))).toBe('not-served')
         expect(pixRefusalCopy(reason('manteca_us_nationality'))).toBe('reason')
         expect(pixRefusalCopy(reason('manteca_us_nationality', ''))).toBe('not-served')

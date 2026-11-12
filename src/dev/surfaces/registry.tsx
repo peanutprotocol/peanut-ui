@@ -307,7 +307,6 @@ function PixDepositSurface() {
         <AppPageSurface>
             <PixQrDeposit
                 intentId="demo-pix-deposit"
-                blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
                 onBack={noop}
                 onDone={noop}
                 onNewDeposit={noop}

@@ -37,11 +37,10 @@ describe('ClosedRowDrawer for a BRL row its Pix route refuses', () => {
 
     it.each([
         ['provider_unavailable', 'Pix is down.', en.pix.unavailable],
-        ['provider_paused', 'Pix is paused.', en.pix.unavailable],
         // the launch gate: a resident outside the allowlist reads "not for your account yet"
         ['rollout_closed', 'This is not available for your account yet.', en.pix.rolloutClosed],
-        // the residence pause has no line of its own here: the route's own message
-        ['residence_paused', 'Pix is paused for your residence.', 'Pix is paused for your residence.'],
+        // our own final identity refusal has no line of its own here: the route's own message
+        ['identity_rejected', 'We could not verify your identity.', 'We could not verify your identity.'],
         // a residence refusal is the one that names the residence
         ['residence_not_served', 'Not where you live.', en.pix.residenceNotServed],
     ])('says the route reason (%s), not the residence rule for bank transfers', (code, message, line) => {

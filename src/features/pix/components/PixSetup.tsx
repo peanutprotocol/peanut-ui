@@ -109,10 +109,7 @@ export function PixSetup({
             <PageStack>
                 <NavHeader title={title} onPrev={onBack} />
                 <PageStack.Center>
-                    <ProcessingScreen
-                        title={tLoading('gettingKycStatus')}
-                        description={t(pending === 'import-unavailable' ? 'importUnavailable' : 'reviewing')}
-                    />
+                    <ProcessingScreen title={tLoading('gettingKycStatus')} description={t('reviewing')} />
                 </PageStack.Center>
             </PageStack>
         )

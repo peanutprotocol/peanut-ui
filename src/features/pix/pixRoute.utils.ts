@@ -77,7 +77,6 @@ const REFUSAL_COPY: Record<string, PixRefusalCopy> = {
     residence_not_served: 'residence',
     rollout_closed: 'not-yet',
     provider_unavailable: 'down',
-    provider_paused: 'down',
     method_not_served: 'not-served',
     provider_rejected: 'rejected',
     provider_setup_failed: 'setup-failed',

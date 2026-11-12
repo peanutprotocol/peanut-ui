@@ -5,16 +5,14 @@ import { API_ERROR_CODES } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** The pending route's reasons while the provider reviews the shared verification (api `kyc/capabilities`). */
-const IDENTITY_IMPORT_UNAVAILABLE_REASON = 'identity_import_unavailable'
+/** The pending route's one reason that waits on a fix, not a retry: the Avenia park code `TAX_ID_MISSING`, lower case (api `avenia/enrolment.ts`, `kyc/capabilities/resolver.ts`). */
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
 
-/** Why the route waits: the provider reviews, cannot receive the verification yet, or has no CPF for it. */
-export type PixPendingReason = 'reviewing' | 'import-unavailable' | 'cpf-missing'
+/** Why the route waits: the provider reviews, or has no CPF for the verification. */
+export type PixPendingReason = 'reviewing' | 'cpf-missing'
 
 export function pixPendingReason(code: string | undefined): PixPendingReason {
-    if (code === TAX_ID_MISSING_REASON) return 'cpf-missing'
-    return code === IDENTITY_IMPORT_UNAVAILABLE_REASON ? 'import-unavailable' : 'reviewing'
+    return code === TAX_ID_MISSING_REASON ? 'cpf-missing' : 'reviewing'
 }
 
 /** The API's arrival estimate in whole minutes, at least one, for the Arrives row. */

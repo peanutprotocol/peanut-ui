@@ -54,7 +54,6 @@ describe('pixSetupState', () => {
 describe('pixPendingReason', () => {
     it('names why the route waits', () => {
         expect(pixPendingReason('provider_reviewing')).toBe('reviewing')
-        expect(pixPendingReason('identity_import_unavailable')).toBe('import-unavailable')
         expect(pixPendingReason('tax_id_missing')).toBe('cpf-missing')
         expect(pixPendingReason(undefined)).toBe('reviewing')
     })
