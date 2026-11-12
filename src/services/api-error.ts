@@ -38,6 +38,16 @@ export const API_ERROR_CODES = {
     NO_APPROVED_CARD: 'NO_APPROVED_CARD',
     NO_ACTIVE_CARD: 'NO_ACTIVE_CARD',
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
+    /** A card cancel waits: the provider holds part of the card balance back for
+     *  now (an unused withdrawal signature, or a deposit it has not counted).
+     *  Sent with 409 and `retryAfterSec`. */
+    CARD_RETURN_BLOCKED: 'CARD_RETURN_BLOCKED',
+    /** A card cancel waits: a return went through and part of the card balance
+     *  is still in the card. Sent with 409 and `retryAfterSec`. */
+    CARD_BALANCE_REMAINS: 'CARD_BALANCE_REMAINS',
+    /** The card balance could not be read, so a cancel is refused (502). Unknown
+     *  is never an empty card. */
+    CARD_BALANCE_UNREADABLE: 'CARD_BALANCE_UNREADABLE',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
     MANTECA_ACCOUNT_REJECTED: 'MANTECA_ACCOUNT_REJECTED',
