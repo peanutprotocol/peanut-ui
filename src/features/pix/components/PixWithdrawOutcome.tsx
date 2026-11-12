@@ -107,26 +107,28 @@ export function PixWithdrawOutcome({
         // the entry names no bank: after a reload the line carries the key alone
         const bank = sent?.display.bankName
         const amountUsd = sent?.display.withdrawUsd ?? entry.data?.amount
+        // The view is the page shell: it renders the header with its cancel (as the crypto withdrawal
+        // mounts it), and both the cancel and Back to home leave to home, then `onDone`. A shell around
+        // it would stack two min-h-inherit regions and push the card down (Chip, 37aafd073).
         return (
-            <PageStack>
-                <NavHeader title={title} icon="cancel" onPrev={leaveToHome} />
-                <PaymentSuccessView
-                    isWithdrawFlow
-                    currencyAmount={amountBrl ? formatBankAmount(amountBrl, 'BRL') : undefined}
-                    secondaryAmount={amountUsd ? formatBankAmount(amountUsd, 'USD') : undefined}
-                    // the view prefixes it with "to" (payment.success.toPrefix), as for every withdrawal
-                    message={
-                        pixKey
-                            ? bank
-                                ? t('withdrawnTo', { key: pixKey, bank })
-                                : t('withdrawnToKey', { key: pixKey })
-                            : undefined
-                    }
-                    transactionDetails={receipt}
-                    providerId={providerId ?? undefined}
-                    onComplete={onDone}
-                />
-            </PageStack>
+            <PaymentSuccessView
+                type="SEND"
+                headerTitle={title}
+                isWithdrawFlow
+                currencyAmount={amountBrl ? formatBankAmount(amountBrl, 'BRL') : undefined}
+                secondaryAmount={amountUsd ? formatBankAmount(amountUsd, 'USD') : undefined}
+                // the view prefixes it with "to" (payment.success.toPrefix), as for every withdrawal
+                message={
+                    pixKey
+                        ? bank
+                            ? t('withdrawnTo', { key: pixKey, bank })
+                            : t('withdrawnToKey', { key: pixKey })
+                        : undefined
+                }
+                transactionDetails={receipt}
+                providerId={providerId ?? undefined}
+                onComplete={onDone}
+            />
         )
     }
 

@@ -25,7 +25,10 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => null,
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ title }: { title?: string }) => <div data-testid="nav-header">{title}</div>,
+}))
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: () => <div data-testid="mascot-loader" />,
@@ -195,6 +198,17 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         expect(
             screen.queryByText(en.pix.withdraw.sentTo.replace('{destination}', 'Banco Inter · Ana Souza'))
         ).toBeNull()
+    })
+
+    // the view is the one page shell: a shell around it stacked two min-h-inherit regions and pushed the
+    // card down (Chip on 37aafd073)
+    it('renders the success view as the one page shell, with its own header', () => {
+        mockEntry.mockReturnValue(entry('COMPLETED'))
+        const { container } = renderOutcome(funded)
+
+        expect(container.querySelectorAll('.min-h-inherit')).toHaveLength(1)
+        expect(screen.getAllByTestId('nav-header')).toHaveLength(1)
+        expect(screen.getByTestId('nav-header')).toHaveTextContent('Withdraw')
     })
 
     it('names the key alone when the directory named no bank', () => {
