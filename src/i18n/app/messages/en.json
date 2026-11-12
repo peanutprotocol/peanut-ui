@@ -910,7 +910,21 @@
         "steps": {
             "landing": {
                 "title": "Earn anywhere. Spend worldwide.",
-                "description": "Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are."
+                "description": "Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are.",
+                "variants": {
+                    "every_border": {
+                        "title": "One account. Every border.",
+                        "description": "Receive, send and spend internationally, without paying for the distance."
+                    },
+                    "whole_world": {
+                        "title": "The whole world in one account.",
+                        "description": "Get paid in other currencies, pay anyone abroad, spend locally. No transfer fees."
+                    },
+                    "travels_free": {
+                        "title": "Money that travels free.",
+                        "description": "One account that sends, receives and spends across borders at no cost."
+                    }
+                }
             },
             "signup": {
                 "title": "Claim username",

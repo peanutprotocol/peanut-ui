@@ -910,7 +910,21 @@
         "steps": {
             "landing": {
                 "title": "Cobra desde cualquier lugar. Gasta en todo el mundo.",
-                "description": "Recibe pagos en USD o EUR con datos bancarios. Gástalos con tarjeta o QR, estés donde estés."
+                "description": "Recibe pagos en USD o EUR con datos bancarios. Gástalos con tarjeta o QR, estés donde estés.",
+                "variants": {
+                    "every_border": {
+                        "title": "Una cuenta. Todas las fronteras.",
+                        "description": "Recibe, envía y gasta a nivel internacional, sin pagar por la distancia."
+                    },
+                    "whole_world": {
+                        "title": "El mundo entero en una cuenta.",
+                        "description": "Cobra en otras monedas, paga a quien quieras en el exterior y gasta en tu país. Sin comisiones por transferencia."
+                    },
+                    "travels_free": {
+                        "title": "Dinero que viaja gratis.",
+                        "description": "Una cuenta que envía, recibe y gasta entre países sin costo."
+                    }
+                }
             },
             "signup": {
                 "title": "Reclamar usuario",
