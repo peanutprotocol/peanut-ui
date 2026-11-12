@@ -328,6 +328,9 @@ export const useZeroDev = () => {
                 // Platform/device outcomes never invalidate an existing session.
             } else if (code === 'NETWORK') {
                 captureException(err, { tags: { error_type: 'passkey_server_failure' } })
+            } else if (code === 'RATE_LIMITED') {
+                // Users behind one shared IP (carrier NAT) reach the API's per-IP cap; keep the volume visible.
+                captureException(err, { level: 'warning', tags: { error_type: 'passkey_rate_limited' } })
             } else if (code === 'PASSKEY_INTERRUPTED' || PRE_ASSERTION_PLATFORM_CODES.has(code)) {
                 // The authenticator refused before producing an assertion, so
                 // nothing is known about the account. Preserve any valid cached

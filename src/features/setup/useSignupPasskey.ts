@@ -222,6 +222,13 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
+            // The API rate-limited the request; the prompt may not have opened and a wait fixes it.
+            if (err.name === 'PasskeyRateLimitedError') {
+                Sentry.captureException(err, { level: 'warning', tags: { error_type: 'passkey_rate_limited' } })
+                setInlineError(t('passkey.rateLimited'))
+                return
+            }
+
             // The passkey server answered the options request with an error
             // body instead of a challenge, so the OS prompt never opened: no
             // device help applies.

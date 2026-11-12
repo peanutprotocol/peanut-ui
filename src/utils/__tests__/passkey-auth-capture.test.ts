@@ -4,6 +4,7 @@ import {
     installPasskeyVerifyCapture,
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
+    PasskeyRateLimitedError,
     PasskeyVerifyRejectedError,
 } from '../passkey-auth-capture'
 import { stashCeremonyStepUpToken, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
@@ -108,6 +109,20 @@ describe('installPasskeyVerifyCapture', () => {
             await expect(pending).rejects.toMatchObject({ status: 500 })
         }
     )
+
+    it.each([
+        '/passkeys/login/options',
+        '/passkeys/login/verify',
+        '/passkeys/register/options',
+        '/passkeys/register/verify',
+    ])('surfaces a 429 from %s as rate limited, not a server or login failure (TASK-22431)', async (path) => {
+        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'An unexpected error occurred' }, 429))
+
+        const pending = window.fetch(`https://api.peanut.me${path}`, { method: 'POST' })
+
+        await expect(pending).rejects.toBeInstanceOf(PasskeyRateLimitedError)
+        expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
+    })
 
     it('passes successful options responses through', async () => {
         const response = jsonResponse({ challenge: 'abc' })

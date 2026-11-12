@@ -8,6 +8,7 @@ import { currentCeremonyId, stashCeremonyVerifyToken } from '@/utils/passkeyCere
 import {
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
+    PasskeyRateLimitedError,
     PasskeyVerifyRejectedError,
 } from '@/utils/passkey-auth-capture'
 import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
@@ -404,6 +405,21 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         expect(thrown.code).toBe('ACCOUNT_DELETED')
         expect(mockToWebAuthnKey).toHaveBeenCalledTimes(1)
     })
+
+    it.each(['/passkeys/login/options', '/passkeys/login/verify'])(
+        'shows rate-limit copy for a 429 from %s and keeps auth state (TASK-22431)',
+        async (path) => {
+            const thrown = await loginRejectingWith(new PasskeyRateLimitedError(path))
+
+            expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'RATE_LIMITED' })
+            expect(getPasskeyErrorSetupKey(thrown)).toBe('passkey.rateLimited')
+            expect(clearAuthState).not.toHaveBeenCalled()
+            expect(mockCaptureException).toHaveBeenCalledWith(
+                expect.objectContaining({ name: 'PasskeyRateLimitedError' }),
+                expect.objectContaining({ tags: { error_type: 'passkey_rate_limited' } })
+            )
+        }
+    )
 
     it('reports a failed /login/options as a server failure and keeps auth state', async () => {
         const thrown = await loginRejectingWith(new PasskeyOptionsFailedError('/passkeys/login/options', 500))

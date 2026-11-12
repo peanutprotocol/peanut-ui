@@ -1124,6 +1124,7 @@
             "settling": "La última solicitud de passkey todavía se está cerrando. Espera unos segundos e inténtalo de nuevo.",
             "stillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cierra cualquier ventana de passkey e inténtalo de nuevo. Si sigue pasando, cierra y vuelve a abrir la app.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
+            "rateLimited": "Demasiados intentos. Espera un minuto e inténtalo de nuevo.",
             "accountDeleted": "Esta cuenta fue eliminada. Regístrate para crear una nueva.",
             "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elige otro nombre de usuario para crear una nueva.",
             "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",

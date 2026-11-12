@@ -131,6 +131,7 @@ const PASSKEY_LOGIN_MESSAGES = {
     PASSKEY_ORIGIN:
         'Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
+    RATE_LIMITED: 'Too many attempts. Wait a minute and try again.',
     // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
     CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
     PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',
@@ -158,6 +159,7 @@ const PASSKEY_ERROR_SETUP_KEYS = {
     PASSKEY_STILL_OPEN: 'passkey.stillOpen',
     PASSKEY_INTERRUPTED: 'passkey.interrupted',
     NETWORK: 'passkey.serverUnreachable',
+    RATE_LIMITED: 'passkey.rateLimited',
     PASSKEY_UNSUPPORTED: 'passkey.unsupported',
     PASSKEY_PROVIDER_UNSUPPORTED: 'testTransaction.errors.passkeyProviderUnsupported',
     PASSKEY_ORIGIN: 'passkey.origin',
@@ -372,6 +374,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         case 'PasskeyServerError':
         case 'PasskeyOptionsFailedError':
             code = 'NETWORK'
+            break
+        case 'PasskeyRateLimitedError':
+            code = 'RATE_LIMITED'
             break
         case 'PasskeyAccountDeletedError':
             code = 'ACCOUNT_DELETED'
