@@ -56,6 +56,9 @@ export function ClosedRowDrawer({
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const { user } = useAuth()
+    // Rain issues cards across the US, so a US resident's geo refusal is always a state one.
+    const residenceCountry = (user?.residence?.verified?.country ?? user?.residence?.declared?.country)?.toUpperCase()
+    const livesInUs = residenceCountry === 'US' || residenceCountry === 'USA'
     const { identity } = useIdentityVerification()
 
     const content = closed ? drawerContent(closed) : null
@@ -100,7 +103,7 @@ export function ClosedRowDrawer({
                     title: t('list.badgeNotOffered'),
                     body:
                         row.reason === 'geo-blocked'
-                            ? tAccounts('cardNotAvailableNote')
+                            ? tAccounts(livesInUs ? 'cardNotAvailableStateNote' : 'cardNotAvailableNote')
                             : reasonCodeKey(row.reason)
                               ? tIdentity(reasonCodeKey(row.reason)!)
                               : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.card') }),

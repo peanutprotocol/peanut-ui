@@ -2006,6 +2006,17 @@ describe('card refusal rows follow the feature report', () => {
         expect(mockPush).not.toHaveBeenCalled()
     })
 
+    test('a geo-blocked US resident is told the card is unavailable in their state, not their country', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'US', verified: 'US' }), user: { userId: 'us-ga' } }
+        mockApiCard = { state: 'refused', reason: 'geo-blocked' }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText(en.profile.unlockPayments.cardNotAvailableStateNote)).toBeInTheDocument()
+        expect(
+            screen.queryByText("The Peanut card isn't available for residents of your country.")
+        ).not.toBeInTheDocument()
+    })
+
     test('a closed nonresidence refusal shows its own message', () => {
         mockApiCard = {
             state: 'refused',

@@ -505,6 +505,7 @@
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
             "bankOnlyNotAvailableNote": "Bank transfers aren't available for residents of your country.",
             "cardNotAvailableNote": "The Peanut card isn't available for residents of your country.",
+            "cardNotAvailableStateNote": "The Peanut card isn't available in your state yet.",
             "changeModal": {
                 "title": "Change residence",
                 "description": "Pick the country where you legally live: the one your documents show.",
