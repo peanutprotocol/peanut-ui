@@ -2391,7 +2391,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-withdraw-arrived': {
         route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
-        about: 'The last step of a Pix withdrawal after a reload, once Avenia paid the Pix.',
+        about: 'The last step of a Pix withdrawal after a reload, once Avenia paid the Pix: the shared success view, the key alone.',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('COMPLETED'),
         }),
@@ -2401,6 +2401,17 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The last step of a Pix withdrawal after a reload, while the entry is pending: not confirmed yet.',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('PENDING'),
+        }),
+    },
+    'pix-withdraw-processing': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, while Avenia pays the Pix: the shared payment loader.',
+        isLoadingState: true,
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: {
+                ...aveniaWithdrawal('PENDING'),
+                extraData: { ...aveniaWithdrawal('PENDING').extraData, intentStatus: 'PROCESSING' },
+            },
         }),
     },
     'pix-withdraw-refunded': {

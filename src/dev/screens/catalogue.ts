@@ -258,6 +258,7 @@ const definitions: Screen[] = [
         expectsLoading: [
             '24-b-kycverificationinprogressmodal',
             '90-f-withdraw-review-processing',
+            '94-g-pix-withdraw-on-its-way',
             'deposit-address-launch-loading',
             'card-address-launch-loading',
         ].includes(id),

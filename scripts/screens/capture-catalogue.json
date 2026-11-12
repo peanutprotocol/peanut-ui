@@ -2304,6 +2304,11 @@
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
+        "id": "fixture-pix-withdraw-processing",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
         "id": "fixture-pix-withdraw-refunded",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
@@ -2541,9 +2546,9 @@
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
-        "id": "94-i-pix-withdraw-sent-unnamed",
+        "id": "94-i-pix-withdraw-arrived-unnamed",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-i-pix-withdraw-sent-unnamed",
+        "route": "/dev/surfaces?s=94-i-pix-withdraw-arrived-unnamed",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
@@ -2562,6 +2567,18 @@
         "id": "94-l-pix-withdraw-stuck",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-l-pix-withdraw-stuck",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-m-pix-withdraw-past-arrival",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-m-pix-withdraw-past-arrival",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-n-pix-withdraw-past-arrival-unnamed",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-n-pix-withdraw-past-arrival-unnamed",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {

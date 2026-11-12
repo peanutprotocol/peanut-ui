@@ -330,9 +330,20 @@ const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     provider: 'Avenia',
 }
 
-// the last step right after the signature: the destination comes from what was signed
-function PixWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
-    const display = unnamed ? { ...PIX_SURFACE_DISPLAY, bankName: null, holderName: null } : PIX_SURFACE_DISPLAY
+// the last step right after the signature: the destination comes from what was signed. `pastArrival`
+// quotes a zero arrival time, so the loader gives way to "on its way" at once, as a slow bank would.
+function PixWithdrawOutcomeSurface({
+    unnamed = false,
+    pastArrival = false,
+}: {
+    unnamed?: boolean
+    pastArrival?: boolean
+}) {
+    const display = {
+        ...PIX_SURFACE_DISPLAY,
+        ...(unnamed && { bankName: null, holderName: null }),
+        ...(pastArrival && { arrivalEstimateSeconds: 0 }),
+    }
     return (
         <AppPageSurface>
             <PixWithdrawOutcome
@@ -1462,8 +1473,8 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['94-h-pix-withdraw-arrived-to'],
         render: () => <PixWithdrawOutcomeSurface />,
     },
-    '94-i-pix-withdraw-sent-unnamed': {
-        ...SURFACE_META['94-i-pix-withdraw-sent-unnamed'],
+    '94-i-pix-withdraw-arrived-unnamed': {
+        ...SURFACE_META['94-i-pix-withdraw-arrived-unnamed'],
         render: () => <PixWithdrawOutcomeSurface unnamed />,
     },
     '94-j-pix-review-quote-moved': {
@@ -1478,6 +1489,14 @@ export const SURFACES: Record<string, Surface> = {
     '94-l-pix-withdraw-stuck': {
         ...SURFACE_META['94-l-pix-withdraw-stuck'],
         render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-m-pix-withdraw-past-arrival': {
+        ...SURFACE_META['94-m-pix-withdraw-past-arrival'],
+        render: () => <PixWithdrawOutcomeSurface pastArrival />,
+    },
+    '94-n-pix-withdraw-past-arrival-unnamed': {
+        ...SURFACE_META['94-n-pix-withdraw-past-arrival-unnamed'],
+        render: () => <PixWithdrawOutcomeSurface unnamed pastArrival />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

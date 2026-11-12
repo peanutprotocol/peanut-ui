@@ -29,8 +29,27 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
+jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
+// the shared success view, as its own suite covers it: here only what the flow hands it
+jest.mock('@/features/payments/shared/components/PaymentSuccessView', () => ({
+    __esModule: true,
+    default: ({
+        isWithdrawFlow,
+        currencyAmount,
+        secondaryAmount,
+        message,
+    }: {
+        isWithdrawFlow?: boolean
+        currencyAmount?: string
+        secondaryAmount?: string
+        message?: string
+    }) => (
+        <div data-testid="payment-success">
+            {isWithdrawFlow ? 'withdraw' : 'other'} {currencyAmount} {secondaryAmount} {message}
+        </div>
+    ),
+}))
 const QUOTED = {
     code: 'BRL',
     symbol: 'R$',
@@ -68,6 +87,11 @@ jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => mockEntry()
 // the latest history rows: the page must never take one for a withdrawal submitted with no answer
 let mockHistoryEntries: unknown[] = []
 jest.mock('@/hooks/useTransactionHistory', () => ({
+    // the receipt mapper reads the role enum the hook module re-exports; read lazily, as the
+    // module that defines it is still loading when this factory runs (an import cycle)
+    get EHistoryUserRole() {
+        return jest.requireActual('@/utils/history.utils').EHistoryUserRole
+    },
     useTransactionHistory: () => ({ data: { entries: mockHistoryEntries, hasMore: false }, refetch: jest.fn() }),
 }))
 // the transfer-then-submit signer: these withdrawals sign a deposit with its id
@@ -163,11 +187,41 @@ describe('PixWithdrawFlow after a reload', () => {
         window.localStorage.clear()
     })
 
-    it('reads the outcome from the history entry once Avenia paid the Pix', () => {
-        mockEntry.mockReturnValue(entry('COMPLETED'))
+    // the shared success view ends it, fed from the entry: reais, USD, the key (no bank after a reload)
+    it('shows the shared success view once Avenia paid the Pix, with no sound of its own', () => {
+        const completed = entry('COMPLETED')
+        mockEntry.mockReturnValue({
+            ...completed,
+            data: {
+                ...completed.data,
+                amount: '92.50431',
+                recipientAccount: { identifier: '+5511912345678', type: 'PIX', isUser: false },
+            },
+        })
         renderAt('?step=success&intentId=w1')
 
-        expect(screen.getByText(en.pix.withdraw.arrived)).toBeInTheDocument()
+        expect(screen.getByTestId('payment-success')).toHaveTextContent(
+            `withdraw R$503 $92.50 ${en.pix.withdraw.withdrawnToKey.replace('{key}', '+5511912345678')}`
+        )
+        // the success view plays the sound; the outcome screen adds none
+        expect(screen.queryByTestId('success-sound')).toBeNull()
+        expect(screen.queryByRole('button', { name: en.common.done })).toBeNull()
+    })
+
+    it('shows the shared payment loader while Avenia pays, then "on its way" with Done after 90 seconds', () => {
+        jest.useFakeTimers()
+        mockEntry.mockReturnValue(entry('PENDING', 'PROCESSING'))
+        renderAt('?step=success&intentId=w1')
+
+        expect(screen.getByText(en.pix.withdraw.processingTitle)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.done })).toBeNull()
+
+        act(() => jest.advanceTimersByTime(90_000))
+
+        expect(screen.queryByText(en.pix.withdraw.processingTitle)).toBeNull()
+        expect(screen.getByText(en.pix.withdraw.sent)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: en.common.done })).toBeInTheDocument()
+        jest.useRealTimers()
     })
 
     it('says nothing left the wallet when the unsigned withdrawal expired', () => {
@@ -242,7 +296,7 @@ describe('PixWithdrawFlow after a reload', () => {
     })
 
     // the other sign kind: nothing opens until the API takes the signed transfer, and its answer names the withdrawal
-    it('opens a transfer-then-submit withdrawal at its submit, then drops the form and shows it on its way', async () => {
+    it('opens a transfer-then-submit withdrawal at its submit, then drops the form and shows the payment loader', async () => {
         const display = {
             amountBrl: '503.00',
             pixKey: '09579927189',
@@ -282,9 +336,8 @@ describe('PixWithdrawFlow after a reload', () => {
 
         fireEvent.click(await screen.findByRole('button', { name: en.common.confirm }))
 
-        expect(
-            await screen.findByText(en.pix.withdraw.sentTo.replace('{destination}', 'Ana Souza'))
-        ).toBeInTheDocument()
+        expect(await screen.findByText(en.pix.withdraw.processingTitle)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.withdraw.sentTo.replace('{destination}', 'Ana Souza'))).toBeNull()
         await waitFor(() => expect(urls.some((url) => url.includes('intentId=m1'))).toBe(true))
         expect([...new URLSearchParams(urls.at(-1)).keys()].sort()).toEqual(['intentId', 'step'])
         expect(storedForm()).toBeNull()
