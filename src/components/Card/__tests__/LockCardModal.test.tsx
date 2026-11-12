@@ -75,6 +75,7 @@ const mockCancelCard = rainApi.cancelCard as jest.Mock
 const mockGetOverview = rainApi.getOverview as jest.Mock
 const mockGetCardFunding = rainApi.getCardFunding as jest.Mock
 const mockSignSpend = jest.fn()
+const mockRefetchOverview = jest.fn()
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 const mockInvalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
 
@@ -106,7 +107,8 @@ const Wrapper = ({ children }: { children: ReactNode }) => (
 )
 
 const setup = (overview?: { balance: { spendingPower: number } }) => {
-    mockOverview.mockReturnValue({ overview })
+    mockOverview.mockReturnValue({ overview, refetch: mockRefetchOverview })
+    mockRefetchOverview.mockResolvedValue({ data: overview })
     mockUseWallet.mockReturnValue({ address: WALLET })
     mockUseSignSpendBundle.mockReturnValue({ signSpend: mockSignSpend })
 }
@@ -467,6 +469,260 @@ describe('CancelCardModal', () => {
         expect(mockCancelCard).toHaveBeenLastCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
         // nothing managed for this wallet: no claim and no status read
         expect(mockGetCardFunding).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * What a lock or cancel did about the card balance (TASK-24511). The backend
+ * sizes the return from the chain and reports it in `collateralReturn`. A
+ * freeze is never refused, so a frozen card can still hold the balance and the
+ * modal must say so; a cancel waits, with a code and a time, until the balance
+ * is back. A backend that predates the field sends none of this, and the
+ * modals behave as the tests above describe.
+ */
+const returned = (
+    state: 'nothing' | 'returned' | 'required' | 'waiting' | 'failed' | 'unknown',
+    cents: { remainingCents?: number; heldCents?: number; cardCreditCents?: number } = {}
+) => ({
+    state,
+    returnedCents: state === 'returned' ? 1006 : 0,
+    remainingCents: 0,
+    heldCents: 0,
+    cardCreditCents: 0,
+    ...cents,
+})
+const LEFT_IN_CARD = '$20 is still in the card. Unfreeze the card to use it.'
+
+describe('LockCardModal: balance left in the frozen card', () => {
+    const lockWith = (collateralReturn: ReturnType<typeof returned>, stop = stopped('not_applicable')) => {
+        setup({ balance: { spendingPower: 0 } })
+        mockLockCard.mockResolvedValue({ ...stop, collateralReturn })
+        renderLock()
+        fireEvent.click(screen.getByText('Slide to freeze'))
+    }
+
+    it.each([
+        ['there was nothing to move', returned('nothing')],
+        ['the whole balance moved', returned('returned')],
+        ['one cent stayed behind, which the provider cannot sign for', returned('returned', { remainingCents: 1 })],
+    ])('says nothing when %s: plain success toast and close', async (_what, collateralReturn) => {
+        lockWith(collateralReturn)
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card frozen')
+    })
+
+    it.each([
+        ['no signed return reached the backend', returned('required', { remainingCents: 2000 })],
+        ['the provider holds the balance back', returned('waiting', { remainingCents: 2000 })],
+        ['the signed return failed', returned('failed', { remainingCents: 2000 })],
+        ['only part of the balance moved', returned('returned', { remainingCents: 2000 })],
+    ])('the card is frozen but %s: shows the amount left, no plain success', async (_what, collateralReturn) => {
+        lockWith(collateralReturn)
+
+        expect(await screen.findByText(LEFT_IN_CARD)).toBeInTheDocument()
+        expect(screen.getByText('Card frozen')).toBeInTheDocument()
+        expect(mockToastSuccess).not.toHaveBeenCalled()
+        expect(mockOnClose).not.toHaveBeenCalled()
+        // the card did freeze: the overview is refreshed and no failure is shown
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
+        expect(screen.queryByText(/Failed to freeze/)).not.toBeInTheDocument()
+    })
+
+    it('an unreadable balance never reads as an empty card', async () => {
+        lockWith(returned('unknown'))
+
+        expect(await screen.findByText(/couldn't confirm that the card balance moved/)).toBeInTheDocument()
+        expect(screen.getByText('Card frozen')).toBeInTheDocument()
+        expect(mockToastSuccess).not.toHaveBeenCalled()
+    })
+
+    it('names what is reserved for pending payments and what is refund credit', async () => {
+        lockWith(returned('returned', { heldCents: 550, cardCreditCents: 1234 }))
+
+        expect(await screen.findByText('$5.50 stays in the card for pending payments.')).toBeInTheDocument()
+        expect(screen.getByText('$12.34 is refund credit. Unfreeze the card to spend it.')).toBeInTheDocument()
+        expect(screen.queryByText(/is still in the card/)).not.toBeInTheDocument()
+    })
+
+    it('shows the balance left next to the wallet payment stop, not in place of it', async () => {
+        mockGetCardFunding.mockResolvedValue(funding('pending'))
+        lockWith(returned('waiting', { remainingCents: 2000 }), stopped('pending'))
+
+        expect(await screen.findByText(LEFT_IN_CARD)).toBeInTheDocument()
+        expect(await screen.findByText(/still in progress/)).toBeInTheDocument()
+    })
+
+    it('a signed return the backend already used is not sent again: the retry signs anew', async () => {
+        setup(OVERVIEW)
+        mockLockCard
+            .mockRejectedValueOnce(new ApiError('Intent already completed', { status: 409 }))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        fireEvent.click(screen.getByText('Slide to freeze'))
+        expect(await screen.findByText('Intent already completed')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Slide to freeze'))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('CancelCardModal: the cancel waits for the card balance', () => {
+    const BACKEND_SENTENCE = 'Your card balance cannot be returned yet. Try again in 3 minutes.'
+    const slide = () => screen.getByRole('button', { name: 'Slide to cancel' })
+    const refusal = (code: string, status: number, retryAfterSec?: number) =>
+        new ApiError(BACKEND_SENTENCE, { status, code, retryAfterSec })
+
+    afterEach(() => jest.useRealTimers())
+
+    it('CARD_RETURN_BLOCKED: counts down in its own words, holds the slide, then signs for the fresh balance', async () => {
+        jest.useFakeTimers()
+        // The open signature made the balance on screen read zero, so nothing was signed.
+        setup({ balance: { spendingPower: 0 } })
+        mockCancelCard
+            .mockRejectedValueOnce(refusal('CARD_RETURN_BLOCKED', 409, 150))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderCancel()
+        fireEvent.click(slide())
+
+        expect(
+            await screen.findByText("The card balance can't move to the wallet yet. Try again in 2:30.")
+        ).toBeInTheDocument()
+        expect(screen.queryByText(BACKEND_SENTENCE)).not.toBeInTheDocument()
+        expect(slide()).toBeDisabled()
+        expect(mockSignSpend).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(149_000)
+        })
+        expect(slide()).toBeDisabled()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_000)
+        })
+        expect(screen.getByText('The card balance can move now. Try again.')).toBeInTheDocument()
+        expect(slide()).toBeEnabled()
+
+        // The provider released the balance: the retry reads it again and signs for it.
+        mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 2000 } } })
+        fireEvent.click(slide())
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: 20_000_000n,
+            rainSpendingPower: 20_000_000n,
+        })
+        expect(mockCancelCard).toHaveBeenLastCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
+    })
+
+    it('CARD_BALANCE_REMAINS: says part moved, and never sends the used signature again', async () => {
+        jest.useFakeTimers()
+        setup(OVERVIEW)
+        mockCancelCard
+            .mockRejectedValueOnce(refusal('CARD_BALANCE_REMAINS', 409, 163))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderCancel()
+        fireEvent.click(slide())
+
+        expect(
+            await screen.findByText('Part of the card balance moved to the wallet. The rest can move in 2:43.')
+        ).toBeInTheDocument()
+        expect(screen.queryByText(BACKEND_SENTENCE)).not.toBeInTheDocument()
+        expect(slide()).toBeDisabled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(164_000)
+        })
+        // What is left is $4.00: the retry signs for that, not for the first amount again.
+        mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 400 } } })
+        fireEvent.click(slide())
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend).toHaveBeenLastCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: 4_000_000n,
+            rainSpendingPower: 4_000_000n,
+        })
+    })
+
+    it('CARD_BALANCE_UNREADABLE: asks to try again, keeps the unused signature and holds nothing', async () => {
+        setup(OVERVIEW)
+        mockCancelCard
+            .mockRejectedValueOnce(refusal('CARD_BALANCE_UNREADABLE', 502))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderCancel()
+        fireEvent.click(slide())
+
+        expect(await screen.findByText("We couldn't read your card balance. Try again.")).toBeInTheDocument()
+        expect(screen.queryByText(BACKEND_SENTENCE)).not.toBeInTheDocument()
+        expect(slide()).toBeEnabled()
+
+        fireEvent.click(slide())
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        // the backend did not run the signed return, so the same one goes again
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockCancelCard).toHaveBeenLastCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
+    })
+
+    it('a wait with no time from the backend invents no countdown and does not hold the slide', async () => {
+        setup({ balance: { spendingPower: 0 } })
+        mockCancelCard.mockRejectedValueOnce(refusal('CARD_RETURN_BLOCKED', 409))
+        renderCancel()
+        fireEvent.click(slide())
+
+        expect(await screen.findByText('Your card balance cannot move right now. Try again later.')).toBeInTheDocument()
+        expect(screen.queryByText(BACKEND_SENTENCE)).not.toBeInTheDocument()
+        expect(slide()).toBeEnabled()
+    })
+
+    it('a wait outlives closing the modal: reopening still holds the slide', async () => {
+        jest.useFakeTimers()
+        setup({ balance: { spendingPower: 0 } })
+        mockCancelCard.mockRejectedValueOnce(refusal('CARD_RETURN_BLOCKED', 409, 150))
+        const { rerender } = renderCancel()
+        fireEvent.click(slide())
+        expect(await screen.findByText(/Try again in 2:30/)).toBeInTheDocument()
+
+        rerender(<CancelCardModal cardId="card-1" isOpen={false} onClose={jest.fn()} />)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(30_000)
+        })
+        rerender(<CancelCardModal cardId="card-1" isOpen onClose={jest.fn()} />)
+        expect(await screen.findByText(/Try again in 2:00/)).toBeInTheDocument()
+        expect(slide()).toBeDisabled()
+    })
+
+    it('after the cancel, names what stays for pending payments and what is refund credit', async () => {
+        setup({ balance: { spendingPower: 0 } })
+        mockCancelCard.mockResolvedValue({
+            ...stopped('not_applicable'),
+            status: 'CANCELED',
+            collateralReturn: returned('nothing', { heldCents: 550, cardCreditCents: 1234 }),
+        })
+        renderCancel()
+        fireEvent.click(slide())
+
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(screen.getByText('$5.50 stays in the card for pending payments.')).toBeInTheDocument()
+        expect(screen.getByText('$12.34 is refund credit. Spend it with a new card.')).toBeInTheDocument()
+        // the feedback step is still offered
+        expect(screen.getByPlaceholderText('Why cancel?')).toBeInTheDocument()
+    })
+
+    it('a backend without the codes keeps its own sentence, and the refused signature is not sent again', async () => {
+        setup(OVERVIEW)
+        mockCancelCard
+            .mockRejectedValueOnce(new ApiError('Withdrawal amount must equal full spending power', { status: 400 }))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderCancel()
+        fireEvent.click(slide())
+        expect(await screen.findByText('Withdrawal amount must equal full spending power')).toBeInTheDocument()
+        expect(slide()).toBeEnabled()
+
+        fireEvent.click(slide())
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
     })
 })
 

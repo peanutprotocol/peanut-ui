@@ -1955,6 +1955,16 @@
             "unlockKept": "Seu cartão está ativo, mas os pagamentos da sua carteira continuam interrompidos por enquanto. Fale com o suporte se não se resolver.",
             "unlockUnknown": "Seu cartão está ativo, mas não conseguimos confirmar que os pagamentos da sua carteira foram retomados. Tente descongelar de novo."
         },
+        "return": {
+            "lockLeft": "{amount} ainda está no cartão. Descongele o cartão para usar esse saldo.",
+            "lockUnknown": "Não conseguimos confirmar que o saldo do cartão foi movido. Descongele o cartão para usar o que restar.",
+            "held": "{amount} fica no cartão para pagamentos pendentes.",
+            "lockCredit": "{amount} é crédito de estornos. Descongele o cartão para gastar.",
+            "cancelCredit": "{amount} é crédito de estornos. Gaste com um novo cartão.",
+            "blocked": "O saldo do cartão ainda não pode ir para a carteira. Tente de novo em {time}.",
+            "remains": "Parte do saldo do cartão foi para a carteira. O restante pode ir em {time}.",
+            "retryNow": "O saldo do cartão já pode ser movido. Tente de novo."
+        },
         "errors": {
             "balanceReturnFailed": "Não conseguimos devolver o saldo do seu cartão. Tente de novo ou fale com o suporte.",
             "authorizationFailed": "A autorização do cartão falhou. Tente de novo ou fale com o suporte.",

@@ -1955,6 +1955,16 @@
             "unlockKept": "Your card is active, but payments from your wallet stay stopped for now. Contact support if this doesn't clear.",
             "unlockUnknown": "Your card is active, but we couldn't confirm that payments from your wallet resumed. Try Unfreeze again."
         },
+        "return": {
+            "lockLeft": "{amount} is still in the card. Unfreeze the card to use it.",
+            "lockUnknown": "We couldn't confirm that the card balance moved. Unfreeze the card to use what is left.",
+            "held": "{amount} stays in the card for pending payments.",
+            "lockCredit": "{amount} is refund credit. Unfreeze the card to spend it.",
+            "cancelCredit": "{amount} is refund credit. Spend it with a new card.",
+            "blocked": "The card balance can't move to the wallet yet. Try again in {time}.",
+            "remains": "Part of the card balance moved to the wallet. The rest can move in {time}.",
+            "retryNow": "The card balance can move now. Try again."
+        },
         "errors": {
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
             "authorizationFailed": "Card authorization failed. Please try again or contact support.",

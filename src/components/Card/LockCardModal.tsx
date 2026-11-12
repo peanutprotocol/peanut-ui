@@ -8,9 +8,10 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import CardReturnNotice from '@/components/Card/CardReturnNotice'
 import CardStopNotice from '@/components/Card/CardStopNotice'
-import { apiErrorStatus } from '@/services/api-error'
-import { rainApi, type CardFundingStop } from '@/services/rain'
+import { cardReturnFacts } from '@/components/Card/cardReturn.utils'
+import { rainApi, type CardCollateralReturn, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { newStopAttemptId, type StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useStopAttemptReporter } from '@/hooks/useStopAttemptReporter'
@@ -63,6 +64,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
         attemptId: string
         stop?: CardFundingStop | null
         unlock?: 'kept' | 'unknown'
+        collateralReturn?: CardCollateralReturn
     } | null>(null)
     const withdrawalProof = useCardWithdrawalProof(cardId, smartWalletAddress)
     const beginStopReport = useStopAttemptReporter(smartWalletAddress, onStopAttempt)
@@ -85,6 +87,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
         const report = beginStopReport()
         let stop: CardFundingStop | null | undefined
         let unlock: 'kept' | 'unknown' | undefined
+        let collateralReturn: CardCollateralReturn | undefined
         try {
             if (mode === 'lock') {
                 // An unloaded overview reads as zero spending power below, which
@@ -95,8 +98,10 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 }
                 // If the user has spending power, return collateral to their
                 // smart wallet BEFORE locking so funds stay liquid. The
-                // backend gates the lock on a successful withdrawal — order
-                // is handled there. We only need to deliver the signed body.
+                // backend runs the signed return first and then locks the card
+                // whatever the return did: `collateralReturn` says what is
+                // left in the card. A backend that predates it refuses the
+                // lock instead.
                 const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
                 // A retry reuses the proof: signing again could be a second withdrawal.
                 let verifiedWithdrawal = withdrawalProof.get()
@@ -125,7 +130,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 // No draft back-out on a lockCard throw: the backend may have
                 // consumed the withdrawal before the error surfaced — cleanup
                 // belongs to the probe-verified TTL sweep (TASK-21815 review).
-                stop = (await rainApi.lockCard(cardId, verifiedWithdrawal))?.fundingStop
+                const locked = await rainApi.lockCard(cardId, verifiedWithdrawal)
+                stop = locked?.fundingStop
+                collateralReturn = locked?.collateralReturn
                 withdrawalProof.clear()
             } else {
                 const resume = (await rainApi.activateCard(cardId))?.fundingStop
@@ -138,17 +145,18 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
             else if (mode === 'unlock' && !unlock) report(null)
             await queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
-            // Stay open only when there is something true to say about wallet payments.
-            if (unlock || (stop && stop.state !== 'not_applicable')) {
-                setDone({ attemptId, stop, unlock })
+            // Stay open only when there is something true to say: about wallet
+            // payments, or about a balance the freeze left in the card.
+            if (unlock || (stop && stop.state !== 'not_applicable') || cardReturnFacts(collateralReturn)) {
+                setDone({ attemptId, stop, unlock, collateralReturn })
                 setPhase('done')
                 return
             }
             toast.success(t(copyKeys.success))
             onClose()
         } catch (e) {
-            // An expired signature cannot be reused: sign again on the next try.
-            if (apiErrorStatus(e) === 410) withdrawalProof.clear()
+            // A signature the backend used or can never verify is signed again on the next try.
+            if (mode === 'lock') withdrawalProof.dropIfSpent(e)
             // Other throws (passkey cancelled, network, 409 card_action_*) keep their message.
             let message = e instanceof Error ? e.message : t(copyKeys.failed)
             if (e instanceof InsufficientSpendableError) {
@@ -169,6 +177,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
     const bodyContent = (
         <>
             {showError && <Callout priority="error">{error}</Callout>}
+            {done && <CardReturnNotice action="lock" collateralReturn={done.collateralReturn} />}
             {done && (
                 <CardStopNotice
                     key={done.attemptId}

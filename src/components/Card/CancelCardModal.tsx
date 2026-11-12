@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -8,9 +8,11 @@ import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
+import CardReturnNotice from '@/components/Card/CardReturnNotice'
+import CardReturnWait from '@/components/Card/CardReturnWait'
 import CardStopNotice from '@/components/Card/CardStopNotice'
-import { apiErrorStatus } from '@/services/api-error'
-import { rainApi, type CardFundingStop } from '@/services/rain'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import { rainApi, type CardCollateralReturn, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { newStopAttemptId, type StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useStopAttemptReporter } from '@/hooks/useStopAttemptReporter'
@@ -36,9 +38,19 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
     const [feedback, setFeedback] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [canceled, setCanceled] = useState(false)
-    const [stop, setStop] = useState<{ attemptId: string; stop?: CardFundingStop | null } | undefined>()
+    const [stop, setStop] = useState<
+        { attemptId: string; stop?: CardFundingStop | null; collateralReturn?: CardCollateralReturn } | undefined
+    >()
+    // The backend refused the cancel until the card balance can move: which
+    // refusal, and when the provider releases it (null: the backend gave no time).
+    const [wait, setWait] = useState<{ kind: 'blocked' | 'remains'; retryAtMs: number | null } | null>(null)
+    const [waitOver, setWaitOver] = useState(false)
+    const endWait = useCallback(() => setWaitOver(true), [])
+    // After a failed attempt the balance on screen can predate it: a partial
+    // return, or the provider's release, changed what there is to sign for.
+    const balanceIsStale = useRef(false)
     const queryClient = useQueryClient()
-    const { overview } = useRainCardOverview()
+    const { overview, refetch: refetchOverview } = useRainCardOverview()
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const withdrawalProof = useCardWithdrawalProof(cardId, smartWalletAddress)
@@ -46,7 +58,8 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
 
     useEffect(() => {
         if (!isOpen) {
-            // Reset so reopening after dismiss starts fresh.
+            // Reset so reopening after dismiss starts fresh. A wait for the card
+            // balance stays: it belongs to the card, not to this visit.
             setPhase('confirm')
             setFeedback('')
             setError(null)
@@ -69,18 +82,22 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
     const runCancel = async () => {
         setPhase('canceling')
         setError(null)
+        setWait(null)
+        setWaitOver(false)
         const report = beginStopReport()
         try {
+            const current = balanceIsStale.current ? ((await refetchOverview()).data ?? overview) : overview
+            balanceIsStale.current = false
             // An unloaded overview reads as zero spending power below, which
             // would skip the withdrawal and get the cancel rejected by the
             // backend ("Withdrawal signature required"). Fail closed instead.
-            if (!overview) {
+            if (!current) {
                 throw new Error(t('errors.cardDetailsLoading'))
             }
             // Cancel can be terminal on Rain's side (collateral contract may
             // become unreachable), so we MUST drain it BEFORE the cancel.
             // Backend enforces order — this just delivers the signed body.
-            const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
+            const spendingPowerUnits = rainCentsToUsdcUnits(current.balance?.spendingPower)
             // A retry reuses the proof: signing again could be a second withdrawal.
             let verifiedWithdrawal = withdrawalProof.get()
             if (!verifiedWithdrawal && spendingPowerUnits > 0n) {
@@ -110,17 +127,35 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
             const fundingStop = result?.fundingStop
             // The card page keeps this once the card screen is gone.
             if (fundingStop && fundingStop.state !== 'not_applicable') report({ attemptId, stop: fundingStop })
-            setStop({ attemptId, stop: fundingStop })
+            setStop({ attemptId, stop: fundingStop, collateralReturn: result?.collateralReturn })
             setCanceled(true)
             setPhase('feedback')
         } catch (e) {
-            // An expired signature cannot be reused: sign again on the next try.
-            if (apiErrorStatus(e) === 410) withdrawalProof.clear()
+            balanceIsStale.current = true
+            // A signature the backend used or can never verify is signed again on the next try.
+            withdrawalProof.dropIfSpent(e)
+            const code = wireErrorCode(e)
+            // The cancel waits for the card balance. The card is unchanged.
+            if (code === API_ERROR_CODES.CARD_RETURN_BLOCKED || code === API_ERROR_CODES.CARD_BALANCE_REMAINS) {
+                const retryAfterSec = (e as { retryAfterSec?: unknown }).retryAfterSec
+                setWait({
+                    kind: code === API_ERROR_CODES.CARD_RETURN_BLOCKED ? 'blocked' : 'remains',
+                    retryAtMs:
+                        typeof retryAfterSec === 'number' && retryAfterSec > 0
+                            ? Date.now() + retryAfterSec * 1000
+                            : null,
+                })
+                posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FAILED, { error_message: code })
+                setPhase('confirm')
+                return
+            }
             let message = e instanceof Error ? e.message : t('cancel.failed')
             if (e instanceof InsufficientSpendableError) {
                 message = t('errors.balanceReturnFailed')
             } else if (e instanceof SessionKeyGrantRequiredError) {
                 message = t('errors.authorizationFailed')
+            } else if (code === API_ERROR_CODES.CARD_BALANCE_UNREADABLE) {
+                message = t('yourCard.moveBalanceUnavailable')
             }
             setError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FAILED, { error_message: message })
@@ -161,6 +196,8 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
 
     const isConfirm = phase === 'confirm' || phase === 'canceling'
     const isFeedback = phase === 'feedback' || phase === 'submitting-feedback'
+    // A wait with a known end holds the slide until that end.
+    const mustWait = !!wait && wait.retryAtMs !== null && !waitOver
 
     return (
         <ActionModal
@@ -178,15 +215,25 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
                     // terminal money action commits only at full travel.
                     <>
                         {error && <Callout priority="error">{error}</Callout>}
+                        {wait && (
+                            <CardReturnWait
+                                key={wait.retryAtMs}
+                                kind={wait.kind}
+                                retryAtMs={wait.retryAtMs}
+                                onOver={endWait}
+                            />
+                        )}
                         <SlideToConfirm
                             label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
                             onConfirm={runCancel}
-                            disabled={phase === 'canceling'}
+                            disabled={phase === 'canceling' || mustWait}
                         />
                     </>
                 ) : isFeedback || stop ? (
-                    // The card is canceled; this says how far stopping wallet payments got.
+                    // The card is canceled; this says what stays in it and how far
+                    // stopping wallet payments got.
                     <>
+                        <CardReturnNotice action="cancel" collateralReturn={stop?.collateralReturn} />
                         {stop && (
                             <CardStopNotice
                                 key={stop.attemptId}

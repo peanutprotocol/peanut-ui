@@ -1955,6 +1955,16 @@
             "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contacta a soporte si no se resuelve.",
             "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta descongelar de nuevo."
         },
+        "return": {
+            "lockLeft": "{amount} sigue en la tarjeta. Descongela la tarjeta para usar ese saldo.",
+            "lockUnknown": "No pudimos confirmar que el saldo de la tarjeta se movió. Descongela la tarjeta para usar lo que quede.",
+            "held": "{amount} queda en la tarjeta para pagos pendientes.",
+            "lockCredit": "{amount} es crédito por reembolsos. Descongela la tarjeta para gastarlo.",
+            "cancelCredit": "{amount} es crédito por reembolsos. Gástalo con una tarjeta nueva.",
+            "blocked": "El saldo de la tarjeta todavía no puede pasar a la billetera. Intenta de nuevo en {time}.",
+            "remains": "Parte del saldo de la tarjeta pasó a la billetera. El resto puede pasar en {time}.",
+            "retryNow": "El saldo de la tarjeta ya se puede mover. Intenta de nuevo."
+        },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
             "authorizationFailed": "Falló la autorización de la tarjeta. Inténtalo de nuevo o contacta a soporte.",
