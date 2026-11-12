@@ -18,6 +18,7 @@ import { getNativeRpId, isCapacitor } from '@/utils/capacitor'
 import { guardPasskeyCeremony, isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { classifyPasskeyError } from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import { beginCeremonyTiming, startCeremonyPhase, type CeremonyTiming } from '@/utils/webauthn-ceremony-telemetry'
 import { clearCachedStepUpToken, getCachedStepUpToken, setCachedStepUpToken } from './step-up-cache'
 
 export const STEP_UP_HEADER = 'x-step-up-token'
@@ -50,44 +51,83 @@ export async function getStepUpToken(): Promise<string> {
     const primed = getCachedStepUpToken()
     if (primed) return primed
 
-    const rpID = currentRpId()
-
-    const optionsResponse = await apiFetch('/auth/step-up/options', {
-        method: 'POST',
-        body: JSON.stringify({ rpID }),
-    })
-    if (!optionsResponse.ok) {
-        throw new StepUpError(
-            optionsResponse.status === 404
-                ? 'No passkey is registered for this account.'
-                : 'Could not start verification.'
-        )
-    }
-    const options = await optionsResponse.json()
-
-    // Same guard class as login (TASK-21782): a step-up racing the async shim
-    // install on native runs the webview's raw WebAuthn, which silently never
-    // settles. Gate on the shim and bound the ceremony; guard failures surface
-    // as StepUpError so callers render the curated copy, not a raw timeout.
-    let cred: Awaited<ReturnType<typeof startAuthentication>>
+    // Step-up's API requests sit outside its credential guard; preserve that timeout boundary.
+    let timing: CeremonyTiming | undefined
     try {
-        cred = await withCeremonyPurpose('step_up', () => guardPasskeyCeremony(() => startAuthentication(options)))
+        timing = beginCeremonyTiming?.(Date.now(), 'step_up')
+        timing?.activate()
+    } catch {}
+    try {
+        const rpID = currentRpId()
+
+        const optionsDone = startCeremonyPhase?.(timing, 'options')
+        let optionsResponse: Response
+        try {
+            optionsResponse = await apiFetch('/auth/step-up/options', {
+                method: 'POST',
+                body: JSON.stringify({ rpID }),
+            })
+        } finally {
+            try {
+                optionsDone?.()
+            } catch {}
+        }
+        if (!optionsResponse.ok) {
+            throw new StepUpError(
+                optionsResponse.status === 404
+                    ? 'No passkey is registered for this account.'
+                    : 'Could not start verification.'
+            )
+        }
+        const options = await optionsResponse.json()
+        try {
+            timing?.bindChallenge(options?.challenge)
+        } catch {}
+
+        // Same guard class as login (TASK-21782): a step-up racing the async shim
+        // install on native runs the webview's raw WebAuthn, which silently never
+        // settles. Gate on the shim and bound the ceremony; guard failures surface
+        // as StepUpError so callers render the curated copy, not a raw timeout.
+        let cred: Awaited<ReturnType<typeof startAuthentication>>
+        try {
+            cred = await withCeremonyPurpose('step_up', () =>
+                guardPasskeyCeremony(() => startAuthentication(options), { timing })
+            )
+        } catch (error) {
+            if (isCeremonyGuardError(error)) throw new StepUpError(classifyPasskeyError(error).message)
+            throw error
+        }
+
+        const verifyDone = startCeremonyPhase?.(timing, 'verify')
+        let verifyResponse: Response
+        try {
+            verifyResponse = await apiFetch('/auth/step-up/verify', {
+                method: 'POST',
+                body: JSON.stringify({ cred, rpID }),
+            })
+        } finally {
+            try {
+                verifyDone?.()
+            } catch {}
+        }
+        if (!verifyResponse.ok) {
+            throw new StepUpError('Could not confirm it is you.')
+        }
+
+        const { token, expiresIn } = (await verifyResponse.json()) as { token: string; expiresIn: number }
+        setCachedStepUpToken(token, expiresIn)
+        return token
     } catch (error) {
-        if (isCeremonyGuardError(error)) throw new StepUpError(classifyPasskeyError(error).message)
+        try {
+            timing?.finish(error)
+        } catch {}
         throw error
+    } finally {
+        try {
+            timing?.finish()
+            timing?.dispose()
+        } catch {}
     }
-
-    const verifyResponse = await apiFetch('/auth/step-up/verify', {
-        method: 'POST',
-        body: JSON.stringify({ cred, rpID }),
-    })
-    if (!verifyResponse.ok) {
-        throw new StepUpError('Could not confirm it is you.')
-    }
-
-    const { token, expiresIn } = (await verifyResponse.json()) as { token: string; expiresIn: number }
-    setCachedStepUpToken(token, expiresIn)
-    return token
 }
 
 /** Adds the proof header, acquiring one if needed. */

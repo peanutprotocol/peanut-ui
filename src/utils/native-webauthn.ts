@@ -1,5 +1,6 @@
 import { androidPasskeyScopesEnabled } from './android-passkey-scope'
 import { guardPasskeyCeremony } from './passkeyCeremony.utils'
+import { beginCeremonyTiming, type CeremonyTiming } from './webauthn-ceremony-telemetry'
 // native webauthn utilities for capacitor passkey integration
 // provides signing callback and public key parsing for @capgo/capacitor-passkey autoShim
 
@@ -186,15 +187,45 @@ export function createNativeSignMessageCallback(rpId: string, pinnedCredentialId
         // shim install would run the webview's raw WebAuthn, which silently
         // hangs in Capacitor — gate on the shim and bound the ceremony.
         let cred: PublicKeyCredential
+        let timing: CeremonyTiming | undefined
+        let invoked = false
+        try {
+            timing = beginCeremonyTiming?.()
+            if (!androidPasskeyScopesEnabled()) timing?.activate()
+        } catch {}
         try {
             if (isCapacitor()) await waitForPasskeyShim()
-            const getCredential = () => navigator.credentials.get({ publicKey: assertionOptions })
+            const getCredential = () => {
+                invoked = true
+                try {
+                    timing?.operationStarted()
+                    timing?.bindChallenge(assertionOptions.challenge)
+                } catch {}
+                return navigator.credentials.get({ publicKey: assertionOptions }).finally(() => {
+                    try {
+                        timing?.operationSettled()
+                    } catch {}
+                })
+            }
             cred = (await (androidPasskeyScopesEnabled()
-                ? guardPasskeyCeremony(getCredential)
-                : raceCeremonyTimeout(getCredential()))) as PublicKeyCredential
+                ? guardPasskeyCeremony(getCredential, { timing })
+                : raceCeremonyTimeout(getCredential(), undefined, () => {
+                      try {
+                          timing?.timeout()
+                      } catch {}
+                  }))) as PublicKeyCredential
         } catch (error) {
+            try {
+                if ((error as Error)?.name !== 'CeremonyTimeoutError') timing?.operationSettled()
+                if (invoked) timing?.finish(error)
+            } catch {}
             if (isCeremonyGuardError(error)) captureCeremonyGuardError(error, 'sign')
             throw error
+        } finally {
+            try {
+                if (invoked) timing?.finish()
+                timing?.dispose()
+            } catch {}
         }
 
         if (!cred || !cred.response) {

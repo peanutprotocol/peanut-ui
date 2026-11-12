@@ -9,6 +9,7 @@ import * as Sentry from '@/utils/sentry-lazy'
 import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 import { currentAndroidPasskeyScope, registerScopeChallenge } from './android-passkey-scope'
 import { PasskeyProviderUnsupportedError } from './passkey-registration-compatibility'
+import { observePasskeyOptions, timingForPasskeyRequest } from './webauthn-ceremony-telemetry'
 
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
@@ -112,6 +113,15 @@ export function installPasskeyVerifyCapture(): void {
         const issuingCeremonyId = isVerify ? currentCeremonyId() : null
         // Same rule for Android scopes: the challenge belongs to the flow that asked for it.
         const issuingScope = passkeyPath?.endsWith('/options') ? currentAndroidPasskeyScope() : undefined
+        let settleTiming = () => {}
+        let timing: ReturnType<typeof timingForPasskeyRequest>
+        try {
+            if (passkeyPath) {
+                timing = timingForPasskeyRequest?.(init)
+                timing?.request(passkeyPath)
+                settleTiming = timing?.phase(isVerify ? 'verify' : 'options') ?? settleTiming
+            }
+        } catch {}
 
         let response: Response
         try {
@@ -123,7 +133,14 @@ export function installPasskeyVerifyCapture(): void {
                 } catch {}
             }
             throw error
+        } finally {
+            try {
+                settleTiming()
+            } catch {}
         }
+        try {
+            if (timing && passkeyPath?.endsWith('/options')) observePasskeyOptions?.(response, timing)
+        } catch {}
 
         // Surface the API conflict before the SDK tries to decode a missing
         // challenge/public key. Never retry by attaching to an existing user.
