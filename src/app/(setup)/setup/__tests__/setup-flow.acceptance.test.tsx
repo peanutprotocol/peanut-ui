@@ -88,10 +88,11 @@ const mockEnv = (() => {
 })()
 const mockUseEnv = () => {
     const { useSyncExternalStore } = jest.requireActual<typeof import('react')>('react')
+    // jest.mock factories may only reference mock-prefixed names; this runs only inside the mocked hooks below
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     return useSyncExternalStore(mockEnv.subscribe, mockEnv.get)
 }
 // var: read by modules that call isCapacitor() while they load
-// eslint-disable-next-line no-var
 var mockNative = true
 let mockSearchParams = new URLSearchParams()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
