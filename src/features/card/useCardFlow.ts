@@ -640,12 +640,15 @@ export function useCardFlow() {
                         return undefined
                     }
                     // A re-issue whose card permission signature the chain would refuse.
+                    const code = wireErrorCode(e)
                     const message =
-                        wireErrorCode(e) === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
+                        code === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
                             ? t('page.setupSignatureRejected')
-                            : e instanceof Error
-                              ? e.message
-                              : t('page.applyFailed')
+                            : code === API_ERROR_CODES.CARD_PERMISSION_ID_SPENT
+                              ? t('page.setupPermissionSpent')
+                              : e instanceof Error
+                                ? e.message
+                                : t('page.applyFailed')
                     console.error('[card apply] error:', e)
                     setApplyError(message)
                     posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })

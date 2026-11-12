@@ -6,7 +6,7 @@ import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta }
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
 
-type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'signature-rejected' | 'unexpected'
+type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'signature-rejected' | 'permission-spent' | 'unexpected'
 
 /**
  * Global recovery modal for the stale-card-approval case.
@@ -60,7 +60,10 @@ export default function StaleCardApprovalReEnableModal() {
             // trying once more is exactly the right advice.
             const kind = result.error.kind
             setErrorKind(
-                kind === 'user-cancelled' || kind === 'stale-approval' || kind === 'signature-rejected'
+                kind === 'user-cancelled' ||
+                    kind === 'stale-approval' ||
+                    kind === 'signature-rejected' ||
+                    kind === 'permission-spent'
                     ? kind
                     : 'unexpected'
             )
@@ -74,9 +77,11 @@ export default function StaleCardApprovalReEnableModal() {
               ? t('staleCardApprovalModal.rotatedError')
               : errorKind === 'signature-rejected'
                 ? t('staleCardApprovalModal.signatureRejectedError')
-                : errorKind === 'unexpected'
-                  ? t('staleCardApprovalModal.unexpectedError')
-                  : null
+                : errorKind === 'permission-spent'
+                  ? t('staleCardApprovalModal.permissionSpentError')
+                  : errorKind === 'unexpected'
+                    ? t('staleCardApprovalModal.unexpectedError')
+                    : null
 
     const ctas: ActionModalButtonProps[] = succeeded
         ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'primary', shadowSize: '4', onClick: close }]
@@ -104,7 +109,8 @@ export default function StaleCardApprovalReEnableModal() {
                     ? t('staleCardApprovalModal.successDescription')
                     : (errorMessage ?? t('staleCardApprovalModal.description'))
             }
-            ctas={ctas}
+            // a spent permission id cannot be fixed by re-enabling, so no retry button
+            ctas={errorKind === 'permission-spent' ? [] : ctas}
             tertiaryCta={tertiaryCta}
         />
     )

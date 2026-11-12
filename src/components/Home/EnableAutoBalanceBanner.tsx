@@ -97,6 +97,10 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
     // recoverable message.
     const hardError = errorForThisCard && lastError!.kind !== 'user-cancelled'
 
+    // A spent permission id cannot be fixed by signing again, so the prompt
+    // offers no retry, only Skip for now.
+    const permissionSpent = errorForThisCard && lastError!.kind === 'permission-spent'
+
     // Loop signal: grant() resolved ok with a FRESH overview, yet the SAME
     // card still lacks the approval. That is the dup-card lockout shape —
     // warn once per card and treat it like a failure so the escape hatch
@@ -182,11 +186,13 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
             description={
                 hardError && lastError!.kind === 'signature-rejected'
                     ? t('descriptionSignatureRejected')
-                    : hardError || stuckAfterSuccess
-                      ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
-                      : t(isUpdate ? 'updateApprove' : 'description')
+                    : permissionSpent
+                      ? t('descriptionPermissionSpent')
+                      : hardError || stuckAfterSuccess
+                        ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
+                        : t(isUpdate ? 'updateApprove' : 'description')
             }
-            ctas={ctas}
+            ctas={permissionSpent ? [] : ctas}
             tertiaryCta={tertiaryCta}
         />
     )
