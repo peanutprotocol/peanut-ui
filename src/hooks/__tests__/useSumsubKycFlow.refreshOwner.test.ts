@@ -37,7 +37,7 @@ describe('identity restart account isolation', () => {
                 () => new Promise((resolve) => (finishPlan = resolve))
             )
             const { result, rerender } = renderHook(() => useSumsubKycFlow())
-            let pending!: Promise<void>
+            let pending!: Promise<boolean>
             await act(async () => {
                 pending = result.current.handleRestartIdentity()
                 await Promise.resolve()
@@ -62,7 +62,7 @@ describe('identity restart account isolation', () => {
             () => new Promise((resolve) => (finishRestart = resolve))
         )
         const { result, rerender } = renderHook(() => useSumsubKycFlow())
-        let pending!: Promise<void>
+        let pending!: Promise<boolean>
         await act(async () => {
             pending = result.current.handleRestartIdentity()
             await Promise.resolve()
@@ -85,7 +85,7 @@ describe('identity restart account isolation', () => {
             () => new Promise((resolve) => (finishPlan = resolve))
         )
         const { result } = renderHook(() => useSumsubKycFlow())
-        let pending!: Promise<void>
+        let pending!: Promise<boolean>
         await act(async () => {
             pending = result.current.handleRestartIdentity()
             await Promise.resolve()
