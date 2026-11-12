@@ -91,8 +91,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
         try {
             if (mode === 'lock') {
                 // An unloaded overview reads as zero spending power below, which
-                // would skip the withdrawal and get the lock rejected by the
-                // backend ("Withdrawal signature required"). Fail closed instead.
+                // would skip the withdrawal: the backend then freezes the card
+                // with the balance still in it (an older backend rejects the
+                // lock, "Withdrawal signature required"). Fail closed instead.
                 if (!overview) {
                     throw new Error(t('errors.cardDetailsLoading'))
                 }
