@@ -28,6 +28,7 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 import { consumeLandingAutoLogin, disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
 import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
 import { discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
+import { useWelcomeHeadlineExperiment } from '@/features/setup/WelcomeHeadlineExperimentProvider'
 import {
     cancelIOSImmediateLogin,
     checkAndroidLandingPasskey,
@@ -59,6 +60,7 @@ const LandingStep = () => {
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
     const { track } = useSignupControl()
+    const { variant: welcomeVariant, cancelPending: cancelWelcomePending } = useWelcomeHeadlineExperiment()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [loginFailed, setLoginFailed] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
@@ -250,11 +252,12 @@ const LandingStep = () => {
             discardSignupDraft()
             flow?.resetSetupFlow()
         }
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: welcomeVariant ?? 'control' })
         handleNext()
     }
 
     const onSignUpClick = () => {
+        cancelWelcomePending()
         track('sign_up', 'tap')
         afterAutoLogin(signUp)
     }

@@ -508,7 +508,18 @@
         "steps": {
             "landing": {
                 "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
-                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
+                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo.",
+                "variants": {
+                    "every_border": {
+                        "description": "Recibí, enviá y gastá a nivel internacional, sin pagar por la distancia."
+                    },
+                    "whole_world": {
+                        "description": "Cobrá en otras monedas, pagale a quien quieras en el exterior y gastá en tu país. Sin comisiones por transferencia."
+                    },
+                    "travels_free": {
+                        "title": "Plata que viaja gratis."
+                    }
+                }
             },
             "passkey": {
                 "title": "Creá tu passkey"
