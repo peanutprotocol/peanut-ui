@@ -708,6 +708,37 @@ describe('CancelCardModal: the cancel waits for the card balance', () => {
         expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
     })
 
+    it('a retry whose balance read fails signs nothing: the figure on screen predates the partial return', async () => {
+        jest.useFakeTimers()
+        setup(OVERVIEW)
+        mockCancelCard
+            .mockRejectedValueOnce(refusal('CARD_BALANCE_REMAINS', 409, 163))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderCancel()
+        fireEvent.click(slide())
+        expect(await screen.findByText(/The rest can move in 2:43/)).toBeInTheDocument()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(164_000)
+        })
+
+        // The read fails, and the cache still holds the $10.06 from before the return.
+        mockRefetchOverview.mockResolvedValueOnce({ data: OVERVIEW, isError: true })
+        fireEvent.click(slide())
+        expect(await screen.findByText("We couldn't read your card balance. Try again.")).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockCancelCard).toHaveBeenCalledTimes(1)
+
+        // The next read succeeds: the retry signs for what is left.
+        mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 400 } }, isError: false })
+        fireEvent.click(slide())
+        expect(await screen.findByText('Card canceled')).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenLastCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: 4_000_000n,
+            rainSpendingPower: 4_000_000n,
+        })
+    })
+
     it('a backend without the codes keeps its own sentence, and the refused signature is not sent again', async () => {
         setup(OVERVIEW)
         mockCancelCard

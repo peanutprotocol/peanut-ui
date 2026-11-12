@@ -83,8 +83,18 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
         setWaitOver(false)
         const report = beginStopReport()
         try {
-            const current = balanceIsStale.current ? ((await refetchOverview()).data ?? overview) : overview
-            balanceIsStale.current = false
+            let current = overview
+            if (balanceIsStale.current) {
+                // A failed read keeps the old figure in the cache. Signing for it
+                // would ask the provider for money that already moved, so the
+                // retry stops here until a read succeeds.
+                const fresh = await refetchOverview()
+                if (fresh.isError || !fresh.data) {
+                    throw new Error(t('yourCard.moveBalanceUnavailable'))
+                }
+                current = fresh.data
+                balanceIsStale.current = false
+            }
             // An unloaded overview reads as zero spending power below, which
             // would skip the withdrawal and get the cancel rejected by the
             // backend ("Withdrawal signature required"). Fail closed instead.
