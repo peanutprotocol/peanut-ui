@@ -17,8 +17,8 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: 'eaee605fc002d723c148643048001ddf8b7886511d1d8bef225ef97268e5efb1',
     },
     'card-prohibited-activities': {
-        version: '2026-10-29',
-        hash: '3b1ca3788a559d0cf96ca2b6f4c1ab9189af9de97dfa1d4b6e8a3dc17b6b4bed',
+        version: '2026-06-17',
+        hash: 'd0ea9e1b239179c9ca4e5c26badb49506d8453399958ed040f68bb6650fd6e6c',
     },
     'card-terms-international': {
         version: '2026-10-14',
@@ -29,8 +29,8 @@ export const LEGAL_DOCUMENT_VERSIONS = {
         hash: '64ac0c8c4be3b19eb3a2b72c42fa4fb903ba3fab7bad3682683eea48b58dd24d',
     },
     privacy: {
-        version: '2026-11-10',
-        hash: '835986bc524dd69e19f3c634b8811a1e4787e4e2fef3aafeaa39532d7ac5f870',
+        version: '2026-10-26',
+        hash: 'ee9bc31901422b0546e6f425751ddec349653df9164f48d65361f85eed357bd7',
     },
     'real-time-funding-terms': {
         version: '2026-09-29',
