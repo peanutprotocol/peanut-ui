@@ -6,7 +6,7 @@
  */
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { COUNTRY_SPECIFIC_METHODS } from '@/components/AddMoney/consts'
-import { isSendToBankCountry, liveRailsForCountry, soleLiveRailForCountry } from '../country-rails'
+import { isSendToBankCountry, liveRailsForCountry, sendOffersPix, soleLiveRailForCountry } from '../country-rails'
 
 describe('liveRailsForCountry — withdraw', () => {
     it('a SEPA country has one rail: the bank transfer', () => {
@@ -83,21 +83,42 @@ it('never offers crypto again inside any country withdrawal list', () => {
 
 describe('isSendToBankCountry — who a send-to-bank can pay', () => {
     it('a Bridge bank corridor, by 2- or 3-letter id', () => {
-        expect(isSendToBankCountry({ id: 'DEU', path: 'germany' })).toBe(true)
-        expect(isSendToBankCountry({ id: 'PL', path: 'poland' })).toBe(true)
-        expect(isSendToBankCountry({ id: 'US', path: 'usa' })).toBe(true)
-        expect(isSendToBankCountry({ id: 'CO', path: 'colombia' })).toBe(true)
+        expect(isSendToBankCountry({ id: 'DEU', path: 'germany' }, null)).toBe(true)
+        expect(isSendToBankCountry({ id: 'PL', path: 'poland' }, null)).toBe(true)
+        expect(isSendToBankCountry({ id: 'US', path: 'usa' }, null)).toBe(true)
+        expect(isSendToBankCountry({ id: 'CO', path: 'colombia' }, null)).toBe(true)
     })
 
     it('Brazil, over PIX to a third-party key', () => {
-        expect(isSendToBankCountry({ id: 'BR', path: 'brazil' })).toBe(true)
+        expect(isSendToBankCountry({ id: 'BR', path: 'brazil' }, null)).toBe(true)
     })
 
     it('not Argentina: its rails are own-account offramps', () => {
-        expect(isSendToBankCountry({ id: 'AR', path: 'argentina' })).toBe(false)
+        expect(isSendToBankCountry({ id: 'AR', path: 'argentina' }, null)).toBe(false)
     })
 
     it('not a country with no rail', () => {
-        expect(isSendToBankCountry({ id: 'IN', path: 'india' })).toBe(false)
+        expect(isSendToBankCountry({ id: 'IN', path: 'india' }, null)).toBe(false)
+    })
+
+    // live test on staging, 2026-11-12: a resident picked BRL and reached a block screen with no way on
+    describe('a resident of Brazil, whose pay route refuses the residence', () => {
+        it('is not offered Brazil', () => {
+            expect(isSendToBankCountry({ id: 'BR', path: 'brazil' }, 'residence')).toBe(false)
+            expect(sendOffersPix('residence')).toBe(false)
+        })
+
+        it('keeps every other answer', () => {
+            expect(isSendToBankCountry({ id: 'DEU', path: 'germany' }, 'residence')).toBe(true)
+            expect(isSendToBankCountry({ id: 'US', path: 'usa' }, 'residence')).toBe(true)
+            expect(isSendToBankCountry({ id: 'AR', path: 'argentina' }, 'residence')).toBe(false)
+            expect(isSendToBankCountry({ id: 'IN', path: 'india' }, 'residence')).toBe(false)
+        })
+    })
+
+    it('the Brazil pause keeps Brazil listed: the pause lifts, and its screen says so', () => {
+        expect(isSendToBankCountry({ id: 'BR', path: 'brazil' }, 'paused')).toBe(true)
+        expect(sendOffersPix('paused')).toBe(true)
+        expect(sendOffersPix(null)).toBe(true)
     })
 })

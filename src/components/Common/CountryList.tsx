@@ -26,6 +26,7 @@ import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { matchesCountryQuery } from './country-search'
 import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
+import type { PixPayBlock } from '@/features/pix/pixRoute.utils'
 
 interface CountryListViewProps {
     inputTitle?: string
@@ -38,6 +39,11 @@ interface CountryListViewProps {
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
     // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
+    /**
+     * The user's Pix pay block (`usePixPayBlock`), read by the Send gate. A prop,
+     * because this list also renders where no user is signed in.
+     */
+    pixPayBlock?: PixPayBlock | null
     showLoadingState?: boolean
     /**
      * Whether a country has anything behind its row, when the caller knows
@@ -89,6 +95,7 @@ export const CountryList = ({
     flow,
     getRightContent,
     enforceSupportedCountries,
+    pixPayBlock = null,
     showLoadingState = true, // true by default to show loading state when clicking a country
     isCountrySupported,
     searchTerm: controlledSearchTerm,
@@ -230,7 +237,7 @@ export const CountryList = ({
                             // send->bank has a stricter gate (Argentina stays out) —
                             // see isSendToBankCountry
                             if (enforceSupportedCountries) {
-                                isSupported = isSendToBankCountry(country)
+                                isSupported = isSendToBankCountry(country, pixPayBlock)
                             } else {
                                 isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
                             }

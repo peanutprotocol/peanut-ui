@@ -1,5 +1,6 @@
 import { COUNTRY_SPECIFIC_METHODS, type CountryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
 import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
+import type { PixPayBlock } from '@/features/pix/pixRoute.utils'
 
 export type MoneyFlow = 'add' | 'withdraw'
 
@@ -39,8 +40,23 @@ export function soleLiveRailForCountry(countryId: string, flow: MoneyFlow): Spec
  * /withdraw/manteca). Argentina stays out: its Manteca rails are own-account
  * offramps, the same ruling that keeps Mercado Pago off the send list (PR #2813).
  * Every send-to-bank picker reads this one answer, so a new list cannot forget
- * the gate.
+ * the gate. `pixPayBlock` is the user's own (`usePixPayBlock`), and it is not
+ * optional, so a picker cannot leave it out either.
  */
-export function isSendToBankCountry(country: Pick<CountryData, 'id' | 'path'>): boolean {
-    return hasBridgeBankCorridor(country.id) || country.path === 'brazil'
+export function isSendToBankCountry(
+    country: Pick<CountryData, 'id' | 'path'>,
+    pixPayBlock: PixPayBlock | null
+): boolean {
+    return hasBridgeBankCorridor(country.id) || (country.path === 'brazil' && sendOffersPix(pixPayBlock))
+}
+
+/**
+ * Whether Send offers this user a Pix destination: Brazil in a picker, or a
+ * saved Pix key. A resident of Brazil is offered none. Their pay:PIX_BR route
+ * refuses the residence, so the send would end on a screen with no way on, and
+ * their own-account Pix has its own page (/withdraw/pix). The Brazil pause
+ * keeps the destination listed: the pause lifts, and its screen says so.
+ */
+export function sendOffersPix(pixPayBlock: PixPayBlock | null): boolean {
+    return pixPayBlock !== 'residence'
 }

@@ -15,6 +15,7 @@ import Loading from '@/components/Global/Loading'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { SEPA_DESTINATION } from '@/components/AddWithdraw/bank-corridors'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 import {
     countriesForQuery,
     currencyMatchesQuery,
@@ -68,9 +69,11 @@ export function WithdrawCurrencyList({
     const locale = useLocale()
     const [query, setQuery] = useState(initialQuery)
 
+    // the picker reads the user's own block, so no caller can leave it out of the Send gate
+    const pixPayBlock = usePixPayBlock()
     const currencies = useMemo(
-        () => liveWithdrawCurrencies({ sendToBankOnly: !!enforceSupportedCountries }),
-        [enforceSupportedCountries]
+        () => liveWithdrawCurrencies({ sendToBank: enforceSupportedCountries ? { pixPayBlock } : null }),
+        [enforceSupportedCountries, pixPayBlock]
     )
     const filteredCurrencies = useMemo(
         () => currencies.filter((currency) => currencyMatchesQuery(currency, query, locale)),
@@ -160,6 +163,7 @@ export function WithdrawCurrencyList({
                                             searchTerm=""
                                             onCountryClick={onCountryClick}
                                             enforceSupportedCountries={enforceSupportedCountries}
+                                            pixPayBlock={pixPayBlock}
                                             continuesGroup
                                         />
                                     </Accordion.Content>
@@ -205,6 +209,7 @@ export function WithdrawCurrencyList({
                             searchTerm={query}
                             onCountryClick={onCountryClick}
                             enforceSupportedCountries={enforceSupportedCountries}
+                            pixPayBlock={pixPayBlock}
                         />
                     </Accordion.Content>
                 </Accordion.Item>
