@@ -118,10 +118,11 @@ describe('open route', () => {
     })
 
     it.each([
-        [404, 404],
-        [503, 503],
-    ])('maps an identity answer of %i to %i without an event', async (upstream, status) => {
-        fetchMock.mockResolvedValue(new Response(null, { status: upstream }))
+        ["the route's own 404", () => Response.json({ error: 'Link not found' }, { status: 404 }), 404],
+        ['a generic 404', () => new Response(null, { status: 404 }), 503],
+        ['a 503', () => new Response(null, { status: 503 }), 503],
+    ])('maps an identity answer of %s to %i without an event', async (_case, upstream, status) => {
+        fetchMock.mockImplementation(async () => upstream())
         expect((await POST(request())).status).toBe(status)
         expect(tasks).toHaveLength(0)
     })
@@ -129,6 +130,20 @@ describe('open route', () => {
     it.each(['preview', 'development'])('does not forward events from %s', async (deployment) => {
         process.env.VERCEL_ENV = deployment
         await POST(request())
+        await runTasks()
+        expect(posthogBodies()).toHaveLength(0)
+    })
+
+    it('does not forward events a production deployment serves on another origin', async () => {
+        const origin = 'https://peanut-ui-git-feature.vercel.app'
+        const response = await POST(
+            new Request(`${origin}/api/tracked-links/open`, {
+                method: 'POST',
+                headers: { origin, 'content-type': 'application/json' },
+                body: JSON.stringify(opening()),
+            })
+        )
+        expect(response.status).toBe(204)
         await runTasks()
         expect(posthogBodies()).toHaveLength(0)
     })
