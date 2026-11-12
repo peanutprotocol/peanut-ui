@@ -1,45 +1,13 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
-import type { CapabilityRoute, NextActionKind } from '@/types/capabilities'
 import { API_ERROR_CODES } from '@/services/api-error'
-import { ACTIVATE_ACTION, VERIFY_ACTION } from '@/features/kyc-features/report'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 /** The pending route's reasons while the provider reviews the shared verification (api `kyc/capabilities`). */
 const IDENTITY_IMPORT_UNAVAILABLE_REASON = 'identity_import_unavailable'
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
-
-/**
- * What the Pix setup step shows for the backend's route: the Peanut identity
- * check first (`verify`), the provider's terms (the route's action is an
- * `accept-tos` next action), the provider's own identity check on its page
- * where it takes no shared verification (`hosted-verify`: a `hosted-identity`
- * next action), the account the first use opens (`activate`), then the wait
- * while the provider reviews the verification. Refused and paused routes never
- * reach it: the Pix pages show those. Anything else is a case support finishes.
- */
-export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'hosted-verify' | 'activate' | 'pending' | 'support'
-
-export function pixSetupState(
-    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    actionKind: NextActionKind | undefined
-): PixSetupState {
-    switch (route?.state) {
-        case 'ready':
-            return 'ready'
-        case 'pending':
-            return 'pending'
-        case 'action_required':
-            if (route.action === VERIFY_ACTION) return 'verify'
-            if (route.action === ACTIVATE_ACTION) return 'activate'
-            if (actionKind === 'hosted-identity') return 'hosted-verify'
-            return actionKind === 'accept-tos' ? 'accept-terms' : 'support'
-        default:
-            return 'support'
-    }
-}
 
 /** Why the route waits: the provider reviews, cannot receive the verification yet, or has no CPF for it. */
 export type PixPendingReason = 'reviewing' | 'import-unavailable' | 'cpf-missing'

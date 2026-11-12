@@ -145,9 +145,12 @@ export function useBankRows() {
     }, [entryFor, nextActions, pixRouteRefused, residenceIso2, secondResidenceIso2])
     const rows = useMemo(
         () =>
-            buildBankRows(input).map((row) =>
-                row.labelKey === 'brl' && brlSetsUpThroughPix ? { ...row, href: PIX_ADD_MONEY_PATH } : row
-            ),
+            buildBankRows(input).map((row) => {
+                if (row.labelKey !== 'brl' || !brlSetsUpThroughPix) return row
+                // the Pix setup, never our unlock modal
+                const { regionPath: _unlock, ...setUp } = row
+                return { ...setUp, href: PIX_ADD_MONEY_PATH }
+            }),
         [input, brlSetsUpThroughPix]
     )
     // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.

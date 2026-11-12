@@ -1325,6 +1325,7 @@
             "notAvailable": "No se pudo configurar Pix. Contactá a soporte.",
             "hosted": {
                 "body": "Verificá con {brand}.",
+                "bodyPartner": "Verificá con nuestro socio de pagos.",
                 "failed": "Falló. Intentá de nuevo."
             }
         },

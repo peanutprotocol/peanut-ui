@@ -47,7 +47,10 @@ export interface UnlockRow {
     chip: UnlockChip
     /** region path the tap routes into (existing region modal machinery); absent = not tappable */
     regionPath?: 'europe' | 'north-america' | 'latam'
-    /** the card row, and a BRL row that sends to a Pix key: navigate instead of opening a region modal */
+    /**
+     * the card row, a BRL row that sends to a Pix key, and a BRL row whose next step is the Pix
+     * provider's own set-up: navigate instead of opening a region modal
+     */
     href?: string
     /** the explainer line under the title, as a key under profile.unlockPayments */
     note?: 'qrPayNote' | 'qrPayArgentinaNote' | 'pixSendNote'
@@ -78,6 +81,8 @@ export interface UnlockRow {
      * and opens
      */
     bankChip?: Exclude<BankRegionChip, 'active' | 'notAvailable'>
+    /** with `bankChip`: where that rail's own flow opens (the Pix setup), from the drawer, never from the row */
+    bankHref?: string
     /** bank rows: the deposit corridor the row adds money through */
     corridor?: DepositCorridor
     /**
@@ -392,7 +397,10 @@ export function withPixSend(
     return rows.map((row) => {
         if (row.labelKey !== 'brl' || row.chip === 'active' || row.chip === 'alwaysOn') return row
         if (row.chip !== 'notAvailable') {
-            return chip === 'active' ? { ...row, chip, note: 'pixSendNote', bankChip: row.chip } : row
+            if (chip !== 'active') return row
+            // The row leads with the send and opens its drawer; the rail's own flow moves into the drawer.
+            const { href: bankHref, ...sends } = row
+            return { ...sends, chip, note: 'pixSendNote', bankChip: row.chip, ...(bankHref ? { bankHref } : {}) }
         }
         const { unavailableBecause: _closed, ...open } = row
         return {

@@ -2,7 +2,6 @@ import {
     arrivalMinutes,
     pixDepositPhase,
     pixPendingReason,
-    pixSetupState,
     pixWithdrawAmount,
     pixShownRate,
     pixWithdrawOutcome,
@@ -15,6 +14,7 @@ import {
     toApiDecimal,
 } from '../pixFlow.utils'
 import { awaitsNewPixKey, pixNewKeyUrl } from '../pixRecovery'
+import { pixSetupState } from '../pixRouteStep'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
 import type { CapabilityRoute } from '@/types/capabilities'

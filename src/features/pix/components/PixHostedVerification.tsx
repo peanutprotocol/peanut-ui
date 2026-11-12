@@ -67,8 +67,12 @@ export function PixHostedVerification({
     }
     // the hand-off could not open the page, or the read failed: the line says so, the button retries
     const failed = readFailed || (!expired && !!hosted.error)
+    // a route that names no provider this build knows reads as our payment partner, never "Verify with ."
     const brand = providerId ? PROVIDERS[providerId].brand : ''
-    const line = t(failed ? 'hosted.failed' : expired ? 'hosted.expired' : 'hosted.body', { brand })
+    const line = t(
+        failed ? 'hosted.failed' : expired ? 'hosted.expired' : providerId ? 'hosted.body' : 'hosted.bodyPartner',
+        { brand }
+    )
 
     return (
         <PageStack>

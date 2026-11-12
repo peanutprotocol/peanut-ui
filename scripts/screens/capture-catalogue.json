@@ -399,6 +399,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-home-pix-plan-provider-reviewing",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-home-verify-processing",
         "flow": "Home and shared states",
         "route": "/home"

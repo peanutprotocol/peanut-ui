@@ -1,4 +1,5 @@
 import { VERIFY_ACTION } from '@/features/kyc-features/report'
+import { isProviderOwnSetUp, pixRouteStep } from '@/features/pix/pixRouteStep'
 import type { CapabilityRoute, FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 
@@ -20,9 +21,32 @@ export function pixRouteOwnSetUp(
     route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
     nextActions: readonly NextAction[]
 ): boolean {
-    if (route?.state !== 'action_required' || !route.action || route.action === VERIFY_ACTION) return false
-    const kind = nextActions.find((action) => action.key === route.action)?.kind
-    return kind === 'accept-tos' || kind === 'hosted-identity'
+    return isProviderOwnSetUp(pixRouteStep(route, nextActions))
+}
+
+/**
+ * Where a plan that adds money by Pix stands with the Pix provider's own set-up, which Home shows in
+ * place of our identity check (TASK-24841): `provider-step` while the deposit route asks for the
+ * provider's terms or its own check, `done` once the provider reviews or serves it. Null for any other
+ * plan, for a user our check verified, and where the route asks for our check: Home then shows our
+ * check as usual.
+ *
+ * Home follows the signup plan, while Add money's BRL row opens the Pix setup for every user on the
+ * provider's step (`useBankRows`). The split is the ruling: Home's Verify row follows what the user
+ * said they would do, and the BRL row follows the route.
+ */
+export type PixPlanSetUp = 'provider-step' | 'done' | null
+
+export function pixPlanSetUp(
+    fundingChannel: string | null | undefined,
+    verifiedByUs: boolean,
+    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
+    nextActions: readonly NextAction[]
+): PixPlanSetUp {
+    if (fundingChannel !== 'brlBank' || verifiedByUs) return null
+    const step = pixRouteStep(route, nextActions)
+    if (isProviderOwnSetUp(step)) return 'provider-step'
+    return step === 'pending' || step === 'ready' ? 'done' : null
 }
 
 /** The least reais the route's provider takes for the operation (`route.limits`), or null where it states none. */

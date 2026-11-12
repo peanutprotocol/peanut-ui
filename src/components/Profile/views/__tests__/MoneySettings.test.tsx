@@ -192,9 +192,12 @@ const mockCapabilityBlock = () => {
                 candidates: [],
             },
         ]
+    // routes a case adds to the API's (TASK-24841: the Pix deposit route on the provider's own step)
+    if (mockRoutes.length) block.routes = [...(block.routes ?? []), ...mockRoutes]
     return block
 }
 let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null
+let mockRoutes: import('@/types/capabilities').CapabilityRoute[] = []
 let mockApiBank: import('@/types/capabilities').FeatureAccountsEntry | null = null
 jest.mock('@/context/authContext', () => {
     const useAuth = () => ({
@@ -331,6 +334,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRails = []
     mockNextActions = []
+    mockRoutes = []
     mockIsKycApproved = false
     mockRestrictions = { banking: false, card: false }
     mockUser = null
@@ -2014,5 +2018,69 @@ describe('card refusal rows follow the feature report', () => {
             screen.queryByText("The Peanut card isn't available for residents of your country.")
         ).not.toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-24841: on the Pix provider's own step the BRL row opens the Pix setup, and a Pix key send keeps its drawer (Chip on ui#4073)
+describe("MoneySettings — the BRL row on the Pix provider's own step", () => {
+    const TERMS_ACTION: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
+    beforeEach(() => {
+        mockNextActions = [TERMS_ACTION]
+        mockRoutes = [
+            {
+                operation: 'deposit',
+                method: 'PIX_BR',
+                provider: 'avenia',
+                state: 'action_required',
+                action: 'accept-tos:avenia',
+                reason: { code: 'terms_required', userMessage: 'Accept the terms to continue.' },
+                candidates: [],
+            },
+        ]
+    })
+    const brlRow = () => within(screen.getByText('BRL').closest('.border') as HTMLElement)
+
+    it('opens the Pix setup for a user we have not verified', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
+        render()
+        expect(brlRow().getByText('Set up')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('opens the Pix setup during our verification outage too: it needs no check of ours', () => {
+        mockKycDegraded = true
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
+        render()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
+    })
+
+    it('opens the drawer for a verified user who can send to a Pix key; its bank rail opens the Pix setup', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'BR',
+                status: 'enabled',
+                operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+            },
+        ]
+        render()
+        expect(brlRow().getByText('Send to any Pix key')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('BRL'))
+        expect(mockPush).not.toHaveBeenCalled()
+        const drawer = within(screen.getByRole('dialog'))
+        expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+            'href',
+            '/withdraw/manteca?method=pix&country=brazil'
+        )
+        fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
+        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
     })
 })

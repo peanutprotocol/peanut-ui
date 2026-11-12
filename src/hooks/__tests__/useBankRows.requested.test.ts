@@ -177,6 +177,8 @@ describe('the BRL row reads the Pix route', () => {
         mockCapabilities.nextActions = [{ key: action, kind, purpose: 'unlock-avenia' } as NextAction]
         mockCapabilities.routes = [pixRoute({ state: 'action_required', action })]
         expect(brl()).toMatchObject({ chip: 'unlock', href: '/add-money/pix' })
+        // the link, never our unlock modal behind it
+        expect(brl().regionPath).toBeUndefined()
     })
 
     it('leaves the row on our verification where the route asks for it first', () => {

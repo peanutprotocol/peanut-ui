@@ -415,6 +415,11 @@ describe('closedBankRow', () => {
         expect(closedBankRow(row({ chip: 'active' }), true)).toBeNull()
         expect(closedBankRow(row({}), false)).toBeNull()
     })
+
+    // TASK-24841: the Pix setup runs the provider's own terms and check, so our outage does not hold it
+    it('lets a row with its own link through a verification outage', () => {
+        expect(closedBankRow(row({ chip: 'unlock', href: '/add-money/pix' }), true)).toBeNull()
+    })
 })
 
 /** QA-07: the search filters the rows above the countries too. */

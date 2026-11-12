@@ -347,6 +347,7 @@ export function closedBankRow(
             ? { kind: 'residence', corridor: row.corridor }
             : { kind: 'restricted-country' }
     }
-    if (isKycDegraded && row.chip !== 'active') return { kind: 'verification-down' }
+    // a row with its own link opens a flow that needs no verification of ours (the Pix setup runs the provider's)
+    if (isKycDegraded && row.chip !== 'active' && !row.href) return { kind: 'verification-down' }
     return null
 }

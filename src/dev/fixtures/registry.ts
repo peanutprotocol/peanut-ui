@@ -229,16 +229,21 @@ const BRAZIL_PAUSED_RESPONSES = {
 const AVENIA_TERMS_ACTION = 'accept-tos:avenia'
 
 /** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's terms still to accept. */
-const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
+const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
     (['deposit', 'withdraw'] as const).map((operation) => {
         const step =
             stage === 'enabled'
                 ? { state: 'ready' }
-                : {
-                      state: 'action_required',
-                      action: AVENIA_TERMS_ACTION,
-                      reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
-                  }
+                : stage === 'reviewing'
+                  ? {
+                        state: 'pending',
+                        reason: { code: 'provider_reviewing', userMessage: 'Avenia is reviewing your verification.' },
+                    }
+                  : {
+                        state: 'action_required',
+                        action: AVENIA_TERMS_ACTION,
+                        reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
+                    }
         return {
             operation,
             method: 'PIX_BR',
@@ -405,18 +410,18 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
 })
 const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
 
-/** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
 /**
  * TASK-24841: a resident of Brazil before our own identity check, whose plan adds money by Pix. With the
  * API's flag on, the Pix routes start with Avenia's terms, then its own check, never our verification.
  */
-const aveniaBeforeVerification = (user: Record<string, unknown> = {}) => {
+const aveniaBeforeVerification = (user: Record<string, unknown> = {}, capabilities: Record<string, unknown> = {}) => {
     const firstUse = aveniaResponses('first-use')
     return {
         ...firstUse,
         'GET /users/me': {
             ...firstUse['GET /users/me'],
             user: { ...firstUse['GET /users/me'].user, ...user },
+            capabilities: { ...firstUse['GET /users/me'].capabilities, ...capabilities },
             residence: {
                 verified: null,
                 declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null },
@@ -427,6 +432,7 @@ const aveniaBeforeVerification = (user: Record<string, unknown> = {}) => {
         },
     }
 }
+/** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
 const AVENIA_BR_USER = {
     user: { fullName: 'Ana Souza' },
     residence: {
@@ -4236,7 +4242,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-pix-plan-before-verification': {
         route: '/home',
         balance: '0',
-        about: 'A Pix plan before our own check (TASK-24841): Verify identity opens the Pix setup, where Avenia comes first.',
+        about: 'A Pix plan before our own check (TASK-24841): its Set up Pix row opens the Pix setup, where Avenia comes first.',
         responses: {
             ...aveniaBeforeVerification({
                 badges: [],
@@ -4244,6 +4250,18 @@ export const FIXTURES: Record<string, Fixture> = {
                 isActivated: false,
                 firstPaymentAt: null,
             }),
+            'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
+        },
+    },
+    'home-pix-plan-provider-reviewing': {
+        route: '/home',
+        balance: '0',
+        about: 'A Pix plan Avenia reviews, before our own check (TASK-24841): Home shows no ID step, Add money is next.',
+        responses: {
+            ...aveniaBeforeVerification(
+                { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                { nextActions: [], routes: aveniaRoutes('reviewing') }
+            ),
             'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
         },
     },

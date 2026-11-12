@@ -165,6 +165,13 @@ describe('PixSetup', () => {
             expect(mockPush).not.toHaveBeenCalled()
         })
 
+        it('names our payment partner where the route names no provider this build knows', () => {
+            mockNextActions = [hosted(SOON())]
+            renderSetup({ ...hostedStep(), provider: null })
+            expect(screen.getByText(en.pix.setup.hosted.bodyPartner)).toBeInTheDocument()
+            expect(screen.queryByText('Verify with .')).toBeNull()
+        })
+
         it('reads the capabilities again on Done', () => {
             mockNextActions = [hosted(SOON())]
             renderSetup(hostedStep())

@@ -1,14 +1,16 @@
 import {
     findPixRoute,
     pixPayBlock,
+    pixPlanSetUp,
     pixRefusalCopy,
+    pixRouteOwnSetUp,
     pixRouteGate,
     pixRouteReportEntry,
     pixScreen,
     withPixRoute,
 } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
-import type { CapabilityRoute } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction } from '@/types/capabilities'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { DEMO_USER } from '@/constants/demo-data'
 
@@ -187,5 +189,38 @@ describe('the BRL account from the Pix route', () => {
         })
         expect(pixRouteGate(route({ state: 'pending' })).kind).toBe('waiting-on-provider')
         expect(pixRouteGate(route({ state: 'refused' })).kind).toBe('blocked-rejection')
+    })
+})
+
+// TASK-24841: a plan that adds money by Pix sets up with the provider, and Home follows it
+describe("a Pix plan's set-up with the provider", () => {
+    const TERMS: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
+    const HOSTED: NextAction = { key: 'avenia-hosted', kind: 'hosted-identity', purpose: 'unlock-avenia' }
+    const step = (action: string) => route({ state: 'action_required', action })
+
+    it.each([
+        ['the terms', 'accept-tos:avenia'],
+        ["the provider's own check", 'avenia-hosted'],
+    ])('is the provider step on %s', (_name, action) => {
+        expect(pixRouteOwnSetUp(step(action), [TERMS, HOSTED])).toBe(true)
+        expect(pixPlanSetUp('brlBank', false, step(action), [TERMS, HOSTED])).toBe('provider-step')
+    })
+
+    it.each(['pending', 'ready'] as const)('is done once the route is %s', (state) => {
+        expect(pixPlanSetUp('brlBank', false, route({ state }), [])).toBe('done')
+    })
+
+    it('leaves our check to Home where the route asks for it, or names a step this build does not know', () => {
+        expect(pixRouteOwnSetUp(step('verify'), [TERMS])).toBe(false)
+        expect(pixPlanSetUp('brlBank', false, step('verify'), [TERMS])).toBeNull()
+        expect(pixPlanSetUp('brlBank', false, step('accept-tos:avenia'), [])).toBeNull()
+        expect(pixPlanSetUp('brlBank', false, route({ state: 'refused' }), [])).toBeNull()
+        expect(pixPlanSetUp('brlBank', false, undefined, [])).toBeNull()
+    })
+
+    it('is none of Home for another plan or a user our check verified', () => {
+        expect(pixPlanSetUp('bank', false, step('accept-tos:avenia'), [TERMS])).toBeNull()
+        expect(pixPlanSetUp(undefined, false, route({ state: 'pending' }), [])).toBeNull()
+        expect(pixPlanSetUp('brlBank', true, step('accept-tos:avenia'), [TERMS])).toBeNull()
     })
 })

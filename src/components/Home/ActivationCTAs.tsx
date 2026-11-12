@@ -31,8 +31,7 @@ import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdenti
 import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
-import { useCapabilities } from '@/hooks/useCapabilities'
-import { findPixRoute, pixRouteOwnSetUp } from '@/features/pix/pixRoute.utils'
+import { usePixPlanSetUp } from '@/features/pix/usePixPlanSetUp'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 
 interface ActivationCTAsProps {
@@ -131,11 +130,10 @@ export default function ActivationCTAs({
     const opensPaperworkVerification = usePaperworkVerificationStart()
     const restrictions = useResidenceRestrictions()
     // A plan that adds money by Pix, whose route starts with the provider's own set-up (its terms, then its
-    // own identity check): the Verify row opens the Pix setup, never our verification (TASK-24841)
-    const { capabilities, nextActions } = useCapabilities()
-    const verifiesThroughPix =
-        user?.signupPreferences?.fundingChannel === 'brlBank' &&
-        pixRouteOwnSetUp(findPixRoute(capabilities.routes, 'deposit'), nextActions)
+    // own identity check): the Verify row is that step and opens the Pix setup, never our verification.
+    // It follows the signup plan, not the route alone: the ruling in `pixPlanSetUp` (TASK-24841).
+    const pixSetUp = usePixPlanSetUp()
+    const verifiesThroughPix = pixSetUp === 'provider-step'
     const startingRef = useRef(false)
     const startIdentityCheck = async () => {
         if (startingRef.current) return
@@ -297,6 +295,7 @@ export default function ActivationCTAs({
                     showWelcome={showWelcome}
                     onStartIdentityCheck={() => void startIdentityCheck()}
                     signupPaymentChannel={user?.signupPreferences?.paymentChannel}
+                    pixSetUp={pixSetUp}
                 />
                 <InitiateKycModal
                     cooldownActive={!!kycFlow.errorCooldown}

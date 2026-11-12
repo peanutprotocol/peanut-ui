@@ -310,10 +310,10 @@ PAGE_CAPTURES.push(
     // TASK-24841: a Pix plan before our own check: Verify identity opens the Pix setup, Avenia's terms first
     {
         id: 'p87-pix-plan-verify-opens-pix',
-        name: 'Home — Verify identity opens the Pix setup before our own check',
+        name: 'Home — Set up Pix opens the Pix setup before our own check',
         route: '/home',
         fixture: 'home-pix-plan-before-verification',
-        clicks: ['Verify identity'],
+        clicks: ['Set up Pix'],
         expectSelector: 'a[href="https://app.avenia.io/Avenia-TC.pdf"]',
     }
 )
