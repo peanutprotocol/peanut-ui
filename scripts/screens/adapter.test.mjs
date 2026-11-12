@@ -268,4 +268,3 @@ test('the passkey fixture reserves its claimed username before the API schema ca
     assert.equal(unrelated.networkRequests, 0)
     assert.match(unrelated.values[0].error, /Unmapped capture API/)
 })
-
