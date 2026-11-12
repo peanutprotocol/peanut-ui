@@ -18,8 +18,7 @@ export default function WelcomeHeadlineTitleBlock(props: ComponentProps<typeof S
             {WELCOME_HEADLINE_VARIANTS.map((arm) => (
                 <div
                     key={arm}
-                    className="col-start-1 row-start-1"
-                    style={{ visibility: variant === arm ? 'visible' : 'hidden' }}
+                    className={`col-start-1 row-start-1 ${variant === arm ? 'visible' : 'invisible'}`}
                     aria-hidden={variant !== arm}
                 >
                     <SetupTitleBlock {...props} {...copy(arm)} />
