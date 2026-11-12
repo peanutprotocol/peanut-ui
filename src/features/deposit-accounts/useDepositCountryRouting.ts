@@ -9,7 +9,7 @@ import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { offerPushPrompt } from '@/hooks/useNotifications'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
-import posthog from 'posthog-js'
+import { trackAddMoney } from '@/features/add-money/analytics'
 import { DEPOSIT_ACCOUNT_SCREENS, DEPOSIT_CORRIDORS } from './params'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from './types'
 import { useDepositAccountsEnabled } from './useDepositAccountsEnabled'
@@ -76,14 +76,7 @@ export function useDepositCountryRouting({
 
     /** false when the country opened in place, on the account screens over the list */
     const openCountry = (country: CountryData): boolean => {
-        try {
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
-                method_type: 'bank',
-                country: country.path,
-            })
-        } catch {
-            // Analytics must not interrupt navigation.
-        }
+        trackAddMoney(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, { method_type: 'bank', country: country.path })
         void offerPushPrompt(PUSH_PROMPT_TRIGGERS.DEPOSIT_INTENT)
 
         const routes = addMoneyRoutesForCountry(country, offeredCorridors, depositAccountsEnabled)

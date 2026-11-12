@@ -4,6 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { applyDepositPreviewGate } from '@/features/deposit-accounts/depositGate'
 import {
+    hasCompleteDepositInstructions,
     DEPOSIT_RAIL_ORDER,
     DEPOSIT_RAILS,
     corridorRecord,
@@ -29,12 +30,15 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const query = useQuery({
         queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
         queryFn: fetchDepositAccounts,
-        enabled: !!userId && readAccounts,
+        enabled: !!userId && readAccounts && standingEnabled,
+        staleTime: 5 * 60 * 1000,
     })
     const accountGates = corridorRecord<GateState>((corridor) => {
         const rail = DEPOSIT_RAILS[corridor]
         const railId = railIdFor(corridor)
-        const cause = query.data?.unavailable?.find((entry) => entry.railId === railId)?.cause
+        const cause = (standingEnabled && readAccounts ? query.data : undefined)?.unavailable?.find(
+            (entry) => entry.railId === railId
+        )?.cause
         const gate = applyDepositPreviewGate(gateFor('deposit', { railId }), cause)
         if (gate.kind !== 'ready') return gate
         const report = capabilities.features?.[rail.provider === 'manteca' ? 'local' : 'bank']?.accounts[rail.currency]
@@ -50,23 +54,13 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         const report = capabilities.features?.[rail.provider === 'manteca' ? 'local' : 'bank']?.accounts[rail.currency]
         return report?.state === 'on' ? gate : { kind: 'needs-enrollment' }
     })
-    const accounts = readAccounts && !query.isError ? (query.data?.accounts ?? []) : []
+    const accounts = readAccounts && standingEnabled && !query.isError ? (query.data?.accounts ?? []) : []
     const activeAccounts = accounts.flatMap((account) => {
         const corridor = corridorFromRailId(account.railId)
-        const instructions = account.instructions
-        const complete =
-            corridor === 'SEPA_EU'
-                ? !!instructions?.iban
-                : corridor === 'FASTER_PAYMENTS_GB'
-                  ? !!instructions?.accountNumber && !!instructions?.sortCode
-                  : corridor === 'ACH_US'
-                    ? !!instructions?.accountNumber && !!instructions?.routingNumber
-                    : corridor === 'SPEI_MX'
-                      ? !!instructions?.clabe
-                      : corridor === 'BANK_TRANSFER_CO'
-                        ? !!instructions?.breBKey && !!instructions?.depositMessage
-                        : false
-        return corridor && accountGates[corridor].kind === 'ready' && account.status === 'active' && complete
+        return corridor &&
+            accountGates[corridor].kind === 'ready' &&
+            account.status === 'active' &&
+            hasCompleteDepositInstructions(corridor, account.instructions)
             ? [DEPOSIT_RAILS[corridor].currency]
             : []
     })
@@ -82,7 +76,7 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         readyTopUps,
         firstPaymentAt: user?.user?.firstPaymentAt,
     })
-    const isLoading = !userId || capabilitiesLoading || (readAccounts && query.isLoading)
+    const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {
         ...resolved,
         isLoading,
@@ -90,6 +84,6 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         brazilPaused,
         standingEnabled,
         topUpGates,
-        entry: isLoading || (readAccounts && query.isError) ? ('picker' as const) : resolved.entry,
+        entry: isLoading || (readAccounts && standingEnabled && query.isError) ? ('picker' as const) : resolved.entry,
     }
 }

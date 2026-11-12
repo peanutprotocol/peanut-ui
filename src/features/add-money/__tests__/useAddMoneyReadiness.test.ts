@@ -7,6 +7,7 @@ const mockQuery = jest.fn()
 let mockReport: FeatureReport | undefined
 let mockUserId: string | undefined
 let mockOneShot: boolean
+let mockStandingEnabled: boolean
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -19,10 +20,13 @@ jest.mock('@/hooks/useCapabilities', () => ({
 }))
 jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => ['PT'] }))
-jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({ useDepositAccountsEnabled: () => true }))
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => mockStandingEnabled,
+}))
 jest.mock('@tanstack/react-query', () => ({ useQuery: (...args: unknown[]) => mockQuery(...args) }))
 
 beforeEach(() => {
+    mockStandingEnabled = true
     mockUserId = 'current-owner'
     mockOneShot = false
     mockReport = undefined
@@ -135,4 +139,21 @@ it('keeps a one-shot currency out of the drawer until its exact feature is on', 
     rerender()
     expect(result.current.entry).toBe('drawer')
     expect(result.current.ready.transfer).toEqual(['USD'])
+})
+
+it('does not read or use cached standing accounts when disabled', () => {
+    mockStandingEnabled = false
+    mockGateFor.mockReturnValue({ kind: 'ready' })
+    mockQuery.mockReturnValue({
+        data: {
+            accounts: [{ railId: 'bridge.sepa_eu', status: 'active', instructions: { iban: 'PT123' } }],
+            unavailable: [],
+        },
+        isLoading: true,
+        isError: false,
+    })
+    const { result } = renderHook(() => useAddMoneyReadiness(true))
+    expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({ enabled: false, staleTime: 300000 }))
+    expect(result.current.ready.account).toEqual([])
+    expect(result.current.isLoading).toBe(false)
 })

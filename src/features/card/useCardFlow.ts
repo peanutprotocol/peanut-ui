@@ -210,6 +210,7 @@ export function useCardFlow() {
         if (sameIdentity(issuanceIdentityRef.current, { userId, connectedAddress })) return
         issuanceIdentityRef.current = { userId, connectedAddress }
         setIssuanceReadError(false)
+        setIssuanceStillCreating(false)
         setIssuanceExpired(false)
         setApplyError(null)
         setPendingApplication(null)
@@ -219,6 +220,7 @@ export function useCardFlow() {
     }, [userId, connectedAddress])
     const [issuanceExpired, setIssuanceExpired] = useState(false)
     const [issuanceReadError, setIssuanceReadError] = useState(false)
+    const [issuanceStillCreating, setIssuanceStillCreating] = useState(false)
     const issuanceDeadlineRef = useRef<number | null>(null)
     const awaitingIssuanceRef = useRef(false)
     const issuanceOwnerRef = useRef<{ userId: string | undefined; connectedAddress: string | undefined } | null>(null)
@@ -538,6 +540,7 @@ export function useCardFlow() {
                 setPendingApplication('pending')
                 setIssuanceExpired(false)
                 setIssuanceReadError(false)
+                setIssuanceStillCreating(false)
                 issuanceDeadlineRef.current = null
             }
             invalidateOverview()
@@ -608,7 +611,14 @@ export function useCardFlow() {
     }, [])
 
     useEffect(() => {
-        if (state !== 'creating-card' || overviewError || issuanceReadError || !refreshIssuanceRef.current) return
+        if (
+            state !== 'creating-card' ||
+            overviewError ||
+            issuanceReadError ||
+            issuanceStillCreating ||
+            !refreshIssuanceRef.current
+        )
+            return
         const deadline = issuanceDeadlineRef.current ?? Date.now() + CARD_ISSUANCE_WAIT_MS
         issuanceDeadlineRef.current = deadline
         if (Date.now() >= deadline) {
@@ -645,7 +655,7 @@ export function useCardFlow() {
                         ? (query.data as typeof overview)
                         : undefined
                 if (busy || !current) {
-                    setIssuanceReadError(true)
+                    setIssuanceStillCreating(true)
                 } else {
                     finishIssuanceWait(current)
                 }
@@ -657,7 +667,16 @@ export function useCardFlow() {
             clearInterval(timer)
             clearTimeout(timeout)
         }
-    }, [state, userId, connectedAddress, overviewError, issuanceReadError, finishIssuanceWait, queryClient])
+    }, [
+        state,
+        userId,
+        connectedAddress,
+        overviewError,
+        issuanceReadError,
+        issuanceStillCreating,
+        finishIssuanceWait,
+        queryClient,
+    ])
 
     const retryIssuance = useCallback(async () => {
         const owner = issuanceOwnerRef.current
@@ -668,6 +687,7 @@ export function useCardFlow() {
             finishIssuanceWait(result.data)
         }
         setIssuanceReadError(false)
+        setIssuanceStillCreating(false)
     }, [finishIssuanceWait])
 
     // The user picked their residence country on the confirmation screen.
@@ -1088,6 +1108,7 @@ export function useCardFlow() {
         refetchCardInfo,
         refetchOverview,
         retryIssuance,
+        issuanceStillCreating: issuanceStillCreating && ownsIssuance && state === 'creating-card',
         issuanceReadError: issuanceReadError && ownsIssuance && state === 'creating-card',
         overview,
         overviewError,

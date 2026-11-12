@@ -270,7 +270,8 @@ describe('a provider-backed pending application reconciles card issuance', () =>
         await advance(2_100)
         expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 1)
         await advance(10_100)
-        expect(result.current.issuanceReadError).toBe(true)
+        expect(result.current.issuanceReadError).toBe(false)
+        expect(result.current.issuanceStillCreating).toBe(true)
         expect(result.current.applyError).not.toBe('page.issueFailed')
         expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 1)
         await act(async () => {

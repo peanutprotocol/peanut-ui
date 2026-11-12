@@ -50,8 +50,8 @@ describe('CONCEPT_ICONS', () => {
     })
 
     // QA-32: the Send picker drew crypto with the card glyph
-    test('crypto uses the shared yellow coins icon', () => {
-        expect(CONCEPT_ICONS.crypto).toEqual({ icon: 'coins', color: 'yellow' })
+    test('crypto uses the shared blue coins icon', () => {
+        expect(CONCEPT_ICONS.crypto).toEqual({ icon: 'coins', color: 'blue' })
     })
 
     test('crypto, bank and card are three different glyphs', () => {

@@ -14,8 +14,8 @@ import { type IconBubbleColor } from './IconBubble'
  * concepts: they name one country, network or brand and keep their own image
  * in the same leading slot.
  *
- * Blue is the usual method color and gray is inactive. Yellow marks crypto
- * and Peanut's own concepts: the Peanut user, friends, the card, rewards. QR pay is pink,
+ * Blue is the usual method color and gray is inactive. Yellow marks
+ * Peanut's own concepts: the Peanut user, friends, the card, rewards. QR pay is pink,
  * the brand fill: it is the one primary action the bottom nav's QR button
  * draws in `action-primary`, the same pink (hugo, 2026-09-25).
  *
@@ -27,7 +27,7 @@ export const CONCEPT_ICONS = {
     bankAccount: { icon: 'bank', color: 'green' },
     cash: { icon: 'currency', color: 'blue' },
     balance: { icon: 'dollar', color: 'yellow' },
-    crypto: { icon: 'coins', color: 'yellow' },
+    crypto: { icon: 'coins', color: 'blue' },
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
     qrPay: { icon: 'qr-code', color: 'brand' },

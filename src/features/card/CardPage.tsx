@@ -50,6 +50,7 @@ export const CardPage: FC = () => {
         refetchOverview,
         retryIssuance,
         issuanceReadError,
+        issuanceStillCreating,
         overview,
         overviewError,
         residenceAddressStep,
@@ -149,6 +150,20 @@ export const CardPage: FC = () => {
                             variant="primary"
                             shadowSize="4"
                         >
+                            {tCommon('retry')}
+                        </Button>
+                    </CenteredStatusCard>
+                </div>
+            </PageContainer>
+        )
+    }
+
+    if (issuanceStillCreating) {
+        return (
+            <PageContainer>
+                <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4">
+                    <CenteredStatusCard title={t('status.stillCreatingTitle')}>
+                        <Button onClick={() => void retryIssuance()} variant="primary" shadowSize="4">
                             {tCommon('retry')}
                         </Button>
                     </CenteredStatusCard>
