@@ -1,4 +1,5 @@
 import posthog from 'posthog-js'
+import { markSignupDraftInviteAccepted } from '@/features/setup/signup-draft'
 import { captureException } from '@/utils/sentry-lazy'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
@@ -122,6 +123,7 @@ async function settlePendingInviteAttributionOnce(
         }
 
         if (result.success && result.onboardingResolved) {
+            markSignupDraftInviteAccepted(userId)
             posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
                 invite_code: inviteCode,
                 invite_type: inviteType,

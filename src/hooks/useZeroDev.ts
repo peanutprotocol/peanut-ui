@@ -53,6 +53,8 @@ import {
     signupAnalyticsState,
 } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { getUsernameHoldToken, releaseUsernameReservation } from '@/features/setup/username-reservation'
+import { bindSignupDraft, discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { AccountType } from '@/interfaces/interfaces'
 
 // types
@@ -135,6 +137,7 @@ export const useZeroDev = () => {
                 await restoreDeferredContext()
             }
             const signupAttribution = await ensureSignupAttributionForRegistration()
+            const usernameHold = await getUsernameHoldToken()
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
             // Same TASK-21782 guard as login: native shim gate + 60s bound —
@@ -151,6 +154,7 @@ export const useZeroDev = () => {
                         passkeyServerHeaders: {
                             'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
                             'x-signup-analytics-state': signupAnalyticsState(),
+                            'x-username-hold': usernameHold,
                         },
                         rpID: rpId,
                     })
@@ -169,6 +173,7 @@ export const useZeroDev = () => {
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
+            await bindSignupDraft(registeredUser.user.userId)
             // Arm delivery only after hydration supplies the authoritative
             // registrant. An unbound marker could be consumed by a later login.
             if (signupAttribution) await markSignupAttributionPending(registeredUser.user.userId)
@@ -183,7 +188,7 @@ export const useZeroDev = () => {
             // Fail-open: a referral never blocks open signup. The shared
             // authenticated recovery path keeps the inviter until the server
             // confirms its immutable reward edge.
-            await settlePendingInviteAttribution(registeredUser.user.userId, 'registration')
+            void settlePendingInviteAttribution(registeredUser.user.userId, 'registration')
 
             // Campaign acquisition is independent from invite attribution. It
             // runs after authentication whether or not an invite was present,
@@ -306,6 +311,9 @@ export const useZeroDev = () => {
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
             const loggedInUser = await hydrateLoginSession()
+            if (readSignupDraft()?.userId === loggedInUser.user.userId) await bindSignupDraft(loggedInUser.user.userId)
+            else discardSignupDraft()
+            void releaseUsernameReservation()
             updateUserPreferences(loggedInUser.user.userId, { webAuthnKey })
             setWebAuthnKey(webAuthnKey)
         } catch (e) {

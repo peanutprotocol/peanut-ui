@@ -54,6 +54,7 @@ import { resumeSignupGeo } from '@/services/signup-geo'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
+import { flushPendingSignupAnswers } from '@/features/setup/saveSignupAnswers'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { clearAccountQueries } from '@/utils/account-query-cache'
 import { flushLedgerSync } from '@/features/attention/ledgerSync'
@@ -213,6 +214,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const userId = user?.user.userId
         if (!userId) return
+        void flushPendingSignupAnswers(userId)
 
         let cancelled = false
         void settlePendingInviteAttribution(userId).then(async (outcome) => {

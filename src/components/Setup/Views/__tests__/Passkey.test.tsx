@@ -1,0 +1,133 @@
+/** @jest-environment jsdom */
+import { act, fireEvent, screen } from '@testing-library/react'
+import posthog from 'posthog-js'
+import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
+import PasskeyStep from '../Passkey'
+
+const mockSetScreenId = jest.fn()
+const mockReserveUsername = jest.fn()
+const mockClaim = jest.fn(async () => {})
+const mockPasskey = {
+    claim: mockClaim,
+    isClaiming: false,
+    preflightWarning: null as string | null,
+    inlineError: null as string | null,
+    usernameTaken: false,
+    logIn: jest.fn(),
+    isLoggingIn: false,
+    helpErrorName: null as string | null,
+    isHelpOpen: false,
+    closeHelp: jest.fn(),
+    retryFromHelp: jest.fn(),
+    deviceType: 'web',
+}
+const mockUseSignupPasskey = jest.fn((_username: string) => mockPasskey)
+
+jest.mock('@/hooks/useSetupFlow', () => ({
+    useSetupFlow: () => ({ isLoading: false, setScreenId: mockSetScreenId }),
+}))
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useSetupFlowContext: () => ({ username: 'newuser' }),
+    useOptionalSetupFlow: () => null,
+}))
+jest.mock('@/features/setup/useSignupPasskey', () => ({
+    useSignupPasskey: (username: string) => mockUseSignupPasskey(username),
+}))
+jest.mock('@/features/setup/username-reservation', () => ({
+    reserveUsername: (username: string) => mockReserveUsername(username),
+}))
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+
+const renderPasskey = () => renderWithIntl(onSignupScreen('passkey', <PasskeyStep />))
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    Object.assign(mockPasskey, {
+        isClaiming: false,
+        preflightWarning: null,
+        inlineError: null,
+        usernameTaken: false,
+        isLoggingIn: false,
+        helpErrorName: null,
+        isHelpOpen: false,
+    })
+    mockReserveUsername.mockResolvedValue('reserved')
+})
+
+describe('Create passkey', () => {
+    it('opens the passkey ceremony directly and refreshes the reserved username on mount', () => {
+        renderPasskey()
+        expect(mockReserveUsername).toHaveBeenCalledWith('newuser')
+        expect(mockUseSignupPasskey).toHaveBeenLastCalledWith('newuser')
+        fireEvent.click(screen.getByRole('button', { name: 'Create passkey' }))
+        expect(mockClaim).toHaveBeenCalledTimes(1)
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['create_passkey:tap'])
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('stays disabled while passkey registration runs', () => {
+        mockPasskey.isClaiming = true
+        renderPasskey()
+        expect(screen.getByRole('button', { name: /Create passkey$/ })).toBeDisabled()
+    })
+
+    it('offers Log in when the username is already registered', () => {
+        mockPasskey.usernameTaken = true
+        renderPasskey()
+        expect(screen.getByText(/This username is already registered/)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows the passkey failure message on the step', () => {
+        mockPasskey.inlineError = 'Passkey verification wasn’t completed. Try again when ready.'
+        renderPasskey()
+        expect(screen.getByText('Passkey verification wasn’t completed. Try again when ready.')).toBeInTheDocument()
+    })
+})
+
+describe('Create passkey — control analytics', () => {
+    const controls = () => signupControls(posthog.capture as jest.Mock)
+
+    it('reports Log in for a taken username and the passkey help drawer actions', () => {
+        Object.assign(mockPasskey, { usernameTaken: true, helpErrorName: 'NotAllowedError', isHelpOpen: true })
+        renderPasskey()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
+        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+        fireEvent.click(screen.getByRole('button', { name: 'Log in', hidden: true }))
+        expect(controls()).toEqual([
+            'passkey_help_retry:tap',
+            'passkey_help_support:tap',
+            'passkey_help:dismiss',
+            'log_in:tap',
+        ])
+        expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows an unsupported passkey provider inline, without a drawer', () => {
+        Object.assign(mockPasskey, {
+            inlineError: 'The password manager on this phone saved a passkey that Peanut can’t verify.',
+        })
+        renderPasskey()
+        expect(screen.getByText(/saved a passkey that Peanut can’t verify/)).toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+})
+
+it('ignores an obsolete mount collision once passkey registration is running', async () => {
+    let resolve!: (value: string) => void
+    mockReserveUsername.mockReturnValue(
+        new Promise((done) => {
+            resolve = done
+        })
+    )
+    const view = renderPasskey()
+    mockPasskey.isClaiming = true
+    view.rerender(onSignupScreen('passkey', <PasskeyStep />))
+    await act(async () => resolve('taken'))
+    expect(mockSetScreenId).not.toHaveBeenCalled()
+})

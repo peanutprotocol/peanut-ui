@@ -31,6 +31,7 @@ import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
+import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
@@ -111,6 +112,9 @@ function SetupScreen({
     forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
+    username,
+    fundingChannel,
+    paymentChannel,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
@@ -118,6 +122,9 @@ function SetupScreen({
     forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
+    username?: string
+    fundingChannel?: SetupFundingChannel
+    paymentChannel?: SetupPaymentChannel
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -127,6 +134,9 @@ function SetupScreen({
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
                 nationalityCountry={nationalityCountry}
+                username={username}
+                fundingChannel={fundingChannel}
+                paymentChannel={paymentChannel}
             >
                 {children}
             </SetupScreenBody>
@@ -140,6 +150,9 @@ function SetupScreenBody({
     forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
+    username,
+    fundingChannel,
+    paymentChannel,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
@@ -147,16 +160,58 @@ function SetupScreenBody({
     forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
+    username?: string
+    fundingChannel?: SetupFundingChannel
+    paymentChannel?: SetupPaymentChannel
 }) {
-    const { setSteps, setResidenceCountry, setNationalityCountry } = useSetupFlowContext()
+    const {
+        setSteps,
+        residenceCountry: currentResidence,
+        setResidenceCountry,
+        nationalityCountry: currentNationality,
+        setNationalityCountry,
+        username: currentUsername,
+        setUsername,
+        fundingChannel: currentFunding,
+        setFundingChannel,
+        paymentChannel: currentPayment,
+        setPaymentChannel,
+    } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
         if (nationalityCountry) setNationalityCountry(nationalityCountry)
-    }, [residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry])
+        if (username) setUsername(username)
+        if (fundingChannel) setFundingChannel(fundingChannel)
+        if (paymentChannel) setPaymentChannel(paymentChannel)
+    }, [
+        residenceCountry,
+        setResidenceCountry,
+        nationalityCountry,
+        setNationalityCountry,
+        username,
+        setUsername,
+        fundingChannel,
+        setFundingChannel,
+        paymentChannel,
+        setPaymentChannel,
+        currentResidence,
+        currentNationality,
+        currentUsername,
+        currentFunding,
+        currentPayment,
+    ])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
-    if (!step) return null
+    if (
+        !step ||
+        (residenceCountry && currentResidence !== residenceCountry) ||
+        (nationalityCountry && currentNationality !== nationalityCountry) ||
+        (username && currentUsername !== username) ||
+        (fundingChannel && currentFunding !== fundingChannel) ||
+        (paymentChannel && currentPayment !== paymentChannel)
+    )
+        return null
     const View = step.component
     return (
         <SetupWrapper
@@ -585,6 +640,19 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <SetupScreen screenId="invite" />,
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
+    '06-c-passkey': {
+        ...SURFACE_META['06-c-passkey'],
+        render: () => (
+            <SetupScreen
+                screenId="passkey"
+                username="kimchi"
+                residenceCountry="PT"
+                nationalityCountry="PT"
+                fundingChannel="bank"
+                paymentChannel="card"
+            />
+        ),
+    },
     '02-b-advantage-card': {
         ...SURFACE_META['02-b-advantage-card'],
         render: () => <SetupScreen screenId="advantage-card" />,

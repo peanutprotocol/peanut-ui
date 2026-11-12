@@ -510,6 +510,9 @@
                 "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
                 "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
             },
+            "passkey": {
+                "title": "Creá tu passkey"
+            },
             "advantage-payments": {
                 "title": "Pagale a cualquiera con un toque.",
                 "description": "Enviá dólares a un usuario de Peanut o compartí un enlace de pago."
@@ -623,6 +626,14 @@
             "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad."
         },
         "passkey": {
+            "points": {
+                "unlock": {
+                    "description": "Desbloqueá con lo que ya usás en tu teléfono."
+                },
+                "control": {
+                    "title": "Solo vos tenés el control"
+                }
+            },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Intentalo de nuevo cuando quieras.",
             "tookTooLong": "Esto está tardando más de lo esperado. Intentalo de nuevo.",

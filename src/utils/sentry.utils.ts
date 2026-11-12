@@ -463,6 +463,7 @@ const sanitizeHeaders = (headers: RequestInit['headers']): Record<string, unknow
         'cookie',
         'set-cookie',
         'x-auth-token',
+        'x-username-hold',
         'api-key',
         'x-api-key',
         'apikey',

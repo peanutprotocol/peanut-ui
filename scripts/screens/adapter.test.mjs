@@ -257,3 +257,15 @@ test('fixture overrides and demo-api answers win over OpenAPI examples', () => {
     const failing = probeWithSpec('withdraw-crypto-eth-no-price', [['GET', '/tokens/price']], EXAMPLE_SPEC)
     assert.deepEqual(failing.values, [{ status: 500, body: { error: 'Synthetic failure' } }])
 })
+
+test('the passkey fixture reserves its claimed username before the API schema catches up', () => {
+    const result = probeWithSpec('setup-passkey', [['POST', '/users/username/reservations']], {})
+    assert.equal(result.networkRequests, 0)
+    assert.deepEqual(result.values, [
+        { status: 200, body: { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' } },
+    ])
+    const unrelated = probeWithSpec('home', [['POST', '/users/username/reservations']], {})
+    assert.equal(unrelated.networkRequests, 0)
+    assert.match(unrelated.values[0].error, /Unmapped capture API/)
+})
+

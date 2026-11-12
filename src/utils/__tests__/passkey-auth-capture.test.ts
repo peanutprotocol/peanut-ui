@@ -12,10 +12,16 @@ import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
 jest.mock('@/utils/sentry-lazy', () => ({ withScope: jest.fn(), captureMessage: jest.fn(), addBreadcrumb: jest.fn() }))
+let mockActiveCeremonyId = 7
 jest.mock('@/utils/passkeyCeremony.utils', () => ({
-    currentCeremonyId: () => 7,
+    currentCeremonyId: () => mockActiveCeremonyId,
     stashCeremonyVerifyToken: jest.fn(),
     stashCeremonyStepUpToken: jest.fn(),
+}))
+
+const mockRecordSignupRegistration = jest.fn(async (_userId: string, _username: string) => {})
+jest.mock('@/features/setup/signup-draft', () => ({
+    recordSignupRegistration: (userId: string, username: string) => mockRecordSignupRegistration(userId, username),
 }))
 
 const mockIsCapacitor = isCapacitor as jest.Mock
@@ -45,6 +51,7 @@ describe('installPasskeyVerifyCapture', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockActiveCeremonyId = 7
         mockIsCapacitor.mockReturnValue(false)
         mockUnderlyingFetch.mockResolvedValue(jsonResponse(verifyBody))
     })
@@ -195,4 +202,40 @@ it.each([
     } finally {
         clock.mockRestore()
     }
+})
+
+it('records only a verified registration receipt before releasing the response to the SDK', async () => {
+    mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ verified: true, token: 'jwt' }))
+    await window.fetch('/passkeys/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ userId: btoa('new-user'), username: 'kimchi.peanut.wallet' }),
+    })
+    expect(mockRecordSignupRegistration).toHaveBeenCalledWith('new-user', 'kimchi.peanut.wallet')
+    mockRecordSignupRegistration.mockClear()
+    mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ verified: false }))
+    await window.fetch('/passkeys/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ userId: btoa('other'), username: 'kimchi.peanut.wallet' }),
+    })
+    expect(mockRecordSignupRegistration).not.toHaveBeenCalled()
+})
+
+it('retains the receipt for a late verified registration without changing proof ceremony ownership', async () => {
+    let resolve!: (response: Response) => void
+    mockUnderlyingFetch.mockImplementationOnce(
+        () =>
+            new Promise((done) => {
+                resolve = done
+            })
+    )
+    mockActiveCeremonyId = 7
+    const pending = window.fetch('/passkeys/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ userId: btoa('late-user'), username: 'kimchi.peanut.wallet' }),
+    })
+    mockActiveCeremonyId = 8
+    resolve(jsonResponse({ verified: true, token: 'late-jwt' }))
+    await pending
+    expect(mockRecordSignupRegistration).toHaveBeenCalledWith('late-user', 'kimchi.peanut.wallet')
+    expect(stashCeremonyVerifyToken).toHaveBeenCalledWith('late-jwt', 7)
 })

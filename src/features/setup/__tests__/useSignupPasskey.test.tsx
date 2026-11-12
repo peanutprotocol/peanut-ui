@@ -15,6 +15,12 @@ const mockSupport = jest.fn(async () => ({ isSupported: true }) as { isSupported
 let mockAddress: string | undefined
 let mockIsRegistering = false
 const mockSetNoBackLock = jest.fn()
+const mockSetScreenId = jest.fn()
+const mockSetRegistrationInProgress = jest.fn()
+const mockSetInviterAccepted = jest.fn()
+const mockBindSignupDraft = jest.fn(async (..._args: unknown[]) => {})
+const mockSaveSignupDraft = jest.fn()
+const mockFetchUser = jest.fn(async () => null)
 const mockNext = jest.fn()
 let mockHandleNext = mockNext
 let mockDeviceType = 'android'
@@ -27,8 +33,8 @@ jest.mock('@/hooks/useZeroDev', () => ({
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({
-    postRegistrationScreen: () => 'residence',
-    useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext }),
+    postRegistrationScreen: () => 'notification-email',
+    useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext, setScreenId: mockSetScreenId }),
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: mockDeviceType }) }))
 jest.mock('@/utils/capacitor', () => ({
@@ -36,8 +42,30 @@ jest.mock('@/utils/capacitor', () => ({
     isIOSNativeBridge: () => mockIOSNativeBridge,
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock, steps: [] }),
+    useSetupFlowContext: () => ({
+        setNoBackLockScreenId: mockSetNoBackLock,
+        registrationInProgress: false,
+        setRegistrationInProgress: mockSetRegistrationInProgress,
+        setInviterAccepted: mockSetInviterAccepted,
+        steps: [],
+        inviteSelection: '',
+        residenceCountry: 'BR',
+        nationalityCountry: '',
+        fundingChannel: 'bank',
+        paymentChannel: 'card',
+        notificationChoices: null,
+        inviterAccepted: false,
+        sellScreensCountry: 'BR',
+    }),
 }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'new-user', username: 'kimi' } }, fetchUser: mockFetchUser }),
+}))
+jest.mock('@/features/setup/signup-draft', () => ({
+    bindSignupDraft: (...args: unknown[]) => mockBindSignupDraft(...args),
+    saveSignupDraft: (...args: unknown[]) => mockSaveSignupDraft(...args),
+}))
+jest.mock('@/services/pending-invite-attribution', () => ({ settlePendingInviteAttribution: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
@@ -45,9 +73,9 @@ jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ latestCeremony: () => 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-/** The username step's use of the hook, without the form: Claim, the messages, Log in, the help drawer state. */
-function Harness() {
-    const passkey = useSignupPasskey('kim')
+/** The passkey screen's ceremony, recovery, and completion state. */
+function Harness({ username = 'kimi' }: { username?: string }) {
+    const passkey = useSignupPasskey(username)
     return (
         <div>
             <button disabled={passkey.isClaiming} onClick={() => void passkey.claim()}>
@@ -80,6 +108,18 @@ beforeEach(() => {
 })
 
 describe('useSignupPasskey — one tap, one ceremony', () => {
+    it.each(['', 'kim', '1234', 'waytoolongname', 'has.dot'])(
+        'returns invalid draft username %s to Claim without a ceremony',
+        async (username) => {
+            renderWithIntl(<Harness username={username} />)
+            claim()
+            await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('signup'))
+            expect(mockHandleRegister).not.toHaveBeenCalled()
+            expect(mockApiFetch).not.toHaveBeenCalled()
+            expect(mockBindSignupDraft).not.toHaveBeenCalled()
+        }
+    )
+
     /*
      * PEANUT-UI-T09: `isRegistering` only goes true once handleRegister runs,
      * and two awaits precede it (support re-check + username lookup). Every
@@ -100,7 +140,7 @@ describe('useSignupPasskey — one tap, one ceremony', () => {
         claim()
         await waitFor(() => expect(screen.getByRole('button', { name: 'Claim' })).toBeDisabled())
         await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(1))
-        expect(mockHandleRegister).toHaveBeenCalledWith('kim')
+        expect(mockHandleRegister).toHaveBeenCalledWith('kimi')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, {
             device_type: 'android',
         })
@@ -114,7 +154,7 @@ describe('useSignupPasskey — one tap, one ceremony', () => {
 })
 
 describe('registration success', () => {
-    it('advances exactly once, to residence, and locks the way back when the address appears', async () => {
+    it('advances exactly once to notification-email, binds the draft, and locks the way back after registration', async () => {
         mockHandleRegister.mockResolvedValue(undefined)
         const view = renderWithIntl(<Harness />)
         claim()
@@ -123,7 +163,16 @@ describe('registration success', () => {
         mockAddress = '0x1234'
         view.rerender(<Harness />)
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+        expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
+        expect(mockBindSignupDraft).toHaveBeenCalledWith(
+            'new-user',
+            expect.objectContaining({
+                screenId: 'passkey',
+                answers: expect.objectContaining({ username: 'kimi', residenceCountry: 'BR' }),
+            })
+        )
+        expect(mockSetRegistrationInProgress).toHaveBeenCalledWith(true)
+        expect(mockSetRegistrationInProgress).toHaveBeenLastCalledWith(false)
         expect(mockSetNoBackLock.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, {
             device_type: 'android',
@@ -156,7 +205,7 @@ describe('registration success', () => {
     })
 })
 
-describe('failures keep the user on the username step', () => {
+describe('passkey failures and collision recovery', () => {
     it('shows the preflight warning on mount', async () => {
         mockSupport.mockImplementation(async () => ({ isSupported: false, warning: 'Passkeys are off here.' }))
         renderWithIntl(<Harness />)
@@ -203,6 +252,7 @@ describe('failures keep the user on the username step', () => {
         mockHandleRegister.mockRejectedValue(
             Object.assign(new Error('Username already taken'), { name: 'UsernameTaken' })
         )
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
         renderWithIntl(<Harness />)
         claim()
         fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
@@ -212,6 +262,17 @@ describe('failures keep the user on the username step', () => {
         expect(failedEvents()).toEqual([
             [ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, expect.objectContaining({ error_code: 'USERNAME_TAKEN' })],
         ])
+    })
+
+    it('returns to Claim when registration reports a collision but the public lookup is unregistered', async () => {
+        mockHandleRegister.mockRejectedValue(Object.assign(new Error('Username reserved'), { name: 'UsernameTaken' }))
+        renderWithIntl(<Harness />)
+        claim()
+        await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('signup'))
+        expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument()
+        expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        expect(mockSetNoBackLock).not.toHaveBeenCalled()
+        expect(mockBindSignupDraft).not.toHaveBeenCalled()
     })
 
     it('shows a curated message when Log in itself fails', async () => {
@@ -232,6 +293,7 @@ describe('failures keep the user on the username step', () => {
         mockLogin.mockRejectedValueOnce(
             Object.assign(new Error('curated'), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' })
         )
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
         renderWithIntl(<Harness />)
         claim()
         fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
@@ -604,4 +666,40 @@ it('asks for a short wait when the previous passkey request is still closing', a
         'The last passkey prompt is still closing. Wait a few seconds and try again.'
     )
     expect(mockNext).not.toHaveBeenCalled()
+})
+
+it('protects navigation before asynchronous preflight settles and releases it on refusal', async () => {
+    let resolve!: (value: { isSupported: boolean; warning?: string }) => void
+    mockSupport.mockReturnValue(
+        new Promise((done) => {
+            resolve = done
+        })
+    )
+    renderWithIntl(<Harness />)
+    claim()
+    expect(mockSetRegistrationInProgress).toHaveBeenCalledWith(true)
+    resolve({ isSupported: false })
+    await waitFor(() => expect(mockSetRegistrationInProgress).toHaveBeenLastCalledWith(false))
+    expect(mockHandleRegister).not.toHaveBeenCalled()
+})
+
+it('does not call an unknown collision lookup an available username', async () => {
+    mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValue({ status: 503 })
+    mockHandleRegister.mockRejectedValue(Object.assign(new Error('taken'), { name: 'UsernameTaken' }))
+    renderWithIntl(<Harness />)
+    claim()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach Peanut’s servers')
+    expect(mockSetScreenId).not.toHaveBeenCalled()
+    expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+})
+
+it('does not repeat an uncertain registration while the reconciliation lookup is unavailable', async () => {
+    mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValue({ status: 503 })
+    mockHandleRegister.mockRejectedValue(new Error('Session hydration failed'))
+    renderWithIntl(<Harness />)
+    claim()
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach Peanut’s servers')
+    expect(mockHandleRegister).toHaveBeenCalledTimes(1)
 })

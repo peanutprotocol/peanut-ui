@@ -911,6 +911,10 @@
                 "title": "Garantir usuário",
                 "description": "As pessoas encontram e pagam você pelo seu usuário."
             },
+            "passkey": {
+                "title": "Crie sua passkey",
+                "description": "É como você entra na conta e aprova pagamentos. Sem senha para lembrar."
+            },
             "advantage-payments": {
                 "title": "Pague qualquer pessoa com um toque.",
                 "description": "Envie dólares para um usuário do Peanut ou compartilhe um link de pagamento."
@@ -1103,6 +1107,21 @@
             "continue": "Continuar"
         },
         "passkey": {
+            "create": "Criar passkey",
+            "points": {
+                "unlock": {
+                    "title": "Seu rosto ou sua digital",
+                    "description": "Desbloqueie com o que você já usa no celular."
+                },
+                "control": {
+                    "title": "Só você tem o controle",
+                    "description": "O Peanut nunca vê nem armazena sua passkey."
+                },
+                "backup": {
+                    "title": "Pronta para um novo celular",
+                    "description": "Salva na sua conta do Google ou da Apple."
+                }
+            },
             "notAvailable": "As passkeys ainda não estão disponíveis neste dispositivo. Tente de novo.",
             "cancelled": "A configuração da passkey foi cancelada. Tente de novo quando quiser.",
             "tookTooLong": "Isso está demorando mais do que deveria. Tente de novo.",

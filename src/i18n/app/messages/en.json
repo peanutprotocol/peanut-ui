@@ -911,6 +911,10 @@
                 "title": "Claim username",
                 "description": "People find and pay you by your username."
             },
+            "passkey": {
+                "title": "Create your passkey",
+                "description": "It's how you sign in and approve payments. No password to remember."
+            },
             "advantage-payments": {
                 "title": "Pay anyone in a tap.",
                 "description": "Send dollars to a Peanut username or share a payment link."
@@ -1103,6 +1107,21 @@
             "continue": "Continue"
         },
         "passkey": {
+            "create": "Create passkey",
+            "points": {
+                "unlock": {
+                    "title": "Your face or fingerprint",
+                    "description": "Unlock with what your phone already uses."
+                },
+                "control": {
+                    "title": "Only you control it",
+                    "description": "Peanut never sees or stores it."
+                },
+                "backup": {
+                    "title": "Ready on a new phone",
+                    "description": "Saved to your Google or Apple account."
+                }
+            },
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",
             "cancelled": "Passkey setup was cancelled. Please try again when ready.",
             "tookTooLong": "This is taking longer than it should. Please try again.",

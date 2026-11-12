@@ -911,6 +911,10 @@
                 "title": "Reclamar usuario",
                 "description": "Te encuentran y te pagan con tu usuario."
             },
+            "passkey": {
+                "title": "Crea tu passkey",
+                "description": "Te permite iniciar sesión y aprobar pagos. Sin contraseñas que recordar."
+            },
             "advantage-payments": {
                 "title": "Paga a quien quieras con un toque.",
                 "description": "Envía dólares a un usuario de Peanut o comparte un enlace de pago."
@@ -1103,6 +1107,21 @@
             "continue": "Continuar"
         },
         "passkey": {
+            "create": "Crear passkey",
+            "points": {
+                "unlock": {
+                    "title": "Tu cara o tu huella",
+                    "description": "Desbloquea con lo que ya usas en tu teléfono."
+                },
+                "control": {
+                    "title": "Solo tú tienes el control",
+                    "description": "Peanut nunca la ve ni la guarda."
+                },
+                "backup": {
+                    "title": "Lista en tu nuevo teléfono",
+                    "description": "Se guarda en tu cuenta de Google o Apple."
+                }
+            },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Inténtalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Inténtalo de nuevo cuando quieras.",
             "tookTooLong": "Esto está tardando más de lo esperado. Inténtalo de nuevo.",
