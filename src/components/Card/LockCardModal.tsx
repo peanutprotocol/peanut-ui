@@ -177,15 +177,18 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
     const bodyContent = (
         <>
             {showError && <Callout priority="error">{error}</Callout>}
-            {done && <CardReturnNotice action="lock" collateralReturn={done.collateralReturn} />}
             {done && (
-                <CardStopNotice
-                    key={done.attemptId}
-                    stop={done.stop}
-                    attemptId={done.attemptId}
-                    wallet={smartWalletAddress}
-                    unlock={done.unlock}
-                />
+                // the modal stacks its body with no gap, and two notices must not touch
+                <div className="flex w-full flex-col gap-2">
+                    <CardReturnNotice action="lock" collateralReturn={done.collateralReturn} />
+                    <CardStopNotice
+                        key={done.attemptId}
+                        stop={done.stop}
+                        attemptId={done.attemptId}
+                        wallet={smartWalletAddress}
+                        unlock={done.unlock}
+                    />
+                </div>
             )}
             {showSlide && (
                 <SlideToConfirm

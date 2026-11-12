@@ -233,15 +233,18 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
                     // The card is canceled; this says what stays in it and how far
                     // stopping wallet payments got.
                     <>
-                        <CardReturnNotice action="cancel" collateralReturn={stop?.collateralReturn} />
-                        {stop && (
-                            <CardStopNotice
-                                key={stop.attemptId}
-                                stop={stop.stop}
-                                attemptId={stop.attemptId}
-                                wallet={smartWalletAddress}
-                            />
-                        )}
+                        {/* the modal stacks its body with no gap, and two notices must not touch */}
+                        <div className="flex w-full flex-col gap-2">
+                            <CardReturnNotice action="cancel" collateralReturn={stop?.collateralReturn} />
+                            {stop && (
+                                <CardStopNotice
+                                    key={stop.attemptId}
+                                    stop={stop.stop}
+                                    attemptId={stop.attemptId}
+                                    wallet={smartWalletAddress}
+                                />
+                            )}
+                        </div>
                         {isFeedback && (
                             <Field label={t('cancel.feedbackLabel')} htmlFor="cancel-feedback">
                                 <textarea
