@@ -81,6 +81,147 @@ afterEach(() => {
     jest.restoreAllMocks()
 })
 
+describe('credential lookup excludes attempts that never invoked credentials', () => {
+    it.each([
+        ['create', 'registration'],
+        ['get', 'user_op'],
+    ] as const)('keeps failed options telemetry without returning a %s call for %s', async (kind, purpose) => {
+        const startedAt = Date.now()
+        const failure = Object.assign(new Error('options unavailable'), { name: 'PasskeyServerError' })
+        fetchMock.mockImplementationOnce(async () => {
+            await delay(4_321, undefined)
+            throw failure
+        })
+        const attempt = telemetry
+            .withCeremonyPurpose(purpose, () =>
+                guard(async () => {
+                    await window.fetch(`https://api.test/passkeys/${kind === 'create' ? 'register' : 'login'}/options`)
+                    return navigator.credentials[kind]({})
+                })
+            )
+            .catch((error) => error)
+        await jest.advanceTimersByTimeAsync(4_321)
+        await expect(attempt).resolves.toBe(failure)
+        expect(nativeGet).not.toHaveBeenCalled()
+        expect(events()).toEqual([
+            expect.objectContaining({ purpose, outcome: 'error', options_ms: 4_321, total_ms: 4_321 }),
+        ])
+        expect(events()[0]).not.toHaveProperty('timeout_phase')
+        expect(telemetry.latestCeremony(kind, purpose, startedAt)).toBeUndefined()
+    })
+
+    it.each([
+        ['create', 'registration'],
+        ['get', 'user_op'],
+    ] as const)('keeps an options timeout without returning a %s call for %s', async (kind, purpose) => {
+        const startedAt = Date.now()
+        fetchMock.mockReturnValueOnce(new Promise(() => {}))
+        const attempt = telemetry
+            .withCeremonyPurpose(purpose, () =>
+                guard(async () => {
+                    await window.fetch(`https://api.test/passkeys/${kind === 'create' ? 'register' : 'login'}/options`)
+                    return navigator.credentials[kind]({})
+                })
+            )
+            .catch((error) => error)
+        await jest.advanceTimersByTimeAsync(60_000)
+        await expect(attempt).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+        expect(nativeGet).not.toHaveBeenCalled()
+        expect(events()).toEqual([
+            expect.objectContaining({
+                purpose,
+                outcome: 'error',
+                options_ms: 60_000,
+                total_ms: 60_000,
+                timeout_phase: 'options',
+            }),
+        ])
+        expect(telemetry.latestCeremony(kind, purpose, startedAt)).toBeUndefined()
+    })
+
+    it.each([
+        ['create', 'registration'],
+        ['get', 'user_op'],
+    ] as const)(
+        'finds an earlier actual %s behind a newer %s fallback within the since bound',
+        async (kind, purpose) => {
+            const startedAt = Date.now()
+            nativeGet.mockImplementationOnce(() => delay(37, { id: 'actual' }))
+            const actual = telemetry.withCeremonyPurpose(purpose, () => guard(() => navigator.credentials[kind]({})))
+            await jest.advanceTimersByTimeAsync(37)
+            await actual
+            const record = telemetry.latestCeremony(kind, purpose, startedAt)
+            expect(record).toMatchObject({ kind, purpose, durationMs: 37 })
+            await jest.advanceTimersByTimeAsync(1)
+            const retryStartedAt = Date.now()
+            await expect(
+                telemetry.withCeremonyPurpose(purpose, () =>
+                    guard(async () => {
+                        throw new Error('before credentials')
+                    })
+                )
+            ).rejects.toThrow('before credentials')
+            expect(events()).toHaveLength(2)
+            expect(nativeGet).toHaveBeenCalledTimes(1)
+            expect(telemetry.latestCeremony(kind, purpose, startedAt)).toEqual(record)
+            expect(telemetry.latestCeremony(kind, purpose, retryStartedAt)).toBeUndefined()
+            expect(telemetry.latestCeremony(kind === 'create' ? 'get' : 'create', purpose, startedAt)).toBeUndefined()
+            expect(telemetry.latestCeremony(kind, 'login', startedAt)).toBeUndefined()
+        }
+    )
+
+    it('preserves actual create sheet duration and refusal metadata after slow options', async () => {
+        const startedAt = Date.now()
+        const refusal = Object.assign(new Error('incompatible provider'), {
+            name: 'PasskeyProviderUnsupportedError',
+            code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+            challengeOffset: 41,
+            backupEligible: false,
+        })
+        fetchMock.mockImplementationOnce(() => delay(4_000, response({ challenge: 'AQID' })))
+        nativeGet.mockImplementationOnce(async () => {
+            await delay(275, undefined)
+            throw refusal
+        })
+        const attempt = telemetry
+            .withCeremonyPurpose('registration', () =>
+                guard(async () => {
+                    await window.fetch('https://api.test/passkeys/register/options')
+                    return navigator.credentials.create({})
+                })
+            )
+            .catch((error) => error)
+        await jest.advanceTimersByTimeAsync(4_275)
+        await expect(attempt).resolves.toBe(refusal)
+        expect(telemetry.latestCeremony('create', 'registration', startedAt)).toMatchObject({
+            kind: 'create',
+            durationMs: 275,
+            outcome: 'error',
+            errorName: 'PasskeyProviderUnsupportedError',
+            challengeOffset: 41,
+            backupEligible: false,
+        })
+        expect(events()).toEqual([
+            expect.objectContaining({ options_ms: 4_000, native_ms: 275, total_ms: 4_275, challenge_offset: 41 }),
+        ])
+    })
+
+    it('still returns an actual credential call that remains pending at the guard timeout', async () => {
+        const startedAt = Date.now()
+        nativeGet.mockReturnValueOnce(new Promise(() => {}))
+        const attempt = telemetry
+            .withCeremonyPurpose('registration', () => guard(() => navigator.credentials.create({})))
+            .catch((error) => error)
+        await jest.advanceTimersByTimeAsync(60_000)
+        await expect(attempt).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+        expect(nativeGet).toHaveBeenCalledTimes(1)
+        expect(events()).toEqual([
+            expect.objectContaining({ total_ms: 60_000, native_ms: null, timeout_phase: 'native' }),
+        ])
+        expect(telemetry.latestCeremony('create', 'registration', startedAt)).toMatchObject({ kind: 'create' })
+    })
+})
+
 it.each(['success', 'error'] as const)(
     'joins Android late %s to the timeout without another outcome',
     async (outcome) => {

@@ -42,6 +42,8 @@ export type CeremonyPurpose =
 export type CeremonyRecord = {
     seq: number
     kind: 'get' | 'create'
+    /** Attempt outcome recorded without invoking navigator.credentials. */
+    synthetic?: boolean
     /** Purpose stack joined innermost-last, e.g. `kernel_migration>user_op`. */
     purpose: string
     flow: string | null
@@ -317,6 +319,7 @@ export function beginCeremonyTiming(
                         ? {
                               seq: ++seq,
                               kind,
+                              synthetic: true,
                               purpose,
                               flow: flow?.name ?? null,
                               flowId: flow?.id ?? null,
@@ -689,8 +692,8 @@ async function trace<T>(
 /**
  * The newest ceremony of `kind` whose innermost purpose is `purpose` and that
  * started at or after `sinceMs`. The bound keeps a caller from reading an
- * earlier attempt: the log survives reloads, and a failure before the OS
- * prompt (prepare, paymaster, a ceremony timeout) records nothing.
+ * earlier attempt: the log survives reloads. Synthetic attempt outcomes
+ * recorded before a credential invocation are excluded.
  */
 export function latestCeremony(
     kind: 'get' | 'create',
@@ -700,7 +703,12 @@ export function latestCeremony(
     hydrate()
     for (let index = log.length - 1; index >= 0; index--) {
         const record = log[index]
-        if (record.kind === kind && record.startedAt >= sinceMs && record.purpose.split('>').pop() === purpose) {
+        if (
+            !record.synthetic &&
+            record.kind === kind &&
+            record.startedAt >= sinceMs &&
+            record.purpose.split('>').pop() === purpose
+        ) {
             return record
         }
     }

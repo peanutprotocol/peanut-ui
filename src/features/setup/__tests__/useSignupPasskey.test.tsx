@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { useSignupPasskey } from '../useSignupPasskey'
 
@@ -28,6 +28,7 @@ let mockIOSNativeBridge = false
 let mockAndroidNativeBridge = false
 // The OS sheet's own duration for the attempt, as the telemetry wrapper records it.
 let mockCeremony: { durationMs: number } | undefined
+let mockUseRealTelemetry = false
 
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleRegister: mockHandleRegister, address: mockAddress, isRegistering: mockIsRegistering }),
@@ -40,6 +41,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: mockDeviceType }) }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: jest.fn(jest.requireActual('@/utils/capacitor').isCapacitor),
     isIOSNativeBridge: () => mockIOSNativeBridge,
     isAndroidNativeBridge: () => mockAndroidNativeBridge,
 }))
@@ -71,7 +73,13 @@ jest.mock('@/services/pending-invite-attribution', () => ({ settlePendingInviteA
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
-jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ latestCeremony: () => mockCeremony }))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
+    ...jest.requireActual('@/utils/webauthn-ceremony-telemetry'),
+    latestCeremony: (...args: unknown[]) =>
+        mockUseRealTelemetry
+            ? jest.requireActual('@/utils/webauthn-ceremony-telemetry').latestCeremony(...args)
+            : mockCeremony,
+}))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
     captureMessage: jest.fn(),
@@ -119,10 +127,115 @@ beforeEach(() => {
     mockIOSNativeBridge = false
     mockAndroidNativeBridge = false
     mockCeremony = undefined
+    mockUseRealTelemetry = false
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
     mockHandleRegister = jest.fn(() => new Promise(() => {}))
+})
+
+describe('signup failures before the OS sheet with real telemetry', () => {
+    const credential = jest.fn()
+    const optionsFetch = jest.fn()
+    let telemetry: typeof import('@/utils/webauthn-ceremony-telemetry')
+    let guard: typeof import('@/utils/passkeyCeremony.utils').guardPasskeyCeremony
+    let originalCredentials: PropertyDescriptor | undefined
+    let originalFetch: typeof window.fetch
+    let originalShimInstalled: unknown
+
+    beforeAll(() => {
+        originalCredentials = Object.getOwnPropertyDescriptor(navigator, 'credentials')
+        originalFetch = window.fetch
+        originalShimInstalled = (globalThis as Record<string, unknown>).__capgoPasskeyShimInstalled
+        Object.defineProperty(navigator, 'credentials', {
+            configurable: true,
+            value: { create: credential, get: credential },
+        })
+        ;(globalThis as Record<string, unknown>).__capgoPasskeyShimInstalled = true
+        window.fetch = optionsFetch
+        telemetry = jest.requireActual('@/utils/webauthn-ceremony-telemetry')
+        guard = require('@/utils/passkeyCeremony.utils').guardPasskeyCeremony
+        telemetry.installCeremonyTelemetry()
+        require('@/utils/passkey-auth-capture').installPasskeyVerifyCapture()
+    })
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.setSystemTime(new Date('2026-11-12T12:00:00Z'))
+        mockUseRealTelemetry = true
+        jest.requireMock('@/utils/capacitor').isCapacitor.mockReturnValue(true)
+        credential.mockReset()
+        optionsFetch.mockReset()
+        telemetry.clearCeremonyLog()
+        mockHandleRegister.mockImplementation(() =>
+            telemetry.withCeremonyPurpose('registration', () =>
+                guard(async () => {
+                    await window.fetch('https://api.test/passkeys/register/options')
+                    return navigator.credentials.create({})
+                })
+            )
+        )
+    })
+
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+        mockUseRealTelemetry = false
+        jest.requireMock('@/utils/capacitor').isCapacitor.mockImplementation(
+            jest.requireActual('@/utils/capacitor').isCapacitor
+        )
+    })
+
+    afterAll(() => {
+        window.fetch = originalFetch
+        if (originalCredentials) Object.defineProperty(navigator, 'credentials', originalCredentials)
+        else Reflect.deleteProperty(navigator, 'credentials')
+        ;(globalThis as Record<string, unknown>).__capgoPasskeyShimInstalled = originalShimInstalled
+    })
+
+    it.each(['rejection', 'timeout'] as const)('omits signup ceremony_ms after an options %s', async (outcome) => {
+        const duration = outcome === 'rejection' ? 4_321 : 60_000
+        optionsFetch.mockImplementation(() =>
+            outcome === 'timeout'
+                ? new Promise(() => {})
+                : new Promise((_, reject) =>
+                      setTimeout(
+                          () => reject(Object.assign(new Error('options unavailable'), { name: 'PasskeyServerError' })),
+                          duration
+                      )
+                  )
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0)
+        })
+        expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        expect(optionsFetch).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(duration)
+        })
+        expect(credential).not.toHaveBeenCalled()
+        expect(failedEvents()).toHaveLength(1)
+        const [[, failure]] = failedEvents()
+        expect(failure.error_name).toBe(outcome === 'timeout' ? 'CeremonyTimeoutError' : 'PasskeyServerError')
+        expect(failure.ceremony_ms == null).toBe(true)
+        const ceremonies = (posthog.capture as jest.Mock).mock.calls
+            .filter(([event]) => event === 'webauthn_ceremony')
+            .map(([, properties]) => properties)
+        expect(ceremonies).toEqual([
+            expect.objectContaining({
+                purpose: 'registration',
+                outcome: 'error',
+                total_ms: duration,
+                options_ms: duration,
+            }),
+        ])
+        if (outcome === 'timeout') expect(ceremonies[0]).toHaveProperty('timeout_phase', 'options')
+        else expect(ceremonies[0]).not.toHaveProperty('timeout_phase')
+        expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
+        expect(mockNext).not.toHaveBeenCalled()
+    })
 })
 
 describe('useSignupPasskey — one tap, one ceremony', () => {
