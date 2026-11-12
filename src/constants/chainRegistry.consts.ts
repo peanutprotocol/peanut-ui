@@ -53,8 +53,12 @@ export interface ChainRegistryEntry {
      *  the family default (USDT/USDC/ETH for EVM) — drives the "USDT only"
      *  funds-safety annotations. */
     deposit?: { tokens?: readonly string[] }
-    /** Present = Rhino WITHDRAW destination; `tokens` = symbols Rhino
-     *  delivers there (each verified: live quote + outflow SDA create). */
+    /** Present = Rhino WITHDRAW destination; `tokens` = symbols Rhino delivers
+     *  there, spelled the way Rhino spells them (its quote API is exact: USDe
+     *  quotes, USDE does not). USDC/USDT were each verified with a live quote and
+     *  an outflow SDA create; any other symbol takes the bridge route (TASK-24704).
+     *  Add a symbol only when Rhino's supported-chains page marks the pair
+     *  "Accept and deliver". */
     withdraw?: { tokens: readonly string[] }
     /** Synthetic selector record for non-EVM chains (no chain-details entry). */
     nonEvmRecord?: { networkName: string; tokens: readonly RegistryTokenMeta[] }
@@ -63,6 +67,7 @@ export interface ChainRegistryEntry {
 const TOKEN_LOGO = {
     USDT: 'https://assets.coingecko.com/coins/images/325/standard/Tether.png?1696501661',
     USDC: 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png',
+    EURC: 'https://assets.coingecko.com/coins/images/26045/standard/euro.png',
 } as const
 
 const CHAIN_REGISTRY_LITERAL = [
@@ -89,7 +94,7 @@ const CHAIN_REGISTRY_LITERAL = [
         displayName: 'ETHEREUM',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/279/standard/ethereum.png?1706606803',
         deposit: {},
-        withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
+        withdraw: { tokens: ['ETH', 'USDC', 'USDT', 'EURC'] },
     },
     {
         id: '8453',
@@ -103,7 +108,7 @@ const CHAIN_REGISTRY_LITERAL = [
         // withdraw gate since June — an oversight, not a decision. Verified
         // same-day: ARB→BASE quotes OK for ETH/USDC/USDT + outflow SDA
         // create OK. Rollout-flagged like the other 2026-07 additions.
-        withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
+        withdraw: { tokens: ['ETH', 'USDC', 'USDT', 'EURC'] },
     },
     {
         id: '10',
@@ -113,7 +118,7 @@ const CHAIN_REGISTRY_LITERAL = [
         displayName: 'OPTIMISM',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/41/standard/optimism.png?1706606778',
         deposit: {},
-        withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
+        withdraw: { tokens: ['ETH', 'USDC', 'USDT', 'EURC'] },
     },
     {
         id: '100',
@@ -174,7 +179,7 @@ const CHAIN_REGISTRY_LITERAL = [
         coingeckoPlatformId: 'avalanche',
         rhinoName: 'AVALANCHE',
         family: 'evm',
-        withdraw: { tokens: ['USDC', 'USDT'] },
+        withdraw: { tokens: ['USDC', 'USDT', 'USDe'] },
     },
     {
         id: '999',
@@ -260,7 +265,7 @@ const CHAIN_REGISTRY_LITERAL = [
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/5/standard/solana.png?1706606708',
         transactionExplorerUrlPrefix: 'https://solscan.io/tx/',
         deposit: {}, // SOL family default (USDT/USDC)
-        withdraw: { tokens: ['USDC', 'USDT'] },
+        withdraw: { tokens: ['USDC', 'USDT', 'EURC'] },
         nonEvmRecord: {
             networkName: 'Solana',
             tokens: [
@@ -277,6 +282,13 @@ const CHAIN_REGISTRY_LITERAL = [
                     decimals: 6,
                     name: 'Tether USD',
                     logoURI: TOKEN_LOGO.USDT,
+                },
+                {
+                    symbol: 'EURC',
+                    address: 'HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr',
+                    decimals: 6,
+                    name: 'EURC',
+                    logoURI: TOKEN_LOGO.EURC,
                 },
             ],
         },
@@ -357,6 +369,17 @@ export const NON_EVM_WITHDRAW_CHAINS: Record<string, ChainWithTokens> = Object.f
         },
     ])
 )
+
+/**
+ * A withdraw token's symbol the way Rhino spells it on that chain. Rhino's quote
+ * API matches symbols exactly: USDe quotes, USDE does not, so the upper-cased
+ * symbol the selector works with cannot be sent as is.
+ */
+export function rhinoWithdrawTokenSymbol(chainId: string, symbol: string): string {
+    const upper = symbol.toUpperCase()
+    const spelled = resolveChainRegistryEntry(chainId)?.withdraw?.tokens.find((t) => t.toUpperCase() === upper)
+    return spelled ?? upper
+}
 
 export function isNonEvmWithdrawChainId(chainId: string | number): boolean {
     return Object.prototype.hasOwnProperty.call(NON_EVM_WITHDRAW_CHAINS, String(chainId).toLowerCase())

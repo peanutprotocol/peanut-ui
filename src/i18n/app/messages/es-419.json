@@ -173,6 +173,7 @@
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisa el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
             "descriptionUpdateError": "No pudimos terminar la actualización. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
+            "descriptionSignatureRejected": "No se pudo verificar la firma con passkey de esta tarjeta. Intenta de nuevo u omítelo por ahora. Contacta soporte si vuelve a pasar.",
             "descriptionReadyReturn": "Tu tarjeta está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionReturnRetry": "Tu tarjeta está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionUpdateReadyReturn": "La actualización está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
@@ -378,6 +379,10 @@
             "label": "Próximos pasos"
         }
     },
+    "appUpdateAttention": {
+        "title": "Actualiza Peanut",
+        "description": "Obtén la última versión para disfrutar de una mejor experiencia."
+    },
     "profile": {
         "showFullNameConfirm": {
             "title": "¿Mostrar nombre completo?",
@@ -560,7 +565,7 @@
                 "usd": "Agrega o retira dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agrega o retira pesos mexicanos por la red SPEI.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
-                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR.",
+                "qrPay": "Paga en comercios escaneando un código QR.",
                 "qrPayArgentina": "Escanea un código QR para pagar en Argentina. Los pagos con Pix en Brasil no están disponibles.",
                 "bankAccount": "Agrega y retira dinero por transferencia bancaria"
             },
@@ -997,6 +1002,16 @@
                 }
             },
             "signUp": "No tengo cuenta, crear una"
+        },
+        "passkeyProvider": {
+            "title": "Este administrador de contraseñas guardó una passkey que Peanut no puede verificar",
+            "steps": {
+                "openSettings": "Abre Configuración → Contraseñas, llaves de acceso y cuentas.",
+                "chooseGoogle": "Elige el Administrador de contraseñas de Google como servicio preferido y vuelve a intentarlo."
+            },
+            "signUpInBrowser": "Crear cuenta en peanut.me desde el navegador",
+            "useAnotherManager": "Usa otro administrador de contraseñas y vuelve a intentarlo.",
+            "browserOpenFailed": "No se abrió el navegador. Vuelve a intentarlo."
         },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
@@ -1925,11 +1940,6 @@
             "slideToCancel": "Desliza y cancela",
             "canceledTitle": "Tarjeta cancelada",
             "canceledBody": "Ya no se puede usar para pagos. Puedes pedir una tarjeta nueva, según tu elegibilidad.",
-            "feedbackLabel": "Ayúdanos a mejorar",
-            "feedbackPlaceholder": "¿Por qué cancelar?",
-            "submit": "Enviar",
-            "thanksTitle": "Gracias por los comentarios",
-            "thanksBody": "Agradecemos tus comentarios, nos ayudan a mejorar la experiencia de nuestra app.",
             "failed": "No se pudo cancelar la tarjeta"
         },
         "lockModal": {
@@ -1955,6 +1965,16 @@
             "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contacta a soporte.",
             "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contacta a soporte si no se resuelve.",
             "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intenta descongelar de nuevo."
+        },
+        "return": {
+            "lockLeft": "{amount} sigue en la tarjeta. Descongela la tarjeta para usar ese saldo.",
+            "lockUnknown": "No pudimos confirmar que el saldo de la tarjeta se movió. Descongela la tarjeta para usar lo que quede.",
+            "held": "{amount} queda en la tarjeta para pagos pendientes.",
+            "lockCredit": "{amount} es crédito por reembolsos. Descongela la tarjeta para gastarlo.",
+            "cancelCredit": "{amount} es crédito por reembolsos. Gástalo con una tarjeta nueva.",
+            "blocked": "El saldo de la tarjeta todavía no puede pasar a la billetera. Intenta de nuevo en {time}.",
+            "remains": "Parte del saldo de la tarjeta pasó a la billetera. El resto puede pasar en {time}.",
+            "retryNow": "El saldo de la tarjeta ya se puede mover. Intenta de nuevo."
         },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Inténtalo de nuevo o contacta a soporte.",
@@ -2095,6 +2115,7 @@
             "issueFailed": "Tu solicitud fue aprobada, pero no pudimos crear tu tarjeta. Inténtalo de nuevo.",
             "confirmCountryFailed": "No se pudo confirmar el país",
             "setupCancelled": "Configuración cancelada — inténtalo de nuevo.",
+            "setupSignatureRejected": "No se pudo verificar la firma con passkey de esta tarjeta — inténtalo de nuevo y contacta soporte si vuelve a pasar.",
             "setupFailed": "No se pudo completar la configuración — inténtalo de nuevo.",
             "verificationSlow": "La verificación está tardando más de lo esperado. Inténtalo de nuevo."
         },
@@ -2283,12 +2304,10 @@
         "processingDepositTitle": "Procesando el depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
-            "payWithPix": "Pagar con Pix",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
-            "goBack": "Volver",
             "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
         "confirmationModal": {
@@ -2554,6 +2573,88 @@
             "flagAlt": "Bandera de {currency}",
             "otherCountriesTitle": "Otros países",
             "otherCountriesPitch": "Elige un país"
+        }
+    },
+    "pix": {
+        "methodNotServed": "Peanut no ofrece esto.",
+        "rolloutClosed": "Pix todavía no está disponible para tu cuenta.",
+        "residenceNotServed": "Pix no se ofrece donde vives.",
+        "unavailableTitle": "Pix no disponible",
+        "rejected": "La verificación no fue aceptada. Contacta a soporte.",
+        "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
+        "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
+        "setup": {
+            "importUnavailable": "Nuestro socio de pagos todavía no puede recibir tu verificación. La enviamos de nuevo cada día.",
+            "reviewing": "Nuestro socio de pagos está revisando tu verificación. Esta pantalla avanza cuando termine.",
+            "verifyCta": "Verificar identidad",
+            "title": "Configurar Pix",
+            "body": "Nuestro socio de pagos ofrece Pix.",
+            "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
+            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contacta a soporte para agregarlo.",
+            "termsNotSaved": "No se guardó tu aceptación de los términos. Intenta de nuevo.",
+            "notAvailable": "No se pudo configurar Pix. Contacta a soporte para terminarlo.",
+            "hosted": {
+                "body": "Haz la verificación en la página de nuestro socio de pagos.",
+                "expired": "Este enlace venció.",
+                "newLink": "Pedir un enlace nuevo",
+                "failed": "No funcionó. Intenta de nuevo."
+            }
+        },
+        "deposit": {
+            "startNew": "Iniciar un nuevo depósito",
+            "fee": "Comisión {amount}",
+            "showCode": "Ver código",
+            "youGet": "Recibes ≈ {amount}",
+            "blockedBanks": "Un Pix desde {banks} se devuelve.",
+            "minimum": "El mínimo es {amount}.",
+            "limitExceeded": "Este depósito supera el límite mensual de Pix.",
+            "ownCpf": "Desde una cuenta con tu CPF {cpf}",
+            "returnedTitle": "Pix devuelto",
+            "returnedBody": "Paga de nuevo desde una cuenta con tu CPF."
+        },
+        "withdraw": {
+            "changeAmount": "Cambiar monto",
+            "stuck": "Este retiro no se completó. Contacta a soporte.",
+            "arrivesIn": "Unos {minutes, plural, one {# minuto} other {# minutos}}",
+            "fee": "Comisión",
+            "keyIntro": "Ingresa una clave Pix registrada con tu CPF.",
+            "notACode": "Ingresa una clave Pix, no un código Pix.",
+            "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
+            "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",
+            "keyBlocked": "Los retiros por Pix a este banco no están disponibles.",
+            "unknownHolder": "Nombre no visible",
+            "ownAccount": "Cuenta propia",
+            "someoneElses": "De otra persona",
+            "toAccount": "a {destination}",
+            "sent": "En camino.",
+            "sentTo": "En camino a {destination}.",
+            "arrivedTo": "Enviado a {destination}.",
+            "arrived": "El dinero se envió.",
+            "refunded": "El banco rechazó este pago. El dinero volvió a tu saldo.",
+            "quoteMoved": "La cotización cambió. Revisa los nuevos montos y confirma de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisa el Historial antes de intentar de nuevo.",
+            "notSent": "Este retiro no se completó. Tu saldo no cambió.",
+            "errors": {
+                "limitExceeded": "Este retiro supera el límite mensual de Pix.",
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intenta de nuevo más tarde.",
+                "quoteExpired": "La cotización tardó demasiado. Intenta de nuevo.",
+                "afterInit": "Revisa el Historial antes de intentar de nuevo.",
+                "quoteChanged": "El monto cambió durante la cotización. Intenta de nuevo.",
+                "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Intenta con otro navegador."
+            },
+            "changeKey": "Cambiar clave",
+            "withdrawing": "Retirando"
+        },
+        "recovery": {
+            "actionNeeded": "Acción requerida",
+            "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresa una clave Pix de otra cuenta con tu CPF.",
+            "notice": "El banco rechazó este pago. El dinero espera otra clave con tu CPF.",
+            "addKey": "Agregar clave Pix",
+            "savedTitle": "Clave Pix guardada",
+            "savedTo": "El dinero se enviará a {destination}.",
+            "saved": "El dinero se enviará a la nueva clave.",
+            "notWaitingTitle": "No hace falta otra clave",
+            "notWaiting": "Este retiro ya no está esperando una nueva clave Pix."
         }
     },
     "transaction": {
@@ -3719,7 +3820,8 @@
             "later": "Hacerlo más tarde",
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contacta a soporte y lo completamos por ti.",
             "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte.",
-            "unavailable": "{feature}: esta función no está disponible con la verificación actual."
+            "unavailable": "{feature}: esta función no está disponible con la verificación actual.",
+            "servedElsewhere": "Los depósitos y retiros por Pix están disponibles donde vives."
         },
         "paperworkVerification": {
             "back": "Volver",
@@ -4506,6 +4608,7 @@
             "successDescription": "Tu tarjeta está lista — intenta tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Toca Reactivar tarjeta para intentarlo otra vez.",
             "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Toca Reactivar tarjeta una vez más.",
+            "signatureRejectedError": "No se pudo verificar la firma con passkey de esta tarjeta. Toca Reactivar tarjeta para intentarlo de nuevo y contacta soporte si vuelve a pasar.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Inténtalo de nuevo.",
             "reEnableCta": "Reactivar tarjeta",
             "workingCta": "Procesando…",
@@ -4719,6 +4822,7 @@
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
         "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega fondos para continuar.",
+        "balanceShortBy": "A tu saldo le faltan ${amount}. Agrega dinero para continuar.",
         "insufficientFunds": "No tienes fondos suficientes.",
         "userRejectedTransaction": "Confirma la transacción en tu billetera.",
         "notDeployedOnChain": "Bulk no está disponible en esta red, prueba con otra red.",
@@ -5380,16 +5484,19 @@
             "rhino": "Direcciones de depósito entre redes y liquidez de puente. Peanut es cliente de Rhino; tú no tienes cuenta en Rhino.",
             "thirdNational": "Emisor de la tarjeta, filial de Rain",
             "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
-            "mantecaAr": "Depósitos (ARS), retiros, pagos con QR y titular de la cuenta de depósito en ARS",
-            "mantecaBr": "Depósitos (Pix en BRL), retiros y pagos con Pix y QR"
+            "mantecaAr": "Depósitos, retiros y pagos con QR en Argentina",
+            "mantecaBr": "Pagos y transferencias por Pix para quienes no viven en Brasil",
+            "aveniaBr": "Depósitos y retiros por Pix para residentes de Brasil"
         },
         "about": "Sobre {brand}",
         "execution": {
             "bridge": "Lo firmas tú, {brand} paga",
             "bridgeEea": "Lo firmas tú, {brand} paga",
             "mantecaAr": "Liquidado por {brand}",
+            "mantecaBr": "Liquidado por {brand}",
             "rhino": "Lo firmas tú, {brand} hace el puente",
-            "thirdNational": "Third National emite y liquida"
+            "thirdNational": "Third National emite y liquida",
+            "aveniaBr": "Liquidado por {brand}"
         },
         "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
         "cardRelationship": "Tienes una relación directa con Third National bajo los términos de la tarjeta.",
@@ -5397,6 +5504,6 @@
     },
     "brazilPause": {
         "title": "Servicios en Brasil en pausa",
-        "body": "Los depósitos y retiros en BRL y los pagos con Pix no están disponibles por ahora."
+        "body": "Los depósitos y retiros en BRL no están disponibles por ahora. Los pagos con Pix no están disponibles para residentes de Brasil."
     }
 }

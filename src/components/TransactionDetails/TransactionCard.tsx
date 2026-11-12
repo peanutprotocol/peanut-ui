@@ -9,6 +9,7 @@ import { type TransactionType } from '@/components/TransactionDetails/transactio
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import { requestedInCurrency } from '@/components/TransactionDetails/transaction-details.utils'
+import { tokenSymbolForDisplay } from '@/components/TransactionDetails/receipt-conversion.utils'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -39,6 +40,8 @@ import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { LOGO } from '@/assets/brand'
 import InvitesIcon from '../Home/InvitesIcon'
 import { useRouter } from 'next/navigation'
+import { pixNewKeyUrl } from '@/features/pix/pixRecovery'
+import { usePixActionBadge } from '@/features/pix/usePixActionBadge'
 import { profileUrl } from '@/utils/native-routes'
 
 // Lazy load transaction details drawer (~40KB) to reduce initial bundle size
@@ -101,8 +104,14 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const router = useRouter()
     const t = useTranslations('transaction')
 
+    // a refused Pix payout waits for another own key: the row leads straight into that step
+    const actionBadge = usePixActionBadge(transaction)
     const handleClick = () => {
         triggerHaptic()
+        if (actionBadge) {
+            router.push(pixNewKeyUrl(transaction.id))
+            return
+        }
         onOpen(transaction)
     }
 
@@ -218,7 +227,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         transaction.tokenAmount
     ) {
         const formattedTokenAmount = formatNumberForDisplay(transaction.tokenAmount, { maxDecimals: 6 })
-        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
+        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolForDisplay(transaction.tokenSymbol ?? tokenSymbolUpper)}`
     }
 
     // States board 17966:12128 amount treatment — the single place both the
@@ -345,7 +354,10 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                     ? transaction.extraDataForDrawer.payerName
                                     : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
                         </span>
-                        {isVerificationDeposit ? (
+                        {actionBadge ? (
+                            // the user can act now: the badge names the action (design.md), never Failed
+                            <Badge status="pending" customText={actionBadge} />
+                        ) : isVerificationDeposit ? (
                             // the money went back to the sender: design.md "Returned", grey neutral
                             <Badge status="neutral" customText={t('returnedStatus')} />
                         ) : (

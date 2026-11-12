@@ -125,7 +125,7 @@ describe('useDepositCountryRouting', () => {
 
         act(() => result.current.openCountry(BRAZIL as any))
 
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/pix')
     })
 
     it('keeps the bank flow for a corridor the user has no rail for, and while the flag is off', () => {

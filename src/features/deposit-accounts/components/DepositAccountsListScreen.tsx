@@ -11,8 +11,6 @@ import { SearchInput } from '@/components/SearchInput'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { trackAddMoney } from '@/features/add-money/analytics'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
-import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { useBankRows } from '@/hooks/useBankRows'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
@@ -130,9 +128,7 @@ export function DepositAccountsListScreen({
     // A bank row opens the transfer the user sends themselves. The flow is a
     // page of its own, so it carries where the user came from — leaving
     // verification must not strand them on a bare amount route.
-    const brazilPaused = useBrazilServicesPaused()
     const openTopUp = (row: UnlockRow) => {
-        if (brazilPaused && row.corridor === 'PIX_BR') return openBrazilPausedDrawer()
         const href = row.corridor && corridorTopUpHref(row.corridor, residenceIso2s)
         if (href) router.push(withReturnTo(rewriteMethodPath(href), HUB_HREF))
     }

@@ -11,7 +11,7 @@ import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { withFixtureFeatureReport } from './featureReport'
+import { withFixtureFeatureReport, withFixtureRoutes } from './featureReport'
 
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
@@ -80,10 +80,13 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         const paperworkData = await paperworkBase.json().catch(() => ({}))
         const paperworkOverride = fixture.responses?.['GET /users/kyc/paperwork']
         const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
-        merged = withFixtureFeatureReport(
-            merged as IUserProfile | null,
-            override as Partial<IUserProfile> | null | undefined,
-            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        merged = withFixtureRoutes(
+            withFixtureFeatureReport(
+                merged as IUserProfile | null,
+                override as Partial<IUserProfile> | null | undefined,
+                paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+            ),
+            override as Partial<IUserProfile> | null | undefined
         )
     }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {

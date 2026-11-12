@@ -1,4 +1,5 @@
 import type { RailCapability } from '@/types/capabilities'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import type { DepositAccountView, DepositCorridor, DepositInstructions, DepositRail, SenderPolicy } from './types'
 
 /**
@@ -64,7 +65,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         // one (`peanut.manteca-local-residence`); the app narrows that to the
         // corridor's own country, as it does for Argentina below.
         residenceIso2: 'BR',
-        topUpHref: '/add-money/brazil/manteca',
+        topUpHref: PIX_ADD_MONEY_PATH,
     },
     BANK_TRANSFER_AR: {
         corridor: 'BANK_TRANSFER_AR',

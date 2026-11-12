@@ -186,6 +186,21 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/Views/LoginRecoveryDrawer.tsx',
         captureState: ['platform=web', 'signup=omitted'],
     },
+    '08-d-passkeyproviderunsupporteddrawer': {
+        name: 'PasskeyProviderUnsupportedDrawer',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=android-app'],
+    },
+    '08-e-passkeyproviderunsupporteddrawer-browser-failed': {
+        name: 'PasskeyProviderUnsupportedDrawer — browser did not open',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=android-app', 'browser=open-failed'],
+    },
+    '08-f-passkeyproviderunsupporteddrawer-other': {
+        name: 'PasskeyProviderUnsupportedDrawer — iOS and web',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=other'],
+    },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': {
         name: 'Confirm invite — Bank transfer',
@@ -483,6 +498,54 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Common/MantecaAccountUnavailable.tsx',
         captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'country=AR', 'kyc=false'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '94-f-pix-deposit': {
+        name: 'Pix deposit — the dynamic code',
+        path: 'features/pix/components/PixQrDeposit.tsx',
+        captureState: ['amountBrl=100', 'expiresAt=+10 min'],
+        // the signed-in Brazilian resident the CPF line's avatar is drawn for
+        shotFixture: 'pix-deposit-amount',
+        expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
+    },
+    '94-g-pix-withdraw-on-its-way': {
+        name: 'Pix withdrawal — funded, on its way to the account',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'destination=Banco Inter · Ana Souza'],
+        shotFixture: 'pix-withdraw-unconfirmed',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-h-pix-withdraw-arrived-to': {
+        name: 'Pix withdrawal — arrived at the account',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=COMPLETED', 'destination=Banco Inter · Ana Souza'],
+        shotFixture: 'pix-withdraw-arrived',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-i-pix-withdraw-sent-unnamed': {
+        name: 'Pix withdrawal — on its way, no holder named',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'destination=none'],
+        shotFixture: 'pix-withdraw-unconfirmed',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-j-pix-review-quote-moved': {
+        name: 'Pix review — the opened quote moved, confirm again',
+        path: 'features/pix/components/PixWithdrawReview.tsx',
+        captureState: ['phase=reconfirm'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '94-k-pix-review-after-init': {
+        name: 'Pix review — the opened quote expired before the signature',
+        path: 'features/pix/components/PixWithdrawReview.tsx',
+        captureState: ['phase=idle', 'lockedAfterInit=true', 'error=quoteExpired'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '94-l-pix-withdraw-stuck': {
+        name: 'Pix withdrawal — funded, but the withdrawal ended with no recovery',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=CANCELLED', 'outcome=stuck'],
+        shotFixture: 'pix-withdraw-not-sent',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',

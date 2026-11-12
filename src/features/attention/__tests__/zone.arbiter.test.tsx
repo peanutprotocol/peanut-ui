@@ -77,6 +77,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const NOW = Date.now()
 
 const ZONE_ASKS = [
+    'app-update-regular',
     'verification-due',
     'blocked-card',
     'checklist',

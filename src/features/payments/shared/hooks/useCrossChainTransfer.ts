@@ -48,30 +48,14 @@ import {
     type BridgeStatusResponse,
 } from '@/services/rhino-bridge'
 import { chainIdToRhinoName } from '@/constants/rhino.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
+import { NON_EVM_WITHDRAW_CHAINS, rhinoWithdrawTokenSymbol } from '@/constants/chainRegistry.consts'
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { getTokenSymbol } from '@/utils/token.utils'
+import { encodeRhinoDepositWithId } from '@/utils/rhino-deposit.utils'
 
 /** Tokens Rhino's SDA primitive accepts as `tokenOut`. Anything else routes
  *  through the bridge quote/commit flow which supports the wider token set. */
 const SDA_SUPPORTED_TOKENS = new Set(['USDC', 'USDT'])
-
-/** Minimal fragment of Rhino's DVFDepositContract used for cross-chain
- *  bridge / cross-chain swap deposits. Source: rhino.fi SDK
- *  (adapters/evm/abis/DVFDepositContract). */
-const DVF_DEPOSIT_WITH_ID_ABI = [
-    {
-        type: 'function',
-        name: 'depositWithId',
-        stateMutability: 'nonpayable',
-        inputs: [
-            { name: 'tokenAddress', type: 'address' },
-            { name: 'amount', type: 'uint256' },
-            { name: 'commitmentId', type: 'uint256' },
-        ],
-        outputs: [],
-    },
-] as const
 
 export interface CrossChainSourceInfo {
     address: Address
@@ -96,7 +80,7 @@ export interface CrossChainDestinationInfo {
     tokenDecimals: number
     tokenType: number
     chainId: string
-    /** Rhino-friendly token symbol — 'USDC' or 'USDT'. Falls back from tokenAddress if omitted. */
+    /** Token symbol as Rhino spells it ('USDe', not 'USDE'). Falls back from tokenAddress if omitted. */
     tokenSymbol?: RhinoSupportedToken
 }
 
@@ -173,8 +157,9 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
     // backend forwards it to Rhino, which validates against its own per-route
     // supported-tokens map. Native ETH on EVM uses the SAME 'ETH' symbol —
     // address differs by chain (proxy 0xeee… or zero), but Rhino keys on the
-    // symbol.
-    return getTokenSymbol(tokenAddress as Address, chainId)?.toUpperCase()
+    // symbol, exactly as Rhino spells it (see rhinoWithdrawTokenSymbol).
+    const symbol = getTokenSymbol(tokenAddress as Address, chainId)
+    return symbol && rhinoWithdrawTokenSymbol(chainId, symbol)
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
@@ -541,10 +526,10 @@ async function runBridgePath({
         // ourselves. Rhino's API doesn't return calldata for this path — the
         // SDK constructs it client-side via DVFDepositContract__factory.
         // commitmentId is hex-encoded BigInt of the quoteId.
-        const depositData = encodeFunctionData({
-            abi: DVF_DEPOSIT_WITH_ID_ABI,
-            functionName: 'depositWithId',
-            args: [source.tokenAddress, approveAmount, BigInt(`0x${commit.commitmentId}`)],
+        const depositData = encodeRhinoDepositWithId({
+            tokenAddress: source.tokenAddress,
+            amount: approveAmount,
+            commitmentId: commit.commitmentId,
         })
         bridgeCall = {
             to: commit.contractAddress as Address,

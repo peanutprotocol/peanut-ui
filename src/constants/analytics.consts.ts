@@ -425,7 +425,6 @@ export const ANALYTICS_EVENTS = {
     CARD_LOCK_FAILED: 'card_lock_failed',
     CARD_CANCEL_OPENED: 'card_cancel_opened',
     CARD_CANCEL_CONFIRMED: 'card_cancel_confirmed',
-    CARD_CANCEL_FEEDBACK_SUBMITTED: 'card_cancel_feedback_submitted',
     CARD_CANCEL_FAILED: 'card_cancel_failed',
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
@@ -461,6 +460,10 @@ export const ANALYTICS_EVENTS = {
     PASSKEY_NATIVE_LIFECYCLE: 'passkey_native_lifecycle',
     WEBAUTHN_CEREMONY: 'webauthn_ceremony',
     WEBAUTHN_CEREMONY_FLOW: 'webauthn_ceremony_flow',
+    // A passkey signature failed the on-chain validator's checks on the device
+    // (TASK-24840): `reason` is the first check that failed, `method` the
+    // validator call. Log-only; the signature is still used.
+    PASSKEY_SIGNATURE_MISMATCH: 'passkey_signature_mismatch',
 
     // Rain withdrawal-signature cooldown tripped during a spend. Handled
     // gracefully in-flow (no captureException), so this is the only telemetry.

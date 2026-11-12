@@ -10,6 +10,12 @@ export type Fixture = {
     /** What the fixture proves. One line, shown on /dev/fixtures. */
     about: string
     /**
+     * Session storage the screen reads as it loads, seeded before the first
+     * navigation: a form that never rides in the URL, such as the Pix withdraw
+     * draft, which holds a Pix key.
+     */
+    sessionStorage?: Record<string, string>
+    /**
      * Overrides on top of the demo-api response, keyed `METHOD /path`.
      * Deep-merged: objects merge key by key, arrays and primitives replace.
      * So an empty state is `{ entries: [] }` and a renamed user is one line.

@@ -25,7 +25,7 @@ import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
 import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
-import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 
 // Lazy — only needed for address/ENS recipients, and pulls the heavy
 // TokenSelector → wagmi config graph. Static-importing it bloats the common
@@ -44,7 +44,8 @@ export const SendRouterView = () => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const searchParams = useSearchParams()
-    const pixPaused = useBrazilPixPaused()
+    // the pay:PIX_BR route says whether a Pix-key send can start: the Brazil pause, or a residence it does not serve
+    const pixBlock = usePixPayBlock()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
     // direct send to a specific user — supports both:
@@ -101,7 +102,7 @@ export const SendRouterView = () => {
                 router.push('/withdraw/crypto?method=crypto')
                 break
             case 'pix':
-                if (pixPaused) return openBrazilPausedDrawer()
+                if (pixBlock) return openBrazilPausedDrawer(pixBlock)
                 // navigate to pix send flow
                 router.push('/withdraw/manteca?method=pix&country=brazil')
                 break

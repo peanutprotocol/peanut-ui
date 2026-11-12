@@ -28,6 +28,7 @@ import {
 } from './rails'
 import { applyDepositPreviewGate } from './depositGate'
 import { closeRefusedCorridors } from './reportClosures'
+import { findPixRoute, pixRouteGate, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { holdsSlot } from './resolveScreen'
 import type {
     ClaimableCorridor,
@@ -313,26 +314,35 @@ export function useDepositAccounts({
 
     const { claimable, unavailable } = useMemo(
         () =>
-            closeRefusedCorridors(capabilities.features, rails, {
-                accounts,
-                claimable: offeredClaimable,
-                unavailable: withheldUnavailable,
-            }),
-        [capabilities.features, rails, accounts, offeredClaimable, withheldUnavailable]
+            closeRefusedCorridors(
+                capabilities.features && withPixRoute(capabilities.features, capabilities.routes),
+                rails,
+                {
+                    accounts,
+                    claimable: offeredClaimable,
+                    unavailable: withheldUnavailable,
+                }
+            ),
+        [capabilities.features, capabilities.routes, rails, accounts, offeredClaimable, withheldUnavailable]
     )
 
     const { gates, staleReviewAction } = useMemo(() => {
         const gates = {} as Record<DepositCorridor, GateState>
         let staleReviewAction = false
+        // Pix is the route's, whichever provider serves it: a resident of Brazil has no local rail for it
+        const pixRoute = findPixRoute(capabilities.routes, 'deposit')
         for (const corridor of DEPOSIT_RAIL_ORDER) {
-            const gate = gateFor('deposit', { railId: railIdFor(corridor) })
+            const gate =
+                corridor === 'PIX_BR' && pixRoute
+                    ? pixRouteGate(pixRoute)
+                    : gateFor('deposit', { railId: railIdFor(corridor) })
             const cause = unavailable[corridor]?.cause
             const effectiveGate = applyDepositPreviewGate(gate, cause)
             if (effectiveGate !== gate && cause === 'review-action') staleReviewAction = true
             gates[corridor] = effectiveGate
         }
         return { gates, staleReviewAction }
-    }, [gateFor, unavailable])
+    }, [gateFor, unavailable, capabilities.routes])
 
     useEffect(() => {
         // A withheld corridor cannot be tapped through to a claim. Fetch its

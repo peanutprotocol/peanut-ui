@@ -264,7 +264,10 @@ test('cancelling a card is an ordinary cancel with no permission-removal step', 
     await expect(page.getByText('Card canceled', { exact: true })).toBeVisible()
     await expect(page.getByText(/permission/i)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Not now', exact: true })).toHaveCount(0)
-    await shot(page, 'cancel-feedback')
+    // the cancel asks for no reason: Close is the only action left (by text: the modal's X is labelled Close too)
+    await expect(page.getByRole('textbox')).toHaveCount(0)
+    await expect(page.getByText('Close', { exact: true })).toBeVisible()
+    await shot(page, 'cancel-done')
 })
 
 // A card lock/cancel stops managed wallet payments too. The card is done at once; "stopped" shows only
@@ -308,6 +311,41 @@ test('a lock that cannot stop wallet payments asks for support and never says st
     await expect(page.getByTestId('card-stop-notice')).toContainText("couldn't confirm")
     await expect(page.getByText(/are stopped/i)).toHaveCount(0)
     await shot(page, 'lock-stop-unavailable')
+})
+
+// What a lock or cancel left in the card. A freeze is never refused, so the modal says what is still in
+// the card; a cancel waits for the card balance with a countdown, never with the backend's sentence.
+test('a freeze that could not move the card balance says how much is still in the card', async ({ page }) => {
+    await page.goto('/card?__fixture=card-lock-balance-left')
+    await page.getByRole('button', { name: 'Freeze', exact: true }).click()
+    await slideTo(page, 'Slide to freeze')
+    await expect(page.getByText('Card frozen', { exact: true })).toBeVisible()
+    const notice = page.getByTestId('card-return-notice')
+    await expect(notice).toContainText('$20 is still in the card')
+    await expect(notice).toContainText('$5.50 stays in the card for pending payments')
+    await shot(page, 'lock-balance-left')
+})
+
+test('a cancel that waits for the card balance counts down and holds the slide', async ({ page }) => {
+    await page.goto('/card?__fixture=card-cancel-return-blocked')
+    await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
+    await slideTo(page, 'Slide to cancel')
+    await expect(page.getByTestId('card-return-wait')).toContainText(/Try again in 2:\d\d/)
+    await expect(page.getByText(/cannot be returned yet/)).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Slide to cancel', exact: true })).toBeDisabled()
+    await expect(page.getByText('Card canceled', { exact: true })).toHaveCount(0)
+    await shot(page, 'cancel-return-blocked')
+})
+
+test('a cancel names the pending payment hold and the refund credit it leaves', async ({ page }) => {
+    await page.goto('/card?__fixture=card-cancel-credit-left')
+    await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
+    await slideTo(page, 'Slide to cancel')
+    await expect(page.getByText('Card canceled', { exact: true })).toBeVisible()
+    const notice = page.getByTestId('card-return-notice')
+    await expect(notice).toContainText('$5.50 stays in the card for pending payments')
+    await expect(notice).toContainText('$12.34 is refund credit. Spend it with a new card.')
+    await shot(page, 'cancel-credit-left')
 })
 
 // Guests have no fixture session; stub the API at the network layer so the

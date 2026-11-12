@@ -2,6 +2,7 @@
 
 import { countryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryState, parseAsString } from 'nuqs'
@@ -30,7 +31,12 @@ export function useMantecaBankRedirect() {
 
     useEffect(() => {
         if (isMantecaRoute && selectedCountry) {
-            router.replace(rewriteMethodPath(`/add-money/${selectedCountry.path}/manteca`))
+            // Brazil's Pix has one page, where the backend's route picks the provider
+            router.replace(
+                rewriteMethodPath(
+                    selectedCountry.id === 'BR' ? PIX_ADD_MONEY_PATH : `/add-money/${selectedCountry.path}/manteca`
+                )
+            )
         }
     }, [isMantecaRoute, selectedCountry, router])
 

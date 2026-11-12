@@ -60,6 +60,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         userContract: true,
         termsUrl: 'https://www.bridge.xyz/legal',
         termsName: 'Bridge terms',
+        answersFor: { provider: 'BRIDGE' },
     },
     'manteca-ar': {
         id: 'manteca-ar',
@@ -73,6 +74,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         termsUrl: 'https://manteca.dev/es/tyc/crypto',
         privacyUrl: 'https://manteca.dev/es/pp/crypto',
         support: 'hola@manteca.dev · soporte@manteca.dev',
+        answersFor: { provider: 'MANTECA', currency: 'ARS' },
     },
     // TODO: brand only until manteca confirms which brazilian entity we may name. manteca asked us to
     // take the entity down on 2026-10-28 while its lawyers review it. once they confirm, add back
@@ -86,6 +88,25 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         termsUrl: 'https://manteca.dev/brazil-politicas/tec',
         privacyUrl: 'https://manteca.dev/brazil-politicas/pdp',
         support: 'brazil@manteca.dev',
+        answersFor: { provider: 'MANTECA', currency: 'BRL' },
+    },
+    // Pix for Brazilian residents. Legal name and CNPJ as read on the Receita Federal register
+    // (mono product/providers/fiat/evidence/counterparty-health-tier1-latam-2026-08-27.md). No BCB
+    // authorisation is on record, so the sheet names no regulator. The dynamic Pix code and the payout
+    // name this entity as the payee.
+    'avenia-br': {
+        id: 'avenia-br',
+        brand: 'Avenia',
+        legalName: 'AVENIA SOCIEDADE PRESTADORA DE SERVICOS DE ATIVOS VIRTUAIS LTDA',
+        // confirm in writing from Avenia: mono records the city only, not the street address
+        registeredOffice: ['São Paulo, SP'],
+        taxId: 'CNPJ 50.224.164/0001-70',
+        role: 'aveniaBr',
+        userContract: true,
+        // confirm in writing from Avenia: the address comes from a partner's terms that point to it, not from Avenia
+        termsUrl: 'https://app.avenia.io/Avenia-TC.pdf',
+        termsName: 'Avenia terms and conditions',
+        answersFor: { provider: 'AVENIA' },
     },
     // peanut is rhino's customer; the user never signs rhino's terms.
     // grade B in the register: legal name, role and documents only
@@ -97,6 +118,7 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         userContract: false,
         termsUrl: 'https://rhino.fi/legal-policies-and-documentation/terms-conditions',
         privacyUrl: 'https://rhino.fi/legal-policies-and-documentation/privacy-policy',
+        answersFor: { provider: 'RHINO' },
     },
     // rain is the brand users know, so the row names it; the issuer's legal
     // details stay in the sheet (konrad, TASK-23295)
@@ -112,5 +134,6 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         userContract: true,
         privacyUrl: 'https://third-national.com/privacypolicy',
         support: 'support@peanut.me · info@3rdnational.com',
+        answersFor: { provider: 'RAIN' },
     },
 }

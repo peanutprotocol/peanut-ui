@@ -14,12 +14,11 @@ import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
+import { PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
+import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
-import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
-import { useBrazilPixPaused } from '@/features/brazil-pause/useBrazilPixPaused'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
 import DestinationEditDrawer, { type EditableDestination } from '@/features/destinations/DestinationEditDrawer'
 import { useRenameAccount } from '@/features/destinations/useRenameAccount'
@@ -54,8 +53,6 @@ interface WithdrawMethodViewProps {
  */
 export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onExit, onMethodChosen }) => {
     const router = useRouter()
-    const brazilPaused = useBrazilServicesPaused()
-    const pixPaused = useBrazilPixPaused()
     const { user } = useAuth()
     const tGlobal = useTranslations('global')
     const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient, setNetworkUnconfirmed } =
@@ -148,10 +145,6 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     // A country resolved from the currency list (or its country fallback). The
     // one place withdraw routing lives, shared by both so they cannot disagree.
     const handleCountrySelected = (country: CountryData) => {
-        // Brazil leads to a Pix-key send or a BRL withdrawal, each with its own
-        // pause; the manteca page gates each, so stop here only when both are
-        // closed. A resident elsewhere keeps Pix-key sends (TASK-24724).
-        if (brazilPaused && pixPaused && country.path === 'brazil') return openBrazilPausedDrawer()
         // A navigation is already under way. A second tap during it either
         // queues a route the user did not mean to open or re-runs the analytics
         // capture, so the screen takes the first answer and ignores the rest.
@@ -268,23 +261,28 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             title: 'To Bank',
                         })
                         if (account.type === AccountType.MANTECA) {
-                            // A saved Brazil key in Send pays over PIX (the key screen),
-                            // not the first-party BRL offramp a withdrawal uses.
-                            const paysPix = isBankFromSend && countryPath === 'brazil'
-                            if (countryPath === 'brazil' && (paysPix ? pixPaused : brazilPaused)) {
-                                return openBrazilPausedDrawer()
-                            }
                             // Manteca saved accounts skip the shared amount step — the
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
-                            router.push(
-                                mantecaWithdrawUrl({
-                                    country: countryPath,
+                            const ownBrazilWithdrawal = countryPath === 'brazil' && !isBankFromSend
+                            // the Pix key goes in the account's draft, never the URL (`pixWithdrawDraft`)
+                            if (ownBrazilWithdrawal)
+                                keepPixWithdrawDraft(user?.user?.userId, {
+                                    ...EMPTY_PIX_WITHDRAW_DRAFT,
                                     destination: account.identifier,
-                                    isSavedAccount: 'true',
-                                    method: paysPix ? 'pix' : undefined,
-                                    sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
                                 })
+                            router.push(
+                                // Brazil's own-account withdrawal has one page, where the backend's route
+                                // picks the provider; a saved Brazil key in Send pays over Pix (the key screen).
+                                ownBrazilWithdrawal
+                                    ? PIX_WITHDRAW_PATH
+                                    : mantecaWithdrawUrl({
+                                          country: countryPath,
+                                          destination: account.identifier,
+                                          isSavedAccount: 'true',
+                                          method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
+                                          sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                      })
                             )
                             return
                         }

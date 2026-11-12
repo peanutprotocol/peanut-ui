@@ -478,6 +478,20 @@ function supportCaseOf(value: string | null | undefined): string | undefined {
     return value ? SUPPORT_CASES[value.replace(/-/g, '_')] : undefined
 }
 
+/**
+ * The baseline's routes are the demo user's, a resident of Brazil (Avenia's Pix, Pix payments
+ * refused). A fixture that writes its own capability block describes another user: it states its
+ * routes, or it has none, so the demo's Brazil routes never close its Pix payments or answer for its
+ * BRL account.
+ */
+export function withFixtureRoutes(
+    user: IUserProfile | null,
+    override: Partial<IUserProfile> | null | undefined
+): IUserProfile | null {
+    if (!user?.capabilities || !override?.capabilities || override.capabilities.routes !== undefined) return user
+    return { ...user, capabilities: { ...user.capabilities, routes: [] } }
+}
+
 /** A fixture's `/users/me` with the report the API would send for its rails, unless the fixture gives its own. */
 export function withFixtureFeatureReport(
     user: IUserProfile | null,

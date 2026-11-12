@@ -15,6 +15,24 @@ export const BALANCE_WARNING_THRESHOLD_USD = DEFAULT_SETTINGS.balanceThresholdUs
 
 const loggedIn = (s: JourneyState) => (s.userId ? (s.userLoaded ? 'ready' : 'unknown') : 'ineligible')
 
+const storeUpdateGate = (tier: 1 | 4) => (s: JourneyState) =>
+    s.userId && s.userLoaded && s.isNative && s.storeUpdatePrompt?.tier === tier && s.storeUpdatePrompt.version
+        ? ('ready' as const)
+        : ('ineligible' as const)
+
+export const appUpdateImportant = defineAsk('app-update-important', {
+    presentation: 'drawer',
+    deviceGate: storeUpdateGate(1),
+    eligible: (s) => (storeUpdateGate(1)(s) === 'ready' ? 'show' : 'ineligible'),
+    version: (s) => s.storeUpdatePrompt?.version,
+})
+
+export const appUpdateRegular = defineAsk('app-update-regular', {
+    deviceGate: storeUpdateGate(4),
+    eligible: (s) => (storeUpdateGate(4)(s) === 'ready' ? 'show' : 'ineligible'),
+    version: (s) => s.storeUpdatePrompt?.version,
+})
+
 export const legalReconsent: AttentionAsk = defineAsk('legal-reconsent', {
     presentation: 'modal',
     eligible: (s) => {
@@ -348,6 +366,8 @@ export const maintenance: AttentionAsk = defineAsk('maintenance', {
 
 export const ASKS: readonly AttentionAsk[] = [
     maintenance,
+    appUpdateImportant,
+    appUpdateRegular,
     verificationDeadline,
     capNudge,
     legalReconsent,

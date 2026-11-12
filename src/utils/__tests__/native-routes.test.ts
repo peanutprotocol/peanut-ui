@@ -164,6 +164,14 @@ describe('native-routes', () => {
                 )
             })
 
+            it('should not rewrite the neutral Pix pages or the new-key page (static routes)', () => {
+                expect(rewriteMethodPath('/add-money/pix?step=showQR&intentId=d1')).toBe(
+                    '/add-money/pix?step=showQR&intentId=d1'
+                )
+                expect(rewriteMethodPath('/withdraw/pix')).toBe('/withdraw/pix')
+                expect(rewriteMethodPath('/withdraw/new-pix-key?intentId=w1')).toBe('/withdraw/new-pix-key?intentId=w1')
+            })
+
             it('should append extraParams to rewritten add-money path', () => {
                 expect(rewriteMethodPath('/add-money/belgium/bank', 'method=bank')).toBe(
                     '/add-money?country=belgium&view=bank&method=bank'

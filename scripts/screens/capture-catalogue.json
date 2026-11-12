@@ -165,6 +165,51 @@
         "route": "/dev/surfaces?s=03-c-residence-congrats"
     },
     {
+        "id": "fixture-pix-route-residence-paused",
+        "flow": "Setup and login",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-setup-verify",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-hosted-verify",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-hosted-expired",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-reviewing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-import-unavailable",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-cpf-missing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-support",
+        "flow": "Setup and login",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-route-residence",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-profile-accounts-no-residence",
         "flow": "Setup and login",
         "route": "/profile/accounts"
@@ -232,6 +277,24 @@
         "source": "Setup/Views/LoginRecoveryDrawer.tsx"
     },
     {
+        "id": "08-d-passkeyproviderunsupporteddrawer",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-d-passkeyproviderunsupporteddrawer",
+        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
+    },
+    {
+        "id": "08-e-passkeyproviderunsupporteddrawer-browser-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-e-passkeyproviderunsupporteddrawer-browser-failed",
+        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
+    },
+    {
+        "id": "08-f-passkeyproviderunsupporteddrawer-other",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-f-passkeyproviderunsupporteddrawer-other",
+        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
+    },
+    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
@@ -283,6 +346,11 @@
     },
     {
         "id": "fixture-history",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-pix-activity-new-key",
         "flow": "Home and shared states",
         "route": "/history"
     },
@@ -757,6 +825,11 @@
         "route": "/profile/accounts"
     },
     {
+        "id": "fixture-pix-route-rejected",
+        "flow": "Verification",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-qr-pay-kyc-required",
         "flow": "Verification",
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
@@ -1005,11 +1078,6 @@
         "route": "/add-money/crypto"
     },
     {
-        "id": "fixture-add-money-brazil-paused",
-        "flow": "Add money",
-        "route": "/add-money?method=bank"
-    },
-    {
         "id": "fixture-add-money-argentina",
         "flow": "Add money",
         "route": "/add-money/argentina"
@@ -1038,6 +1106,66 @@
         "id": "fixture-add-money-country-provider-wait",
         "flow": "Add money",
         "route": "/add-money/spain"
+    },
+    {
+        "id": "fixture-pix-first-use",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-deposit-amount",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-deposit-minimum",
+        "flow": "Add money",
+        "route": "/add-money/pix?amount=10&currency=BRL"
+    },
+    {
+        "id": "fixture-pix-deposit-expired",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-deposit-returned",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-deposit-processing",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-deposit-received",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-deposit-quote-failed",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-route-paused-deposit",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-receipt-pay-code",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-route-method-not-served",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-manteca-deposit-code",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
     },
     {
         "id": "fixture-history-expired-ars-deposit",
@@ -1350,6 +1478,21 @@
         "route": "/add-money/argentina/manteca"
     },
     {
+        "id": "p80-pix-terms-not-saved",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "p81-pix-deposit-limit",
+        "flow": "Add money",
+        "route": "/add-money/pix?amount=100&currency=BRL"
+    },
+    {
+        "id": "p85-manteca-ar-provider-sheet",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
+    },
+    {
         "id": "deposit-address-launch-loading",
         "flow": "Add money",
         "route": "/dev/surfaces?s=deposit-address-launch-loading",
@@ -1384,6 +1527,12 @@
         "flow": "Add money",
         "route": "/dev/surfaces?s=92-f-deposit-account-closed",
         "source": "Common/MantecaAccountUnavailable.tsx"
+    },
+    {
+        "id": "94-f-pix-deposit",
+        "flow": "Add money",
+        "route": "/dev/surfaces?s=94-f-pix-deposit",
+        "source": "features/pix/components/PixQrDeposit.tsx"
     },
     {
         "id": "fixture-history-card-spend",
@@ -1532,6 +1681,21 @@
     },
     {
         "id": "fixture-card-lock-stop-unavailable",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-lock-balance-left",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-cancel-return-blocked",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-cancel-credit-left",
         "flow": "Card",
         "route": "/card"
     },
@@ -1799,6 +1963,11 @@
     },
     {
         "id": "fixture-qr-pay-merchant-blocked",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-fixed-amount-short",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
     },
@@ -2107,6 +2276,141 @@
         "route": "/withdraw/manteca?country=brazil&method=pix"
     },
     {
+        "id": "fixture-pix-withdraw-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-key-other",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-new-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
+    },
+    {
+        "id": "fixture-pix-new-key-not-waiting",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal"
+    },
+    {
+        "id": "fixture-pix-withdraw-amount",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=amount"
+    },
+    {
+        "id": "fixture-pix-withdraw-quote-failed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=amount"
+    },
+    {
+        "id": "fixture-pix-route-paused-withdraw",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-route-not-offered",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-route-provider-down",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-key-code",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-key-lookup-failed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-key-blocked",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-review-limit",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-withdraw-review-key-not-own",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-withdraw-review-in-progress",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-withdraw-review-quote-changed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-withdraw-arrived",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-withdraw-unconfirmed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-withdraw-refunded",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-withdraw-not-sent",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-withdraw-not-signed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-withdraw-needs-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-refused-withdrawal"
+    },
+    {
+        "id": "fixture-pix-new-key-unnamed",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
+    },
+    {
+        "id": "fixture-pix-receipt-new-key",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-pix-refused-withdrawal"
+    },
+    {
+        "id": "fixture-pix-manteca-withdraw-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-manteca-withdraw-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
         "id": "fixture-withdraw-bank-form",
         "flow": "Withdraw",
         "route": "/withdraw/spain?step=form"
@@ -2212,6 +2516,26 @@
         "route": "/withdraw/crypto"
     },
     {
+        "id": "p82-pix-new-key-saved",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
+    },
+    {
+        "id": "p83-pix-new-key-saved-unnamed",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
+    },
+    {
+        "id": "p84-pix-provider-sheet",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "p86-pix-manteca-provider-sheet",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
         "id": "standalone-error-send",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=standalone-error-send",
@@ -2270,6 +2594,42 @@
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=93-f-withdraw-account-closed",
         "source": "Common/MantecaAccountUnavailable.tsx"
+    },
+    {
+        "id": "94-g-pix-withdraw-on-its-way",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-g-pix-withdraw-on-its-way",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-h-pix-withdraw-arrived-to",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-h-pix-withdraw-arrived-to",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-i-pix-withdraw-sent-unnamed",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-i-pix-withdraw-sent-unnamed",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-j-pix-review-quote-moved",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-j-pix-review-quote-moved",
+        "source": "features/pix/components/PixWithdrawReview.tsx"
+    },
+    {
+        "id": "94-k-pix-review-after-init",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-k-pix-review-after-init",
+        "source": "features/pix/components/PixWithdrawReview.tsx"
+    },
+    {
+        "id": "94-l-pix-withdraw-stuck",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-l-pix-withdraw-stuck",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
         "id": "fixture-rewards",

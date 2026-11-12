@@ -448,7 +448,7 @@ export function rewriteMethodPath(path: string, extraParams?: string, native = i
         const country = addMoneyMatch[1]
         const subView = addMoneyMatch[2] // bank, manteca, etc.
         // static routes, not [country] — same carve-out as withdraw below
-        if (country === 'crypto' || country === 'us' || country === 'options') {
+        if (country === 'crypto' || country === 'us' || country === 'options' || country === 'pix') {
             return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
         }
         let url = `/add-money?country=${country}`
@@ -461,8 +461,8 @@ export function rewriteMethodPath(path: string, extraParams?: string, native = i
     if (withdrawMatch) {
         const country = withdrawMatch[1]
         const subView = withdrawMatch[2]
-        // skip manteca (it's a static route, not dynamic)
-        if (country === 'manteca' || country === 'crypto') {
+        // static routes, not [country]
+        if (country === 'manteca' || country === 'crypto' || country === 'pix' || country === 'new-pix-key') {
             return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
         }
         let url = `/withdraw?country=${country}`

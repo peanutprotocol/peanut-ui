@@ -18,7 +18,7 @@ import {
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
-import { readInviteCode, stashInvite } from '@/utils/invite-stash'
+import { INVITE_TYPE_PARAM, readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -171,6 +171,8 @@ function SetupPageContent() {
     // object identity would re-run determineInitialStep mid-flow and bounce
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
+    // Only the Android app's browser handoff sends it (keepWebSignupUrl).
+    const inviteTypeParam = searchParams.get(INVITE_TYPE_PARAM)
     const legacyStepParam = searchParams.get('step')
     const keepWebParam = searchParams.get(KEEP_WEB_COOKIE)
     const searchParamsString = searchParams.toString()
@@ -493,11 +495,14 @@ function SetupPageContent() {
              * ?code= arrives from an /invite deep link (native maps
              * peanut.me/invite?code=X here — see native-routes.ts). Stash it
              * like the web InvitesPage does, so it survives the multi-step
-             * signup and reaches registration.
+             * signup and reaches registration. A bare code is DIRECT; the
+             * browser handoff also names a PAYMENT_LINK invite's type.
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
-                stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
+                const inviteType =
+                    inviteTypeParam === EInviteType.PAYMENT_LINK ? EInviteType.PAYMENT_LINK : EInviteType.DIRECT
+                stashInvite(toInviteCode(codeFromUrl), inviteType)
             }
             const userInviteCode = readInviteCode()
             // Web signup is closed (Landing hides Sign up), so the
@@ -535,7 +540,7 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam])
+    }, [steps, inviteCodeParam, inviteTypeParam, legacyStepParam, keepWebParam])
 
     if (recoveryReason) {
         return (

@@ -11,7 +11,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
+import { brazilPausedDrawerBlock, closeBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -242,19 +242,14 @@ function applyDefaults() {
 
 // ---------- test suites ----------
 
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
-}))
+let mockPixBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
 let mockResidenceIso2s: string[] = []
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
-jest.mock('@/features/brazil-pause/useBrazilPauseResidences', () => ({
-    useBrazilPauseResidences: () => mockResidenceIso2s,
-}))
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockBrazilPaused = false
+    mockPixBlock = null
     mockResidenceIso2s = []
     closeBrazilPausedDrawer()
     mockSearchParams.clear()
@@ -442,27 +437,28 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
-    test('Pix opens the Brazil paused drawer instead while the pause covers the user', () => {
-        mockBrazilPaused = true
+    test('Pix opens the drawer with the Brazil pause words while the pay route is paused', () => {
+        mockPixBlock = 'paused'
         mockUseGeoFilteredPaymentOptions.mockReturnValue({
             filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
         })
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Pix'))
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(brazilPausedDrawerBlock()).toBe('paused')
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('Pix opens the Brazil paused drawer for a Brazil resident once the pause is off', () => {
-        mockResidenceIso2s = ['BR']
+    // the pay:PIX_BR route, not the app, refuses the residence
+    test('Pix opens the drawer with the residence words when the pay route refuses the residence', () => {
+        mockPixBlock = 'residence'
         mockUseGeoFilteredPaymentOptions.mockReturnValue({
             filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
         })
         renderSend()
 
         fireEvent.click(screen.getByTestId('action-card-Pix'))
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
+        expect(brazilPausedDrawerBlock()).toBe('residence')
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 

@@ -106,7 +106,7 @@ jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: (
 jest.mock('@/components/Global/RateUnavailable/RateGateScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
 // the Brazil pause reads the signed-in user; it is off here (amount-guard covers it)
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => null }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => null,

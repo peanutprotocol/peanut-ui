@@ -35,6 +35,9 @@ describe('receiptConvertedAmount', () => {
 
     it('falls back to a non-stable destination token with full decimals', () => {
         expect(receiptConvertedAmount({ tokenSymbol: 'eth', tokenAmount: '0.000416666' })).toBe('0.000416666 ETH')
+        // a mixed-case symbol keeps its real spelling; old lower-case records do not
+        expect(receiptConvertedAmount({ tokenSymbol: 'USDe', tokenAmount: '10.086357' })).toBe('10.086357 USDe')
+        expect(receiptConvertedAmount({ tokenSymbol: 'EURC', tokenAmount: '8.900320' })).toBe('8.900320 EURC')
     })
 
     it('is no conversion for USD or a USD stablecoin', () => {

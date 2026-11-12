@@ -74,6 +74,7 @@
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
         "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione fundos para continuar.",
+        "balanceShortBy": "Faltam ${amount} no seu saldo. Adicione dinheiro para continuar.",
         "insufficientFunds": "Você não tem fundos suficientes.",
         "userRejectedTransaction": "Confirme a transação na sua carteira.",
         "notDeployedOnChain": "O Bulk não está disponível nesta rede, tente outra rede.",

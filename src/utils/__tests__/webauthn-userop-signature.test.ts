@@ -1,8 +1,16 @@
-import { keccak256, stringToHex } from 'viem'
+import { decodeAbiParameters, encodeAbiParameters, keccak256, stringToHex } from 'viem'
 import { checkPasskeyUserOpSignature, VALIDATOR_CHALLENGE_LOCATION } from '../webauthn-userop-signature'
 import { passkeyFixture, signPasskeyUserOp, sortedClientData, standardClientData } from '@/test-utils/passkey-signature'
 
 const userOpHash = keccak256(stringToHex('signup test transaction'))
+const PASSKEY_SIGNATURE_PARAMS = [
+    { name: 'authenticatorData', type: 'bytes' },
+    { name: 'clientDataJSON', type: 'string' },
+    { name: 'responseTypeLocation', type: 'uint256' },
+    { name: 'r', type: 'uint256' },
+    { name: 's', type: 'uint256' },
+    { name: 'usePrecompiled', type: 'bool' },
+] as const
 const { privateKey, publicKey } = passkeyFixture()
 
 describe('checkPasskeyUserOpSignature (deployed validator v0.0.3 rules)', () => {
@@ -57,6 +65,26 @@ describe('checkPasskeyUserOpSignature (deployed validator v0.0.3 rules)', () => 
 
     it('rejects a signature made by a different passkey', () => {
         const signature = signPasskeyUserOp({ userOpHash, privateKey: passkeyFixture(9).privateKey })
+        expect(checkPasskeyUserOpSignature({ signature, userOpHash, publicKey })).toMatchObject({
+            valid: false,
+            reason: 'signature',
+        })
+    })
+
+    it('rejects a valid signature whose clientDataJSON was changed after signing', () => {
+        const signed = signPasskeyUserOp({ userOpHash, privateKey })
+        const [authenticatorData, clientDataJSON, responseTypeLocation, r, s, usePrecompiled] = decodeAbiParameters(
+            PASSKEY_SIGNATURE_PARAMS,
+            signed
+        )
+        const signature = encodeAbiParameters(PASSKEY_SIGNATURE_PARAMS, [
+            authenticatorData,
+            clientDataJSON.replace('https://peanut.me', 'https://peanut.mf'),
+            responseTypeLocation,
+            r,
+            s,
+            usePrecompiled,
+        ])
         expect(checkPasskeyUserOpSignature({ signature, userOpHash, publicKey })).toMatchObject({
             valid: false,
             reason: 'signature',
