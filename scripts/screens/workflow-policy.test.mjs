@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { runInNewContext } from 'node:vm'
+import { currentCaptureReview } from './check-review-current.mjs'
 
 const screenLibrary = readFileSync('.github/workflows/screen-library.yml', 'utf8')
 const testsWorkflow = readFileSync('.github/workflows/tests.yml', 'utf8')
@@ -12,9 +14,9 @@ const publishRun = readFileSync('scripts/screens/publish-run.mjs', 'utf8')
 const baselinePublisher = readFileSync('scripts/screens/publish-baseline-viewports.mjs', 'utf8')
 const captureDecision = readFileSync('scripts/screens/decide-capture.mjs', 'utf8')
 
-test('release reviews route to an exact full preview without changing integration capture rules', () => {
+test('main reviews route to an exact full preview without changing integration capture rules', () => {
     assert.match(screenLibrary, /pull_request:\n\s+branches: \[dev, main\]/)
-    assert.match(screenLibrary, /github.base_ref == 'main' && github.head_ref == 'dev'/)
+    assert.doesNotMatch(screenLibrary, /github.base_ref == 'main' && github.head_ref == 'dev'/)
     assert.match(screenLibrary, /if \[ "\$GITHUB_BASE_REF" = main \]; then\s+before="\$PR_BASE"/)
     assert.match(screenLibrary, /github.event.action != 'edited' \|\| github.event.changes.base.ref/)
     assert.match(captureDecision, /!releasePreview && event !== 'workflow_dispatch'/)
@@ -23,6 +25,52 @@ test('release reviews route to an exact full preview without changing integratio
         /if \(releasePreview\) throw new Error\('Release previews require full capture catalogues'\)/
     )
     assert.match(publishRun, /releasePreview \? '\?view=all&layout=paired'/)
+})
+
+test('publisher freshness checks bind every main review to its verified head branch', () => {
+    const repository = 'peanutprotocol/peanut-ui'
+    const head = 'a'.repeat(40)
+    const base = 'b'.repeat(40)
+    const declaration = publishRun.slice(
+        publishRun.indexOf('const currentReleaseReview ='),
+        publishRun.indexOf('// Include both sides of a rename')
+    )
+    assert.ok(declaration, 'publisher must check freshness before upload and comment')
+    assert.equal((publishRun.match(/releasePreview && !currentReleaseReview\(\)/g) ?? []).length, 2)
+    for (const headRef of ['hotfix/card', 'cherry-pick/123', 'dev']) {
+        const pr = {
+            number: 42,
+            state: 'open',
+            draft: false,
+            head: { ref: headRef, sha: head, repo: { full_name: repository } },
+            base: { ref: 'main', sha: base },
+        }
+        let live = pr
+        const current = runInNewContext(`${declaration}; currentReleaseReview`, {
+            api: (path) => {
+                assert.equal(path, 'pulls/42')
+                return live
+            },
+            currentCaptureReview,
+            pr,
+            repo: repository,
+            expectedHead: head,
+            expectedBase: base,
+        })
+        assert.equal(current(), true, headRef)
+        for (const changed of [
+            { ...pr, draft: true },
+            { ...pr, state: 'closed' },
+            { ...pr, head: { ...pr.head, sha: 'c'.repeat(40) } },
+            { ...pr, head: { ...pr.head, ref: 'other' } },
+            { ...pr, base: { ...pr.base, sha: 'd'.repeat(40) } },
+            { ...pr, base: { ...pr.base, ref: 'dev' } },
+            { ...pr, head: { ...pr.head, repo: { full_name: 'fork/peanut-ui' } } },
+        ]) {
+            live = changed
+            assert.equal(current(), false)
+        }
+    }
 })
 
 test('main updates capture both full catalogues and retain the original push boundary in trusted publishing', () => {

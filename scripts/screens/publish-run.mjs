@@ -128,7 +128,7 @@ const currentReleaseReview = () =>
         repository: repo,
         head: expectedHead,
         base: expectedBase,
-        headRef: 'dev',
+        headRef: pr.head.ref,
         baseRef: 'main',
     })
 
