@@ -79,7 +79,7 @@ describe('Claim username', () => {
 
     it('shows the username rules before any error, and an error in their place', async () => {
         renderSignup()
-        const rules = '4–12 characters. Start with a letter. Letters and numbers only.'
+        const rules = '4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut”.'
         expect(screen.getByText(rules)).toBeInTheDocument()
         fireEvent.change(usernameField(), { target: { value: 'abc' } })
         expect(await screen.findByText('Use at least 4 characters.')).toBeInTheDocument()

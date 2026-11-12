@@ -183,6 +183,21 @@ describe('Claim reservation errors and duplicate submission', () => {
         expect(mockHandleRegister).not.toHaveBeenCalled()
     })
 
+    // The API refuses NEW names that contain "peanut" or impersonate support
+    // with this reason; Claim names the cause instead of "invalid".
+    it('shows the reserved-name refusal as the field error and stays on Claim', async () => {
+        mockReservationAnswer = { status: 400, body: { code: 'USERNAME_INVALID', reason: 'This username is reserved' } }
+        renderClaim()
+        await claim('mypeanut')
+
+        expect(await screen.findByText('This username is reserved. Try a different one.')).toBeVisible()
+        expect(screen.queryByText('Username is invalid, please use a different one')).not.toBeInTheDocument()
+        expect(cursor()).toBe('signup')
+        expect(usernameField()).toHaveValue('mypeanut')
+        expect(reservationCalls()).toHaveLength(1)
+        expect(mockHandleRegister).not.toHaveBeenCalled()
+    })
+
     it('regenerates the rejected hold token once, retries the same username, and advances on success', async () => {
         let attempts = 0
         mockApiFetch.mockImplementation(async (path: string) => {

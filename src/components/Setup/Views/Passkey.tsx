@@ -34,7 +34,7 @@ export default function PasskeyStep() {
         }
         if (refresh.current?.username !== username) refresh.current = { username, request: reserveUsername(username) }
         void refresh.current.request.then((result) => {
-            if (active && !registering.current && (result === 'taken' || result === 'invalid'))
+            if (active && !registering.current && (result === 'taken' || result === 'refused' || result === 'invalid'))
                 navigate.current('signup')
         })
         return () => {

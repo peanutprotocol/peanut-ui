@@ -108,8 +108,8 @@ const SignupStep = () => {
             }
             const result = await reserveUsername(claimedUsername)
             if (currentUsername.current !== claimedUsername) return
-            if (result === 'taken' || result === 'invalid') {
-                setError(t(result === 'taken' ? 'signupStep.errors.taken' : 'signupStep.errors.invalid'))
+            if (result === 'taken' || result === 'refused' || result === 'invalid') {
+                setError(t(`signupStep.errors.${result === 'refused' ? 'reserved' : result}`))
                 setIsValid(false)
                 trackError('username', result)
                 return

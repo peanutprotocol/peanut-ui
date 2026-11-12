@@ -1040,7 +1040,7 @@
         "signupStep": {
             "usernameLabel": "Usuario",
             "usernamePlaceholder": "batman",
-            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números.",
+            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números. No puede incluir “peanut”.",
             "inviterUsernameLabel": "Usuario de quien te invitó",
             "inviterUsernamePlaceholder": "Usuario de quien invita",
             "inviterNotFound": "No encontramos a este usuario.",
@@ -1053,6 +1053,7 @@
                 "invalidFormat": "Empieza con una letra. Usa solo letras y números.",
                 "taken": "Ese nombre de usuario ya está en uso",
                 "invalid": "El nombre de usuario no es válido, usa uno diferente",
+                "reserved": "Este nombre de usuario está reservado. Prueba con otro.",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo o contacta a soporte."
             },
