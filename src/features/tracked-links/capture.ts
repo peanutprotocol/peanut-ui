@@ -6,20 +6,24 @@ const KEYS = new Set(['event_id', 'opened_at', 'slug', 'signup_journey_id'])
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-const observed = new Set<string>()
+// Matches the native router's duplicate-link window.
+const REPLAY_WINDOW_MS = 3000
+const observed = new Map<string, number>()
 
 /**
  * A journey exists only when strict tracked-link consent allowed it, so it doubles as the
- * consent gate. One visit per slug per page load: React effect replays reuse the first.
+ * consent gate. React effect replays of one opening reuse the first; a later opening of the
+ * same link in a long-lived app webview counts again.
  */
 export function captureTrackedLinkVisit(
     slug: string,
     { openedIn, seen, journey }: { openedIn: 'web' | 'app'; seen: boolean; journey: SignupAttributionContext | null }
 ): void {
     // Journeys fall back when randomUUID is missing (older webviews); a throw here would cost the handoff.
-    if (seen || !journey || observed.has(slug) || !isAnalyticsCaptureBuild() || typeof crypto.randomUUID !== 'function')
-        return
-    observed.add(slug)
+    if (seen || !journey || !isAnalyticsCaptureBuild() || typeof crypto.randomUUID !== 'function') return
+    const now = Date.now()
+    if (now - (observed.get(slug) ?? -Infinity) < REPLAY_WINDOW_MS) return
+    observed.set(slug, now)
     // No keepalive in the app: some webviews reject a keepalive request that needs a CORS preflight.
     void fetch(`${openedIn === 'app' ? TRACKED_LINK_ORIGIN : ''}/api/tracked-links/open`, {
         method: 'POST',

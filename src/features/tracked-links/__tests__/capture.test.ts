@@ -165,7 +165,7 @@ describe('opening body', () => {
 })
 
 describe('visit sender', () => {
-    it('sends one keepalive browser opening per slug per page load, in the shape the route accepts', () => {
+    it('sends one keepalive browser opening per slug per page render, in the shape the route accepts', () => {
         captureTrackedLinkVisit(slug, { openedIn: 'web', seen: false, journey })
         captureTrackedLinkVisit(slug, { openedIn: 'web', seen: false, journey })
         expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -176,6 +176,22 @@ describe('visit sender', () => {
             slug,
             signup_journey_id: journey.journeyId,
         })
+    })
+
+    it('counts a later opening of the same link in the same app session', () => {
+        const now = jest.spyOn(Date, 'now')
+        try {
+            now.mockReturnValue(1_000_000)
+            captureTrackedLinkVisit('later', { openedIn: 'app', seen: false, journey })
+            now.mockReturnValue(1_002_999)
+            captureTrackedLinkVisit('later', { openedIn: 'app', seen: false, journey })
+            expect(fetchMock).toHaveBeenCalledTimes(1)
+            now.mockReturnValue(1_003_000)
+            captureTrackedLinkVisit('later', { openedIn: 'app', seen: false, journey })
+            expect(fetchMock).toHaveBeenCalledTimes(2)
+        } finally {
+            now.mockRestore()
+        }
     })
 
     it('posts a direct app opening to the web origin without keepalive', () => {
