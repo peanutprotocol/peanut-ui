@@ -335,8 +335,8 @@ describe('guardPasskeyCeremony', () => {
                 { cancel: cancel.signal }
             )
             const outcome = await pending.then(
-                () => ({ resolved: true, abortedAtSettle: cancel.signal.aborted }),
-                (error: unknown) => ({ resolved: false, abortedAtSettle: true, error })
+                () => ({ resolved: true as const, abortedAtSettle: cancel.signal.aborted }),
+                (error: unknown) => ({ resolved: false as const, error })
             )
             if (outcome.resolved) expect(outcome.abortedAtSettle).toBe(false)
             else {
