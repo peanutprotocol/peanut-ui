@@ -1394,8 +1394,11 @@ export const FIXTURES: Record<string, Fixture> = {
     'setup-passkey': {
         route: '/dev/surfaces?s=06-c-passkey',
         about: 'Create a passkey after choosing kimchi, a Portuguese residence and a bank/card payment plan.',
+        // /dev/surfaces is a protected (mobile-ui) route: a null /users/me sends the
+        // page to /setup before the step renders. The step reads its username from
+        // the setup context and reserves without auth, so the default session is
+        // enough, as for every other setup surface.
         responses: {
-            'GET /users/me': null,
             'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
             'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
         },
