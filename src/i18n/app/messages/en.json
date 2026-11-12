@@ -507,6 +507,8 @@
             "cardNotAvailableNote": "The Peanut card isn't available for residents of your country.",
             "changeModal": {
                 "title": "Change residence",
+                "reviewTitle": "Under review",
+                "reviewBody": "Your residence documents are being reviewed. We'll let you know when the review is complete.",
                 "description": "Pick the country where you legally live: the one your documents show.",
                 "countryPlaceholder": "Select country",
                 "verifiedMismatchNote": "Your verified residence stays unchanged until this passes a new verification. While it is pending, availability follows the stricter rules of both countries.",

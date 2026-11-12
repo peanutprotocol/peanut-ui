@@ -506,6 +506,8 @@
             "bankOnlyNotAvailableNote": "Transferências bancárias não estão disponíveis para residentes do seu país.",
             "cardNotAvailableNote": "O Peanut Card não está disponível para residentes do seu país.",
             "changeModal": {
+                "reviewTitle": "Em análise",
+                "reviewBody": "Estamos analisando seus documentos de residência. Avisaremos quando a análise terminar.",
                 "title": "Alterar residência",
                 "description": "Escolha o país onde você mora legalmente: o que aparece nos seus documentos.",
                 "countryPlaceholder": "Selecione o país",

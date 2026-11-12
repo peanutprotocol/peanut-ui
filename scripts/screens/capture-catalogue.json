@@ -238,6 +238,12 @@
         "source": "Profile/views/ResidenceChangeDrawer.tsx"
     },
     {
+        "id": "45-d-residence-review",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-d-residence-review",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
         "id": "78-f-choice-guest-claim",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=78-f-choice-guest-claim",

@@ -376,6 +376,9 @@ export const startResidenceChangeVerification = async (
         status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (responseJson.code === 'RESIDENCE_ACTION_REVIEW_PENDING') {
+                return { error: 'Residence verification is under review', code: responseJson.code }
+            }
             if (response.status >= 500)
                 Sentry.captureException(new Error('KYC request failed'), {
                     tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_session' },

@@ -947,6 +947,23 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    '45-d-residence-review': {
+        ...SURFACE_META['45-d-residence-review'],
+        render: () => (
+            <ResidenceChangeDrawer
+                visible
+                onClose={noop}
+                userId="demo-user"
+                declared="ES"
+                verified="BR"
+                pending="ES"
+                pendingStatus="REVIEW_PENDING"
+                onSaved={asyncNoop}
+                onReverify={noop}
+                onContactSupport={noop}
+            />
+        ),
+    },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',

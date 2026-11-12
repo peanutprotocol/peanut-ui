@@ -118,17 +118,19 @@ const getKycPollDelayMs = (elapsedMs: number): number => {
 }
 
 export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: UseSumsubKycFlowOptions = {}) => {
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const actionOwnerRef = useRef(user?.user?.userId)
     actionOwnerRef.current = user?.user?.userId
     const addressGeneration = useRef(0)
     const addressPendingRef = useRef(false)
+    const residenceGeneration = useRef(0)
     const restartGeneration = useRef(0)
     const restartPendingRef = useRef(false)
     useEffect(() => {
         return () => {
             addressGeneration.current += 1
             restartGeneration.current += 1
+            residenceGeneration.current += 1
         }
     }, [user?.user?.userId])
     const router = useRouter()
@@ -174,6 +176,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // retriability from the region, which cannot tell the two apart.
     const [isTerminalError, setIsTerminalError] = useState(false)
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
+    const [isResidenceReviewOpen, setIsResidenceReviewOpen] = useState(false)
+    const dismissResidenceReview = useCallback(() => setIsResidenceReviewOpen(false), [])
+    useEffect(() => setIsResidenceReviewOpen(false), [user?.user?.userId])
     const acceptSessionView = useCallback(
         (session: VerificationActionSession) => {
             verificationSessionRef.current = session
@@ -817,6 +822,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setIsActionFlow(false)
             setIsMultiLevel(false)
             setIsVerificationProgressModalOpen(false)
+            setIsResidenceReviewOpen(true)
+            void Promise.resolve(fetchUser()).catch(() => {})
             onManualClose?.()
             return
         }
@@ -831,7 +838,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setIsActionFlow(false)
         setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [isMultiLevel, liveKycStatus, onManualClose, handOffAttemptToVerify])
+    }, [isMultiLevel, liveKycStatus, onManualClose, handOffAttemptToVerify, fetchUser])
 
     // Called when the user manually closes the SDK modal. Every manual close
     // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
@@ -1080,6 +1087,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // APPROVED and its ID documents stay active throughout this flow.
     const handleResidenceChange = useCallback(
         async (targetCountry: string) => {
+            const generation = ++residenceGeneration.current
+            const owner = actionOwnerRef.current
+            const current = () => generation === residenceGeneration.current && owner === actionOwnerRef.current
+            setIsResidenceReviewOpen(false)
             documentAttemptRef.current = null
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
@@ -1100,6 +1111,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 const response = await startResidenceChangeVerification(residenceChangeCountryRef.current)
+                if (!current()) return
+                if (response.code === 'RESIDENCE_ACTION_REVIEW_PENDING') {
+                    userInitiatedRef.current = false
+                    residenceChangeRef.current = false
+                    residenceChangeCountryRef.current = null
+                    setAccessToken(null)
+                    setShowWrapper(false)
+                    setIsResidenceReviewOpen(true)
+                    void Promise.resolve(fetchUser()).catch(() => {})
+                    return
+                }
                 if (response.error || !response.data?.token) {
                     userInitiatedRef.current = false
                     residenceChangeRef.current = false
@@ -1114,15 +1136,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsMultiLevel(false)
                 setShowWrapper(true)
             } catch (e: unknown) {
+                if (!current()) return
                 userInitiatedRef.current = false
                 residenceChangeRef.current = false
                 residenceChangeCountryRef.current = null
                 setError(e instanceof Error ? e.message : t('unexpectedError'))
             } finally {
-                setIsLoading(false)
+                if (current()) setIsLoading(false)
             }
         },
-        [t, actionErrorMessage, setError]
+        [t, actionErrorMessage, setError, fetchUser]
     )
 
     // initiate self-heal document resubmission: calls the resubmit API
@@ -1365,6 +1388,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         handleClose,
         refreshToken,
         isVerificationProgressModalOpen,
+        isResidenceReviewOpen,
+        dismissResidenceReview,
         closeVerificationProgressModal,
         closeVerificationModalAndGoHome,
         resetError,

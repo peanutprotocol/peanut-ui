@@ -123,3 +123,11 @@ it('a failed re-verification offers a retry of the same move, and support under 
     fireEvent.click(support)
     expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
 })
+
+it('labels a submitted residence change under review without promising a short wait', () => {
+    mockResidence = normalizeResidence({ declared: 'BR', verified: 'BR', pending: 'ES', pendingStatus: 'REVIEW_PENDING' })
+    render()
+
+    expect(screen.getByText(/under review/i)).toBeInTheDocument()
+    expect(screen.queryByText(/(?:a few|a couple of|\d+)\s+minutes?/i)).not.toBeInTheDocument()
+})

@@ -294,6 +294,19 @@ describe('startResidenceChangeVerification — wire shape', () => {
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
     })
 
+    it('preserves the provider review-hold code without returning an SDK token', async () => {
+        respondWith(409, {
+            error: 'This residence action is already under review.',
+            code: 'RESIDENCE_ACTION_REVIEW_PENDING',
+        })
+
+        const result = await startResidenceChangeVerification('PT')
+
+        expect(result.code).toBe('RESIDENCE_ACTION_REVIEW_PENDING')
+        expect(result.data?.token).toBeUndefined()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
     it('preserves a residence-action retry window from a 409 response', async () => {
         const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-14T20:00:00.000Z'))
         try {
