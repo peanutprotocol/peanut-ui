@@ -25,6 +25,7 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { useWelcomeHeadlineExperiment } from '@/features/setup/WelcomeHeadlineExperimentProvider'
 import {
     cancelIOSImmediateLogin,
     checkAndroidLandingPasskey,
@@ -55,6 +56,7 @@ const LandingStep = () => {
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
     const { track } = useSignupControl()
+    const { variant: welcomeVariant, cancelPending: cancelWelcomePending } = useWelcomeHeadlineExperiment()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
     const loginCancelsRef = useRef(0)
@@ -224,11 +226,12 @@ const LandingStep = () => {
     }
 
     const signUp = () => {
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: welcomeVariant ?? 'control' })
         handleNext()
     }
 
     const onSignUpClick = () => {
+        cancelWelcomePending()
         track('sign_up', 'tap')
         afterAutoLogin(signUp)
     }

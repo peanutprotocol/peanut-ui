@@ -7,6 +7,9 @@ type FlagValue = boolean | string
  * the screen never reads the flag.
  */
 export const FLAG_VARIANTS: ReadonlyArray<{ base: string; flag: string; value: FlagValue }> = [
+    { base: '01-a-landing', flag: 'welcome-headline-copy', value: 'every_border' },
+    { base: '01-a-landing', flag: 'welcome-headline-copy', value: 'whole_world' },
+    { base: '01-a-landing', flag: 'welcome-headline-copy', value: 'travels_free' },
     { base: '07-d-notification-settings', flag: 'signup-notification-switches', value: 'switches' },
     { base: '07-d-notification-settings', flag: 'signup-notification-switches', value: 'defaults_on' },
     // The checklist's first-payment row drops the card and offers only QR.
@@ -23,6 +26,10 @@ export const FLAGS: Record<string, { values: ReadonlyArray<FlagValue>; baseline:
     // Read with nonProdBypass, which turns it on in every non-production build.
     'user-interviews-invite': { values: [true, false], baseline: true },
     'signup-notification-switches': { values: ['control', 'switches', 'defaults_on'], baseline: 'control' },
+    'welcome-headline-copy': {
+        values: ['control', 'every_border', 'whole_world', 'travels_free'],
+        baseline: 'control',
+    },
 }
 
 /** Flags no capture can show, and why. */

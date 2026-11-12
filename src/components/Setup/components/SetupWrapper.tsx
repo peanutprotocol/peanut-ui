@@ -2,6 +2,8 @@ import { useNativePlatform } from '@/utils/native-platform'
 import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
+import WelcomeHeadlineTitleBlock from './WelcomeHeadlineTitleBlock'
+import { WelcomeHeadlineExperimentProvider } from '@/features/setup/WelcomeHeadlineExperimentProvider'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -446,6 +448,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     // left a big gap above the QR) and center the copy on desktop to match the
     // centered store content. The native landing is untouched.
     const sunsetLanding = screenId === 'landing' && !nativePlatform.isCapacitor && !hasKeepWebBypass
+    const TitleBlock = screenId === 'landing' ? WelcomeHeadlineTitleBlock : SetupTitleBlock
 
     // Match the server panel first, then start the mobile landing rise after hydration.
     const mountedOnLanding = useRef(screenId === 'landing').current
@@ -506,72 +509,77 @@ export const SetupWrapper = memo(function SetupWrapper({
                             prefersReducedMotion={!!prefersReducedMotion}
                             className="col-start-1 row-start-1 mx-auto flex w-full min-w-0 flex-col bg-white"
                         >
-                            {fullScreen && showProgress && (
-                                // Keeps the content clear of the fixed top bar.
-                                <div aria-hidden="true" className="my-4 h-11 shrink-0" />
-                            )}
-
-                            {/* content section */}
-                            <motion.div
-                                initial={animatePanelIn ? { y: '100%' } : false}
-                                animate={animatePanelIn ? { y: ['100%', 0] } : { y: 0 }}
-                                transition={
-                                    prefersReducedMotion
-                                        ? { duration: 0 }
-                                        : { type: 'spring', stiffness: 260, damping: 30 }
-                                }
-                                className={twMerge(
-                                    // The footer's reserved secondary slot keeps the primary CTA clear of the
-                                    // home gesture area, so the panel needs only pb-6 above the safe-area inset.
-                                    'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
-
-                                    fullScreen && 'md:h-auto md:flex-1'
-                                )}
+                            <WelcomeHeadlineExperimentProvider
+                                enabled={screenId === 'landing'}
+                                sunsetLanding={sunsetLanding}
                             >
-                                <div
+                                {fullScreen && showProgress && (
+                                    // Keeps the content clear of the fixed top bar.
+                                    <div aria-hidden="true" className="my-4 h-11 shrink-0" />
+                                )}
+
+                                {/* content section */}
+                                <motion.div
+                                    initial={animatePanelIn ? { y: '100%' } : false}
+                                    animate={animatePanelIn ? { y: ['100%', 0] } : { y: 0 }}
+                                    transition={
+                                        prefersReducedMotion
+                                            ? { duration: 0 }
+                                            : { type: 'spring', stiffness: 260, damping: 30 }
+                                    }
                                     className={twMerge(
-                                        'flex w-full flex-1 flex-col justify-between md:flex-1',
-                                        contentClassName,
-                                        'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
-                                        // signup matches residence: the field sits 24px under the description
-                                        screenId === 'signup' && 'gap-6 short:gap-4 tight:gap-3',
-                                        !sunsetLanding && 'md:flex-1 md:justify-between',
-                                        fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
+                                        // The footer's reserved secondary slot keeps the primary CTA clear of the
+                                        // home gesture area, so the panel needs only pb-6 above the safe-area inset.
+                                        'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
+
+                                        fullScreen && 'md:h-auto md:flex-1'
                                     )}
                                 >
-                                    {/* Renders nothing when the step owns its heading (titleInView +
-                                    descriptionInView): an empty, height-capped slot would push
-                                    the content down on desktop. */}
-                                    <SetupTitleBlock
-                                        title={title}
-                                        description={description}
-                                        size={titleSize}
-                                        descriptionInTitle={descriptionInTitle}
-                                        className={twMerge(
-                                            'md:max-h-48 md:max-w-xs',
-                                            screenId === 'join-beta' && 'md:max-h-12',
-                                            (sunsetLanding || titleSize === 'm') && 'md:h-auto md:max-h-none'
-                                        )}
-                                        titleClassName={twMerge(sunsetLanding && 'md:text-center', titleClassName)}
-                                        descriptionClassName={sunsetLanding ? 'md:text-center' : undefined}
-                                    />
-                                    {/* main content area */}
                                     <div
                                         className={twMerge(
-                                            'mx-auto w-full',
-                                            fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                            !sunsetLanding && 'flex flex-1 flex-col'
+                                            'flex w-full flex-1 flex-col justify-between md:flex-1',
+                                            contentClassName,
+                                            'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
+                                            // signup matches residence: the field sits 24px under the description
+                                            screenId === 'signup' && 'gap-6 short:gap-4 tight:gap-3',
+                                            !sunsetLanding && 'md:flex-1 md:justify-between',
+                                            fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                         )}
                                     >
-                                        <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
-                                            {/* Per slide: AnimatePresence keeps an exiting screen's own value. */}
-                                            <SignupScreenContext.Provider value={screenId}>
-                                                {children}
-                                            </SignupScreenContext.Provider>
-                                        </SetupFullScreenContext.Provider>
+                                        {/* Renders nothing when the step owns its heading (titleInView +
+                                    descriptionInView): an empty, height-capped slot would push
+                                    the content down on desktop. */}
+                                        <TitleBlock
+                                            title={title}
+                                            description={description}
+                                            size={titleSize}
+                                            descriptionInTitle={descriptionInTitle}
+                                            className={twMerge(
+                                                'md:max-h-48 md:max-w-xs',
+                                                screenId === 'join-beta' && 'md:max-h-12',
+                                                (sunsetLanding || titleSize === 'm') && 'md:h-auto md:max-h-none'
+                                            )}
+                                            titleClassName={twMerge(sunsetLanding && 'md:text-center', titleClassName)}
+                                            descriptionClassName={sunsetLanding ? 'md:text-center' : undefined}
+                                        />
+                                        {/* main content area */}
+                                        <div
+                                            className={twMerge(
+                                                'mx-auto w-full',
+                                                fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
+                                                !sunsetLanding && 'flex flex-1 flex-col'
+                                            )}
+                                        >
+                                            <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
+                                                {/* Per slide: AnimatePresence keeps an exiting screen's own value. */}
+                                                <SignupScreenContext.Provider value={screenId}>
+                                                    {children}
+                                                </SignupScreenContext.Provider>
+                                            </SetupFullScreenContext.Provider>
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.div>
+                                </motion.div>
+                            </WelcomeHeadlineExperimentProvider>
                         </TransitioningContent>
                     </AnimatePresence>
                 </div>
