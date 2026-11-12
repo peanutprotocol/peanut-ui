@@ -25,6 +25,7 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { consumeLandingAutoLogin, disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
 import {
     cancelIOSImmediateLogin,
     checkAndroidLandingPasskey,
@@ -65,8 +66,7 @@ const LandingStep = () => {
     const [nativeLogin, setNativeLogin] = useState<'hidden' | 'full' | 'link'>('hidden')
     const loginHandler = useRef(handleLoginClick)
     const iosPreparation = useRef<AbortController | null>(null)
-    // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
-    // there; Log in and Sign up stay usable and retire it first when tapped.
+    // The discovery deadline does not dismiss an open sheet; navigation retires it.
     const autoLogin = useRef<{ cancel: AbortController; done: Promise<void> } | null>(null)
     const [autoLoginPending, setAutoLoginPending] = useState(false)
     const fallbackBusy = useRef(false)
@@ -96,6 +96,13 @@ const LandingStep = () => {
                     setNativeLogin(result === 'available' ? 'full' : 'link')
                 })
         } else if (isIOSNative && isNativeBridge) {
+            if (!consumeLandingAutoLogin()) {
+                setNativeLogin('link')
+                return () => {
+                    clearTimeout(timer)
+                    check.abort()
+                }
+            }
             iosPreparation.current = check
             void supportsIOSImmediateLogin()
                 .then(async (supported) => {
@@ -130,6 +137,14 @@ const LandingStep = () => {
             clearTimeout(timer)
             check.abort()
             if (iosPreparation.current === check) iosPreparation.current = null
+            const attempt = autoLogin.current
+            if (attempt) {
+                autoLogin.current = null
+                attempt.cancel.abort()
+                void cancelIOSImmediateLogin()
+            } else if (isIOSNative && isNativeBridge) {
+                void cancelIOSImmediateLogin()
+            }
         }
     }, [isHydrated, nativePlatform.isCapacitor, isAndroidNativeBridge, isIOSNative, isNativeBridge])
 
@@ -202,6 +217,7 @@ const LandingStep = () => {
     }
 
     const afterAutoLogin = (next?: () => unknown) => {
+        disableLandingAutoLogin()
         // Capability discovery can still be pending with no attempt to retire. An active
         // attempt also needs this signal to stop options loading from opening a late picker.
         iosPreparation.current?.abort()

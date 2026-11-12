@@ -1,7 +1,12 @@
 /** @jest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import Landing from '../Landing'
+let Landing: typeof import('../Landing').default
+var mockReact: typeof import('react')
+jest.mock('react', () => {
+    mockReact ??= jest.requireActual('react')
+    return mockReact
+})
 
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
@@ -150,6 +155,8 @@ function ios() {
 }
 
 beforeEach(() => {
+    jest.resetModules()
+    Landing = require('../Landing').default
     jest.useFakeTimers()
     jest.resetAllMocks()
     mockNative = {
@@ -542,4 +549,51 @@ describe('native landing passkey availability acceptance', () => {
         fireEvent.click(login()!)
         expect(mockLogin).toHaveBeenCalledWith()
     })
+})
+
+it('never repeats automatic iOS login after Landing remount within one app launch', async () => {
+    ios()
+    mockIOSCapability.mockResolvedValue(true)
+    const first = render(<Landing />)
+    await flush()
+    expect(mockLogin).toHaveBeenCalledTimes(1)
+    first.unmount()
+    render(<Landing />)
+    await flush()
+    await advance(5000)
+    expect(mockLogin).toHaveBeenCalledTimes(1)
+    fireEvent.click(login()!)
+    await flush()
+    expect(mockLogin).toHaveBeenCalledTimes(2)
+    expect(mockLogin).toHaveBeenLastCalledWith()
+})
+
+it('cancels the native request on unmount and discards a late automatic completion', async () => {
+    ios()
+    mockIOSCapability.mockResolvedValue(true)
+    const attempt = deferred<void>()
+    mockLogin.mockReturnValue(attempt.promise)
+    const first = render(<Landing />)
+    await flush()
+    const { immediateSignal, cancelSignal } = mockLogin.mock.calls[0][0]
+    first.unmount()
+    expect(immediateSignal.aborted).toBe(true)
+    expect(cancelSignal.aborted).toBe(true)
+    expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+    await act(async () => attempt.resolve())
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockToastError).not.toHaveBeenCalled()
+})
+
+it('manual Log in while capability is unresolved prevents a late automatic request', async () => {
+    ios()
+    const capability = deferred<boolean>()
+    mockIOSCapability.mockReturnValue(capability.promise)
+    render(<Landing />)
+    await advance(5000)
+    fireEvent.click(login()!)
+    await flush()
+    await act(async () => capability.resolve(true))
+    expect(mockLogin).toHaveBeenCalledTimes(1)
+    expect(mockLogin).toHaveBeenCalledWith()
 })

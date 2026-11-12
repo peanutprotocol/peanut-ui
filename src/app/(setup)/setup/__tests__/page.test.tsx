@@ -55,6 +55,7 @@ const WALLET = [{ type: 'peanut-wallet' }]
 const mockAuth = {
     user: undefined as MockAuthUser | undefined,
     isFetchingUser: false,
+    userFetchError: null as Error | null,
     logoutUser: jest.fn(),
     isLoggingOut: false,
     fetchUser: jest.fn().mockResolvedValue(undefined),
@@ -187,6 +188,7 @@ beforeEach(() => {
     mockStore.steps = [landing]
     mockFlow.step = landing
     mockAuth.isFetchingUser = false
+    mockAuth.userFetchError = null
     mockAuth.user = undefined
     mockAuth.fetchUser.mockResolvedValue(undefined)
     mockGetPendingBadgeCampaigns.mockReturnValue([])
@@ -208,6 +210,7 @@ afterEach(() => {
 it('shows retry and support when no current setup step can render', async () => {
     mockFlow.step = undefined
     renderWithIntl(<SetupPage />)
+    await advance(100)
     await advance(100)
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
@@ -238,6 +241,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
     mockResolve.mockReturnValue('signup')
     renderWithIntl(<SetupPage />)
     await advance(100)
+    await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(mockFlow.setScreenId).not.toHaveBeenCalled()
     expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
@@ -246,6 +250,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
 it('bounds waiting for the layout and reloads to restart layout and session initialization', async () => {
     mockStore.steps = []
     renderWithIntl(<SetupPage />)
+    await advance(15000)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     const originalLocation = window.location
@@ -264,6 +269,7 @@ it('recovers from an initialization exception', async () => {
         throw new Error('entry failed')
     })
     renderWithIntl(<SetupPage />)
+    await advance(100)
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
@@ -319,6 +325,7 @@ it('bounds waiting for session hydration', async () => {
     mockAuth.isFetchingUser = true
     renderWithIntl(<SetupPage />)
     await advance(15000)
+    await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 })
 
@@ -326,6 +333,7 @@ it('suppresses timeout recovery when a completed session starts leaving for home
     mockAuth.isFetchingUser = true
     const view = renderWithIntl(<SetupPage />)
     await advance(100)
+    await advance(15000)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 
@@ -937,4 +945,71 @@ describe('a signup interrupted after registration', () => {
             expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalled()
         })
     })
+})
+
+describe('unknown account state and bounded initialization recovery', () => {
+    it.each([false, true])(
+        'does not enter signup or trust cached account data after a profile error (cached=%s)',
+        async (cached) => {
+            mockAuth.userFetchError = new Error('profile unavailable')
+            if (cached) mockAuth.user = { user: { username: 'cached', hasAppAccess: true }, accounts: WALLET }
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+            expect(mockRouter.replace).not.toHaveBeenCalled()
+            expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+            await advance(0)
+            expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('automatically retries a failed initialization once and recovers when the second resolve succeeds', async () => {
+        mockResolve
+            .mockImplementationOnce(() => {
+                throw new Error('transient initialization')
+            })
+            .mockReturnValue('landing')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await advance(100)
+        expect(mockResolve).toHaveBeenCalledTimes(2)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('bounds persistent initialization exceptions to two attempts and retains manual recovery', async () => {
+        mockResolve.mockImplementation(() => {
+            throw new Error('persistent initialization')
+        })
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await advance(100)
+        await advance(120000)
+        expect(mockResolve).toHaveBeenCalledTimes(2)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+
+    it('retries missing entry steps once before generic recovery', async () => {
+        mockResolve.mockReturnValue('signup')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await advance(100)
+        await advance(120000)
+        expect(mockResolve).toHaveBeenCalledTimes(2)
+        expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+})
+
+it('automatically gives layout initialization one more bounded chance after its first timeout', async () => {
+    mockStore.steps = []
+    const view = renderWithIntl(<SetupPage />)
+    await advance(15000)
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    mockStore.steps = [landing]
+    view.rerender(<SetupPage />)
+    await advance(1000)
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    expect(mockResolve).toHaveBeenCalledTimes(1)
 })

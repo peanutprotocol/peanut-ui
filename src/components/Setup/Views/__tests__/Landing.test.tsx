@@ -31,6 +31,7 @@ jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mock
 jest.mock('@/utils/landing-passkeys', () => ({
     checkAndroidLandingPasskey: async () => 'available',
     supportsIOSImmediateLogin: async () => false,
+    cancelIOSImmediateLogin: jest.fn().mockResolvedValue(undefined),
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },

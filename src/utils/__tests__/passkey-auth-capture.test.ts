@@ -5,6 +5,7 @@ import {
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
     PasskeyVerifyRejectedError,
+    getLoginRetryError,
 } from '../passkey-auth-capture'
 import { stashCeremonyStepUpToken, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
 import { isCapacitor } from '@/utils/capacitor'
@@ -20,10 +21,11 @@ jest.mock('@/utils/passkeyCeremony.utils', () => ({
 const mockIsCapacitor = isCapacitor as jest.Mock
 
 // jsdom has no Response; the wrapper only touches ok/clone/json/text.
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, retryAfter?: string): Response {
     const response = {
         ok: status >= 200 && status < 300,
         status,
+        headers: new Headers(retryAfter ? { 'Retry-After': retryAfter } : {}),
         json: async () => body,
         text: async () => JSON.stringify(body),
         clone: () => response,
@@ -116,11 +118,43 @@ describe('installPasskeyVerifyCapture', () => {
         await expect(window.fetch('/passkeys/login/options', { method: 'POST' })).resolves.toBe(response)
     })
 
-    it('preserves non-auth login failures for the existing server/network classification', async () => {
-        const response = jsonResponse({ error: 'Login unavailable' }, 500)
-        mockUnderlyingFetch.mockResolvedValueOnce(response)
+    it.each([429, 500, 502, 503, 504])(
+        'types verify HTTP %s as a retryable failure without retrying',
+        async (status) => {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'Login unavailable' }, status, '30'))
+            await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).rejects.toMatchObject({
+                status,
+            })
+            expect(mockUnderlyingFetch).toHaveBeenCalledTimes(1)
+            expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
+            expect(stashCeremonyStepUpToken).not.toHaveBeenCalled()
+        }
+    )
 
-        await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).resolves.toBe(response)
+    it.each([
+        '30',
+        'Thu, 12 Nov 2026 14:00:30 GMT',
+        'invalid',
+        '-1',
+        '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999',
+    ])('honours Retry-After with a bounded parser and no immediate replay: %s', async (header) => {
+        const now = Date.parse('2026-11-12T14:00:00Z')
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+        try {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({}, 429, header))
+            await expect(window.fetch('/passkeys/login/verify')).rejects.toMatchObject({
+                name: 'PasskeyVerifyRetryableError',
+                status: 429,
+            })
+            const retry = getLoginRetryError()
+            const expectedDelay = header === '30' || header.includes('GMT') ? 30000 : 1000
+            expect(retry?.retryAt).toBe(now + expectedDelay)
+            expect(mockUnderlyingFetch).toHaveBeenCalledTimes(1)
+            clock.mockReturnValue(now + expectedDelay)
+            expect(getLoginRetryError()).toBeUndefined()
+        } finally {
+            clock.mockRestore()
+        }
     })
 })
 

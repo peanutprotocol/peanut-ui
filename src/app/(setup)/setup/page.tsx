@@ -47,6 +47,7 @@ import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
+import { disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
 
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
@@ -108,7 +109,7 @@ function SetupPageContent() {
         }
     }, [steps, currentStepIndex])
     const stepCopy = useSetupStepCopy(step)
-    const { user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, userFetchError, fetchUser } = useAuth()
     const router = useRouter()
     const signedInUserId = user?.user?.userId
     // The entry effect must run once per steps-identity, never per step change:
@@ -160,6 +161,7 @@ function SetupPageContent() {
     resumeTargetRef.current = resumeTarget
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
+    const [initializationAttempt, setInitializationAttempt] = useState(0)
     const initializationExpired = useRef(false)
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
@@ -215,9 +217,23 @@ function SetupPageContent() {
         }
     }, [])
 
-    const recoveryReason = isLeavingForHome
-        ? null
-        : (initializationError ?? (!isLoading && sessionChecked && !step ? 'missing_step' : null))
+    const pendingRecoveryReason = userFetchError
+        ? 'profile_fetch_failed'
+        : isLeavingForHome
+          ? null
+          : (initializationError ?? (!isLoading && sessionChecked && !step ? 'missing_step' : null))
+    const retryingInitialization =
+        !!pendingRecoveryReason && pendingRecoveryReason !== 'profile_fetch_failed' && initializationAttempt === 0
+    const recoveryReason = retryingInitialization ? null : pendingRecoveryReason
+
+    useEffect(() => {
+        if (!retryingInitialization) return
+        initializationExpired.current = false
+        resolvedEntry.current = null
+        setInitializationError(null)
+        setIsLoading(true)
+        setInitializationAttempt(1)
+    }, [retryingInitialization])
 
     useEffect(() => {
         if (!recoveryReason) return
@@ -237,16 +253,20 @@ function SetupPageContent() {
     }, [recoveryReason])
 
     useEffect(() => {
-        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome) return
+        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome || userFetchError) return
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
         }, 15000)
         return () => clearTimeout(timeout)
-    }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
+    }, [isLoading, sessionChecked, initializationError, isLeavingForHome, userFetchError, initializationAttempt])
 
     // Only count steps that actually render, not while the entry step is being determined.
     const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
+
+    useLayoutEffect(() => {
+        if (stepRendered && step?.screenId !== 'landing') disableLandingAutoLogin()
+    }, [stepRendered, step?.screenId])
 
     // Registration happens on the username step and is irreversible: every
     // later step locks the way back at the first step after it, while the steps
@@ -326,7 +346,7 @@ function SetupPageContent() {
      * separately so repeated invites cannot strand the loader.
      */
     useEffect(() => {
-        if (isFetchingUser) return
+        if (isFetchingUser || userFetchError) return
         const isInitialSessionCheck = !sessionChecked
         const isNewSetupDeepLink =
             !isInitialSessionCheck &&
@@ -449,6 +469,7 @@ function SetupPageContent() {
     }, [
         sessionChecked,
         isFetchingUser,
+        userFetchError,
         user,
         router,
         fetchUser,
@@ -461,6 +482,7 @@ function SetupPageContent() {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
         const determineInitialStep = async () => {
+            if (userFetchError) return
             const entryKey = JSON.stringify([inviteCodeParam, legacyStepParam])
             if (isObsolete() || resolvedEntry.current === entryKey) return
             // wait for layout to populate steps after logout/mount
@@ -535,7 +557,7 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam])
+    }, [steps, inviteCodeParam, legacyStepParam, keepWebParam, userFetchError, initializationAttempt])
 
     if (recoveryReason) {
         return (
@@ -546,8 +568,13 @@ function SetupPageContent() {
                     <Button
                         onClick={() => {
                             trackErrorScreen('try_again', 'tap', recoveryReason)
+                            if (userFetchError) {
+                                void fetchUser().catch(() => {})
+                                return
+                            }
                             window.location.reload()
                         }}
+                        disabled={isFetchingUser}
                     >
                         {tCommon('tryAgain')}
                     </Button>
@@ -565,7 +592,14 @@ function SetupPageContent() {
         )
     }
 
-    if (isLoading || !sessionChecked || isLeavingForHome || isSettlingNativeBadgeCampaigns)
+    if (
+        isLoading ||
+        !sessionChecked ||
+        isLeavingForHome ||
+        isSettlingNativeBadgeCampaigns ||
+        retryingInitialization ||
+        isFetchingUser
+    )
         return (
             <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />

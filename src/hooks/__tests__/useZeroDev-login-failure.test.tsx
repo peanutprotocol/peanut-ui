@@ -11,6 +11,7 @@ import {
     PasskeyVerifyRejectedError,
 } from '@/utils/passkey-auth-capture'
 import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
+import * as passkeyCapture from '@/utils/passkey-auth-capture'
 import { AccountType } from '@/interfaces/interfaces'
 
 const mockSetIsLoggingIn = jest.fn()
@@ -149,6 +150,54 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
 
     afterEach(() => errorSpy.mockRestore())
 
+    it('refuses another login during the verify retry window without opening a ceremony', async () => {
+        const retry = jest
+            .spyOn(passkeyCapture, 'getLoginRetryError')
+            .mockReturnValue(new passkeyCapture.PasskeyVerifyRetryableError(429, Date.now() + 30000))
+        try {
+            const { result } = renderHook(() => useZeroDev())
+            await expect(result.current.handleLogin()).rejects.toMatchObject({ code: 'NETWORK' })
+            await expect(result.current.handleLogin()).rejects.toMatchObject({ code: 'NETWORK' })
+            expect(mockToWebAuthnKey).not.toHaveBeenCalled()
+            expect(clearAuthState).not.toHaveBeenCalled()
+        } finally {
+            retry.mockRestore()
+        }
+    })
+
+    it('propagates retirement through pending profile hydration without publishing a key', async () => {
+        const controller = new AbortController()
+        mockToWebAuthnKey.mockResolvedValueOnce({ id: 'retired-key' })
+        mockHydrateLoginSession.mockImplementationOnce(
+            (signal: AbortSignal) =>
+                new Promise((_, reject) => {
+                    signal.addEventListener('abort', () => reject(new DOMException('Retired', 'AbortError')), {
+                        once: true,
+                    })
+                })
+        )
+        const { result } = renderHook(() => useZeroDev())
+        let pending!: Promise<unknown>
+        await act(async () => {
+            pending = result.current
+                .handleLogin({
+                    immediateSignal: new AbortController().signal,
+                    immediateDeadline: Date.now() + 5000,
+                    cancelSignal: controller.signal,
+                })
+                .catch((error: unknown) => error)
+        })
+        expect(mockHydrateLoginSession).toHaveBeenCalledWith(controller.signal)
+        await act(async () => {
+            controller.abort()
+            await pending
+        })
+        expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
+        expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockSetIsLoggingIn).toHaveBeenLastCalledWith(false)
+    })
+
     const loginRejectingWith = async (error: unknown) => {
         mockToWebAuthnKey.mockRejectedValue(error)
         const { result } = renderHook(() => useZeroDev())
@@ -162,6 +211,22 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         })
         return thrown as Error & { code?: string }
     }
+
+    it.each([429, 500, 503])(
+        'preserves the session for retryable verify %i without automatic retry',
+        async (status) => {
+            const error = Object.assign(new Error('Passkey verification temporarily unavailable'), {
+                name: 'PasskeyVerifyRetryableError',
+                status,
+                retryAt: Date.now() + 5000,
+            })
+            const thrown = await loginRejectingWith(error)
+            expect(thrown.code).toBe('NETWORK')
+            expect(clearAuthState).not.toHaveBeenCalled()
+            expect(mockToWebAuthnKey).toHaveBeenCalledTimes(1)
+            expect(mockHydrateLoginSession).not.toHaveBeenCalled()
+        }
+    )
 
     // zerodev's /login/options error-body path: @simplewebauthn's base64url
     // decoder gets an error body instead of a challenge and throws this from
