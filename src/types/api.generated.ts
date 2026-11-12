@@ -14164,6 +14164,11 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "linkId": "invite_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                         *     }
+                         */
                         "application/json": {
                             linkId: string;
                         };

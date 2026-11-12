@@ -25264,6 +25264,9 @@
 					"200": {
 						"content": {
 							"application/json": {
+								"example": {
+									"linkId": "invite_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+								},
 								"schema": {
 									"additionalProperties": false,
 									"properties": {
