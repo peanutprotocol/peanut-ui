@@ -1642,6 +1642,21 @@
         "route": "/card"
     },
     {
+        "id": "fixture-card-lock-balance-left",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-cancel-return-blocked",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
+        "id": "fixture-card-cancel-credit-left",
+        "flow": "Card",
+        "route": "/card"
+    },
+    {
         "id": "fixture-card-prohibited",
         "flow": "Card",
         "route": "/card"

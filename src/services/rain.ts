@@ -67,8 +67,34 @@ export type RainCardFunding = paths['/rain/cards/funding']['get']['responses'][2
 export type RainFundingManagementStatus = RainCardFunding['management']['status']
 export type RainFundingMigration = NonNullable<RainCardFunding['management']['migration']>
 
-type CardLockResponse = paths['/rain/cards/{cardId}/lock']['post']['responses'][200]['content']['application/json']
-type CardCancelResponse = paths['/rain/cards/{cardId}/cancel']['post']['responses'][200]['content']['application/json']
+/**
+ * What a lock or a cancel did about the card balance, in cents (peanut-api-ts
+ * `CollateralReturn`). Absent from an API that predates it, and when the card
+ * was already in the target status. Hand-written until the OpenAPI snapshot
+ * carries the field.
+ */
+export interface CardCollateralReturn {
+    /**
+     * `nothing`: none of the balance is the user's to move. `returned`: the
+     * signed return went through. `required`: the request carried no return.
+     * `waiting`: the provider holds the balance back for now. `failed`: the
+     * return did not go through. `unknown`: the balance could not be read.
+     */
+    state: 'nothing' | 'returned' | 'required' | 'waiting' | 'failed' | 'unknown'
+    returnedCents: number
+    /** The user's balance still in the card after the request. */
+    remainingCents: number
+    /** Reserved for pending and posted card payments. It stays in the card. */
+    heldCents: number
+    /** Refund credit: the card can spend it, nothing can move it. */
+    cardCreditCents: number
+    retryAfterSec?: number
+}
+type CardStopExtras = { collateralReturn?: CardCollateralReturn }
+type CardLockResponse = paths['/rain/cards/{cardId}/lock']['post']['responses'][200]['content']['application/json'] &
+    CardStopExtras
+type CardCancelResponse =
+    paths['/rain/cards/{cardId}/cancel']['post']['responses'][200]['content']['application/json'] & CardStopExtras
 type CardActivateResponse =
     paths['/rain/cards/{cardId}/activate']['post']['responses'][200]['content']['application/json']
 export type CardFundingStop = CardLockResponse['fundingStop']
@@ -624,6 +650,11 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             status: response.status,
             code: err.code,
             reason: typeof err.reason === 'string' ? err.reason : undefined,
+            // A cancel that waits for the card balance says how long.
+            retryAfterSec:
+                typeof err.retryAfterSec === 'number' && Number.isFinite(err.retryAfterSec) && err.retryAfterSec > 0
+                    ? err.retryAfterSec
+                    : undefined,
         })
     }
 
@@ -995,10 +1026,12 @@ export const rainApi = {
         }),
 
     /**
-     * Lock an active card. When the user has positive spending power, the
-     * caller MUST pass `verifiedWithdrawal` — the backend returns 400
-     * otherwise. Funds are returned to the user's smart wallet before the
-     * lock so they stay liquid. Idempotent on an already locked card.
+     * Lock an active card. `verifiedWithdrawal` is the signed return of the card
+     * balance to the user's smart wallet; the backend runs it before the lock.
+     * The lock is never refused for the return: the card locks with or without
+     * it, and `collateralReturn` says what is still in the card. An API that
+     * predates `collateralReturn` answers 400 or 409 instead. Idempotent on an
+     * already locked card.
      */
     lockCard: async (cardId: string, verifiedWithdrawal?: SignedRainWithdrawal): Promise<CardLockResponse> =>
         rainRequest<CardLockResponse>({
@@ -1010,10 +1043,13 @@ export const rainApi = {
         }),
 
     /**
-     * Cancel a card. When the user has positive spending power, the caller
-     * MUST pass `verifiedWithdrawal` — the backend returns 400 otherwise.
-     * Funds are returned to the user's smart wallet before the cancel,
-     * since cancel can be terminal on Rain's side.
+     * Cancel a card. `verifiedWithdrawal` is the signed return of the card
+     * balance to the user's smart wallet; the backend runs it before the
+     * cancel, since a canceled card's balance is out of reach. A cancel waits
+     * until that balance is back: 400 without the signed return, 409
+     * `CARD_RETURN_BLOCKED` or `CARD_BALANCE_REMAINS` with `retryAfterSec`, 502
+     * `CARD_BALANCE_UNREADABLE`. What is reserved for pending payments stays in
+     * the card and blocks nothing (`collateralReturn.heldCents`).
      * Optional feedback persisted on RainCard.cancellationReason.
      */
     cancelCard: async (
@@ -1032,15 +1068,6 @@ export const rainApi = {
             body,
             // Withdrawal path includes a UserOp wait — extend past the 10s default.
             timeoutMs: opts?.verifiedWithdrawal ? 120_000 : undefined,
-        })
-    },
-
-    /** Attach feedback to an already-canceled card. Non-fatal on failure. */
-    submitCancellationFeedback: async (cardId: string, feedback: string): Promise<void> => {
-        await rainRequest<{ ok: boolean }>({
-            method: 'POST',
-            path: `/rain/cards/${cardId}/cancellation-feedback`,
-            body: { feedback },
         })
     },
 

@@ -1669,7 +1669,7 @@ const CARD_HOLDER_OVERVIEW = {
 
 /** $25.00 the provider can release; holds already excluded. */
 const CARD_HOLDER_COLLATERAL = {
-    creditLimit: 0,
+    creditLimit: 2500,
     spendingPower: 2500,
     pendingCharges: 0,
     postedCharges: 0,
@@ -3152,6 +3152,68 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /rain/cards/fixture-card/lock': {
                 status: 'LOCKED',
                 fundingStop: { state: 'unavailable', reason: 'scope_retired' },
+            },
+        },
+    },
+    // What a lock or cancel left in the card. The balance on screen reads zero, as it does while the
+    // provider holds it back, so nothing is signed and the backend's answer alone decides the copy.
+    'card-lock-balance-left': {
+        route: '/card',
+        about: 'Cardholder whose freeze could not move the card balance: Card frozen, with the amount still in the card and what is reserved for pending payments.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'not_applicable', reason: null },
+                collateralReturn: {
+                    state: 'waiting',
+                    returnedCents: 0,
+                    remainingCents: 2000,
+                    heldCents: 550,
+                    cardCreditCents: 0,
+                    retryAfterSec: 420,
+                },
+            },
+        },
+    },
+    'card-cancel-return-blocked': {
+        route: '/card',
+        about: 'Cardholder whose cancel waits for the card balance: a countdown in place of the backend sentence, and the slide is held.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+        rejects: {
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 409,
+                body: {
+                    error: 'Your card balance cannot be returned yet. Try again in 3 minutes.',
+                    code: 'CARD_RETURN_BLOCKED',
+                    retryAfterSec: 150,
+                },
+            },
+        },
+    },
+    'card-cancel-credit-left': {
+        route: '/card',
+        about: 'Cardholder whose cancel leaves a pending payment hold and refund credit: Card canceled, with both named.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 'CANCELED',
+                fundingStop: { state: 'not_applicable', reason: null },
+                collateralReturn: {
+                    state: 'returned',
+                    returnedCents: 2000,
+                    remainingCents: 0,
+                    heldCents: 550,
+                    cardCreditCents: 1234,
+                },
             },
         },
     },
