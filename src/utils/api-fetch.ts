@@ -22,6 +22,8 @@ import {
 
 type FetchOptions = RequestInit & {
     timeoutMs?: number
+    /** See `FetchWithSentryOptions.drainResponseBody`. */
+    drainResponseBody?: boolean
     /** Recheck a captured session immediately before an optional guarded request is dispatched. */
     beforeDispatch?: () => boolean
     /** Public endpoints can opt out of sending the web bearer token. */

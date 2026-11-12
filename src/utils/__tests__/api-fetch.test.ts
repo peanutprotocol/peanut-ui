@@ -657,3 +657,18 @@ describe('native app binary version header', () => {
         })
     })
 })
+
+it.each([apiFetch, serverFetch])(
+    'forwards the explicit body-draining opt-out through the API client',
+    async (client) => {
+        jest.clearAllMocks()
+        disableDemoMode()
+        const options = { drainResponseBody: false, timeoutMs: 60_000 }
+        await client('/users/history/export', options)
+        expect(mockFetchWithSentry).toHaveBeenCalledWith(
+            expect.stringContaining('/users/history/export'),
+            expect.objectContaining({ drainResponseBody: false }),
+            60_000
+        )
+    }
+)

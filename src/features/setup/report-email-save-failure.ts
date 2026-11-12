@@ -3,8 +3,8 @@ import { getPlatform, isCapacitor } from '@/utils/capacitor'
 import { captureMessage } from '@/utils/sentry-lazy'
 
 /**
- * The sign-up email is required and the step has no skip, so a save that
- * fails after the request layer's own retry blocks the user. Report it at
+ * A failed first-email save blocks signup. Protected replacement failures
+ * keep the existing email and allow continuation. Report failures at
  * error level under one fingerprint per failure kind, so an alert can page on
  * the first event and on a spike. The event carries no email address.
  */
@@ -13,7 +13,11 @@ export function reportEmailSaveFailure({
     status,
     attempt,
 }: {
-    failureKind?: UpdateUserFailureKind
+    failureKind?:
+        | UpdateUserFailureKind
+        | 'step_up_required'
+        | 'email_verification_required'
+        | 'email_replacement_disabled'
     status?: number
     /** How many times the user has pressed Continue on this step. */
     attempt: number

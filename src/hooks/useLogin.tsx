@@ -80,6 +80,10 @@ export const useLogin = () => {
         try {
             if (options) await handleLogin(options)
             else await handleLogin()
+            if (options?.cancelSignal?.aborted) {
+                setIsloginClicked(false)
+                return
+            }
             setLoginResolved(true)
         } catch (e) {
             setIsloginClicked(false)

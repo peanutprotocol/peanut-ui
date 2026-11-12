@@ -5,6 +5,7 @@ import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
 import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
+import { getLoginRetryError } from '@/utils/passkey-auth-capture'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDevFlow, zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import { removeFromCookie, saveToCookie, updateUserPreferences } from '@/utils/general.utils'
@@ -257,6 +258,11 @@ export const useZeroDev = () => {
         immediateDeadline,
         cancelSignal,
     }: { immediateSignal?: AbortSignal; immediateDeadline?: number; cancelSignal?: AbortSignal } = {}) => {
+        const retryError = getLoginRetryError()
+        if (retryError) {
+            const { code, message } = classifyPasskeyError(retryError)
+            throw new PasskeyError(message, code)
+        }
         if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const { code, message } = classifyPasskeyError(new CeremonyConflictError())
             throw new PasskeyError(message, code)

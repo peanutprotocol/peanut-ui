@@ -1,7 +1,12 @@
 /** @jest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import Landing from '../Landing'
+let Landing: typeof import('../Landing').default
+var mockReact: typeof import('react')
+jest.mock('react', () => {
+    mockReact ??= jest.requireActual('react')
+    return mockReact
+})
 
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
@@ -143,13 +148,16 @@ const advance = async (milliseconds: number) => {
 const login = () => screen.queryByRole('button', { name: 'logIn' })
 const expectEntryActions = () => {
     expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
-    expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
+    // The recovery link appears only after a manual login fails.
+    expect(screen.queryByText('landing.recoverWallet')).not.toBeInTheDocument()
 }
 function ios() {
     mockNative = { ...mockNative, platform: 'ios', isIOSNative: true, isAndroidNativeBridge: false }
 }
 
 beforeEach(() => {
+    jest.resetModules()
+    Landing = require('../Landing').default
     jest.useFakeTimers()
     jest.resetAllMocks()
     mockNative = {
@@ -452,58 +460,51 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockLogin).not.toHaveBeenCalled()
     })
 
-    function selectIOSFallback(action: 'signup' | 'recovery') {
+    function selectIOSFallback(action: 'signup') {
         if (action === 'signup') fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
-        else fireEvent.click(screen.getByText('landing.recoverWallet'))
     }
 
-    it.each(['signup', 'recovery'] as const)(
-        'does not start iOS auto-login after %s during capability lookup',
-        async (action) => {
-            ios()
-            const capability = deferred<boolean>()
-            mockIOSCapability.mockReturnValue(capability.promise)
-            render(<Landing />)
+    it.each(['signup'] as const)('does not start iOS auto-login after %s during capability lookup', async (action) => {
+        ios()
+        const capability = deferred<boolean>()
+        mockIOSCapability.mockReturnValue(capability.promise)
+        render(<Landing />)
 
-            selectIOSFallback(action)
-            await act(async () => capability.resolve(true))
+        selectIOSFallback(action)
+        await act(async () => capability.resolve(true))
 
-            if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
-            expect(mockLogin).not.toHaveBeenCalled()
-            expect(mockCancelIOS).not.toHaveBeenCalled()
-        }
-    )
+        if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(mockLogin).not.toHaveBeenCalled()
+        expect(mockCancelIOS).not.toHaveBeenCalled()
+    })
 
-    it.each(['signup', 'recovery'] as const)(
-        'prevents a late iOS picker after %s during options fetch',
-        async (action) => {
-            ios()
-            mockIOSCapability.mockResolvedValue(true)
-            const options = deferred<void>()
-            const dispatchPicker = jest.fn()
-            mockLogin.mockImplementationOnce(
-                ({ immediateSignal, cancelSignal }: { immediateSignal: AbortSignal; cancelSignal: AbortSignal }) => {
-                    // The SDK options request and outer ceremony guard observe different signals.
-                    void options.promise.then(() => {
-                        if (!immediateSignal.aborted) dispatchPicker()
-                    })
-                    return new Promise<void>((resolve) => {
-                        cancelSignal.addEventListener('abort', () => resolve(), { once: true })
-                    })
-                }
-            )
-            render(<Landing />)
-            await flush()
-            expect(mockLogin).toHaveBeenCalledTimes(1)
+    it.each(['signup'] as const)('prevents a late iOS picker after %s during options fetch', async (action) => {
+        ios()
+        mockIOSCapability.mockResolvedValue(true)
+        const options = deferred<void>()
+        const dispatchPicker = jest.fn()
+        mockLogin.mockImplementationOnce(
+            ({ immediateSignal, cancelSignal }: { immediateSignal: AbortSignal; cancelSignal: AbortSignal }) => {
+                // The SDK options request and outer ceremony guard observe different signals.
+                void options.promise.then(() => {
+                    if (!immediateSignal.aborted) dispatchPicker()
+                })
+                return new Promise<void>((resolve) => {
+                    cancelSignal.addEventListener('abort', () => resolve(), { once: true })
+                })
+            }
+        )
+        render(<Landing />)
+        await flush()
+        expect(mockLogin).toHaveBeenCalledTimes(1)
 
-            selectIOSFallback(action)
-            await act(async () => options.resolve())
+        selectIOSFallback(action)
+        await act(async () => options.resolve())
 
-            if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
-            expect(dispatchPicker).not.toHaveBeenCalled()
-            expect(mockCancelIOS).toHaveBeenCalledTimes(1)
-        }
-    )
+        if (action === 'signup') expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(dispatchPicker).not.toHaveBeenCalled()
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+    })
 
     it('ignores iOS capability confirmed after timeout or unmount', async () => {
         ios()
@@ -542,4 +543,51 @@ describe('native landing passkey availability acceptance', () => {
         fireEvent.click(login()!)
         expect(mockLogin).toHaveBeenCalledWith()
     })
+})
+
+it('never repeats automatic iOS login after Landing remount within one app launch', async () => {
+    ios()
+    mockIOSCapability.mockResolvedValue(true)
+    const first = render(<Landing />)
+    await flush()
+    expect(mockLogin).toHaveBeenCalledTimes(1)
+    first.unmount()
+    render(<Landing />)
+    await flush()
+    await advance(5000)
+    expect(mockLogin).toHaveBeenCalledTimes(1)
+    fireEvent.click(login()!)
+    await flush()
+    expect(mockLogin).toHaveBeenCalledTimes(2)
+    expect(mockLogin).toHaveBeenLastCalledWith()
+})
+
+it('cancels the native request on unmount and discards a late automatic completion', async () => {
+    ios()
+    mockIOSCapability.mockResolvedValue(true)
+    const attempt = deferred<void>()
+    mockLogin.mockReturnValue(attempt.promise)
+    const first = render(<Landing />)
+    await flush()
+    const { immediateSignal, cancelSignal } = mockLogin.mock.calls[0][0]
+    first.unmount()
+    expect(immediateSignal.aborted).toBe(true)
+    expect(cancelSignal.aborted).toBe(true)
+    expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+    await act(async () => attempt.resolve())
+    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockToastError).not.toHaveBeenCalled()
+})
+
+it('manual Log in while capability is unresolved prevents a late automatic request', async () => {
+    ios()
+    const capability = deferred<boolean>()
+    mockIOSCapability.mockReturnValue(capability.promise)
+    render(<Landing />)
+    await advance(5000)
+    fireEvent.click(login()!)
+    await flush()
+    await act(async () => capability.resolve(true))
+    expect(mockLogin).toHaveBeenCalledTimes(1)
+    expect(mockLogin).toHaveBeenCalledWith()
 })

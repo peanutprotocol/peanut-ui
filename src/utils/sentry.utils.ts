@@ -579,7 +579,8 @@ const reportNonOkResponse = async (
     options: RequestInit,
     response: Response,
     redactTelemetry = false,
-    callerReportsFailures = false
+    callerReportsFailures = false,
+    signal?: AbortSignal
 ): Promise<void> => {
     if (response.ok) return
     if (callerReportsFailures) {
@@ -620,6 +621,8 @@ const reportNonOkResponse = async (
             .text()
             .catch(() => '')
     }
+
+    if (signal?.aborted) return
 
     if (
         users404 &&
@@ -680,6 +683,8 @@ export type FetchWithSentryOptions = RequestInit & {
     /** Report only status/method and static errors for sensitive requests. */
     redactTelemetry?: boolean
     preferNativeTransport?: boolean
+    /** Return at headers for downloads consumed outside the transport budget. */
+    drainResponseBody?: boolean
     /*
      * Opt out of the Sentry capture on timeout. For call sites that own a
      * designed fallback for exactly this failure — `useCardMarkupRate` returns
@@ -736,6 +741,7 @@ export const fetchWithSentry = async (
         callerReportsFailures,
         idempotent,
         beforeDispatch,
+        drainResponseBody = true,
         ...options
     } = optionsWithTransport
     const telemetryUrl = redactTelemetry ? '[redacted]' : url
@@ -762,22 +768,45 @@ export const fetchWithSentry = async (
      * the late response is neither returned nor reported. The request itself
      * still reaches the server; SocketQueryRefresh keeps that to one per event.
      */
-    const nativeLeg = (legMs: number): Promise<Response> => {
-        const request = beforeDispatch
-            ? nativeHttpRequest(url, options, legMs, beforeDispatch)
-            : nativeHttpRequest(url, options, legMs)
-        if (!callerSignal) return request
-        return new Promise<Response>((resolve, reject) => {
-            const onCancel = () => reject(cancelError(callerSignal))
-            callerSignal.addEventListener('abort', onCancel, { once: true })
-            request.then(resolve, reject).finally(() => callerSignal.removeEventListener('abort', onCancel))
+    const method = (options.method || 'GET').toUpperCase()
+    let responseReceived = false
+    const finishResponse = async (response: Response, signal: AbortSignal): Promise<Response> => {
+        responseReceived = true
+        // Drain a clone under the transport budget, leaving the original body and metadata intact for callers.
+        if (drainResponseBody && response.body) await response.clone().arrayBuffer()
+        if (signal.aborted) throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
+        await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures, signal)
+        return response
+    }
+    const nativeLeg = async (legMs: number): Promise<Response> => {
+        const controller = new AbortController()
+        const onCancel = () => controller.abort()
+        callerSignal?.addEventListener('abort', onCancel, { once: true })
+        let timer: ReturnType<typeof setTimeout> | undefined
+        let onAbort: () => void = () => {}
+        const interrupted = new Promise<never>((_, reject) => {
+            onAbort = () => reject(Object.assign(new Error('native http timed out'), { name: 'AbortError' }))
+            controller.signal.addEventListener('abort', onAbort, { once: true })
+            timer = setTimeout(() => controller.abort(), legMs)
         })
+        try {
+            const request = beforeDispatch
+                ? nativeHttpRequest(url, options, legMs, beforeDispatch)
+                : nativeHttpRequest(url, options, legMs)
+            return await Promise.race([
+                request.then((response) => finishResponse(response, controller.signal)),
+                interrupted,
+            ])
+        } finally {
+            clearTimeout(timer)
+            callerSignal?.removeEventListener('abort', onCancel)
+            controller.signal.removeEventListener('abort', onAbort)
+        }
     }
 
     // Idempotent requests get one silent retry on timeout: stalled-transport
     // failures (Android webview, flaky mobile networks) usually clear on a
     // fresh attempt (PEANUT-UI-R44).
-    const method = (options.method || 'GET').toUpperCase()
     const maxAttempts = method === 'GET' || method === 'HEAD' ? 2 : 1
     let networkRetryLeft = idempotent === true && isMutatingMethod(method)
 
@@ -834,9 +863,10 @@ export const fetchWithSentry = async (
     if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
         try {
             const response = await nativeLeg(legTimeoutMs())
-            await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
             return response
-        } catch {
+        } catch (error) {
+            if (callerSignal?.aborted) throw cancelError(callerSignal)
+            if (responseReceived && isMutatingMethod(method)) throw error
             // OS client failed, or the caller cancelled — the WebView path below
             // checks the cancel first and is otherwise the report of record
         }
@@ -862,13 +892,20 @@ export const fetchWithSentry = async (
             const legStartedAt = Date.now()
             const controller = new AbortController()
             const timeoutId = setTimeout(() => controller.abort(), legMs)
+            let onAbort: () => void = () => {}
+            const interrupted = new Promise<never>((_, reject) => {
+                onAbort = () => reject(Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' }))
+                controller.signal.addEventListener('abort', onAbort, { once: true })
+            })
             const cancelLeg = () => controller.abort()
             callerSignal?.addEventListener('abort', cancelLeg)
             try {
-                return await fetch(url, {
-                    ...options,
-                    signal: controller.signal,
-                })
+                return await Promise.race([
+                    fetch(url, { ...options, signal: controller.signal }).then((response) =>
+                        finishResponse(response, controller.signal)
+                    ),
+                    interrupted,
+                ])
             } catch (error) {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)
                 lastLegInterrupted = legInterrupted(legGeneration, legStartedAt, legMs)
@@ -887,6 +924,7 @@ export const fetchWithSentry = async (
                 // Draws on the remaining pool, so the call's worst case is unchanged.
                 if (
                     networkRetryLeft &&
+                    !responseReceived &&
                     isPreResponseNetworkError(error) &&
                     !isBackgrounded() &&
                     legTimeoutMs() >= minLegMs
@@ -900,6 +938,7 @@ export const fetchWithSentry = async (
                 throw error
             } finally {
                 clearTimeout(timeoutId)
+                controller.signal.removeEventListener('abort', onAbort)
                 callerSignal?.removeEventListener('abort', cancelLeg)
             }
         }
@@ -907,8 +946,6 @@ export const fetchWithSentry = async (
 
     try {
         const response = await attemptFetch()
-
-        await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
 
         return response
     } catch (error: unknown) {
@@ -918,10 +955,14 @@ export const fetchWithSentry = async (
         // before declaring failure: the edge rejects Android WebView requests at
         // the TLS-fingerprint level (PEANUT-UI-R5F), which fetch can only
         // surface as an opaque TypeError.
-        if (!(lastLegInterrupted && isBackgrounded()) && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
+        if (
+            !(responseReceived && isMutatingMethod(method)) &&
+            !(lastLegInterrupted && isBackgrounded()) &&
+            canUseNativeHttp(url, options) &&
+            legTimeoutMs() >= minLegMs
+        ) {
             try {
                 const response = await nativeLeg(legTimeoutMs())
-                await reportNonOkResponse(url, options, response, redactTelemetry, callerReportsFailures)
                 return response
             } catch {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)

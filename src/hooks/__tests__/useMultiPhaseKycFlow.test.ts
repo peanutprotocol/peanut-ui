@@ -127,7 +127,7 @@ describe('useMultiPhaseKycFlow — the address step', () => {
                 })
         )
         const { result } = renderHook(() => useMultiPhaseKycFlow({}))
-        let pending!: Promise<void>
+        let pending!: Promise<boolean>
         act(() => {
             pending = result.current.handleStartAction('sumsub:address_of_residence')
         })

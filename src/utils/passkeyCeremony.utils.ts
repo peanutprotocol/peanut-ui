@@ -287,6 +287,8 @@ export const guardPasskeyCeremony = async <T>(
             native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
             native ? () => androidScope?.expire() : cancelBrowserCeremony
         )
+        // The ceremony can settle in the same turn as a retirement; a retired login must not commit a session.
+        if (cancel?.aborted) throw new CeremonyCancelledError()
         if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
         const stepUp = takeStashedStepUp()
         if (stepUp !== null) setCachedStepUpToken(stepUp.token, stepUp.expiresIn)

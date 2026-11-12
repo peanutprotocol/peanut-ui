@@ -436,6 +436,7 @@ export const useMultiPhaseKycFlow = ({
         isProviderRequest,
         handleFixableRejection,
         handleFixableGate,
+        handleSdkSubmitted: originalHandleSdkSubmitted,
         handleSdkComplete: originalHandleSdkComplete,
         handleClose,
         refreshToken,
@@ -541,6 +542,7 @@ export const useMultiPhaseKycFlow = ({
 
     const handleSdkSubmitted = useCallback(
         (source: SumsubSubmissionSource = 'sdk_submitted') => {
+            originalHandleSdkSubmitted()
             reportedRejectionRef.current = null
             // The address step is not an identity submission (handleSdkComplete reports it).
             if (getActionKey() === RESIDENCE_ADDRESS_ACTION_KEY) return
@@ -550,7 +552,13 @@ export const useMultiPhaseKycFlow = ({
                 setModalPhase('submitted')
             }
         },
-        [captureSubmission, isArgentinaSingleLevelSession, originalHandleSdkComplete, getActionKey]
+        [
+            captureSubmission,
+            isArgentinaSingleLevelSession,
+            originalHandleSdkComplete,
+            originalHandleSdkSubmitted,
+            getActionKey,
+        ]
     )
 
     // wrap handleSdkComplete to track real-time flow

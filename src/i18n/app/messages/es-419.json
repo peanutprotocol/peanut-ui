@@ -505,6 +505,7 @@
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
             "bankOnlyNotAvailableNote": "Las transferencias bancarias no están disponibles para residentes de tu país.",
             "cardNotAvailableNote": "La Peanut Card no está disponible para residentes de tu país.",
+            "cardNotAvailableStateNote": "La Peanut Card no está disponible en tu estado.",
             "changeModal": {
                 "reviewTitle": "En revisión",
                 "reviewBody": "Estamos revisando tus documentos de residencia.",
