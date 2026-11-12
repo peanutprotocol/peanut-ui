@@ -56,9 +56,10 @@ export function ClosedRowDrawer({
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const { user } = useAuth()
-    // Rain issues cards across the US, so a US resident's geo refusal is always a state one.
-    const residenceCountry = (user?.residence?.verified?.country ?? user?.residence?.declared?.country)?.toUpperCase()
-    const livesInUs = residenceCountry === 'US' || residenceCountry === 'USA'
+    // For a US residence the only card geo rule is rain.us-state; a pending change elsewhere can be the refusal.
+    const residences = [user?.residence?.verified?.country, user?.residence?.declared?.country].filter(Boolean)
+    const livesInUs =
+        residences.length > 0 && residences.every((country) => ['US', 'USA'].includes(country!.toUpperCase()))
     const { identity } = useIdentityVerification()
 
     const content = closed ? drawerContent(closed) : null

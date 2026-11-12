@@ -2017,6 +2017,15 @@ describe('card refusal rows follow the feature report', () => {
         ).not.toBeInTheDocument()
     })
 
+    test('a US resident moving to another country keeps the country explanation', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'NG', verified: 'US' }), user: { userId: 'us-ng' } }
+        mockApiCard = { state: 'refused', reason: 'geo-blocked' }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText("The Peanut card isn't available for residents of your country.")).toBeInTheDocument()
+        expect(screen.queryByText(en.profile.unlockPayments.cardNotAvailableStateNote)).not.toBeInTheDocument()
+    })
+
     test('a closed nonresidence refusal shows its own message', () => {
         mockApiCard = {
             state: 'refused',
