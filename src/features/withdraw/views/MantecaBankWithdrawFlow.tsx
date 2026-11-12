@@ -1113,9 +1113,11 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                         return
                     }
                     if (mantecaRejection.state === 'restart-identity') {
-                        await sumsubFlow.handleRestartIdentity()
+                        const opened = await sumsubFlow.handleRestartIdentity()
+                        if (opened) setShowKycModal(false)
                     } else if (mantecaRejection.state === 'fixable') {
-                        await sumsubFlow.handleFixableRejection(mantecaRejection)
+                        const opened = await sumsubFlow.handleFixableRejection(mantecaRejection)
+                        if (opened) setShowKycModal(false)
                     } else {
                         const opened = await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                         if (opened) setShowKycModal(false)

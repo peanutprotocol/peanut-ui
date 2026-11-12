@@ -1023,7 +1023,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // different ID. Used as the CTA for the `restart-identity` gate state
     // (Manteca country-ineligibility — uploaded a non-AR/BR document).
     const restartIdentity = useCallback(
-        async (overrideIntent?: KYCRegionIntent) => {
+        async (overrideIntent?: KYCRegionIntent): Promise<boolean> => {
             documentAttemptRef.current = null
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
@@ -1052,17 +1052,18 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // A replacement already under way keeps the documents it froze.
                     try {
                         acceptDocumentSession(await resumeKycDocumentAttempt(replacement.activeAttemptId))
+                        return true
                     } catch {
                         userInitiatedRef.current = false
                         setError(t('errorRestartFailed'))
+                        return false
                     }
-                    return
                 }
                 if (replacement) {
                     // The API restarts this identity only on documents picked in Peanut.
                     userInitiatedRef.current = false
                     router.push(paperworkVerificationRestartPath())
-                    return
+                    return false
                 }
                 // Only an EXPLICIT override is forwarded, never the local ref.
                 // `resolveRestartIntent` on the route returns the intent canonical
@@ -1080,7 +1081,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     userInitiatedRef.current = false
                     setError(actionErrorMessage(response))
                     setErrorCooldown(response.cooldown ?? null)
-                    return
+                    return false
                 }
                 if (response.data?.token) {
                     setAccessToken(response.data.token)
@@ -1100,14 +1101,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     setIsMultiLevel(isMultiLevelIntent(resolvedIntent))
                     sdkSubmittedRef.current = false
                     setShowWrapper(true)
+                    return true
                 } else {
                     userInitiatedRef.current = false
                     setError(t('errorRestartFailed'))
+                    return false
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
+                return false
             } finally {
                 setIsLoading(false)
             }
@@ -1179,7 +1183,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // specific (e.g. future-dated advisory) Bridge requirement; omitted for the
     // legacy blocking flow.
     const handleSelfHealResubmit = useCallback(
-        async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
+        async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string): Promise<boolean> => {
             documentAttemptRef.current = null
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
@@ -1208,18 +1212,20 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     selfHealProviderRef.current = null
                     actionKeyRef.current = null
                     setError(actionErrorMessage(response))
-                    return
+                    return false
                 }
 
                 if (response.data?.token) {
                     setAccessToken(response.data.token)
                     sdkSubmittedRef.current = false
                     setShowWrapper(true)
+                    return true
                 } else {
                     userInitiatedRef.current = false
                     selfHealProviderRef.current = null
                     actionKeyRef.current = null
                     setError(t('errorResubmitFailed'))
+                    return false
                 }
             } catch (e: unknown) {
                 userInitiatedRef.current = false
@@ -1227,6 +1233,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 actionKeyRef.current = null
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
+                return false
             } finally {
                 setIsLoading(false)
             }
@@ -1240,15 +1247,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // this mints a token for the specific RFI level the key maps to — the path
     // the advisory pre-empt needs to start a future-dated requirement early.
     const handleStartAction = useCallback(
-        async (key: string) => {
+        async (key: string): Promise<boolean> => {
             const owner = user?.user?.userId
-            if (key === RESIDENCE_ADDRESS_ACTION_KEY && actionOwnerRef.current !== owner) return
+            if (key === RESIDENCE_ADDRESS_ACTION_KEY && actionOwnerRef.current !== owner) return false
             const generation = ++addressGeneration.current
             addressPendingRef.current = key === RESIDENCE_ADDRESS_ACTION_KEY
             const staleAddress = () =>
                 key === RESIDENCE_ADDRESS_ACTION_KEY &&
                 (actionOwnerRef.current !== owner || addressGeneration.current !== generation)
-            if (staleAddress()) return
+            if (staleAddress()) return false
             documentAttemptRef.current = null
             setDocumentConfig(undefined)
             verificationSessionRef.current = null
@@ -1268,12 +1275,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 let response = await startKycAction(key)
-                if (staleAddress()) return
+                if (staleAddress()) return false
                 // Sumsub had already reviewed the action. Ask once more: a final rejection opens the
                 // next attempt. Only an explicit completed/not-required answer confirms it is done.
                 if (response.data?.completed) {
                     response = await startKycAction(key)
-                    if (staleAddress()) return
+                    if (staleAddress()) return false
                     if (
                         !response.fallback &&
                         (response.data?.completed ||
@@ -1282,7 +1289,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     ) {
                         userInitiatedRef.current = false
                         onKycSuccess?.()
-                        return
+                        return false
                     }
                 }
                 // The step the API names instead: a supplement it no longer asks for, or a new ID through the restart.
@@ -1295,7 +1302,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                             tIdentity(reasonCodeKey(response.reason) ?? REASON_CODE_KEYS.requirements_uncollectable)
                         )
                     }
-                    return
+                    return false
                 }
                 if (response.data?.session) {
                     userInitiatedRef.current = false
@@ -1303,16 +1310,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     regionIntentRef.current = 'LATAM'
                     setIsMultiLevel(false)
                     acceptSessionView(response.data.session)
-                    if (['CORRECTION_REQUIRED', 'BLOCKED'].includes(response.data.session.state)) return
+                    if (['CORRECTION_REQUIRED', 'BLOCKED'].includes(response.data.session.state)) return false
                     if (!response.data.token) {
                         setIsVerificationProgressModalOpen(true)
-                        return
+                        return false
                     }
                 }
                 if (response.error || !response.data?.token) {
                     userInitiatedRef.current = false
                     setError(response.error ? actionErrorMessage(response) : t('errorStartActionFailed'))
-                    return
+                    return false
                 }
                 levelNameRef.current = response.data.levelName
                 actionKeyRef.current = key
@@ -1320,11 +1327,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsActionFlow(true)
                 sdkSubmittedRef.current = false
                 setShowWrapper(true)
+                return true
             } catch (e: unknown) {
-                if (staleAddress()) return
+                if (staleAddress()) return false
                 userInitiatedRef.current = false
                 const message = e instanceof Error ? e.message : t('unexpectedError')
                 setError(message)
+                return false
             } finally {
                 if (!staleAddress()) {
                     addressPendingRef.current = false

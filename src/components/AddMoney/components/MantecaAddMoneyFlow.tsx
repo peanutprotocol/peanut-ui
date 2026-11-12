@@ -453,9 +453,11 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                             return
                         }
                         if (mantecaRejection.state === 'restart-identity') {
-                            await sumsubFlow.handleRestartIdentity()
+                            const opened = await sumsubFlow.handleRestartIdentity()
+                            if (opened) closeKycModal()
                         } else if (mantecaRejection.state === 'fixable') {
-                            await sumsubFlow.handleFixableRejection(mantecaRejection)
+                            const opened = await sumsubFlow.handleFixableRejection(mantecaRejection)
+                            if (opened) closeKycModal()
                         } else {
                             const opened = await sumsubFlow.handleInitiateKyc(
                                 'LATAM',

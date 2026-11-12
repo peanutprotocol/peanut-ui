@@ -515,6 +515,7 @@ beforeEach(() => {
     mockMantecaRejection = { state: 'none', userMessage: null }
     mockKycModal = null
     sumsubFlowStub.error = null
+    sumsubFlowStub.showWrapper = false
     sumsubFlowStub.handleInitiateKyc.mockReset().mockResolvedValue(true)
     sumsubFlowStub.handleRestartIdentity.mockReset().mockResolvedValue(true)
     sumsubFlowStub.handleFixableRejection.mockReset().mockResolvedValue(true)
@@ -562,6 +563,63 @@ describe('Manteca withdraw KYC start failure recovery', () => {
         expect(mockInitiateWithdraw).not.toHaveBeenCalled()
         expect(mockSignSpend).not.toHaveBeenCalled()
     })
+
+    test.each([
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            {
+                state: 'fixable',
+                reasonCode: 'source_of_funds',
+                actionKey: 'sumsub:source_of_funds',
+                userMessage: 'We need information about your source of funds.',
+            },
+            'handleFixableRejection',
+        ],
+    ] as const)(
+        '%s closes only after SDK start succeeds and stays closed after SDK closure',
+        async (_label, rejection, action) => {
+            mockVerifiedForCountry = false
+            mockMantecaRejection = rejection
+            let finishStart!: (success: boolean) => void
+            sumsubFlowStub[action].mockImplementation(
+                () =>
+                    new Promise<boolean>((resolve) => {
+                        finishStart = resolve
+                    })
+            )
+            mockStepper.step = 'bank-details'
+            const view = render(<MantecaWithdrawFlow />)
+            fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+            fireEvent.click(screen.getByText('common.continue'))
+            mockStepper.step = 'amount'
+            view.rerender(<MantecaWithdrawFlow />)
+            fireEvent.click(screen.getByText('common.continue'))
+            await waitFor(() => expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible())
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+            let verification!: Promise<unknown>
+            act(() => {
+                verification = mockKycModal!.onVerify()
+            })
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+            await act(async () => {
+                sumsubFlowStub.showWrapper = true
+                finishStart(true)
+                await verification
+            })
+            expect(sumsubFlowStub[action]).toHaveBeenCalledTimes(1)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+
+            sumsubFlowStub.showWrapper = false
+            view.rerender(<MantecaWithdrawFlow />)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+        }
+    )
 
     test('waits for ordinary start to succeed before closing its drawer', async () => {
         mockVerifiedForCountry = false
