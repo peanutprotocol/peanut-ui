@@ -123,7 +123,8 @@ export function PixSetup({
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center>
                 <div className="flex flex-col items-center gap-4 text-center">
-                    <IconBubble {...CONCEPT_ICONS.verification} size="l" />
+                    {/* the Pix mark: this is the Pix set-up, not a verification of ours (Aleks, 2026-11-12) */}
+                    <IconBubble {...CONCEPT_ICONS.pix} size="l" />
                     <TitleBlock
                         align="center"
                         title={t('title')}

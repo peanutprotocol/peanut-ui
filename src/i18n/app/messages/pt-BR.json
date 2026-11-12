@@ -2191,7 +2191,9 @@
             "bankTransfer": "Transferência bancária",
             "kycRequired": "Precisa de verificação",
             "bankTransferDescription": "Dados bancários reutilizáveis para receber",
-            "mercadoPagoOrBank": "Mercado Pago ou Banco"
+            "mercadoPagoOrBank": "Mercado Pago ou Banco",
+            "pix": "Pix",
+            "pixDescription": "Transferências instantâneas em reais"
         },
         "networkDrawer": {
             "title": "Escolher rede",
@@ -2571,7 +2573,11 @@
                 "bodyPartner": "Verifique com nosso parceiro de pagamentos.",
                 "expired": "Este link expirou.",
                 "newLink": "Pedir um novo link",
-                "failed": "Falhou. Tente de novo."
+                "failed": "Falhou. Tente de novo.",
+                "back": "Voltou da {brand}? Estamos aguardando a resposta.",
+                "backPartner": "Voltou do nosso parceiro de pagamentos? Estamos aguardando a resposta.",
+                "openAgain": "Abrir a {brand} de novo",
+                "openAgainPartner": "Abrir a página de novo"
             }
         },
         "deposit": {

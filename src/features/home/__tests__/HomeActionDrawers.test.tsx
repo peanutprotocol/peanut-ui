@@ -35,6 +35,21 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
 }))
 
+// Pix leads the Add drawer only for a user with an open Pix deposit route
+// (Aleks, 2026-11-12). The route goes through the real hook and rule.
+let pixDepositRoute: { state: string } | undefined
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({
+        capabilities: {
+            rails: [],
+            nextActions: [],
+            restrictions: [],
+            routes: pixDepositRoute ? [{ operation: 'deposit', method: 'PIX_BR', ...pixDepositRoute }] : [],
+        },
+        isLoading: false,
+    }),
+}))
+
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -55,6 +70,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
     depositAccountsEnabled = true
+    pixDepositRoute = undefined
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -100,12 +116,46 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
     })
 
-    it('lists bank before crypto (2026-09-18 decision: bank leads the add drawer)', () => {
+    it('lists bank before crypto without a Pix route (2026-09-18 decision: bank leads the add drawer)', () => {
         renderWithUrl('?drawer=add')
 
         const bank = screen.getByTestId('home-drawer-add-bank')
         const crypto = screen.getByTestId('home-drawer-add-crypto')
         // Node.DOCUMENT_POSITION_FOLLOWING: bank comes before crypto in the DOM
+        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
+    })
+
+    it('leads with Pix for a user with an open Pix deposit route, bank next, crypto last (Aleks, 2026-11-12)', async () => {
+        pixDepositRoute = { state: 'ready' }
+        renderWithUrl('?drawer=add')
+
+        const pix = screen.getByTestId('home-drawer-add-pix')
+        const bank = screen.getByTestId('home-drawer-add-bank')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
+        expect(pix.compareDocumentPosition(bank) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+        fireEvent.click(pix)
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
+        // the row lands on the Pix page straight away, so its tap reports the Pix arm
+        expect(mockCapture).toHaveBeenCalledWith('deposit_method_selected', { method_type: 'pix', country: 'brazil' })
+    })
+
+    it('keeps Pix on offer while its route is paused: the Pix page shows the outage itself', () => {
+        pixDepositRoute = { state: 'paused' }
+        renderWithUrl('?drawer=add')
+
+        expect(screen.getByTestId('home-drawer-add-pix')).toBeInTheDocument()
+    })
+
+    it('offers no Pix row for a refused Pix route; bank and crypto keep their order', () => {
+        pixDepositRoute = { state: 'refused' }
+        renderWithUrl('?drawer=add')
+
+        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
+        const bank = screen.getByTestId('home-drawer-add-bank')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
         expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 

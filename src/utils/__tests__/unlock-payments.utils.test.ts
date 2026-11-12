@@ -461,18 +461,6 @@ describe('withPixSend', () => {
         }
     )
 
-    // TASK-24841 (Chip on ui#4073): the Pix setup link moves into the drawer, so the tap still opens it
-    it("moves a rail's own link into the drawer for a user who can send to a Pix key", () => {
-        const setUp = bank({ residenceIso2: 'PT', bankChips: { ...UNLOCK_ALL, brl: 'unlock' } }).map((row) =>
-            row.labelKey === 'brl' ? { ...row, href: '/add-money/pix' } : row
-        )
-        const row = brl(withPixSend(setUp, canSend))
-        expect(row).toEqual(expect.objectContaining({ chip: 'active', bankChip: 'unlock', bankHref: '/add-money/pix' }))
-        expect(row.href).toBeUndefined()
-        // a user who cannot send keeps the link on the row
-        expect(brl(withPixSend(setUp, cannotSend)).href).toBe('/add-money/pix')
-    })
-
     it('leaves a resident with a working rail, a resident who cannot pay, and every other row alone', () => {
         const working = bank({ residenceIso2: 'BR', bankChips: { ...UNLOCK_ALL, brl: 'active' } })
         expect(withPixSend(working, { ...canSend })).toEqual(working)

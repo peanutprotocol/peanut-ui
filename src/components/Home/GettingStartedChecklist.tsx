@@ -147,7 +147,8 @@ const GettingStartedChecklist = ({
             },
             {
                 id: 'verify-identity',
-                bubble: CONCEPT_ICONS.verification,
+                // the Pix mark on the Pix step, the shield on ours (Aleks, 2026-11-12)
+                bubble: pixStep ? CONCEPT_ICONS.pix : CONCEPT_ICONS.verification,
                 label: t(pixStep ? 'setUpPix' : 'verifyIdentity'),
                 sub: pixStep
                     ? t('setUpPixNote')

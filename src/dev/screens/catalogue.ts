@@ -140,12 +140,12 @@ const variationPageIds = new Set([
 const definitions: Screen[] = [
     {
         id: 'profile-brazil-bank-details',
-        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        name: "Brazilian resident — BRL row closed by its refused Pix route, the drawer says the route's reason",
         flow: 'Payments',
         kind: 'route',
         defaultScreen: false,
         route: '/profile/accounts',
-        fixture: 'profile-accounts-br-resident',
+        fixture: 'profile-accounts-br-pix-refused',
         clicks: [],
         clickTestIds: ['bank-row-brl'],
         // the open drawer's own title; a bare [role="dialog"] can match a hidden one first

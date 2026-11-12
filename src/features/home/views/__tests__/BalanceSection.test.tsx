@@ -12,6 +12,8 @@ let depositAccountsEnabled = true
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
 }))
+// The Pix row only lengthens the Add drawer; the submenu's link-or-drawer choice does not change
+jest.mock('@/features/pix/usePixDepositOpen', () => ({ usePixDepositOpen: () => false }))
 
 const renderSection = (onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
     render(<BalanceSection balance={0n} isFetching={false} isHidden={false} onToggleVisibility={() => {}} />, {

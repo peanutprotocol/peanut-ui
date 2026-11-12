@@ -3,8 +3,8 @@ import {
     pixPayBlock,
     pixPlanSetUp,
     pixRefusalCopy,
-    pixRouteOwnSetUp,
     pixRouteGate,
+    pixRouteOpen,
     pixRouteReportEntry,
     pixScreen,
     withPixRoute,
@@ -66,6 +66,21 @@ describe('pixScreen', () => {
         expect(pixScreen(route({ state: 'paused' }), false)).toBe('paused')
         expect(pixScreen(route(), true)).toBe('loading')
         expect(pixScreen(undefined, false)).toBe('unavailable')
+    })
+})
+
+describe('pixRouteOpen', () => {
+    it('offers Pix on Home for a deposit route the API sent and did not refuse, paused included', () => {
+        expect(pixRouteOpen(route())).toBe(true)
+        expect(pixRouteOpen(route({ state: 'action_required', action: 'activate' }))).toBe(true)
+        expect(pixRouteOpen(route({ state: 'pending' }))).toBe(true)
+        // the Pix page shows the outage itself
+        expect(pixRouteOpen(route({ state: 'paused' }))).toBe(true)
+    })
+
+    it('offers no Pix without a route, nor for a refused one', () => {
+        expect(pixRouteOpen(undefined)).toBe(false)
+        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
     })
 })
 
@@ -202,7 +217,6 @@ describe("a Pix plan's set-up with the provider", () => {
         ['the terms', 'accept-tos:avenia'],
         ["the provider's own check", 'avenia-hosted'],
     ])('is the provider step on %s', (_name, action) => {
-        expect(pixRouteOwnSetUp(step(action), [TERMS, HOSTED])).toBe(true)
         expect(pixPlanSetUp('brlBank', false, step(action), [TERMS, HOSTED])).toBe('provider-step')
     })
 
@@ -211,7 +225,6 @@ describe("a Pix plan's set-up with the provider", () => {
     })
 
     it('leaves our check to Home where the route asks for it, or names a step this build does not know', () => {
-        expect(pixRouteOwnSetUp(step('verify'), [TERMS])).toBe(false)
         expect(pixPlanSetUp('brlBank', false, step('verify'), [TERMS])).toBeNull()
         expect(pixPlanSetUp('brlBank', false, step('accept-tos:avenia'), [])).toBeNull()
         expect(pixPlanSetUp('brlBank', false, route({ state: 'refused' }), [])).toBeNull()

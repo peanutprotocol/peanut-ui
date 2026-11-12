@@ -369,8 +369,6 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 setIsSupportModalOpen(true)
                 return
             }
-            // A row's own link needs no verification of ours (the Pix setup runs the provider's own
-            // terms and check), so a verification outage does not hold it.
             if (row.href) {
                 router.push(row.href)
                 return
@@ -443,7 +441,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         : ''
     // the user's own BRL rail behind a row that leads with the Pix key send
     const detailsBankRail = detailsRow?.bankChip
-        ? { ...detailsRow, chip: detailsRow.bankChip, href: detailsRow.bankHref }
+        ? { ...detailsRow, chip: detailsRow.bankChip }
         : detailsRow?.labelKey === 'brl' &&
             pixResidenceBlocked &&
             detailsRow.chip !== 'active' &&

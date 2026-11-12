@@ -17,13 +17,19 @@ let mockVerified = true
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: mockVerified }) }))
 // the hand-off to the provider's page: which link it opens, and the tap that opens it
 const mockHostedStart = jest.fn()
-const mockHostedHook = jest.fn((_key: string, _options: { url?: string }) => ({
+const HOSTED_IDLE = {
     start: mockHostedStart,
     isStarting: false,
     error: null as string | null,
     isSettling: false,
     stillPendingAfterReturn: false,
-}))
+    opened: false,
+}
+const mockHostedHook = jest.fn((_key: string, _options: { url?: string }) => ({ ...HOSTED_IDLE }))
+const resetHosted = () => {
+    mockHostedHook.mockReset()
+    mockHostedHook.mockImplementation(() => ({ ...HOSTED_IDLE }))
+}
 jest.mock('@/hooks/useHostedVerification', () => ({
     useHostedVerification: (key: string, options: { url?: string }) => mockHostedHook(key, options),
 }))
@@ -172,11 +178,98 @@ describe('PixSetup', () => {
             expect(screen.queryByText('Verify with .')).toBeNull()
         })
 
-        it('reads the capabilities again on Done', () => {
+        // Aleks, 2026-11-12: no Done link. Once the page was opened from here, the screen says it
+        // waits for the provider's answer, only reopens the page, and reads the capabilities on its own.
+        it("after the page was opened, waits for the provider's answer in the open and only reopens the page", () => {
             mockNextActions = [hosted(SOON())]
-            renderSetup(hostedStep())
-            fireEvent.click(screen.getByRole('button', { name: en.common.done }))
-            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+            mockHostedHook.mockReturnValue({ ...HOSTED_IDLE, opened: true })
+            try {
+                renderSetup(hostedStep())
+                expect(screen.getByText(en.pix.setup.hosted.back.replace('{brand}', 'Avenia'))).toBeInTheDocument()
+                expect(screen.queryByRole('button', { name: en.pix.setup.verifyCta })).toBeNull()
+                expect(screen.queryByRole('button', { name: en.common.done })).toBeNull()
+                fireEvent.click(
+                    screen.getByRole('button', { name: en.pix.setup.hosted.openAgain.replace('{brand}', 'Avenia') })
+                )
+                expect(mockHostedStart).toHaveBeenCalledTimes(1)
+            } finally {
+                resetHosted()
+            }
+        })
+
+        it('names our payment partner in the waiting line and button where the route names no provider', () => {
+            mockNextActions = [hosted(SOON())]
+            mockHostedHook.mockReturnValue({ ...HOSTED_IDLE, opened: true })
+            try {
+                renderSetup({ ...hostedStep(), provider: null })
+                expect(screen.getByText(en.pix.setup.hosted.backPartner)).toBeInTheDocument()
+                expect(screen.getByRole('button', { name: en.pix.setup.hosted.openAgainPartner })).toBeInTheDocument()
+            } finally {
+                resetHosted()
+            }
+        })
+
+        it('reads the capabilities again on focus, on return to the tab, and every 10 s once the page was opened', async () => {
+            jest.useFakeTimers()
+            mockHostedHook.mockReturnValue({ ...HOSTED_IDLE, opened: true })
+            try {
+                mockNextActions = [hosted(SOON())]
+                const view = renderSetup(hostedStep())
+                expect(mockFetchUser).not.toHaveBeenCalled()
+
+                await act(async () => {
+                    window.dispatchEvent(new Event('focus'))
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
+                await act(async () => {
+                    document.dispatchEvent(new Event('visibilitychange'))
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(2)
+                // one read at a time: each tick's read settles before the next tick
+                await act(async () => {
+                    jest.advanceTimersByTime(10_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(3)
+                await act(async () => {
+                    jest.advanceTimersByTime(10_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(4)
+
+                // unmounted, it stops
+                view.unmount()
+                await act(async () => {
+                    jest.advanceTimersByTime(30_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(4)
+            } finally {
+                resetHosted()
+                jest.useRealTimers()
+            }
+        })
+
+        it('reads nothing before the page was opened, nor once the link has expired', async () => {
+            jest.useFakeTimers()
+            try {
+                mockNextActions = [hosted(SOON())]
+                const before = renderSetup(hostedStep())
+                await act(async () => {
+                    window.dispatchEvent(new Event('focus'))
+                    jest.advanceTimersByTime(30_000)
+                })
+                expect(mockFetchUser).not.toHaveBeenCalled()
+                before.unmount()
+
+                mockNextActions = [hosted(new Date(Date.now() - 1_000).toISOString())]
+                mockHostedHook.mockReturnValue({ ...HOSTED_IDLE, opened: true })
+                renderSetup(hostedStep())
+                await act(async () => {
+                    jest.advanceTimersByTime(30_000)
+                })
+                expect(mockFetchUser).not.toHaveBeenCalled()
+            } finally {
+                resetHosted()
+                jest.useRealTimers()
+            }
         })
 
         // after the submit the route waits on the provider's decision, with no action
@@ -209,11 +302,8 @@ describe('PixSetup', () => {
         it('says the page did not open and keeps Verify to try again', () => {
             mockNextActions = [hosted(SOON())]
             mockHostedHook.mockReturnValue({
-                start: mockHostedStart,
-                isStarting: false,
+                ...HOSTED_IDLE,
                 error: "We couldn't open the verification. Please try again in a moment.",
-                isSettling: false,
-                stillPendingAfterReturn: false,
             })
             try {
                 renderSetup(hostedStep())
@@ -223,14 +313,7 @@ describe('PixSetup', () => {
                 fireEvent.click(verify)
                 expect(mockHostedStart).toHaveBeenCalledTimes(1)
             } finally {
-                mockHostedHook.mockReset()
-                mockHostedHook.mockImplementation(() => ({
-                    start: mockHostedStart,
-                    isStarting: false,
-                    error: null,
-                    isSettling: false,
-                    stillPendingAfterReturn: false,
-                }))
+                resetHosted()
             }
         })
 

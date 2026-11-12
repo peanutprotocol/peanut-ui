@@ -3989,7 +3989,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: "Accounts page, a Brazilian resident: BRL reads Avenia's Pix route, without Pix-key sending.",
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is open: no BRL row, Pix leads Home's Add money drawer instead (Aleks, 2026-11-12).",
         responses: {
             'GET /users/me': {
                 residence: {
@@ -4000,6 +4000,15 @@ export const FIXTURES: Record<string, Fixture> = {
                 capabilities: { routes: [...aveniaRoutes('enabled'), pixPayRoute('refused')] },
             },
         },
+    },
+    'profile-accounts-br-pix-refused': {
+        route: '/profile/accounts',
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is refused: the BRL row stays, closed, and its drawer says the route's reason.",
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+        }),
     },
     'get-paid-empty': {
         route: '/add-money?method=bank',
@@ -4216,6 +4225,11 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-add-drawer': {
         route: '/home?drawer=add',
         about: 'The Add drawer — where bank transfer now leads to the standing account.',
+    },
+    'home-add-drawer-pix': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer for a user with a Pix deposit route: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12).',
+        responses: aveniaResponses('enabled'),
     },
     'home-request-drawer': {
         route: '/home?drawer=request',

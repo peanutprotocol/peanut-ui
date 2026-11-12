@@ -1171,7 +1171,9 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
             "cryptoDescription": "Depositá desde una billetera o exchange",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "pix": "Pix",
+            "pixDescription": "Transferencias instantáneas en reales"
         },
         "networkDrawer": {
             "description": "Elegí la red desde la que querés agregar:"
@@ -1326,7 +1328,11 @@
             "hosted": {
                 "body": "Verificá con {brand}.",
                 "bodyPartner": "Verificá con nuestro socio de pagos.",
-                "failed": "Falló. Intentá de nuevo."
+                "failed": "Falló. Intentá de nuevo.",
+                "back": "¿Volviste de {brand}? Esperamos su respuesta.",
+                "backPartner": "¿Volviste de nuestro socio de pagos? Esperamos su respuesta.",
+                "openAgain": "Abrir {brand} de nuevo",
+                "openAgainPartner": "Abrir la página de nuevo"
             }
         },
         "deposit": {

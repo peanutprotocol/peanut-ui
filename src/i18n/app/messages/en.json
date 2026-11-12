@@ -2191,7 +2191,9 @@
             "bankTransfer": "Bank transfer",
             "kycRequired": "Verification required",
             "bankTransferDescription": "Reusable bank details to get paid",
-            "mercadoPagoOrBank": "Mercado Pago or Bank"
+            "mercadoPagoOrBank": "Mercado Pago or Bank",
+            "pix": "Pix",
+            "pixDescription": "Instant transfers in reais"
         },
         "networkDrawer": {
             "title": "Choose network",
@@ -2571,7 +2573,11 @@
                 "bodyPartner": "Verify with our payment partner.",
                 "expired": "This link expired.",
                 "newLink": "Get a new link",
-                "failed": "That failed. Try again."
+                "failed": "That failed. Try again.",
+                "back": "Back from {brand}? We are waiting for its answer.",
+                "backPartner": "Back from our payment partner? We are waiting for its answer.",
+                "openAgain": "Open {brand} again",
+                "openAgainPartner": "Open the page again"
             }
         },
         "deposit": {

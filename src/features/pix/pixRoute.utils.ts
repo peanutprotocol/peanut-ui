@@ -13,27 +13,14 @@ export function findPixRoute(
 }
 
 /**
- * Whether the route's step is the provider's own set-up, its terms or its own identity check on its
- * page, rather than the Peanut identity check (`verify`). A user on such a step reaches Pix through
- * the Pix setup, not through our verification.
- */
-export function pixRouteOwnSetUp(
-    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    nextActions: readonly NextAction[]
-): boolean {
-    return isProviderOwnSetUp(pixRouteStep(route, nextActions))
-}
-
-/**
  * Where a plan that adds money by Pix stands with the Pix provider's own set-up, which Home shows in
  * place of our identity check (TASK-24841): `provider-step` while the deposit route asks for the
  * provider's terms or its own check, `done` once the provider reviews or serves it. Null for any other
  * plan, for a user our check verified, and where the route asks for our check: Home then shows our
  * check as usual.
  *
- * Home follows the signup plan, while Add money's BRL row opens the Pix setup for every user on the
- * provider's step (`useBankRows`). The split is the ruling: Home's Verify row follows what the user
- * said they would do, and the BRL row follows the route.
+ * Home follows the signup plan. The bank lists' BRL row follows the route and leaves for any open
+ * one, Pix then leading Home's Add money drawer (`useBankRows`, Aleks 2026-11-12).
  */
 export type PixPlanSetUp = 'provider-step' | 'done' | null
 
@@ -68,6 +55,14 @@ export function pixScreen(route: CapabilityRoute | undefined, isLoading: boolean
     if (!route || route.state === 'refused') return 'unavailable'
     if (route.state === 'paused') return 'paused'
     return 'flow'
+}
+
+/**
+ * Whether Home's Add money drawer offers Pix: the API sent a Pix deposit route and did not refuse
+ * it. A paused route stays on offer, because the Pix page shows the outage itself (`pixScreen`).
+ */
+export function pixRouteOpen(route: Pick<CapabilityRoute, 'state'> | undefined): boolean {
+    return !!route && route.state !== 'refused'
 }
 
 /**

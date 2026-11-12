@@ -13,7 +13,7 @@ import { normalizeResidence } from '@/utils/residence-profile'
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { railVerdict } from '@/utils/capability-gate'
-import type { NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -2021,43 +2021,36 @@ describe('card refusal rows follow the feature report', () => {
     })
 })
 
-// TASK-24841: on the Pix provider's own step the BRL row opens the Pix setup, and a Pix key send keeps its drawer (Chip on ui#4073)
-describe("MoneySettings — the BRL row on the Pix provider's own step", () => {
+// Aleks, 2026-11-12: an open Pix deposit route puts Pix first in Home's Add money drawer, so the BRL row
+// leaves Accounts rather than repeat it; only a refused route keeps the row, so the refusal has a place
+describe('MoneySettings — the BRL row and the Pix deposit route', () => {
     const TERMS_ACTION: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
-    beforeEach(() => {
+    const depositRoute = (step: Partial<CapabilityRoute>): CapabilityRoute => ({
+        operation: 'deposit',
+        method: 'PIX_BR',
+        provider: 'avenia',
+        state: 'ready',
+        candidates: [],
+        ...step,
+    })
+
+    it("drops the row on the provider's own step: the Pix setup is reached from Home", () => {
         mockNextActions = [TERMS_ACTION]
         mockRoutes = [
-            {
-                operation: 'deposit',
-                method: 'PIX_BR',
-                provider: 'avenia',
+            depositRoute({
                 state: 'action_required',
                 action: 'accept-tos:avenia',
                 reason: { code: 'terms_required', userMessage: 'Accept the terms to continue.' },
-                candidates: [],
-            },
+            }),
         ]
-    })
-    const brlRow = () => within(screen.getByText('BRL').closest('.border') as HTMLElement)
-
-    it('opens the Pix setup for a user we have not verified', () => {
         mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
         render()
-        expect(brlRow().getByText('Set up')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('BRL'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('opens the Pix setup during our verification outage too: it needs no check of ours', () => {
-        mockKycDegraded = true
-        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
-        render()
-        fireEvent.click(screen.getByText('BRL'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
-    })
-
-    it('opens the drawer for a verified user who can send to a Pix key; its bank rail opens the Pix setup', () => {
+    it('drops the Pix key send row too for a verified user with an open route', () => {
+        mockRoutes = [depositRoute({ state: 'ready' })]
         mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
         mockIsKycApproved = true
         mockIdentity = { status: 'verified' }
@@ -2072,15 +2065,21 @@ describe("MoneySettings — the BRL row on the Pix provider's own step", () => {
             },
         ]
         render()
-        expect(brlRow().getByText('Send to any Pix key')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('BRL'))
-        expect(mockPush).not.toHaveBeenCalled()
-        const drawer = within(screen.getByRole('dialog'))
-        expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
-            'href',
-            '/withdraw/manteca?method=pix&country=brazil'
-        )
-        fireEvent.click(drawer.getByText('Add and withdraw Brazilian reais with Pix.'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money/pix')
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
+    })
+
+    it('keeps the row for a refused route, closed for the route reason', () => {
+        mockRoutes = [
+            depositRoute({
+                provider: null,
+                state: 'refused',
+                reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+            }),
+        ]
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
+        render()
+        const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+        expect(brl.getByText('Not available')).toBeInTheDocument()
     })
 })

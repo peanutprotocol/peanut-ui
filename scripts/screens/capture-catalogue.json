@@ -389,6 +389,11 @@
         "route": "/home?drawer=add"
     },
     {
+        "id": "fixture-home-add-drawer-pix",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add"
+    },
+    {
         "id": "fixture-home-new-user",
         "flow": "Home and shared states",
         "route": "/home"
@@ -2718,6 +2723,11 @@
     },
     {
         "id": "fixture-profile-accounts-br-resident",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-br-pix-refused",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },

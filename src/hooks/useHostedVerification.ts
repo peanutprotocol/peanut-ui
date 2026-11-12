@@ -40,6 +40,8 @@ interface HostedVerification {
     isSettling: boolean
     /** The settle window ended with the task still pending — say so, don't re-offer silently. */
     stillPendingAfterReturn: boolean
+    /** The provider's page was opened from this screen at least once: a return is now expected. */
+    opened: boolean
 }
 
 interface HostedVerificationOptions {
@@ -292,5 +294,5 @@ export function useHostedVerification(
         return () => document.removeEventListener('visibilitychange', onVisible)
     }, [awaitingReturn, onReturn, actionKey])
 
-    return { start, isStarting, error, isSettling, stillPendingAfterReturn }
+    return { start, isStarting, error, isSettling, stillPendingAfterReturn, opened: awaitingReturn }
 }

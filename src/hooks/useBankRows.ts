@@ -8,8 +8,7 @@ import {
     isLocalResidenceRefusal,
     UNKNOWN_REPORT,
 } from '@/features/kyc-features/report'
-import { findPixRoute, pixRouteOwnSetUp, withPixRoute } from '@/features/pix/pixRoute.utils'
-import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import { findPixRoute, pixRouteOpen, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -88,12 +87,13 @@ export function useBankRows() {
     const { nextActions, capabilities } = useCapabilities()
     const report = useAccountsReport()
     const entryFor = useBankEntryFor()
-    // The BRL row reads the Pix deposit route. A refused route explains itself, never as a residence rule;
-    // the provider's own set-up (its terms, its own identity check) is the Pix setup's to run, never our
-    // verification's, so the row opens it (TASK-24841)
+    // The BRL row reads the Pix deposit route. An open route (sent and not refused, `pixRouteOpen`) takes
+    // the row out of the bank lists: Pix then leads Home's Add money drawer and must not repeat here
+    // (Aleks, 2026-11-12). A refused route keeps the row, closed for the route's own reason, never a
+    // residence rule, so the refusal has a place; without a route the row keeps the report's rule.
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+    const pixOpen = pixRouteOpen(pixRoute)
     const pixRouteRefused = pixRoute?.state === 'refused'
-    const brlSetsUpThroughPix = pixRouteOwnSetUp(pixRoute, nextActions)
 
     // Server copy first; the localStorage mirror of the signup answer covers
     // reloads before /users/me returns it (or an API without the fields yet).
@@ -144,14 +144,8 @@ export function useBankRows() {
         }
     }, [entryFor, nextActions, pixRouteRefused, residenceIso2, secondResidenceIso2])
     const rows = useMemo(
-        () =>
-            buildBankRows(input).map((row) => {
-                if (row.labelKey !== 'brl' || !brlSetsUpThroughPix) return row
-                // the Pix setup, never our unlock modal
-                const { regionPath: _unlock, ...setUp } = row
-                return { ...setUp, href: PIX_ADD_MONEY_PATH }
-            }),
-        [input, brlSetsUpThroughPix]
+        () => buildBankRows(input).filter((row) => row.labelKey !== 'brl' || !pixOpen),
+        [input, pixOpen]
     )
     // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.
     const accountChip = bestChip([
