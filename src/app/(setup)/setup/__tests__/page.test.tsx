@@ -987,6 +987,32 @@ describe('unknown account state and bounded initialization recovery', () => {
         expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
     })
 
+    // press-contract on ui#4081: a signed-out browser whose /users/me never
+    // reached the API sat on the recovery screen instead of Welcome.
+    it('shows Welcome to a signed-out web visitor whose profile request failed', async () => {
+        mockNative = false
+        mockAuth.userFetchError = new Error('Failed to fetch')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+    })
+
+    it('keeps a web session with a failed profile request on the recovery screen', async () => {
+        mockNative = false
+        document.cookie = 'jwt-token=header.payload.signature; path=/'
+        try {
+            mockAuth.userFetchError = new Error('Failed to fetch')
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+        } finally {
+            document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        }
+    })
+
     it('recovers an unknown profile and resumes the login redirect from Landing', async () => {
         const view = renderWithIntl(<SetupPage />)
         await advance(100)

@@ -384,6 +384,16 @@ export async function hasNativeSession(): Promise<boolean> {
 }
 
 /**
+ * synchronous: could this device be signed in? On web the readable jwt cookie
+ * is the only credential the API sees (apiFetch sends no cookies), so no token
+ * means signed out. Native always answers yes: a legacy session can live in
+ * the OS cookie jar, which JS cannot read on Android.
+ */
+export function mayHoldSession(): boolean {
+    return isCapacitor() || getAuthToken() !== null
+}
+
+/**
  * clears the session.
  * capacitor: clears the in-memory cache, the guarded Keychain/Keystore item
  * and its marker, native Preferences, the legacy cookie jar, and any

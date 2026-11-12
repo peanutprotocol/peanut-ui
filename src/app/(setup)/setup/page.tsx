@@ -24,6 +24,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import { isCapacitor } from '@/utils/capacitor'
+import { mayHoldSession } from '@/utils/auth-token'
 import { hasKeepWebCookie, isKeepWebLink } from '@/utils/migration.utils'
 import { KEEP_WEB_COOKIE } from '@/constants/migration.consts'
 import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
@@ -293,7 +294,10 @@ function SetupPageContent() {
         }
     }, [])
 
-    const profileFetchFailed = !!userFetchError && !user
+    // A failed profile read leaves the account unknown only when a session can
+    // exist. A signed-out web visitor whose /users/me never reached the API
+    // (offline, API down) is still signed out, and gets Welcome, not recovery.
+    const profileFetchFailed = !!userFetchError && !user && mayHoldSession()
     useEffect(() => {
         if (profileFetchFailed) setSessionChecked(false)
     }, [profileFetchFailed])
