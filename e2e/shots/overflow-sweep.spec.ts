@@ -282,13 +282,14 @@ for (const locale of APP_LOCALES_SWEEP) {
                 })
                 await blockExternal(page)
                 await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
-                // web signup is app-only; the support keep-web cookie reopens the form for this sweep
+                // The support cookie permits the first onboarding screen on web.
                 if (route.includes('step=signup'))
                     await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
                 await page.goto(route, { waitUntil: 'domcontentloaded' })
                 await settle(page)
                 if (route.includes('step=signup')) {
-                    await expect(page.locator('input:visible').first()).toBeVisible()
+                    await expect(page).toHaveURL(/screen=(advantage-fees|advantage-card|residence)/)
+                    await expect(page.locator('[data-setup-hero]')).toBeVisible()
                 }
                 await expect
                     .poll(() => page.evaluate(() => document.documentElement.lang), {

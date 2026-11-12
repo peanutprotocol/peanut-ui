@@ -54,11 +54,17 @@ interface SetupFlowContextType {
     setDirection: (direction: number) => void
     username: string
     setUsername: (username: string) => void
-    /** An inviter was accepted on the invite step in this session; the step then leaves the list. */
+    inviteSelection: string
+    setInviteSelection: (selection: string) => void
+    registrationInProgress: boolean
+    setRegistrationInProgress: (registering: boolean) => void
+    featureScreenIds: ScreenId[] | null
+    setFeatureScreenIds: (screenIds: ScreenId[] | null) => void
+    /** An inviter was confirmed after registration; the step then leaves the list. */
     inviterAccepted: boolean
     setInviterAccepted: (accepted: boolean) => void
     /**
-     * The country the sell screens were chosen for, fixed once the account exists so
+     * The country the sell screens were chosen for, fixed after Welcome so
      * the screens do not change under the person. Undefined until then: the layout
      * follows the live country suggestion.
      */
@@ -102,6 +108,9 @@ export const SetupFlowProvider: React.FC<{
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
+    const [inviteSelection, setInviteSelection] = useState('')
+    const [registrationInProgress, setRegistrationInProgress] = useState(false)
+    const [featureScreenIds, setFeatureScreenIds] = useState<ScreenId[] | null>(null)
     const [inviterAccepted, setInviterAccepted] = useState(false)
     const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
@@ -120,6 +129,9 @@ export const SetupFlowProvider: React.FC<{
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')
+        setInviteSelection('')
+        setRegistrationInProgress(false)
+        setFeatureScreenIds(null)
         setInviterAccepted(false)
         setSellScreensCountry(undefined)
         setResidenceCountry('')
@@ -148,6 +160,12 @@ export const SetupFlowProvider: React.FC<{
             setDirection,
             username,
             setUsername,
+            inviteSelection,
+            setInviteSelection,
+            registrationInProgress,
+            setRegistrationInProgress,
+            featureScreenIds,
+            setFeatureScreenIds,
             inviterAccepted,
             setInviterAccepted,
             sellScreensCountry,
@@ -174,6 +192,9 @@ export const SetupFlowProvider: React.FC<{
             isLoading,
             direction,
             username,
+            inviteSelection,
+            registrationInProgress,
+            featureScreenIds,
             inviterAccepted,
             sellScreensCountry,
             residenceCountry,

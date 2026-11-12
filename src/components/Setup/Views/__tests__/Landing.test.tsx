@@ -11,6 +11,9 @@ import LandingStep from '../Landing'
 
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
+const mockResetSetupFlow = jest.fn()
+const mockDiscardDraft = jest.fn()
+let mockSignupDraft: { userId?: string } | null = null
 const mockToastError = jest.fn()
 let mockNative = true
 let mockAndroidNative = false
@@ -27,6 +30,14 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    ...jest.requireActual('@/features/setup/SetupFlowContext'),
+    useOptionalSetupFlow: () => ({ resetSetupFlow: mockResetSetupFlow, signupEntryFlow: 'default' }),
+}))
+jest.mock('@/features/setup/signup-draft', () => ({
+    readSignupDraft: () => mockSignupDraft,
+    discardSignupDraft: () => mockDiscardDraft(),
+}))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/utils/landing-passkeys', () => ({
     checkAndroidLandingPasskey: async () => 'available',
@@ -86,6 +97,7 @@ beforeEach(() => {
     mockAndroidNative = false
     mockTestBuild = false
     mockDeviceType = 'ios'
+    mockSignupDraft = null
 })
 afterEach(() => jest.useRealTimers())
 
@@ -112,6 +124,43 @@ describe('Landing — the account recovery link appears only after a failed logi
         expect(recoveryLink()).not.toBeInTheDocument()
         await logIn()
         await waitFor(() => expect(recoveryLink()).toBeInTheDocument())
+    })
+})
+
+describe('Landing — draft ownership', () => {
+    it('clears a previous registrant before starting another signup', () => {
+        mockSignupDraft = { userId: 'previous-account' }
+        renderWithIntl(<LandingStep />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+        expect(mockDiscardDraft).toHaveBeenCalledTimes(1)
+        expect(mockResetSetupFlow).toHaveBeenCalledTimes(1)
+        expect(mockDiscardDraft.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
+        expect(mockResetSetupFlow.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
+    })
+
+    it('keeps an anonymous draft when continuing signup', () => {
+        mockSignupDraft = {}
+        renderWithIntl(<LandingStep />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+        expect(mockDiscardDraft).not.toHaveBeenCalled()
+        expect(mockResetSetupFlow).not.toHaveBeenCalled()
+        expect(mockNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the registrant draft available for login recovery', async () => {
+        mockSignupDraft = { userId: 'previous-account' }
+        mockLogin.mockResolvedValue(undefined)
+        renderWithIntl(<LandingStep />)
+
+        await logIn()
+
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockDiscardDraft).not.toHaveBeenCalled()
+        expect(mockResetSetupFlow).not.toHaveBeenCalled()
     })
 })
 

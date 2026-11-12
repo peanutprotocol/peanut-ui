@@ -32,7 +32,7 @@ it('sends the screen, control, action, value and the shared signup context', () 
         action: 'select',
         value: 'AR',
         setup_host: 'signup',
-        flow_version: 1,
+        flow_version: 2,
         signup_entry_flow: 'default',
     })
 })

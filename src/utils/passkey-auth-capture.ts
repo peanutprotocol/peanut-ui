@@ -217,6 +217,21 @@ export function installPasskeyVerifyCapture(): void {
             // half-authenticated session (TASK-21782).
             if (response.ok && isVerify) {
                 const body = await response.clone().json()
+                if (
+                    passkeyPath === '/passkeys/register/verify' &&
+                    body?.verified === true &&
+                    issuingCeremonyId !== null &&
+                    typeof init?.body === 'string'
+                ) {
+                    try {
+                        const registration = JSON.parse(init.body)
+                        if (typeof registration.userId === 'string' && typeof registration.username === 'string') {
+                            const { recordSignupRegistration } = await import('@/features/setup/signup-draft')
+                            // The SDK sends a base64 WebAuthn handle; profiles use its decoded account ID.
+                            await recordSignupRegistration(atob(registration.userId), registration.username)
+                        }
+                    } catch {}
+                }
                 if (body && typeof body.token === 'string' && body.token) {
                     stashCeremonyVerifyToken(body.token, issuingCeremonyId)
                 }

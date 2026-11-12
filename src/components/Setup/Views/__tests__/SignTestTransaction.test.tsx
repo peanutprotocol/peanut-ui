@@ -251,7 +251,7 @@ describe('SignTestTransaction — setup completion', () => {
         expect(screen.queryByText(/works right now/i)).not.toBeInTheDocument()
         expect(posthog.capture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_COMPLETED,
-            expect.objectContaining({ flow_version: 1, signup_entry_flow: 'default' })
+            expect.objectContaining({ flow_version: 2, signup_entry_flow: 'default' })
         )
         expect(mockRouterPush).not.toHaveBeenCalled()
     })

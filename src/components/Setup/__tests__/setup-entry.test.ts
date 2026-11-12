@@ -6,6 +6,7 @@ const base: SetupEntryInput = {
     stepParam: null,
     webSignupClosed: false,
     knownDevice: false,
+    screenIds: ['landing', 'advantage-fees', 'residence', 'signup'],
 }
 
 describe('resolveSetupEntryStep', () => {
@@ -33,8 +34,8 @@ describe('resolveSetupEntryStep', () => {
         it.each([
             ['invite code', { hasInviteCode: true }],
             ['?step=signup', { stepParam: 'signup' }],
-        ])('opens signup directly with %s', (_name, overrides) => {
-            expect(resolveSetupEntryStep({ ...base, ...overrides })).toBe('signup')
+        ])('starts after Welcome with %s', (_name, overrides) => {
+            expect(resolveSetupEntryStep({ ...base, ...overrides })).toBe('advantage-fees')
         })
 
         it.each([

@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { useLayoutEffect, useState } from 'react'
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -8,7 +9,7 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { EInviteType } from '@/services/services.types'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
-import { readInviteCode } from '@/utils/invite-stash'
+import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import InviteStep from '../Invite'
 
 const mockHandleNext = jest.fn(async () => {})
@@ -19,12 +20,10 @@ const mockFetchUser = jest.fn(async () => null)
 jest.mock('@/hooks/useSetupFlow', () => ({
     useSetupFlow: () => ({ handleNext: mockHandleNext, isLoading: false }),
 }))
-// The step runs after registration: the person is signed in as @newbie.
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'new-user', username: 'newbie' } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: null, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
-// Only the network is mocked: the stash and the attribution hand-off are the real ones.
 jest.mock('@/services/invites', () => ({
     invitesApi: {
         validateInviteCode: (...args: unknown[]) => mockValidateInviter(...args),
@@ -37,18 +36,27 @@ jest.mock('@/services/invite-acquisition', () => ({
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-const ATTRIBUTED = { success: true, attributionResolved: true, onboardingResolved: true, claims: [] }
-
-function AcceptedState() {
-    const { inviterAccepted } = useSetupFlowContext()
-    return <output data-testid="inviter-accepted">{String(inviterAccepted)}</output>
+function SeededInvite({ selection }: { selection: string }) {
+    const { inviterAccepted, inviteSelection, setUsername, setInviteSelection } = useSetupFlowContext()
+    const [ready, setReady] = useState(false)
+    useLayoutEffect(() => {
+        setUsername('newbie')
+        setInviteSelection(selection)
+        setReady(true)
+    }, [selection, setUsername, setInviteSelection])
+    return (
+        <>
+            {ready && onSignupScreen('invite', <InviteStep />)}
+            <output data-testid="inviter-accepted">{String(inviterAccepted)}</output>
+            <output data-testid="invite-selection">{inviteSelection}</output>
+        </>
+    )
 }
 
-const renderInvite = () =>
+const renderInvite = (selection = '') =>
     renderWithIntl(
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
-            {onSignupScreen('invite', <InviteStep />)}
-            <AcceptedState />
+            <SeededInvite selection={selection} />
         </SetupFlowProvider>
     )
 const accepted = () => screen.getByTestId('inviter-accepted').textContent
@@ -60,10 +68,9 @@ beforeEach(() => {
     localStorage.clear()
     disableDemoMode()
     mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: true })
-    mockAcceptInvite.mockResolvedValue(ATTRIBUTED)
 })
 
-describe('Invited by a friend? (after registration)', () => {
+describe('Invited by a friend? (before registration)', () => {
     it('shows a field that reads as someone else’s username, Continue disabled until a verified inviter, and Skip below it', () => {
         renderInvite()
         // The username step's placeholder is "batman"; this one must not read as the person's own.
@@ -75,7 +82,7 @@ describe('Invited by a friend? (after registration)', () => {
         expect(skip.closest('[data-setup-footer]')).toContainElement(continueButton())
     })
 
-    it('accepts a verified inviter once, with its invite code, then advances', async () => {
+    it('stores a verified inviter selection and advances without accepting it', async () => {
         renderInvite()
         fireEvent.change(field(), { target: { value: '@Alice ' } })
         await waitFor(() => expect(continueButton()).toBeEnabled())
@@ -84,111 +91,84 @@ describe('Invited by a friend? (after registration)', () => {
             valid: true,
             source: 'signup_optional_inviter',
         })
-
         fireEvent.click(continueButton())
         await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
-        expect(mockAcceptInvite).toHaveBeenCalledTimes(1)
-        expect(mockAcceptInvite).toHaveBeenCalledWith('alice', EInviteType.DIRECT)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, {
-            trigger: 'setup_invite_step',
-            status: 'attributed',
-            invite_type: EInviteType.DIRECT,
-        })
+        expect(screen.getByTestId('invite-selection')).toHaveTextContent('alice')
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
+        expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
+        expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ATTRIBUTION_SETTLED, expect.anything())
         expect(readInviteCode()).toBe('')
     })
 
-    it('makes the accepted inviter final: the step leaves the list after the cursor moves, and the profile refreshes', async () => {
-        let acceptedWhenAdvancing: string | null | undefined
-        mockHandleNext.mockImplementationOnce(async () => {
-            acceptedWhenAdvancing = accepted()
-        })
-        renderInvite()
+    it('keeps the selected inviter editable before registration and does not refresh a profile', async () => {
+        const view = renderInvite()
         fireEvent.change(field(), { target: { value: 'alice' } })
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
-        // Dropping the step while the cursor is still on it would leave the flow with no step.
-        await waitFor(() => expect(accepted()).toBe('true'))
-        expect(acceptedWhenAdvancing).toBe('false')
-        // The server's inviter reaches the profile, so the step stays hidden after a reload.
-        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(accepted()).toBe('false')
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        view.unmount()
+        renderInvite('alice')
+        expect(field()).toHaveValue('alice')
+        fireEvent.change(field(), { target: { value: 'bobby' } })
+        await waitFor(() => expect(continueButton()).toBeEnabled())
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(2))
+        expect(screen.getByTestId('invite-selection')).toHaveTextContent('bobby')
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
     })
 
-    it('does not mark an inviter as accepted when the person skips or the accept fails', async () => {
-        mockAcceptInvite.mockResolvedValue({
-            success: false,
-            retryable: false,
-            status: 400,
-            attributionResolved: false,
-            onboardingResolved: false,
-            claims: [],
-        })
+    it('does not mark an inviter accepted after failed validation or Skip', async () => {
+        mockValidateInviter.mockResolvedValue({ success: false, notFound: true, attributionResolved: false })
         renderInvite()
         fireEvent.change(field(), { target: { value: 'alice' } })
-        await waitFor(() => expect(continueButton()).toBeEnabled())
-        fireEvent.click(continueButton())
         expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
         expect(accepted()).toBe('false')
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
         expect(mockFetchUser).not.toHaveBeenCalled()
     })
 
-    it('says the user was not found when the accept is refused, and stays on the step', async () => {
-        mockAcceptInvite.mockResolvedValue({
-            success: false,
-            retryable: false,
-            status: 400,
-            attributionResolved: false,
-            onboardingResolved: false,
-            claims: [],
-        })
+    it('stays on Invite when validation confirms the inviter does not exist', async () => {
+        mockValidateInviter.mockResolvedValue({ success: false, notFound: true, attributionResolved: false })
         renderInvite()
         fireEvent.change(field(), { target: { value: 'alice' } })
-        await waitFor(() => expect(continueButton()).toBeEnabled())
-        fireEvent.click(continueButton())
         expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
         expect(readInviteCode()).toBe('')
     })
 
-    it('treats a campaign-only answer (409) as no inviter added', async () => {
-        mockAcceptInvite.mockResolvedValue({
-            success: true,
-            attributionResolved: false,
-            onboardingResolved: false,
-            claims: [],
-        })
+    it('treats a campaign-only validation answer as no inviter selected', async () => {
+        mockValidateInviter.mockResolvedValue({ success: true, attributionResolved: false })
         renderInvite()
         fireEvent.change(field(), { target: { value: 'alice' } })
-        await waitFor(() => expect(continueButton()).toBeEnabled())
-        fireEvent.click(continueButton())
         expect(await screen.findByText('We couldn’t find this user.')).toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
         expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(screen.getByTestId('invite-selection')).toBeEmptyDOMElement()
         expect(readInviteCode()).toBe('')
     })
 
-    it('keeps a transient failure for a later retry, and Skip then drops it', async () => {
-        mockAcceptInvite.mockResolvedValue({
-            success: false,
-            retryable: true,
-            status: 503,
-            attributionResolved: false,
-            onboardingResolved: false,
-            claims: [],
-        })
-        renderInvite()
-        fireEvent.change(field(), { target: { value: 'alice' } })
+    it('recovers from a transient validation failure and Skip clears only the stored selection', async () => {
+        mockValidateInviter.mockResolvedValueOnce({ success: false, attributionResolved: false })
+        stashInvite('linkfriend', EInviteType.DIRECT)
+        renderInvite('alice')
+        expect(await screen.findByText('We couldn’t check this username. Try again.')).toBeInTheDocument()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        fireEvent.change(field(), { target: { value: 'bobby' } })
         await waitFor(() => expect(continueButton()).toBeEnabled())
         fireEvent.click(continueButton())
-        expect(await screen.findByText('We couldn’t check this username. Try again.')).toBeInTheDocument()
-        expect(readInviteCode()).toBe('alice')
-        expect(mockHandleNext).not.toHaveBeenCalled()
-
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(screen.getByTestId('invite-selection')).toHaveTextContent('bobby')
         fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
-        expect(readInviteCode()).toBe('')
-        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+        expect(screen.getByTestId('invite-selection')).toBeEmptyDOMElement()
+        expect(readInviteCode()).toBe('linkfriend')
+        expect(mockHandleNext).toHaveBeenCalledTimes(2)
+        expect(mockAcceptInvite).not.toHaveBeenCalled()
     })
 
     it('explains an inviter that does not exist and keeps Continue disabled', async () => {
