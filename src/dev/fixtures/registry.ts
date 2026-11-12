@@ -229,16 +229,21 @@ const BRAZIL_PAUSED_RESPONSES = {
 const AVENIA_TERMS_ACTION = 'accept-tos:avenia'
 
 /** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's terms still to accept. */
-const aveniaRoutes = (stage: 'enabled' | 'first-use') =>
+const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
     (['deposit', 'withdraw'] as const).map((operation) => {
         const step =
             stage === 'enabled'
                 ? { state: 'ready' }
-                : {
-                      state: 'action_required',
-                      action: AVENIA_TERMS_ACTION,
-                      reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
-                  }
+                : stage === 'reviewing'
+                  ? {
+                        state: 'pending',
+                        reason: { code: 'provider_reviewing', userMessage: 'Avenia is reviewing your verification.' },
+                    }
+                  : {
+                        state: 'action_required',
+                        action: AVENIA_TERMS_ACTION,
+                        reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
+                    }
         return {
             operation,
             method: 'PIX_BR',
@@ -290,7 +295,6 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
             routes: aveniaRoutes(stage),
         },
     },
-    'GET /pix/deposit/rules': { minAmountBrl: '20', blockedBanks: [] },
     // the amount step's estimate: Avenia's indicative quote for the reais on screen
     'GET /pix/quote': {
         provider: 'avenia',
@@ -344,7 +348,6 @@ const mantecaPixResponses = (overrides: Record<string, unknown> = {}) => ({
             routes: mantecaPixRoutes(),
         },
     },
-    'GET /pix/deposit/rules': { minAmountBrl: '1', blockedBanks: [] },
     'GET /pix/quote': {
         provider: 'manteca',
         operation: 'withdraw',
@@ -405,6 +408,28 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
 })
 const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
 
+/**
+ * TASK-24841: a resident of Brazil before our own identity check, whose plan adds money by Pix. With the
+ * API's flag on, the Pix routes start with Avenia's terms, then its own check, never our verification.
+ */
+const aveniaBeforeVerification = (user: Record<string, unknown> = {}, capabilities: Record<string, unknown> = {}) => {
+    const firstUse = aveniaResponses('first-use')
+    return {
+        ...firstUse,
+        'GET /users/me': {
+            ...firstUse['GET /users/me'],
+            user: { ...firstUse['GET /users/me'].user, ...user },
+            capabilities: { ...firstUse['GET /users/me'].capabilities, ...capabilities },
+            residence: {
+                verified: null,
+                declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null },
+                secondaryDeclaredCountry: null,
+            },
+            identityVerification: { status: 'not_started' },
+            signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
+        },
+    }
+}
 /** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
 const AVENIA_BR_USER = {
     user: { fullName: 'Ana Souza' },
@@ -2211,6 +2236,11 @@ export const FIXTURES: Record<string, Fixture> = {
             reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
         }),
     },
+    'pix-setup-terms-before-verification': {
+        route: '/add-money/pix',
+        about: "Before our own check (TASK-24841): Avenia's terms come first, and the screen says Avenia checks the identity itself.",
+        responses: aveniaBeforeVerification(),
+    },
     'pix-setup-hosted-verify': {
         route: '/add-money/pix',
         about: "Avenia takes no shared verification: after its terms, the identity check opens on Avenia's page.",
@@ -2227,24 +2257,21 @@ export const FIXTURES: Record<string, Fixture> = {
         isLoadingState: true,
         responses: aveniaPending('provider_reviewing'),
     },
-    'pix-setup-import-unavailable': {
-        route: '/add-money/pix',
-        about: 'Avenia cannot receive the verification yet: the wait says it is sent again each day.',
-        isLoadingState: true,
-        responses: aveniaPending('identity_import_unavailable'),
-    },
     'pix-setup-cpf-missing': {
         route: '/add-money/pix',
         about: 'The verification has no CPF for Avenia: the step sends the user to support.',
         responses: aveniaPending('tax_id_missing'),
     },
-    'pix-setup-support': {
+    'pix-route-setup-failed': {
         route: '/withdraw/pix',
-        about: 'An Avenia step only support can finish: the step says so and offers support.',
+        about: "A Pix route refused because our own set-up of the Avenia rail failed (FAILED, REQUIRES_SUPPORT): not available, support's to fix.",
         responses: aveniaRouteResponses({
-            state: 'action_required',
-            action: 'contact-support:avenia',
-            reason: { code: 'provider_setup_failed', userMessage: 'Pix could not be set up.' },
+            provider: null,
+            state: 'refused',
+            reason: {
+                code: 'provider_setup_failed',
+                userMessage: 'Something went wrong while we set this up. Message support so we can fix it.',
+            },
         }),
     },
     'pix-route-rejected': {
@@ -2364,7 +2391,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-withdraw-arrived': {
         route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
-        about: 'The last step of a Pix withdrawal after a reload, once Avenia paid the Pix.',
+        about: 'The last step of a Pix withdrawal after a reload, once Avenia paid the Pix: the shared success view, the key alone.',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('COMPLETED'),
         }),
@@ -2374,6 +2401,17 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The last step of a Pix withdrawal after a reload, while the entry is pending: not confirmed yet.',
         responses: aveniaResponses('enabled', {
             [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('PENDING'),
+        }),
+    },
+    'pix-withdraw-processing': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, while Avenia pays the Pix: the shared payment loader.',
+        isLoadingState: true,
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: {
+                ...aveniaWithdrawal('PENDING'),
+                extraData: { ...aveniaWithdrawal('PENDING').extraData, intentStatus: 'PROCESSING' },
+            },
         }),
     },
     'pix-withdraw-refunded': {
@@ -4039,7 +4077,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: "Accounts page, a Brazilian resident: BRL reads Avenia's Pix route, without Pix-key sending.",
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is open: no BRL row, Pix leads Home's Add money drawer instead (Aleks, 2026-11-12).",
         responses: {
             'GET /users/me': {
                 residence: {
@@ -4050,6 +4088,15 @@ export const FIXTURES: Record<string, Fixture> = {
                 capabilities: { routes: [...aveniaRoutes('enabled'), pixPayRoute('refused')] },
             },
         },
+    },
+    'profile-accounts-br-pix-refused': {
+        route: '/profile/accounts',
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is refused: the BRL row stays, closed, and its drawer says the route's reason.",
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+        }),
     },
     'get-paid-empty': {
         route: '/add-money?method=bank',
@@ -4267,6 +4314,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home?drawer=add',
         about: 'The Add drawer — where bank transfer now leads to the standing account.',
     },
+    'home-add-drawer-pix': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer for a user with a Pix deposit route: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12).',
+        responses: aveniaResponses('enabled'),
+    },
     'home-request-drawer': {
         route: '/home?drawer=request',
         about: 'The Request drawer — share a request link, or share standing bank details.',
@@ -4287,6 +4339,32 @@ export const FIXTURES: Record<string, Fixture> = {
                 identityVerification: { status: 'not_started' },
                 capabilities: BLOCKED_BANK_CAPABILITIES,
             },
+        },
+    },
+    'home-pix-plan-before-verification': {
+        route: '/home',
+        balance: '0',
+        about: 'A Pix plan before our own check (TASK-24841): its Set up Pix row opens the Pix setup, where Avenia comes first.',
+        responses: {
+            ...aveniaBeforeVerification({
+                badges: [],
+                activationMilestone: 'registered',
+                isActivated: false,
+                firstPaymentAt: null,
+            }),
+            'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
+        },
+    },
+    'home-pix-plan-provider-reviewing': {
+        route: '/home',
+        balance: '0',
+        about: 'A Pix plan Avenia reviews, before our own check (TASK-24841): Home shows no ID step, Add money is next.',
+        responses: {
+            ...aveniaBeforeVerification(
+                { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                { nextActions: [], routes: aveniaRoutes('reviewing') }
+            ),
+            'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
         },
     },
     'home-verify-processing': {

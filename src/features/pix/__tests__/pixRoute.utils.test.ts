@@ -1,14 +1,16 @@
 import {
     findPixRoute,
     pixPayBlock,
+    pixPlanSetUp,
     pixRefusalCopy,
     pixRouteGate,
+    pixRouteOpen,
     pixRouteReportEntry,
     pixScreen,
     withPixRoute,
 } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
-import type { CapabilityRoute } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction } from '@/types/capabilities'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { DEMO_USER } from '@/constants/demo-data'
 
@@ -67,6 +69,21 @@ describe('pixScreen', () => {
     })
 })
 
+describe('pixRouteOpen', () => {
+    it('offers Pix on Home for a deposit route the API sent and did not refuse, paused included', () => {
+        expect(pixRouteOpen(route())).toBe(true)
+        expect(pixRouteOpen(route({ state: 'action_required', action: 'activate' }))).toBe(true)
+        expect(pixRouteOpen(route({ state: 'pending' }))).toBe(true)
+        // the Pix page shows the outage itself
+        expect(pixRouteOpen(route({ state: 'paused' }))).toBe(true)
+    })
+
+    it('offers no Pix without a route, nor for a refused one', () => {
+        expect(pixRouteOpen(undefined)).toBe(false)
+        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
 describe('pixDepositCodeUrl', () => {
     it("opens one deposit's code on the neutral page", () => {
         expect(pixDepositCodeUrl('d 1')).toBe('/add-money/pix?step=showQR&intentId=d+1')
@@ -82,7 +99,6 @@ describe('pixRefusalCopy', () => {
         expect(pixRefusalCopy(reason('residence_not_served'))).toBe('residence')
         expect(pixRefusalCopy(reason('rollout_closed'))).toBe('not-yet')
         expect(pixRefusalCopy(reason('provider_unavailable'))).toBe('down')
-        expect(pixRefusalCopy(reason('provider_paused'))).toBe('down')
         expect(pixRefusalCopy(reason('method_not_served'))).toBe('not-served')
         expect(pixRefusalCopy(reason('manteca_us_nationality'))).toBe('reason')
         expect(pixRefusalCopy(reason('manteca_us_nationality', ''))).toBe('not-served')
@@ -187,5 +203,36 @@ describe('the BRL account from the Pix route', () => {
         })
         expect(pixRouteGate(route({ state: 'pending' })).kind).toBe('waiting-on-provider')
         expect(pixRouteGate(route({ state: 'refused' })).kind).toBe('blocked-rejection')
+    })
+})
+
+// TASK-24841: a plan that adds money by Pix sets up with the provider, and Home follows it
+describe("a Pix plan's set-up with the provider", () => {
+    const TERMS: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
+    const HOSTED: NextAction = { key: 'avenia-hosted', kind: 'hosted-identity', purpose: 'unlock-avenia' }
+    const step = (action: string) => route({ state: 'action_required', action })
+
+    it.each([
+        ['the terms', 'accept-tos:avenia'],
+        ["the provider's own check", 'avenia-hosted'],
+    ])('is the provider step on %s', (_name, action) => {
+        expect(pixPlanSetUp('brlBank', false, step(action), [TERMS, HOSTED])).toBe('provider-step')
+    })
+
+    it.each(['pending', 'ready'] as const)('is done once the route is %s', (state) => {
+        expect(pixPlanSetUp('brlBank', false, route({ state }), [])).toBe('done')
+    })
+
+    it('leaves our check to Home where the route asks for it, or names a step this build does not know', () => {
+        expect(pixPlanSetUp('brlBank', false, step('verify'), [TERMS])).toBeNull()
+        expect(pixPlanSetUp('brlBank', false, step('accept-tos:avenia'), [])).toBeNull()
+        expect(pixPlanSetUp('brlBank', false, route({ state: 'refused' }), [])).toBeNull()
+        expect(pixPlanSetUp('brlBank', false, undefined, [])).toBeNull()
+    })
+
+    it('is none of Home for another plan or a user our check verified', () => {
+        expect(pixPlanSetUp('bank', false, step('accept-tos:avenia'), [TERMS])).toBeNull()
+        expect(pixPlanSetUp(undefined, false, route({ state: 'pending' }), [])).toBeNull()
+        expect(pixPlanSetUp('brlBank', true, step('accept-tos:avenia'), [TERMS])).toBeNull()
     })
 })

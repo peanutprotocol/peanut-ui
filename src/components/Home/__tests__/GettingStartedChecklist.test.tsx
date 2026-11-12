@@ -394,3 +394,54 @@ describe('GettingStartedChecklist — welcome card and one done row', () => {
         expect(ids).toEqual(['checklist-verify-identity', 'checklist-add-money', 'checklist-first-payment'])
     })
 })
+
+// TASK-24841 (Aleks, 2026-11-12): a plan that adds money by Pix sets up with the provider, never our check from Home
+describe('GettingStartedChecklist — a Pix plan set up with the provider', () => {
+    const renderPix = (pixSetUp: 'provider-step' | 'done' | null, onboarding: Partial<OnboardingState> = {}) =>
+        rtlRender(
+            <NuqsTestingAdapter>
+                <GettingStartedChecklist
+                    onboarding={{ ...NEW_USER, ...onboarding }}
+                    onStartIdentityCheck={mockStartIdentityCheck}
+                    pixSetUp={pixSetUp}
+                />
+            </NuqsTestingAdapter>,
+            { wrapper: IntlWrapper }
+        )
+
+    beforeEach(() => jest.clearAllMocks())
+
+    it("reads the provider's step as the Pix set-up, and the tap starts it", () => {
+        renderPix('provider-step')
+        expect(screen.getByText('Set up Pix')).toBeInTheDocument()
+        expect(screen.getByText('With our Pix partner')).toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
+        expect(screen.queryByText('One-time ID check')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('checklist-verify-identity'))
+        expect(mockStartIdentityCheck).toHaveBeenCalledTimes(1)
+        expect(screen.queryByText('identity-status-drawer')).not.toBeInTheDocument()
+    })
+
+    it('keeps the Pix step even while our own check is in review', () => {
+        renderPix('provider-step', { verify: 'in_review', step: 'add_money' })
+        expect(screen.getByText('Set up Pix')).toBeInTheDocument()
+        expect(screen.queryByText('In review')).not.toBeInTheDocument()
+    })
+
+    it('shows no ID step once the provider reviews or serves the plan', () => {
+        renderPix('done', { verify: 'done', step: 'add_money' })
+        expect(screen.queryByTestId('checklist-verify-identity')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify identity')).not.toBeInTheDocument()
+        expect(screen.queryByText('Set up Pix')).not.toBeInTheDocument()
+        expect(screen.getByText('Add money')).toBeInTheDocument()
+        // the step still counts done, as every finished step does
+        expect(screen.getByText('2 of 4 done')).toBeInTheDocument()
+    })
+
+    it('shows our usual Verify row for any other plan', () => {
+        renderPix(null)
+        expect(screen.getByText('Verify identity')).toBeInTheDocument()
+        expect(screen.getByText('One-time ID check')).toBeInTheDocument()
+        expect(screen.queryByText('Set up Pix')).not.toBeInTheDocument()
+    })
+})

@@ -6,7 +6,10 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { findPixRoute, pixRefusalCopy } from '@/features/pix/pixRoute.utils'
+import { usePixRouteRefusalLine } from '@/features/pix/usePixRouteRefusalLine'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useTranslations } from 'next-intl'
 import { DRAWER_CLOSE_MS } from '../drawer'
@@ -55,6 +58,8 @@ export function ClosedRowDrawer({
     const tActivation = useTranslations('home.activation')
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
+    const { capabilities } = useCapabilities()
+    const pixRefusalLine = usePixRouteRefusalLine()
     const { user } = useAuth()
     const { identity } = useIdentityVerification()
 
@@ -95,6 +100,26 @@ export function ClosedRowDrawer({
                     body: tAccounts(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the route's own reason (an outage, the rollout, a pause), as the Pix pages word it; a refusal
+            // only support can lift offers support with the reason, as the Pix page does
+            case 'pix-route': {
+                const reason = findPixRoute(capabilities.routes, 'deposit')?.reason
+                const kind = pixRefusalCopy(reason)
+                return {
+                    title: t('list.badgeNotOffered'),
+                    body: pixRefusalLine(reason),
+                    cta:
+                        kind === 'rejected' || kind === 'setup-failed'
+                            ? {
+                                  label: tCommon('contactSupport'),
+                                  act: () =>
+                                      openSupportWithMessage(
+                                          buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                                      ),
+                              }
+                            : { label: tCommon('gotIt') },
+                }
+            }
             case 'card-restricted':
                 return {
                     title: t('list.badgeNotOffered'),

@@ -87,6 +87,15 @@ function accountAutoName(account: Account, countryName: string): string {
     return `${place} · ${LAST_FOUR(account.identifier)}`
 }
 
+/**
+ * A saved account that is paid over Pix: someone else's key kept from a payment,
+ * or the user's own account in Brazil.
+ */
+export function isPixAccount(account: Account): boolean {
+    if (account.isPixRecipient) return true
+    return account.type === AccountType.MANTECA && (account.details?.countryName ?? '').toLowerCase() === 'brazil'
+}
+
 /** A crypto address-book entry as a destination. */
 export function savedAddressDestination(saved: SavedAddress): SavedDestination {
     return {

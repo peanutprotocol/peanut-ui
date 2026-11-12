@@ -8,6 +8,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
 import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
@@ -16,6 +17,8 @@ export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
     const { disabledMantecaCurrencies } = useKillSwitches()
     const pixBlock = usePixPayBlock()
+    // `method` names the rail on this page (pix, bank-transfer), so only `sendMethod` marks a Send origin
+    const { isFromSendFlow } = useSendFlowOrigin()
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
     // PIX key), not the offramp/withdraw endpoint. Delegate to the lightweight
     // PIX-key entry, which wraps the key and hands off to /qr-pay. The gate
@@ -24,6 +27,10 @@ export default function MantecaWithdrawFlow() {
     // through. All Brazil-PIX entry points funnel here, so this is the single
     // chokepoint that flips the endpoint without touching the AR / bank paths.
     if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
+        // A resident of Brazil cannot send to another person's key, but their own-account Pix is
+        // open on /withdraw/pix. Outside Send they came to withdraw, so the block screen would be
+        // a dead end in front of a flow that works (live test on staging, 2026-11-12).
+        if (pixBlock === 'residence' && !isFromSendFlow) return <RouteAlias to={PIX_WITHDRAW_PATH} />
         if (pixBlock) return <BrazilPausedScreen block={pixBlock} />
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }

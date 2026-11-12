@@ -57,8 +57,12 @@ const mockOpenSupport = jest.fn()
 const mockPush = jest.fn()
 const mockSetIsQRScannerOpen = jest.fn()
 
+// the Pix deposit route and the next actions it names (TASK-24841)
+let mockRoutes: Array<Record<string, unknown>> = []
+let mockNextActions: Array<{ key: string; kind: string; purpose: string }> = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: { routes: mockRoutes },
         rails: mockRails,
         channelOf: (rail: { channel: string }) => rail.channel,
         operationStatus: (railId: string, op: string) => {
@@ -73,7 +77,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
                     (rail.operations?.[op] ?? rail.status) === 'enabled'
             ),
         nextActionsForRail: () => [],
-        nextActions: [],
+        nextActions: mockNextActions,
     }),
 }))
 jest.mock('@/context/authContext', () => ({
@@ -187,6 +191,8 @@ beforeEach(() => {
     mockRejectLabels = undefined
     mockShowWrapper = false
     mockPaperworkVerification = () => Promise.resolve(false)
+    mockRoutes = []
+    mockNextActions = []
 })
 
 describe('Bridge postal correction', () => {
@@ -293,6 +299,61 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         await waitFor(() => expect(mockStartQrCheck).toHaveBeenCalled())
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+})
+
+// TASK-24841: before our own check, a plan that adds money by Pix starts with the provider's own set-up
+describe('ActivationCTAs — the Verify row of a Pix plan whose route starts with the provider', () => {
+    const pixRoute = (action: string) => ({
+        operation: 'deposit',
+        method: 'PIX_BR',
+        provider: 'avenia',
+        state: 'action_required',
+        action,
+        candidates: [],
+    })
+    const pixPlan = () => {
+        mockUser = {
+            user: { isActivated: false, userId: 'u1' },
+            signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
+        }
+    }
+
+    it.each([
+        ['the provider terms', 'accept-tos:avenia', 'accept-tos'],
+        ["the provider's own identity check", 'avenia-hosted', 'hosted-identity'],
+    ])('opens the Pix setup on %s, never our verification', async (_name, action, kind) => {
+        pixPlan()
+        mockRoutes = [pixRoute(action)]
+        mockNextActions = [{ key: action, kind, purpose: 'unlock-avenia' }]
+        mockPaperworkVerification = () => Promise.resolve(true)
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+    })
+
+    it('keeps our verification where the route asks for it first', async () => {
+        pixPlan()
+        mockRoutes = [pixRoute('verify')]
+        mockPaperworkVerification = () => Promise.resolve(true)
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+    })
+
+    it('keeps our verification for a plan that does not add money by Pix', async () => {
+        mockUser = {
+            user: { isActivated: false, userId: 'u1' },
+            signupPreferences: { fundingChannel: 'bank', paymentChannel: 'card' },
+        }
+        mockRoutes = [pixRoute('accept-tos:avenia')]
+        mockNextActions = [{ key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }]
+        mockPaperworkVerification = () => Promise.resolve(true)
+        render(<ActivationCTAs onboarding={NEW_USER} />)
+        fireEvent.click(screen.getByText('start-identity-check'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
     })
 })
 

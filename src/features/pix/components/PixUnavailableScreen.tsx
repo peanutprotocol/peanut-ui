@@ -7,7 +7,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { pixRefusalCopy } from '@/features/pix/pixRoute.utils'
+import { usePixRouteRefusalLine } from '@/features/pix/usePixRouteRefusalLine'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
@@ -35,17 +35,8 @@ export function PixUnavailableScreen({
     const safeBack = useSafeBack('/home')
     const back = onBack ?? safeBack
     const reason = route?.reason
-    const description =
-        line ??
-        {
-            rejected: t('pix.rejected'),
-            'setup-failed': t('pix.setup.notAvailable'),
-            residence: t('pix.residenceNotServed'),
-            'not-yet': t('pix.rolloutClosed'),
-            down: t('pix.unavailable'),
-            'not-served': t('pix.methodNotServed'),
-            reason: reason?.userMessage ?? '',
-        }[pixRefusalCopy(reason)]
+    const refusalLine = usePixRouteRefusalLine()
+    const description = line ?? refusalLine(reason)
     return (
         <PageStack>
             <NavHeader title={title} onPrev={back} />

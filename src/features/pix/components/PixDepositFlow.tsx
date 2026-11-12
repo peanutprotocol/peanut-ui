@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { parseAsString, parseAsStringEnum, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
@@ -76,13 +76,6 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const [isCreating, setIsCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // the banks the provider sends a Pix back to: the code screen names them, nothing else reads them
-    const rules = useQuery({
-        queryKey: ['pix-deposit-rules'],
-        queryFn: pixApi.depositRules,
-        enabled: ready && !!intentId,
-        staleTime: 5 * 60_000,
-    })
     // The route states the provider's minimum: an amount under it is refused here, before any quote.
     // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
     // Only the amount step quotes: the setup and the code screen do not.
@@ -175,7 +168,6 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         return (
             <PixQrDeposit
                 intentId={intentId}
-                blockedBankNames={rules.data?.blockedBanks.flatMap((bank) => (bank.name ? [bank.name] : [])) ?? []}
                 // the code is made; back leaves the flow rather than offering a second code
                 onBack={onBack}
                 onDone={leaveToHome}

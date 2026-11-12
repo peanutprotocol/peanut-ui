@@ -1188,7 +1188,9 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
             "cryptoDescription": "Depositá desde una billetera o exchange",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "pix": "Pix",
+            "pixDescription": "Transferencias instantáneas en reales"
         },
         "networkDrawer": {
             "description": "Elegí la red desde la que querés agregar:"
@@ -1337,17 +1339,23 @@
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix necesita un CPF, y la verificación registrada no tiene uno. Contactá a soporte para agregarlo.",
+            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contactá a soporte.",
             "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contactá a soporte para terminarlo.",
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte.",
             "hosted": {
-                "body": "Hacé la verificación en la página de nuestro socio de pagos.",
-                "failed": "No funcionó. Intentá de nuevo."
+                "body": "Verificá con {brand}.",
+                "bodyPartner": "Verificá con nuestro socio de pagos.",
+                "failed": "Falló. Intentá de nuevo.",
+                "back": "¿Volviste de {brand}? Esperamos su respuesta.",
+                "backPartner": "¿Volviste de nuestro socio de pagos? Esperamos su respuesta.",
+                "openAgain": "Abrir {brand} de nuevo",
+                "openAgainPartner": "Abrir la página de nuevo"
             }
         },
         "deposit": {
             "youGet": "Recibís ≈ {amount}",
-            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF."
+            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF.",
+            "codeValidFor": "Código válido por {time}"
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contactá a soporte.",

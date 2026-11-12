@@ -12,15 +12,24 @@ const mockFetchUser = jest.fn(() => Promise.resolve(null))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'u1' } }, fetchUser: mockFetchUser }),
 }))
+// our own identity check: done, or not yet (TASK-24841: the provider checks first)
+let mockVerified = true
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: mockVerified }) }))
 // the hand-off to the provider's page: which link it opens, and the tap that opens it
 const mockHostedStart = jest.fn()
-const mockHostedHook = jest.fn((_key: string, _options: { url?: string }) => ({
+const HOSTED_IDLE = {
     start: mockHostedStart,
     isStarting: false,
     error: null as string | null,
     isSettling: false,
     stillPendingAfterReturn: false,
-}))
+    opened: false,
+}
+const mockHostedHook = jest.fn((_key: string, _options: { url?: string }) => ({ ...HOSTED_IDLE }))
+const resetHosted = () => {
+    mockHostedHook.mockReset()
+    mockHostedHook.mockImplementation(() => ({ ...HOSTED_IDLE }))
+}
 jest.mock('@/hooks/useHostedVerification', () => ({
     useHostedVerification: (key: string, options: { url?: string }) => mockHostedHook(key, options),
 }))
@@ -70,6 +79,26 @@ describe('PixSetup', () => {
         ]
     })
 
+    // TASK-24841: before our own check, the terms screen says the provider checks the identity itself
+    it('tells a user we have not verified that the provider checks them and other accounts may ask again', () => {
+        mockVerified = false
+        try {
+            renderSetup(route({ action: 'accept-tos:avenia', reason: { code: 'terms_required', userMessage: '' } }))
+            expect(
+                screen.getByText(en.pix.setup.bodyBeforeVerification.replace('{brand}', 'Avenia'))
+            ).toBeInTheDocument()
+            expect(screen.queryByText(en.pix.setup.body)).toBeNull()
+            expect(screen.getByRole('link')).toHaveAttribute('href', TERMS_URL)
+        } finally {
+            mockVerified = true
+        }
+    })
+
+    it('keeps the short line for a user we have verified', () => {
+        renderSetup(route({ action: 'accept-tos:avenia', reason: { code: 'terms_required', userMessage: '' } }))
+        expect(screen.getByText(en.pix.setup.body)).toBeInTheDocument()
+    })
+
     it("names and links Avenia's terms, the document the API versions, before the tap that accepts them", () => {
         renderSetup(route({ action: 'accept-tos:avenia', reason: { code: 'terms_required', userMessage: '' } }))
 
@@ -79,12 +108,9 @@ describe('PixSetup', () => {
         expect(mockAccept).toHaveBeenCalled()
     })
 
-    it.each([
-        ['provider_reviewing', en.pix.setup.reviewing],
-        ['identity_import_unavailable', en.pix.setup.importUnavailable],
-    ])('waits with the reason as user text (%s)', (code, text) => {
-        renderSetup(route({ state: 'pending', reason: { code, userMessage: '' } }))
-        expect(screen.getByText(text)).toBeInTheDocument()
+    it('waits while the provider reviews, with the reason as user text', () => {
+        renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
+        expect(screen.getByText(en.pix.setup.reviewing)).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.common.continue })).toBeNull()
     })
 
@@ -130,23 +156,140 @@ describe('PixSetup', () => {
                     userMessage: 'Verify your identity with our payments partner to continue.',
                 },
             })
+        // the launch this tab made, per account and action (`PixHostedVerification`)
+        const LAUNCH_KEY = 'pix-hosted-launched:u1:avenia-hosted'
+        afterEach(() => window.sessionStorage.clear())
 
         it("after the terms, opens the check on the provider's page, never the Peanut one", () => {
             mockNextActions = [hosted(SOON())]
             renderSetup(hostedStep())
 
-            expect(screen.getByText(en.pix.setup.hosted.body)).toBeInTheDocument()
+            expect(screen.getByText(en.pix.setup.hosted.body.replace('{brand}', 'Avenia'))).toBeInTheDocument()
             expect(mockHostedHook).toHaveBeenLastCalledWith('hosted-identity', { url: LINK })
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
             expect(mockHostedStart).toHaveBeenCalledTimes(1)
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        it('reads the capabilities again on Done', () => {
+        it('names our payment partner where the route names no provider this build knows', () => {
+            mockNextActions = [hosted(SOON())]
+            renderSetup({ ...hostedStep(), provider: null })
+            expect(screen.getByText(en.pix.setup.hosted.bodyPartner)).toBeInTheDocument()
+            expect(screen.queryByText('Verify with .')).toBeNull()
+        })
+
+        // Aleks, 2026-11-12: no Done link. Once the page was opened from here, the screen says it
+        // waits for the provider's answer, only reopens the page, and reads the capabilities on its own.
+        it("after the page was opened, waits for the provider's answer in the open and only reopens the page", () => {
             mockNextActions = [hosted(SOON())]
             renderSetup(hostedStep())
-            fireEvent.click(screen.getByRole('button', { name: en.common.done }))
-            expect(mockFetchUser).toHaveBeenCalledTimes(1)
+            fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
+
+            expect(screen.getByText(en.pix.setup.hosted.back.replace('{brand}', 'Avenia'))).toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: en.pix.setup.verifyCta })).toBeNull()
+            expect(screen.queryByRole('button', { name: en.common.done })).toBeNull()
+            // the launch is kept in this tab, for this link, in case the hand-off takes this tab along
+            expect(window.sessionStorage.getItem(LAUNCH_KEY)).toBe(LINK)
+            fireEvent.click(
+                screen.getByRole('button', { name: en.pix.setup.hosted.openAgain.replace('{brand}', 'Avenia') })
+            )
+            expect(mockHostedStart).toHaveBeenCalledTimes(2)
+        })
+
+        it('names our payment partner in the waiting line and button where the route names no provider', () => {
+            mockNextActions = [hosted(SOON())]
+            renderSetup({ ...hostedStep(), provider: null })
+            fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
+
+            expect(screen.getByText(en.pix.setup.hosted.backPartner)).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: en.pix.setup.hosted.openAgainPartner })).toBeInTheDocument()
+        })
+
+        // pop-ups blocked: the hook sends this very tab to the provider's page, and Back mounts the screen anew
+        it('comes back waiting after a same-tab hand-off, polling from the mount, and forgets the launch when the step is left', async () => {
+            jest.useFakeTimers()
+            window.sessionStorage.setItem(LAUNCH_KEY, LINK)
+            try {
+                mockNextActions = [hosted(SOON())]
+                const view = renderSetup(hostedStep())
+
+                expect(screen.getByText(en.pix.setup.hosted.back.replace('{brand}', 'Avenia'))).toBeInTheDocument()
+                expect(screen.queryByRole('button', { name: en.pix.setup.verifyCta })).toBeNull()
+                await act(async () => {
+                    jest.advanceTimersByTime(10_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
+
+                // the route moved on, or the user went back: the launch is forgotten
+                view.unmount()
+                expect(window.sessionStorage.getItem(LAUNCH_KEY)).toBeNull()
+            } finally {
+                jest.useRealTimers()
+            }
+        })
+
+        it('a launch kept for an earlier link does not count: a new link asks to verify again', () => {
+            window.sessionStorage.setItem(LAUNCH_KEY, 'https://avenia.example/identity/u1-earlier')
+            mockNextActions = [hosted(SOON())]
+            renderSetup(hostedStep())
+
+            expect(screen.getByRole('button', { name: en.pix.setup.verifyCta })).toBeInTheDocument()
+            expect(screen.queryByText(en.pix.setup.hosted.back.replace('{brand}', 'Avenia'))).toBeNull()
+        })
+
+        // before the page was opened too: a decision taken on another device, or on this tab before a Back
+        it('reads the capabilities again on focus, on return to the tab, and every 10 s while the link is live', async () => {
+            jest.useFakeTimers()
+            try {
+                mockNextActions = [hosted(SOON())]
+                const view = renderSetup(hostedStep())
+                expect(mockFetchUser).not.toHaveBeenCalled()
+
+                await act(async () => {
+                    window.dispatchEvent(new Event('focus'))
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(1)
+                await act(async () => {
+                    document.dispatchEvent(new Event('visibilitychange'))
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(2)
+                // one read at a time: each tick's read settles before the next tick
+                await act(async () => {
+                    jest.advanceTimersByTime(10_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(3)
+                await act(async () => {
+                    jest.advanceTimersByTime(10_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(4)
+
+                // unmounted, it stops
+                view.unmount()
+                await act(async () => {
+                    jest.advanceTimersByTime(30_000)
+                })
+                expect(mockFetchUser).toHaveBeenCalledTimes(4)
+            } finally {
+                resetHosted()
+                jest.useRealTimers()
+            }
+        })
+
+        // a read while the link is expired would mint link after link
+        it('reads nothing once the link has expired', async () => {
+            jest.useFakeTimers()
+            window.sessionStorage.setItem(LAUNCH_KEY, LINK)
+            try {
+                mockNextActions = [hosted(new Date(Date.now() - 1_000).toISOString())]
+                renderSetup(hostedStep())
+                await act(async () => {
+                    window.dispatchEvent(new Event('focus'))
+                    jest.advanceTimersByTime(30_000)
+                })
+                expect(mockFetchUser).not.toHaveBeenCalled()
+            } finally {
+                jest.useRealTimers()
+            }
         })
 
         // after the submit the route waits on the provider's decision, with no action
@@ -179,28 +322,21 @@ describe('PixSetup', () => {
         it('says the page did not open and keeps Verify to try again', () => {
             mockNextActions = [hosted(SOON())]
             mockHostedHook.mockReturnValue({
-                start: mockHostedStart,
-                isStarting: false,
+                ...HOSTED_IDLE,
                 error: "We couldn't open the verification. Please try again in a moment.",
-                isSettling: false,
-                stillPendingAfterReturn: false,
             })
+            window.sessionStorage.setItem(LAUNCH_KEY, LINK)
             try {
                 renderSetup(hostedStep())
                 expect(screen.getByRole('alert')).toHaveTextContent(en.pix.setup.hosted.failed)
+                // a page that did not open was not launched
+                expect(window.sessionStorage.getItem(LAUNCH_KEY)).toBeNull()
                 const verify = screen.getByRole('button', { name: en.pix.setup.verifyCta })
                 expect(verify).toBeEnabled()
                 fireEvent.click(verify)
                 expect(mockHostedStart).toHaveBeenCalledTimes(1)
             } finally {
-                mockHostedHook.mockReset()
-                mockHostedHook.mockImplementation(() => ({
-                    start: mockHostedStart,
-                    isStarting: false,
-                    error: null,
-                    isSettling: false,
-                    stillPendingAfterReturn: false,
-                }))
+                resetHosted()
             }
         })
 
@@ -239,7 +375,7 @@ describe('PixSetup', () => {
             renderSetup(route({ action: 'verify' }))
             fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
             expect(mockPush).toHaveBeenCalledWith('/verify')
-            expect(screen.queryByText(en.pix.setup.hosted.body)).toBeNull()
+            expect(screen.queryByText(en.pix.setup.hosted.body.replace('{brand}', 'Avenia'))).toBeNull()
         })
     })
 

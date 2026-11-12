@@ -306,5 +306,14 @@ PAGE_CAPTURES.push(
         fixture: 'pix-manteca-withdraw-review',
         actions: [{ clickSelector: '[data-testid="provider-help"]' }],
         expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    // TASK-24841: a Pix plan before our own check: Verify identity opens the Pix setup, Avenia's terms first
+    {
+        id: 'p87-pix-plan-verify-opens-pix',
+        name: 'Home — Set up Pix opens the Pix setup before our own check',
+        route: '/home',
+        fixture: 'home-pix-plan-before-verification',
+        clicks: ['Set up Pix'],
+        expectSelector: 'a[href="https://app.avenia.io/Avenia-TC.pdf"]',
     }
 )

@@ -33,12 +33,18 @@ jest.mock('@/components/Common/CountryList', () => ({
         countries,
         searchTerm,
         onCountryClick,
+        pixPayBlock,
     }: {
         countries?: CountryData[]
         searchTerm?: string
         onCountryClick: (c: CountryData) => void
+        pixPayBlock?: string | null
     }) => (
-        <div data-testid={countries ? 'country-list-scoped' : 'country-list-all'} data-search-term={searchTerm}>
+        <div
+            data-testid={countries ? 'country-list-scoped' : 'country-list-all'}
+            data-search-term={searchTerm}
+            data-pix-pay-block={pixPayBlock ?? ''}
+        >
             {(countries ?? []).map((country) => (
                 <button key={country.id} data-testid={`scoped-${country.path}`} onClick={() => onCountryClick(country)}>
                     {country.title}
@@ -52,6 +58,8 @@ jest.mock('@/components/Common/CountryList', () => ({
 // other currency has one country), so a test can append a shared currency
 // that does. Empty by default: the rows then come from the real catalog.
 let mockExtraCurrencies: unknown[] = []
+let mockPixPayBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixPayBlock }))
 jest.mock('../withdraw-currencies', () => {
     const actual = jest.requireActual('../withdraw-currencies')
     return {
@@ -89,6 +97,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockLocale = 'en'
     mockExtraCurrencies = []
+    mockPixPayBlock = null
 })
 
 describe('WithdrawCurrencyList — currency-first with country as fallback', () => {
@@ -249,6 +258,34 @@ describe('WithdrawCurrencyList — send-to-bank keeps the country gate', () => {
         expect(currencyRows()).toEqual([])
         search('ARS')
         expect(currencyRows()).toEqual([])
+    })
+
+    describe('a resident of Brazil, whose pay route refuses the residence', () => {
+        beforeEach(() => {
+            mockPixPayBlock = 'residence'
+        })
+
+        it('send-to-bank offers no BRL row, by the list or by a search', () => {
+            renderList({ enforceSupportedCountries: true })
+            expect(currencyRows()).not.toContain('BRL')
+            expect(currencyRows()).toEqual(expect.arrayContaining(['EUR', 'GBP', 'USD', 'MXN', 'COP']))
+            search('Brazil')
+            expect(currencyRows()).toEqual([])
+            search('BRL')
+            expect(currencyRows()).toEqual([])
+        })
+
+        it('send-to-bank hands the block to the country list, which gates Brazil on it too', () => {
+            renderList({ enforceSupportedCountries: true })
+            fireEvent.click(screen.getByTestId('withdraw-other-countries-toggle'))
+            expect(screen.getByTestId('country-list-all')).toHaveAttribute('data-pix-pay-block', 'residence')
+        })
+
+        it('own-account withdraw keeps the BRL row: it opens their own Pix withdrawal', () => {
+            renderList()
+            fireEvent.click(screen.getByTestId('withdraw-currency-BRL'))
+            expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'brazil' }))
+        })
     })
 })
 

@@ -175,6 +175,11 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-setup-terms-before-verification",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-setup-hosted-verify",
         "flow": "Setup and login",
         "route": "/add-money/pix"
@@ -190,17 +195,12 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-import-unavailable",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-pix-setup-cpf-missing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-support",
+        "id": "fixture-pix-route-setup-failed",
         "flow": "Setup and login",
         "route": "/withdraw/pix"
     },
@@ -402,7 +402,22 @@
         "route": "/home?drawer=add"
     },
     {
+        "id": "fixture-home-add-drawer-pix",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add"
+    },
+    {
         "id": "fixture-home-new-user",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-pix-plan-before-verification",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-pix-plan-provider-reviewing",
         "flow": "Home and shared states",
         "route": "/home"
     },
@@ -680,6 +695,11 @@
         "id": "p79-notifications",
         "flow": "Home and shared states",
         "route": "/settings/notifications"
+    },
+    {
+        "id": "p87-pix-plan-verify-opens-pix",
+        "flow": "Home and shared states",
+        "route": "/home"
     },
     {
         "id": "api-ribbon-loading",
@@ -2322,6 +2342,11 @@
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
+        "id": "fixture-pix-withdraw-processing",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
+    },
+    {
         "id": "fixture-pix-withdraw-refunded",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
@@ -2559,9 +2584,9 @@
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
-        "id": "94-i-pix-withdraw-sent-unnamed",
+        "id": "94-i-pix-withdraw-arrived-unnamed",
         "flow": "Withdraw",
-        "route": "/dev/surfaces?s=94-i-pix-withdraw-sent-unnamed",
+        "route": "/dev/surfaces?s=94-i-pix-withdraw-arrived-unnamed",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
@@ -2580,6 +2605,18 @@
         "id": "94-l-pix-withdraw-stuck",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-l-pix-withdraw-stuck",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-m-pix-withdraw-past-arrival",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-m-pix-withdraw-past-arrival",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-n-pix-withdraw-past-arrival-unnamed",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-n-pix-withdraw-past-arrival-unnamed",
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
@@ -2736,6 +2773,11 @@
     },
     {
         "id": "fixture-profile-accounts-br-resident",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-br-pix-refused",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },

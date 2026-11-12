@@ -17,7 +17,6 @@ type QuoteOperation = paths['/pix/quote']['get']
 
 export type PixQuoteRequest = QuoteOperation['parameters']['query']
 export type PixQuote = Json<QuoteOperation['responses'][200]>
-export type PixDepositRules = Json<paths['/pix/deposit/rules']['get']['responses'][200]>
 /** One deposit, as POST /pix/deposit opens it and GET /pix/deposit/:intentId reads it. */
 export type PixDeposit = Json<paths['/pix/deposit/{intentId}']['get']['responses'][200]>
 export type PixKeyInfo = Json<paths['/pix/key']['post']['responses'][200]>
@@ -52,9 +51,6 @@ export const pixApi = {
         )
         return call<PixQuote>(`/pix/quote?${query.toString()}`, GET, 'Could not quote the amount')
     },
-
-    /** The banks the provider sends a Pix back to, for the code screen. */
-    depositRules: () => call<PixDepositRules>('/pix/deposit/rules', GET, 'Pix is not available'),
 
     createDeposit: (amountBrl: string) =>
         call<PixDeposit>('/pix/deposit', post({ amountBrl }), 'Could not create the Pix code'),

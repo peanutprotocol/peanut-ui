@@ -42,10 +42,8 @@ jest.mock('@/features/pix/components/PixQrDeposit', () => ({
     ),
 }))
 const mockCreate = jest.fn()
-const mockDepositRules = jest.fn(() => Promise.resolve({ minAmountBrl: '20', blockedBanks: [] }))
 jest.mock('@/services/pix', () => ({
     pixApi: {
-        depositRules: () => mockDepositRules(),
         createDeposit: (amountBrl: string) => mockCreate(amountBrl),
     },
 }))
@@ -182,12 +180,11 @@ describe('PixDepositFlow and the URL', () => {
         expect(await screen.findByText(/The minimum is R\$200/)).toBeInTheDocument()
     })
 
-    it('reads no deposit rules for the amount step: the route already states the minimum', async () => {
+    it("shows no minimum line while the amount meets the route's minimum", async () => {
         renderAt('', { minAmount: '1' })
         fireEvent.click(screen.getByText('type'))
         await new Promise((resolve) => setTimeout(resolve, 0))
         expect(screen.queryByText(/The minimum is/)).toBeNull()
-        expect(mockDepositRules).not.toHaveBeenCalled()
     })
 
     it('reads the route again when the provider is paused or dormant (503), and says to try again soon', async () => {

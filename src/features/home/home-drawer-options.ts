@@ -1,4 +1,5 @@
 import { type Concept } from '@/components/0_Bruddle/conceptIcons'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { type HomeDrawer } from './useHomeDrawer'
 
 export type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts' | 'shareRequestLink' | 'shareBankDetails'
@@ -7,8 +8,8 @@ type HomeDrawerBodyKey =
     | 'withdrawToOwnAccountsDescription'
     | 'shareRequestLinkDescription'
     | 'shareBankDetailsDescription'
-export type AddMethodKey = 'bankTransfer' | 'crypto'
-type AddMethodBodyKey = 'bankTransferDescription' | 'cryptoDescription'
+export type AddMethodKey = 'pix' | 'bankTransfer' | 'crypto'
+type AddMethodBodyKey = 'pixDescription' | 'bankTransferDescription' | 'cryptoDescription'
 
 export interface DrawerOption {
     key: string
@@ -18,6 +19,11 @@ export interface DrawerOption {
     /** the row's icon and bubble colour come from the concept map, as on the Send page (SendRouter) */
     concept: Concept
     href: string
+    /**
+     * What the tap reports as `deposit_method_selected`. The bank rows report nothing here: both
+     * land on the country list, whose click is the one place the bank arm is reported.
+     */
+    depositSelected?: { method_type: 'pix'; country: 'brazil' }
 }
 
 // send drawer board 17831:79186; add drawer board 17830:76839. withdraw is
@@ -28,6 +34,21 @@ const BANK_ONE_OFF: DrawerOption = {
     titleKey: ['methods', 'bankTransfer'],
     concept: 'bank',
     href: '/add-money?method=bank',
+}
+
+/**
+ * Pix leads the Add drawer for a user whose Pix deposit route is open (Aleks, 2026-11-12): a route
+ * the API sent and did not refuse (`pixRouteOpen`), paused included, since the Pix page shows the
+ * outage itself. The BRL row then leaves the bank lists (`useBankRows`). The row lands on the Pix
+ * page straight away, so its tap is where the Pix arm of `deposit_method_selected` is reported.
+ */
+const PIX: DrawerOption = {
+    key: 'pix',
+    titleKey: ['methods', 'pix'],
+    bodyKey: ['methods', 'pixDescription'],
+    concept: 'pix',
+    href: PIX_ADD_MONEY_PATH,
+    depositSelected: { method_type: 'pix', country: 'brazil' },
 }
 
 const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
@@ -50,9 +71,10 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         },
     ],
     add: [
-        // bank first (2026-09-18 decision, per product/activation-funnel.md):
+        // bank before crypto (2026-09-18 decision, per product/activation-funnel.md):
         // most users already have a bank account, so bank leads and crypto —
-        // the KYC-free path — is the second option.
+        // the KYC-free path — is the second option. For a user with a Pix
+        // deposit route, Pix leads them both (Aleks, 2026-11-12): `addOptions`.
         BANK_ONE_OFF,
         {
             key: 'crypto',
@@ -118,19 +140,25 @@ const BANK_STANDING: DrawerOption = {
     href: '/add-money?method=bank',
 }
 
-function addOptions(depositAccountsEnabled: boolean): DrawerOption[] {
-    return DRAWER_OPTIONS.add.map((option) =>
+function addOptions(depositAccountsEnabled: boolean, pixOpen: boolean): DrawerOption[] {
+    const options = DRAWER_OPTIONS.add.map((option) =>
         option.key === 'bank' && depositAccountsEnabled ? BANK_STANDING : option
     )
+    return pixOpen ? [PIX, ...options] : options
 }
 
 /**
  * The rows a home drawer shows. The home submenu reads the same list: a drawer
  * that would hold one row is an extra tap, so the submenu links straight to
- * that row's destination instead.
+ * that row's destination instead. `pixOpen`: the user's Pix deposit route is
+ * open (`usePixDepositOpen`).
  */
-export function homeDrawerOptions(drawer: HomeDrawer, depositAccountsEnabled: boolean): DrawerOption[] {
-    if (drawer === 'add') return addOptions(depositAccountsEnabled)
+export function homeDrawerOptions(
+    drawer: HomeDrawer,
+    depositAccountsEnabled: boolean,
+    pixOpen: boolean
+): DrawerOption[] {
+    if (drawer === 'add') return addOptions(depositAccountsEnabled, pixOpen)
     if (drawer === 'request') return requestOptions(depositAccountsEnabled)
     return DRAWER_OPTIONS[drawer]
 }
