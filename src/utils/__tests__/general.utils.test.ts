@@ -50,6 +50,60 @@ describe('General Utilities', () => {
                     expect(formatTokenAmount('12,', 2, true)).toBe('12.')
                 })
 
+                it('reads es/pt thousands dots before a decimal comma (TASK-23499)', () => {
+                    expect(formatTokenAmount('1.000,50', 2, true)).toBe('1000.50')
+                    expect(formatTokenAmount('1.234.567,8', 2, true)).toBe('1234567.8')
+                    expect(formatTokenAmount('1.000,', 2, true)).toBe('1000.')
+                })
+
+                it('keeps a dot without a comma as the decimal point (TASK-23499 decision)', () => {
+                    // ambiguous: 125 thousand in es/pt, 125 in en. unchanged until decided
+                    expect(formatTokenAmount('125.000', 2, true)).toBe('125.00')
+                    expect(formatTokenAmount('1.234.567', 2, true)).toBe('')
+                })
+
+                it('rejects dots that are not clean thousands groups before a comma', () => {
+                    expect(formatTokenAmount('1.00,5', 2, true)).toBe('')
+                    expect(formatTokenAmount('1234.567,8', 2, true)).toBe('')
+                    expect(formatTokenAmount('1,000.000,5', 2, true)).toBe('')
+                    expect(formatTokenAmount('0.000,5', 2, true)).toBe('')
+                })
+
+                it('drops a currency sign around the amount (TASK-23499)', () => {
+                    expect(formatTokenAmount('R$ 1.234,56', 2, true)).toBe('1234.56')
+                    expect(formatTokenAmount('$12', 2, true)).toBe('12')
+                    expect(formatTokenAmount('$ 12', 2, true)).toBe('12')
+                    expect(formatTokenAmount('US$ 1,000.50', 2, true)).toBe('1000.50')
+                    expect(formatTokenAmount('12,50 €', 2, true)).toBe('12.50')
+                    expect(formatTokenAmount('$', 2, true)).toBe('')
+                    expect(formatTokenAmount('-$5', 2, true)).toBe('')
+                    expect(formatTokenAmount('$-5', 2, true)).toBe('')
+                    expect(formatTokenAmount('abc$12', 2, true)).toBe('')
+                    expect(formatTokenAmount('$5$', 2, true)).toBe('')
+                    expect(formatTokenAmount('$ 5 €', 2, true)).toBe('')
+                })
+
+                it('rejects a signed amount that could be a thousand or a decimal', () => {
+                    // the sign hints at a locale; reading these as 1.00 would be a 1000x underpay
+                    expect(formatTokenAmount('$1,000', 2, true)).toBe('')
+                    expect(formatTokenAmount('$10,000', 2, true)).toBe('')
+                    expect(formatTokenAmount('R$ 1.000', 2, true)).toBe('')
+                    expect(formatTokenAmount('R$ 50.000', 2, true)).toBe('')
+                    expect(formatTokenAmount('1.000 €', 2, true)).toBe('')
+                    // not ambiguous: a leading zero, or a fraction that is not 3 digits
+                    expect(formatTokenAmount('$0,125', 2, true)).toBe('0.12')
+                    expect(formatTokenAmount('$1,5', 2, true)).toBe('1.5')
+                    expect(formatTokenAmount('R$ 1.000,00', 2, true)).toBe('1000.00')
+                })
+
+                it('reads spaces only as clean thousands groups (TASK-23499)', () => {
+                    expect(formatTokenAmount('1 234,56', 2, true)).toBe('1234.56')
+                    expect(formatTokenAmount('1\u00a0234,56', 2, true)).toBe('1234.56')
+                    expect(formatTokenAmount('1\u202f234\u202f567', 2, true)).toBe('1234567')
+                    expect(formatTokenAmount('12 5', 2, true)).toBe('')
+                    expect(formatTokenAmount('1 23,5', 2, true)).toBe('')
+                })
+
                 it('should preserve progressive typing with decimal', () => {
                     expect(formatTokenAmount('123.', 2, true)).toBe('123.')
                     expect(formatTokenAmount('0.', 2, true)).toBe('0.')

@@ -68,12 +68,10 @@ describe('AmountInput with hostile values', () => {
         expect(sent()).toBe('12.50')
     })
 
-    // ---- bugs: recorded with it.failing so the suite stays green. when one
-    // starts passing, jest fails it — flip it to `it` then. ----
-
-    // bug: es/pt thousands dots plus a decimal comma are rejected and the field
-    // is wiped, so a value copied from a pt-BR/es-AR bank app never pastes
-    it.failing.each([
+    // es/pt thousands dots with a decimal comma, a currency sign or space
+    // groups used to be rejected and wiped the field, so a value copied from a
+    // pt-BR/es-AR bank app never pasted (TASK-23499)
+    it.each([
         ['1.000,50', '1000.50'],
         ['R$ 1.234,56', '1234.56'],
         ['$ 12', '12'],
@@ -85,12 +83,42 @@ describe('AmountInput with hostile values', () => {
         expect(sent()).toBe(expected)
     })
 
-    // bug: any invalid keystroke empties the whole field instead of being
-    // ignored — one stray letter wipes the amount the user already typed
-    it.failing('a stray letter keeps the amount already typed', () => {
-        const { input, type } = renderField()
+    it('a stray letter keeps the amount already typed', () => {
+        const { input, type, sent } = renderField()
         type('12')
         type('12a')
         expect(input.value).toBe('12')
+        expect(sent()).toBe('12')
+    })
+
+    it('a rejected paste over a typed amount keeps that amount', () => {
+        const { input, type, sent } = renderField()
+        type('12')
+        type('1.2.3')
+        expect(input.value).toBe('12')
+        expect(sent()).toBe('12')
+    })
+
+    it('a signed paste that could mean 1000 or 1 is rejected, not sent as 1', () => {
+        const { type, sent } = renderField()
+        type('$1,000')
+        expect(sent()).toBe('')
+    })
+
+    it('clearing the field still empties it', () => {
+        const { input, type, sent } = renderField()
+        type('12')
+        type('')
+        expect(input.value).toBe('')
+        expect(sent()).toBe('')
+    })
+
+    // "125.000" is 125 thousand in es-AR/pt-BR and 125 in en. today it reads as
+    // 125.00. waiting on a product decision; a wrong guess is a 1000x amount.
+    // https://www.notion.so/TASK-23499
+    it.skip('pasted "125.000" in an es/pt locale sends 125000 (TASK-23499 decision)', () => {
+        const { type, sent } = renderField()
+        type('125.000')
+        expect(sent()).toBe('125000')
     })
 })

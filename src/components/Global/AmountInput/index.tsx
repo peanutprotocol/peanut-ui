@@ -417,13 +417,16 @@ const AmountInput = ({
                             className={`h-16 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
-                                isEditingRef.current = true
                                 let value = e.target.value
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount === '.' ? '.' : finiteInput(formattedAmount)
                                 }
+                                // text the parser rejects leaves the field, and who owns it, as it
+                                // was: one stray letter used to wipe the whole amount (TASK-23499)
+                                if (value === '' && e.target.value.trim() !== '') return
+                                isEditingRef.current = true
                                 if (value === shownValue) return
                                 onAmountTyped?.(displaySymbol)
                                 // a payer who emptied the field takes the next suggestion
