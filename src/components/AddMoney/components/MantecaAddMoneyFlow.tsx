@@ -248,6 +248,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         setKycGateDismissed(true)
     }, [])
 
+    useEffect(() => {
+        if (showKycModal && sumsubFlow.isModalOpen) closeKycModal()
+    }, [showKycModal, sumsubFlow.isModalOpen, closeKycModal])
+
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
@@ -438,15 +442,23 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                             return
                         }
                         if (mantecaRejection.state === 'restart-identity') {
-                            await sumsubFlow.handleRestartIdentity()
+                            const opened = await sumsubFlow.handleRestartIdentity()
+                            if (opened) closeKycModal()
                         } else if (mantecaRejection.state === 'fixable') {
-                            await sumsubFlow.handleFixableRejection(mantecaRejection)
+                            const opened = await sumsubFlow.handleFixableRejection(mantecaRejection)
+                            if (opened) closeKycModal()
                         } else {
-                            await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
+                            const opened = await sumsubFlow.handleInitiateKyc(
+                                'LATAM',
+                                undefined,
+                                true,
+                                selectedCountry?.id
+                            )
+                            if (opened) closeKycModal()
                         }
-                        closeKycModal()
                     }}
                     isLoading={sumsubFlow.isLoading}
+                    error={sumsubFlow.error}
                     variant={
                         mantecaRejection.state === 'blocked'
                             ? 'blocked'

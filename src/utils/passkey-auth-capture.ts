@@ -35,6 +35,30 @@ export class PasskeyVerifyRejectedError extends Error {
     }
 }
 
+export class PasskeyVerifyRetryableError extends Error {
+    constructor(
+        readonly status: number,
+        readonly retryAt: number
+    ) {
+        super('Passkey verification temporarily unavailable')
+        this.name = 'PasskeyVerifyRetryableError'
+    }
+}
+
+let loginRetryError: PasskeyVerifyRetryableError | undefined
+export const getLoginRetryError = () =>
+    loginRetryError && Date.now() < loginRetryError.retryAt ? loginRetryError : undefined
+
+function retryAt(response: Response): number {
+    const header = response.headers?.get('Retry-After')?.trim()
+    if (header) {
+        const seconds = /^\d+(?:\.\d+)?$/.test(header) ? Number(header) : NaN
+        const deadline = Number.isFinite(seconds) ? Date.now() + seconds * 1000 : Date.parse(header)
+        if (Number.isSafeInteger(deadline)) return Math.min(Date.now() + 60_000, Math.max(Date.now() + 1000, deadline))
+    }
+    return Date.now() + 1000
+}
+
 /** The assertion verified, but the account it belongs to was deleted (soft-deleted). */
 export class PasskeyAccountDeletedError extends Error {
     constructor() {
@@ -172,6 +196,12 @@ export function installPasskeyVerifyCapture(): void {
                     errorCodeOf(body) === 'ACCOUNT_DELETED'
                 ) {
                     failure = new PasskeyAccountDeletedError()
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    (response.status === 429 || response.status >= 500)
+                ) {
+                    loginRetryError = new PasskeyVerifyRetryableError(response.status, retryAt(response))
+                    failure = loginRetryError
                 } else if (passkeyPath.endsWith('/options')) {
                     failure = new PasskeyOptionsFailedError(passkeyPath, response.status)
                 }

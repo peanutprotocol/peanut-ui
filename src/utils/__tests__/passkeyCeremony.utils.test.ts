@@ -318,6 +318,34 @@ describe('guardPasskeyCeremony', () => {
         await expect(guardPasskeyCeremony(() => Promise.resolve('next'))).resolves.toBe('next')
     })
 
+    it('a cancel that lands while the result is settling never commits the session', async () => {
+        mockIsCapacitor.mockReturnValue(true)
+        setGlobal(SHIM_INSTALLED, true)
+        for (let ticks = 0; ticks < 8; ticks++) {
+            mockSetAuthToken.mockClear()
+            const cancel = new AbortController()
+            const pending = guardPasskeyCeremony(
+                () => {
+                    stashCeremonyVerifyToken('jwt-settling', currentCeremonyId())
+                    let chain = Promise.resolve()
+                    for (let i = 0; i < ticks; i++) chain = chain.then(() => undefined)
+                    void chain.then(() => cancel.abort())
+                    return Promise.resolve('key')
+                },
+                { cancel: cancel.signal }
+            )
+            const outcome = await pending.then(
+                () => ({ resolved: true as const, abortedAtSettle: cancel.signal.aborted }),
+                (error: unknown) => ({ resolved: false as const, error })
+            )
+            if (outcome.resolved) expect(outcome.abortedAtSettle).toBe(false)
+            else {
+                expect(outcome.error).toBeInstanceOf(CeremonyCancelledError)
+                expect(mockSetAuthToken).not.toHaveBeenCalled()
+            }
+        }
+    })
+
     it('never starts a ceremony whose cancel signal is already aborted', async () => {
         const cancel = new AbortController()
         cancel.abort()

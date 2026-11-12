@@ -31,6 +31,7 @@ jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mock
 jest.mock('@/utils/landing-passkeys', () => ({
     checkAndroidLandingPasskey: async () => 'available',
     supportsIOSImmediateLogin: async () => false,
+    cancelIOSImmediateLogin: jest.fn().mockResolvedValue(undefined),
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
@@ -87,6 +88,32 @@ beforeEach(() => {
     mockDeviceType = 'ios'
 })
 afterEach(() => jest.useRealTimers())
+
+describe('Landing — the account recovery link appears only after a failed login', () => {
+    const recoveryLink = () => screen.queryByText('Need to recover a Peanut account?')
+
+    it('is hidden on the first screen', () => {
+        renderWithIntl(<LandingStep />)
+        expect(recoveryLink()).not.toBeInTheDocument()
+    })
+
+    it('appears after a login fails', async () => {
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_ERROR'))
+        renderWithIntl(<LandingStep />)
+        await logIn()
+        await waitFor(() => expect(recoveryLink()).toBeInTheDocument())
+    })
+
+    it('stays hidden after one dismissal of the passkey sheet and appears on the second', async () => {
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_CANCELED'))
+        renderWithIntl(<LandingStep />)
+        await logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        expect(recoveryLink()).not.toBeInTheDocument()
+        await logIn()
+        await waitFor(() => expect(recoveryLink()).toBeInTheDocument())
+    })
+})
 
 describe('Landing — recovery after a failed login (TASK-24017)', () => {
     it('opens the recovery drawer at once when the phone holds no Peanut passkey', async () => {
