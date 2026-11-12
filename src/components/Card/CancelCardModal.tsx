@@ -172,8 +172,10 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose, onStopAttempt }) 
             onClose={handleClose}
             preventClose={phase === 'canceling'}
             hideModalCloseButton={phase === 'canceling'}
-            tone={isConfirm ? 'error' : 'attention'}
-            icon={isConfirm ? 'alert' : 'alert-filled'}
+            // One bubble for the question and its result: a cancel is destructive
+            // (design.md, icon bubble colour).
+            tone="error"
+            icon="alert"
             title={t(isConfirm ? 'cancel.title' : 'cancel.canceledTitle')}
             description={t(isConfirm ? 'cancel.body' : 'cancel.canceledBody')}
             content={
