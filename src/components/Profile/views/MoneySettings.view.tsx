@@ -1,7 +1,7 @@
 'use client'
 
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
-import { useBrazilResident } from '@/features/brazil-pause/useBrazilPixPaused'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -110,7 +110,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
     const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
-    const pixResidenceBlocked = useBrazilResident()
+    // the pay:PIX_BR route, not the app, says whether Pix payments and sends serve this residence
+    const pixResidenceBlocked = usePixPayBlock() === 'residence'
     const {
         capabilities,
         rails,
@@ -136,7 +137,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     // ── list model ──────────────────────────────────────────────────────────
 
-    const { rows: bankRows, accountChip } = useBankRows()
+    const { rows: bankRows, accountChip, report: accountsReport } = useBankRows()
     // Copy only: which sentence a closed row's notes use. Whether a row is closed is the report's.
     const restrictions = useResidenceRestrictions()
     // Would a QR payment go through today? The gate /qr-pay itself enforces
@@ -184,22 +185,14 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         () =>
             paymentMethodSections([
                 bankAccountRow(bankRows, accountChip, {
-                    features: capabilities.features ?? UNKNOWN_REPORT,
+                    features: accountsReport,
                     heldCorridors: accountCorridors.held,
                     openableCorridors: accountCorridors.open.filter((row) => row.openable).map((row) => row.corridor),
                 }),
                 ...(spendGroup?.rows ?? []),
                 ...(peanutGroup?.rows ?? []),
             ]),
-        [
-            bankRows,
-            accountChip,
-            capabilities.features,
-            accountCorridors.held,
-            accountCorridors.open,
-            spendGroup,
-            peanutGroup,
-        ]
+        [bankRows, accountChip, accountsReport, accountCorridors.held, accountCorridors.open, spendGroup, peanutGroup]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").

@@ -61,6 +61,44 @@ const readiness: Record<string, string> = {
     '67-e-provideemailstep': 'Add email to continue',
     '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
+const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
+    'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
+    'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
+    'paperwork-verification-bridge-postal-correction': {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="verify-input-postCode"]',
+    },
+    'paperwork-verification-bridge-postal-refused': {
+        actions: [
+            { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },
+            { fill: { selector: '[data-testid="verify-input-postCode"]', value: '1234' } },
+            { clickSelector: '[data-testid="bridge-postal-correction-save"]' },
+        ],
+        expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',
+    },
+    'paperwork-verification-bridge-postal-queued': {
+        actions: [
+            { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },
+            { fill: { selector: '[data-testid="verify-input-postCode"]', value: '012345' } },
+            { clickSelector: '[data-testid="bridge-postal-correction-save"]' },
+        ],
+        expectSelector: '[data-testid="bridge-postal-correction-queued"]',
+    },
+    'paperwork-verification-bridge-postal-temporary': {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="bridge-postal-correction-temporary"]',
+    },
+    'paperwork-verification-bridge-postal-unavailable': {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="bridge-postal-correction-unavailable"]',
+    },
+    'paperwork-verification-py-postal-refused': {
+        actions: [{ clickSelector: '[data-testid="verify-continue"]' }],
+        expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',
+    },
+    'paperwork-verification-ars-setting-up': { expectSelector: '[data-testid="verify-feature-done"]' },
+    'paperwork-verification-rejected-not-document': { expectSelector: '[data-testid="verify-review-home"]' },
+}
 const routeOverrides: Record<
     string,
     { route: string; fixture: string; event?: Screen['event']; storage?: Record<string, string> }
@@ -102,12 +140,12 @@ const variationPageIds = new Set([
 const definitions: Screen[] = [
     {
         id: 'profile-brazil-bank-details',
-        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        name: "Brazilian resident — BRL row closed by its refused Pix route, the drawer says the route's reason",
         flow: 'Payments',
         kind: 'route',
         defaultScreen: false,
         route: '/profile/accounts',
-        fixture: 'profile-accounts-br-resident',
+        fixture: 'profile-accounts-br-pix-refused',
         clicks: [],
         clickTestIds: ['bank-row-brl'],
         // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
@@ -158,14 +196,17 @@ const definitions: Screen[] = [
         fixture: id,
         waitFor: f.waitFor,
         geoCountry: f.geoCountry,
+        sessionStorage: f.sessionStorage,
         clicks: [],
         actions:
+            fixtureCapture[id]?.actions ??
             // ready shows the consent screen and on passes through; the other states answer the tap
-            /^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
+            (/^feature-activation-(bank|local)-/.test(id) && !/-(ready|on)$/.test(id)
                 ? [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
-                : undefined,
+                : undefined),
         expectSelector:
-            id === 'card-verification-open'
+            fixtureCapture[id]?.expectSelector ??
+            (id === 'card-verification-open'
                 ? '[data-testid="card-verification-continue"]'
                 : id === 'card-verification-checking' || id === 'card-verification-unavailable'
                   ? '[data-testid="your-card-screen"]'
@@ -181,11 +222,13 @@ const definitions: Screen[] = [
                             ? '[data-testid="verify-review-home"]'
                             : id === 'paperwork-verification-restart-foreign'
                               ? '[data-testid="verify-id"]'
-                              : undefined,
+                              : undefined),
         expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({
         ...p,
+        // a page capture served by a fixture opens with that fixture's session values too
+        sessionStorage: p.fixture ? FIXTURES[p.fixture]?.sessionStorage : undefined,
         flow: flow(p.route),
         kind: (p.route.startsWith('/dev/') ? 'component' : 'route') as Screen['kind'],
         defaultScreen:
@@ -215,6 +258,7 @@ const definitions: Screen[] = [
         expectsLoading: [
             '24-b-kycverificationinprogressmodal',
             '90-f-withdraw-review-processing',
+            '94-g-pix-withdraw-on-its-way',
             'deposit-address-launch-loading',
             'card-address-launch-loading',
         ].includes(id),
@@ -278,7 +322,7 @@ const orderedDefinitions = definitions
 
 const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
-    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
+    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : screen.sessionStorage,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??

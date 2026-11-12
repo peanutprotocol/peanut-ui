@@ -11,7 +11,7 @@ import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { withFixtureFeatureReport } from './featureReport'
+import { withFixtureFeatureReport, withFixtureRoutes } from './featureReport'
 
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
@@ -61,8 +61,15 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
 
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
-    const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
+    // This new endpoint has no demo response yet; a named fixture provides its complete response.
+    if (
+        override !== undefined &&
+        (key === 'GET /users/kyc/bridge-postal-code' || key === 'POST /users/kyc/bridge-postal-code')
+    ) {
+        return new Response(JSON.stringify(override), { status: 200, headers: JSON_HEADERS })
+    }
+    const base = await demoRespond(path, options, { offline: true })
     const stress = isStressActive() && !!base.headers.get('content-type')?.includes('json')
     if (override === undefined && !stress && key !== 'GET /users/me') return base
 
@@ -73,10 +80,13 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         const paperworkData = await paperworkBase.json().catch(() => ({}))
         const paperworkOverride = fixture.responses?.['GET /users/kyc/paperwork']
         const paperwork = paperworkOverride === undefined ? paperworkData : merge(paperworkData, paperworkOverride)
-        merged = withFixtureFeatureReport(
-            merged as IUserProfile | null,
-            override as Partial<IUserProfile> | null | undefined,
-            paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+        merged = withFixtureRoutes(
+            withFixtureFeatureReport(
+                merged as IUserProfile | null,
+                override as Partial<IUserProfile> | null | undefined,
+                paperwork as Parameters<typeof withFixtureFeatureReport>[2]
+            ),
+            override as Partial<IUserProfile> | null | undefined
         )
     }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {

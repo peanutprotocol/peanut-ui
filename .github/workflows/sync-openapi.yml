@@ -9,14 +9,21 @@ on:
     workflow_dispatch: {}
 
 permissions:
-    contents: write
-    pull-requests: write
+    contents: read
 
 jobs:
-    sync:
+    # Runs code from `dev` (install scripts, the sync script), so it holds no secret. Staging serves
+    # `dev`, and the PR targets `dev`, so the commit is based on `dev`.
+    generate:
         runs-on: ubuntu-latest
+        outputs:
+            changed: ${{ steps.check.outputs.changed }}
+            base: ${{ steps.check.outputs.base }}
         steps:
             - uses: actions/checkout@v4
+              with:
+                  ref: dev
+                  persist-credentials: false
 
             - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
@@ -37,26 +44,101 @@ jobs:
             - name: Check for changes
               id: check
               run: |
+                  echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
                   if git diff --quiet src/types/; then
                     echo "changed=false" >> "$GITHUB_OUTPUT"
                   else
                     echo "changed=true" >> "$GITHUB_OUTPUT"
                   fi
 
+            - if: steps.check.outputs.changed == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: openapi-types
+                  path: |
+                      src/types/api.openapi.json
+                      src/types/api.generated.ts
+                  retention-days: 1
+
+    # Holds the chip-peanut-bot token and runs no code from `dev`: only this file and the runner's own
+    # tools, with the generated files as data. The key lives in `content-publish`, which only `main`
+    # may use (see update-content.yml), so this job runs from `main` only: the schedule, or a dispatch
+    # on `main`.
+    #
+    # Every branch requires signed commits, and a commit made on the runner is unsigned: from 2026-09
+    # to 2026-11 every run failed its push with GH013. GraphQL createCommitOnBranch is signed by
+    # GitHub, here as chip-peanut-bot. The app token also makes the PR run CI, which a GITHUB_TOKEN PR
+    # does not. human-authors needs the Ordered-By and Order trailers on a bot commit, and
+    # bot-approval holds the merge until the orderer, the assignee, approves it.
+    open-pr:
+        needs: generate
+        if: needs.generate.outputs.changed == 'true'
+        environment: content-publish
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/download-artifact@v4
+              with:
+                  name: openapi-types
+                  path: ${{ runner.temp }}/openapi-types
+
+            - name: Mint bot token
+              id: bot
+              uses: actions/create-github-app-token@v2
+              with:
+                  app-id: 2915219
+                  private-key: ${{ secrets.CONTENT_BOT_APP_PRIVATE_KEY }}
+
             - name: Create PR
-              if: steps.check.outputs.changed == 'true'
               env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ steps.bot.outputs.token }}
+                  REPO: ${{ github.repository }}
+                  BASE: ${{ needs.generate.outputs.base }}
+                  FILES: ${{ runner.temp }}/openapi-types
+                  ORDERED_BY: Hugo0
+                  ORDER: https://github.com/${{ github.repository }}/blob/main/.github/workflows/sync-openapi.yml
               run: |
+                  set -euo pipefail
+                  [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::bad base commit"; exit 1; }
                   BRANCH="auto/sync-openapi-$(date -u +%Y%m%d-%H%M%S)"
-                  git config user.name "github-actions[bot]"
-                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git checkout -b "$BRANCH"
-                  git add src/types/
-                  git commit -m "chore(types): sync openapi snapshot from staging"
-                  git push origin "$BRANCH"
-                  gh pr create \
+                  gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE" > /dev/null
+                  BRANCH="$BRANCH" node -e '
+                    const fs = require("fs")
+                    const paths = ["src/types/api.openapi.json", "src/types/api.generated.ts"]
+                    const input = {
+                      branch: { repositoryNameWithOwner: process.env.REPO, branchName: process.env.BRANCH },
+                      expectedHeadOid: process.env.BASE,
+                      message: {
+                        headline: "chore(types): sync openapi snapshot from staging",
+                        body: `Ordered-By: ${process.env.ORDERED_BY}\nOrder: ${process.env.ORDER}`,
+                      },
+                      fileChanges: {
+                        additions: paths.map((path) => ({
+                          path,
+                          contents: fs.readFileSync(`${process.env.FILES}/${path.split("/").pop()}`).toString("base64"),
+                        })),
+                      },
+                    }
+                    const query = "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }"
+                    fs.writeFileSync(`${process.env.RUNNER_TEMP}/commit.json`, JSON.stringify({ query, variables: { input } }))
+                  '
+                  if ! gh api graphql --input "$RUNNER_TEMP/commit.json" --jq '.data.createCommitOnBranch.commit.oid'; then
+                    gh api -X DELETE "repos/$REPO/git/refs/heads/$BRANCH" || echo "::warning::could not delete $BRANCH"
+                    exit 1
+                  fi
+                  PR_URL=$(gh pr create \
+                    --repo "$REPO" \
                     --head "$BRANCH" \
                     --base dev \
+                    --assignee "$ORDERED_BY" \
                     --title "chore(types): sync openapi snapshot from staging" \
-                    --body "Auto-generated by .github/workflows/sync-openapi.yml. The BE has added or modified routes since the last sync — this PR regenerates src/types/api.openapi.json and the derived TS types so FE keeps type-safe access to the latest BE surface."
+                    --body "Auto-generated by .github/workflows/sync-openapi.yml. The BE has added or modified routes since the last sync — this PR regenerates src/types/api.openapi.json and the derived TS types so FE keeps type-safe access to the latest BE surface.")
+                  echo "Opened $PR_URL"
+
+                  # One live sync PR: an older one carries a staler spec.
+                  for N in $(gh pr list --repo "$REPO" --state open --base dev --json number,headRefName \
+                               --jq '.[] | select(.headRefName | startswith("auto/sync-openapi-")) | .number'); do
+                    if [ "$N" != "${PR_URL##*/}" ]; then
+                      gh pr close "$N" --repo "$REPO" --delete-branch --comment "Superseded by $PR_URL." \
+                        || echo "::warning::could not close #$N"
+                    fi
+                  done

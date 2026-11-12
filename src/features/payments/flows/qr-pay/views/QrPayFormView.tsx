@@ -71,6 +71,7 @@ export function QrPayFormView() {
         loadingState,
         quoteUpdatedNotice,
         isQuoteRecovering,
+        amountInputRevision,
         payQR,
         handleCurrencyAmountChange,
         balance,
@@ -204,6 +205,7 @@ export function QrPayFormView() {
                     {currency && (
                         <div className="flex flex-col gap-1">
                             <AmountInput
+                                key={amountInputRevision}
                                 initialAmount={currencyAmount}
                                 setPrimaryAmount={handleCurrencyAmountChange}
                                 primaryDenomination={{

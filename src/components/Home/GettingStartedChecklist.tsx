@@ -17,6 +17,7 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import { checklistProgress, type OnboardingState } from '@/utils/activation-step.utils'
+import type { PixPlanSetUp } from '@/features/pix/pixRoute.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
@@ -95,8 +96,15 @@ const GettingStartedChecklist = ({
     showWelcome = true,
     onStartIdentityCheck,
     signupPaymentChannel,
+    pixSetUp = null,
 }: {
     onboarding: OnboardingState
+    /**
+     * A plan that adds money by Pix, set up with the Pix provider (`pixPlanSetUp`, TASK-24841): on the
+     * provider's step the Verify row is that step, and once the provider has it the row leaves the list.
+     * Null shows our identity check.
+     */
+    pixSetUp?: PixPlanSetUp
     showWelcome?: boolean
     /** how the user said at signup they would pay; null on accounts made before the question */
     signupPaymentChannel?: SignupPaymentChannel | null
@@ -127,6 +135,8 @@ const GettingStartedChecklist = ({
             posthog.capture(ANALYTICS_EVENTS.HOME_CHECKLIST_ITEM_CLICKED, { item: id })
             action()
         }
+        // the Pix plan's own set-up stands in for our check: its row, never our status or its prompt
+        const pixStep = pixSetUp === 'provider-step'
         const rows: ChecklistItem[] = [
             {
                 id: 'create-account',
@@ -137,35 +147,40 @@ const GettingStartedChecklist = ({
             },
             {
                 id: 'verify-identity',
-                bubble: CONCEPT_ICONS.verification,
-                label: t('verifyIdentity'),
-                sub:
-                    verify === 'done'
-                        ? t('verifyIdentityDone')
-                        : verify === 'in_review'
-                          ? t('inReview')
-                          : verify === 'action_required'
-                            ? tKyc('actionNeeded')
-                            : verify === 'failed'
-                              ? tKyc('statusFailed')
-                              : t('verifyIdentityNote'),
-                done: verify === 'done',
-                inReview: verify === 'in_review',
-                needsAction: verify === 'action_required',
+                // the Pix mark on the Pix step, the shield on ours (Aleks, 2026-11-12)
+                bubble: pixStep ? CONCEPT_ICONS.pix : CONCEPT_ICONS.verification,
+                label: t(pixStep ? 'setUpPix' : 'verifyIdentity'),
+                sub: pixStep
+                    ? t('setUpPixNote')
+                    : verify === 'done'
+                      ? t('verifyIdentityDone')
+                      : verify === 'in_review'
+                        ? t('inReview')
+                        : verify === 'action_required'
+                          ? tKyc('actionNeeded')
+                          : verify === 'failed'
+                            ? tKyc('statusFailed')
+                            : t('verifyIdentityNote'),
+                done: !pixStep && verify === 'done',
+                inReview: !pixStep && verify === 'in_review',
+                needsAction: !pixStep && verify === 'action_required',
                 opensWhenDone: true,
                 // a final decision has no step for the user: support is on
                 // the blocked card this list replaces once it is hidden
                 onTap:
-                    verify === 'failed'
+                    !pixStep && verify === 'failed'
                         ? undefined
                         : tap('verify-identity', () => {
-                              if (verify === 'action_required' || verify === 'in_review' || verify === 'done') {
+                              if (
+                                  !pixStep &&
+                                  (verify === 'action_required' || verify === 'in_review' || verify === 'done')
+                              ) {
                                   // the check's own status: its fix (resubmit, or
                                   // the email collision's way out), "in review", or
                                   // verified with what a feature still asks for (/verify)
                                   setIsStatusDrawerOpen(true)
                               } else {
-                                  // the start picks the flow, then the residence (ActivationCTAs)
+                                  // the start picks the flow (the Pix setup for a Pix plan), then the residence (ActivationCTAs)
                                   onStartIdentityCheck?.()
                               }
                           }),
@@ -227,14 +242,18 @@ const GettingStartedChecklist = ({
         t,
         tKyc,
         verify,
+        pixSetUp,
     ])
 
     // the bar and the count cover every row; the list shows every open row and
     // only the latest done one, so finished steps do not crowd out what is next
     const { done: doneCount, total } = checklistProgress(onboarding)
     const completionPercent = Math.round((doneCount / total) * 100)
-    const latestDoneId = items.filter((item) => item.done).at(-1)?.id
-    const visibleItems = items.filter((item) => !item.done || item.id === latestDoneId)
+    // the provider has the Pix plan: its ID step counts done and never shows, our check waits for the
+    // flow that needs it (TASK-24841)
+    const listed = pixSetUp === 'done' ? items.filter((item) => item.id !== 'verify-identity') : items
+    const latestDoneId = listed.filter((item) => item.done).at(-1)?.id
+    const visibleItems = listed.filter((item) => !item.done || item.id === latestDoneId)
 
     const viewedRef = useRef(false)
     useEffect(() => {

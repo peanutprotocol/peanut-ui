@@ -5,6 +5,15 @@ import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 const response = (id: string, key: string): any => FIXTURES[id].responses?.[key]
 
 describe('KYC review screen captures', () => {
+    it('registers a synthetic Bridge postal correction capture', () => {
+        const id = 'paperwork-verification-bridge-postal-correction'
+        expect(response(id, 'GET /users/kyc/bridge-postal-code')).toEqual({ country: 'PY', revision: 'a'.repeat(64) })
+        expect(SCREENS.find((screen) => screen.fixture === id)).toMatchObject({
+            actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+            expectSelector: '[data-testid="verify-input-postCode"]',
+        })
+    })
+
     it.each([
         ['paperwork-verification-us-address', null],
         ['paperwork-verification-us-address-filled', 'CA'],

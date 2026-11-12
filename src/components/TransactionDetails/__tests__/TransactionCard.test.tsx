@@ -582,3 +582,50 @@ describe('TransactionCard — amount format', () => {
         expect(screen.getByText('$0 / $22.30')).toBeInTheDocument()
     })
 })
+
+describe('TransactionCard — a refused Pix payout that waits for a new key', () => {
+    const withdrawal = (awaitsNewPixKey: boolean) =>
+        ({
+            id: 'intent-refused',
+            direction: 'bank_withdraw',
+            status: 'pending',
+            userName: 'Bank account',
+            amount: 92.5,
+            totalAmountCollected: 0,
+            extraDataForDrawer: { transactionCardType: 'bank_withdraw', awaitsNewPixKey: awaitsNewPixKey || undefined },
+        }) as unknown as TransactionDetails
+
+    const renderRow = (transaction: TransactionDetails) =>
+        render(
+            <TransactionCard
+                type="bank_withdraw"
+                name="Bank account"
+                amount={92.5}
+                status="pending"
+                transaction={transaction}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+
+    beforeEach(() => {
+        push.mockClear()
+        openTransactionDetails.mockClear()
+    })
+
+    it('names the action, and the tap opens the new-key screen instead of the drawer', () => {
+        renderRow(withdrawal(true))
+        fireEvent.click(screen.getByText('Action needed'))
+        expect(push).toHaveBeenCalledWith('/withdraw/new-pix-key?intentId=intent-refused')
+        expect(openTransactionDetails).not.toHaveBeenCalled()
+    })
+
+    it('goes back to the normal row once the payout no longer waits for a key', () => {
+        renderRow(withdrawal(false))
+        expect(screen.queryByText('Action needed')).toBeNull()
+        fireEvent.click(screen.getByText('Bank account'))
+        expect(openTransactionDetails).toHaveBeenCalledTimes(1)
+        expect(push).not.toHaveBeenCalled()
+    })
+})

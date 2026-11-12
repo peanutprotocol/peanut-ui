@@ -113,13 +113,29 @@ describe('liveWithdrawCurrencies — rows are payout currencies', () => {
 
 describe('liveWithdrawCurrencies — send-to-bank', () => {
     it('drops Argentina (own-account only) and keeps Brazil and the Bridge corridors', () => {
-        const codes = liveWithdrawCurrencies({ sendToBankOnly: true }).map((currency) => currency.code)
+        const codes = liveWithdrawCurrencies({ sendToBank: { pixPayBlock: null } }).map((currency) => currency.code)
         expect(codes).not.toContain('ARS')
         expect([...codes].sort()).toEqual(['BRL', 'COP', 'EUR', 'GBP', 'MXN', 'USD'])
     })
 
+    it('offers a resident of Brazil no BRL row, and keeps the rest', () => {
+        const codes = liveWithdrawCurrencies({ sendToBank: { pixPayBlock: 'residence' } }).map(
+            (currency) => currency.code
+        )
+        expect([...codes].sort()).toEqual(['COP', 'EUR', 'GBP', 'MXN', 'USD'])
+    })
+
+    it('keeps BRL during the Brazil pause', () => {
+        const codes = liveWithdrawCurrencies({ sendToBank: { pixPayBlock: 'paused' } }).map((currency) => currency.code)
+        expect(codes).toContain('BRL')
+    })
+
     it('own-account withdraw still offers ARS', () => {
         expect(liveWithdrawCurrencies().map((currency) => currency.code)).toContain('ARS')
+    })
+
+    it('own-account withdraw offers BRL whatever the pay block: it is not the Send gate', () => {
+        expect(liveWithdrawCurrencies({ sendToBank: null }).map((currency) => currency.code)).toContain('BRL')
     })
 })
 

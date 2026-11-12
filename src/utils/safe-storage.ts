@@ -9,22 +9,28 @@ type WebStorageLike = {
     getItem(key: string): string | null
     setItem(key: string, value: string): void
     removeItem(key: string): void
+    /** Present on a real Storage: lets a caller list its own keys by prefix. */
+    readonly length?: number
+    key?(index: number): string | null
 }
 
-type StorageHost = { localStorage?: WebStorageLike | null }
+/** The browser's lasting store, or this tab's session store, which goes when the tab closes. */
+export type StorageArea = 'localStorage' | 'sessionStorage'
+
+type StorageHost = Partial<Record<StorageArea, WebStorageLike | null>>
 
 // `host` is a test seam: jest's jsdom global swallows throwing property
 // getters, so the SecurityError path is only reachable with an explicit host.
-export function webStorage(host: StorageHost = globalThis): WebStorageLike | null {
+export function webStorage(host: StorageHost = globalThis, area: StorageArea = 'localStorage'): WebStorageLike | null {
     try {
-        return host.localStorage ?? null
+        return host[area] ?? null
     } catch {
         return null
     }
 }
 
-export function readStoredValue(key: string): string | null {
-    const storage = webStorage()
+export function readStoredValue(key: string, area: StorageArea = 'localStorage'): string | null {
+    const storage = webStorage(globalThis, area)
     if (!storage) return null
     try {
         return storage.getItem(key)
@@ -33,8 +39,8 @@ export function readStoredValue(key: string): string | null {
     }
 }
 
-export function writeStoredValue(key: string, value: string): void {
-    const storage = webStorage()
+export function writeStoredValue(key: string, value: string, area: StorageArea = 'localStorage'): void {
+    const storage = webStorage(globalThis, area)
     if (!storage) return
     try {
         storage.setItem(key, value)
@@ -43,8 +49,24 @@ export function writeStoredValue(key: string, value: string): void {
     }
 }
 
-export function removeStoredValue(key: string): void {
+/** The stored keys that start with `prefix`; none where storage cannot be read or listed. */
+export function storedKeysWithPrefix(prefix: string): string[] {
     const storage = webStorage()
+    if (!storage || typeof storage.key !== 'function' || typeof storage.length !== 'number') return []
+    try {
+        const keys: string[] = []
+        for (let index = 0; index < storage.length; index++) {
+            const key = storage.key(index)
+            if (key?.startsWith(prefix)) keys.push(key)
+        }
+        return keys
+    } catch {
+        return []
+    }
+}
+
+export function removeStoredValue(key: string, area: StorageArea = 'localStorage'): void {
+    const storage = webStorage(globalThis, area)
     if (!storage) return
     try {
         storage.removeItem(key)

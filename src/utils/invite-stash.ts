@@ -26,6 +26,9 @@ import { isInviteUsername } from '@/features/tracked-links/contract'
 
 export const INVITE_STASH_STORAGE_KEY = 'peanut:invite-stash'
 
+/** The /setup query param that names a carried invite's type; a bare `code` is DIRECT. */
+export const INVITE_TYPE_PARAM = 'invite_type'
+
 /**
  * Long enough for install → first launch → signup, including app restarts;
  * short enough that a stale invite does not open /setup on the signup form

@@ -54,6 +54,8 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
     TRON: ['USDT'],
 }
 
+const EURE_DEPOSIT_LABEL = 'EURe v2'
+
 /**
  * EVM deposit chains where Rhino accepts a different token set from the EVM
  * family list above. A token sent on a chain where Rhino doesn't accept it is
@@ -63,7 +65,7 @@ const SUPPORTED_TOKENS_BY_NETWORK: Record<RhinoChainType, TokenName[]> = {
 export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, string[]>> = Object.fromEntries(
     CHAIN_REGISTRY.filter((c) => c.family === 'evm' && c.deposit?.tokens).map((c) => [
         c.displayName,
-        [...c.deposit!.tokens!],
+        c.deposit!.tokens!.map((token) => (token === 'EURe' ? EURE_DEPOSIT_LABEL : token)),
     ])
 )
 
@@ -75,7 +77,7 @@ export const EVM_DEPOSIT_TOKEN_EXCEPTIONS: Partial<Record<ChainName, string[]>> 
  */
 export const CHAIN_SCOPED_DEPOSIT_TOKENS = [
     {
-        name: 'EURe',
+        name: EURE_DEPOSIT_LABEL,
         logoUrl: 'https://assets.coingecko.com/coins/images/54303/standard/eure.jpg?1739167959',
         network: 'Gnosis',
         isEuro: true,

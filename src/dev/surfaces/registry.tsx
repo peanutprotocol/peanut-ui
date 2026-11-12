@@ -7,6 +7,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { StandaloneErrorSurface } from './StandaloneErrorSurface'
 import { AddressLaunchModal } from '@/features/deposit-accounts/components/AddressLaunchModal'
 import { CardResidenceAddressScreen } from '@/features/card/components/CardResidenceAddressScreen'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 /**
  * Every modal, drawer and full-screen surface in the content-taxonomy review,
@@ -19,7 +20,14 @@ import { CardResidenceAddressScreen } from '@/features/card/components/CardResid
  * than shooting an empty page.
  */
 
-import React from 'react'
+import React, { useState } from 'react'
+import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
+import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
+import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
+import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
+import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
+import { useQueryClient } from '@tanstack/react-query'
+import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
@@ -32,6 +40,7 @@ import type { ScreenId } from '@/components/Setup/Setup.types'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
+import { PasskeyProviderUnsupportedDrawer } from '@/components/Setup/Views/PasskeyProviderUnsupportedDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -276,6 +285,105 @@ function MantecaAccountUnavailableSurface({ action }: { action: 'deposit' | 'wit
     )
 }
 
+// the code screen right after POST /pix/deposit, with ten minutes on the clock: the
+// create seeds the deposit's query, as the flow does, so no read is needed to draw it
+function PixDepositSurface() {
+    const queryClient = useQueryClient()
+    useState(() =>
+        queryClient.setQueryData(pixDepositQueryKey('demo-pix-deposit'), {
+            provider: 'avenia',
+            intentId: 'demo-pix-deposit',
+            status: 'AWAITING_USER_ACTION',
+            codePayable: true,
+            pixReceived: false,
+            brCode: DEMO_PIX_BR_CODE,
+            amountBrl: '100.00',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
+            expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
+            payerCpfMasked: '095.***.***-89',
+        } satisfies PixDeposit)
+    )
+    return (
+        <AppPageSurface>
+            <PixQrDeposit
+                intentId="demo-pix-deposit"
+                onBack={noop}
+                onDone={noop}
+                onNewDeposit={noop}
+                onComplete={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the withdrawal this session signed, for the last step's in-memory destination
+const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
+    amountBrl: '503.00',
+    pixKey: '09579927189',
+    ownAccount: true,
+    holderName: 'Ana Souza',
+    bankName: 'Banco Inter',
+    withdrawUsd: '92.504310',
+    rate: '5.445692',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+}
+
+// the last step right after the signature: the destination comes from what was signed. `pastArrival`
+// quotes a zero arrival time, so the loader gives way to "on its way" at once, as a slow bank would.
+function PixWithdrawOutcomeSurface({
+    unnamed = false,
+    pastArrival = false,
+}: {
+    unnamed?: boolean
+    pastArrival?: boolean
+}) {
+    const display = {
+        ...PIX_SURFACE_DISPLAY,
+        ...(unnamed && { bankName: null, holderName: null }),
+        ...(pastArrival && { arrivalEstimateSeconds: 0 }),
+    }
+    return (
+        <AppPageSurface>
+            <PixWithdrawOutcome
+                title="Withdraw"
+                intentId="fixture-pix-withdrawal"
+                providerId="avenia-br"
+                sent={{ phase: 'funded', display }}
+                onStartAgain={noop}
+                onDone={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
+// the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
+function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
+    const t = useTranslations('pix.withdraw')
+    const error =
+        variant === 'quote-moved'
+            ? { message: t('quoteMoved'), priority: 'attention' as const }
+            : { message: `${t('errors.quoteExpired')} ${t('errors.afterInit')}` }
+    return (
+        <AppPageSurface>
+            <PixWithdrawReview
+                title="Withdraw"
+                display={PIX_SURFACE_DISPLAY}
+                providerId="avenia-br"
+                isLoading={false}
+                isSubmitting={false}
+                error={error}
+                canConfirm={variant === 'quote-moved'}
+                onBack={noop}
+                onConfirm={noop}
+                onCancel={noop}
+            />
+        </AppPageSurface>
+    )
+}
+
 function WithdrawReviewSurface({
     isProcessing = false,
     alreadySpent = false,
@@ -404,6 +512,17 @@ function AddressLaunchSurface({ bank, loading }: { bank: boolean; loading: boole
     )
 }
 
+function DepositAddressSubmittedToastSurface() {
+    const t = useTranslations('depositAccounts.gate')
+    const { info, dismiss } = useToast()
+    const message = t('addressSent')
+    React.useEffect(() => {
+        const id = info(message, { duration: 'persistent' })
+        return () => dismiss(id)
+    }, [message, info, dismiss])
+    return null
+}
+
 export const SURFACES: Record<string, Surface> = {
     'deposit-address-launch-loading': {
         ...SURFACE_META['deposit-address-launch-loading'],
@@ -413,6 +532,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['deposit-address-launch-error'],
         render: () => <AddressLaunchSurface bank loading={false} />,
     },
+    'deposit-address-submitted-toast': {
+        ...SURFACE_META['deposit-address-submitted-toast'],
+        render: () => <DepositAddressSubmittedToastSurface />,
+    },
     'card-address-launch-loading': {
         ...SURFACE_META['card-address-launch-loading'],
         render: () => <AddressLaunchSurface bank={false} loading />,
@@ -420,6 +543,20 @@ export const SURFACES: Record<string, Surface> = {
     'card-address-launch-error': {
         ...SURFACE_META['card-address-launch-error'],
         render: () => <AddressLaunchSurface bank={false} loading={false} />,
+    },
+    'card-address-unavailable': {
+        ...SURFACE_META['card-address-unavailable'],
+        render: () => (
+            <AppPageSurface>
+                <CardResidenceAddressScreen
+                    state="unavailable"
+                    loading={false}
+                    onBack={noop}
+                    onStart={noop}
+                    onRefresh={noop}
+                />
+            </AppPageSurface>
+        ),
     },
     'standalone-error-card': {
         ...SURFACE_META['standalone-error-card'],
@@ -615,6 +752,46 @@ export const SURFACES: Record<string, Surface> = {
     '08-c-loginrecoverydrawer-web': {
         ...SURFACE_META['08-c-loginrecoverydrawer-web'],
         render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
+    },
+    '08-d-passkeyproviderunsupporteddrawer': {
+        ...SURFACE_META['08-d-passkeyproviderunsupporteddrawer'],
+        render: () => (
+            <PasskeyProviderUnsupportedDrawer
+                visible
+                platform="android-app"
+                onClose={noop}
+                onRetry={noop}
+                onSignUpInBrowser={noop}
+                onSupport={noop}
+            />
+        ),
+    },
+    '08-e-passkeyproviderunsupporteddrawer-browser-failed': {
+        ...SURFACE_META['08-e-passkeyproviderunsupporteddrawer-browser-failed'],
+        render: () => (
+            <PasskeyProviderUnsupportedDrawer
+                visible
+                platform="android-app"
+                browserOpenFailed
+                onClose={noop}
+                onRetry={noop}
+                onSignUpInBrowser={noop}
+                onSupport={noop}
+            />
+        ),
+    },
+    '08-f-passkeyproviderunsupporteddrawer-other': {
+        ...SURFACE_META['08-f-passkeyproviderunsupporteddrawer-other'],
+        render: () => (
+            <PasskeyProviderUnsupportedDrawer
+                visible
+                platform="other"
+                onClose={noop}
+                onRetry={noop}
+                onSignUpInBrowser={noop}
+                onSupport={noop}
+            />
+        ),
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',
@@ -1324,6 +1501,43 @@ export const SURFACES: Record<string, Surface> = {
     '93-f-withdraw-account-closed': {
         ...SURFACE_META['93-f-withdraw-account-closed'],
         render: () => <MantecaAccountUnavailableSurface action="withdraw" />,
+    },
+    '94-f-pix-deposit': {
+        ...SURFACE_META['94-f-pix-deposit'],
+        render: () => <PixDepositSurface />,
+    },
+    '94-g-pix-withdraw-on-its-way': {
+        ...SURFACE_META['94-g-pix-withdraw-on-its-way'],
+        render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-h-pix-withdraw-arrived-to': {
+        ...SURFACE_META['94-h-pix-withdraw-arrived-to'],
+        render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-i-pix-withdraw-arrived-unnamed': {
+        ...SURFACE_META['94-i-pix-withdraw-arrived-unnamed'],
+        render: () => <PixWithdrawOutcomeSurface unnamed />,
+    },
+    '94-j-pix-review-quote-moved': {
+        ...SURFACE_META['94-j-pix-review-quote-moved'],
+        render: () => <PixWithdrawReviewSurface variant="quote-moved" />,
+    },
+    '94-k-pix-review-after-init': {
+        ...SURFACE_META['94-k-pix-review-after-init'],
+        render: () => <PixWithdrawReviewSurface variant="after-init" />,
+    },
+    // the shot fixture's entry ended CANCELLED after this session funded it: support, never "on its way"
+    '94-l-pix-withdraw-stuck': {
+        ...SURFACE_META['94-l-pix-withdraw-stuck'],
+        render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-m-pix-withdraw-past-arrival': {
+        ...SURFACE_META['94-m-pix-withdraw-past-arrival'],
+        render: () => <PixWithdrawOutcomeSurface pastArrival />,
+    },
+    '94-n-pix-withdraw-past-arrival-unnamed': {
+        ...SURFACE_META['94-n-pix-withdraw-past-arrival-unnamed'],
+        render: () => <PixWithdrawOutcomeSurface unnamed pastArrival />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

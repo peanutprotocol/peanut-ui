@@ -47,7 +47,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
 import { formatBankAmount } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
-import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
+import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
 import { parseUnits } from 'viem'
@@ -320,14 +320,6 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 isValid = argResult.valid
                 if (!argResult.valid) {
                     setFieldError(argResult.message!)
-                }
-                break
-            case 'brazil':
-                value = isPixEmvcoQr(value.trim()) ? value.trim() : value.replace(/\s/g, '')
-                const pixResult = validatePixKey(value)
-                isValid = pixResult.valid
-                if (!pixResult.valid) {
-                    setFieldError(pixResult.message!)
                 }
                 break
             default:
@@ -1095,7 +1087,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
-                taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
+                taxIdCountry={selectedCountry?.id === 'AR' ? 'AR' : undefined}
                 ctaTestId="kyc-identity-gate-cta"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
@@ -1259,11 +1251,8 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                                     value={destinationAddress}
                                     placeholder={t('manteca.destinationLabel', { country: selectedCountry?.id ?? '' })}
                                     onUpdate={(update) => {
-                                        // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
-                                        const normalizedValue =
-                                            countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
                                         setDestinationConfirmed(false)
-                                        setDestinationAddress(normalizedValue)
+                                        setDestinationAddress(update.value)
                                         setIsDestinationAddressValid(update.isValid)
                                         setIsDestinationAddressChanging(update.isChanging)
                                         if (update.isValid || update.value === '') {

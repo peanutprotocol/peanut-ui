@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { usePixDepositOpen } from '@/features/pix/usePixDepositOpen'
 
 interface BalanceSectionProps {
     balance: bigint | undefined
@@ -43,6 +44,7 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
     const { triggerHaptic } = useAppHaptic()
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
     const depositAccounts = useDepositAccountsEnabled()
+    const pixOpen = usePixDepositOpen()
 
     const openActionDrawer = (drawer: HomeDrawer) => {
         triggerHaptic()
@@ -84,7 +86,7 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
                     // bank details are not offered)
-                    const options = homeDrawerOptions(action.key, depositAccounts)
+                    const options = homeDrawerOptions(action.key, depositAccounts, pixOpen)
                     const directHref = options.length === 1 ? options[0].href : undefined
                     const inner = (
                         <>

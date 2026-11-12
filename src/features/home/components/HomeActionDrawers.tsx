@@ -11,8 +11,11 @@ import { parseAsString, useQueryState } from 'nuqs'
 import { useRouter } from 'next/navigation'
 import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { usePixDepositOpen } from '@/features/pix/usePixDepositOpen'
 
 /**
  * home IA bottom drawers (figma boards 17831:79186 / 17830:76839): the Add and
@@ -34,10 +37,12 @@ export function HomeActionDrawers() {
     if (drawer) lastDrawerRef.current = drawer
     const content = drawer ?? lastDrawerRef.current
     const depositAccounts = useDepositAccountsEnabled()
-    const options = content ? homeDrawerOptions(content, depositAccounts) : []
+    const pixOpen = usePixDepositOpen()
+    const options = content ? homeDrawerOptions(content, depositAccounts, pixOpen) : []
 
     const navigate = async (option: DrawerOption) => {
         const href = option.href
+        if (option.depositSelected) posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, option.depositSelected)
         // clear the drawer param first so browser-back from the destination
         // lands on a closed home; nuqs queues url updates, so await the reset
         // before routing or the ?drawer entry can survive in history

@@ -9,6 +9,7 @@ import { getCachedCurrencyPrice } from '@/app/actions/currency'
 import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
+import type { paths } from '@/types/api.generated'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import {
@@ -86,6 +87,27 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
+/** A Pix withdrawal's recovery as `GET /history/:entryId` sends it (api `PixRecoveryView`). */
+export type PixRecoveryView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['pixRecovery']
+>
+
+/** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
+export type HistoryIntentStatus = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['intentStatus']
+>
+
+/** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
+export type PixDepositView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['pixDeposit']
+>
+
 /**
  * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
  * the field was `Record<string, any>` — every consumer did an implicit
@@ -104,11 +126,20 @@ export type HistoryStatus = `${EHistoryStatus}`
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
+    /** On a Pix withdrawal only: its recovery after the payout failed or came back, null when it has none.
+     *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
+    pixRecovery?: PixRecoveryView | null
+    /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
+    pixDeposit?: PixDepositView
+    /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
+     *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
+    intentStatus?: HistoryIntentStatus
     // Wire-shape discriminators. Pinned to string at this layer;
     // downstream `extraDataForDrawer` narrows to `IntentKind` and
     // `Provider` after the transformer runs.
     kind?: string
     provider?: string
+    mantecaDepositExpired?: true
     // Bridge flow disambiguation — distinguishes the four Bridge sub-paths
     // that share an intent kind (ONRAMP / OFFRAMP / BANK_SEND_LINK_CLAIM /
     // GUEST_DIRECT_SEND).

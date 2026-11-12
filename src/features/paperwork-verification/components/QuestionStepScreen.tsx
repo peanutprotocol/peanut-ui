@@ -228,6 +228,7 @@ export function QuestionStepScreen({
     const rejections = useRef(0)
     const flagged = useRef(new Set<string>())
     const submitting = useRef(false)
+    const [handingOff, setHandingOff] = useState(false)
     const [removingLocal, setRemovingLocal] = useState(false)
     const removingRef = useRef(false)
     const removeLocal = async () => {
@@ -358,6 +359,7 @@ export function QuestionStepScreen({
         track(ANALYTICS_EVENTS.KYC_PV_STEP_SUBMITTED, { seconds_on_step: seconds, rejected_before: rejections.current })
         try {
             if (onSubmitted) {
+                setHandingOff(true)
                 await onSubmitted(form.values, seconds)
                 return
             }
@@ -378,13 +380,14 @@ export function QuestionStepScreen({
             if (outcome.error && outcome.error !== 'retry') onConflict?.(outcome.error, outcome.message)
         } finally {
             submitting.current = false
+            setHandingOff(false)
         }
     }
 
     const back =
         page > 0 || onBack
             ? () => {
-                  if (page > 0 && submitting.current) return
+                  if (submitting.current) return
                   track(ANALYTICS_EVENTS.KYC_PV_BACK, { seconds_on_step: secondsSince(viewedAt.current) })
                   if (page > 0) setPage(page - 1)
                   else onBack?.()
@@ -392,6 +395,7 @@ export function QuestionStepScreen({
             : undefined
     const changeResidence = onChangeResidence
         ? () => {
+              if (submitting.current) return
               track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED)
               onChangeResidence()
           }
@@ -410,8 +414,8 @@ export function QuestionStepScreen({
                                     shadowSize="4"
                                     className="w-full"
                                     onClick={() => void submit()}
-                                    disabled={!complete || form.saving || removingLocal}
-                                    loading={form.saving}
+                                    disabled={!complete || form.saving || handingOff || removingLocal}
+                                    loading={form.saving || handingOff}
                                     data-testid="verify-continue"
                                 >
                                     {taxWarning ? t('taxConfirm') : (continueLabel ?? t('continue'))}
@@ -458,7 +462,9 @@ export function QuestionStepScreen({
                             values={form.values}
                             errors={errors}
                             residence={residence}
-                            onChange={form.change}
+                            onChange={(key, value) => {
+                                if (!submitting.current) form.change(key, value)
+                            }}
                             onFieldBlur={onFieldBlur}
                             onChangeResidence={changeResidence}
                             sentenceSize={compact ? 's' : 'm'}

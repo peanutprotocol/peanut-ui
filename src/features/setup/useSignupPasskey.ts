@@ -10,7 +10,9 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor, isIOSNativeBridge } from '@/utils/capacitor'
+import { isAndroidNativeBridge, isCapacitor, isIOSNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
+import type { PasskeyProviderUnsupportedError } from '@/utils/passkey-registration-compatibility'
 import { apiFetch } from '@/utils/api-fetch'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
@@ -78,6 +80,9 @@ export function useSignupPasskey(username: string) {
     const { deviceType } = useDeviceType()
     const [helpErrorName, setHelpErrorName] = useState<string | null>(null)
     const [isHelpOpen, setIsHelpOpen] = useState(false)
+    // Set when signup refuses the passkey's layout; the platform picks the drawer's guidance.
+    const [providerUnsupportedPlatform, setProviderUnsupportedPlatform] = useState<'android-app' | 'other' | null>(null)
+    const [browserOpenFailed, setBrowserOpenFailed] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
     const [usernameTaken, setUsernameTaken] = useState(false)
@@ -154,6 +159,9 @@ export function useSignupPasskey(username: string) {
             const nativeReason = nativePasskeyFailure(err)
             // The OS sheet's own duration, without the network calls around it.
             const ceremony = latestCeremony('create', 'registration', attemptStartedAt)
+            // Layout facts only (TASK-24498): never the challenge or the origin.
+            const provider =
+                err.name === 'PasskeyProviderUnsupportedError' ? (err as PasskeyProviderUnsupportedError) : undefined
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
@@ -162,6 +170,11 @@ export function useSignupPasskey(username: string) {
                 native_reason: nativeReason,
                 ceremony_ms: ceremony?.durationMs,
                 attempt: attemptsRef.current,
+                ...(provider && {
+                    challenge_offset: provider.challengeOffset,
+                    backup_eligible: provider.backupEligible,
+                    client_data_keys: provider.clientDataKeys,
+                }),
             })
 
             if (err.name === 'UsernameTaken') {
@@ -169,8 +182,20 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
-            if (err.name === 'PasskeyProviderUnsupportedError') {
-                setInlineError(t('testTransaction.errors.passkeyProviderUnsupported'))
+            // The phone's password manager writes the signed note in a layout the
+            // wallet validator cannot read, so this passkey could never sign. The
+            // constant message keeps every such phone in one Sentry issue.
+            if (provider) {
+                Sentry.captureMessage('Passkey provider writes an unsupported clientDataJSON layout', {
+                    level: 'warning',
+                    tags: {
+                        error_type: 'passkey_provider_unsupported',
+                        challenge_offset: provider.challengeOffset ?? 'unknown',
+                    },
+                    extra: { clientDataKeys: provider.clientDataKeys, backupEligible: provider.backupEligible },
+                })
+                setBrowserOpenFailed(false)
+                setProviderUnsupportedPlatform(isAndroidNativeBridge() ? 'android-app' : 'other')
                 return
             }
 
@@ -327,6 +352,25 @@ export function useSignupPasskey(username: string) {
         retryFromHelp: () => {
             setIsHelpOpen(false)
             void claim()
+        },
+        isProviderUnsupportedOpen: providerUnsupportedPlatform !== null,
+        providerUnsupportedPlatform: providerUnsupportedPlatform ?? 'other',
+        browserOpenFailed,
+        closeProviderUnsupported: () => setProviderUnsupportedPlatform(null),
+        retryFromProviderUnsupported: () => {
+            setProviderUnsupportedPlatform(null)
+            void claim()
+        },
+        signUpInBrowser: async () => {
+            setBrowserOpenFailed(false)
+            try {
+                await openExternalUrl(keepWebSignupUrl())
+                setProviderUnsupportedPlatform(null)
+            } catch (error) {
+                // The drawer stays open with the error, so retry and support still work.
+                Sentry.captureException(error, { tags: { error_type: 'passkey_provider_browser_open_failed' } })
+                setBrowserOpenFailed(true)
+            }
         },
         deviceType,
     }

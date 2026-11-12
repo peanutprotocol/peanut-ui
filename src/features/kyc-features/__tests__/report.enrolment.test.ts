@@ -1,5 +1,5 @@
 /** Fix E: frozen spec-only account report authority and unmapped-account enrollment. */
-import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
+import type { FeatureReport, FeatureReportEntry, RailCapability } from '@/types/capabilities'
 import { accountEntry, reportEntry } from '../report'
 
 const READY: FeatureReportEntry = { state: 'ready', action: 'activate' }
@@ -35,5 +35,25 @@ describe.each(['on', 'ready'] as const)('aggregate bank %s', (state) => {
         expect(reportEntry(current, 'deposit', { channel: 'bank', country: 'US' })).toEqual(usd)
         expect(reportEntry(current, 'withdraw', { railId: 'bridge.ach_us' })).toEqual(usd)
         expect(accountEntry(current, 'bank', 'USD')).toEqual(usd)
+    })
+})
+
+describe('a Brazil scope read off its first bank rail', () => {
+    it("reads an Avenia rail as the local BRL account, as Manteca's is", () => {
+        const rails: RailCapability[] = [
+            {
+                id: 'avenia.pix_br',
+                provider: 'avenia',
+                method: 'PIX_BR',
+                channel: 'bank',
+                country: 'BR',
+                currency: 'BRL',
+                status: 'enabled',
+            },
+        ]
+        const current = report('on')
+        expect(reportEntry(current, 'deposit', { channel: 'bank', country: 'BR' }, rails)).toEqual(
+            accountEntry(current, 'local', 'BRL')
+        )
     })
 })

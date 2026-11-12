@@ -205,6 +205,16 @@ describe('savePaperworkVerificationFeatures', () => {
         })
     })
 
+    // a resident of Brazil: the local account is refused because the Pix route serves the residence
+    it('says Pix is available where the local feature is refused because another entry serves the residence', async () => {
+        mockFetch.mockResolvedValue(
+            reply(200, { features: { local: { state: 'refused', reason: 'local_served_elsewhere' } } })
+        )
+        await expect(
+            savePaperworkVerificationFeatures({ ...features, local: true }, { ...features, local: false })
+        ).resolves.toEqual({ kind: 'refused', feature: 'local', copy: 'supplement.servedElsewhere' })
+    })
+
     it('PUTs the feature set with the Smart Paperwork Verification header', async () => {
         mockFetch.mockResolvedValue(reply(200, { intents: features }))
         await expect(savePaperworkVerificationFeatures(features)).resolves.toEqual({ kind: 'saved' })

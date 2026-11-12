@@ -124,6 +124,57 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
     })
 })
 
+// live test on staging, 2026-11-12: a resident of Brazil picked Brazil under Send and reached a
+// block screen with no way on. Their pay:PIX_BR route refuses the residence (`pixPayBlock`).
+describe('CountryList — the send gate for a resident of Brazil', () => {
+    const onCountryClick = jest.fn()
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        render(
+            <CountryList
+                inputTitle="How?"
+                viewMode="add-withdraw"
+                flow="withdraw"
+                enforceSupportedCountries
+                pixPayBlock="residence"
+                onCountryClick={onCountryClick}
+                showLoadingState={false}
+            />
+        )
+    })
+
+    test('Brazil is not a destination: it opens the send waitlist, like any country Send cannot pay', () => {
+        fireEvent.click(row('Brazil'))
+        expect(screen.getByTestId('country-waitlist')).toHaveTextContent('BR:send')
+        expect(onCountryClick).not.toHaveBeenCalled()
+    })
+
+    test('a bridge country stays selectable', () => {
+        fireEvent.click(row('Germany'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'germany' }))
+    })
+})
+
+describe('CountryList — the Brazil pause keeps Brazil a send destination', () => {
+    test('Brazil is selectable: the pause screen on the next page says why it waits', () => {
+        const onCountryClick = jest.fn()
+        render(
+            <CountryList
+                inputTitle="How?"
+                viewMode="add-withdraw"
+                flow="withdraw"
+                enforceSupportedCountries
+                pixPayBlock="paused"
+                onCountryClick={onCountryClick}
+                showLoadingState={false}
+            />
+        )
+        fireEvent.click(row('Brazil'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'brazil' }))
+    })
+})
+
 describe('CountryList — the tapped row', () => {
     const renderList = (onCountryClick: () => void | boolean) =>
         render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="add" onCountryClick={onCountryClick} />)

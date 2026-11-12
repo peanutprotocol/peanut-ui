@@ -51,6 +51,17 @@ const withheldFor = (
  * holds. The rest sit under "Open new account".
  */
 describe('virtualAccountRows', () => {
+    it('keeps a Bridge postal block openable from Accounts', () => {
+        const gates = gatesAll()
+        gates.ACH_US = {
+            kind: 'blocked-rejection',
+            userMessage: null,
+            reason: { code: 'invalid_bank_postal_code', userMessage: '' },
+        }
+        const { open } = virtualAccountRows(input({ corridors: ['ACH_US'], gates }), true)
+        expect(open.find((row) => row.corridor === 'ACH_US')?.openable).toBe(true)
+    })
+
     it('lists held accounts apart from the ones the user could open, one-off transfers in neither', () => {
         const { held: heldRows, open } = virtualAccountRows(
             input({ accounts: { SEPA_EU: held('SEPA_EU'), SPEI_MX: held('SPEI_MX', 'revoked') } }),
@@ -361,6 +372,17 @@ describe('a refused identity', () => {
             closedBankRow({ ...brl, chip: 'notAvailable', unavailableBecause: 'residence' }, false, { failed: true })
         ).toEqual({ kind: 'residence', corridor: 'PIX_BR' })
         expect(closedBankRow({ ...brl, chip: 'active' }, false, { failed: true })).toBeNull()
+    })
+
+    // the BRL row's Pix route refused for its own reason: the drawer that says it as the Pix pages do
+    it('sends a BRL row its Pix route refuses to the route drawer', () => {
+        const [brl] = buildBankRows({
+            bankChips: { brl: 'notAvailable', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
+            closedBecause: { brl: 'pix-route' },
+            residenceIso2: 'BR',
+            isEuropeResidence: false,
+        })
+        expect(closedBankRow(brl, false)).toEqual({ kind: 'pix-route' })
     })
 })
 

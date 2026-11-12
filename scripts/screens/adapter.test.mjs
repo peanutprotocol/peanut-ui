@@ -257,3 +257,31 @@ test('fixture overrides and demo-api answers win over OpenAPI examples', () => {
     const failing = probeWithSpec('withdraw-crypto-eth-no-price', [['GET', '/tokens/price']], EXAMPLE_SPEC)
     assert.deepEqual(failing.values, [{ status: 500, body: { error: 'Synthetic failure' } }])
 })
+
+test('a fixture with its own capability block gets no demo routes in the capture, unless it states them', () => {
+    const output = execFileSync(
+        process.execPath,
+        [
+            '--import',
+            'tsx',
+            '--input-type=module',
+            '-e',
+            `
+ import adapter from './scripts/screens/adapter.ts'; const {answer}=adapter;
+ globalThis.fetch=()=>{throw new Error('Unexpected network request')};
+ const routes=async (fixture)=>((await (await answer(fixture,'/users/me','GET')).json()).capabilities.routes??null);
+ console.log('RESULT:'+JSON.stringify({
+ accounts: await routes('profile-accounts'),
+ avenia: (await routes('pix-deposit-amount')).map((route)=>route.provider),
+ manteca: (await routes('pix-manteca-withdraw-review')).map((route)=>route.provider),
+ }));
+ `,
+        ],
+        { encoding: 'utf8' }
+    )
+    const result = JSON.parse(output.split('RESULT:')[1])
+    // a Portuguese resident: the demo's Brazil routes must not close its Pix-key sending or open its BRL row
+    assert.deepEqual(result.accounts, [])
+    assert.deepEqual(result.avenia, ['avenia', 'avenia'])
+    assert.deepEqual(result.manteca, ['manteca', 'manteca', 'manteca'])
+})

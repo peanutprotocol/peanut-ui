@@ -224,7 +224,7 @@ jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => <div data-testid="maintenance" />,
 }))
 // the Brazil pause reads the signed-in user; it is off here (amount-guard covers it)
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => null }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('next/image', () => ({
     __esModule: true,

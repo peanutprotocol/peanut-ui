@@ -1,7 +1,7 @@
 import { countryData } from '@/components/AddMoney/consts'
 import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
 import type { CapabilityReason } from '@/types/capabilities'
-import { isIdentityRefusal, type GateState } from '@/utils/capability-gate'
+import { getGateReasonCode, isIdentityRefusal, type GateState } from '@/utils/capability-gate'
 import { dedupeHeldBankRows, type UnlockRow } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
@@ -131,6 +131,11 @@ function isOpenable(
     gates: Record<DepositCorridor, GateState>
 ): boolean {
     const withheld = unavailable?.[corridor]
+    if (
+        DEPOSIT_RAILS[corridor].provider === 'bridge' &&
+        getGateReasonCode(gates[corridor]) === 'invalid_bank_postal_code'
+    )
+        return true
     // the user's own review holds the corridor: the claim step's gate drawer
     // names it and starts the action that clears it
     if (withheld?.cause === 'not_started') return true
@@ -220,6 +225,8 @@ export type ClosedRow =
     | { kind: 'not-offered'; corridor: DepositCorridor }
     | { kind: 'residence'; corridor: 'PIX_BR' | 'BANK_TRANSFER_AR' }
     | { kind: 'restricted-country' }
+    /** the BRL row's Pix route is refused for its own reason: the drawer says it as the Pix pages do */
+    | { kind: 'pix-route' }
     | { kind: 'card-restricted'; reason?: string }
     | { kind: 'verification-down' }
     /** at the account limit: nothing more opens until support raises it */
@@ -334,6 +341,7 @@ export function closedBankRow(
     if (row.chip === 'notAvailable') {
         if (row.unavailableBecause === 'account-residence' && row.corridor)
             return { kind: 'residence-restricted', corridor: row.corridor }
+        if (row.unavailableBecause === 'pix-route') return { kind: 'pix-route' }
         return row.unavailableBecause === 'residence' &&
             (row.corridor === 'PIX_BR' || row.corridor === 'BANK_TRANSFER_AR')
             ? { kind: 'residence', corridor: row.corridor }

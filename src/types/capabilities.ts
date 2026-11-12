@@ -15,7 +15,11 @@
  * See engineering/projects/kyc-2.0/capabilities-rehaul-plan.md.
  */
 
-export type ProviderCode = 'bridge' | 'manteca' | 'rain'
+import type { paths } from '@/types/api.generated'
+
+/** A rail's provider code, as the capabilities schema enumerates it: a new provider arrives with the API's types. */
+export type ProviderCode =
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['rails'][number]['provider']
 
 /** Capability status of a single rail, provider-neutral. */
 export type RailCapabilityStatus =
@@ -152,6 +156,10 @@ export interface ResolvedRail {
  *                           bridge-hosted.
  *   - `questions`         — a provider waits on an answer the app asks: open
  *                           the add-later questions of `feature`.
+ *   - `hosted-identity`   — the provider checks the identity on its own page
+ *                           (it takes no shared verification): open `url`,
+ *                           valid until `expiresAt`; a capabilities read mints
+ *                           a new one.
  */
 export type NextActionKind =
     | 'sumsub'
@@ -163,6 +171,7 @@ export type NextActionKind =
     | 'bridge-hosted'
     | 'rain-hosted'
     | 'questions'
+    | 'hosted-identity'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions
@@ -196,6 +205,9 @@ export interface NextAction {
     refused?: { provider: ProviderCode; reason: string }[]
     /** for kind:'questions' — the feature whose open questions the app shows. */
     feature?: 'bank' | 'card' | 'local'
+    /** for kind:'hosted-identity' — the provider's verification page, and when that link stops working. */
+    url?: string
+    expiresAt?: string
 }
 
 export interface CapabilityRestriction {
@@ -204,11 +216,22 @@ export interface CapabilityRestriction {
     userMessage: string
 }
 
+/**
+ * Which provider serves an operation on a method for this user, and what the
+ * user's step is there (api `routing/route-for.ts`). The backend picks the
+ * provider; the app mounts that provider's screens and decides nothing.
+ * Typed from the generated contract.
+ */
+export type CapabilityRoute =
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['routes'][number]
+
 /** The block embedded in /get-user (top-level) and returned by GET /users/capabilities. */
 export interface UserCapabilities {
     rails: RailCapability[]
     nextActions: NextAction[]
     restrictions: CapabilityRestriction[]
+    /** One route per operation and method a provider serves (today PIX_BR deposit and withdraw). Absent on an older API. */
+    routes?: CapabilityRoute[]
     /** The one answer to "what can this user do", per feature. The app renders it and decides nothing. */
     features?: FeatureReport
 }

@@ -103,6 +103,20 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toEqual({ name: 'DEMO RECIPIENT', legalIdMasked: null })
     })
 
+    // The Pix screens call these; the screen-capture harness runs strict, so an
+    // unmapped route would fail the pix-* fixtures on the dev Screen library run.
+    it.each([
+        ['GET', '/pix/deposit/rules', { minAmountBrl: '20', blockedBanks: [] }],
+        ['GET', '/pix/deposit/demo-pix-deposit', { status: 'AWAITING_USER_ACTION', pixReceived: false }],
+        ['POST', '/pix/key', { ownAccount: true, blocked: false }],
+        ['POST', '/pix/withdraw/preview', { provider: 'Avenia', ownAccount: true }],
+        ['POST', '/pix/withdraw/demo-pix-withdraw/recovery-key', { accepted: true }],
+    ])('answers %s %s in strict capture mode', async (method, path, expected) => {
+        const res = await demoRespond(path, { method }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        expect(await res.json()).toMatchObject(expected)
+    })
+
     it('answers the card markup read with "nothing to compare" in strict capture mode', async () => {
         const res = await demoRespond(
             '/fx/card-markup?currency=BRL',

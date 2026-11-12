@@ -54,8 +54,10 @@ import {
     ensureCurrentControllerApproval,
     ensurePreparedControllerApproval,
     fetchLiveSmartUsdcBalance,
+    InsufficientSpendableError,
     isUserCancellation,
     RainControllerCheckError,
+    resolveSpendStrategy,
     runCollateralSpendPreflight,
     SessionKeyGrantRequiredError,
 } from '../spendPreflight'
@@ -113,6 +115,31 @@ describe('computeSpendStrategy', () => {
         expect(computeSpendStrategy({ smart: amount, rain: 0n, amount, collateralOnlyAllowed: false })).toBe(
             'smart-only'
         )
+    })
+})
+
+describe('resolveSpendStrategy', () => {
+    beforeEach(() => mockReadContract.mockReset())
+
+    // The QR flow tells a quote above the balance from a settling balance by
+    // these two numbers (TASK-24621), so they must be the live ones.
+    it('rejects an unaffordable spend with the live spendable total and the amount it needs', async () => {
+        mockReadContract.mockResolvedValue(531_000_000n)
+        const queryClient = {
+            fetchQuery: jest.fn(async (opts: { queryFn: () => Promise<bigint> }) => opts.queryFn()),
+            invalidateQueries: jest.fn(),
+        } as unknown as import('@tanstack/react-query').QueryClient
+
+        const failure = await resolveSpendStrategy({
+            queryClient,
+            accountAddress: '0x959e088a09f61ab01cb83b0ebcc74b2cf6d62053',
+            requiredUsdcAmount: 531_948_750n,
+            rainSpendingPower: 948_517n,
+            collateralOnlyAllowed: true,
+        }).catch((error: unknown) => error)
+
+        expect(failure).toBeInstanceOf(InsufficientSpendableError)
+        expect(failure).toMatchObject({ available: 531_948_517n, required: 531_948_750n })
     })
 })
 
@@ -641,10 +668,36 @@ describe('runCollateralSpendPreflight', () => {
         expect(h.overlayStates).toEqual([])
     })
 
-    it('collateral-only: never migrates (pre-migration state still verifies the sig)', async () => {
+    // TASK-24722: the backend submits this withdrawal with the session key, and
+    // ZeroDev's paymaster refuses it while the on-chain root is still v0.0.2.
+    it('collateral-only + unmigrated wrapper: migrates under the overlay, returns rebuilt client', async () => {
         const h = preflightHarness({ account: unmigratedWrapper() })
         const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
+        expect(h.sendNoopUserOp).toHaveBeenCalledTimes(1)
+        expect(h.rebuildClient).toHaveBeenCalledTimes(1)
+        expect(result).toBe(h.rebuilt)
+        expect(h.overlayStates).toEqual([true, false])
+    })
+
+    it('collateral-only + plain (patched) account: zero migration behavior', async () => {
+        const h = preflightHarness({ account: { address: '0xplain' } })
+        const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
         expect(result).toBe(h.args.kernelClient)
+        expect(h.sendNoopUserOp).not.toHaveBeenCalled()
+        expect(h.rebuildClient).not.toHaveBeenCalled()
+        expect(h.overlayStates).toEqual([])
+    })
+
+    it('collateral-only: a missing overview fails before the migration prompt', async () => {
+        const h = preflightHarness({ account: unmigratedWrapper() })
+        await expect(
+            runCollateralSpendPreflight({
+                ...h.args,
+                overview: undefined as never,
+                requireOverview: true,
+                strategy: 'collateral-only',
+            })
+        ).rejects.toThrow(SessionKeyGrantRequiredError)
         expect(h.sendNoopUserOp).not.toHaveBeenCalled()
     })
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { BridgePostalCorrectionModal } from '@/features/deposit-accounts/components/BridgePostalCorrectionModal'
 import { CAROUSEL_CLOSE_BUTTON_POSITION } from '@/constants/carousel.consts'
 import { twMerge } from '@/utils/tw'
 import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
@@ -30,6 +31,8 @@ import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdenti
 import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
+import { usePixPlanSetUp } from '@/features/pix/usePixPlanSetUp'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -46,6 +49,7 @@ interface StepConfig {
     title: string
     description: string
     ctaLabel: string
+    ctaTestId?: string
     href: string
 }
 
@@ -61,6 +65,8 @@ export default function ActivationCTAs({
     showBlockedCard = true,
     onHideBlockedCard,
 }: ActivationCTAsProps) {
+    const tPostal = useTranslations('depositAccounts.postalCorrection')
+    const [showPostalCorrection, setShowPostalCorrection] = useState(false)
     const t = useTranslations('home.activation')
     const tGettingStarted = useTranslations('home.gettingStarted')
     const tIdentity = useTranslations('identity')
@@ -70,7 +76,7 @@ export default function ActivationCTAs({
     const tProviderRejection = useTranslations('profile.regions.providerRejection')
     const router = useRouter()
     const { openSupportWithMessage } = useModalsContext()
-    const { user } = useAuth()
+    const { user, fetchUser } = useAuth()
     const { isRegionRestricted, identity } = useIdentityVerification()
 
     const {
@@ -88,6 +94,12 @@ export default function ActivationCTAs({
         isEmailBlocked,
         isRestartBlocked,
     } = useProviderRejection(onboarding)
+    const canCorrectBankPostalCode =
+        hasProviderRejection &&
+        hasBlockedRejection &&
+        !hasFixableRejection &&
+        primaryRejectionCode === 'invalid_bank_postal_code' &&
+        blockedRail?.provider === 'bridge'
 
     // Known reason codes render localized identity.reasons.* copy; unknown
     // codes keep the backend's display-ready prose as fallback.
@@ -117,12 +129,18 @@ export default function ActivationCTAs({
     // wherever they live: its questions cover every feature the residence opens.
     const opensPaperworkVerification = usePaperworkVerificationStart()
     const restrictions = useResidenceRestrictions()
+    // A plan that adds money by Pix, whose route starts with the provider's own set-up (its terms, then its
+    // own identity check): the Verify row is that step and opens the Pix setup, never our verification.
+    // It follows the signup plan, not the route alone: the ruling in `pixPlanSetUp` (TASK-24841).
+    const pixSetUp = usePixPlanSetUp()
+    const verifiesThroughPix = pixSetUp === 'provider-step'
     const startingRef = useRef(false)
     const startIdentityCheck = async () => {
         if (startingRef.current) return
         startingRef.current = true
         try {
-            if (await opensPaperworkVerification()) router.push('/verify')
+            if (verifiesThroughPix) router.push(PIX_ADD_MONEY_PATH)
+            else if (await opensPaperworkVerification()) router.push('/verify')
             // The legacy start is bank-shaped. Where bank rails are closed the
             // card is the door, and where the card is closed too, QR pay is
             // (Hugo, 2026-09-26: QR is open to every verified user).
@@ -140,6 +158,9 @@ export default function ActivationCTAs({
 
     // Each onboarding step is reported once per session, not on every Home visit.
     const userId = user?.user?.userId
+    useEffect(() => {
+        setShowPostalCorrection(false)
+    }, [userId])
     useEffect(() => {
         const step = onboarding.step
         if (step === 'completed' || !userId) return
@@ -233,7 +254,8 @@ export default function ActivationCTAs({
                             ? t('providerDeclined.accountCurrencyTitle', { currency: blockedRail.currency })
                             : t('providerDeclined.accountTitle'),
                 description: localizedRejectionMessage || t('providerDeclined.description'),
-                ctaLabel: t('verificationIssue.cta'),
+                ctaLabel: canCorrectBankPostalCode ? tPostal('title') : t('verificationIssue.cta'),
+                ctaTestId: canCorrectBankPostalCode ? 'home-correct-bank-postal-code' : undefined,
                 href: '', // handled in onClick
             }
         }
@@ -241,6 +263,8 @@ export default function ActivationCTAs({
         return null
     }, [
         t,
+        tPostal,
+        canCorrectBankPostalCode,
         tRoot,
         decidedRejection,
         hasIdentityFailure,
@@ -271,6 +295,7 @@ export default function ActivationCTAs({
                     showWelcome={showWelcome}
                     onStartIdentityCheck={() => void startIdentityCheck()}
                     signupPaymentChannel={user?.signupPreferences?.paymentChannel}
+                    pixSetUp={pixSetUp}
                 />
                 <InitiateKycModal
                     cooldownActive={!!kycFlow.errorCooldown}
@@ -320,6 +345,7 @@ export default function ActivationCTAs({
                     variant="primary"
                     shadowSize="4"
                     className="mt-2 w-full"
+                    data-testid={step.ctaTestId}
                     onClick={() => {
                         // Mirror the step-precedence above: whatever else is true
                         // of this user's rails, the region card's CTA must just
@@ -348,6 +374,8 @@ export default function ActivationCTAs({
                             // support — same rank as the terminal arm below, only a
                             // different destination.
                             void kycFlow.handleRestartIdentity()
+                        } else if (canCorrectBankPostalCode) {
+                            setShowPostalCorrection(true)
                         } else if (hasProviderRejection && hasBlockedRejection && !hasFixableRejection) {
                             // REQUIRES_SUPPORT class (or any blocked rail) — pre-fill Crisp
                             // with the failure context so support can dispatch without
@@ -385,6 +413,23 @@ export default function ActivationCTAs({
                     {step.ctaLabel}
                 </Button>
             </div>
+            <BridgePostalCorrectionModal
+                visible={showPostalCorrection}
+                onClose={() => setShowPostalCorrection(false)}
+                onSupport={() => {
+                    setShowPostalCorrection(false)
+                    openSupportWithMessage(
+                        buildContactSupportMessage({
+                            reason: blockedRail?.reason,
+                            railId: blockedRail?.id,
+                            userId: user?.user?.userId,
+                        })
+                    )
+                }}
+                onQueued={() => {
+                    void fetchUser?.()
+                }}
+            />
             <ProvideEmailStep
                 visible={showProvideEmail}
                 onComplete={() => setShowProvideEmail(false)}

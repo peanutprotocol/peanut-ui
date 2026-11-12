@@ -11,9 +11,11 @@ import { reserveDetachedTab } from '@/utils/reserved-tab'
 
 /**
  * Drives the handoff to a provider's hosted verification page and the wait for
- * the user to come back from it. Serves both `bridge-hosted` (Bridge/Persona)
- * and `rain-hosted` (Rain's card-member portal) — the same top-level-tab
- * handoff applies to any third-party page that can't be iframed.
+ * the user to come back from it. Serves `bridge-hosted` (Bridge/Persona),
+ * `rain-hosted` (Rain's card-member portal) and `hosted-identity` (a Pix
+ * provider's own identity check) — the same top-level-tab handoff applies to
+ * any third-party page that can't be iframed. The first two exchange their key
+ * for the page's URL; `hosted-identity` arrives with its URL (`url`).
  *
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
@@ -38,6 +40,8 @@ interface HostedVerification {
     isSettling: boolean
     /** The settle window ended with the task still pending — say so, don't re-offer silently. */
     stillPendingAfterReturn: boolean
+    /** The provider's page was opened from this screen at least once: a return is now expected. */
+    opened: boolean
 }
 
 interface HostedVerificationOptions {
@@ -47,6 +51,8 @@ interface HostedVerificationOptions {
      * `true`, so the window runs to its end.
      */
     taskPending?: boolean
+    /** The page's URL where the action carries it: no start-action call then. */
+    url?: string
 }
 
 /** The settle window, and when inside it the app nudges the API and the poller again. */
@@ -54,8 +60,8 @@ const SETTLE_WINDOW_MS = 60_000
 const SETTLE_NUDGES_MS = [20_000, 40_000]
 
 export function useHostedVerification(
-    actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted',
-    { taskPending = true }: HostedVerificationOptions = {}
+    actionKey: 'bridge-hosted' | 'rain-hosted' | 'hosted-identity' = 'bridge-hosted',
+    { taskPending = true, url: givenUrl }: HostedVerificationOptions = {}
 ): HostedVerification {
     const { fetchUser } = useAuth()
     const [isStarting, setIsStarting] = useState(false)
@@ -166,9 +172,9 @@ export function useHostedVerification(
             const reservedTab = native ? null : reserveDetachedTab()
 
             setIsStarting(true)
-            let url: string | undefined
+            let url = givenUrl
             try {
-                ;({ url } = await startHostedVerification(actionKey))
+                if (!url && actionKey !== 'hosted-identity') ({ url } = await startHostedVerification(actionKey))
             } catch (error) {
                 Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'hosted_launch' } })
                 // The action body catches its own errors, but a server action
@@ -225,7 +231,7 @@ export function useHostedVerification(
         } finally {
             startingRef.current = false
         }
-    }, [fetchUser, actionKey, closeWindow])
+    }, [fetchUser, actionKey, closeWindow, givenUrl])
 
     // The same-tab fallback navigates THIS tab away, so the listener below is
     // never armed for it — and a Back that restores from BFCache re-runs no
@@ -288,5 +294,5 @@ export function useHostedVerification(
         return () => document.removeEventListener('visibilitychange', onVisible)
     }, [awaitingReturn, onReturn, actionKey])
 
-    return { start, isStarting, error, isSettling, stillPendingAfterReturn }
+    return { start, isStarting, error, isSettling, stillPendingAfterReturn, opened: awaitingReturn }
 }

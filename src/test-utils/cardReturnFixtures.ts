@@ -15,7 +15,14 @@ export const cardOverview = (
     balance:
         spendingPower === null
             ? null
-            : { creditLimit: 0, spendingPower, pendingCharges, postedCharges: 0, balanceDue: 0 },
+            : {
+                  // the provider's count of the collateral: what can be spent plus what is held
+                  creditLimit: Math.max(0, spendingPower) + pendingCharges,
+                  spendingPower,
+                  pendingCharges,
+                  postedCharges: 0,
+                  balanceDue: 0,
+              },
     ...(unavailable ? { balanceUnavailable: true } : {}),
     cards: [
         {

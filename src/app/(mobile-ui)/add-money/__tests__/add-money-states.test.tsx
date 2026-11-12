@@ -289,7 +289,7 @@ jest.mock('@/constants/rhino.consts', () => ({
     ]),
     TOKEN_LOGOS: { USDC: '/usdc.png', USDT: '/usdt.png', ETH: '/eth-token.png' },
     CHAIN_SCOPED_DEPOSIT_TOKENS: [
-        { name: 'EURe', logoUrl: '/eure.png', network: 'Gnosis', isEuro: true },
+        { name: 'EURe v2', logoUrl: '/eure.png', network: 'Gnosis', isEuro: true },
         { name: 'USDe', logoUrl: '/usde.png', network: 'Arbitrum', isEuro: false },
     ],
 }))
@@ -639,11 +639,6 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
 // MantecaTransfersMaintenanceView — the outage screen shown when a currency is
 // in disabledMantecaCurrencies. Mocked to a testid so GROUP 7 can assert which
 // branch the regional-method route renders without pulling the real Card tree.
-// the Brazil pause, per test; GROUP 7 asserts which branch the regional-method route renders
-let mockBrazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({
-    useBrazilServicesPaused: () => mockBrazilPaused,
-}))
 jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
     BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
 }))
@@ -1200,7 +1195,7 @@ describe('GROUP 3: Crypto deposit', () => {
         test('EVM address screen names the one network for each token', () => {
             renderAddressScreen('EVM')
 
-            expect(screen.getByText('EURe · Gnosis').closest('[data-tooltip]')).toHaveAttribute(
+            expect(screen.getByText('EURe v2 · Gnosis').closest('[data-tooltip]')).toHaveAttribute(
                 'data-tooltip',
                 'Only on Gnosis. Converted at the market rate.'
             )
@@ -1213,7 +1208,7 @@ describe('GROUP 3: Crypto deposit', () => {
         test.each(['SOL', 'TRON'] as const)('%s address screen does not offer them', (network) => {
             renderAddressScreen(network)
 
-            expect(screen.queryByText('EURe · Gnosis')).not.toBeInTheDocument()
+            expect(screen.queryByText('EURe v2 · Gnosis')).not.toBeInTheDocument()
             expect(screen.queryByText('USDe · Arbitrum')).not.toBeInTheDocument()
         })
     })
@@ -1480,7 +1475,10 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             setParams({ country })
             renderWithProviders(<OnrampBankPage />)
 
-            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            // Brazil's Pix has one page, where the backend's route picks the provider
+            expect(mockRouterReplace).toHaveBeenCalledWith(
+                country === 'brazil' ? '/add-money/pix' : `/add-money/${country}/manteca`
+            )
             expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
             expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         }
@@ -1729,24 +1727,15 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     afterEach(() => {
         // reset the per-currency outage list so its default value can't leak between tests
         killSwitches.disabledMantecaCurrencies = []
-        mockBrazilPaused = false
     })
 
-    test('BR + manteca shows the Brazil paused screen while the pause covers the user', () => {
-        mockBrazilPaused = true
+    // Brazil's Pix lives on /add-money/pix (features/pix/__tests__): the old URL goes there.
+    test('BR + manteca mounts no Manteca flow and goes to the neutral Pix page', () => {
         setParams({ country: 'brazil', 'regional-method': 'manteca' })
         renderWithProviders(<AddMoneyRegionalMethodPage />)
 
-        expect(screen.getByTestId('brazil-paused-screen')).toBeInTheDocument()
         expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
-    })
-
-    test('AR + manteca stays open during the Brazil pause', () => {
-        mockBrazilPaused = true
-        setParams({ country: 'argentina', 'regional-method': 'manteca' })
-        renderWithProviders(<AddMoneyRegionalMethodPage />)
-
-        expect(screen.getByTestId('manteca-add-money')).toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix')
     })
 
     test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {
@@ -2051,6 +2040,8 @@ describe('GROUP 8: InputAmountStep Component', () => {
         ).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
+        // no amount field: without a rate it would show $0.00 in USD
+        expect(screen.queryByTestId('amount-input')).toBeNull()
     })
 
     // #1848: the error state used to be a dead end — useCurrency only refetches

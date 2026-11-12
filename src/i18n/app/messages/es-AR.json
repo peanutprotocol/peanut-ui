@@ -61,6 +61,7 @@
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisá el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora. Te lo volveremos a pedir más tarde.",
             "descriptionUpdateError": "No pudimos terminar la actualización. Intentá de nuevo u omitilo por ahora. Te lo volveremos a pedir más tarde.",
+            "descriptionSignatureRejected": "No se pudo verificar la firma con passkey de esta tarjeta. Intentá de nuevo u omitilo por ahora. Contactá soporte si vuelve a pasar.",
             "descriptionWithdrawalInFlight": "Un retiro de la tarjeta todavía se está confirmando. Revisá de nuevo en un momento u omitilo por ahora.",
             "descriptionReturnPending": "El movimiento del saldo de tu tarjeta a tu billetera aún no está confirmado. Revisá de nuevo en un momento u omitilo por ahora.",
             "descriptionReturnWait": "El saldo de tu tarjeta no se puede mover ahora. Intentá más tarde u omitilo por ahora.",
@@ -201,6 +202,10 @@
             "label": "Próximos pasos"
         }
     },
+    "appUpdateAttention": {
+        "title": "Actualizá Peanut",
+        "description": "Obtené la última versión para disfrutar de una mejor experiencia."
+    },
     "profile": {
         "menu": {
             "inviteFriends": "Invitá amigos a Peanut",
@@ -323,7 +328,7 @@
                 "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
                 "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR.",
+                "qrPay": "Pagá en comercios escaneando un código QR.",
                 "qrPayArgentina": "Escaneá un código QR para pagar en Argentina. Los pagos con Pix en Brasil no están disponibles."
             },
             "valueProp": {
@@ -560,6 +565,14 @@
                     "sameAccount": "O iniciá sesión en su cuenta de Apple o Google en este navegador."
                 }
             }
+        },
+        "passkeyProvider": {
+            "steps": {
+                "openSettings": "Abrí Configuración → Contraseñas, llaves de acceso y cuentas.",
+                "chooseGoogle": "Elegí el Administrador de contraseñas de Google como servicio preferido y volvé a intentarlo."
+            },
+            "useAnotherManager": "Usá otro administrador de contraseñas y volvé a intentarlo.",
+            "browserOpenFailed": "No se abrió el navegador. Volvé a intentarlo."
         },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Intentalo de nuevo.",
@@ -1059,8 +1072,7 @@
         "cancel": {
             "body": "No vas a poder volver a usarla.",
             "slideToCancel": "Deslizá y cancelá",
-            "canceledBody": "Ya no se puede usar para pagos. Podés pedir una tarjeta nueva, según tu elegibilidad.",
-            "feedbackLabel": "Ayudanos a mejorar"
+            "canceledBody": "Ya no se puede usar para pagos. Podés pedir una tarjeta nueva, según tu elegibilidad."
         },
         "lockModal": {
             "lockSuccessBody": "Volvé cuando quieras para descongelarla.",
@@ -1071,6 +1083,14 @@
             "unavailable": "No pudimos confirmar que los pagos desde tu billetera se hayan detenido. Contactá a soporte.",
             "unlockKept": "Tu tarjeta está activa, pero los pagos desde tu billetera siguen detenidos por ahora. Contactá a soporte si no se resuelve.",
             "unlockUnknown": "Tu tarjeta está activa, pero no pudimos confirmar que los pagos desde tu billetera se reanudaron. Intentá descongelar de nuevo."
+        },
+        "return": {
+            "lockLeft": "{amount} sigue en la tarjeta. Descongelá la tarjeta para usar ese saldo.",
+            "lockUnknown": "No pudimos confirmar que el saldo de la tarjeta se movió. Descongelá la tarjeta para usar lo que quede.",
+            "lockCredit": "{amount} es crédito por reembolsos. Descongelá la tarjeta para gastarlo.",
+            "cancelCredit": "{amount} es crédito por reembolsos. Gastalo con una tarjeta nueva.",
+            "blocked": "El saldo de la tarjeta todavía no puede pasar a la billetera. Intentá de nuevo en {time}.",
+            "retryNow": "El saldo de la tarjeta ya se puede mover. Intentá de nuevo."
         },
         "errors": {
             "balanceReturnFailed": "No pudimos devolver el saldo de tu tarjeta. Intentalo de nuevo o contactá a soporte.",
@@ -1127,6 +1147,7 @@
         "page": {
             "loadFailed": "No se pudo cargar la información de la tarjeta. Intentalo de nuevo.",
             "setupCancelled": "Configuración cancelada — intentalo de nuevo.",
+            "setupSignatureRejected": "No se pudo verificar la firma con passkey de esta tarjeta — intentalo de nuevo y contactá soporte si vuelve a pasar.",
             "setupFailed": "No se pudo completar la configuración — intentalo de nuevo.",
             "verificationSlow": "La verificación está tardando más de lo esperado. Intentalo de nuevo."
         },
@@ -1167,7 +1188,9 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
             "cryptoDescription": "Depositá desde una billetera o exchange",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
+            "pix": "Pix",
+            "pixDescription": "Transferencias instantáneas en reales"
         },
         "networkDrawer": {
             "description": "Elegí la red desde la que querés agregar:"
@@ -1195,6 +1218,10 @@
         },
         "manteca": {
             "sendOnlyOwnAccountTitle": "Enviá solo desde una cuenta a tu nombre",
+            "transferDeadline": "Transferí antes de las {time}.",
+            "transferExpiredTitle": "La orden de depósito venció",
+            "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
+            "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos"
         },
@@ -1305,7 +1332,56 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         }
     },
+    "pix": {
+        "residenceNotServed": "Pix no se ofrece donde vivís.",
+        "rejected": "La verificación no fue aceptada. Contactá a soporte.",
+        "payResidence": "Los pagos con Pix aún no están disponibles donde vivís.",
+        "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
+        "setup": {
+            "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
+            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contactá a soporte.",
+            "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte.",
+            "hosted": {
+                "body": "Verificá con {brand}.",
+                "bodyPartner": "Verificá con nuestro socio de pagos.",
+                "failed": "Falló. Intentá de nuevo.",
+                "back": "¿Volviste de {brand}? Esperamos su respuesta.",
+                "backPartner": "¿Volviste de nuestro socio de pagos? Esperamos su respuesta.",
+                "openAgain": "Abrir {brand} de nuevo",
+                "openAgainPartner": "Abrir la página de nuevo"
+            }
+        },
+        "deposit": {
+            "youGet": "Recibís ≈ {amount}",
+            "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF.",
+            "codeValidFor": "Código válido por {time}"
+        },
+        "withdraw": {
+            "stuck": "Este retiro no se completó. Contactá a soporte.",
+            "keyIntro": "Ingresá una clave Pix registrada con tu CPF.",
+            "notACode": "Ingresá una clave Pix, no un código Pix.",
+            "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
+            "quoteMoved": "La cotización cambió. Revisá los nuevos montos y confirmá de nuevo.",
+            "unconfirmed": "Aún sin confirmar. Revisá el Historial antes de intentar de nuevo.",
+            "errors": {
+                "inProgress": "Hay demasiados retiros por Pix todavía en camino. Intentá de nuevo más tarde.",
+                "quoteExpired": "La cotización tardó demasiado. Intentá de nuevo.",
+                "afterInit": "Revisá el Historial antes de intentar de nuevo.",
+                "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo.",
+                "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Probá con otro navegador."
+            },
+            "changeAmount": "Cambiar monto",
+            "changeKey": "Cambiar clave"
+        },
+        "recovery": {
+            "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresá una clave Pix de otra cuenta con tu CPF."
+        }
+    },
     "transaction": {
+        "name": {
+            "depositOrderExpired": "La orden de depósito venció"
+        },
         "pendingLinkDeviceNote": "Usá el dispositivo donde lo creaste para cancelar o volver a compartir este enlace.",
         "returnedReasonTooManyRecent": "Llegaron demasiados depósitos en poco tiempo. Esperá antes de enviar el siguiente y escribile a soporte si te vuelve a pasar.",
         "returnedReasonNameMismatch": "El nombre de la transferencia no coincidía con esta cuenta. Enviala de nuevo con el nombre exacto de los datos bancarios.",
@@ -1633,7 +1709,8 @@
                 "description": "Este documento ya está vinculado a otra cuenta de Peanut. Iniciá sesión en esa cuenta o escribile a soporte y te ayudamos a resolverlo."
             },
             "contact_support": {
-                "description": "No pudimos terminar tu verificación en la app. Escribile a soporte y lo revisamos."
+                "description": "No pudimos terminar tu verificación en la app. Escribile a soporte y lo revisamos.",
+                "notDocumentDescription": "No pudimos reconocer el archivo como un documento de identidad. Escribile a soporte para que lo revisemos."
             },
             "not_available": {
                 "description": "Por ahora no podemos verificarte para Peanut, y volver a intentarlo no lo va a cambiar. Si creés que es un error, escribile a soporte."
@@ -1685,7 +1762,8 @@
         },
         "supplement": {
             "proofOfAddressTitle": "Agregá un comprobante de domicilio",
-            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos."
+            "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contactá a soporte y lo completamos por vos.",
+            "servedElsewhere": "Los depósitos y retiros por Pix están disponibles donde vivís."
         },
         "paperworkVerification": {
             "phoneHelp": "Incluí el código de tu país, como +54.",
@@ -1800,6 +1878,7 @@
                 "noneFit": "¿No tenés ninguno de estos?"
             },
             "activation": {
+                "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
                 "title": {
                     "bank": "Configurá tus cuentas bancarias",
                     "card": "Configurá tu Peanut Card",
@@ -1848,6 +1927,7 @@
             "bridge_tos_required": "Aceptá los términos de nuestro socio de pagos para continuar.",
             "bridge_tos_v2_required": "Aceptá los Términos de Servicio actualizados del proveedor de transferencias bancarias para habilitar transferencias en euros y libras esterlinas.",
             "verification_blocked": "Problema de verificación: contactá a soporte para recibir ayuda.",
+            "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado.",
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si creés que es un error, escribile a soporte.",
             "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escribile a soporte para verificarla y desbloquearla.",
@@ -1982,6 +2062,7 @@
             "successDescription": "Tu tarjeta está lista — intentá tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Tocá Reactivar tarjeta para intentarlo otra vez.",
             "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Tocá Reactivar tarjeta una vez más.",
+            "signatureRejectedError": "No se pudo verificar la firma con passkey de esta tarjeta. Tocá Reactivar tarjeta para intentarlo de nuevo y contactá soporte si vuelve a pasar.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Intentalo de nuevo."
         },
         "iframeWrapper": {
@@ -2048,6 +2129,7 @@
         "mantecaAccountRejectedForCountry": "No podés agregar ni retirar dinero en {country}. Podés seguir pagando con QR.",
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
         "notEnoughBalanceAddFunds": "Saldo insuficiente. Agregá fondos para continuar.",
+        "balanceShortBy": "A tu saldo le faltan ${amount}. Agregá dinero para continuar.",
         "insufficientFunds": "No tenés fondos suficientes.",
         "userRejectedTransaction": "Confirmá la transacción en tu billetera.",
         "notDeployedOnChain": "Bulk no está disponible en esta red, probá con otra red.",
@@ -2178,6 +2260,17 @@
         }
     },
     "depositAccounts": {
+        "postalCorrection": {
+            "title": "Corregir código postal",
+            "description": "Ingresá el código postal de tu domicilio verificado.",
+            "country": "País: {country}",
+            "save": "Guardar",
+            "queuedTitle": "Configuración bancaria en espera",
+            "queuedBody": "Vamos a volver a intentar configurar tu cuenta bancaria.",
+            "temporary": "Algo salió mal. Probá de nuevo.",
+            "unavailable": "Esta corrección no está disponible.",
+            "invalid": "Ingresá un código postal válido."
+        },
         "opened": {
             "heading": "Cuenta en {currency} lista",
             "body": "Tus propios datos bancarios, listos para tu próximo pago.",
@@ -2224,7 +2317,7 @@
             "limitBody": "Ese es tu límite actual. Si necesitás otra, soporte puede abrirla.",
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contactá a soporte y lo revisamos.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contactá a soporte y te ayudamos a completarla.",
-            "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
+            "actFailed": "No pudimos abrir la verificación. Probá de nuevo.",
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
             "topUpCta": "Agregar desde un banco",
             "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás.",

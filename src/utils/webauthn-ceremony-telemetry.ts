@@ -63,7 +63,8 @@ export type CeremonyRecord = {
     openFlows: number
     /**
      * Index of `"challenge":"` in the decoded clientDataJSON of a successful
-     * ceremony. The on-chain WebAuthn validator reads the challenge at a fixed
+     * ceremony, or of a registration refused for its layout (TASK-24498).
+     * The on-chain WebAuthn validator reads the challenge at a fixed
      * byte, so the standard layout gives 23 for `get` and 26 for `create`; a
      * provider that sorts the keys gives 41 on both, and its signatures fail as
      * AA24 (TASK-23931). Unset when clientDataJSON is empty or has no challenge.
@@ -178,6 +179,24 @@ function describeResult(result: unknown): Pick<CeremonyRecord, 'challengeOffset'
     }
 }
 
+/**
+ * The layout facts a refused registration carries (PasskeyProviderUnsupportedError,
+ * TASK-24498). Signup refuses the sorted layout before the SDK sees the
+ * credential, so without this the ceremony would record an error with no
+ * offset and `challenge_offset` would stop counting the layout it refuses.
+ */
+function describeRefusal(error: unknown): Pick<CeremonyRecord, 'challengeOffset' | 'backupEligible'> {
+    try {
+        const { challengeOffset, backupEligible } = error as { challengeOffset?: unknown; backupEligible?: unknown }
+        return {
+            ...(typeof challengeOffset === 'number' ? { challengeOffset } : {}),
+            ...(typeof backupEligible === 'boolean' ? { backupEligible } : {}),
+        }
+    } catch {
+        return {}
+    }
+}
+
 function describeOptions(kind: 'get' | 'create', options?: CredentialCreationOptions | CredentialRequestOptions) {
     if (kind === 'get') {
         const publicKey = (options as CredentialRequestOptions | undefined)?.publicKey
@@ -281,7 +300,7 @@ async function trace<T>(
     const base = {
         seq: ++seq,
         kind,
-        purpose: purposeStack.length > 0 ? purposeStack.join('>') : 'unknown',
+        purpose: currentCeremonyPurpose(),
         flow: flow?.name ?? null,
         flowId: flow?.id ?? null,
         startedAt,
@@ -300,6 +319,7 @@ async function trace<T>(
     } catch (error) {
         commit({
             ...base,
+            ...describeRefusal(error),
             durationMs: Date.now() - startedAt,
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
@@ -413,6 +433,11 @@ export async function withCeremonyFlow<T>(
         })
         throw error
     }
+}
+
+/** The purpose stack of the ceremony running now, innermost last, e.g. `kernel_migration>user_op`. */
+export function currentCeremonyPurpose(): string {
+    return purposeStack.length > 0 ? purposeStack.join('>') : 'unknown'
 }
 
 export async function withCeremonyPurpose<T>(purpose: CeremonyPurpose, fn: () => Promise<T>): Promise<T> {

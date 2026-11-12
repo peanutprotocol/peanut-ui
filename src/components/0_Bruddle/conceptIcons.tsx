@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { LOGO } from '@/assets/brand'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type IconBubbleColor } from './IconBubble'
 
@@ -10,9 +11,11 @@ import { type IconBubbleColor } from './IconBubble'
  * always through IconBubble: `<IconBubble {...CONCEPT_ICONS.bank} size="s" />`.
  * Change a concept's look in this map, never at a call site.
  *
- * Flags, chain logos and payment-brand marks (Pix, Mercado Pago) are not
- * concepts: they name one country, network or brand and keep their own image
- * in the same leading slot.
+ * Flags, chain logos and the Mercado Pago mark are not concepts: they name one
+ * country, network or brand and keep their own image in the same leading slot.
+ * The Pix mark is the one brand mark here (`pix`): Pix is a method of its own
+ * in the app (an Add money entry, its setup, a Home step), so it takes the
+ * method blue behind the mark it ships with (Aleks, 2026-11-12).
  *
  * Blue is the method color (the IconBubble showcase: "blue plain information
  * or a neutral method/action icon", gray is inactive). Yellow marks what is
@@ -28,6 +31,11 @@ export const CONCEPT_ICONS = {
     cash: { icon: 'currency', color: 'blue' },
     balance: { icon: 'dollar', color: 'yellow' },
     crypto: { icon: 'coins', color: 'blue' },
+    // the mark as it ships, never recolored; half the bubble, the s and m icon size
+    pix: {
+        icon: <Image src={PIX} alt="" className="h-1/2 w-auto" />,
+        color: 'blue',
+    },
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
     qrPay: { icon: 'qr-code', color: 'brand' },

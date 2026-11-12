@@ -26,6 +26,11 @@ export const API_ERROR_CODES = {
      *  it (or another one) again until it has. */
     WITHDRAWAL_PENDING_CONFIRMATION: 'WITHDRAWAL_PENDING_CONFIRMATION',
     STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
+    /** The card permission store refused an approval the chain would refuse:
+     *  its enable signature does not verify against the wallet's key at the
+     *  live nonce (another passkey, other signed bytes, an unreadable layout,
+     *  or a moved nonce). Nothing was stored. */
+    CARD_APPROVAL_SIGNATURE_REJECTED: 'CARD_APPROVAL_SIGNATURE_REJECTED',
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by
      *  `verifyRainWithdrawal` before any order/claim/broadcast, or — for
@@ -38,6 +43,16 @@ export const API_ERROR_CODES = {
     NO_APPROVED_CARD: 'NO_APPROVED_CARD',
     NO_ACTIVE_CARD: 'NO_ACTIVE_CARD',
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
+    /** A card cancel waits: the provider holds part of the card balance back for
+     *  now (an unused withdrawal signature, or a deposit it has not counted).
+     *  Sent with 409 and `retryAfterSec`. */
+    CARD_RETURN_BLOCKED: 'CARD_RETURN_BLOCKED',
+    /** A card cancel waits: a return went through and part of the card balance
+     *  is still in the card. Sent with 409 and `retryAfterSec`. */
+    CARD_BALANCE_REMAINS: 'CARD_BALANCE_REMAINS',
+    /** The card balance could not be read, so a cancel is refused (502). Unknown
+     *  is never an empty card. */
+    CARD_BALANCE_UNREADABLE: 'CARD_BALANCE_UNREADABLE',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
     MANTECA_ACCOUNT_REJECTED: 'MANTECA_ACCOUNT_REJECTED',
@@ -70,6 +85,28 @@ export const API_ERROR_CODES = {
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
     /** POST /charges on a request that is no longer OPEN. Sent with 409. */
     REQUEST_CLOSED: 'REQUEST_CLOSED',
+    /** The provider is down, paused or not set up on this deployment (503). Retry later. */
+    PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+    /** A Pix deposit or withdrawal below the provider's minimum. Sent with 400. */
+    PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
+    /** The backend's route does not serve this operation for this user (the capability route says why). Sent with 403. */
+    ROUTE_NOT_AVAILABLE: 'ROUTE_NOT_AVAILABLE',
+    /** The Pix account's monthly limit has no room for this amount. */
+    PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
+    /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */
+    PIX_QUOTE_EXPIRED: 'PIX_QUOTE_EXPIRED',
+    /** The Pix key belongs to someone else, and the provider pays only the user's own CPF. */
+    PIX_KEY_NOT_OWN: 'PIX_KEY_NOT_OWN',
+    /** The key's bank is on the provider's payout deny-list. */
+    PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
+    /** One Pix key lookup per second per user. */
+    PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
+    /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
+    PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
+    /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
+    PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
+    /** Another Pix withdrawal is still waiting for its signature. */
+    WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]

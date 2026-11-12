@@ -34,6 +34,8 @@ export interface MountedSlot {
 export type Verdict = 'show' | 'pending' | 'done' | 'ineligible' | 'unknown'
 
 export type AskId =
+    | 'app-update-important'
+    | 'app-update-regular'
     | 'verification-deadline'
     | 'cap-nudge'
     | 'maintenance'
@@ -153,6 +155,7 @@ export interface ZoneSurfaceProps extends Omit<AskSurfaceProps, 'presentation'> 
 }
 
 export interface JourneyState {
+    storeUpdatePrompt?: import('./store-update-prompt').StoreUpdatePrompt | null
     attentionSettings?: import('./catalogue').AttentionSettings
     capNudge: ReturnType<typeof selectMantecaCapNudge> | null
     maintenance: 'none' | 'scoped' | 'full'

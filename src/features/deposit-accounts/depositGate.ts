@@ -213,7 +213,9 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
             kind: gate.kind,
             message: 'userMessage' in gate ? (gate.userMessage ?? null) : null,
             // the app's own words for these two; the backend sentence is English
-            ...(supplementInReview || gateSupportCase(gate) ? { reasonCode: getGateReasonCode(gate) } : {}),
+            ...(supplementInReview || gateSupportCase(gate) || getGateReasonCode(gate) === 'invalid_bank_postal_code'
+                ? { reasonCode: getGateReasonCode(gate) }
+                : {}),
             action: ACTION_BY_KIND[gate.kind],
             tosUrl: gate.kind === 'accept-tos' ? gate.tosUrl : undefined,
         },

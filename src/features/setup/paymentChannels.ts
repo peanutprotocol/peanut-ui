@@ -3,6 +3,7 @@ import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/util
 import type { Concept } from '@/components/0_Bruddle/conceptIcons'
 import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import type { KycIntents } from '@/hooks/useKycIntents'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 export type SetupFundingChannel = 'bank' | 'brlBank' | 'arsBank' | 'crypto' | 'peanut'
 export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsBank'> | 'card' | 'qr'
 export type SetupChannel = SetupFundingChannel | SetupPaymentChannel
@@ -26,7 +27,12 @@ export function setupChannelsForResidence(
     // The server's answer (GET /config/kyc-intents) when it arrived; the restriction tiers otherwise.
     const restrictions = sets ? deriveResidenceRestrictionsFrom(sets, country) : null
     const bridge = known && (intents ? intents.bank.available : !restrictions?.banking)
-    const localOpen = known && (intents ? intents.local.available : !restrictions?.banking)
+    // a local refusal because another entry serves the residence still offers its bank: Brazil's Pix
+    const localOpen =
+        known &&
+        (intents
+            ? intents.local.available || intents.local.reason === LOCAL_SERVED_ELSEWHERE_REASON
+            : !restrictions?.banking)
     const local: SetupFundingChannel[] =
         localOpen && country === 'BR' ? ['brlBank'] : localOpen && country === 'AR' ? ['arsBank'] : []
     const bank: SetupFundingChannel[] = [...local, ...(bridge ? (['bank'] as const) : [])]

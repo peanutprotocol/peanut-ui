@@ -6,12 +6,14 @@
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
-// No per-entry branching — onramp output is fully derivable from the kind.
-export const fiatOnramp: TransactionStrategy = (): TransactionStrategyOutput => ({
-    direction: 'bank_deposit',
-    transactionCardType: 'bank_deposit',
-    nameForDetails: 'Bank Account',
-    nameKey: TRANSACTION_NAME_KEYS.bankAccount,
-    isPeerActuallyUser: false,
-    isLinkTx: false,
-})
+export const fiatOnramp: TransactionStrategy = (entry): TransactionStrategyOutput => {
+    const expired = entry.extraData?.provider === 'MANTECA' && entry.extraData.mantecaDepositExpired === true
+    return {
+        direction: 'bank_deposit',
+        transactionCardType: 'bank_deposit',
+        nameForDetails: expired ? 'Deposit order expired' : 'Bank Account',
+        nameKey: expired ? TRANSACTION_NAME_KEYS.depositOrderExpired : TRANSACTION_NAME_KEYS.bankAccount,
+        isPeerActuallyUser: false,
+        isLinkTx: false,
+    }
+}

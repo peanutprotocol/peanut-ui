@@ -393,6 +393,139 @@
 				]
 			}
 		},
+		"/avenia/webhook": {
+			"post": {
+				"description": "Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT",
+				"parameters": [
+					{
+						"description": "Base64 RSA-PSS signature of the raw body",
+						"in": "header",
+						"name": "signature",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"event": {
+										"properties": {
+											"accountId": {
+												"minLength": 1,
+												"type": "string"
+											},
+											"createdAt": {
+												"type": "string"
+											},
+											"data": {
+												"properties": {
+													"type": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"type"
+												],
+												"type": "object"
+											},
+											"id": {
+												"minLength": 1,
+												"type": "string"
+											},
+											"subscription": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"id",
+											"accountId",
+											"subscription",
+											"data"
+										],
+										"type": "object"
+									}
+								},
+								"required": [
+									"event"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"received": true
+								},
+								"schema": {
+									"properties": {
+										"received": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"received"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Avenia webhook handler",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
 		"/badge/award": {
 			"post": {
 				"parameters": [
@@ -4094,6 +4227,17 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"appUpdateCutoffs": {
+											"properties": {
+												"android": {
+													"type": "string"
+												},
+												"ios": {
+													"type": "string"
+												}
+											},
+											"type": "object"
+										},
 										"brazilServicesPaused": {
 											"type": "boolean"
 										},
@@ -4225,6 +4369,7 @@
 																		"us_state_required",
 																		"geo-blocked",
 																		"local_residence_unsupported",
+																		"local_served_elsewhere",
 																		"manteca_us_nationality_restricted",
 																		"local_tax_id_missing",
 																		"document_country_unsupported"
@@ -4270,6 +4415,7 @@
 																"us_state_required",
 																"geo-blocked",
 																"local_residence_unsupported",
+																"local_served_elsewhere",
 																"manteca_us_nationality_restricted",
 																"local_tax_id_missing",
 																"document_country_unsupported"
@@ -4298,6 +4444,7 @@
 																"us_state_required",
 																"geo-blocked",
 																"local_residence_unsupported",
+																"local_served_elsewhere",
 																"manteca_us_nationality_restricted",
 																"local_tax_id_missing",
 																"document_country_unsupported"
@@ -4326,6 +4473,7 @@
 																"us_state_required",
 																"geo-blocked",
 																"local_residence_unsupported",
+																"local_served_elsewhere",
 																"manteca_us_nationality_restricted",
 																"local_tax_id_missing",
 																"document_country_unsupported"
@@ -10519,6 +10667,58 @@
 				}
 			}
 		},
+		"/healthz/avenia": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"checkedAt": "2026-01-01T00:00:00.000Z",
+									"provider": "avenia",
+									"responseTime": 120,
+									"status": "healthy",
+									"timestamp": "2026-01-01T00:00:00.000Z"
+								},
+								"schema": {
+									"properties": {
+										"checkedAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"provider": {
+											"type": "string"
+										},
+										"responseTime": {
+											"type": "number"
+										},
+										"status": {
+											"enum": [
+												"healthy"
+											],
+											"type": "string"
+										},
+										"timestamp": {
+											"format": "date-time",
+											"type": "string"
+										}
+									},
+									"required": [
+										"status",
+										"provider",
+										"timestamp",
+										"checkedAt",
+										"responseTime"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/healthz/bridge": {
 			"get": {
 				"responses": {
@@ -10625,6 +10825,176 @@
 				],
 				"responses": {
 					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"properties": {
+										"extraData": {
+											"additionalProperties": true,
+											"properties": {
+												"intentStatus": {
+													"anyOf": [
+														{
+															"enum": [
+																"PENDING"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"AWAITING_USER_ACTION"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"AWAITING_SETTLEMENT"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"PROCESSING"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"COMPLETED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"FAILED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"CANCELLED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"REFUNDED"
+															],
+															"type": "string"
+														}
+													],
+													"description": "The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed."
+												},
+												"pixDeposit": {
+													"description": "A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId).",
+													"properties": {
+														"codePayable": {
+															"type": "boolean"
+														},
+														"expiresAt": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														}
+													},
+													"required": [
+														"codePayable",
+														"expiresAt"
+													],
+													"type": "object"
+												},
+												"pixRecovery": {
+													"anyOf": [
+														{
+															"description": "A Pix withdrawal’s recovery, on a Pix withdrawal only (null when it has none). `awaiting-key`: the bank refused the key or account, and the user names another own Pix key with POST /pix/withdraw/:intentId/recovery-key.",
+															"properties": {
+																"failureCode": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"reason": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"payout-failed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"payout-reversed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"late-deposit"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"deposit-delivery-failed"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"state": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"awaiting-key"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"in-progress"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"done"
+																			],
+																			"type": "string"
+																		}
+																	]
+																}
+															},
+															"required": [
+																"state",
+																"reason",
+																"failureCode"
+															],
+															"type": "object"
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"type": "object"
+										}
+									},
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -13403,6 +13773,2925 @@
 				"summary": "Get pending perks",
 				"tags": [
 					"perks"
+				]
+			}
+		},
+		"/pix/deposit": {
+			"post": {
+				"description": "Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"description": "Reais, at most two decimals",
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"amountBrl"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "100.00",
+									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+									"codePayable": true,
+									"expiresAt": "2026-11-04T12:10:00.000Z",
+									"fixedFeeBrl": "0.75",
+									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+									"payerCpfMasked": "123.***.***-09",
+									"pixReceived": false,
+									"provider": "avenia",
+									"status": "AWAITING_USER_ACTION",
+									"usdcAmount": "17.920175"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"brCode": {
+											"description": "The Pix code (copia e cola) for exactly this amount",
+											"type": "string"
+										},
+										"codePayable": {
+											"description": "The code can still be paid: brCode and payerCpfMasked are sent only then.",
+											"type": "boolean"
+										},
+										"expiresAt": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"fixedFeeBrl": {
+											"description": "The flat fee in reais, where the provider charges one",
+											"type": "string"
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"payerCpfMasked": {
+											"description": "The CPF the Pix must come from, masked, where the provider requires one",
+											"type": "string"
+										},
+										"pixReceived": {
+											"description": "The provider received the Pix; the USDC is on its way to the wallet",
+											"type": "boolean"
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"status": {
+											"description": "The intent’s own status, as stored",
+											"type": "string"
+										},
+										"usdcAmount": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "USDC the wallet receives, after every fee"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"status",
+										"codePayable",
+										"pixReceived",
+										"expiresAt",
+										"amountBrl",
+										"usdcAmount"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Create a Pix deposit (BRL → USDC)",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/deposit/rules": {
+			"get": {
+				"description": "The least amount and the banks the user’s Pix provider refuses a deposit from, for the provider the deposit route names (capabilities.routes).",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"blockedBanks": [
+										{
+											"ispb": "00360305",
+											"name": "Caixa Economica Federal"
+										}
+									],
+									"minAmountBrl": "20"
+								},
+								"schema": {
+									"properties": {
+										"blockedBanks": {
+											"description": "Banks the provider refuses a Pix from: the app tells the user before they pay",
+											"items": {
+												"properties": {
+													"ispb": {
+														"type": "string"
+													},
+													"name": {
+														"anyOf": [
+															{
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													}
+												},
+												"required": [
+													"ispb",
+													"name"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"minAmountBrl": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"minAmountBrl",
+										"blockedBanks"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Pix deposit rules for the amount step",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/deposit/{intentId}": {
+			"get": {
+				"description": "Owner only. Read-only: the provider’s webhook and poller move the deposit. After a reload the app draws the code again from here while codePayable is true, and the outcome after that. The deposit route in capabilities names the payable deposit (payableDepositIntentId).",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "100.00",
+									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+									"codePayable": true,
+									"expiresAt": "2026-11-04T12:10:00.000Z",
+									"fixedFeeBrl": "0.75",
+									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+									"payerCpfMasked": "123.***.***-09",
+									"pixReceived": false,
+									"provider": "avenia",
+									"status": "AWAITING_USER_ACTION",
+									"usdcAmount": "17.920175"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"brCode": {
+											"description": "The Pix code (copia e cola) for exactly this amount",
+											"type": "string"
+										},
+										"codePayable": {
+											"description": "The code can still be paid: brCode and payerCpfMasked are sent only then.",
+											"type": "boolean"
+										},
+										"expiresAt": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"fixedFeeBrl": {
+											"description": "The flat fee in reais, where the provider charges one",
+											"type": "string"
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"payerCpfMasked": {
+											"description": "The CPF the Pix must come from, masked, where the provider requires one",
+											"type": "string"
+										},
+										"pixReceived": {
+											"description": "The provider received the Pix; the USDC is on its way to the wallet",
+											"type": "boolean"
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"status": {
+											"description": "The intent’s own status, as stored",
+											"type": "string"
+										},
+										"usdcAmount": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "USDC the wallet receives, after every fee"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"status",
+										"codePayable",
+										"pixReceived",
+										"expiresAt",
+										"amountBrl",
+										"usdcAmount"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Pix deposit: its code while payable, then its status",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/key": {
+			"post": {
+				"description": "A directory read through the provider the withdrawal route names (or, while that route is closed, the provider that serves the user): holder, masked tax id, bank, whether the key looks like the user’s own, and whether the provider pays it. Moves no money. Rate limited per user.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"bankName": "Nu Pagamentos S.A.",
+									"blocked": false,
+									"holderName": "Ana Souza",
+									"holderTaxIdMasked": "***.456.789-**",
+									"ispb": "18236120",
+									"ownAccount": true,
+									"provider": "avenia"
+								},
+								"schema": {
+									"properties": {
+										"bankName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"blocked": {
+											"description": "The provider will not pay this key’s bank or holder",
+											"type": "boolean"
+										},
+										"holderName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"holderTaxIdMasked": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ispb": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ownAccount": {
+											"anyOf": [
+												{
+													"type": "boolean"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "Precheck: the holder looks like the user. Null when the provider cannot tell."
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										}
+									},
+									"required": [
+										"provider",
+										"holderName",
+										"holderTaxIdMasked",
+										"bankName",
+										"ispb",
+										"ownAccount",
+										"blocked"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Resolve a Pix key to its holder and bank",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/quote": {
+			"get": {
+				"description": "For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take, with the percentage fees in the rate and the flat fee apart. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "operation",
+						"required": true,
+						"schema": {
+							"anyOf": [
+								{
+									"enum": [
+										"deposit"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"withdraw"
+									],
+									"type": "string"
+								}
+							]
+						}
+					},
+					{
+						"description": "Reais",
+						"in": "query",
+						"name": "amountBrl",
+						"required": false,
+						"schema": {
+							"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+							"type": "string"
+						}
+					},
+					{
+						"description": "USDC to receive (deposit) or to convert (withdraw)",
+						"in": "query",
+						"name": "amountUsd",
+						"required": false,
+						"schema": {
+							"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+							"type": "string"
+						}
+					},
+					{
+						"description": "Withdraw only: USDC to leave the wallet, the bridge fee included",
+						"in": "query",
+						"name": "spendUsd",
+						"required": false,
+						"schema": {
+							"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "106.75",
+									"fixedFeeBrl": "0.75",
+									"minAmountBrl": "20",
+									"operation": "withdraw",
+									"provider": "avenia",
+									"rate": "5.369543",
+									"usdcAmount": "20.020325"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"type": "string"
+										},
+										"fixedFeeBrl": {
+											"description": "The flat fee in reais, shown as its own line",
+											"type": "string"
+										},
+										"minAmountBrl": {
+											"description": "The least amountBrl the provider takes for this operation; amount entry shows it",
+											"type": "string"
+										},
+										"operation": {
+											"anyOf": [
+												{
+													"enum": [
+														"deposit"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"withdraw"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia",
+											"type": "string"
+										},
+										"rate": {
+											"description": "BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo.",
+											"type": "string"
+										},
+										"usdcAmount": {
+											"description": "USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw)",
+											"type": "string"
+										}
+									},
+									"required": [
+										"provider",
+										"operation",
+										"amountBrl",
+										"usdcAmount",
+										"rate",
+										"fixedFeeBrl",
+										"minAmountBrl"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Indicative Pix quote for amount entry",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/withdraw": {
+			"post": {
+				"description": "Opens the withdrawal with the provider the withdrawal route names and returns what the wallet signs (sign.kind says how). Send one of amountUsd, amountBrl or spendUsd.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"description": "Reais, at most two decimals",
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									},
+									"amountUsd": {
+										"description": "USDC, at most six decimals",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									},
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									},
+									"spendUsd": {
+										"description": "USDC to leave the wallet, every fee included (\"Use balance\"). Send one of the three amounts.",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"display": {
+										"amountBrl": "106.75",
+										"arrivalEstimateSeconds": 60,
+										"bankName": "Nu Pagamentos S.A.",
+										"fixedFeeBrl": "0.75",
+										"holderName": "Ana Souza",
+										"ownAccount": true,
+										"pixKey": "12345678909",
+										"provider": "Avenia",
+										"rate": "5.369543",
+										"withdrawUsd": "20.020325"
+									},
+									"intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
+									"provider": "avenia",
+									"sign": {
+										"commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+										"contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+										"kind": "deposit-with-id",
+										"payAmount": "20.020325",
+										"payAmountUnits": "20020325",
+										"quoteExpiresAt": "2026-11-04T12:03:00.000Z",
+										"ticketExpiresAt": "2026-11-04T12:10:00.000Z",
+										"tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+									}
+								},
+								"schema": {
+									"properties": {
+										"display": {
+											"properties": {
+												"amountBrl": {
+													"description": "The headline: reais credited to the account",
+													"type": "string"
+												},
+												"arrivalEstimateSeconds": {
+													"description": "About how long from the signature to the Pix paid",
+													"type": "number"
+												},
+												"bankName": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"fixedFeeBrl": {
+													"description": "The flat fee in reais, shown as its own line",
+													"type": "string"
+												},
+												"holderName": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"ownAccount": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"pixKey": {
+													"type": "string"
+												},
+												"provider": {
+													"description": "The payments partner’s name, for the review’s \"processed by\" line",
+													"type": "string"
+												},
+												"rate": {
+													"description": "BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo",
+													"type": "string"
+												},
+												"withdrawUsd": {
+													"description": "USDC that leaves the wallet",
+													"type": "string"
+												}
+											},
+											"required": [
+												"amountBrl",
+												"pixKey",
+												"ownAccount",
+												"holderName",
+												"bankName",
+												"withdrawUsd",
+												"rate",
+												"fixedFeeBrl",
+												"arrivalEstimateSeconds",
+												"provider"
+											],
+											"type": "object"
+										},
+										"intentId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit"
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"sign": {
+											"anyOf": [
+												{
+													"description": "Approve tokenAddress to contractAddress, call depositWithId(commitmentId) on it, broadcast, then POST /pix/withdraw/{intentId}/funded with the hash.",
+													"properties": {
+														"commitmentId": {
+															"type": "string"
+														},
+														"contractAddress": {
+															"type": "string"
+														},
+														"kind": {
+															"enum": [
+																"deposit-with-id"
+															],
+															"type": "string"
+														},
+														"payAmount": {
+															"type": "string"
+														},
+														"payAmountUnits": {
+															"type": "string"
+														},
+														"quoteExpiresAt": {
+															"type": "string"
+														},
+														"ticketExpiresAt": {
+															"type": "string"
+														},
+														"tokenAddress": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"kind",
+														"contractAddress",
+														"tokenAddress",
+														"payAmount",
+														"payAmountUnits",
+														"commitmentId",
+														"quoteExpiresAt",
+														"ticketExpiresAt"
+													],
+													"type": "object"
+												},
+												{
+													"description": "Sign a transfer of payAmount to depositAddress without broadcasting it, then POST /pix/withdraw/submit. The API opens the payout order first, then broadcasts.",
+													"properties": {
+														"depositAddress": {
+															"type": "string"
+														},
+														"kind": {
+															"enum": [
+																"transfer-then-submit"
+															],
+															"type": "string"
+														},
+														"payAmount": {
+															"type": "string"
+														},
+														"payAmountUnits": {
+															"type": "string"
+														},
+														"priceLockCode": {
+															"type": "string"
+														},
+														"quoteExpiresAt": {
+															"type": "string"
+														},
+														"tokenAddress": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"kind",
+														"depositAddress",
+														"tokenAddress",
+														"payAmount",
+														"payAmountUnits",
+														"priceLockCode",
+														"quoteExpiresAt"
+													],
+													"type": "object"
+												}
+											],
+											"description": "How the wallet funds the withdrawal"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"display",
+										"sign"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Open a Pix withdrawal",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/withdraw/preview": {
+			"post": {
+				"description": "Checks the key with the provider the withdrawal route names and quotes the amount. Opens nothing. Send one of amountUsd, amountBrl or spendUsd.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"description": "Reais, at most two decimals",
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									},
+									"amountUsd": {
+										"description": "USDC, at most six decimals",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									},
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									},
+									"spendUsd": {
+										"description": "USDC to leave the wallet, every fee included (\"Use balance\"). Send one of the three amounts.",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "106.75",
+									"arrivalEstimateSeconds": 60,
+									"bankName": "Nu Pagamentos S.A.",
+									"fixedFeeBrl": "0.75",
+									"holderName": "Ana Souza",
+									"ownAccount": true,
+									"pixKey": "12345678909",
+									"provider": "Avenia",
+									"rate": "5.369543",
+									"withdrawUsd": "20.020325"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"description": "The headline: reais credited to the account",
+											"type": "string"
+										},
+										"arrivalEstimateSeconds": {
+											"description": "About how long from the signature to the Pix paid",
+											"type": "number"
+										},
+										"bankName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"fixedFeeBrl": {
+											"description": "The flat fee in reais, shown as its own line",
+											"type": "string"
+										},
+										"holderName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"ownAccount": {
+											"anyOf": [
+												{
+													"type": "boolean"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"pixKey": {
+											"type": "string"
+										},
+										"provider": {
+											"description": "The payments partner’s name, for the review’s \"processed by\" line",
+											"type": "string"
+										},
+										"rate": {
+											"description": "BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo",
+											"type": "string"
+										},
+										"withdrawUsd": {
+											"description": "USDC that leaves the wallet",
+											"type": "string"
+										}
+									},
+									"required": [
+										"amountBrl",
+										"pixKey",
+										"ownAccount",
+										"holderName",
+										"bankName",
+										"withdrawUsd",
+										"rate",
+										"fixedFeeBrl",
+										"arrivalEstimateSeconds",
+										"provider"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Review a Pix withdrawal",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/withdraw/submit": {
+			"post": {
+				"description": "For sign.kind transfer-then-submit: the API opens the payout order for the locked price first, then broadcasts the signed transfer, so no money leaves for an order that could not open.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountUsd": {
+										"description": "The sign step’s payAmount",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									},
+									"funding": {
+										"anyOf": [
+											{
+												"properties": {
+													"chainId": {
+														"type": "string"
+													},
+													"entryPointAddress": {
+														"type": "string"
+													},
+													"kind": {
+														"enum": [
+															"userOp"
+														],
+														"type": "string"
+													},
+													"rainPreparationId": {
+														"description": "The mixed strategy: the UserOp also withdraws card collateral",
+														"minLength": 1,
+														"type": "string"
+													},
+													"signedUserOp": {
+														"properties": {
+															"callData": {
+																"type": "string"
+															},
+															"callGasLimit": {},
+															"factory": {
+																"type": "string"
+															},
+															"factoryData": {
+																"type": "string"
+															},
+															"maxFeePerGas": {},
+															"maxPriorityFeePerGas": {},
+															"nonce": {},
+															"paymaster": {
+																"type": "string"
+															},
+															"paymasterData": {
+																"type": "string"
+															},
+															"paymasterPostOpGasLimit": {},
+															"paymasterVerificationGasLimit": {},
+															"preVerificationGas": {},
+															"sender": {
+																"type": "string"
+															},
+															"signature": {
+																"type": "string"
+															},
+															"verificationGasLimit": {}
+														},
+														"required": [
+															"sender",
+															"nonce",
+															"callData",
+															"signature",
+															"callGasLimit",
+															"verificationGasLimit",
+															"preVerificationGas",
+															"maxFeePerGas",
+															"maxPriorityFeePerGas",
+															"paymasterVerificationGasLimit",
+															"paymasterPostOpGasLimit"
+														],
+														"type": "object"
+													}
+												},
+												"required": [
+													"kind",
+													"signedUserOp",
+													"chainId",
+													"entryPointAddress"
+												],
+												"type": "object"
+											},
+											{
+												"properties": {
+													"chainId": {
+														"type": "string"
+													},
+													"kind": {
+														"enum": [
+															"rainWithdrawal"
+														],
+														"type": "string"
+													},
+													"signedRainWithdrawal": {
+														"properties": {
+															"adminNonce": {
+																"minLength": 1,
+																"type": "string"
+															},
+															"adminSalt": {
+																"pattern": "^0x[0-9a-fA-F]{64}$",
+																"type": "string"
+															},
+															"adminSignature": {
+																"pattern": "^0x[0-9a-fA-F]+$",
+																"type": "string"
+															},
+															"amount": {
+																"maxLength": 78,
+																"minLength": 1,
+																"pattern": "^[0-9]+$",
+																"type": "string"
+															},
+															"directTransfer": {
+																"type": "boolean"
+															},
+															"executorSalt": {
+																"type": "string"
+															},
+															"executorSignature": {
+																"type": "string"
+															},
+															"expiresAt": {
+																"type": "number"
+															},
+															"preparationId": {
+																"format": "uuid",
+																"type": "string"
+															},
+															"preparedCoordinatorAddress": {
+																"pattern": "^0x[0-9a-fA-F]{40}$",
+																"type": "string"
+															},
+															"recipientAddress": {
+																"pattern": "^0x[0-9a-fA-F]{40}$",
+																"type": "string"
+															}
+														},
+														"required": [
+															"preparationId",
+															"amount",
+															"recipientAddress",
+															"directTransfer",
+															"adminSalt",
+															"adminNonce",
+															"adminSignature",
+															"executorSignature",
+															"executorSalt",
+															"expiresAt"
+														],
+														"type": "object"
+													}
+												},
+												"required": [
+													"kind",
+													"signedRainWithdrawal",
+													"chainId"
+												],
+												"type": "object"
+											}
+										]
+									},
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									},
+									"priceLockCode": {
+										"description": "The sign step’s priceLockCode",
+										"type": "string"
+									}
+								},
+								"required": [
+									"priceLockCode",
+									"pixKey",
+									"amountUsd",
+									"funding"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"intentId": "3c7a9e2b-5d14-4f8a-9b6c-0e2d4f6a8b1c",
+									"provider": "manteca",
+									"status": "PROCESSING"
+								},
+								"schema": {
+									"properties": {
+										"intentId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"provider": {
+											"type": "string"
+										},
+										"status": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"status"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Submit a transfer-then-submit withdrawal’s signed funding",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/withdraw/{intentId}/funded": {
+			"post": {
+				"description": "For sign.kind deposit-with-id: the wallet broadcast the deposit. The API checks the receipt funds exactly this withdrawal; the provider’s events move it after that. Idempotent.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"txHash": {
+										"pattern": "^0x[0-9a-fA-F]{64}$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"txHash"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"status": "PROCESSING"
+								},
+								"schema": {
+									"properties": {
+										"status": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"status"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Report a deposit-with-id withdrawal’s funding",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/withdraw/{intentId}/recovery-key": {
+			"post": {
+				"description": "For a withdrawal whose payout was refused for its key: the provider pays the reais to this key instead. Own key only. Open whatever the route says: it returns the user’s own money.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"pixKey": {
+										"maxLength": 140,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"pixKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"accepted": true
+								},
+								"schema": {
+									"properties": {
+										"accepted": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"accepted"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Name a new own Pix key for a refused payout",
+				"tags": [
+					"pix"
 				]
 			}
 		},
@@ -23502,6 +26791,9 @@
 															"effectiveDate": {
 																"type": "string"
 															},
+															"expiresAt": {
+																"type": "string"
+															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -23582,6 +26874,12 @@
 																			"questions"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"hosted-identity"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -23613,6 +26911,12 @@
 																						"rain"
 																					],
 																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
 																				}
 																			]
 																		},
@@ -23632,6 +26936,9 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"url": {
 																"type": "string"
 															}
 														},
@@ -23806,6 +27113,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -23885,6 +27198,9 @@
 																				"type": "string"
 																			},
 																			"effectiveDate": {
+																				"type": "string"
+																			},
+																			"expiresAt": {
 																				"type": "string"
 																			},
 																			"feature": {
@@ -23967,6 +27283,12 @@
 																							"questions"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"hosted-identity"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -23998,6 +27320,12 @@
 																										"rain"
 																									],
 																									"type": "string"
+																								},
+																								{
+																									"enum": [
+																										"avenia"
+																									],
+																									"type": "string"
 																								}
 																							]
 																						},
@@ -24017,6 +27345,9 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -24127,13 +27458,267 @@
 														"type": "object"
 													},
 													"type": "array"
+												},
+												"routes": {
+													"items": {
+														"properties": {
+															"action": {
+																"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																"type": "string"
+															},
+															"candidates": {
+																"description": "Every provider that serves the operation on the method, best first, each with its reason.",
+																"items": {
+																	"properties": {
+																		"action": {
+																			"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																			"type": "string"
+																		},
+																		"provider": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"bridge"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"manteca"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"rain"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		},
+																		"reason": {
+																			"properties": {
+																				"code": {
+																					"type": "string"
+																				},
+																				"details": {
+																					"type": "string"
+																				},
+																				"userMessage": {
+																					"type": "string"
+																				}
+																			},
+																			"required": [
+																				"code",
+																				"userMessage"
+																			],
+																			"type": "object"
+																		},
+																		"state": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"ready"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"action_required"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"pending"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"paused"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"refused"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		}
+																	},
+																	"required": [
+																		"provider",
+																		"state"
+																	],
+																	"type": "object"
+																},
+																"type": "array"
+															},
+															"limits": {
+																"description": "The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote.",
+																"properties": {
+																	"currency": {
+																		"description": "The currency of the amount: the method’s, e.g. BRL",
+																		"type": "string"
+																	},
+																	"minAmount": {
+																		"description": "The least amount the provider takes for this operation",
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"minAmount",
+																	"currency"
+																],
+																"type": "object"
+															},
+															"method": {
+																"description": "Rail method code, e.g. PIX_BR",
+																"type": "string"
+															},
+															"operation": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"deposit"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"withdraw"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pay"
+																		],
+																		"type": "string"
+																	}
+																],
+																"description": "pay: a QR payment on the method"
+															},
+															"payableDepositIntentId": {
+																"description": "Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another.",
+																"type": "string"
+															},
+															"provider": {
+																"anyOf": [
+																	{
+																		"anyOf": [
+																			{
+																				"enum": [
+																					"bridge"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"manteca"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"rain"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"avenia"
+																				],
+																				"type": "string"
+																			}
+																		]
+																	},
+																	{
+																		"type": "null"
+																	}
+																],
+																"description": "The provider the money routes use. Null when every candidate is refused."
+															},
+															"reason": {
+																"properties": {
+																	"code": {
+																		"type": "string"
+																	},
+																	"details": {
+																		"type": "string"
+																	},
+																	"userMessage": {
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"code",
+																	"userMessage"
+																],
+																"type": "object"
+															},
+															"state": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"ready"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"action_required"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pending"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"paused"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"refused"
+																		],
+																		"type": "string"
+																	}
+																]
+															}
+														},
+														"required": [
+															"operation",
+															"method",
+															"provider",
+															"state",
+															"candidates"
+														],
+														"type": "object"
+													},
+													"type": "array"
 												}
 											},
 											"required": [
 												"rails",
 												"nextActions",
 												"restrictions",
-												"features"
+												"features",
+												"routes"
 											],
 											"type": "object"
 										}
@@ -25796,6 +29381,9 @@
 												"effectiveDate": {
 													"type": "string"
 												},
+												"expiresAt": {
+													"type": "string"
+												},
 												"feature": {
 													"anyOf": [
 														{
@@ -25876,6 +29464,12 @@
 																"questions"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"hosted-identity"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -25907,6 +29501,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -25926,6 +29526,9 @@
 													"type": "string"
 												},
 												"tosUrl": {
+													"type": "string"
+												},
+												"url": {
 													"type": "string"
 												}
 											},
@@ -27053,6 +30656,12 @@
 																},
 																{
 																	"enum": [
+																		"local_served_elsewhere"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
 																		"manteca_us_nationality_restricted"
 																	],
 																	"type": "string"
@@ -27219,6 +30828,12 @@
 																{
 																	"enum": [
 																		"local_residence_unsupported"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local_served_elsewhere"
 																	],
 																	"type": "string"
 																},
@@ -27395,6 +31010,12 @@
 																},
 																{
 																	"enum": [
+																		"local_served_elsewhere"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
 																		"manteca_us_nationality_restricted"
 																	],
 																	"type": "string"
@@ -27561,6 +31182,12 @@
 																{
 																	"enum": [
 																		"local_residence_unsupported"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local_served_elsewhere"
 																	],
 																	"type": "string"
 																},
@@ -27743,6 +31370,124 @@
 						"description": "Default Response"
 					}
 				}
+			}
+		},
+		"/users/kyc/accept-terms": {
+			"post": {
+				"description": "Records the acceptance of the terms the step names (nextActions[].tosUrl) in the consent ledger, then enrols the user with that provider. The capabilities route shows the enrolment from then on. 409 when the user’s route does not name this step now.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"key": {
+										"description": "The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia",
+										"maxLength": 64,
+										"type": "string"
+									}
+								},
+								"required": [
+									"key"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"accepted": true
+								},
+								"schema": {
+									"properties": {
+										"accepted": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"accepted"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Accept a payments partner’s terms",
+				"tags": [
+					"kyc"
+				]
 			}
 		},
 		"/users/kyc/answers/{step}": {
@@ -28393,6 +32138,263 @@
 											"type": "string"
 										}
 									},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/kyc/bridge-postal-code": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"country": "PY",
+									"revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+								},
+								"schema": {
+									"properties": {
+										"country": {
+											"pattern": "^[A-Z]{2}$",
+											"type": "string"
+										},
+										"revision": {
+											"pattern": "^[0-9a-f]{64}$",
+											"type": "string"
+										}
+									},
+									"required": [
+										"country",
+										"revision"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			},
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"additionalProperties": false,
+								"properties": {
+									"postCode": {
+										"maxLength": 32,
+										"type": "string"
+									},
+									"revision": {
+										"pattern": "^[0-9a-f]{64}$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"postCode",
+									"revision"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"status": "queued"
+								},
+								"schema": {
+									"properties": {
+										"status": {
+											"enum": [
+												"queued"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"status"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"errors": {
+											"properties": {
+												"postCode": {
+													"enum": [
+														"invalid_postal_code"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"postCode"
+											],
+											"type": "object"
+										}
+									},
+									"required": [
+										"errors"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
 									"type": "object"
 								}
 							}
@@ -29227,6 +33229,12 @@
 												{
 													"enum": [
 														"local_residence_unsupported"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"local_served_elsewhere"
 													],
 													"type": "string"
 												},
@@ -30443,6 +34451,12 @@
 																					"RAIN"
 																				],
 																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"AVENIA"
+																				],
+																				"type": "string"
 																			}
 																		]
 																	},
@@ -30801,6 +34815,12 @@
 																							"RAIN"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -30904,6 +34924,12 @@
 																					{
 																						"enum": [
 																							"RAIN"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
 																						],
 																						"type": "string"
 																					}
@@ -31011,6 +35037,12 @@
 																	"RAIN"
 																],
 																"type": "string"
+															},
+															{
+																"enum": [
+																	"AVENIA"
+																],
+																"type": "string"
 															}
 														]
 													},
@@ -31088,6 +35120,12 @@
 																							"RAIN"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -31151,6 +35189,12 @@
 																							"RAIN"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -31208,6 +35252,12 @@
 																					{
 																						"enum": [
 																							"RAIN"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"AVENIA"
 																						],
 																						"type": "string"
 																					}
@@ -33186,6 +37236,9 @@
 															"effectiveDate": {
 																"type": "string"
 															},
+															"expiresAt": {
+																"type": "string"
+															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -33266,6 +37319,12 @@
 																			"questions"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"hosted-identity"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -33297,6 +37356,12 @@
 																						"rain"
 																					],
 																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
 																				}
 																			]
 																		},
@@ -33316,6 +37381,9 @@
 																"type": "string"
 															},
 															"tosUrl": {
+																"type": "string"
+															},
+															"url": {
 																"type": "string"
 															}
 														},
@@ -33490,6 +37558,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -33569,6 +37643,9 @@
 																				"type": "string"
 																			},
 																			"effectiveDate": {
+																				"type": "string"
+																			},
+																			"expiresAt": {
 																				"type": "string"
 																			},
 																			"feature": {
@@ -33651,6 +37728,12 @@
 																							"questions"
 																						],
 																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"hosted-identity"
+																						],
+																						"type": "string"
 																					}
 																				]
 																			},
@@ -33682,6 +37765,12 @@
 																										"rain"
 																									],
 																									"type": "string"
+																								},
+																								{
+																									"enum": [
+																										"avenia"
+																									],
+																									"type": "string"
 																								}
 																							]
 																						},
@@ -33701,6 +37790,9 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
+																				"type": "string"
+																			},
+																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -33811,13 +37903,267 @@
 														"type": "object"
 													},
 													"type": "array"
+												},
+												"routes": {
+													"items": {
+														"properties": {
+															"action": {
+																"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																"type": "string"
+															},
+															"candidates": {
+																"description": "Every provider that serves the operation on the method, best first, each with its reason.",
+																"items": {
+																	"properties": {
+																		"action": {
+																			"description": "The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use).",
+																			"type": "string"
+																		},
+																		"provider": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"bridge"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"manteca"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"rain"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		},
+																		"reason": {
+																			"properties": {
+																				"code": {
+																					"type": "string"
+																				},
+																				"details": {
+																					"type": "string"
+																				},
+																				"userMessage": {
+																					"type": "string"
+																				}
+																			},
+																			"required": [
+																				"code",
+																				"userMessage"
+																			],
+																			"type": "object"
+																		},
+																		"state": {
+																			"anyOf": [
+																				{
+																					"enum": [
+																						"ready"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"action_required"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"pending"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"paused"
+																					],
+																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"refused"
+																					],
+																					"type": "string"
+																				}
+																			]
+																		}
+																	},
+																	"required": [
+																		"provider",
+																		"state"
+																	],
+																	"type": "object"
+																},
+																"type": "array"
+															},
+															"limits": {
+																"description": "The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote.",
+																"properties": {
+																	"currency": {
+																		"description": "The currency of the amount: the method’s, e.g. BRL",
+																		"type": "string"
+																	},
+																	"minAmount": {
+																		"description": "The least amount the provider takes for this operation",
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"minAmount",
+																	"currency"
+																],
+																"type": "object"
+															},
+															"method": {
+																"description": "Rail method code, e.g. PIX_BR",
+																"type": "string"
+															},
+															"operation": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"deposit"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"withdraw"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pay"
+																		],
+																		"type": "string"
+																	}
+																],
+																"description": "pay: a QR payment on the method"
+															},
+															"payableDepositIntentId": {
+																"description": "Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another.",
+																"type": "string"
+															},
+															"provider": {
+																"anyOf": [
+																	{
+																		"anyOf": [
+																			{
+																				"enum": [
+																					"bridge"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"manteca"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"rain"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"avenia"
+																				],
+																				"type": "string"
+																			}
+																		]
+																	},
+																	{
+																		"type": "null"
+																	}
+																],
+																"description": "The provider the money routes use. Null when every candidate is refused."
+															},
+															"reason": {
+																"properties": {
+																	"code": {
+																		"type": "string"
+																	},
+																	"details": {
+																		"type": "string"
+																	},
+																	"userMessage": {
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"code",
+																	"userMessage"
+																],
+																"type": "object"
+															},
+															"state": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"ready"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"action_required"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"pending"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"paused"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"refused"
+																		],
+																		"type": "string"
+																	}
+																]
+															}
+														},
+														"required": [
+															"operation",
+															"method",
+															"provider",
+															"state",
+															"candidates"
+														],
+														"type": "object"
+													},
+													"type": "array"
 												}
 											},
 											"required": [
 												"rails",
 												"nextActions",
 												"restrictions",
-												"features"
+												"features",
+												"routes"
 											],
 											"type": "object"
 										},
@@ -34790,6 +39136,11 @@
 											"tier": 1
 										},
 										{
+											"id": "app-update-important",
+											"rank": 8,
+											"tier": 1
+										},
+										{
 											"id": "blocked-card",
 											"rank": 2,
 											"tier": 2
@@ -34862,6 +39213,11 @@
 										{
 											"id": "add-email",
 											"rank": 3,
+											"tier": 4
+										},
+										{
+											"id": "app-update-regular",
+											"rank": 4,
 											"tier": 4
 										},
 										{

@@ -1,0 +1,21 @@
+/**
+ * A Pix withdrawal whose payout the bank refused: the money waits with the
+ * provider until the user names another Pix key in their own name. Kept apart
+ * from pixFlow.utils so the history transformer can read it without the
+ * withdraw helpers.
+ */
+import type { HistoryEntryExtraData } from '@/utils/history.utils'
+
+/**
+ * Whether a withdrawal's history entry says its payout was refused for the
+ * key or the account, so the money waits with the provider for another own key
+ * (`extraData.pixRecovery.state` is `awaiting-key`).
+ */
+export function awaitsNewPixKey(extraData: HistoryEntryExtraData | undefined): boolean {
+    return extraData?.pixRecovery?.state === 'awaiting-key'
+}
+
+/** The new-key screen for a withdrawal (`intentId` in the URL, so a notification can open it). */
+export function pixNewKeyUrl(intentId: string): string {
+    return `/withdraw/new-pix-key?intentId=${encodeURIComponent(intentId)}`
+}

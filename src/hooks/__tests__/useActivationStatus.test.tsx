@@ -1,5 +1,5 @@
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
-import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute, IdentityVerificationStatus, NextAction, RailCapability } from '@/types/capabilities'
 import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * useActivationStatus gathers the onboarding inputs from data Home already
@@ -32,17 +32,22 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 
 type MockRail = { provider: string; status: string; operations?: Record<string, string> }
 let mockRails: MockRail[] = []
-const mockCapabilities = () =>
-    withFeatureReport(
+// the Pix deposit route and the next actions it names (TASK-24841)
+let mockRoutes: CapabilityRoute[] = []
+let mockNextActions: NextAction[] = []
+const mockCapabilities = () => ({
+    ...withFeatureReport(
         { rails: mockRails as RailCapability[], nextActions: [] },
         { identity: { status: mockIdentityStatus } }
-    )
+    ),
+    routes: mockRoutes,
+})
 jest.mock('@/hooks/useCapabilities', () => ({
     // canDo mirrors the real hook: per-op status, falling back to the rail status
     useCapabilities: () => ({
         capabilities: mockCapabilities(),
         isLoading: false,
-        nextActions: [],
+        nextActions: mockNextActions,
         rails: mockRails,
         railsForProvider: (provider: string) => mockRails.filter((rail) => rail.provider === provider),
         canDo: (op: string, opts?: { provider?: string }) =>
@@ -113,6 +118,8 @@ function setup(user: Record<string, unknown> = {}) {
 beforeEach(() => {
     mockBalance = 0n
     mockRails = []
+    mockRoutes = []
+    mockNextActions = []
     mockOverview = undefined
     mockCanSpendViaCard = false
     mockHoldsCard = false
@@ -259,5 +266,47 @@ describe('useActivationStatus', () => {
         const { result } = renderHook(() => useActivationStatus())
         expect(result.current.isOnboardingComplete).toBe(false)
         expect(result.current.isLoading).toBe(true)
+    })
+
+    // TASK-24841 (Aleks, 2026-11-12): once the provider has a Pix plan, Home asks for no ID check
+    describe('a plan that adds money by Pix', () => {
+        const pixPlan = (route: Partial<CapabilityRoute>) => {
+            mockRoutes = [
+                {
+                    operation: 'deposit',
+                    method: 'PIX_BR',
+                    provider: 'avenia',
+                    candidates: [],
+                    ...route,
+                } as CapabilityRoute,
+            ]
+            mockUseAuth.mockReturnValue({
+                user: {
+                    user: { userId: 'u1', isActivated: false, activationMilestone: 'registered' },
+                    signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
+                },
+            })
+            return renderHook(() => useActivationStatus()).result.current.onboarding
+        }
+
+        it.each(['pending', 'ready'] as const)('counts the ID step done once the route is %s', (state) => {
+            const onboarding = pixPlan({ state })
+            expect(onboarding.verify).toBe('done')
+            expect(onboarding.step).toBe('add_money')
+        })
+
+        it("leaves the step open while the route asks for the provider's terms", () => {
+            mockNextActions = [{ key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }]
+            const onboarding = pixPlan({ state: 'action_required', action: 'accept-tos:avenia' })
+            expect(onboarding.verify).toBe('todo')
+            expect(onboarding.step).toBe('verify')
+        })
+
+        it('leaves our check open for another plan on the same route', () => {
+            mockRoutes = [
+                { operation: 'deposit', method: 'PIX_BR', provider: 'avenia', state: 'pending', candidates: [] },
+            ]
+            expect(setup({ activationMilestone: 'registered' }).result.current.onboarding.verify).toBe('todo')
+        })
     })
 })

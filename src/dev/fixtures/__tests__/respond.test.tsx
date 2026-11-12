@@ -132,7 +132,7 @@ describe('fixtureRespond capability report', () => {
         expect(body.capabilities.features.local.accounts.BRL).toMatchObject({ state: 'refused' })
     })
 
-    it.each(['add-money-brazil-paused', 'withdraw-brazil-paused'])(
+    it.each(['withdraw-brazil-paused'])(
         '%s supplies the Brazil residence used by the pause and capability report',
         async (name) => {
             activateFixture(name)
@@ -148,7 +148,8 @@ describe('fixtureRespond capability report', () => {
                     residence: 'BR',
                 })
             )
-            expect(FIXTURES[name].responses?.['GET /config/kill-switches']).toEqual({ brazilServicesPaused: true })
+            // the router pauses the pay route; the app reads the route, not the switch
+            expect(body.capabilities.routes).toEqual([expect.objectContaining({ operation: 'pay', state: 'paused' })])
         }
     )
 
@@ -241,6 +242,27 @@ describe('fixtureRespond capability report', () => {
         const body = (await response.json()) as { capabilities: UserCapabilities }
 
         expect(body.capabilities.features?.bank.accounts.USD).toEqual({ state: 'action_required', action: 'verify' })
+    })
+
+    // the demo user lives in Brazil: its routes must not answer for a fixture that describes another user
+    it("keeps the demo's Brazil routes out of a fixture with its own capability block, unless it states routes", async () => {
+        addFixture('test-report-synthesis', {
+            route: '/profile/accounts',
+            about: 'Own capabilities, no routes',
+            responses: { 'GET /users/me': { capabilities: { rails: [], nextActions: [], restrictions: [] } } },
+        })
+        expect(
+            ((await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }).capabilities
+                .routes
+        ).toEqual([])
+
+        activateFixture('pix-manteca-withdraw-review')
+        const manteca = (await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }
+        expect(manteca.capabilities.routes?.map((route) => route.provider)).toEqual(['manteca', 'manteca', 'manteca'])
+
+        activateFixture('pix-deposit-amount')
+        const avenia = (await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }
+        expect(avenia.capabilities.routes?.[0]).toMatchObject({ provider: 'avenia', limits: { minAmount: '20' } })
     })
 
     it('answers a signed-out fixture with its null user instead of building a report', async () => {

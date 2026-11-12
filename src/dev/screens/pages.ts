@@ -6,7 +6,9 @@ export type PageCapture = {
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<{ click: string } | { clickSelector: string } | { fill: { selector: string; value: string } }>
+    actions?: Array<
+        { click: string } | { clickSelector: string } | { tap: string } | { fill: { selector: string; value: string } }
+    >
     /** Prove the requested overlay is open, including its selected row. */
     expectSelector?: string
     routePattern?: string
@@ -67,6 +69,21 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p16-withdraw-manteca', name: 'Withdraw — Manteca', route: '/withdraw/manteca?country=argentina&amount=50' },
     { id: 'p17-add-money', name: 'Add money', route: '/add-money?method=bank' },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
+    {
+        id: 'add-money-crypto-euro-token-network',
+        name: 'Add money — euro token network tooltip',
+        route: '/add-money/crypto?network=EVM',
+        // the chip names the credited variant, as the deposit token list does (rhino.consts EURe v2)
+        actions: [{ tap: 'EURe v2 · Gnosis' }],
+        expectSelector: '[role="tooltip"]',
+    },
+    {
+        id: 'add-money-crypto-token-network',
+        name: 'Add money — network-specific token tooltip',
+        route: '/add-money/crypto?network=EVM',
+        actions: [{ tap: 'USDS · Base' }],
+        expectSelector: '[role="tooltip"]',
+    },
     { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/usa/bank' },
 
     { id: 'p20-qr-pay', name: 'QR Pay', route: '/qr-pay' },
@@ -230,5 +247,73 @@ PAGE_CAPTURES.push(
         name: 'Notifications settings',
         route: '/settings/notifications',
         fixture: 'settings-notifications',
+    },
+    // Pix states that follow a tap; the fixture answers the call the tap makes.
+    {
+        id: 'p80-pix-terms-not-saved',
+        name: 'Pix terms — the acceptance was not saved',
+        route: '/add-money/pix',
+        fixture: 'pix-first-use',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
+        id: 'p81-pix-deposit-limit',
+        name: 'Pix deposit — over the monthly limit',
+        route: '/add-money/pix?amount=100&currency=BRL',
+        fixture: 'pix-deposit-amount',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
+        id: 'p82-pix-new-key-saved',
+        name: 'New Pix key saved — where the money goes',
+        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
+        fixture: 'pix-new-key',
+        clicks: ['Continue'],
+    },
+    {
+        id: 'p83-pix-new-key-saved-unnamed',
+        name: 'New Pix key saved — no holder named',
+        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
+        fixture: 'pix-new-key-unnamed',
+        clicks: ['Continue'],
+    },
+    {
+        id: 'p84-pix-provider-sheet',
+        name: "Pix review — the provider's legal details",
+        // the key and amount come from the fixture's session draft, never the URL
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-withdraw-review',
+        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
+    // for users who do not live in Brazil
+    {
+        id: 'p85-manteca-ar-provider-sheet',
+        name: "Argentina's add money — the provider's legal details",
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        fixture: 'add-money-provider-rejected',
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    {
+        id: 'p86-pix-manteca-provider-sheet',
+        name: "Pix review on Manteca's route — the provider's legal details",
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-manteca-withdraw-review',
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    // TASK-24841: a Pix plan before our own check: Verify identity opens the Pix setup, Avenia's terms first
+    {
+        id: 'p87-pix-plan-verify-opens-pix',
+        name: 'Home — Set up Pix opens the Pix setup before our own check',
+        route: '/home',
+        fixture: 'home-pix-plan-before-verification',
+        clicks: ['Set up Pix'],
+        expectSelector: 'a[href="https://app.avenia.io/Avenia-TC.pdf"]',
     }
 )

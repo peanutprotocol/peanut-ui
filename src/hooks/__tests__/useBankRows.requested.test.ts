@@ -1,7 +1,8 @@
 import { renderHook } from '@testing-library/react'
 import { useBankChipFor, useBankEntryFor, useBankRows } from '@/hooks/useBankRows'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
-import type { UserCapabilities } from '@/types/capabilities'
+import type { CapabilityRoute, UserCapabilities } from '@/types/capabilities'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 
 let mockCapabilities: UserCapabilities
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -75,5 +76,98 @@ describe('bank rows render the report account entries', () => {
         rerender()
         expect(result.current.accountChip).toBe('processing')
         expect(result.current.rows.every((row) => row.chip === 'processing')).toBe(true)
+    })
+})
+
+// The API refuses the local feature to a resident of Brazil (`local_residence_unsupported`) and serves
+// their Pix through the route (Avenia): the BRL row reads the route, never the refused local account.
+describe('the BRL row reads the Pix route', () => {
+    const pixRoute = (step: Partial<CapabilityRoute>): CapabilityRoute => ({
+        operation: 'deposit',
+        method: 'PIX_BR',
+        provider: 'avenia',
+        state: 'ready',
+        candidates: [],
+        ...step,
+    })
+    const brazilResident = (reason = 'local_residence_unsupported') => {
+        mockCapabilities.features!.local = {
+            state: 'refused',
+            reason,
+            accounts: { BRL: { state: 'refused', reason } },
+        }
+    }
+    const brl = () => renderHook(() => useBankRows()).result.current.rows.find((row) => row.labelKey === 'brl')
+
+    // a refused Pix route keeps the row, closed for its own reason, which its drawer says; never the residence rule
+    it.each(['provider_unavailable', 'rollout_closed', 'provider_setup_failed', 'residence_not_served'])(
+        'keeps the row, closed for the route reason (%s), not as a residence refusal',
+        (code) => {
+            brazilResident()
+            mockCapabilities.routes = [
+                pixRoute({ provider: null, state: 'refused', reason: { code, userMessage: '' } }),
+            ]
+            expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'pix-route' })
+        }
+    )
+
+    // Aleks, 2026-11-12: an open route puts Pix first in Home's Add money drawer, so the bank lists
+    // must not repeat it; the route's entry still feeds the account chip and the BRL entry
+    it('drops the row for an open route, where the refused local account alone reads closed', () => {
+        brazilResident()
+        expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })
+
+        mockCapabilities.routes = [pixRoute({ state: 'ready' })]
+        expect(brl()).toBeUndefined()
+        expect(renderHook(() => useBankRows()).result.current.accountChip).toBe('active')
+    })
+
+    // the API's answer for a resident of Brazil: another entry, the Pix route, serves the residence
+    it('reads a local refusal because another entry serves the residence like the residence one', () => {
+        brazilResident(LOCAL_SERVED_ELSEWHERE_REASON)
+        expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })
+
+        mockCapabilities.routes = [pixRoute({ state: 'ready' })]
+        expect(brl()).toBeUndefined()
+    })
+
+    it.each<[string, Partial<CapabilityRoute>]>([
+        ['the provider terms', { state: 'action_required', action: 'accept-tos:avenia' }],
+        ["the provider's own identity check", { state: 'action_required', action: 'avenia-hosted' }],
+        ['our identity check', { state: 'action_required', action: 'verify' }],
+        ['the provider review', { state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }],
+        // the Pix page explains the pause
+        ['a pause', { state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }],
+    ])('drops the row on %s too: the route is open, so the drawer has Pix', (_name, step) => {
+        brazilResident()
+        mockCapabilities.routes = [pixRoute(step)]
+        expect(brl()).toBeUndefined()
+    })
+
+    // the provider takes no shared verification: its own check, on its page, is a set-up step like its terms
+    it("reads the provider's own identity check as the BRL entry's Set up", () => {
+        brazilResident()
+        mockCapabilities.nextActions = [
+            {
+                key: 'avenia-hosted',
+                kind: 'hosted-identity',
+                purpose: 'unlock-avenia',
+                url: 'https://avenia.example/identity/u1',
+                expiresAt: '2099-01-01T00:00:00.000Z',
+            },
+        ]
+        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'avenia-hosted' })]
+        expect(renderHook(() => useBankEntryFor()).result.current('brl')).toEqual({
+            state: 'ready',
+            action: 'avenia-hosted',
+        })
+    })
+
+    it('keeps the report for the other rows, and for BRL when the API sends no Pix route', () => {
+        mockCapabilities.features!.local.accounts = { BRL: { state: 'on' }, ARS: { state: 'refused' } }
+        mockCapabilities.routes = [pixRoute({ state: 'ready', operation: 'pay' })]
+        const { result } = renderHook(() => useBankRows())
+        expect(result.current.rows.find((row) => row.labelKey === 'brl')?.chip).toBe('active')
+        expect(result.current.rows.find((row) => row.labelKey === 'ars')?.chip).toBe('notAvailable')
     })
 })

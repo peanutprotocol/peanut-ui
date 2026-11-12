@@ -205,10 +205,12 @@ export function FeatureReadyScreen({
     feature,
     onDone,
     acknowledgement = false,
+    accountCurrency,
 }: {
     feature: PaperworkVerificationFeature
     onDone: () => void
     acknowledgement?: boolean
+    accountCurrency?: string
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const controls = useKycControl('feature-ready', 'kyc_status')
@@ -217,7 +219,11 @@ export function FeatureReadyScreen({
         <VerifyHeroLayout
             pose="too-cool"
             statusTone="warning"
-            title={t(`addLater.doneTitle.${feature}`)}
+            title={
+                accountCurrency
+                    ? t('activation.settingUpAccount', { currency: accountCurrency })
+                    : t(`addLater.doneTitle.${feature}`)
+            }
             description={t(`addLater.doneDescription.${feature}`)}
             footer={
                 <VerifyFooter
