@@ -258,6 +258,8 @@ const definitions: Screen[] = [
             '90-f-withdraw-review-processing',
             'deposit-address-launch-loading',
             'card-address-launch-loading',
+            // an approved card still issuing: the spinner is the screen
+            '82-e-card-creating',
         ].includes(id),
         event: routeOverrides[id]?.event,
         storage: routeOverrides[id]?.storage,
