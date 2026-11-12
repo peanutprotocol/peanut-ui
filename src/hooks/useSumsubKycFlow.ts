@@ -881,8 +881,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         const generation = showWrapperRef.current ? ++startGeneration.current : startGeneration.current
         const owner = actionOwnerRef.current
         showWrapperRef.current = false
-        // A closed attempt's approval belongs to /verify, not to today's post-approval steps.
-        if (refreshIdentity || residenceChangeRef.current || documentAttemptRef.current)
+        // Unsubmitted sessions cannot complete later; a closed attempt's approval belongs to /verify.
+        if (!sdkSubmittedRef.current || residenceChangeRef.current || documentAttemptRef.current)
             userInitiatedRef.current = false
         residenceChangeRef.current = false
         residenceChangeCountryRef.current = null

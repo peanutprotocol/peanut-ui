@@ -329,4 +329,74 @@ describe('K1 scoped close synchronization and K2 drawer handoff', () => {
         expect(mockIdentityRefresh).not.toHaveBeenCalled()
         expect(mockInitiate).not.toHaveBeenCalled()
     })
+
+    it.each(['action', 'residence', 'document'] as const)(
+        'does not complete a manually closed unsubmitted %s SDK from delayed identity approval',
+        async (mode) => {
+            jest.mocked(startKycAction).mockResolvedValue({
+                data: { token: 'action-token', levelName: 'provider-rfi-proof-of-address' },
+            })
+            jest.mocked(startResidenceChangeVerification).mockResolvedValue({
+                data: { token: 'residence-token', applicantId: 'app', levelName: 'general' },
+            } as never)
+            if (mode === 'document') {
+                jest.mocked(getKycDocumentPlan).mockResolvedValue({
+                    ...legacyPlan,
+                    activeAttemptId: 'attempt-1',
+                } as never)
+                jest.mocked(resumeKycDocumentAttempt).mockResolvedValue(session as never)
+            }
+            const onKycSuccess = jest.fn()
+            const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'ROW', onKycSuccess }))
+            await waitFor(() => expect(mockInitiate).toHaveBeenCalled())
+            await act(async () => {
+                if (mode === 'action') await result.current.handleStartAction('supplement:bridge')
+                else if (mode === 'residence') await result.current.handleResidenceChange('PT')
+                else await result.current.handleInitiateKyc('LATAM')
+            })
+            expect(result.current.showWrapper).toBe(true)
+            mockInitiate.mockClear()
+            mockIdentityRefresh.mockClear()
+            await act(async () => {
+                result.current.handleClose()
+                result.current.handleClose()
+            })
+            expect(result.current.showWrapper).toBe(false)
+            expect(mockWs.handler).toEqual(expect.any(Function))
+            await act(async () => {
+                mockWs.handler?.('APPROVED')
+            })
+            expect(onKycSuccess).not.toHaveBeenCalled()
+            expect(mockIdentityRefresh).not.toHaveBeenCalled()
+            expect(mockInitiate).not.toHaveBeenCalled()
+            expect(result.current.showWrapper).toBe(false)
+        }
+    )
+
+    it('completes a submitted action once through SDK submission and completion', async () => {
+        jest.mocked(startKycAction).mockResolvedValue({
+            data: { token: 'action-token', levelName: 'provider-rfi-proof-of-address' },
+        })
+        const onKycSuccess = jest.fn()
+        const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'ROW', onKycSuccess }))
+        await waitFor(() => expect(mockInitiate).toHaveBeenCalled())
+        await act(async () => {
+            await result.current.handleStartAction('supplement:bridge')
+        })
+        expect(result.current.showWrapper).toBe(true)
+        act(() => {
+            result.current.handleSdkSubmitted()
+            result.current.handleSdkComplete()
+        })
+        await act(async () => {
+            result.current.handleClose()
+            result.current.handleClose()
+        })
+        expect(mockWs.handler).toEqual(expect.any(Function))
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(mockIdentityRefresh).not.toHaveBeenCalled()
+    })
 })
