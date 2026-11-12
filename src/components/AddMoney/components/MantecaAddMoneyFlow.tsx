@@ -241,6 +241,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         setKycGateDismissed(true)
     }, [])
 
+    useEffect(() => {
+        if (showKycModal && sumsubFlow.isModalOpen) closeKycModal()
+    }, [showKycModal, sumsubFlow.isModalOpen, closeKycModal])
+
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return

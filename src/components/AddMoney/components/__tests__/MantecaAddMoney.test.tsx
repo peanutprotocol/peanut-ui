@@ -138,6 +138,7 @@ const mockKycFlow = {
     error: null as string | null,
     isLoading: false,
     showWrapper: false,
+    isModalOpen: false,
     handleFixableRejection: jest.fn(),
     handleSelfHealResubmit: jest.fn(),
     handleRestartIdentity: jest.fn(),
@@ -163,7 +164,14 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({
+    SumsubKycModals: ({ flow }: { flow: { isModalOpen: boolean; showWrapper: boolean } }) => (
+        <>
+            {flow.isModalOpen && <div role="dialog" aria-label="Verification in progress" />}
+            {flow.showWrapper && <div data-testid="verification-sdk" />}
+        </>
+    ),
+}))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
     KycFailedModal: ({ visible }: { visible: boolean }) =>
         visible ? <div data-testid="identity-failed-modal" /> : null,
@@ -237,6 +245,7 @@ beforeEach(() => {
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
     mockKycFlow.error = null
+    mockKycFlow.isModalOpen = false
     mockKycFlow.showWrapper = false
     mockKycFlow.handleInitiateKyc.mockReset().mockResolvedValue(true)
     mockKycFlow.handleRestartIdentity.mockReset().mockResolvedValue(true)
@@ -505,6 +514,8 @@ describe('KYC start failure recovery', () => {
         const dialog = screen.getByRole('dialog', { name: 'Identity verification' })
         expect(dialog).toBeVisible()
         expect(within(dialog).getByRole('alert')).toHaveTextContent(startError)
+        expect(screen.queryByRole('dialog', { name: 'Verification in progress' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('verification-sdk')).not.toBeInTheDocument()
     })
 
     test.each([
@@ -928,4 +939,59 @@ describe('refused local accounts retain their own reason and remedy', () => {
         expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
         expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
     })
+})
+
+describe('no-token verification status handoff', () => {
+    test.each([
+        ['ordinary onboarding', { state: 'happy' }, 'handleInitiateKyc'],
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            { state: 'fixable', reasonCode: 'source_of_funds', actionKey: 'sumsub:source_of_funds' },
+            'handleFixableRejection',
+        ],
+    ] as const)(
+        '%s replaces the gate with progress when no SDK token is returned',
+        async (_label, rejection, action) => {
+            let finishStart!: (success: boolean) => void
+            mockKycFlow[action].mockImplementation(
+                () =>
+                    new Promise<boolean>((resolve) => {
+                        finishStart = resolve
+                    })
+            )
+            setCountry('argentina')
+            mockIsVerifiedForCountry = false
+            mockIsIdentityVerified = false
+            mockRejection = rejection
+            const view = render(<MantecaAddMoney />)
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+            let verification!: Promise<unknown>
+            act(() => {
+                verification = lastKycModalProps!.onVerify()
+            })
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+            // The hook publishes its status-modal state on a later render; false means no SDK token.
+            await act(async () => {
+                finishStart(false)
+                await verification
+            })
+            mockKycFlow.isModalOpen = true
+            view.rerender(<MantecaAddMoney />)
+
+            expect(mockKycFlow[action]).toHaveBeenCalledTimes(1)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+            expect(screen.getByRole('dialog', { name: 'Verification in progress' })).toBeVisible()
+            expect(screen.queryByTestId('verification-sdk')).not.toBeInTheDocument()
+
+            view.rerender(<MantecaAddMoney />)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+            expect(screen.getByRole('dialog', { name: 'Verification in progress' })).toBeVisible()
+        }
+    )
 })

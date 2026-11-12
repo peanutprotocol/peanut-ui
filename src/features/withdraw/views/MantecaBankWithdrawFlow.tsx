@@ -215,6 +215,10 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const [showKycModal, setShowKycModal] = useState(false)
     const [rejectedCountry, setRejectedCountry] = useState<string | null>(null)
 
+    useEffect(() => {
+        if (showKycModal && sumsubFlow.isModalOpen) setShowKycModal(false)
+    }, [showKycModal, sumsubFlow.isModalOpen])
+
     // Get method and country from URL parameters
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
     const countryPath = countryFromUrl
