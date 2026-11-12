@@ -47,11 +47,10 @@ test('mismatched event head is rejected', () => {
     assert.equal(reviewProvenance(repository, event, [pr], git), null)
 })
 test('snapshot branch and base must match the triggering review', () => {
-    for (const snapshot of [
-        { number: 12, head: { ...pr.head, ref: 'other' }, base: pr.base },
-        { number: 12, head: pr.head, base: { ...pr.base, ref: 'main' } },
-    ])
-        assert.throws(() => reviewProvenance(repository, { ...run, pull_requests: [snapshot] }, [pr], git), /snapshot/)
+    const wrongHead = { number: 12, head: { ...pr.head, ref: 'other' }, base: pr.base }
+    assert.throws(() => reviewProvenance(repository, { ...run, pull_requests: [wrongHead] }, [pr], git), /snapshot/)
+    const wrongBase = { number: 12, head: pr.head, base: { ...pr.base, ref: 'main' } }
+    assert.equal(reviewProvenance(repository, { ...run, pull_requests: [wrongBase] }, [pr], git), null)
 })
 
 test('trusted caller event fills an empty Actions snapshot and preserves exact release identity', (t) => {

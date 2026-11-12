@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 
 const validSha = (value) => /^[a-f0-9]{40}$/.test(value ?? '') && value !== '0'.repeat(40)
 
-export function eligibleReviewBranches(headRef, baseRef) {
-    return baseRef === 'dev' || (baseRef === 'main' && headRef === 'dev')
+export function eligibleReviewBranches(_headRef, baseRef) {
+    return baseRef === 'dev' || baseRef === 'main'
 }
 
 /** Bind an Actions run to one live same-repository PR, even when GitHub omits its PR list. */
@@ -16,7 +16,7 @@ export function reviewProvenance(repository, run, candidates, git) {
     if (!pr) return null // closed, superseded, or no longer bound to this run
     const snapshot = run.pull_requests?.[0]
     const head = reviewHeadRevision(run)
-    // Releases compare the current main tip captured by the event, even when it diverges from dev.
+    // Main reviews compare the exact main tip captured by the event, even when the head diverges.
     // Feature reviews keep the merge base of the original event's base and head.
     const base = snapshot?.base.sha ?? pr.base.sha
     if (!validSha(base)) throw new Error('Invalid PR revision')
