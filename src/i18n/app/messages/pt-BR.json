@@ -1001,6 +1001,16 @@
             },
             "signUp": "Não tenho conta, criar uma"
         },
+        "passkeyProvider": {
+            "title": "Este gerenciador de senhas salvou uma passkey que o Peanut não consegue verificar",
+            "steps": {
+                "openSettings": "Abra Configurações → Senhas, chaves de acesso e contas.",
+                "chooseGoogle": "Defina o Gerenciador de senhas do Google como serviço preferencial e tente de novo."
+            },
+            "signUpInBrowser": "Criar conta em peanut.me no navegador",
+            "useAnotherManager": "Use outro gerenciador de senhas e tente de novo.",
+            "browserOpenFailed": "O navegador não abriu. Tente de novo."
+        },
         "waitlist": {
             "loginCanceled": "O login foi cancelado. Tente de novo.",
             "noPasskey": "Nenhuma passkey encontrada. Primeiro crie uma carteira.",

@@ -8,6 +8,7 @@
 import * as Sentry from '@/utils/sentry-lazy'
 import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 import { currentAndroidPasskeyScope, registerScopeChallenge } from './android-passkey-scope'
+import { PasskeyProviderUnsupportedError } from './passkey-registration-compatibility'
 
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
@@ -136,6 +137,18 @@ export function installPasskeyVerifyCapture(): void {
                 error.name = 'UsernameTaken'
                 throw error
             }
+        }
+
+        // The API refuses a passkey whose signed note the wallet validator cannot
+        // read (TASK-24498). The app refuses it first on Android; this covers any
+        // client that does not, so signup still shows the guidance, not ZeroDev's
+        // "Registration not verified".
+        if (response.status === 400 && passkeyPath === '/passkeys/register/verify') {
+            const body = await response
+                .clone()
+                .json()
+                .catch(() => null)
+            if (body?.code === 'PASSKEY_PROVIDER_UNSUPPORTED') throw new PasskeyProviderUnsupportedError()
         }
 
         let failure: Error | null = null

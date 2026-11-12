@@ -5,6 +5,7 @@ import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
+import { PasskeyProviderUnsupportedDrawer } from './PasskeyProviderUnsupportedDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -335,6 +336,24 @@ const SignupStep = () => {
                     platform={passkey.deviceType}
                 />
             )}
+            <PasskeyProviderUnsupportedDrawer
+                visible={passkey.isProviderUnsupportedOpen}
+                platform={passkey.providerUnsupportedPlatform}
+                browserOpenFailed={passkey.browserOpenFailed}
+                onClose={() => {
+                    track('passkey_provider', 'dismiss')
+                    passkey.closeProviderUnsupported()
+                }}
+                onRetry={() => {
+                    track('passkey_provider_retry', 'tap')
+                    passkey.retryFromProviderUnsupported()
+                }}
+                onSignUpInBrowser={() => {
+                    track('passkey_provider_web_signup', 'tap')
+                    void passkey.signUpInBrowser()
+                }}
+                onSupport={() => track('passkey_provider_support', 'tap')}
+            />
         </>
     )
 }

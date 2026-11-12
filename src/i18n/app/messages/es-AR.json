@@ -566,6 +566,14 @@
                 }
             }
         },
+        "passkeyProvider": {
+            "steps": {
+                "openSettings": "Abrí Configuración → Contraseñas, llaves de acceso y cuentas.",
+                "chooseGoogle": "Elegí el Administrador de contraseñas de Google como servicio preferido y volvé a intentarlo."
+            },
+            "useAnotherManager": "Usá otro administrador de contraseñas y volvé a intentarlo.",
+            "browserOpenFailed": "No se abrió el navegador. Volvé a intentarlo."
+        },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Intentalo de nuevo.",
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."

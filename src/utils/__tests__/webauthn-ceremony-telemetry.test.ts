@@ -277,6 +277,28 @@ describe('webauthn ceremony telemetry', () => {
             expect(getCeremonyLog()[0]).not.toHaveProperty('backupEligible')
         })
 
+        it('keeps the offset of a registration refused for its layout (TASK-24498)', async () => {
+            const refusal = Object.assign(new Error('incompatible provider'), {
+                name: 'PasskeyProviderUnsupportedError',
+                code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+                challengeOffset: 41,
+                backupEligible: false,
+            })
+            create.mockRejectedValueOnce(refusal)
+
+            await expect(withCeremonyPurpose('registration', () => navigator.credentials.create({}))).rejects.toBe(
+                refusal
+            )
+            expect(getCeremonyLog()[0]).toMatchObject({ outcome: 'error', challengeOffset: 41, backupEligible: false })
+            expect(events('webauthn_ceremony')[0]).toMatchObject({
+                kind: 'create',
+                outcome: 'error',
+                error_name: 'PasskeyProviderUnsupportedError',
+                challenge_offset: 41,
+                backup_eligible: false,
+            })
+        })
+
         it('finds the newest user_op assertion of the current attempt only', async () => {
             const nowSpy = jest.spyOn(Date, 'now')
             try {

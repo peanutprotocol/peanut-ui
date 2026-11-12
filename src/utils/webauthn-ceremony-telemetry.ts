@@ -63,7 +63,8 @@ export type CeremonyRecord = {
     openFlows: number
     /**
      * Index of `"challenge":"` in the decoded clientDataJSON of a successful
-     * ceremony. The on-chain WebAuthn validator reads the challenge at a fixed
+     * ceremony, or of a registration refused for its layout (TASK-24498).
+     * The on-chain WebAuthn validator reads the challenge at a fixed
      * byte, so the standard layout gives 23 for `get` and 26 for `create`; a
      * provider that sorts the keys gives 41 on both, and its signatures fail as
      * AA24 (TASK-23931). Unset when clientDataJSON is empty or has no challenge.
@@ -173,6 +174,24 @@ function describeResult(result: unknown): Pick<CeremonyRecord, 'challengeOffset'
             layout.backupEligible = (authenticatorData[AUTHENTICATOR_FLAGS_INDEX] & BACKUP_ELIGIBLE_FLAG) !== 0
         }
         return layout
+    } catch {
+        return {}
+    }
+}
+
+/**
+ * The layout facts a refused registration carries (PasskeyProviderUnsupportedError,
+ * TASK-24498). Signup refuses the sorted layout before the SDK sees the
+ * credential, so without this the ceremony would record an error with no
+ * offset and `challenge_offset` would stop counting the layout it refuses.
+ */
+function describeRefusal(error: unknown): Pick<CeremonyRecord, 'challengeOffset' | 'backupEligible'> {
+    try {
+        const { challengeOffset, backupEligible } = error as { challengeOffset?: unknown; backupEligible?: unknown }
+        return {
+            ...(typeof challengeOffset === 'number' ? { challengeOffset } : {}),
+            ...(typeof backupEligible === 'boolean' ? { backupEligible } : {}),
+        }
     } catch {
         return {}
     }
@@ -300,6 +319,7 @@ async function trace<T>(
     } catch (error) {
         commit({
             ...base,
+            ...describeRefusal(error),
             durationMs: Date.now() - startedAt,
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
