@@ -2103,7 +2103,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'pix-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
-        about: 'Avenia Pix withdrawal review: reais as the headline, the rate with the fees in, the flat fee apart.',
+        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, the rate with the fees in, the flat fee apart.",
         responses: aveniaResponses('enabled', {
             'POST /pix/withdraw/preview': {
                 amountBrl: '503.00',
@@ -2177,16 +2177,16 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaResponses('enabled'),
         fails: ['GET /pix/quote'],
     },
-    'pix-withdraw-amount': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?step=amount`,
+    'pix-withdraw-form': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
-        about: 'Avenia Pix withdrawal: the amount in reais, estimated with the Pix quote, R$20 minimum.',
+        about: 'Avenia Pix withdrawal: the form before an amount, in reais estimated with the Pix quote, R$20 minimum.',
         responses: aveniaResponses('enabled'),
     },
     'pix-withdraw-quote-failed': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?step=amount`,
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
-        about: 'The withdraw amount step when the Pix quote fails: the rate is unavailable, with a retry.',
+        about: 'The withdrawal form when the Pix quote fails: the rate is unavailable, with a retry.',
         responses: aveniaResponses('enabled'),
         fails: ['GET /pix/quote'],
     },

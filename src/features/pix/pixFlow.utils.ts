@@ -15,11 +15,6 @@ export function pixPendingReason(code: string | undefined): PixPendingReason {
     return code === TAX_ID_MISSING_REASON ? 'cpf-missing' : 'reviewing'
 }
 
-/** The API's arrival estimate in whole minutes, at least one, for the Arrives row. */
-export function arrivalMinutes(seconds: number): number {
-    return Math.max(1, Math.round(seconds / 60))
-}
-
 export type PixDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
 
 // Intent statuses after which the Pix went back to the payer.
@@ -102,8 +97,12 @@ export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
     return masked.replace(/[^\d*]/g, '').length === 14 ? 'CNPJ' : 'CPF'
 }
 
-/** The steps of a Pix withdrawal: the key first. */
-export const PIX_WITHDRAW_STEPS = ['pix-key', 'amount', 'review', 'success'] as const
+/**
+ * The steps of a Pix withdrawal: the key first, then the one form (the amount and its quote, as the
+ * Pix-key payment form shows them; ruling 2026-11-12). The form keeps the `review` step name, so
+ * the links the review step had still open it; an old `amount` link falls back to the key step.
+ */
+export const PIX_WITHDRAW_STEPS = ['pix-key', 'review', 'success'] as const
 export type PixWithdrawStep = (typeof PIX_WITHDRAW_STEPS)[number]
 
 /**

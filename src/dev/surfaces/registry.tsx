@@ -23,7 +23,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import React, { useState } from 'react'
 import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
 import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
-import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
+import { PixWithdrawForm } from '@/features/pix/components/PixWithdrawForm'
 import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
@@ -359,8 +359,8 @@ function PixWithdrawOutcomeSurface({
     )
 }
 
-// the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
-function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
+// the form once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
+function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
     const t = useTranslations('pix.withdraw')
     const error =
         variant === 'quote-moved'
@@ -368,17 +368,44 @@ function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after
             : { message: `${t('errors.quoteExpired')} ${t('errors.afterInit')}` }
     return (
         <AppPageSurface>
-            <PixWithdrawReview
+            <PixWithdrawForm
                 title="Withdraw"
-                display={PIX_SURFACE_DISPLAY}
-                providerId="avenia-br"
-                isLoading={false}
-                isSubmitting={false}
-                error={error}
-                canConfirm={variant === 'quote-moved'}
                 onBack={noop}
+                recipient={{
+                    pixKey: PIX_SURFACE_DISPLAY.pixKey,
+                    holderName: PIX_SURFACE_DISPLAY.holderName,
+                    bankName: PIX_SURFACE_DISPLAY.bankName,
+                    taxIdMasked: null,
+                }}
+                save={{
+                    savedName: null,
+                    isOffered: true,
+                    checked: true,
+                    nickname: 'Ana Souza',
+                    setChecked: noop,
+                    setNickname: noop,
+                }}
+                amount={{
+                    seed: { amount: PIX_SURFACE_DISPLAY.amountBrl, denomination: 'BRL' },
+                    price: Number(PIX_SURFACE_DISPLAY.amountBrl) / Number(PIX_SURFACE_DISPLAY.withdrawUsd),
+                    isLoading: false,
+                    isError: false,
+                    onRetry: noop,
+                    // the opened withdrawal keeps its amount
+                    disabled: true,
+                    walletBalance: '100',
+                    onBrlChange: noop,
+                    onUsdChange: noop,
+                    onBalanceFilled: noop,
+                    onAmountTyped: noop,
+                }}
+                display={PIX_SURFACE_DISPLAY}
+                isQuoteLoading={false}
+                providerId="avenia-br"
+                error={error}
+                isSubmitting={false}
+                canConfirm={variant === 'quote-moved'}
                 onConfirm={noop}
-                onCancel={noop}
             />
         </AppPageSurface>
     )
@@ -1520,11 +1547,11 @@ export const SURFACES: Record<string, Surface> = {
     },
     '94-j-pix-review-quote-moved': {
         ...SURFACE_META['94-j-pix-review-quote-moved'],
-        render: () => <PixWithdrawReviewSurface variant="quote-moved" />,
+        render: () => <PixWithdrawFormSurface variant="quote-moved" />,
     },
     '94-k-pix-review-after-init': {
         ...SURFACE_META['94-k-pix-review-after-init'],
-        render: () => <PixWithdrawReviewSurface variant="after-init" />,
+        render: () => <PixWithdrawFormSurface variant="after-init" />,
     },
     // the shot fixture's entry ended CANCELLED after this session funded it: support, never "on its way"
     '94-l-pix-withdraw-stuck': {

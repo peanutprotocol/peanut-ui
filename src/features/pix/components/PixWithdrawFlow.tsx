@@ -1,34 +1,28 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
 import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
-import { Button } from '@/components/0_Bruddle/Button'
-import { Field } from '@/components/0_Bruddle/Field'
-import { PageStack } from '@/components/0_Bruddle/PageStack'
-import AmountInput from '@/components/Global/AmountInput'
-import Loading from '@/components/Global/Loading'
-import NavHeader from '@/components/Global/NavHeader'
-import RateUnavailable from '@/components/Global/RateUnavailable'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { PIX_WITHDRAW_STEPS, pixWithdrawAmount, completePixKey } from '@/features/pix/pixFlow.utils'
 import { PixKeyStep } from '@/features/pix/components/PixKeyStep'
 import { PixSetup } from '@/features/pix/components/PixSetup'
+import { PixWithdrawForm, type PixWithdrawAmountSeed } from '@/features/pix/components/PixWithdrawForm'
 import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
-import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
 import { usePixRefusalMessage } from '@/features/pix/usePixRefusalMessage'
 import { usePixWithdrawSubmit } from '@/features/pix/usePixWithdrawSubmit'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
-import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
+import { TYPING_SETTLE_MS, usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { usePixPendingTransfer } from '@/features/pix/usePixPendingTransfer'
 import { usePixWithdrawDraft } from '@/features/pix/usePixWithdrawDraft'
+import { usePixKeySavePrompt } from '@/features/payments/flows/qr-pay/usePixKeySavePrompt'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
+import { useDebounce } from '@/hooks/useDebounce'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useAuth } from '@/context/authContext'
@@ -36,7 +30,7 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
-import { pixApi } from '@/services/pix'
+import { pixApi, type PixKeyInfo } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
@@ -45,18 +39,18 @@ import { pixProviderId } from '@/utils/provider.utils'
 
 /**
  * Withdraw by Pix, for whichever provider the withdraw route names: the own
- * Pix key, the amount, the review, then the signature. The URL holds the step
- * and, once Confirm opened the withdrawal, its `?intentId=`; nothing else. The
- * key and the amount (in USD, in reais, or the whole balance) live in the
- * account's draft in this tab's session (`pixWithdrawDraft`), never in the URL,
- * so a refresh keeps the step and the form without the Pix key reaching
- * analytics, history or request logs. Nothing is opened at the provider before
- * Confirm.
+ * Pix key, then one form (the Pix-key payment form: the amount, its quote and
+ * Confirm on one screen; ruling 2026-11-12), then the signature. The URL
+ * holds the step and, once Confirm opened the withdrawal, its `?intentId=`;
+ * nothing else. The key and the amount (in USD, in reais, or the whole
+ * balance) live in the account's draft in this tab's session
+ * (`pixWithdrawDraft`), never in the URL, so a refresh keeps the step and the
+ * form without the Pix key reaching analytics, history or request logs.
+ * Nothing is opened at the provider before Confirm.
  */
 export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('pix.withdraw')
     const tShared = useTranslations('pix')
-    const tWithdraw = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
@@ -75,7 +69,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { draft, update: updateDraft, clear: clearDraft } = usePixWithdrawDraft()
     const { destination, amountUsd, amountBrl, spendUsd } = draft
     const pixKey = completePixKey(destination)
-    const amount = pixWithdrawAmount({ amountUsd, amountBrl, spendUsd })
+    // what the key step learned of the key's holder; after a reload the quote names them instead
+    const [keyInfo, setKeyInfo] = useState<PixKeyInfo | null>(null)
     const submit = usePixWithdrawSubmit({
         provider: route.provider,
         // From the open withdrawal on, the URL names it and the draft goes: the key and the amount
@@ -96,9 +91,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const stepper = useFlowStepper({
         steps: PIX_WITHDRAW_STEPS,
         guards: {
-            amount: { ok: !!pixKey, fallback: 'pix-key' },
-            // an opened withdrawal stays on its review: the URL then holds only its id
-            review: { ok: (!!pixKey && !!amount) || !!intentId, fallback: pixKey ? 'amount' : 'pix-key' },
+            // an opened withdrawal stays on its form: the URL then holds only its id
+            review: { ok: !!pixKey || !!intentId, fallback: 'pix-key' },
             success: { ok: !!intentId || isSent || !!pending },
         },
     })
@@ -111,12 +105,87 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         if (showOutcome && step !== 'success') void goTo('success')
     }, [showOutcome, step, goTo])
 
+    const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
+    // The amount as typed, in the denomination it was typed in, or the balance when it was tapped.
+    // Seeded from the draft, so a reload restores the form.
+    const [typedBrl, setTypedBrl] = useState<string | undefined>(amountBrl || undefined)
+    const [typedUsd, setTypedUsd] = useState<string | undefined>(amountUsd || spendUsd || undefined)
+    const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
+        amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'
+    )
+    const typed = useMemo(() => ({ brl: typedBrl, usd: typedUsd, enteredIn }), [typedBrl, typedUsd, enteredIn])
+    // The amount counts once typing stops: the draft keeps it and the provider quotes it, never
+    // each keystroke. Until then Confirm waits, so the wallet never signs an amount still changing.
+    const settledTyped = useDebounce(typed, TYPING_SETTLE_MS)
+    const settled = settledTyped === typed
+
+    // the form is on screen and its amount can still change: once Confirm opened a withdrawal, its numbers stand
+    const formOpen = route.state === 'ready' && step === 'review' && !showOutcome && !submit.lockedAfterInit
+    // The route states the provider's minimum: an amount under it is refused here, before any quote.
+    // The field's estimate is the provider's quote for the reais on screen, not the /fx rate.
+    const minimumBrl = pixMinimumBrl(route)
+    const brl = usePixQuoteCurrency('withdraw', typedBrl, minimumBrl, formOpen)
+    // the form's refusal lines name the same minimum
+    const refusalMessage = usePixRefusalMessage(minimumBrl)
+
+    // the API takes one amount: the one the user typed, or the balance they tapped
+    const balanceUsd =
+        settledTyped.enteredIn === 'balance' && spendableBalance !== undefined
+            ? formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS)
+            : null
+    const typedLocal = settledTyped.enteredIn === 'local' && settledTyped.brl ? settledTyped.brl : ''
+    const form = {
+        spendUsd: balanceUsd ?? '',
+        amountBrl: balanceUsd ? '' : typedLocal,
+        amountUsd: balanceUsd || typedLocal ? '' : (settledTyped.usd ?? ''),
+    }
+    // the draft keeps the settled amount, so a reload restores the form; an opened withdrawal holds its own
+    useEffect(() => {
+        if (!formOpen) return
+        if (
+            draft.spendUsd === form.spendUsd &&
+            draft.amountBrl === form.amountBrl &&
+            draft.amountUsd === form.amountUsd
+        )
+            return
+        updateDraft(form)
+    }, [
+        formOpen,
+        form.spendUsd,
+        form.amountBrl,
+        form.amountUsd,
+        draft.spendUsd,
+        draft.amountBrl,
+        draft.amountUsd,
+        updateDraft,
+    ])
+
+    const insufficient = tErrors('insufficientBalance')
+    // "Use balance" sends the balance itself (spendUsd), which fits by construction; the estimate
+    // beside it is the quote's price for the reais, which can read a cent over
+    const balanceError =
+        spendableBalance === 0n
+            ? insufficient
+            : enteredIn !== 'balance' &&
+                typedUsd &&
+                Number(typedUsd) > 0 &&
+                !isAmountWithinBalance(typedUsd, spendableBalance)
+              ? insufficient
+              : undefined
+    // the reais the field shows, typed or converted; the API checks the credited amount again
+    const amountError =
+        balanceError ??
+        (minimumBrl && isUnderPixMinimum(typedBrl, minimumBrl)
+            ? tShared('deposit.minimum', { amount: formatBankAmount(minimumBrl, 'BRL') })
+            : undefined)
+
+    const amount = pixWithdrawAmount(form)
     const request = pixKey && amount ? { pixKey, ...amount } : null
     const preview = useQuery({
         queryKey: ['pix-withdraw-preview', request],
         queryFn: () => pixApi.previewWithdrawal(request!),
-        // the review shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
-        enabled: step === 'review' && !!request && !intentId && !submit.lockedAfterInit && !pending,
+        // the form shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
+        enabled: formOpen && !!request && !amountError && !intentId && !pending,
         retry: false,
         staleTime: 30_000,
     })
@@ -128,29 +197,28 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             void fetchUser().catch(() => undefined)
     }, [previewCode, fetchUser])
 
-    const { spendableBalance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
-    const [typedBrl, setTypedBrl] = useState<string | undefined>(undefined)
-    // The route states the provider's minimum: an amount under it is refused here, before any quote.
-    // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
-    // Only the amount step quotes: the setup, key, review and last steps do not.
-    const minimumBrl = pixMinimumBrl(route)
-    const brl = usePixQuoteCurrency(
-        'withdraw',
-        typedBrl,
-        minimumBrl,
-        route.state === 'ready' && step === 'amount' && !showOutcome
-    )
-    // the review's refusal lines name the same minimum
-    const refusalMessage = usePixRefusalMessage(minimumBrl)
-    const [typedUsd, setTypedUsd] = useState<string | undefined>(undefined)
-    const [enteredIn, setEnteredIn] = useState<'local' | 'usd' | 'balance'>(
-        amountBrl ? 'local' : spendUsd ? 'balance' : 'usd'
-    )
-    const seedBrl = useMemo(() => {
-        if (amountBrl) return amountBrl
-        const usd = Number(spendUsd || amountUsd)
-        return usd > 0 && brl.price ? (usd * brl.price.sell).toFixed(2) : undefined
-    }, [amountBrl, amountUsd, spendUsd, brl.price])
+    // the withdraw funnel's amount step: once per visit, when the amount first settles into a quote request
+    const amountEntered = useRef(false)
+    useEffect(() => {
+        if (!formOpen || !request || amountEntered.current) return
+        amountEntered.current = true
+        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
+            amount_usd: typedUsd,
+            method_type: route.provider,
+            country: 'brazil',
+        })
+    }, [formOpen, request, typedUsd, route.provider])
+
+    // once Confirm opened the ticket, its own numbers are the ones the wallet signs
+    const display = submit.opened?.display ?? preview.data ?? null
+    const holderName = display?.holderName ?? keyInfo?.holderName ?? null
+    // "Save to favorites", as the Pix-key payment offers it: the key the withdrawal pays (the draft
+    // goes when the withdrawal opens), saved once the funding is sent
+    const pixKeySave = usePixKeySavePrompt(submit.opened?.display.pixKey ?? pixKey, holderName ?? undefined)
+    const { saveAfterPayment: saveKey } = pixKeySave
+    useEffect(() => {
+        if (isSent) saveKey()
+    }, [isSent, saveKey])
 
     if (showOutcome) {
         return (
@@ -186,128 +254,38 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 title={title}
                 initialKey={destination}
                 onBack={leaveFlow}
-                onContinue={(key) => {
+                onContinue={(key, info) => {
+                    setKeyInfo(info)
                     updateDraft({ destination: key })
-                    void stepper.goTo('amount')
+                    void stepper.goTo('review')
                 }}
             />
         )
     }
 
-    if (step === 'amount') {
-        const usdForBalance = typedUsd ?? amountUsd
-        // "Use balance" sends the balance itself (spendUsd), which fits by construction; the
-        // estimate beside it is the quote's price for the reais, which can read a cent over
-        const balanceError =
-            enteredIn !== 'balance' &&
-            usdForBalance &&
-            Number(usdForBalance) > 0 &&
-            !isAmountWithinBalance(usdForBalance, spendableBalance)
-                ? tErrors('insufficientBalance')
-                : undefined
-        // the reais the field shows, typed or converted; the API checks the credited amount again
-        const amountError =
-            balanceError ??
-            (minimumBrl && isUnderPixMinimum(typedBrl, minimumBrl)
-                ? tShared('deposit.minimum', { amount: formatBankAmount(minimumBrl, 'BRL') })
-                : undefined)
-        return (
-            <PageStack>
-                <NavHeader title={title} onPrev={() => void stepper.goTo('pix-key')} />
-                <PageStack.Center>
-                    <div className="text-heading-xs text-foreground-primary">{tWithdraw('amountToWithdraw')}</div>
-                    {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
-                    {spendableBalance === 0n ? (
-                        // nothing to withdraw: the field's own error line, no amount to type
-                        <Field error={tErrors('insufficientBalance')}>{null}</Field>
-                    ) : brl.isError ? (
-                        <RateUnavailable onRetry={brl.refetch} />
-                    ) : brl.isLoading || !brl.price ? (
-                        <Loading />
-                    ) : (
-                        <Field error={amountError}>
-                            <AmountInput
-                                initialAmount={seedBrl}
-                                setPrimaryAmount={setTypedBrl}
-                                setSecondaryAmount={setTypedUsd}
-                                // R$, as the deposit amount and the review show reais
-                                primaryDenomination={{
-                                    symbol: SYMBOLS_BY_CURRENCY_CODE.BRL,
-                                    price: brl.price.sell,
-                                    decimals: 2,
-                                }}
-                                secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
-                                onBalanceFilled={() => setEnteredIn('balance')}
-                                onAmountTyped={(symbol) =>
-                                    setEnteredIn(symbol.toUpperCase() === 'USD' ? 'usd' : 'local')
-                                }
-                                walletBalance={spendableBalance !== undefined ? formattedSpendableBalance : undefined}
-                                balanceFillAmount={
-                                    spendableBalanceDecimal !== undefined
-                                        ? spendableBalanceDecimal * brl.price.sell
-                                        : undefined
-                                }
-                            />
-                        </Field>
-                    )}
-                    <Button
-                        variant="primary"
-                        className="w-full"
-                        disabled={!Number(typedUsd) || !!amountError || brl.isError}
-                        onClick={() => {
-                            posthog.capture(ANALYTICS_EVENTS.WITHDRAW_AMOUNT_ENTERED, {
-                                amount_usd: typedUsd,
-                                method_type: route.provider,
-                                country: 'brazil',
-                            })
-                            // the API takes one amount: the one the user typed, or the balance they tapped
-                            const balanceUsd =
-                                enteredIn === 'balance' && spendableBalance !== undefined
-                                    ? formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS)
-                                    : null
-                            const typedLocal = enteredIn === 'local' && typedBrl ? typedBrl : ''
-                            updateDraft({
-                                spendUsd: balanceUsd ?? '',
-                                amountBrl: balanceUsd ? '' : typedLocal,
-                                amountUsd: balanceUsd || typedLocal ? '' : (typedUsd ?? ''),
-                            })
-                            void stepper.goTo('review')
-                        }}
-                    >
-                        {tCommon('continue')}
-                    </Button>
-                </PageStack.Center>
-            </PageStack>
-        )
-    }
-
-    // once Confirm opened the ticket, its own numbers are the ones the wallet signs
-    const display = submit.opened?.display ?? preview.data ?? null
     const reconfirm = submit.phase === 'reconfirm'
     const fundsShort = !!display && !isAmountWithinBalance(display.withdrawUsd, spendableBalance)
-    // each refusal offers the one step that can change it
-    // Each refusal offers the one step that can change it: never a Retry that repeats the refused key or amount.
+    // Each refusal offers the one step that can change it: the key step for a refused key, a Retry
+    // for a moved quote, a throttled lookup, an outage or a network failure. An amount refusal
+    // offers no step: the field is on this screen. Only time helps a withdrawal still on its way,
+    // and only support a rejected account (the callout offers it).
     const previewAction = (code: string | undefined) => {
         switch (code) {
-            // another amount can pass: back to the amount step, the key stays
             case API_ERROR_CODES.PIX_LIMIT_EXCEEDED:
             case API_ERROR_CODES.PIX_MIN_AMOUNT:
-                return { label: t('changeAmount'), onClick: () => void stepper.goTo('amount') }
+            case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
+            case API_ERROR_CODES.PROVIDER_REJECTED:
+                return undefined
             // the key itself was refused: back to the key step, the key kept in the field to edit
             case API_ERROR_CODES.PIX_KEY_NOT_OWN:
             case API_ERROR_CODES.PIX_KEY_BLOCKED:
             case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
                 return { label: t('changeKey'), onClick: () => void stepper.goTo('pix-key') }
-            // only time helps (the message says so), or only support can (the callout offers it)
-            case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
-            case API_ERROR_CODES.PROVIDER_REJECTED:
-                return undefined
-            // a moved quote, a throttled lookup, an outage or a network failure can pass on a retry
             default:
                 return { label: tCommon('retry'), onClick: () => void preview.refetch() }
         }
     }
-    const reviewError = submit.error
+    const formError = submit.error
         ? // once the withdrawal is open, only a signature that surely sent nothing may be tried again
           {
               message:
@@ -318,30 +296,65 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         : preview.error
           ? { message: refusalMessage(preview.error), action: previewAction(wireErrorCode(preview.error)) }
           : fundsShort
-            ? { message: tErrors('insufficientBalance') }
+            ? { message: insufficient }
             : reconfirm
               ? { message: t('quoteMoved'), priority: 'attention' as const }
               : null
 
+    // the field starts from the amount already typed (a reload, or back from the key step), in its own denomination
+    const seed: PixWithdrawAmountSeed | null =
+        enteredIn === 'local' && typedBrl
+            ? { amount: typedBrl, denomination: 'BRL' }
+            : typedUsd
+              ? { amount: typedUsd, denomination: 'USD' }
+              : null
+
     return (
-        <PixWithdrawReview
+        <PixWithdrawForm
             title={title}
+            // an opened ticket keeps its key and amount: back leaves instead of editing them
+            onBack={() => (submit.lockedAfterInit ? leaveFlow() : void stepper.goTo('pix-key'))}
+            recipient={{
+                pixKey: display?.pixKey ?? pixKey ?? '',
+                holderName,
+                bankName: display?.bankName ?? keyInfo?.bankName ?? null,
+                taxIdMasked: keyInfo?.holderTaxIdMasked ?? null,
+            }}
+            save={pixKeySave}
+            amount={{
+                seed,
+                price: brl.price?.sell ?? null,
+                isLoading: brl.isLoading,
+                isError: brl.isError,
+                onRetry: brl.refetch,
+                disabled: submit.phase !== 'idle',
+                error: amountError,
+                walletBalance: spendableBalance !== undefined ? formattedSpendableBalance : undefined,
+                balanceFillAmount:
+                    spendableBalanceDecimal !== undefined && brl.price
+                        ? spendableBalanceDecimal * brl.price.sell
+                        : undefined,
+                onBrlChange: setTypedBrl,
+                onUsdChange: setTypedUsd,
+                onBalanceFilled: () => setEnteredIn('balance'),
+                onAmountTyped: (symbol) => setEnteredIn(symbol.toUpperCase() === 'USD' ? 'usd' : 'local'),
+            }}
             display={display}
+            isQuoteLoading={preview.isLoading}
             providerId={providerId}
-            isLoading={preview.isLoading}
+            error={formError}
             isSubmitting={submit.phase === 'starting' || submit.phase === 'signing'}
-            error={reviewError}
             canConfirm={
                 !!display &&
+                settled &&
                 !fundsShort &&
                 // another balance-decreasing send is still in flight
                 !hasPendingTransactions &&
+                // a ticked "Save to favorites" needs its name, as on the payment form
+                !pixKeySave.blocksPay &&
                 // the open ticket signs from its own numbers; only a new one needs the form's request
-                (submit.canSignOpened || (!submit.lockedAfterInit && !!request))
+                (submit.canSignOpened || (!submit.lockedAfterInit && !!request && !amountError))
             }
-            // an opened ticket keeps its amount: back leaves instead of editing it
-            onBack={() => (submit.lockedAfterInit ? leaveFlow() : void stepper.goTo('amount'))}
-            onCancel={leaveFlow}
             onConfirm={async () => {
                 if (submit.canSignOpened) return submit.confirmOpened()
                 if (!request || !preview.data) return

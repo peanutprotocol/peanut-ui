@@ -655,6 +655,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
     const recipientBankName = recipientBankNameOf(paymentLock)
+    // The provider's flat fee, for the form's "Provider fee" row (shared with the Pix withdrawal,
+    // where Avenia charges R$0.75). The Manteca lock carries none (`QrPaymentLock`), so no row.
+    const providerFee: string | null = null
 
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
@@ -1403,6 +1406,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         usdAmount,
         merchantName,
         recipientBankName,
+        providerFee,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
