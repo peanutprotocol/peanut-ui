@@ -45,7 +45,7 @@
         "components/Kyc/modals/KycProcessingModal.tsx": 71,
         "components/Profile/views/About.view.tsx": 243,
         "components/Profile/views/MoneySettings.view.tsx": 690,
-        "components/Profile/views/ProfileDetails.view.tsx": 372,
+        "components/Profile/views/ProfileDetails.view.tsx": 374,
         "components/Profile/views/ResidenceChangeDrawer.tsx": 140,
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 187,
         "components/Request/link/views/RequestCreatedView.tsx": 220,
