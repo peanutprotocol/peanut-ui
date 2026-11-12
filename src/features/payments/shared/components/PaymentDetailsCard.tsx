@@ -19,14 +19,17 @@ import { formatFiniteDisplay } from '@/utils/currency'
  * - Peanut fee: always "Sponsored by Peanut!" (zero on both flows).
  * - Provider fee: when the quote carries a flat fee (Avenia's R$0.75); hidden
  *   when it does not (Manteca charges none).
+ * - Bank receives / Total: the withdrawal, the exact reais and the exact
+ *   wallet debit its quote names; each row waits while the quote is in flight.
  * - Provider (?): when the route names one.
  */
 export function PaymentDetailsCard({
     rate,
     savings,
     providerFee,
+    payout,
+    total,
     providerId,
-    loading = false,
 }: {
     /** The local currency per USD, as the quote gives it, and the currency's code; null while no quote is in hand. */
     rate: { price: number; code: string } | null
@@ -34,14 +37,17 @@ export function PaymentDetailsCard({
     savings?: { usd: string; currencyCode: string } | null
     /** The provider's flat fee, formatted ("R$0.75"); null or undefined shows no row. */
     providerFee?: string | null
+    /** The exact local amount the quote pays out ("R$503"), where it was not typed; null waits for the quote, left out shows no row. */
+    payout?: string | null
+    /** The exact wallet debit the quote names ("$92.50"); null waits for the quote, left out shows no row. */
+    total?: string | null
     providerId: ProviderId | null
-    /** The quote is in flight: the rows keep their labels and show no values. */
-    loading?: boolean
 }) {
     const t = useTranslations('qrPay')
     const tCommon = useTranslations('common')
     const tProvider = useTranslations('provider')
     const tPix = useTranslations('pix.withdraw')
+    const tWithdraw = useTranslations('withdraw')
 
     const rows: Array<{ key: string; label: ReactNode; value: ReactNode; moreInfoText?: string; loading?: boolean }> = [
         {
@@ -51,7 +57,6 @@ export function PaymentDetailsCard({
                 ? `1 USD = ${formatFiniteDisplay(rate.price, 'en-US', { maximumFractionDigits: 20, useGrouping: false })} ${rate.code.toUpperCase()}`
                 : '',
             moreInfoText: tCommon('exchangeRateInfo'),
-            loading,
         },
     ]
     if (savings) {
@@ -66,7 +71,16 @@ export function PaymentDetailsCard({
         })
     }
     rows.push({ key: 'peanut-fee', label: tCommon('peanutFee'), value: tCommon('sponsoredByPeanut') })
-    if (providerFee) rows.push({ key: 'provider-fee', label: tPix('fee'), value: providerFee, loading })
+    if (providerFee) rows.push({ key: 'provider-fee', label: tPix('fee'), value: providerFee })
+    if (payout !== undefined)
+        rows.push({
+            key: 'payout',
+            label: tWithdraw('bank.bankReceives'),
+            value: payout ?? '',
+            loading: payout === null,
+        })
+    if (total !== undefined)
+        rows.push({ key: 'total', label: tWithdraw('confirm.youPay'), value: total ?? '', loading: total === null })
     if (providerId) {
         rows.push({
             key: 'provider',

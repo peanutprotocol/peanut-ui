@@ -11,12 +11,14 @@ jest.mock('@/components/Provider/ProviderHelp', () => ({
 import { PaymentDetailsCard } from '../PaymentDetailsCard'
 
 describe('PaymentDetailsCard', () => {
-    it('shows the rate, the savings against a card, the sponsored Peanut fee, the provider fee and the provider', () => {
+    it('shows the rate, the savings against a card, the sponsored Peanut fee, the provider fee, the exact payout and total, and the provider', () => {
         renderWithIntl(
             <PaymentDetailsCard
                 rate={{ price: 5.4, code: 'BRL' }}
                 savings={{ usd: '0.93', currencyCode: 'BRL' }}
                 providerFee="R$0.75"
+                payout="R$503"
+                total="$92.50"
                 providerId="manteca-br"
             />
         )
@@ -28,6 +30,10 @@ describe('PaymentDetailsCard', () => {
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
+        expect(screen.getByText('R$503')).toBeInTheDocument()
+        expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
+        expect(screen.getByText('$92.50')).toBeInTheDocument()
         expect(screen.getByText(en.provider.label.provider)).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
     })
@@ -39,6 +45,8 @@ describe('PaymentDetailsCard', () => {
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()
+        expect(screen.queryByText(en.withdraw.confirm.youPay)).toBeNull()
         expect(screen.queryByText(en.provider.label.provider)).toBeNull()
     })
 })

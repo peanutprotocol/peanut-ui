@@ -84,7 +84,10 @@ test.describe('Pix on the Avenia route', () => {
         await expect(page.getByText('R$0.75')).toBeVisible()
         await expect(page.getByText('1 USD = 5.445946 BRL')).toBeVisible()
         await expect(page.getByText('Sponsored by Peanut!')).toBeVisible()
+        // the exact wallet debit the quote names, never the field's estimate
+        await expect(page.getByText('$92.50')).toBeVisible()
         await expect(page.getByText('Save vs card')).toHaveCount(0)
+        await expect(page.getByText('Save to favorites')).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
     })
 

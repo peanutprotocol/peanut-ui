@@ -26,7 +26,6 @@ const display = {
     provider: 'Avenia' as const,
 }
 const noop = () => {}
-const save = { savedName: null, isOffered: false, checked: false, nickname: '', setChecked: noop, setNickname: noop }
 const amount = {
     seed: { amount: '503', denomination: 'BRL' as const },
     price: 5.4,
@@ -45,10 +44,9 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
             title="Withdraw"
             onBack={noop}
             recipient={{ pixKey: display.pixKey, holderName: 'Ana Souza', bankName: 'Banco Inter', taxIdMasked: null }}
-            save={save}
             amount={amount}
             display={display}
-            isQuoteLoading={false}
+            total="$92.50"
             providerId="avenia-br"
             error={null}
             isSubmitting={false}
@@ -60,7 +58,7 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
 
 describe('PixWithdrawForm', () => {
     // the Pix-key payment form, with the withdrawal's lead word and button (ruling 2026-11-12)
-    it('leads with Withdrawing, the holder, their CPF and bank; then the rate with the fees in, the sponsored Peanut fee, the flat fee apart and the provider', () => {
+    it('leads with Withdrawing, the holder, their CPF and bank; then the rate with the fees in, the sponsored Peanut fee, the flat fee apart, the exact total and the provider', () => {
         renderForm()
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
@@ -73,11 +71,17 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        // the exact wallet debit the quote names, as the removed review showed it
+        expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
+        expect(screen.getByText('$92.50')).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['avenia-br'].brand)).toBeInTheDocument()
         expect(screen.getByText('help avenia-br')).toBeInTheDocument()
-        // a withdrawal saves nothing against a card, and the form has no Arrives row
+        // a withdrawal saves nothing against a card, has no Arrives row, and typed reais need no payout row
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
+        expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()
+        // no "Save to favorites" on the withdrawal until the API has an own-key save path (TASK-24841)
+        expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
     })
 
@@ -105,10 +109,22 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
     })
 
+    // the user typed USD or tapped the balance: the reais are the quote's, so they get their own row
+    it('shows the exact reais the quote pays out where the amount was not typed in reais', () => {
+        renderForm({
+            amount: { ...amount, seed: { amount: '92.50', denomination: 'USD' } },
+            payout: 'R$503',
+        })
+        expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
+        expect(screen.getByText('R$503')).toBeInTheDocument()
+        expect(screen.getByText('$92.50')).toBeInTheDocument()
+    })
+
     // a refused quote has no numbers: the field converts with the indicative quote, the message and its action stand under Confirm
-    it('shows a refused quote as its message and action, with Confirm off and no fee row', () => {
+    it('shows a refused quote as its message and action, with Confirm off and no fee or total row', () => {
         renderForm({
             display: null,
+            total: undefined,
             canConfirm: false,
             error: {
                 message: en.pix.withdraw.errors.limitExceeded,
@@ -119,18 +135,15 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByRole('button', { name: en.common.retry })).toBeInTheDocument()
         expect(screen.getByText('1 USD = 5.4 BRL')).toBeInTheDocument()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        expect(screen.queryByText(en.withdraw.confirm.youPay)).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
-    it('offers to save the key under its holder, as the payment form does', () => {
-        renderForm({ save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' } })
-        expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
-        expect(screen.getByDisplayValue('Ana Souza')).toBeInTheDocument()
-    })
-
-    it('names the key the user already saved', () => {
-        renderForm({ save: { ...save, savedName: 'Inter' } })
-        expect(screen.getByTestId('pix-key-saved-as')).toHaveTextContent('Saved as Inter')
-        expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
+    // the quote of the amount on screen is in flight: the Total row waits for it rather than showing an estimate
+    it('waits for the quote on the Total row while it is in flight', () => {
+        const { container } = renderForm({ display: null, total: null, canConfirm: false })
+        expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
+        expect(screen.queryByText('$92.50')).toBeNull()
+        expect(container.querySelector('.animate-spin')).not.toBeNull()
     })
 })

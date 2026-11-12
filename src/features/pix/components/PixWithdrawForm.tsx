@@ -13,7 +13,6 @@ import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { AmountCard } from '@/features/payments/shared/components/AmountCard'
 import { PaymentDetailsCard } from '@/features/payments/shared/components/PaymentDetailsCard'
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
-import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
 import { pixShownRate } from '@/features/pix/pixFlow.utils'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
@@ -29,20 +28,26 @@ export interface PixWithdrawAmountSeed {
 /**
  * The one form of a Pix withdrawal, after the key resolved: the Pix-key
  * payment form with "Withdrawing" as its lead word and Confirm as its button
- * (ruling 2026-11-12, providers are cattle). The recipient card, the save
- * card, the amount card and the details card are the payment form's own
- * parts; the details card adds the provider's flat fee where the quote
- * carries one. Dumb view: the flow owns the quote, the preview, the draft and
- * the confirm.
+ * (ruling 2026-11-12, providers are cattle). The recipient card, the amount
+ * card and the details card are the payment form's own parts; the details
+ * card adds the provider's flat fee where the quote carries one, and the exact
+ * reais and wallet debit the quote names. Dumb view: the flow owns the quote,
+ * the preview, the draft and the confirm.
+ *
+ * No "Save to favorites" card yet (the payment form keeps it): POST
+ * /manteca/pix-key/saved stores a key as a Pix recipient (Send → Bank) and
+ * needs Pix payment eligibility, so a resident's own key could fail to save
+ * and would never be offered to a withdrawal. It comes back with an own-key
+ * save path in the API (TASK-24841).
  */
 export function PixWithdrawForm({
     title,
     onBack,
     recipient,
-    save,
     amount,
     display,
-    isQuoteLoading,
+    payout,
+    total,
     providerId,
     error,
     isSubmitting,
@@ -53,11 +58,10 @@ export function PixWithdrawForm({
     onBack: () => void
     /** The resolved key: its holder and bank from the lookup, or from the quote after a reload. */
     recipient: { pixKey: string; holderName: string | null; bankName: string | null; taxIdMasked: string | null }
-    save: SaveRecipientState
     amount: {
         /** Read once, when the form mounts: the field is never re-seeded while the user types. */
         seed: PixWithdrawAmountSeed | null
-        /** BRL per USD from the provider's indicative quote; null while it loads. */
+        /** BRL per USD the field converts with: the quote in hand's exact ratio, else the indicative quote's; null while it loads. */
         price: number | null
         isLoading: boolean
         isError: boolean
@@ -73,9 +77,12 @@ export function PixWithdrawForm({
         onBalanceFilled: () => void
         onAmountTyped: (symbol: string) => void
     }
-    /** The quote for the amount on screen (POST /pix/withdraw/preview); null while it loads or after it was refused. */
+    /** The quote for the amount on screen (POST /pix/withdraw/preview), or the opened withdrawal's; null while it loads, while the amount still changes, or after it was refused. */
     display: PixWithdrawDisplay | null
-    isQuoteLoading: boolean
+    /** The exact reais the quote pays out, where the amount was not typed in reais; null waits, left out shows no row. */
+    payout?: string | null
+    /** The exact wallet debit the quote names; null waits, left out shows no row. */
+    total?: string | null
     /** The provider the route names, for its row and sheet; null shows no row. */
     providerId: ProviderId | null
     /** A refusal (error), or the opened quote that moved since the form (attention). */
@@ -113,8 +120,6 @@ export function PixWithdrawForm({
                     bankName={recipient.bankName}
                 />
 
-                <SaveRecipientCard save={save} />
-
                 {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
                 {amount.isError ? (
                     <RateUnavailable onRetry={amount.onRetry} />
@@ -141,8 +146,9 @@ export function PixWithdrawForm({
                 <PaymentDetailsCard
                     rate={rate}
                     providerFee={providerFee}
+                    payout={payout}
+                    total={total}
                     providerId={providerId}
-                    loading={isQuoteLoading}
                 />
 
                 <Button
