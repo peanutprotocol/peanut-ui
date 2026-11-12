@@ -173,6 +173,7 @@
             "descriptionPending": "Autorización enviada, aún sin confirmar. Revisa el estado en un momento. No autorices dos veces.",
             "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
             "descriptionUpdateError": "No pudimos terminar la actualización. Intenta de nuevo u omítelo por ahora. Te lo volveremos a pedir más tarde.",
+            "descriptionSignatureRejected": "No se pudo verificar la firma con passkey de esta tarjeta. Intenta de nuevo u omítelo por ahora. Contacta soporte si vuelve a pasar.",
             "descriptionReadyReturn": "Tu tarjeta está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionReturnRetry": "Tu tarjeta está lista, pero el saldo de la tarjeta no se terminó de mover. Se puede reintentar ahora o más tarde desde la pantalla de la tarjeta.",
             "descriptionUpdateReadyReturn": "La actualización está lista. {amount} del saldo de la tarjeta se puede pasar a tu billetera ahora o más tarde desde la pantalla de la tarjeta.",
@@ -2094,6 +2095,7 @@
             "issueFailed": "Tu solicitud fue aprobada, pero no pudimos crear tu tarjeta. Inténtalo de nuevo.",
             "confirmCountryFailed": "No se pudo confirmar el país",
             "setupCancelled": "Configuración cancelada — inténtalo de nuevo.",
+            "setupSignatureRejected": "No se pudo verificar la firma con passkey de esta tarjeta — inténtalo de nuevo y contacta soporte si vuelve a pasar.",
             "setupFailed": "No se pudo completar la configuración — inténtalo de nuevo.",
             "verificationSlow": "La verificación está tardando más de lo esperado. Inténtalo de nuevo."
         },
@@ -4576,6 +4578,7 @@
             "successDescription": "Tu tarjeta está lista — intenta tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Toca Reactivar tarjeta para intentarlo otra vez.",
             "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Toca Reactivar tarjeta una vez más.",
+            "signatureRejectedError": "No se pudo verificar la firma con passkey de esta tarjeta. Toca Reactivar tarjeta para intentarlo de nuevo y contacta soporte si vuelve a pasar.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Inténtalo de nuevo.",
             "reEnableCta": "Reactivar tarjeta",
             "workingCta": "Procesando…",

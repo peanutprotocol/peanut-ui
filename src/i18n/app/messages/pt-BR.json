@@ -173,6 +173,7 @@
             "descriptionPending": "Autorização enviada, mas ainda não confirmada. Verifique o status em instantes. Não autorize duas vezes.",
             "descriptionError": "Não conseguimos terminar de configurar seu cartão. Tente de novo ou pule por enquanto. Vamos pedir de novo mais tarde.",
             "descriptionUpdateError": "Não conseguimos terminar a atualização. Tente de novo ou pule por enquanto. Vamos pedir de novo mais tarde.",
+            "descriptionSignatureRejected": "Não foi possível verificar a assinatura com passkey deste cartão. Tente de novo ou pule por enquanto. Fale com o suporte se acontecer de novo.",
             "descriptionReadyReturn": "Seu cartão está pronto. Mova {amount} do saldo do cartão para sua carteira agora ou depois, pela tela do cartão.",
             "descriptionReturnRetry": "Seu cartão está pronto, mas a transferência do saldo do cartão não terminou. Tente de novo agora ou depois, pela tela do cartão.",
             "descriptionUpdateReadyReturn": "A atualização foi concluída. Mova {amount} do saldo do cartão para sua carteira agora ou depois, pela tela do cartão.",
@@ -2094,6 +2095,7 @@
             "issueFailed": "Seu pedido foi aprovado, mas não conseguimos criar seu cartão. Tente de novo.",
             "confirmCountryFailed": "Não foi possível confirmar o país",
             "setupCancelled": "Configuração cancelada — tente de novo.",
+            "setupSignatureRejected": "Não foi possível verificar a assinatura com passkey deste cartão — tente de novo e fale com o suporte se acontecer de novo.",
             "setupFailed": "Não foi possível concluir a configuração — tente de novo.",
             "verificationSlow": "A verificação está demorando mais que o esperado. Tente de novo."
         },
@@ -4576,6 +4578,7 @@
             "successDescription": "Seu cartão está pronto — tente o saque de novo.",
             "cancelledError": "A reativação foi cancelada. Toque em Reativar cartão para tentar de novo.",
             "rotatedError": "Seu cartão foi atualizado enquanto salvávamos. Toque em Reativar cartão mais uma vez.",
+            "signatureRejectedError": "Não foi possível verificar a assinatura com passkey deste cartão. Toque em Reativar cartão para tentar de novo e fale com o suporte se acontecer de novo.",
             "unexpectedError": "Não conseguimos reativar seu cartão. Tente novamente.",
             "reEnableCta": "Reativar cartão",
             "workingCta": "Processando…",
