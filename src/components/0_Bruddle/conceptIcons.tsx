@@ -1,9 +1,15 @@
-import Image from 'next/image'
+import Image, { type StaticImageData } from 'next/image'
 import { LOGO } from '@/assets/brand'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import PIX from '@/assets/payment-apps/pix.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type IconBubbleColor } from './IconBubble'
+
+/** An icon in its coloured bubble. */
+type ConceptBubble = { icon: IconName | React.ReactElement; color: IconBubbleColor }
+/** A brand mark that is the whole circle: no bubble behind it, so no colour can reach it. */
+type ConceptLogo = { logo: StaticImageData }
+export type ConceptIcon = ConceptBubble | ConceptLogo
 
 /**
  * One icon and one bubble color per product concept (TASK-23054). A row,
@@ -14,8 +20,9 @@ import { type IconBubbleColor } from './IconBubble'
  * Flags, chain logos and the Mercado Pago mark are not concepts: they name one
  * country, network or brand and keep their own image in the same leading slot.
  * The Pix mark is the one brand mark here (`pix`): Pix is a method of its own
- * in the app (an Add money entry, its setup, a Home step), so it takes the
- * method blue behind the mark it ships with (Aleks, 2026-11-12).
+ * in the app (an Add money entry, its setup, a Home step). It is a `logo`
+ * entry: the mark as it ships is the whole circle, with no bubble behind it,
+ * the way a flag or a chain logo leads a row (Aleks, 2026-11-12, TASK-24841).
  *
  * Blue is the method color (the IconBubble showcase: "blue plain information
  * or a neutral method/action icon", gray is inactive). Yellow marks what is
@@ -31,11 +38,8 @@ export const CONCEPT_ICONS = {
     cash: { icon: 'currency', color: 'blue' },
     balance: { icon: 'dollar', color: 'yellow' },
     crypto: { icon: 'coins', color: 'blue' },
-    // the mark as it ships, never recolored; half the bubble, the s and m icon size
-    pix: {
-        icon: <Image src={PIX} alt="" className="h-1/2 w-auto" />,
-        color: 'blue',
-    },
+    // the mark as it ships, never recolored or cropped: the whole circle, no bubble
+    pix: { logo: PIX },
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
     qrPay: { icon: 'qr-code', color: 'brand' },
@@ -60,6 +64,15 @@ export const CONCEPT_ICONS = {
         color: 'yellow',
     },
     badges: { icon: 'achievements', color: 'yellow' },
-} as const satisfies Record<string, { icon: IconName | React.ReactElement; color: IconBubbleColor }>
+} as const satisfies Record<string, ConceptIcon>
 
 export type Concept = keyof typeof CONCEPT_ICONS
+
+/**
+ * The concepts drawn as an icon in a coloured bubble: every one but a logo. A
+ * modal or drawer hero (ActionModal, AskShell) composes the icon and the colour
+ * itself, so it takes one of these.
+ */
+export type IconConcept = {
+    [K in Concept]: (typeof CONCEPT_ICONS)[K] extends ConceptBubble ? K : never
+}[Concept]

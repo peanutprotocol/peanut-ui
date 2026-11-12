@@ -9,7 +9,7 @@ import ActionModal, {
 } from '@/components/Global/ActionModal'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/Global/Drawer'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
+import { CONCEPT_ICONS, type IconConcept } from '@/components/0_Bruddle/conceptIcons'
 import { Button } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -21,7 +21,7 @@ export interface AskShellProps {
     presentation: InterruptPresentation
     visible?: boolean
     icon?: IconName
-    concept?: Concept
+    concept?: IconConcept
     iconColor?: IconBubbleColor
     tone?: ActionModalProps['tone']
     title: ReactNode

@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -30,13 +30,8 @@ function ChannelIcon({ channel, size }: { channel: SetupChannel | null; size: 'x
     // Nothing chosen yet: gray (design.md); an empty bubble read as a broken image
     if (!channel) return <IconBubble icon="question-mark" size={size} color="gray" />
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
-    return (
-        <IconBubble
-            {...CONCEPT_ICONS[concept]}
-            size={size}
-            color={concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color}
-        />
-    )
+    const color: IconBubbleColor = concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color
+    return <IconBubble {...CONCEPT_ICONS[concept]} size={size} color={color} />
 }
 
 function ChannelPicker<C extends SetupChannel>({

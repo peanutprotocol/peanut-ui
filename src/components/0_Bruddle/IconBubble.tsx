@@ -1,3 +1,4 @@
+import Image, { type StaticImageData } from 'next/image'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 
@@ -21,6 +22,21 @@ interface IconBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
     size?: IconBubbleSize
     color?: IconBubbleColor
     iconClassName?: string
+    logo?: never
+}
+
+/**
+ * A brand mark in the bubble's slot: the mark is the whole circle, scaled to
+ * the bubble's diameter, and no colour is drawn behind it. design.md: flags,
+ * chain and payment-brand logos replace the bubble, and no state colour
+ * reaches them. The Pix mark is one (`CONCEPT_ICONS.pix`, Aleks 2026-11-12).
+ */
+interface LogoBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
+    logo: StaticImageData
+    size?: IconBubbleSize
+    icon?: never
+    color?: never
+    iconClassName?: never
 }
 
 // board 17802:61528: bubble sizes xs=24 s=32 m=48 l=72. xl=96 has no board
@@ -56,31 +72,40 @@ const bubbleColors: Record<IconBubbleColor, string> = {
     brand: 'bg-background-brand',
 }
 
+const bubbleShape = 'flex shrink-0 items-center justify-center rounded-full'
+
 /**
  * Round colored icon container from the figma icon-bubble board (17802:61528).
  * Sizes: xs=24, s=32, m=48 (card default), l=72, xl=96px (person slot only).
+ * Given `logo` instead of `icon`, the mark is the circle and no colour is drawn.
  */
-export const IconBubble = ({
-    icon,
-    size = 'm',
-    color = 'green',
-    className,
-    iconClassName,
-    ...props
-}: IconBubbleProps) => (
-    <div
-        className={twMerge(
-            'flex shrink-0 items-center justify-center rounded-full text-foreground-primary',
-            bubbleSizes[size],
-            bubbleColors[color],
-            className
-        )}
-        {...props}
-    >
-        {typeof icon === 'string' ? (
-            <Icon name={icon as IconName} size={bubbleIconSizes[size]} className={iconClassName} />
-        ) : (
-            icon
-        )}
-    </div>
-)
+export const IconBubble = (props: IconBubbleProps | LogoBubbleProps) => {
+    if (props.logo) {
+        const { logo, size = 'm', className, ...rest } = props
+        return (
+            <div className={twMerge(bubbleShape, bubbleSizes[size], className)} {...rest}>
+                {/* the asset as it ships, fitted to the diameter: never recoloured or cropped */}
+                <Image src={logo} alt="" className="size-full" />
+            </div>
+        )
+    }
+    const { icon, size = 'm', color = 'green', className, iconClassName, ...rest } = props
+    return (
+        <div
+            className={twMerge(
+                bubbleShape,
+                'text-foreground-primary',
+                bubbleSizes[size],
+                bubbleColors[color],
+                className
+            )}
+            {...rest}
+        >
+            {typeof icon === 'string' ? (
+                <Icon name={icon as IconName} size={bubbleIconSizes[size]} className={iconClassName} />
+            ) : (
+                icon
+            )}
+        </div>
+    )
+}
