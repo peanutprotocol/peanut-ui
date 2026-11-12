@@ -1,6 +1,8 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import { getFromCookie } from '@/utils/general.utils'
+import { getFromCookie, toInviteCode } from '@/utils/general.utils'
+import { readInviteCode, stashInvite } from '@/utils/invite-stash'
+import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -102,6 +104,7 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
 }))
 jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
+    BADGE_CAMPAIGN_QUERY_PARAM: 'badge_campaign',
     badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
     getPendingBadgeCampaigns: () => mockGetPendingBadgeCampaigns(),
     queuePendingBadgeCampaigns: (campaigns: readonly string[]) => mockQueuePendingBadgeCampaigns(campaigns),
@@ -180,6 +183,8 @@ beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
     jest.mocked(getFromCookie).mockReset()
+    jest.mocked(readInviteCode).mockReset()
+    jest.mocked(toInviteCode).mockReset()
     mockNoBackLock = null
     mockSignupCompleted = false
     mockSellScreensCountry = undefined
@@ -312,6 +317,30 @@ it('keeps the signup fast path on the first visit of a keep-web link', async () 
     renderWithIntl(<SetupPage />)
     await advance(100)
 
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
+})
+
+it('restores the signup context of the Android app browser handoff in a fresh browser (TASK-24498)', async () => {
+    // The app side: the link the drawer opens, built from the app's own storage.
+    jest.mocked(readInviteCode).mockReturnValue('alice')
+    mockGetPendingBadgeCampaigns.mockReturnValue(['nita'])
+    window.history.replaceState({}, '', `/setup?redirect_uri=${encodeURIComponent('/add-money')}`)
+    const handoff = new URL(keepWebSignupUrl())
+    window.history.replaceState({}, '', '/')
+    // The browser side: nothing stored, only the link.
+    jest.mocked(readInviteCode).mockReturnValue('')
+    mockGetPendingBadgeCampaigns.mockReturnValue([])
+    jest.mocked(toInviteCode).mockImplementation((code: string) => code)
+    mockNative = false
+    mockSearchParams = handoff.searchParams
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(handoff.searchParams.get('redirect_uri')).toBe('/add-money')
+    expect(handoff.searchParams.getAll('badge_campaign')).toEqual(['nita'])
+    expect(stashInvite).toHaveBeenCalledWith('alice', 'DIRECT')
+    expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['nita'])
     expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
 })
 

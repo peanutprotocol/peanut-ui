@@ -28,6 +28,8 @@ const mockPasskey = {
     closeHelp: jest.fn(),
     retryFromHelp: jest.fn(),
     isProviderUnsupportedOpen: false,
+    providerUnsupportedPlatform: 'android-app',
+    browserOpenFailed: false,
     closeProviderUnsupported: jest.fn(),
     retryFromProviderUnsupported: jest.fn(),
     signUpInBrowser: jest.fn(),

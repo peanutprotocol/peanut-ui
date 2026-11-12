@@ -19,6 +19,7 @@ const mockNext = jest.fn()
 let mockHandleNext = mockNext
 let mockDeviceType = 'android'
 let mockIOSNativeBridge = false
+let mockAndroidNativeBridge = false
 // The OS sheet's own duration for the attempt, as the telemetry wrapper records it.
 let mockCeremony: { durationMs: number } | undefined
 
@@ -34,6 +35,7 @@ jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceTyp
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
     isIOSNativeBridge: () => mockIOSNativeBridge,
+    isAndroidNativeBridge: () => mockAndroidNativeBridge,
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock, steps: [] }),
@@ -63,7 +65,12 @@ function Harness() {
             {passkey.isHelpOpen && <div role="dialog">{passkey.helpErrorName}</div>}
             {passkey.isHelpOpen && <button onClick={passkey.retryFromHelp}>Retry</button>}
             {passkey.isProviderUnsupportedOpen && (
-                <div role="dialog" aria-label="Unsupported passkey provider">
+                <div
+                    role="dialog"
+                    aria-label="Unsupported passkey provider"
+                    data-platform={passkey.providerUnsupportedPlatform}
+                >
+                    {passkey.browserOpenFailed && <p>The browser did not open</p>}
                     <button onClick={passkey.retryFromProviderUnsupported}>Retry with another provider</button>
                     <button onClick={passkey.signUpInBrowser}>Sign up in a browser</button>
                 </div>
@@ -82,6 +89,7 @@ beforeEach(() => {
     mockHandleNext = mockNext
     mockDeviceType = 'android'
     mockIOSNativeBridge = false
+    mockAndroidNativeBridge = false
     mockCeremony = undefined
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
@@ -524,10 +532,14 @@ describe('Android failures that are not cancels', () => {
         })
 
     it('opens the unsupported-provider drawer without signup completion or a generic help drawer', async () => {
+        mockAndroidNativeBridge = true
         mockHandleRegister.mockRejectedValue(providerRefusal())
         const view = renderWithIntl(<Harness />)
         claim()
-        expect(await screen.findByRole('dialog', { name: 'Unsupported passkey provider' })).toBeInTheDocument()
+        expect(await screen.findByRole('dialog', { name: 'Unsupported passkey provider' })).toHaveAttribute(
+            'data-platform',
+            'android-app'
+        )
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
         expect(failedEvents()).toEqual([
@@ -571,9 +583,52 @@ describe('Android failures that are not cancels', () => {
         expect(failedEvents()).toHaveLength(2)
     })
 
+    it('guides an API refusal outside the Android app with the iOS and web drawer', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('Unsupported passkey provider'), {
+                name: 'PasskeyProviderUnsupportedError',
+                code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+            })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+
+        expect(await screen.findByRole('dialog', { name: 'Unsupported passkey provider' })).toHaveAttribute(
+            'data-platform',
+            'other'
+        )
+    })
+
+    it('keeps the drawer open with the error when the browser does not open', async () => {
+        const open = jest.spyOn(window, 'open').mockImplementation(() => {
+            throw new Error('No Activity found to handle Intent')
+        })
+        try {
+            mockAndroidNativeBridge = true
+            mockHandleRegister.mockRejectedValue(providerRefusal())
+            renderWithIntl(<Harness />)
+            claim()
+            fireEvent.click(await screen.findByRole('button', { name: 'Sign up in a browser' }))
+
+            expect(await screen.findByText('The browser did not open')).toBeInTheDocument()
+            expect(screen.getByRole('dialog', { name: 'Unsupported passkey provider' })).toBeInTheDocument()
+            expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+                tags: { error_type: 'passkey_provider_browser_open_failed' },
+            })
+
+            // A second tap that works closes the drawer and clears the error.
+            open.mockReturnValue(window)
+            fireEvent.click(screen.getByRole('button', { name: 'Sign up in a browser' }))
+            await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        } finally {
+            open.mockRestore()
+        }
+    })
+
     it('opens web signup with the keep-web hatch in the browser, where the browser writes the signed note', async () => {
         const open = jest.spyOn(window, 'open').mockReturnValue(window)
         try {
+            mockAndroidNativeBridge = true
             mockHandleRegister.mockRejectedValue(providerRefusal())
             renderWithIntl(<Harness />)
             claim()
@@ -585,7 +640,7 @@ describe('Android failures that are not cancels', () => {
                     '_blank'
                 )
             )
-            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+            await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
             expect(mockHandleRegister).toHaveBeenCalledTimes(1)
         } finally {
             open.mockRestore()

@@ -118,6 +118,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '08-d-passkeyproviderunsupporteddrawer': {
         name: 'PasskeyProviderUnsupportedDrawer',
         path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=android-app'],
+    },
+    '08-e-passkeyproviderunsupporteddrawer-browser-failed': {
+        name: 'PasskeyProviderUnsupportedDrawer — browser did not open',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=android-app', 'browser=open-failed'],
+    },
+    '08-f-passkeyproviderunsupporteddrawer-other': {
+        name: 'PasskeyProviderUnsupportedDrawer — iOS and web',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=other'],
     },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },

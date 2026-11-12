@@ -338,6 +338,8 @@ const SignupStep = () => {
             )}
             <PasskeyProviderUnsupportedDrawer
                 visible={passkey.isProviderUnsupportedOpen}
+                platform={passkey.providerUnsupportedPlatform}
+                browserOpenFailed={passkey.browserOpenFailed}
                 onClose={() => {
                     track('passkey_provider', 'dismiss')
                     passkey.closeProviderUnsupported()
@@ -348,7 +350,7 @@ const SignupStep = () => {
                 }}
                 onSignUpInBrowser={() => {
                     track('passkey_provider_web_signup', 'tap')
-                    passkey.signUpInBrowser()
+                    void passkey.signUpInBrowser()
                 }}
                 onSupport={() => track('passkey_provider_support', 'tap')}
             />

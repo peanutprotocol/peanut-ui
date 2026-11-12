@@ -969,12 +969,14 @@
             "signUp": "I’m new, create an account"
         },
         "passkeyProvider": {
-            "title": "This phone saved the passkey in a format Peanut can’t verify",
+            "title": "This password manager saved a passkey Peanut can’t verify",
             "steps": {
                 "openSettings": "Open Settings → Passwords, passkeys and accounts.",
                 "chooseGoogle": "Set Google Password Manager as the preferred service, then retry."
             },
-            "signUpInBrowser": "Sign up at peanut.me in a browser"
+            "signUpInBrowser": "Sign up at peanut.me in a browser",
+            "useAnotherManager": "Use another password manager, then retry.",
+            "browserOpenFailed": "The browser didn’t open. Try again."
         },
         "waitlist": {
             "loginCanceled": "Login was canceled. Please try again.",

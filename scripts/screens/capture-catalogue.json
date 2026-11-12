@@ -208,6 +208,18 @@
         "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
     },
     {
+        "id": "08-e-passkeyproviderunsupporteddrawer-browser-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-e-passkeyproviderunsupporteddrawer-browser-failed",
+        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
+    },
+    {
+        "id": "08-f-passkeyproviderunsupporteddrawer-other",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-f-passkeyproviderunsupporteddrawer-other",
+        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
+    },
+    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",

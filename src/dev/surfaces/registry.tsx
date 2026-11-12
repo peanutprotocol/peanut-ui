@@ -529,6 +529,34 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <PasskeyProviderUnsupportedDrawer
                 visible
+                platform="android-app"
+                onClose={noop}
+                onRetry={noop}
+                onSignUpInBrowser={noop}
+                onSupport={noop}
+            />
+        ),
+    },
+    '08-e-passkeyproviderunsupporteddrawer-browser-failed': {
+        ...SURFACE_META['08-e-passkeyproviderunsupporteddrawer-browser-failed'],
+        render: () => (
+            <PasskeyProviderUnsupportedDrawer
+                visible
+                platform="android-app"
+                browserOpenFailed
+                onClose={noop}
+                onRetry={noop}
+                onSignUpInBrowser={noop}
+                onSupport={noop}
+            />
+        ),
+    },
+    '08-f-passkeyproviderunsupporteddrawer-other': {
+        ...SURFACE_META['08-f-passkeyproviderunsupporteddrawer-other'],
+        render: () => (
+            <PasskeyProviderUnsupportedDrawer
+                visible
+                platform="other"
                 onClose={noop}
                 onRetry={noop}
                 onSignUpInBrowser={noop}

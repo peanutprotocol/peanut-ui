@@ -10,8 +10,8 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor, isIOSNativeBridge, openExternalUrl } from '@/utils/capacitor'
-import { KEEP_WEB_SIGNUP_URL } from '@/constants/migration.consts'
+import { isAndroidNativeBridge, isCapacitor, isIOSNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
 import type { PasskeyProviderUnsupportedError } from '@/utils/passkey-registration-compatibility'
 import { apiFetch } from '@/utils/api-fetch'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
@@ -80,7 +80,9 @@ export function useSignupPasskey(username: string) {
     const { deviceType } = useDeviceType()
     const [helpErrorName, setHelpErrorName] = useState<string | null>(null)
     const [isHelpOpen, setIsHelpOpen] = useState(false)
-    const [isProviderUnsupportedOpen, setIsProviderUnsupportedOpen] = useState(false)
+    // Set when signup refuses the passkey's layout; the platform picks the drawer's guidance.
+    const [providerUnsupportedPlatform, setProviderUnsupportedPlatform] = useState<'android-app' | 'other' | null>(null)
+    const [browserOpenFailed, setBrowserOpenFailed] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
     const [usernameTaken, setUsernameTaken] = useState(false)
@@ -192,7 +194,8 @@ export function useSignupPasskey(username: string) {
                     },
                     extra: { clientDataKeys: provider.clientDataKeys, backupEligible: provider.backupEligible },
                 })
-                setIsProviderUnsupportedOpen(true)
+                setBrowserOpenFailed(false)
+                setProviderUnsupportedPlatform(isAndroidNativeBridge() ? 'android-app' : 'other')
                 return
             }
 
@@ -350,15 +353,24 @@ export function useSignupPasskey(username: string) {
             setIsHelpOpen(false)
             void claim()
         },
-        isProviderUnsupportedOpen,
-        closeProviderUnsupported: () => setIsProviderUnsupportedOpen(false),
+        isProviderUnsupportedOpen: providerUnsupportedPlatform !== null,
+        providerUnsupportedPlatform: providerUnsupportedPlatform ?? 'other',
+        browserOpenFailed,
+        closeProviderUnsupported: () => setProviderUnsupportedPlatform(null),
         retryFromProviderUnsupported: () => {
-            setIsProviderUnsupportedOpen(false)
+            setProviderUnsupportedPlatform(null)
             void claim()
         },
-        signUpInBrowser: () => {
-            setIsProviderUnsupportedOpen(false)
-            void openExternalUrl(KEEP_WEB_SIGNUP_URL)
+        signUpInBrowser: async () => {
+            setBrowserOpenFailed(false)
+            try {
+                await openExternalUrl(keepWebSignupUrl())
+                setProviderUnsupportedPlatform(null)
+            } catch (error) {
+                // The drawer stays open with the error, so retry and support still work.
+                Sentry.captureException(error, { tags: { error_type: 'passkey_provider_browser_open_failed' } })
+                setBrowserOpenFailed(true)
+            }
         },
         deviceType,
     }
