@@ -6,28 +6,16 @@
         "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "06-b-invite",
+        "id": "04-b-advantage-fees",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=06-b-invite",
-        "source": "Setup/Views/Invite.tsx"
+        "route": "/dev/surfaces?s=04-b-advantage-fees",
+        "source": "Setup/Views/Advantage.tsx"
     },
     {
-        "id": "06-a-signup",
+        "id": "02-b-advantage-card",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=06-a-signup",
-        "source": "Setup/Views/Signup.tsx"
-    },
-    {
-        "id": "08-a-passkeysetuphelpmodal",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
-        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
-    },
-    {
-        "id": "09-a-passkeyinfomodal",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
-        "source": "Setup/components/PasskeyInfoDrawer.tsx"
+        "route": "/dev/surfaces?s=02-b-advantage-card",
+        "source": "Setup/Views/Advantage.tsx"
     },
     {
         "id": "03-a-residence-select",
@@ -40,18 +28,6 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-b-residence-compare",
         "source": "Setup/components/ResidenceCompare.tsx"
-    },
-    {
-        "id": "04-b-advantage-fees",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=04-b-advantage-fees",
-        "source": "Setup/Views/Advantage.tsx"
-    },
-    {
-        "id": "02-b-advantage-card",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=02-b-advantage-card",
-        "source": "Setup/Views/Advantage.tsx"
     },
     {
         "id": "03-c-residence-congrats",
@@ -70,6 +46,36 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-i-payment-methods",
         "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "06-a-signup",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup",
+        "source": "Setup/Views/Signup.tsx"
+    },
+    {
+        "id": "06-b-invite",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-b-invite",
+        "source": "Setup/Views/Invite.tsx"
+    },
+    {
+        "id": "06-c-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey",
+        "source": "Setup/Views/Passkey.tsx"
+    },
+    {
+        "id": "08-a-passkeysetuphelpmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
+        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
+    },
+    {
+        "id": "09-a-passkeyinfomodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
+        "source": "Setup/components/PasskeyInfoDrawer.tsx"
     },
     {
         "id": "07-c-notification-email",
@@ -158,6 +164,11 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=15-a-invitefriendsmodal",
         "source": "Global/InviteFriendsModal/index.tsx"
+    },
+    {
+        "id": "fixture-setup-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey"
     },
     {
         "id": "fixture-setup-payment-plan",

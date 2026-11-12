@@ -14,6 +14,8 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
+import { enableDemoMode, disableDemoMode } from '@/utils/demo'
+import { saveSignupDraft } from '@/features/setup/signup-draft'
 import { readSignupProgress, saveSignupProgress } from '@/features/setup/signup-progress'
 
 let mockNoBackLock: string | null = null
@@ -24,6 +26,9 @@ const mockSetSellScreensCountry = jest.fn()
 let mockSellScreensCountry: string | null | undefined = undefined
 const mockSupport = jest.fn()
 const mockAnswerSetters = {
+    setUsername: jest.fn(),
+    setInviteSelection: jest.fn(),
+    setFeatureScreenIds: jest.fn(),
     setResidenceCountry: jest.fn(),
     setNationalityCountry: jest.fn(),
     setFundingChannel: jest.fn(),
@@ -75,6 +80,10 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
+        username: '',
+        inviteSelection: '',
+        featureScreenIds: null,
+        registrationInProgress: false,
         noBackLockScreenId: mockNoBackLock,
         signupCompleted: mockSignupCompleted,
         setNoBackLockScreenId: mockSetNoBackLock,
@@ -83,12 +92,13 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
         setSignupEntryFlow: jest.fn(),
         masterScreenIds: [
             'landing',
-            'signup',
-            'invite',
             'advantage-fees',
             'advantage-card',
             'residence',
             'payment-plan',
+            'signup',
+            'invite',
+            'passkey',
             'notification-email',
             'notification-permission',
             'advantage-control',
@@ -119,7 +129,11 @@ jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
         mockClaimAndSettlePendingBadgeCampaigns(campaigns),
 }))
-jest.mock('@/hooks/useSetupFlow', () => ({ postRegistrationScreen: () => 'residence', useSetupFlow: () => mockFlow }))
+jest.mock('@/hooks/useSetupFlow', () => ({
+    postRegistrationScreen: () => 'notification-email',
+    useSetupFlow: () => mockFlow,
+}))
+jest.mock('@/features/setup/saveSignupAnswers', () => ({ flushPendingSignupAnswers: jest.fn(async () => {}) }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
@@ -136,7 +150,7 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative, isNativeBridge: () => false }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     getStoredRedirect: () => mockStoredRedirect,
@@ -180,12 +194,15 @@ const landing: ISetupStep = {
     image: { src: '' },
     component: () => <div>Landing step</div>,
 }
-const advance = (ms: number) =>
-    act(async () => {
+const advance = async (ms: number) => {
+    await act(async () => {})
+    await act(async () => {
         await jest.advanceTimersByTimeAsync(ms)
     })
+}
 
 beforeEach(() => {
+    localStorage.clear()
     jest.useFakeTimers()
     jest.clearAllMocks()
     jest.mocked(getFromCookie).mockReset()
@@ -381,6 +398,7 @@ it('treats a stale legacy no-access profile as an authenticated account', async 
     mockAuth.user = { user: { username: 'peanutter', hasAppAccess: false }, accounts: WALLET }
 
     renderWithIntl(<SetupPage />)
+    await advance(0)
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     expect(screen.getByRole('status')).toBeInTheDocument()
@@ -400,6 +418,7 @@ it.each([
     mockSearchParams = new URLSearchParams(query)
 
     renderWithIntl(<SetupPage />)
+    await advance(0)
 
     expect(mockRouter.replace).toHaveBeenCalledTimes(1)
     expect(mockRouter.replace).toHaveBeenCalledWith(destination)
@@ -411,6 +430,7 @@ it('does not let stored redirect state redirect a completed session', async () =
     mockStoredRedirect = { destination: '/card', origin: 'deep-link', generationId: 'g1' }
 
     renderWithIntl(<SetupPage />)
+    await advance(0)
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
 })
@@ -691,26 +711,22 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
 })
 
-it.each([
-    'invite',
-    'payment-plan',
-    'advantage-fees',
-    'advantage-card',
-    'notification-email',
-    'notification-permission',
-    'advantage-control',
-] as const)('shows Back on %s after registration and arms the lock at residence', async (screenId) => {
-    const step = { ...landing, screenId, showBackButton: true }
-    mockStore.steps = [step]
-    mockFlow.step = step
-    mockResolve.mockReturnValue(screenId)
-    mockNoBackLock = 'residence'
-    renderWithIntl(<SetupPage />)
-    await advance(100)
-    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
-    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
-})
-it('fixes the sell screens to the suggested country once the account exists', async () => {
+it.each(['notification-permission', 'advantage-control'] as const)(
+    'shows Back on %s after registration and arms the lock at Email',
+    async (screenId) => {
+        const step = { ...landing, screenId, showBackButton: true }
+        mockStore.steps = [landing, { ...landing, screenId: 'notification-email' }, step]
+        mockFlow.step = step
+        mockResolve.mockReturnValue(screenId)
+        mockNoBackLock = 'notification-email'
+        mockAuth.user = { user: { userId: 'u-1', username: 'test044' }, accounts: [] }
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+        expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
+    }
+)
+it('fixes the sell screens to the suggested country after Welcome', async () => {
     const step = { ...landing, screenId: 'invite' as const, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
@@ -720,7 +736,16 @@ it('fixes the sell screens to the suggested country once the account exists', as
     await advance(100)
     expect(mockSetSellScreensCountry).toHaveBeenCalledWith('PT')
 })
-it.each(['landing', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
+it.each([
+    'landing',
+    'advantage-fees',
+    'advantage-card',
+    'residence',
+    'payment-plan',
+    'signup',
+    'invite',
+    'passkey',
+] as const)('does not arm the registration lock on %s', async (screenId) => {
     const step = { ...landing, screenId, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
@@ -729,15 +754,16 @@ it.each(['landing', 'signup'] as const)('does not arm the registration lock on %
     await advance(100)
     expect(mockSetNoBackLock).not.toHaveBeenCalled()
 })
-it('hides Back at the residence boundary once registered, and during celebration', async () => {
-    const step = { ...landing, screenId: 'residence' as const, showBackButton: true }
+it('hides Back at the Email boundary once registered, and during celebration', async () => {
+    const step = { ...landing, screenId: 'notification-email' as const, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
     mockResolve.mockReturnValue(step.screenId)
-    mockNoBackLock = 'residence'
+    mockNoBackLock = 'notification-email'
+    mockAuth.user = { user: { userId: 'u-1', username: 'test044' }, accounts: [] }
     const view = renderWithIntl(<SetupPage />)
     await advance(100)
-    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+    expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
     expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
     mockSignupCompleted = true
     mockFlow.step = { ...step, screenId: 'advantage-control' }
@@ -866,6 +892,7 @@ describe('a signup interrupted after registration', () => {
     it('still sends a finished signup home', async () => {
         mockAuth.user = { ...unfinished, accounts: WALLET }
         renderWithIntl(<SetupPage />)
+        await advance(0)
         expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     })
 
@@ -942,6 +969,7 @@ describe('a signup interrupted after registration', () => {
             await act(async () => {
                 view.rerender(<SetupPage />)
             })
+            await advance(100)
             expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('payment-plan', { history: 'replace' })
             expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('MX')
         })
@@ -974,4 +1002,48 @@ describe('a signup interrupted after registration', () => {
             expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalled()
         })
     })
+})
+
+it.each(['web gate', 'login entry'])('keeps the Welcome %s ahead of a restored anonymous draft', async (gate) => {
+    mockNative = gate !== 'web gate'
+    if (gate === 'login entry') mockSearchParams = new URLSearchParams('step=login')
+    const plan: ISetupStep = { ...landing, screenId: 'payment-plan' }
+    mockStore.steps = [landing, plan]
+    mockFlow.step = landing
+    saveSignupDraft({
+        screenId: 'payment-plan',
+        answers: {
+            username: 'kimchi',
+            inviteSelection: '',
+            residenceCountry: 'AR',
+            nationalityCountry: 'BR',
+            fundingChannel: 'arsBank',
+            paymentChannel: 'qr',
+            notificationChoices: null,
+            inviterAccepted: false,
+            sellScreensCountry: 'AR',
+        },
+    })
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('landing', { history: 'replace' })
+})
+
+it('keeps the demo’s completed flow when its synthetic account appears', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    mockFlow.setScreenId.mockClear()
+    enableDemoMode()
+    try {
+        mockSignupCompleted = true
+        mockAuth.user = { user: { userId: 'demo-user', username: 'demo' }, accounts: WALLET }
+        await act(async () => {
+            view.rerender(<SetupPage />)
+        })
+        await advance(100)
+        expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+    } finally {
+        disableDemoMode()
+    }
 })

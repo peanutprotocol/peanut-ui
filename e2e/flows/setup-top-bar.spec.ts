@@ -81,14 +81,14 @@ for (const viewport of VIEWPORTS) {
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await page.waitForTimeout(1500)
 
-        const toUsername = await sampleDuring(page, 900, () => signUp.click())
-        await expect(page).toHaveURL(/screen=signup/)
+        const toFirstStep = await sampleDuring(page, 900, () => signUp.click())
+        await expect(page).toHaveURL(/screen=advantage-fees/)
         const backToLanding = await sampleDuring(page, 900, () => page.getByRole('button', { name: 'Go back' }).click())
         await expect(page).toHaveURL(/screen=landing|\/setup$/)
-        const toUsernameAgain = await sampleDuring(page, 900, () => signUp.click())
-        await expect(page).toHaveURL(/screen=signup/)
+        const toFirstStepAgain = await sampleDuring(page, 900, () => signUp.click())
+        await expect(page).toHaveURL(/screen=advantage-fees/)
 
-        const samples = [...toUsername, ...backToLanding, ...toUsernameAgain]
+        const samples = [...toFirstStep, ...backToLanding, ...toFirstStepAgain]
         expect(samples.length).toBeGreaterThan(30)
         // One hero on every frame, with one box: it neither slides nor changes height.
         expect(samples.every((s) => s.heroes.length === 1)).toBe(true)
@@ -135,14 +135,16 @@ test('the residence capture paints its safe area and positions the top bar once'
 // Every sign-up step, as /setup renders it (the surfaces gallery mounts each step in the real wrapper).
 const STEP_SURFACES = [
     '01-a-landing',
-    '06-b-invite',
-    '06-a-signup',
-    '03-a-residence-select',
     '04-b-advantage-fees',
     '02-b-advantage-card',
+    '03-a-residence-select',
     '03-c-residence-congrats',
+    '06-a-signup',
+    '06-b-invite',
+    '06-c-passkey',
     '07-c-notification-email',
     '07-d-notification-settings',
+    '07-b-advantage-control',
     '05-a-signtesttransaction',
 ]
 
@@ -162,7 +164,8 @@ for (const viewport of VIEWPORTS) {
         })
         const heroes = new Set<number>()
         for (const id of STEP_SURFACES) {
-            await page.goto(`/dev/surfaces?s=${id}&__fixture=profile-edit`)
+            const fixture = id === '06-c-passkey' ? 'setup-passkey' : 'profile-edit'
+            await page.goto(`/dev/surfaces?s=${id}&__fixture=${fixture}`)
             // a redirect to /setup would measure the landing every time
             await expect(page).toHaveURL(new RegExp(`/dev/surfaces\\?s=${id}`))
             const primary = page.locator('[data-setup-footer] button').first()

@@ -13,36 +13,19 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import SignupStep from '../Signup'
 
 const mockSetScreenId = jest.fn()
+const mockHandleNext = jest.fn(async () => {})
+const mockReserveUsername = jest.fn()
 const mockApiFetch = jest.fn()
-const mockClaim = jest.fn(async () => {})
-const mockPasskey = {
-    claim: mockClaim,
-    isClaiming: false,
-    preflightWarning: null as string | null,
-    inlineError: null as string | null,
-    usernameTaken: false,
-    logIn: jest.fn(),
-    isLoggingIn: false,
-    helpErrorName: null as string | null,
-    isHelpOpen: false,
-    closeHelp: jest.fn(),
-    retryFromHelp: jest.fn(),
-    isProviderUnsupportedOpen: false,
-    providerUnsupportedPlatform: 'android-app',
-    browserOpenFailed: false,
-    closeProviderUnsupported: jest.fn(),
-    retryFromProviderUnsupported: jest.fn(),
-    signUpInBrowser: jest.fn(),
-    deviceType: 'web',
-}
-const mockUseSignupPasskey = jest.fn((_username: string) => mockPasskey)
+const mockUseSignupPasskey = jest.fn()
 
 jest.mock('@/hooks/useSetupFlow', () => ({
-    useSetupFlow: () => ({ isLoading: false, setScreenId: mockSetScreenId }),
+    useSetupFlow: () => ({ isLoading: false, setScreenId: mockSetScreenId, handleNext: mockHandleNext }),
 }))
-// the passkey ceremony has its own suite (useSignupPasskey.test.tsx); this one owns the step's UI
 jest.mock('@/features/setup/useSignupPasskey', () => ({
     useSignupPasskey: (username: string) => mockUseSignupPasskey(username),
+}))
+jest.mock('@/features/setup/username-reservation', () => ({
+    reserveUsername: (username: string) => mockReserveUsername(username),
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
@@ -69,36 +52,28 @@ const renderSignup = () => {
     )
     return { ...view, queryClient }
 }
-const claimButton = () => screen.getByRole('button', { name: 'Claim' })
+const claimButton = () => screen.getByRole('button', { name: /Claim$/ })
 const usernameField = () => screen.getByRole('textbox', { name: 'Username' })
 
 beforeEach(() => {
     jest.clearAllMocks()
     disableDemoMode()
-    Object.assign(mockPasskey, {
-        isClaiming: false,
-        preflightWarning: null,
-        inlineError: null,
-        usernameTaken: false,
-        isLoggingIn: false,
-        helpErrorName: null,
-        isHelpOpen: false,
-        isProviderUnsupportedOpen: false,
-    })
+    mockReserveUsername.mockResolvedValue('reserved')
     mockApiFetch.mockResolvedValue({ status: 404 })
 })
 afterEach(() => disableDemoMode())
 
 describe('Claim username', () => {
-    it('claims a valid, available username by starting the passkey sign-up', async () => {
+    it('reserves a valid, available username and advances without a passkey ceremony', async () => {
         renderSignup()
         expect(claimButton()).toBeDisabled()
         fireEvent.change(usernameField(), { target: { value: 'newuser' } })
         await waitFor(() => expect(claimButton()).toBeEnabled())
         expect(mockApiFetch).toHaveBeenCalledWith('/users/username/newuser', expect.any(Object))
-        expect(mockUseSignupPasskey).toHaveBeenLastCalledWith('newuser')
         fireEvent.click(claimButton())
-        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(mockReserveUsername).toHaveBeenCalledWith('newuser')
+        expect(mockUseSignupPasskey).not.toHaveBeenCalled()
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
@@ -139,7 +114,7 @@ describe('Claim username', () => {
         expect(await screen.findByText('Username already taken')).toBeInTheDocument()
         expect(claimButton()).toBeDisabled()
         fireEvent.click(claimButton())
-        expect(mockClaim).not.toHaveBeenCalled()
+        expect(mockUseSignupPasskey).not.toHaveBeenCalled()
     })
 
     it('shows the @ prefix, the role placeholder and the legal line under the pinned button, with no inviter UI', () => {
@@ -156,26 +131,22 @@ describe('Claim username', () => {
         expect(legal.closest('[data-setup-footer]')).toContainElement(claimButton())
     })
 
-    it('stays disabled while the passkey sign-up runs', async () => {
-        mockPasskey.isClaiming = true
+    it('stays disabled while the reservation is pending and advances only after it settles', async () => {
+        let release: (value: string) => void = () => {}
+        mockReserveUsername.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    release = resolve
+                })
+        )
         renderSignup()
         fireEvent.change(usernameField(), { target: { value: 'newuser' } })
-        await waitFor(() => expect(mockApiFetch).toHaveBeenCalled())
-        expect(screen.getAllByRole('button').find((b) => b.closest('[data-setup-footer]'))).toBeDisabled()
-    })
-
-    it('offers Log in when the username is already registered', () => {
-        mockPasskey.usernameTaken = true
-        renderSignup()
-        expect(screen.getByText(/This username is already registered/)).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
-        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
-    })
-
-    it('shows the passkey failure message on the step', () => {
-        mockPasskey.inlineError = 'Passkey verification wasn’t completed. Try again when ready.'
-        renderSignup()
-        expect(screen.getByText('Passkey verification wasn’t completed. Try again when ready.')).toBeInTheDocument()
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        fireEvent.click(claimButton())
+        expect(claimButton()).toBeDisabled()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        await act(async () => release('reserved'))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
     })
 
     it('suggests ten handles after four idle seconds, then restores the placeholder', () => {
@@ -243,7 +214,7 @@ describe('Claim username', () => {
                 })
             )
             expect(mockApiFetch).not.toHaveBeenCalled()
-            expect(mockClaim).not.toHaveBeenCalled()
+            expect(mockUseSignupPasskey).not.toHaveBeenCalled()
         }
     )
 
@@ -263,7 +234,7 @@ describe('Claim username', () => {
         await waitFor(() => expect(claimButton()).toBeEnabled())
         expect(mockApiFetch).toHaveBeenCalledWith('/users/username/demouser', expect.any(Object))
         fireEvent.click(claimButton())
-        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
         expect(isDemoMode()).toBe(false)
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
@@ -282,45 +253,26 @@ describe('Claim username — control analytics', () => {
         fireEvent.change(usernameField(), { target: { value: 'freename' } })
         await waitFor(() => expect(claimButton()).toBeEnabled())
         fireEvent.click(claimButton())
-        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
         expect(controls()).toEqual(['username:change', 'username:error:too_short', 'username:error:taken', 'claim:tap'])
         const sent = JSON.stringify((posthog.capture as jest.Mock).mock.calls)
         expect(sent).not.toMatch(/takenname|freename/)
     })
+})
 
-    it('reports Log in for a taken username and the passkey help drawer actions', () => {
-        Object.assign(mockPasskey, { usernameTaken: true, helpErrorName: 'NotAllowedError', isHelpOpen: true })
-        renderSignup()
-        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        fireEvent.click(screen.getByRole('button', { name: 'Log in', hidden: true }))
-        expect(controls()).toEqual([
-            'passkey_help_retry:tap',
-            'passkey_help_support:tap',
-            'passkey_help:dismiss',
-            'log_in:tap',
-        ])
-        expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
-        expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
-        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
-    })
-
-    it('reports the unsupported-provider drawer actions (TASK-24498)', () => {
-        Object.assign(mockPasskey, { isProviderUnsupportedOpen: true })
-        renderSignup()
-        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in a browser' }))
-        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        expect(controls()).toEqual([
-            'passkey_provider_retry:tap',
-            'passkey_provider_web_signup:tap',
-            'passkey_provider_support:tap',
-            'passkey_provider:dismiss',
-        ])
-        expect(mockPasskey.retryFromProviderUnsupported).toHaveBeenCalledTimes(1)
-        expect(mockPasskey.signUpInBrowser).toHaveBeenCalledTimes(1)
-        expect(mockPasskey.closeProviderUnsupported).toHaveBeenCalledTimes(1)
-    })
+it('does not advance an old Claim form when its reservation resolves after leaving it', async () => {
+    let finish!: (result: string) => void
+    mockReserveUsername.mockReturnValue(
+        new Promise<string>((resolve) => {
+            finish = resolve
+        })
+    )
+    const view = renderSignup()
+    fireEvent.change(usernameField(), { target: { value: 'kimchi' } })
+    await waitFor(() => expect(claimButton()).toBeEnabled())
+    fireEvent.click(claimButton())
+    await waitFor(() => expect(mockReserveUsername).toHaveBeenCalledWith('kimchi'))
+    view.unmount()
+    await act(async () => finish('reserved'))
+    expect(mockHandleNext).not.toHaveBeenCalled()
 })

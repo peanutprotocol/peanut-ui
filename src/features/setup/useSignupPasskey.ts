@@ -6,6 +6,10 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { useAuth } from '@/context/authContext'
+import { bindSignupDraft, saveSignupDraft, markSignupDraftInviteAccepted } from './signup-draft'
+import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { readInviteCode } from '@/utils/invite-stash'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
@@ -32,7 +36,7 @@ import {
 // A signup that failed client-side AFTER the server verified may have already
 // registered this username (user + passkey exist server-side, so login works).
 // Fail-open on network errors — the server's 409 is the backstop.
-const isUsernameTaken = async (username: string): Promise<boolean> => {
+const isUsernameTaken = async (username: string): Promise<boolean | null> => {
     try {
         // capacitorHttp doesn't support HEAD — use GET in native.
         // includeAuth: false — public pre-auth check, no session token involved.
@@ -40,9 +44,9 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
             method: isCapacitor() ? 'GET' : 'HEAD',
             includeAuth: false,
         })
-        return res.status === 200
+        return res.status === 200 ? true : res.status === 404 ? false : null
     } catch {
-        return false
+        return null
     }
 }
 
@@ -64,17 +68,33 @@ const isProbablyPrivateMode = () => {
     }
 }
 
-/**
- * Claiming a username creates the account: the passkey ceremony runs on the
- * username step, and a successful registration advances to residence and locks
- * the way back. Every failure keeps the user on the username step with the
- * same recovery the old passkey step offered: an inline message, the help
- * drawer for device problems, or Log in when the username already exists.
- */
+/** Registration and device recovery for the passkey screen. */
 export function useSignupPasskey(username: string) {
     const t = useTranslations('setup')
-    const { setNoBackLockScreenId, steps } = useSetupFlowContext()
-    const { handleNext } = useSetupFlow()
+    const context = useSetupFlowContext()
+    const { setNoBackLockScreenId, setRegistrationInProgress, setInviterAccepted, steps } = context
+    const { handleNext, setScreenId } = useSetupFlow()
+    const { user, fetchUser } = useAuth()
+    const userRef = useRef(user)
+    userRef.current = user
+    const referred = useRef(false)
+    const draftSnapshot = () => ({
+        screenId: 'passkey' as const,
+        featureScreenIds: context.featureScreenIds ?? undefined,
+        answers: {
+            username,
+            inviteSelection: context.inviteSelection,
+            residenceCountry: context.residenceCountry,
+            nationalityCountry: context.nationalityCountry,
+            fundingChannel: context.fundingChannel,
+            paymentChannel: context.paymentChannel,
+            notificationChoices: context.notificationChoices,
+            inviterAccepted: context.inviterAccepted,
+            sellScreensCountry: context.sellScreensCountry,
+        },
+    })
+    const snapshotRef = useRef(draftSnapshot())
+    snapshotRef.current = draftSnapshot()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const { deviceType } = useDeviceType()
@@ -91,6 +111,9 @@ export function useSignupPasskey(username: string) {
     // stale web-authn-key cookie (native cookie jar) can never pass for a fresh
     // registration and skip ahead.
     const registrationInitiatedRef = useRef(false)
+    const completedRef = useRef(false)
+    const uncertainRegistration = useRef(false)
+    const [isFinishing, setIsFinishing] = useState(false)
     /*
      * Synchronous latch around the WHOLE handler. `isRegistering` only flips once
      * handleRegister runs, and two awaits precede it (the live support re-check
@@ -117,6 +140,11 @@ export function useSignupPasskey(username: string) {
         setHelpErrorName(null)
         setUsernameTaken(false)
 
+        if (!/^[a-z][a-z0-9]{3,11}$/.test(username)) {
+            setScreenId('signup')
+            return
+        }
+
         // Re-check support live: device state can change after mount, and a tap
         // must never silently no-op when passkeys are unavailable.
         const support = await checkPasskeySupport()
@@ -135,7 +163,12 @@ export function useSignupPasskey(username: string) {
         // Catch an already-registered username BEFORE the ceremony: retrying a
         // half-completed signup would otherwise create another credential in the
         // OS keychain and then 409 on the server.
-        if (await isUsernameTaken(username)) {
+        const taken = await isUsernameTaken(username)
+        if (taken === null && uncertainRegistration.current) {
+            setInlineError(t('passkey.serverUnreachable'))
+            return
+        }
+        if (taken) {
             setUsernameTaken(true)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
@@ -150,11 +183,16 @@ export function useSignupPasskey(username: string) {
         attemptsRef.current += 1
         const attemptStartedAt = Date.now()
         registrationInitiatedRef.current = true
+        uncertainRegistration.current = true
+        setRegistrationInProgress(true)
+        referred.current = !!context.inviteSelection || !!readInviteCode()
+        saveSignupDraft(snapshotRef.current)
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success: the effect below advances once the wallet address appears
         } catch (error) {
             registrationInitiatedRef.current = false
+            setRegistrationInProgress(false)
             const err = error as Error
             const nativeReason = nativePasskeyFailure(err)
             // The OS sheet's own duration, without the network calls around it.
@@ -178,6 +216,13 @@ export function useSignupPasskey(username: string) {
             })
 
             if (err.name === 'UsernameTaken') {
+                const registered = await isUsernameTaken(username)
+                if (registered === true) setUsernameTaken(true)
+                else if (registered === false) setScreenId('signup')
+                else setInlineError(t('passkey.serverUnreachable'))
+                return
+            }
+            if (await isUsernameTaken(username)) {
                 setUsernameTaken(true)
                 return
             }
@@ -298,13 +343,15 @@ export function useSignupPasskey(username: string) {
     }
 
     const claim = async () => {
-        if (inFlightRef.current) return
+        if (inFlightRef.current || completedRef.current) return
         inFlightRef.current = true
+        setRegistrationInProgress(true)
         setIsPreparing(true)
         try {
             await register()
         } finally {
             inFlightRef.current = false
+            if (!registrationInitiatedRef.current || completedRef.current) setRegistrationInProgress(false)
             setIsPreparing(false)
         }
     }
@@ -332,15 +379,40 @@ export function useSignupPasskey(username: string) {
     useEffect(() => {
         if (address && registrationInitiatedRef.current) {
             registrationInitiatedRef.current = false
+            completedRef.current = true
+            setIsFinishing(true)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             setNoBackLockScreenId(postRegistrationScreen(steps.map((step) => step.screenId)))
+            const userId = userRef.current?.user.userId
+            if (userId) {
+                void bindSignupDraft(userId, snapshotRef.current).then(() => {
+                    if (!referred.current) return
+                    void settlePendingInviteAttribution(userId, 'registration').then((outcome) => {
+                        if (userRef.current?.user.userId !== userId || outcome.status !== 'attributed') return
+                        markSignupDraftInviteAccepted(userId)
+                        setInviterAccepted(true)
+                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
+                        void fetchUser().catch(() => {})
+                    })
+                })
+            }
             void handleNext()
+            setRegistrationInProgress(false)
         }
-    }, [address, handleNext, deviceType, setNoBackLockScreenId, steps])
+    }, [
+        address,
+        handleNext,
+        deviceType,
+        setNoBackLockScreenId,
+        setRegistrationInProgress,
+        setInviterAccepted,
+        fetchUser,
+        steps,
+    ])
 
     return {
         claim,
-        isClaiming: isPreparing || isRegistering,
+        isClaiming: isPreparing || isRegistering || isFinishing,
         preflightWarning,
         inlineError,
         usernameTaken,

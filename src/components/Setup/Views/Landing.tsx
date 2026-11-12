@@ -25,6 +25,8 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
+import { discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import {
     cancelIOSImmediateLogin,
     checkAndroidLandingPasskey,
@@ -52,6 +54,7 @@ const LandingStep = () => {
     // bypass users see the normal card.
     const blockSignup = !nativePlatform.isCapacitor && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
+    const flow = useOptionalSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
     const { track } = useSignupControl()
@@ -224,6 +227,10 @@ const LandingStep = () => {
     }
 
     const signUp = () => {
+        if (readSignupDraft()?.userId) {
+            discardSignupDraft()
+            flow?.resetSetupFlow()
+        }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
         handleNext()
     }

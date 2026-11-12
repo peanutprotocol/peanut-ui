@@ -1733,6 +1733,15 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 }
 
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-passkey': {
+        route: '/dev/surfaces?s=06-c-passkey',
+        about: 'Create a passkey after choosing kimchi, a Portuguese residence and a bank/card payment plan.',
+        responses: {
+            'GET /users/me': null,
+            'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        },
+    },
     'setup-payment-plan': {
         route: '/dev/surfaces?s=03-c-residence-congrats',
         about: 'Signup funding and payment choices with settled residence eligibility.',

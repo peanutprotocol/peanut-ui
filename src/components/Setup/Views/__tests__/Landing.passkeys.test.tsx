@@ -23,6 +23,7 @@ jest.mock('@/hooks/useLogin', () => ({
     useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: mockIsLoggingIn }),
 }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
+jest.mock('@/features/setup/signup-draft', () => ({ readSignupDraft: () => null, discardSignupDraft: jest.fn() }))
 jest.mock('@/utils/native-platform', () => ({ useNativePlatform: () => mockNative }))
 jest.mock('@/utils/landing-passkeys', () => ({
     checkAndroidLandingPasskey: (signal: AbortSignal) => mockAndroidCheck(signal),

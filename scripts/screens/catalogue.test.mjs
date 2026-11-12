@@ -99,17 +99,18 @@ test('account setup keeps distinct integer steps in the intended journey order',
         setup.map(({ id }) => id),
         [
             '01-a-landing',
-            '06-b-invite',
-            '06-a-signup',
-            '08-a-passkeysetuphelpmodal',
-            '09-a-passkeyinfomodal',
-            '03-a-residence-select',
-            '03-b-residence-compare',
             '04-b-advantage-fees',
             '02-b-advantage-card',
+            '03-a-residence-select',
+            '03-b-residence-compare',
             '03-c-residence-congrats',
             '03-h-funding-methods',
             '03-i-payment-methods',
+            '06-a-signup',
+            '06-b-invite',
+            '06-c-passkey',
+            '08-a-passkeysetuphelpmodal',
+            '09-a-passkeyinfomodal',
             '07-c-notification-email',
             '07-d-notification-settings',
             '07-b-advantage-control',
@@ -119,4 +120,15 @@ test('account setup keeps distinct integer steps in the intended journey order',
             '20-a-setupnotificationsmodal',
         ]
     )
+})
+
+test('passkey capture uses the real view and an anonymous reservation fixture', () => {
+    const screen = screens.find(({ id }) => id === '06-c-passkey')
+    assert.equal(screen?.source, 'Setup/Views/Passkey.tsx')
+    assert.equal(screen?.route, '/dev/surfaces?s=06-c-passkey')
+    assert.equal(screen?.fixture, 'setup-passkey')
+    assert.ok(screen?.captureState.includes('username=kimchi'))
+    const fixture = screens.find(({ id }) => id === 'fixture-setup-passkey')
+    assert.equal(fixture?.route, screen?.route)
+    assert.equal(fixture?.fixture, 'setup-passkey')
 })
