@@ -35,6 +35,15 @@ export function sanitizePasskeyDiagnostics(value: unknown): Record<string, strin
     for (const key of ['cancelSent', 'cancelled', 'released']) {
         if (typeof input[key] === 'boolean') output[key] = input[key] as boolean
     }
+    if (
+        input.phase === 'late_settlement' &&
+        input.native_settled_after_timeout === true &&
+        typeof input.attempt_id === 'string' &&
+        /^[a-z0-9]{1,32}-[0-9]{1,16}$/.test(input.attempt_id)
+    ) {
+        output.attempt_id = input.attempt_id
+        output.native_settled_after_timeout = true
+    }
     if (typeof input.nativeException === 'string' && /^[A-Za-z]{1,80}$/.test(input.nativeException)) {
         output.nativeException = input.nativeException
     }
