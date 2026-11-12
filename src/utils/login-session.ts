@@ -1,3 +1,4 @@
+import { PasskeyRateLimitedError } from './passkey-auth-capture'
 import { PasskeyServerError } from './webauthn.utils'
 
 export async function recoverLoginSession<T>(load: () => Promise<T | null>, cancel: () => Promise<void>): Promise<T> {
@@ -17,6 +18,9 @@ export async function recoverLoginSession<T>(load: () => Promise<T | null>, canc
                 const user = await load()
                 if (user && !expired) return user
             } catch (error) {
+                // a retry inside the rate-limit window only spends more of the shared IP budget
+                if ((error as { status?: unknown } | null)?.status === 429)
+                    throw new PasskeyRateLimitedError('/users/me')
                 lastError = error
             }
             if (attempt < 2 && !expired) await new Promise((resolve) => setTimeout(resolve, 1000))
