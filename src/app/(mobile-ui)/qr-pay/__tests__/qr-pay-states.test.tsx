@@ -1276,12 +1276,13 @@ describe('GROUP 2: Payment Form States', () => {
             expect(screen.getByText('PIX Merchant')).toBeInTheDocument()
         })
 
-        // The balance error check happens via useEffect
+        // A merchant-fixed amount cannot be lowered, so the error says how much is missing.
         await waitFor(() => {
             const errorAlert = screen.queryByTestId('error-alert')
             expect(errorAlert).toBeInTheDocument()
-            expect(errorAlert).toHaveTextContent('Not enough balance')
+            expect(errorAlert).toHaveTextContent('Your balance is $13.40 short. Add money to continue.')
         })
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
     })
 
     test.skip('Below minimum amount shows ErrorAlert', async () => {
