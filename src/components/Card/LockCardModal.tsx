@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -55,7 +55,10 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
-    const { overview } = useRainCardOverview()
+    const { overview, refetch: refetchOverview } = useRainCardOverview()
+    // After a failed lock the balance on screen can predate a return that
+    // already ran. A retry that needs a new signature reads it again first.
+    const balanceIsStale = useRef(false)
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const toast = useToast()
@@ -103,11 +106,21 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 // whatever the return did: `collateralReturn` says what is
                 // left in the card. A backend that predates it refuses the
                 // lock instead.
-                const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
-                // Never more than the card holds: refund credit is not signed for.
-                const returnUnits = cardReturnUnits(overview?.balance)
                 // A retry reuses the proof: signing again could be a second withdrawal.
                 let verifiedWithdrawal = withdrawalProof.get()
+                let balance = overview.balance
+                if (!verifiedWithdrawal && balanceIsStale.current) {
+                    // A read that fails sizes nothing. The card still freezes: a
+                    // freeze is never refused, and the backend reports what
+                    // stayed in the card.
+                    const fresh = await refetchOverview()
+                    const read = !fresh.isError && !!fresh.data
+                    balance = read ? fresh.data.balance : null
+                    if (read) balanceIsStale.current = false
+                }
+                const spendingPowerUnits = rainCentsToUsdcUnits(balance?.spendingPower)
+                // Never more than the card holds: refund credit is not signed for.
+                const returnUnits = cardReturnUnits(balance)
                 if (!verifiedWithdrawal && returnUnits > 0n) {
                     if (!smartWalletAddress) {
                         throw new Error(t('errors.walletNotReady'))
@@ -137,6 +150,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 stop = locked?.fundingStop
                 collateralReturn = locked?.collateralReturn
                 withdrawalProof.clear()
+                balanceIsStale.current = false
             } else {
                 const resume = (await rainApi.activateCard(cardId))?.fundingStop
                 // null: the card is active but the stop was not lifted; unlock again.
@@ -158,8 +172,11 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
             toast.success(t(copyKeys.success))
             onClose()
         } catch (e) {
-            // A signature the backend used or can never verify is signed again on the next try.
-            if (mode === 'lock') withdrawalProof.dropIfSpent(e)
+            if (mode === 'lock') {
+                balanceIsStale.current = true
+                // A signature the backend used or can never verify is signed again on the next try.
+                withdrawalProof.dropIfSpent(e)
+            }
             // Other throws (passkey cancelled, network, 409 card_action_*) keep their message.
             let message = e instanceof Error ? e.message : t(copyKeys.failed)
             if (e instanceof InsufficientSpendableError) {

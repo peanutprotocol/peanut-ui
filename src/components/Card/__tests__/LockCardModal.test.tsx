@@ -777,6 +777,124 @@ describe('CancelCardModal — no permission removal step', () => {
 })
 
 /**
+ * A lock retry. After a failed attempt the balance on screen can predate a
+ * return that already ran, so a retry that needs a new signature reads the
+ * balance again and sizes from that. A freeze is never refused: when the read
+ * fails the retry signs nothing and still freezes the card, and the backend
+ * says what stayed in it. A saved proof that is still valid goes first.
+ */
+describe('LockCardModal: a retry after a failed freeze', () => {
+    const slide = () => fireEvent.click(screen.getByText('Slide to freeze'))
+    const spent = new ApiError('Intent already completed', { status: 409 })
+
+    afterEach(() => jest.useRealTimers())
+
+    it('the first attempt reads nothing extra', async () => {
+        setup(OVERVIEW)
+        renderLock()
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).not.toHaveBeenCalled()
+    })
+
+    it('signs for the fresh balance, not for the one on screen', async () => {
+        setup(OVERVIEW)
+        mockLockCard.mockRejectedValueOnce(spent).mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        slide()
+        expect(await screen.findByText('Intent already completed')).toBeInTheDocument()
+
+        // $10.06 was on screen; the return that ran left $4.00.
+        mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 400 } }, isError: false })
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend).toHaveBeenLastCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: 4_000_000n,
+            rainSpendingPower: 4_000_000n,
+        })
+    })
+
+    it('a read that fails signs nothing, still freezes, and shows what the backend says is left', async () => {
+        setup(OVERVIEW)
+        mockLockCard.mockRejectedValueOnce(spent).mockResolvedValue({
+            ...stopped('not_applicable'),
+            collateralReturn: returned('required', { remainingCents: 2000 }),
+        })
+        renderLock()
+        slide()
+        expect(await screen.findByText('Intent already completed')).toBeInTheDocument()
+
+        // The read fails and the cache still holds the figure from before the return.
+        mockRefetchOverview.mockResolvedValue({ data: OVERVIEW, isError: true })
+        slide()
+        expect(await screen.findByText(LEFT_IN_CARD)).toBeInTheDocument()
+        expect(screen.getByText('Card frozen')).toBeInTheDocument()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockLockCard).toHaveBeenLastCalledWith('card-1', undefined)
+        expect(screen.queryByText(/couldn't read your card balance/)).not.toBeInTheDocument()
+    })
+
+    it('the return landed, the status change failed, the proof expired: the retry only freezes', async () => {
+        jest.useFakeTimers()
+        setup(OVERVIEW)
+        mockSignSpend.mockResolvedValue({
+            strategy: 'collateral-only',
+            rainWithdrawal: { ...RAIN_WITHDRAWAL, expiresAt: Math.floor(Date.now() / 1000) + 300 },
+        })
+        mockLockCard
+            .mockRejectedValueOnce(new ApiError('Card update failed', { status: 500 }))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        slide()
+        expect(await screen.findByText('Card update failed')).toBeInTheDocument()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(301_000)
+        })
+        // Nothing is left to return, so nothing is signed again.
+        mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 0 } }, isError: false })
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockLockCard).toHaveBeenLastCalledWith('card-1', undefined)
+    })
+
+    it('a saved proof that is still valid goes first: no new read, no new signature', async () => {
+        setup(OVERVIEW)
+        mockLockCard
+            .mockRejectedValueOnce(new ApiError('Card update failed', { status: 500 }))
+            .mockResolvedValue(stopped('not_applicable'))
+        renderLock()
+        slide()
+        expect(await screen.findByText('Card update failed')).toBeInTheDocument()
+
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).not.toHaveBeenCalled()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
+    })
+
+    it('a failed unfreeze retries as before: no balance read, nothing signed', async () => {
+        setup(OVERVIEW)
+        mockActivateCard
+            .mockRejectedValueOnce(new ApiError('Card update failed', { status: 500 }))
+            .mockResolvedValue({ status: 'ACTIVE', fundingStop: { state: 'resumed', reason: null } })
+        renderUnlock()
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
+        expect(await screen.findByText('Card update failed')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Unfreeze' }))
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).not.toHaveBeenCalled()
+        expect(mockSignSpend).not.toHaveBeenCalled()
+    })
+})
+
+/**
  * What a lock or cancel signs for. A merchant refund raises spending power and
  * adds nothing on-chain, so the full spending power can be more than the card
  * holds: the provider refused to sign, and the freeze or cancel never reached
