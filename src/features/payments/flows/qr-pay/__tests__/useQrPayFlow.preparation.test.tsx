@@ -218,6 +218,7 @@ import { LoadingStateContextProvider } from '@/context/loadingStates.context'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
 import { QrPayPage } from '../QrPayPage'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { convertDecimalAmount } from '@/lib/money'
 import { SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 
@@ -1095,6 +1096,9 @@ describe('a lock above the balance', () => {
     beforeEach(() => {
         mockUseWallet.mockReturnValue({ address: ACCOUNT, balance: BALANCE, spendableBalance: BALANCE })
     })
+    afterEach(() => {
+        jest.mocked(getCurrencyPrice).mockImplementation(async () => ({ sell: 1200, buy: 1250 }))
+    })
 
     test('typed amount, quote gap: the largest amount that fits is shown, nothing is sent, the next tap pays it', async () => {
         await typeOpenAmount()
@@ -1104,7 +1108,7 @@ describe('a lock above the balance', () => {
         expect(surface?.currencyAmount).toBe('638338.22')
         expect(surface?.paymentLock?.code).toBe('')
         expect(surface?.amountInputRevision).toBe(1)
-        expect(surface?.quoteUpdatedNotice).toBe(en.qrPay.amountLoweredToBalance)
+        expect(surface?.quoteUpdatedNotice).toBeNull()
         expect(surface?.errorMessage).toBeNull()
         expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
@@ -1119,8 +1123,53 @@ describe('a lock above the balance', () => {
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3)
         expect(mockMantecaApi.initiateQrPayment.mock.calls[2][0]).toMatchObject({ amount: '638338.22' })
         expect(completionBody().paymentLockCode).toBe('LOCK_FITTED')
-        expect(surface?.quoteUpdatedNotice).toBeNull()
         await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('typed amount, quote gap: the form keeps the lock rate, so a lower fresh rate cannot block the lowered amount', async () => {
+        await typeOpenAmount()
+        // The lock priced the amount at 1199.9 (the form showed 1200), and the
+        // display rate has since fallen to 1190: at 1190 the lowered amount
+        // would read as 536.37 USD and the balance gate would block it again.
+        mockMantecaApi.initiateQrPayment.mockReset()
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(
+            lockFixture({
+                code: 'LOCK_TYPED',
+                paymentAssetAmount: TYPED,
+                paymentAgainstAmount: '531.99308276',
+                paymentPrice: '1199.9',
+            })
+        )
+        jest.mocked(getCurrencyPrice).mockResolvedValue({ sell: 1190, buy: 1250 })
+        let rejectRouting!: (error: unknown) => void
+        mockResolveSpendStrategy.mockImplementationOnce(
+            () =>
+                new Promise((_, reject) => {
+                    rejectRouting = reject
+                })
+        )
+        let payment!: Promise<void>
+        await act(async () => {
+            payment = surface!.payQR()
+        })
+        // The typed amount's lock is on screen, as it is between the init and routing.
+        await waitFor(() => expect(surface?.currency?.price).toBe(1199.9))
+        await act(async () => {
+            rejectRouting(new InsufficientSpendableError(BALANCE, 531_993_083n))
+            await payment
+        })
+
+        expect(surface?.currencyAmount).toBe('638285.02')
+        expect(surface?.paymentLock?.code).toBe('')
+        await act(async () => {})
+        expect(surface?.currency?.price).toBe(1199.9)
+        // Converted the way the amount field converts it, the lowered amount passes the gate.
+        const shownUsd = convertDecimalAmount(surface!.currencyAmount!, 1, surface!.currency!.price, 2)
+        expect(shownUsd).toBe('531.94')
+        await act(async () => {
+            surface!.setAmount(shownUsd!)
+        })
+        expect(surface?.balanceErrorMessage).toBeNull()
     })
 
     test('typed amount, live balance below what the form showed: the wait copy stays until the balance is really short', async () => {

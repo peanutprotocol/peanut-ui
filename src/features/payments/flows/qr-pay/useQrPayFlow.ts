@@ -326,6 +326,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const [rateUnavailable, setRateUnavailable] = useState(false)
     const [rateAttempt, setRateAttempt] = useState(0)
+    // The rate of the last lock minted for a typed amount that the balance
+    // could not pay. The form converts at it after that, not at a fresh rate: a
+    // lower fresh rate would put the amount lowered to the balance back above it.
+    const lastLockRateRef = useRef<string | null>(null)
     const retryRate = useCallback(() => {
         setRateUnavailable(false)
         setRateAttempt((attempt) => attempt + 1)
@@ -343,7 +347,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             let price: number
             currencyCode = paymentLock.paymentAsset
             if (paymentLock.code === '') {
-                price = (await getCurrencyPrice(currencyCode)).sell
+                price = lastLockRateRef.current
+                    ? Number(lastLockRateRef.current)
+                    : (await getCurrencyPrice(currencyCode)).sell
             } else {
                 price = Number(paymentLock.paymentPrice)
             }
@@ -922,14 +928,14 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                     lockedUsdc: error.required,
                     availableUsdc: error.available,
                 })
+                lastLockRateRef.current = finalPaymentLock.paymentPrice
                 setPaymentLock(paymentLock)
                 setAmount(amount)
                 setCurrencyAmount(fittedAmount ?? currencyAmount)
                 if (fittedAmount) {
-                    // Waiting cannot help. The user sees the largest amount
-                    // that fits and pays it with the next tap.
+                    // Waiting cannot help. The field shows the largest amount
+                    // that fits, and the next tap pays it.
                     setAmountInputRevision((revision) => revision + 1)
-                    setQuoteUpdatedNotice(t('amountLoweredToBalance'))
                     setErrorMessage(null)
                 } else {
                     setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
@@ -1387,7 +1393,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         rateUnavailable,
         retryRate,
         amountInputRevision,
-        // controller-rotation quote handoff, and an amount lowered to the balance
+        // controller-rotation quote handoff
         quoteUpdatedNotice,
         isQuoteRecovering,
         cancelQuoteRecovery,

@@ -1706,7 +1706,6 @@
     "qrPay": {
         "youArePaying": "Paying",
         "reviewUpdatedQuote": "Review the updated quote to continue.",
-        "amountLoweredToBalance": "We lowered the amount to the most your balance covers. Check it before you pay.",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
         "processingPaymentTitle": "Processing payment",

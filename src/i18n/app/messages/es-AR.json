@@ -928,7 +928,6 @@
     },
     "qrPay": {
         "reviewUpdatedQuote": "Revisá la cotización actualizada para continuar.",
-        "amountLoweredToBalance": "Bajamos el monto al máximo que cubre tu saldo. Revisalo antes de pagar.",
         "havingTrouble": "¿Tenés problemas?",
         "orderNotReady": {
             "description": "Pedile al comercio que lo ingrese y escaneá el QR de nuevo."

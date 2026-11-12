@@ -234,15 +234,6 @@ export function QrPayFormView() {
                         </div>
                     )}
 
-                    {/* The quote or the amount changed under the user (a controller
-                        rotation, or an amount lowered to the balance): said under the
-                        amount, so it is read before Pay. */}
-                    {quoteUpdatedNotice && (
-                        <Callout priority="info" data-testid="quote-updated-notice">
-                            {quoteUpdatedNotice}
-                        </Callout>
-                    )}
-
                     {/* Limits Warning/Error Card */}
                     {(() => {
                         const limitsCardProps = getLimitsWarningCardProps({
@@ -336,6 +327,13 @@ export function QrPayFormView() {
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('pay')}
                     </Button>
+
+                    {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
+                    {quoteUpdatedNotice && (
+                        <Callout priority="info" data-testid="quote-updated-notice">
+                            {quoteUpdatedNotice}
+                        </Callout>
+                    )}
 
                     {rateUnavailable && <RateUnavailable onRetry={retryRate} />}
 

@@ -1951,7 +1951,6 @@
         "provider.role.rhino": "No capture state shows this copy yet",
         "provider.role.thirdNational": "No capture state shows this copy yet",
         "provider.sheetIntro": "No capture state shows this copy yet",
-        "qrPay.amountLoweredToBalance": "Shown only after a Pay tap whose lock exceeds the live balance; no fixture can reach it",
         "qrPay.claim.alreadyClaimed": "No capture state shows this copy yet",
         "qrPay.claim.claimFailed": "No capture state shows this copy yet",
         "qrPay.claim.claiming": "No capture state shows this copy yet",
