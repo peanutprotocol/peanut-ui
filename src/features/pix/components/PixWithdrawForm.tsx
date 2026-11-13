@@ -29,7 +29,9 @@ export interface PixWithdrawAmountSeed {
 /**
  * The one form of a Pix withdrawal, after the key resolved: the Pix-key
  * payment form with "Withdrawing" as its lead word and Confirm as its button
- * (ruling 2026-11-12, providers are cattle). The recipient card, the save
+ * (ruling 2026-11-12, providers are cattle). Where the provider says the key is
+ * another person's (`ownAccount` false), the same form is a send to them, and
+ * leads with "Sending" (TASK-24910). The recipient card, the save
  * card, the amount card and the details card are the payment form's own
  * parts; the details card adds the provider's flat fee where the quote
  * carries one, and the exact reais and wallet debit the quote names. Dumb
@@ -56,8 +58,14 @@ export function PixWithdrawForm({
 }: {
     title: string
     onBack: () => void
-    /** The resolved key: its holder and bank from the lookup, or from the quote after a reload. */
-    recipient: { pixKey: string; holderName: string | null; bankName: string | null; taxIdMasked: string | null }
+    /** The resolved key: its holder and bank from the lookup, or from the quote after a reload; whose key it is, where the provider tells. */
+    recipient: {
+        pixKey: string
+        holderName: string | null
+        bankName: string | null
+        taxIdMasked: string | null
+        ownAccount?: boolean | null
+    }
     save: SaveRecipientState
     amount: {
         /** Read once, when the form mounts: the field is never re-seeded while the user types. */
@@ -94,6 +102,7 @@ export function PixWithdrawForm({
 }) {
     const t = useTranslations('pix.withdraw')
     const tCommon = useTranslations('common')
+    const tPayment = useTranslations('payment')
     // the seed the flow hands over at mount; later renders carry the live typed values, which the field already shows
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
@@ -112,7 +121,7 @@ export function PixWithdrawForm({
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <RecipientCard
-                    lead={t('withdrawing')}
+                    lead={recipient.ownAccount === false ? tPayment('confirm.sending') : t('withdrawing')}
                     icon={PIX}
                     name={recipient.holderName ?? recipient.pixKey}
                     maskName

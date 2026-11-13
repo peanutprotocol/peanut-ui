@@ -2,8 +2,8 @@ import type { PixWithdrawDisplay } from '@/services/pix'
 import { readStoredValue, removeStoredValue, storedKeysWithPrefix, writeStoredValue } from '@/utils/safe-storage'
 
 /**
- * A `transfer-then-submit` withdrawal whose submit may have gone out. It has no intent id until the
- * API answers, so the device mark (`pixWithdrawSent`) cannot hold it: this one does. It is written
+ * A `transfer-then-submit` withdrawal whose submit may have gone out. Where it has no intent id until
+ * the API answers (Manteca), the device mark (`pixWithdrawSent`) cannot hold it: this one does. It is written
  * before the submit leaves and kept until the API refuses that submit, the answer names the
  * withdrawal, or the lock's window plus a margin has passed. While any stands, the withdraw page
  * shows the newest as not confirmed yet, never a new Confirm: a reload after a lost answer could
@@ -17,6 +17,8 @@ import { readStoredValue, removeStoredValue, storedKeysWithPrefix, writeStoredVa
  */
 export interface PendingTransfer {
     priceLockCode: string
+    /** The withdrawal, where the open already named it (Bridge): the last step reads its history. */
+    intentId?: string | null
     /** What the review showed: the last step's amount and destination. */
     display: PixWithdrawDisplay
     submittedAt: number

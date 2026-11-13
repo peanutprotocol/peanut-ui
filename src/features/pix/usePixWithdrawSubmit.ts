@@ -29,7 +29,7 @@ import {
 } from '@/services/pix'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
-import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/pix/pixFlow.utils'
+import { quoteNeedsReview, signMatchesDisplay } from '@/features/pix/pixFlow.utils'
 import { pixSignedFunding } from '@/features/pix/pixSignedFunding'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import {
@@ -112,19 +112,23 @@ export interface PixWithdrawSubmit {
  * - `deposit-with-id`: the withdrawal is open at once. The wallet approves the token and calls
  *   depositWithId on the bridge contract (the same calls as a cross-chain bridge commit), then the
  *   app reports the mined transaction.
- * - `transfer-then-submit`: nothing is open yet. The wallet signs a transfer to the deposit address
- *   without broadcasting it; POST /pix/withdraw/submit opens the payout order for the locked price,
- *   then broadcasts, so no money leaves for an order that could not open. A submit whose answer is
+ * - `transfer-then-submit`: the wallet signs a transfer to the deposit address without broadcasting
+ *   it, and POST /pix/withdraw/submit broadcasts it, so no money leaves for an order that could not
+ *   open. Manteca opens its payout order at the submit, so nothing is open before it (`intentId`
+ *   null); Bridge opens its transfer at the open, which names the withdrawal, and claims the
+ *   submission before it broadcasts, so a repeated submit sends nothing. A submit whose answer is
  *   lost may still have paid: it reads as not confirmed (`unconfirmed`), and a device mark for this
  *   account and this price lock (`pixWithdrawPending`) keeps the page on it after a reload, in any
  *   tab and after a logout, until the lock's window has passed. A browser that cannot keep the
  *   mark signs nothing.
  *
  * The open quotes again, seconds after the review. When that quote takes any more USD or pays any
- * fewer reais than the reviewed one, nothing is signed until the user confirms the new amounts.
+ * fewer reais than the reviewed one, or, for an estimate the provider does not lock, differs at all,
+ * nothing is signed until the user confirms the new amounts.
  *
  * `onOpened` gets the withdrawal's id once the provider holds it (null when the submit could not
- * name it), so the flow can put it in the URL. Funding is a balance-decreasing mutation: while one
+ * name it), so the flow can put it in the URL. A `transfer-then-submit` withdrawal gets there only
+ * once its submit left: before it a reload shows the form, and nothing was sent. Funding is a balance-decreasing mutation: while one
  * is pending (`usePendingTransactions`), no second withdrawal opens.
  */
 export function usePixWithdrawSubmit({
@@ -273,15 +277,17 @@ export function usePixWithdrawSubmit({
                 artifact = await signSpend(signInput())
             } catch (caught) {
                 // nothing is ordered or broadcast before the submit: any signing failure sent nothing
-                reportSignFailure(caught, null)
+                reportSignFailure(caught, withdrawal.intentId)
+                const lockPassed = caught instanceof SpendRecoveryQuoteReviewError
                 dispatch({
                     type: 'SENT_NOTHING',
-                    error: caught instanceof SpendRecoveryQuoteReviewError ? quoteExpired : toFriendlyError(caught),
+                    error: lockPassed ? quoteExpired : toFriendlyError(caught),
+                    restart: lockPassed,
                 })
                 return
             }
             if (expired()) {
-                dispatch({ type: 'SENT_NOTHING', error: quoteExpired })
+                dispatch({ type: 'SENT_NOTHING', error: quoteExpired, restart: true })
                 return
             }
             const body = (candidate: SignedSpendArtifact): PixWithdrawSubmitRequest => ({
@@ -295,12 +301,13 @@ export function usePixWithdrawSubmit({
             // window has passed. A mark that did not hold sends nothing: the signature is dropped unsent.
             const marked = markTransferPending(userId, {
                 priceLockCode: request.priceLockCode,
+                intentId: withdrawal.intentId,
                 display: withdrawal.display,
                 submittedAt: Date.now(),
                 settleBy: lockExpiresAt + PENDING_TRANSFER_MARGIN_MS,
             })
             if (!marked) {
-                dispatch({ type: 'SENT_NOTHING', error: noRecord })
+                dispatch({ type: 'SENT_NOTHING', error: noRecord, restart: true })
                 return
             }
             let submitted: Awaited<ReturnType<typeof pixApi.submitWithdrawal>>
@@ -332,37 +339,49 @@ export function usePixWithdrawSubmit({
                     )
                 )
             } catch (caught) {
-                reportSignFailure(caught, null)
+                reportSignFailure(caught, withdrawal.intentId)
                 // a recovery that handed back, or an answer from before the broadcast, moved nothing
                 if (isSpendRecoveryOutcome(caught) || submitSentNothing(caught)) {
                     // only this submit's mark: another tab's withdrawal keeps its own
                     clearTransferPending(userId, request.priceLockCode)
+                    const code = wireErrorCode(caught)
+                    // the API no longer takes this withdrawal's signature: its quote expired, or it closed
+                    const closed =
+                        isSpendRecoveryOutcome(caught) ||
+                        code === API_ERROR_CODES.PIX_QUOTE_EXPIRED ||
+                        code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE
+                    if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE) void fetchUser().catch(() => undefined)
                     dispatch({
                         type: 'SENT_NOTHING',
                         error: isSpendRecoveryOutcome(caught)
                             ? quoteExpired
-                            : wireErrorCode(caught)
+                            : code
                               ? refusalMessage(caught)
                               : toFriendlyError(caught),
+                        restart: closed,
                     })
                     return
                 }
-                // A lost answer, or a failure after the broadcast: the payout may be on its way. The
-                // last step says it is not confirmed yet, the mark stays for a reload, and the flow
-                // drops its draft, so nothing offers the same withdrawal again.
+                // A lost answer, or a failure after the broadcast (a 502 says the outcome is unknown):
+                // the payout may be on its way, so nothing asks for another signature. The last step
+                // says it is not confirmed yet and reads the withdrawal where the open named it; the
+                // mark stays for a reload, and the flow drops its draft, so nothing offers the same
+                // withdrawal again.
                 dispatch({ type: 'NO_RECEIPT' })
-                onOpened?.(null)
+                onOpened?.(withdrawal.intentId)
                 return
             }
             void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
             // a named withdrawal is the URL's from now on; an unnamed one keeps the mark until its window has passed
-            if (submitted.intentId) clearTransferPending(userId, request.priceLockCode)
-            dispatch({ type: 'SUBMITTED', intentId: submitted.intentId })
-            onOpened?.(submitted.intentId)
+            const named = submitted.intentId ?? withdrawal.intentId
+            if (named) clearTransferPending(userId, request.priceLockCode)
+            dispatch({ type: 'SUBMITTED', intentId: named })
+            onOpened?.(named)
         },
         [
             dispatch,
+            fetchUser,
             onOpened,
             queryClient,
             rainCardOverview?.balance?.spendingPower,
@@ -428,7 +447,7 @@ export function usePixWithdrawSubmit({
                 dispatch({ type: 'OFF_CONTRACT', withdrawal, error: tShared('unavailable') })
                 return
             }
-            if (quoteMovedAgainstUser(reviewed, init.display)) {
+            if (quoteNeedsReview(reviewed, init.display)) {
                 dispatch({ type: 'QUOTE_MOVED', withdrawal })
                 return
             }

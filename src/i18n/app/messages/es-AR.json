@@ -1370,7 +1370,10 @@
                 "quoteChanged": "El monto cambió durante la cotización. Intentá de nuevo.",
                 "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Probá con otro navegador."
             },
-            "changeKey": "Cambiar clave"
+            "changeKey": "Cambiar clave",
+            "keyChecking": "Todavía estamos revisando esta clave. Intentá de nuevo en un momento.",
+            "keyNotUsable": "Esta clave ya no puede recibir Pix. Usá otra clave.",
+            "lookupThrottled": "Revisaste muchas claves en poco tiempo. Intentá de nuevo más tarde."
         },
         "recovery": {
             "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresá una clave Pix de otra cuenta con tu CPF."

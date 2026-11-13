@@ -172,4 +172,58 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByTestId('pix-key-saved-as')).toHaveTextContent('Saved as Inter')
         expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
     })
+
+    // TASK-24910: Bridge pays another person's key; it locks no rate, so the reais are an estimate
+    describe('a payout through Bridge', () => {
+        const bridgeDisplay = {
+            ...display,
+            pixKey: '11144477735',
+            ownAccount: false,
+            holderName: 'BRUNO LIMA',
+            bankName: 'Nu Pagamentos S.A.',
+            amountBrl: '100.00',
+            withdrawUsd: '18.87',
+            fixedFeeBrl: '0',
+            provider: 'Bridge',
+            amountBrlEstimated: true as const,
+        }
+        const bridgeRecipient = {
+            pixKey: '11144477735',
+            holderName: 'BRUNO LIMA',
+            bankName: 'Nu Pagamentos S.A.',
+            taxIdMasked: null,
+        }
+
+        it("reads as a send to another person's key: Sending, the validated holder and bank, the reais marked ≈, Bridge", () => {
+            renderForm({
+                recipient: { ...bridgeRecipient, ownAccount: false },
+                display: bridgeDisplay,
+                payout: '≈ R$100',
+                total: '$18.87',
+                providerId: 'bridge-row',
+            })
+            expect(screen.getByText(en.payment.confirm.sending)).toBeInTheDocument()
+            expect(screen.queryByText(en.pix.withdraw.withdrawing)).toBeNull()
+            expect(screen.getByText('BRUNO LIMA')).toBeInTheDocument()
+            expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
+            expect(screen.getByText('Nu Pagamentos S.A.')).toBeInTheDocument()
+            expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
+            expect(screen.getByText('≈ R$100')).toBeInTheDocument()
+            expect(screen.getByText('$18.87')).toBeInTheDocument()
+            // no fee on the quote: no fee row
+            expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+            expect(screen.getByText(PROVIDERS['bridge-row'].brand)).toBeInTheDocument()
+        })
+
+        it("reads as a withdrawal to the user's own key, with the fee row a receipt fee brings", () => {
+            renderForm({
+                recipient: { ...bridgeRecipient, holderName: 'ANA SOUZA', ownAccount: true },
+                display: { ...bridgeDisplay, ownAccount: true, amountBrl: '97.88', fixedFeeBrl: '2.12' },
+                providerId: 'bridge-row',
+            })
+            expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
+            expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
+            expect(screen.getByText('R$2.12')).toBeInTheDocument()
+        })
+    })
 })

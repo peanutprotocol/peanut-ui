@@ -41,6 +41,7 @@ async function call<T>(path: string, init: ApiFetchInit, fallbackMessage: string
 }
 
 const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
+const LOOKUP_TIMEOUT_MS = 30_000
 const GET: RequestInit = { method: 'GET' }
 
 export const pixApi = {
@@ -59,7 +60,13 @@ export const pixApi = {
     readDeposit: (intentId: string) =>
         call<PixDeposit>(`/pix/deposit/${encodeURIComponent(intentId)}`, GET, 'Could not read the deposit'),
 
-    lookupKey: (pixKey: string) => call<PixKeyInfo>('/pix/key', post({ pixKey }), 'Could not look up the Pix key'),
+    /** A new key's check can take the provider up to about 18 seconds, past the default timeout; a retry is safe. */
+    lookupKey: (pixKey: string) =>
+        call<PixKeyInfo>(
+            '/pix/key',
+            { ...post({ pixKey }), timeoutMs: LOOKUP_TIMEOUT_MS },
+            'Could not look up the Pix key'
+        ),
 
     previewWithdrawal: (request: PixWithdrawRequest) =>
         call<PixWithdrawDisplay>('/pix/withdraw/preview', post(request), 'Could not quote the withdrawal'),

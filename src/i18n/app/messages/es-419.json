@@ -2639,7 +2639,11 @@
                 "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Intenta con otro navegador."
             },
             "changeKey": "Cambiar clave",
-            "withdrawing": "Retirando"
+            "withdrawing": "Retirando",
+            "keyChecking": "Todavía estamos revisando esta clave. Intenta de nuevo en un momento.",
+            "keyNotUsable": "Esta clave ya no puede recibir Pix. Usa otra clave.",
+            "lookupThrottled": "Revisaste muchas claves en poco tiempo. Intenta de nuevo más tarde.",
+            "arrivesIn": "Suele llegar en unos {minutes, plural, one {# minuto} other {# minutos}}."
         },
         "recovery": {
             "actionNeeded": "Acción requerida",

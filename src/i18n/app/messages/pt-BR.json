@@ -2639,7 +2639,11 @@
                 "noRecord": "Este navegador não consegue guardar o registro deste saque, então ele não foi enviado. Tente outro navegador."
             },
             "changeKey": "Alterar chave",
-            "withdrawing": "Sacando"
+            "withdrawing": "Sacando",
+            "keyChecking": "Ainda estamos conferindo esta chave. Tente de novo em instantes.",
+            "keyNotUsable": "Esta chave não pode mais receber Pix. Use outra chave.",
+            "lookupThrottled": "Você conferiu muitas chaves em pouco tempo. Tente de novo mais tarde.",
+            "arrivesIn": "Costuma chegar em cerca de {minutes, plural, one {# minuto} other {# minutos}}."
         },
         "recovery": {
             "actionNeeded": "Ação necessária",

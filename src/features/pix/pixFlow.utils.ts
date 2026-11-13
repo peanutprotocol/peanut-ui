@@ -5,6 +5,7 @@ import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-e
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import { claimErrorKey } from '@/features/deposit-accounts/claimErrors'
 import type { HistoryEntry } from '@/utils/history.utils'
+import { formatBankAmount } from '@/utils/currency'
 
 /** The pending route's one reason that waits on a fix, not a retry: a routed provider's park code `TAX_ID_MISSING`, lower case (api `kyc/capabilities/resolver.ts`). */
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
@@ -157,6 +158,9 @@ export type PixWithdrawRefusal =
     | 'withdraw.errors.quoteChanged'
     | 'withdraw.keyNotOwn'
     | 'withdraw.keyBlocked'
+    | 'withdraw.keyNotUsable'
+    | 'withdraw.keyChecking'
+    | 'withdraw.lookupThrottled'
     | 'pixKeyNotFound'
     | 'minimum'
     | 'providerRejected'
@@ -176,6 +180,13 @@ export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefu
             return 'withdraw.keyNotOwn'
         case API_ERROR_CODES.PIX_KEY_BLOCKED:
             return 'withdraw.keyBlocked'
+        // the preview and the open resolve the key's payee again, so they refuse as the lookup does
+        case API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE:
+            return 'withdraw.keyNotUsable'
+        case API_ERROR_CODES.PIX_KEY_CHECK_PENDING:
+            return 'withdraw.keyChecking'
+        case API_ERROR_CODES.PIX_KEY_LOOKUP_THROTTLED:
+            return 'withdraw.lookupThrottled'
         case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
             return 'pixKeyNotFound'
         case API_ERROR_CODES.PIX_MIN_AMOUNT:
@@ -226,6 +237,42 @@ export function quoteMovedAgainstUser(
 }
 
 /**
+ * Whether the user sees the opened quote before the wallet signs it. A locked quote asks again only
+ * when it moved against the user (`quoteMovedAgainstUser`). A provider that locks no rate
+ * (`amountBrlEstimated`) reads its rate again at the open, and a fee on its receipt lowers the reais:
+ * any change of the reais, the USD or the fee is shown first.
+ */
+export function quoteNeedsReview(
+    reviewed: Pick<PixWithdrawDisplay, 'withdrawUsd' | 'amountBrl' | 'fixedFeeBrl'>,
+    opened: Pick<PixWithdrawDisplay, 'withdrawUsd' | 'amountBrl' | 'fixedFeeBrl' | 'amountBrlEstimated'>
+): boolean {
+    if (quoteMovedAgainstUser(reviewed, opened)) return true
+    if (!opened.amountBrlEstimated) return false
+    try {
+        return (
+            parseUnits(opened.withdrawUsd, 6) !== parseUnits(reviewed.withdrawUsd, 6) ||
+            parseUnits(opened.amountBrl, 2) !== parseUnits(reviewed.amountBrl, 2) ||
+            parseUnits(opened.fixedFeeBrl, 2) !== parseUnits(reviewed.fixedFeeBrl, 2)
+        )
+    } catch {
+        return true
+    }
+}
+
+/**
+ * The minimum a `PIX_MIN_AMOUNT` refusal states. The provider's figure can differ from the route's
+ * (`route.limits`), and the API names it only in the refusal's text ("The minimum Pix withdrawal is
+ * R$2." or "… is 5 USDC."), so the figure is read from there. Null where the text names none.
+ */
+export function pixRefusalMinimum(caught: unknown): { amount: string; currency: 'BRL' | 'USD' } | null {
+    if (wireErrorCode(caught) !== API_ERROR_CODES.PIX_MIN_AMOUNT || !(caught instanceof Error)) return null
+    const reais = caught.message.match(/R\$\s?(\d+(?:[.,]\d+)?)/)
+    if (reais) return { amount: reais[1].replace(',', '.'), currency: 'BRL' }
+    const usd = caught.message.match(/(\d+(?:\.\d+)?)\s*USDC?\b/i)
+    return usd ? { amount: usd[1], currency: 'USD' } : null
+}
+
+/**
  * What the last step of a withdrawal says, from its history entry. A funding
  * transaction only funds the withdrawal: the provider pays the Pix after it,
  * so the step says "on its way" until the entry completes, and asks for
@@ -239,6 +286,12 @@ export function quoteMovedAgainstUser(
  * asked, or the signature surely sent nothing). An unsigned withdrawal the API
  * still holds for its signature (AWAITING_USER_ACTION) is not sent: this page
  * lost the signature request, so it starts again.
+ *
+ * A Bridge payout's entry carries Bridge's own transfer states
+ * (`BRIDGE_TRANSFER_STATES`): paid at PAYMENT_PROCESSED, returned at RETURNED
+ * or REFUNDED, on its way once Bridge holds the funding, and for support at
+ * UNDELIVERABLE or ERROR whatever this device knows, because those come after
+ * the funding.
  */
 export type PixWithdrawOutcomeKind =
     | 'on-its-way'
@@ -249,18 +302,34 @@ export type PixWithdrawOutcomeKind =
     | 'not-sent'
     | 'stuck'
 
-/** How the API ends a withdrawal whose deposit never left the wallet. */
-const ENDED_UNFUNDED = ['FAILED', 'CANCELLED', 'EXPIRED']
+/** How the API ends a withdrawal whose deposit never left the wallet (Bridge spells CANCELED with one L). */
+const ENDED_UNFUNDED = ['FAILED', 'CANCELLED', 'CANCELED', 'EXPIRED']
+const ARRIVED = ['COMPLETED', 'PAYMENT_PROCESSED']
+const RETURNED = ['REFUNDED', 'RETURNED']
+/** Not funded at the provider yet: our status, or Bridge's. */
+const AWAITING_FUNDS = ['PENDING', 'AWAITING_FUNDS']
+/** Bridge holds the funding and pays the Pix. */
+const PROVIDER_PAYS = ['FUNDS_RECEIVED', 'PAYMENT_SUBMITTED', 'IN_REVIEW']
+
+/**
+ * The states a Bridge transfer's history entry carries while it moves (peanut-api-ts
+ * `BridgeTransferState`): a bank payout, which takes minutes, not seconds.
+ */
+export const BRIDGE_TRANSFER_STATES: readonly string[] = ['AWAITING_FUNDS', ...PROVIDER_PAYS]
 
 export function pixWithdrawOutcome(
     phase: 'funded' | 'unconfirmed' | 'unsigned',
-    entry: Pick<HistoryEntry, 'status' | 'extraData'> | undefined
+    entry: Pick<HistoryEntry, 'status' | 'extraData' | 'txHash'> | undefined
 ): PixWithdrawOutcomeKind {
-    if (entry?.status === 'COMPLETED') return 'arrived'
+    const status = entry?.status
+    if (status && ARRIVED.includes(status)) return 'arrived'
     if (awaitsNewPixKey(entry?.extraData)) return 'needs-key'
-    if (entry?.status === 'REFUNDED') return 'refunded'
-    if (entry?.status && entry.status !== 'PENDING') {
-        if (phase !== 'funded' && ENDED_UNFUNDED.includes(entry.status)) return 'not-sent'
+    if (status && RETURNED.includes(status)) return 'refunded'
+    if (status && PROVIDER_PAYS.includes(status)) return 'on-its-way'
+    // the API recorded the mined funding; Bridge has not seen it yet
+    if (status === 'AWAITING_FUNDS' && entry?.txHash) return 'on-its-way'
+    if (status && !AWAITING_FUNDS.includes(status)) {
+        if (phase !== 'funded' && ENDED_UNFUNDED.includes(status)) return 'not-sent'
         // a funded deposit whose withdrawal ended with no recovery, or an end this build does not
         // know: support sorts it out, and the screen never reads as progress
         return 'stuck'
@@ -269,6 +338,12 @@ export function pixWithdrawOutcome(
     if (entry?.extraData?.intentStatus === 'PROCESSING') return 'on-its-way'
     if (phase === 'unsigned' && entry?.extraData?.intentStatus === 'AWAITING_USER_ACTION') return 'not-sent'
     return phase === 'funded' ? 'on-its-way' : 'unconfirmed'
+}
+
+/** The reais a withdrawal pays, as the screens print them: marked ≈ where the provider locks no rate. */
+export function pixPayoutShown(display: Pick<PixWithdrawDisplay, 'amountBrl' | 'amountBrlEstimated'>): string {
+    const amount = formatBankAmount(display.amountBrl, 'BRL')
+    return display.amountBrlEstimated ? `≈ ${amount}` : amount
 }
 
 /**

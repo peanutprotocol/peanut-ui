@@ -2639,7 +2639,11 @@
                 "noRecord": "This browser cannot keep a record of this withdrawal, so it was not sent. Try another browser."
             },
             "changeKey": "Change key",
-            "withdrawing": "Withdrawing"
+            "withdrawing": "Withdrawing",
+            "keyChecking": "We are still checking this key. Try again in a moment.",
+            "keyNotUsable": "This key can no longer receive Pix. Use another key.",
+            "lookupThrottled": "You checked many keys in a short time. Try again later.",
+            "arrivesIn": "Usually arrives in about {minutes, plural, one {# minute} other {# minutes}}."
         },
         "recovery": {
             "actionNeeded": "Action needed",
