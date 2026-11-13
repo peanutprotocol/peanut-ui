@@ -11868,7 +11868,7 @@
 		},
 		"/manteca/pix-key/saved": {
 			"post": {
-				"description": "Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Saving a key the user already has renames it.",
+				"description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
 				"parameters": [
 					{
 						"in": "header",
@@ -17599,34 +17599,6 @@
 						},
 						"description": "Default Response"
 					},
-					"400": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"additionalProperties": true,
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										},
-										"statusCode": {
-											"type": "number"
-										}
-									},
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
 					"403": {
 						"content": {
 							"application/json": {
@@ -20848,74 +20820,6 @@
 							"application/json": {
 								"schema": {
 									"properties": {
-										"collateralReturn": {
-											"properties": {
-												"cardCreditCents": {
-													"type": "integer"
-												},
-												"heldCents": {
-													"type": "integer"
-												},
-												"remainingCents": {
-													"type": "integer"
-												},
-												"retryAfterSec": {
-													"minimum": 1,
-													"type": "integer"
-												},
-												"returnedCents": {
-													"type": "integer"
-												},
-												"state": {
-													"anyOf": [
-														{
-															"enum": [
-																"nothing"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"returned"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"required"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"waiting"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"failed"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"unknown"
-															],
-															"type": "string"
-														}
-													]
-												}
-											},
-											"required": [
-												"state",
-												"returnedCents",
-												"remainingCents",
-												"heldCents",
-												"cardCreditCents"
-											],
-											"type": "object"
-										},
 										"fundingStop": {
 											"properties": {
 												"reason": {
@@ -21023,10 +20927,6 @@
 										},
 										"error": {
 											"type": "string"
-										},
-										"retryAfterSec": {
-											"minimum": 1,
-											"type": "integer"
 										}
 									},
 									"required": [
@@ -21549,74 +21449,6 @@
 							"application/json": {
 								"schema": {
 									"properties": {
-										"collateralReturn": {
-											"properties": {
-												"cardCreditCents": {
-													"type": "integer"
-												},
-												"heldCents": {
-													"type": "integer"
-												},
-												"remainingCents": {
-													"type": "integer"
-												},
-												"retryAfterSec": {
-													"minimum": 1,
-													"type": "integer"
-												},
-												"returnedCents": {
-													"type": "integer"
-												},
-												"state": {
-													"anyOf": [
-														{
-															"enum": [
-																"nothing"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"returned"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"required"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"waiting"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"failed"
-															],
-															"type": "string"
-														},
-														{
-															"enum": [
-																"unknown"
-															],
-															"type": "string"
-														}
-													]
-												}
-											},
-											"required": [
-												"state",
-												"returnedCents",
-												"remainingCents",
-												"heldCents",
-												"cardCreditCents"
-											],
-											"type": "object"
-										},
 										"fundingStop": {
 											"properties": {
 												"reason": {
@@ -21724,10 +21556,6 @@
 										},
 										"error": {
 											"type": "string"
-										},
-										"retryAfterSec": {
-											"minimum": 1,
-											"type": "integer"
 										}
 									},
 									"required": [
@@ -25610,7 +25438,9 @@
 									"description": "Invalid input or a typed name change. PROFILE_NAME_READ_ONLY rejects the entire request before any profile fields are saved or email verification code is consumed. Blank or unchanged names are ignored.",
 									"properties": {
 										"code": {
-											"description": "PROFILE_NAME_READ_ONLY, EMAIL_VERIFICATION_REQUIRED or a validation code",
+											"enum": [
+												"PROFILE_NAME_READ_ONLY"
+											],
 											"type": "string"
 										},
 										"error": {
@@ -25784,12 +25614,6 @@
 							"application/json": {
 								"schema": {
 									"properties": {
-										"code": {
-											"enum": [
-												"EMAIL_CHANGE_UNAVAILABLE"
-											],
-											"type": "string"
-										},
 										"error": {
 											"type": "string"
 										}
@@ -29794,12 +29618,6 @@
 							"application/json": {
 								"schema": {
 									"properties": {
-										"code": {
-											"enum": [
-												"EMAIL_CHANGE_UNAVAILABLE"
-											],
-											"type": "string"
-										},
 										"error": {
 											"type": "string"
 										}
@@ -36358,9 +36176,6 @@
 																},
 																"locked": {
 																	"type": "boolean"
-																},
-																"minAddressLineLength": {
-																	"type": "number"
 																},
 																"options": {
 																	"items": {
