@@ -66,6 +66,8 @@ export async function reserveUsername(username: string): Promise<UsernameReserva
             if (response.ok) return 'reserved'
             const body = await response.json().catch(() => ({}))
             if (response.status === 409 && ['USERNAME_TAKEN', 'USERNAME_RESERVED'].includes(body?.code)) return 'taken'
+            if (response.status === 400 && body?.code === 'USERNAME_RESERVED') return 'refused'
+            // Text fallback for the API before it sent USERNAME_RESERVED on this 400.
             if (response.status === 400 && body?.code === 'USERNAME_INVALID')
                 return body?.reason === RESERVED_REASON ? 'refused' : 'invalid'
             if (response.status === 400 && body?.code === 'HOLD_TOKEN_REQUIRED' && attempt === 0) {

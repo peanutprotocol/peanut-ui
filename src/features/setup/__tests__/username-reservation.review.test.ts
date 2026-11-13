@@ -156,3 +156,26 @@ describe('hold failures the fetch layer no longer reports', () => {
         expect(mockCaptureMessage).not.toHaveBeenCalled()
     })
 })
+
+describe('reserved-name refusal', () => {
+    const bodyResponse = (status: number, body: unknown) => ({ ok: false, status, json: async () => body })
+
+    it('maps 400 USERNAME_RESERVED to refused', async () => {
+        mockApiFetch.mockResolvedValue(bodyResponse(400, { code: 'USERNAME_RESERVED', reason: 'anything' }))
+        expect(await reservation.reserveUsername('peanutfan')).toBe('refused')
+    })
+
+    it('still maps the older USERNAME_INVALID + reserved reason to refused', async () => {
+        mockApiFetch.mockResolvedValue(
+            bodyResponse(400, { code: 'USERNAME_INVALID', reason: 'This username is reserved' })
+        )
+        expect(await reservation.reserveUsername('peanutfan')).toBe('refused')
+    })
+
+    it('keeps other invalid names as invalid, and a 409 USERNAME_RESERVED hold as taken', async () => {
+        mockApiFetch.mockResolvedValueOnce(bodyResponse(400, { code: 'USERNAME_INVALID', reason: 'Too short' }))
+        expect(await reservation.reserveUsername('abc')).toBe('invalid')
+        mockApiFetch.mockResolvedValueOnce(bodyResponse(409, { code: 'USERNAME_RESERVED' }))
+        expect(await reservation.reserveUsername('kimchi')).toBe('taken')
+    })
+})
