@@ -533,7 +533,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: Images,
             href: '/dev/ds/marketing/assets',
             description:
-                'The art you may use: mascot, doodles, gloves, logo set, easter eggs, avatars, badges. Not here = not approved',
+                'The art you may use: mascot, coin characters, doodles, gloves, logo set, easter eggs, avatars, badges. Not here = not approved',
             status: 'production',
         },
         {
