@@ -5,7 +5,7 @@ import { API_ERROR_CODES } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** The pending route's one reason that waits on a fix, not a retry: the Avenia park code `TAX_ID_MISSING`, lower case (api `avenia/enrolment.ts`, `kyc/capabilities/resolver.ts`). */
+/** The pending route's one reason that waits on a fix, not a retry: a routed provider's park code `TAX_ID_MISSING`, lower case (api `kyc/capabilities/resolver.ts`). */
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
 
 /** Why the route waits: the provider reviews, or has no CPF for the verification. */

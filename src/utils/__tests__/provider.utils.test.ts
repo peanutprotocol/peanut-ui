@@ -80,7 +80,6 @@ describe('the provider codes come from the registry', () => {
     })
 
     it('maps a Pix route or answer to the entity that moves reais', () => {
-        expect(pixProviderId('avenia')).toBe('avenia-br')
         expect(pixProviderId('manteca')).toBe('manteca-br')
         expect(pixProviderId('MANTECA')).toBe('manteca-br')
         expect(pixProviderId(null)).toBeNull()

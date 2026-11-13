@@ -5476,8 +5476,7 @@
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
-            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil",
-            "aveniaBr": "Pix deposits and withdrawals for residents of Brazil"
+            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil"
         },
         "about": "About {brand}",
         "execution": {
@@ -5486,8 +5485,7 @@
             "mantecaAr": "Settled by {brand}",
             "mantecaBr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
-            "thirdNational": "Third National issues and settles",
-            "aveniaBr": "Settled by {brand}"
+            "thirdNational": "Third National issues and settles"
         },
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",

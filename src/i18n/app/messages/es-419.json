@@ -5476,8 +5476,7 @@
             "thirdNational": "Emisor de la tarjeta, filial de Rain",
             "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
             "mantecaAr": "Depósitos, retiros y pagos con QR en Argentina",
-            "mantecaBr": "Pagos y transferencias por Pix para quienes no viven en Brasil",
-            "aveniaBr": "Depósitos y retiros por Pix para residentes de Brasil"
+            "mantecaBr": "Pagos y transferencias por Pix para quienes no viven en Brasil"
         },
         "about": "Sobre {brand}",
         "execution": {
@@ -5486,8 +5485,7 @@
             "mantecaAr": "Liquidado por {brand}",
             "mantecaBr": "Liquidado por {brand}",
             "rhino": "Lo firmas tú, {brand} hace el puente",
-            "thirdNational": "Third National emite y liquida",
-            "aveniaBr": "Liquidado por {brand}"
+            "thirdNational": "Third National emite y liquida"
         },
         "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
         "cardRelationship": "Tienes una relación directa con Third National bajo los términos de la tarjeta.",
