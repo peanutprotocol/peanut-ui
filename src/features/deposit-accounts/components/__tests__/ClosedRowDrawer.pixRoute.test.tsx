@@ -30,8 +30,8 @@ const refused = (code: string, userMessage: string): CapabilityRoute => ({
 const open = () =>
     renderWithIntl(<ClosedRowDrawer closed={{ kind: 'pix-route' }} onClose={jest.fn()} onChangeResidence={jest.fn()} />)
 
-// Aleks on staging (Avenia unconfigured): the BRL row's drawer said "Bank transfers aren't available for residents of
-// your country." A refused Pix route says its own reason, as the Pix pages do; never a residence rule it is not
+// Aleks on staging (the Pix provider unconfigured): the BRL row's drawer said "Bank transfers aren't available for
+// residents of your country." A refused Pix route says its own reason, as the Pix pages do; never a residence rule it is not
 describe('ClosedRowDrawer for a BRL row its Pix route refuses', () => {
     beforeEach(() => jest.clearAllMocks())
 

@@ -393,139 +393,6 @@
 				]
 			}
 		},
-		"/avenia/webhook": {
-			"post": {
-				"description": "Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT",
-				"parameters": [
-					{
-						"description": "Base64 RSA-PSS signature of the raw body",
-						"in": "header",
-						"name": "signature",
-						"required": false,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"properties": {
-									"event": {
-										"properties": {
-											"accountId": {
-												"minLength": 1,
-												"type": "string"
-											},
-											"createdAt": {
-												"type": "string"
-											},
-											"data": {
-												"properties": {
-													"type": {
-														"type": "string"
-													}
-												},
-												"required": [
-													"type"
-												],
-												"type": "object"
-											},
-											"id": {
-												"minLength": 1,
-												"type": "string"
-											},
-											"subscription": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"id",
-											"accountId",
-											"subscription",
-											"data"
-										],
-										"type": "object"
-									}
-								},
-								"required": [
-									"event"
-								],
-								"type": "object"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"example": {
-									"received": true
-								},
-								"schema": {
-									"properties": {
-										"received": {
-											"enum": [
-												true
-											],
-											"type": "boolean"
-										}
-									},
-									"required": [
-										"received"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"400": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"503": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					}
-				},
-				"summary": "Avenia webhook handler",
-				"tags": [
-					"avenia"
-				]
-			}
-		},
 		"/badge/award": {
 			"post": {
 				"parameters": [
@@ -10667,58 +10534,6 @@
 				}
 			}
 		},
-		"/healthz/avenia": {
-			"get": {
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"example": {
-									"checkedAt": "2026-01-01T00:00:00.000Z",
-									"provider": "avenia",
-									"responseTime": 120,
-									"status": "healthy",
-									"timestamp": "2026-01-01T00:00:00.000Z"
-								},
-								"schema": {
-									"properties": {
-										"checkedAt": {
-											"format": "date-time",
-											"type": "string"
-										},
-										"provider": {
-											"type": "string"
-										},
-										"responseTime": {
-											"type": "number"
-										},
-										"status": {
-											"enum": [
-												"healthy"
-											],
-											"type": "string"
-										},
-										"timestamp": {
-											"format": "date-time",
-											"type": "string"
-										}
-									},
-									"required": [
-										"status",
-										"provider",
-										"timestamp",
-										"checkedAt",
-										"responseTime"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					}
-				}
-			}
-		},
 		"/healthz/bridge": {
 			"get": {
 				"responses": {
@@ -13822,7 +13637,7 @@
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"pixReceived": false,
-									"provider": "avenia",
+									"provider": "manteca",
 									"status": "AWAITING_USER_ACTION",
 									"usdcAmount": "17.920175"
 								},
@@ -13872,7 +13687,7 @@
 											"type": "boolean"
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
 											"type": "string"
 										},
 										"status": {
@@ -14360,7 +14175,7 @@
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"pixReceived": false,
-									"provider": "avenia",
+									"provider": "manteca",
 									"status": "AWAITING_USER_ACTION",
 									"usdcAmount": "17.920175"
 								},
@@ -14410,7 +14225,7 @@
 											"type": "boolean"
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
 											"type": "string"
 										},
 										"status": {
@@ -14517,7 +14332,7 @@
 									"holderTaxIdMasked": "***.456.789-**",
 									"ispb": "18236120",
 									"ownAccount": true,
-									"provider": "avenia"
+									"provider": "manteca"
 								},
 								"schema": {
 									"properties": {
@@ -14577,7 +14392,7 @@
 											"description": "Precheck: the holder looks like the user. Null when the provider cannot tell."
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
 											"type": "string"
 										}
 									},
@@ -14844,7 +14659,7 @@
 									"fixedFeeBrl": "0.75",
 									"minAmountBrl": "20",
 									"operation": "withdraw",
-									"provider": "avenia",
+									"provider": "manteca",
 									"rate": "5.369543",
 									"usdcAmount": "20.020325"
 								},
@@ -14878,7 +14693,7 @@
 											]
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. avenia",
+											"description": "The provider the route names, e.g. manteca",
 											"type": "string"
 										},
 										"rate": {
@@ -15099,12 +14914,12 @@
 										"holderName": "Ana Souza",
 										"ownAccount": true,
 										"pixKey": "12345678909",
-										"provider": "Avenia",
+										"provider": "Manteca",
 										"rate": "5.369543",
 										"withdrawUsd": "20.020325"
 									},
 									"intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
-									"provider": "avenia",
+									"provider": "manteca",
 									"sign": {
 										"commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
 										"contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
@@ -15204,7 +15019,7 @@
 											"description": "The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit"
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
 											"type": "string"
 										},
 										"sign": {
@@ -15542,7 +15357,7 @@
 									"holderName": "Ana Souza",
 									"ownAccount": true,
 									"pixKey": "12345678909",
-									"provider": "Avenia",
+									"provider": "Manteca",
 									"rate": "5.369543",
 									"withdrawUsd": "20.020325"
 								},
@@ -26875,12 +26690,6 @@
 																						"rain"
 																					],
 																					"type": "string"
-																				},
-																				{
-																					"enum": [
-																						"avenia"
-																					],
-																					"type": "string"
 																				}
 																			]
 																		},
@@ -27075,12 +26884,6 @@
 																	{
 																		"enum": [
 																			"rain"
-																		],
-																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"avenia"
 																		],
 																		"type": "string"
 																	}
@@ -27284,12 +27087,6 @@
 																										"rain"
 																									],
 																									"type": "string"
-																								},
-																								{
-																									"enum": [
-																										"avenia"
-																									],
-																									"type": "string"
 																								}
 																							]
 																						},
@@ -27457,12 +27254,6 @@
 																						"rain"
 																					],
 																					"type": "string"
-																				},
-																				{
-																					"enum": [
-																						"avenia"
-																					],
-																					"type": "string"
 																				}
 																			]
 																		},
@@ -27595,12 +27386,6 @@
 																			{
 																				"enum": [
 																					"rain"
-																				],
-																				"type": "string"
-																			},
-																			{
-																				"enum": [
-																					"avenia"
 																				],
 																				"type": "string"
 																			}
@@ -29463,12 +29248,6 @@
 																	{
 																		"enum": [
 																			"rain"
-																		],
-																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"avenia"
 																		],
 																		"type": "string"
 																	}
@@ -31345,7 +31124,7 @@
 							"schema": {
 								"properties": {
 									"key": {
-										"description": "The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia",
+										"description": "The route’s accept-tos step (capabilities.routes[].action): accept-tos:<provider>",
 										"maxLength": 64,
 										"type": "string"
 									}
@@ -35001,12 +34780,6 @@
 																	"RAIN"
 																],
 																"type": "string"
-															},
-															{
-																"enum": [
-																	"AVENIA"
-																],
-																"type": "string"
 															}
 														]
 													},
@@ -37320,12 +37093,6 @@
 																						"rain"
 																					],
 																					"type": "string"
-																				},
-																				{
-																					"enum": [
-																						"avenia"
-																					],
-																					"type": "string"
 																				}
 																			]
 																		},
@@ -37520,12 +37287,6 @@
 																	{
 																		"enum": [
 																			"rain"
-																		],
-																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"avenia"
 																		],
 																		"type": "string"
 																	}
@@ -37729,12 +37490,6 @@
 																										"rain"
 																									],
 																									"type": "string"
-																								},
-																								{
-																									"enum": [
-																										"avenia"
-																									],
-																									"type": "string"
 																								}
 																							]
 																						},
@@ -37902,12 +37657,6 @@
 																						"rain"
 																					],
 																					"type": "string"
-																				},
-																				{
-																					"enum": [
-																						"avenia"
-																					],
-																					"type": "string"
 																				}
 																			]
 																		},
@@ -38040,12 +37789,6 @@
 																			{
 																				"enum": [
 																					"rain"
-																				],
-																				"type": "string"
-																			},
-																			{
-																				"enum": [
-																					"avenia"
 																				],
 																				"type": "string"
 																			}

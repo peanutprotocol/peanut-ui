@@ -13,6 +13,7 @@ import {
     getRedirectUrl,
     getRequestLink,
     formatTokenAmount,
+    isAmbiguousAmountText,
     isUuid,
     printableUserHandle,
     saveRedirectUrl,
@@ -50,6 +51,55 @@ describe('General Utilities', () => {
                     expect(formatTokenAmount('12,', 2, true)).toBe('12.')
                 })
 
+                it('reads es/pt thousands dots before a decimal comma (TASK-23499)', () => {
+                    expect(formatTokenAmount('1.000,50', 2, true)).toBe('1000.50')
+                    expect(formatTokenAmount('1.234.567,8', 2, true)).toBe('1234567.8')
+                    expect(formatTokenAmount('1.000,', 2, true)).toBe('1000.')
+                })
+
+                it('keeps a dot without a comma as the decimal point', () => {
+                    // the slider, suggestion and balance fill pass numbers the app wrote
+                    // itself; "133.333" there is never a thousands group. user text is
+                    // checked with isAmbiguousAmountText first (TASK-23499)
+                    expect(formatTokenAmount('133.333', 2, true)).toBe('133.33')
+                    expect(formatTokenAmount('1.234.567', 2, true)).toBe('')
+                })
+
+                it('rejects dots that are not clean thousands groups before a comma', () => {
+                    expect(formatTokenAmount('1.00,5', 2, true)).toBe('')
+                    expect(formatTokenAmount('1234.567,8', 2, true)).toBe('')
+                    expect(formatTokenAmount('1,000.000,5', 2, true)).toBe('')
+                    expect(formatTokenAmount('0.000,5', 2, true)).toBe('')
+                })
+
+                it('drops a currency sign around the amount (TASK-23499)', () => {
+                    expect(formatTokenAmount('R$ 1.234,56', 2, true)).toBe('1234.56')
+                    expect(formatTokenAmount('$12', 2, true)).toBe('12')
+                    expect(formatTokenAmount('$ 12', 2, true)).toBe('12')
+                    expect(formatTokenAmount('US$ 1,000.50', 2, true)).toBe('1000.50')
+                    expect(formatTokenAmount('12,50 €', 2, true)).toBe('12.50')
+                    expect(formatTokenAmount('$', 2, true)).toBe('')
+                    expect(formatTokenAmount('-$5', 2, true)).toBe('')
+                    expect(formatTokenAmount('$-5', 2, true)).toBe('')
+                    expect(formatTokenAmount('abc$12', 2, true)).toBe('')
+                    expect(formatTokenAmount('$5$', 2, true)).toBe('')
+                    expect(formatTokenAmount('$ 5 €', 2, true)).toBe('')
+                })
+
+                it('reads a signed amount that is not ambiguous', () => {
+                    expect(formatTokenAmount('$0,125', 2, true)).toBe('0.12')
+                    expect(formatTokenAmount('$1,5', 2, true)).toBe('1.5')
+                    expect(formatTokenAmount('R$ 1.000,00', 2, true)).toBe('1000.00')
+                })
+
+                it('reads spaces only as clean thousands groups (TASK-23499)', () => {
+                    expect(formatTokenAmount('1 234,56', 2, true)).toBe('1234.56')
+                    expect(formatTokenAmount('1\u00a0234,56', 2, true)).toBe('1234.56')
+                    expect(formatTokenAmount('1\u202f234\u202f567', 2, true)).toBe('1234567')
+                    expect(formatTokenAmount('12 5', 2, true)).toBe('')
+                    expect(formatTokenAmount('1 23,5', 2, true)).toBe('')
+                })
+
                 it('should preserve progressive typing with decimal', () => {
                     expect(formatTokenAmount('123.', 2, true)).toBe('123.')
                     expect(formatTokenAmount('0.', 2, true)).toBe('0.')
@@ -64,6 +114,41 @@ describe('General Utilities', () => {
                     expect(formatTokenAmount('123', 2, true)).toBe('123')
                     expect(formatTokenAmount('1000', 2, true)).toBe('1000')
                 })
+            })
+        })
+
+        describe('isAmbiguousAmountText (TASK-23499)', () => {
+            it('flags one separator before exactly 3 digits, with or without a sign', () => {
+                // a thousand in one locale, a decimal in another: 1000x either way
+                for (const text of [
+                    '125.000',
+                    '1,000',
+                    '10,000',
+                    ' 1.000 ',
+                    '$1,000',
+                    'R$ 1.000',
+                    'R$ 50.000',
+                    '1.000 €',
+                ])
+                    expect(isAmbiguousAmountText(text)).toBe(true)
+            })
+
+            it('does not flag amounts with one reading', () => {
+                for (const text of [
+                    '1.000,50',
+                    '1,000.50',
+                    '12.5',
+                    '0,125',
+                    '0.125',
+                    '1234.567',
+                    '1.25',
+                    '12,5000',
+                    '125000',
+                    '$0,125',
+                    'R$ 1.000,00',
+                    '',
+                ])
+                    expect(isAmbiguousAmountText(text)).toBe(false)
             })
         })
 

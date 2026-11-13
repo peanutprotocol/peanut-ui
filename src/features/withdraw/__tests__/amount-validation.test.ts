@@ -1,7 +1,16 @@
 import { parseUnits } from 'viem'
 import { type Account, AccountType } from '@/interfaces/interfaces'
 import { bankAmountCurrency } from '../bank-amount'
-import { bankPayoutMinimum, meetsBankPayoutMinimum, validateBankOfframpAmount } from '../amount-validation'
+import {
+    bankPayoutMinimum,
+    cryptoWithdrawMinUsd,
+    meetsBankPayoutMinimum,
+    validateBankOfframpAmount,
+    validateCryptoWithdrawAmount,
+} from '../amount-validation'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { MIN_CRYPTO_WITHDRAW_USD } from '@/utils/cross-chain-fee.utils'
+import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
 
 const savedAccountWithoutCountry = (type: AccountType): Account =>
     ({
@@ -106,5 +115,40 @@ describe('validateBankOfframpAmount — the $1 Bridge floor', () => {
     it('refuses under $1 and passes at it', () => {
         expect(validateBankOfframpAmount('0.99', balance)).toEqual({ ok: false, reason: 'belowMinimum' })
         expect(validateBankOfframpAmount('1', balance)).toEqual({ ok: true, normalized: '1' })
+    })
+})
+
+// TASK-23878: the route minimum is part of the live amount check, so Continue
+// is disabled while the amount is below it instead of failing only at the tap.
+describe('crypto withdraw route minimum', () => {
+    const balance = parseUnits('100', 6)
+
+    it('exempts same-chain USDC: a direct transfer with no route minimum', () => {
+        expect(cryptoWithdrawMinUsd(PEANUT_WALLET_CHAIN.id.toString(), PEANUT_WALLET_TOKEN)).toBe(0)
+        expect(cryptoWithdrawMinUsd(PEANUT_WALLET_CHAIN.id, PEANUT_WALLET_TOKEN.toUpperCase())).toBe(0)
+    })
+
+    it('applies the rhino minimum to any other token on the wallet chain', () => {
+        expect(cryptoWithdrawMinUsd(PEANUT_WALLET_CHAIN.id.toString(), NATIVE_TOKEN_ADDRESS)).toBe(
+            MIN_CRYPTO_WITHDRAW_USD
+        )
+    })
+
+    it('applies the per-network minimum to other networks', () => {
+        expect(cryptoWithdrawMinUsd('tron', 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t')).toBe(10.1)
+        expect(cryptoWithdrawMinUsd('1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')).toBe(5.05)
+    })
+
+    it('reports belowMinimum for an amount under the minimum', () => {
+        expect(validateCryptoWithdrawAmount('10', balance, 10.1)).toEqual({ ok: false, reason: 'belowMinimum' })
+        expect(validateCryptoWithdrawAmount('5', balance, 5.05)).toEqual({ ok: false, reason: 'belowMinimum' })
+    })
+
+    it('accepts an amount at the minimum', () => {
+        expect(validateCryptoWithdrawAmount('10.1', balance, 10.1)).toEqual({ ok: true, normalized: '10.1' })
+    })
+
+    it('accepts any positive amount when there is no minimum', () => {
+        expect(validateCryptoWithdrawAmount('0.01', balance, 0)).toEqual({ ok: true, normalized: '0.01' })
     })
 })

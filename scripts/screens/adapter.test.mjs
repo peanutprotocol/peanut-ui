@@ -272,7 +272,7 @@ test('a fixture with its own capability block gets no demo routes in the capture
  const routes=async (fixture)=>((await (await answer(fixture,'/users/me','GET')).json()).capabilities.routes??null);
  console.log('RESULT:'+JSON.stringify({
  accounts: await routes('profile-accounts'),
- avenia: (await routes('pix-deposit-amount')).map((route)=>route.provider),
+ brazil: (await routes('pix-route-residence')).map((route)=>route.provider),
  manteca: (await routes('pix-manteca-withdraw-review')).map((route)=>route.provider),
  }));
  `,
@@ -282,6 +282,6 @@ test('a fixture with its own capability block gets no demo routes in the capture
     const result = JSON.parse(output.split('RESULT:')[1])
     // a Portuguese resident: the demo's Brazil routes must not close its Pix-key sending or open its BRL row
     assert.deepEqual(result.accounts, [])
-    assert.deepEqual(result.avenia, ['avenia', 'avenia'])
+    assert.deepEqual(result.brazil, [null, null, null])
     assert.deepEqual(result.manteca, ['manteca', 'manteca', 'manteca'])
 })

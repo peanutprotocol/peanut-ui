@@ -2,13 +2,18 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render } from '@testing-library/react'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import PIX from '@/assets/payment-apps/pix.svg'
 import { IconBubble, type IconBubbleColor } from '../IconBubble'
-import { CONCEPT_ICONS, type Concept } from '../conceptIcons'
+import { CONCEPT_ICONS, type Concept, type IconConcept } from '../conceptIcons'
 
 const CONCEPTS = Object.keys(CONCEPT_ICONS) as Concept[]
+// every concept but the Pix logo draws an icon in a coloured bubble
+const ICON_CONCEPTS = CONCEPTS.filter((concept): concept is IconConcept => 'icon' in CONCEPT_ICONS[concept])
+const bubbleClass = (color: IconBubbleColor) =>
+    color === 'brand' ? 'bg-background-brand' : `bg-background-icon-bubble-${color}`
 
 describe('CONCEPT_ICONS', () => {
-    test.each(CONCEPTS)('%s renders an icon inside its colored bubble', (concept) => {
+    test.each(ICON_CONCEPTS)('%s renders an icon inside its colored bubble', (concept) => {
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
         const { container } = render(<IconBubble {...CONCEPT_ICONS[concept]} size="s" />)
         const bubble = container.firstElementChild as HTMLElement
@@ -16,13 +21,29 @@ describe('CONCEPT_ICONS', () => {
         // Icon returns null and warns for a name it does not know
         expect(bubble.querySelector('svg, img')).toBeInTheDocument()
         expect(warn).not.toHaveBeenCalled()
-        const { color } = CONCEPT_ICONS[concept]
-        expect(bubble).toHaveClass(color === 'brand' ? 'bg-background-brand' : `bg-background-icon-bubble-${color}`)
+        expect(bubble).toHaveClass(bubbleClass(CONCEPT_ICONS[concept].color))
         warn.mockRestore()
     })
 
+    // Aleks, 2026-11-12 (TASK-24841): the Pix logo leads as itself, a brand mark,
+    // not an icon in a bubble. The mark is the whole circle at every size.
+    test('pix is the shipped Pix mark as the whole circle: a logo, no bubble', () => {
+        expect(CONCEPT_ICONS.pix).toEqual({ logo: PIX })
+        expect(ICON_CONCEPTS).not.toContain('pix')
+        const source = readFileSync(join(__dirname, '..', 'conceptIcons.tsx'), 'utf8')
+        expect(source).toContain("import PIX from '@/assets/payment-apps/pix.svg'")
+
+        const { container } = render(<IconBubble {...CONCEPT_ICONS.pix} size="s" />)
+        const bubble = container.firstElementChild as HTMLElement
+        expect(bubble).toHaveClass('size-8', 'rounded-full')
+        expect(bubble.className).not.toMatch(/\bbg-/)
+        const mark = bubble.querySelector('img')
+        expect(mark).toHaveAttribute('alt', '')
+        expect(mark).toHaveClass('size-full')
+    })
+
     test('uses the icon-bubble tones; only QR pay takes the brand fill', () => {
-        for (const concept of CONCEPTS) {
+        for (const concept of ICON_CONCEPTS) {
             const allowed = concept === 'qrPay' ? ['brand'] : ['green', 'red', 'yellow', 'gray', 'blue']
             expect(allowed).toContain(CONCEPT_ICONS[concept].color)
         }
@@ -45,7 +66,7 @@ describe('CONCEPT_ICONS', () => {
     })
 
     test('gray stays the inactive tone: no concept is gray', () => {
-        const colors: IconBubbleColor[] = CONCEPTS.map((concept) => CONCEPT_ICONS[concept].color)
+        const colors: IconBubbleColor[] = ICON_CONCEPTS.map((concept) => CONCEPT_ICONS[concept].color)
         expect(colors).not.toContain('gray')
     })
 
@@ -62,7 +83,7 @@ describe('CONCEPT_ICONS', () => {
 
     test('only the two link concepts share a glyph', () => {
         const byGlyph = new Map<unknown, Concept[]>()
-        for (const concept of CONCEPTS) {
+        for (const concept of ICON_CONCEPTS) {
             const { icon } = CONCEPT_ICONS[concept]
             byGlyph.set(icon, [...(byGlyph.get(icon) ?? []), concept])
         }

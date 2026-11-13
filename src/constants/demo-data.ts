@@ -20,9 +20,9 @@ const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 // Synthetic kernel address for demo mode, pinned to DEMO_USER's PEANUT_WALLET account so useWallet's address-match passes.
 export const DEMO_ADDRESS = '0xdec0debad1dec0debad1dec0debad1dec0debad1' as Address
 
-/** A dynamic Pix code with Avenia's payee name, as its deposit tickets carry. Synthetic URL, valid CRC. */
+/** A dynamic Pix code with a generic payee name. Synthetic URL, valid CRC. */
 export const DEMO_PIX_BR_CODE =
-    '00020126680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/demo-avenia-deposit5204000053039865802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63044D3A'
+    '00020126650014br.gov.bcb.pix2543pix.example.com/qr/v2/cobv/demo-pix-deposit5204000053039865802BR5921PAYMENTS PARTNER LTDA6009SAO PAULO62070503***6304F161'
 
 const account = (username: string, fullName: string) => ({
     identifier: username,
@@ -105,18 +105,18 @@ const DEMO_CREATED_AT = '2026-01-01T00:00:00.000Z'
 // Verified identity + enabled rails so KYC walls and regional on/off-ramps are
 // unlocked for the walkthrough. All simulated: demo has no JWT and UserOps are
 // hard-stopped, so "enabled" rails can't move real money.
-// The demo user lives in Brazil: the API's router names Avenia for both Pix operations, so
-// /add-money/pix and /withdraw/pix open the Avenia screens the demo API answers. No provider
+// Both Pix operations name Manteca, ready, so /add-money/pix and /withdraw/pix open the Pix
+// screens the demo API answers, as Manteca does. The demo user lives in Brazil, and no provider
 // serves Pix payments for a resident of Brazil yet, so the pay route refuses.
 const DEMO_PIX_ROUTES: CapabilityRoute[] = [
     ...(['deposit', 'withdraw'] as const).map(
         (operation): CapabilityRoute => ({
             operation,
             method: 'PIX_BR',
-            provider: 'avenia',
+            provider: 'manteca',
             state: 'ready',
-            limits: { minAmount: '20', currency: 'BRL' },
-            candidates: [{ provider: 'avenia', state: 'ready' }],
+            limits: { minAmount: '1', currency: 'BRL' },
+            candidates: [{ provider: 'manteca', state: 'ready' }],
         })
     ),
     {

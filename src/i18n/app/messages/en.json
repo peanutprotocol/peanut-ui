@@ -2607,9 +2607,7 @@
             "returnedBody": "Pay again from an account under your CPF."
         },
         "withdraw": {
-            "changeAmount": "Change amount",
             "stuck": "This withdrawal did not finish. Contact support.",
-            "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
             "fee": "Provider fee",
             "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
@@ -2619,7 +2617,6 @@
             "unknownHolder": "Name not shown",
             "ownAccount": "Own account",
             "someoneElses": "Someone else's",
-            "toAccount": "to {destination}",
             "sent": "On its way.",
             "sentTo": "On its way to {destination}.",
             "processingTitle": "Processing withdrawal",
@@ -5482,8 +5479,7 @@
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
-            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil",
-            "aveniaBr": "Pix deposits and withdrawals for residents of Brazil"
+            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil"
         },
         "about": "About {brand}",
         "execution": {
@@ -5492,8 +5488,7 @@
             "mantecaAr": "Settled by {brand}",
             "mantecaBr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
-            "thirdNational": "Third National issues and settles",
-            "aveniaBr": "Settled by {brand}"
+            "thirdNational": "Third National issues and settles"
         },
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",

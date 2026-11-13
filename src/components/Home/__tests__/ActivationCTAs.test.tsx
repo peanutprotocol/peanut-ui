@@ -302,61 +302,6 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
     })
 })
 
-// TASK-24841: before our own check, a plan that adds money by Pix starts with the provider's own set-up
-describe('ActivationCTAs — the Verify row of a Pix plan whose route starts with the provider', () => {
-    const pixRoute = (action: string) => ({
-        operation: 'deposit',
-        method: 'PIX_BR',
-        provider: 'avenia',
-        state: 'action_required',
-        action,
-        candidates: [],
-    })
-    const pixPlan = () => {
-        mockUser = {
-            user: { isActivated: false, userId: 'u1' },
-            signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
-        }
-    }
-
-    it.each([
-        ['the provider terms', 'accept-tos:avenia', 'accept-tos'],
-        ["the provider's own identity check", 'avenia-hosted', 'hosted-identity'],
-    ])('opens the Pix setup on %s, never our verification', async (_name, action, kind) => {
-        pixPlan()
-        mockRoutes = [pixRoute(action)]
-        mockNextActions = [{ key: action, kind, purpose: 'unlock-avenia' }]
-        mockPaperworkVerification = () => Promise.resolve(true)
-        render(<ActivationCTAs onboarding={NEW_USER} />)
-        fireEvent.click(screen.getByText('start-identity-check'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
-        expect(mockPush).not.toHaveBeenCalledWith('/verify')
-        expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
-    })
-
-    it('keeps our verification where the route asks for it first', async () => {
-        pixPlan()
-        mockRoutes = [pixRoute('verify')]
-        mockPaperworkVerification = () => Promise.resolve(true)
-        render(<ActivationCTAs onboarding={NEW_USER} />)
-        fireEvent.click(screen.getByText('start-identity-check'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
-    })
-
-    it('keeps our verification for a plan that does not add money by Pix', async () => {
-        mockUser = {
-            user: { isActivated: false, userId: 'u1' },
-            signupPreferences: { fundingChannel: 'bank', paymentChannel: 'card' },
-        }
-        mockRoutes = [pixRoute('accept-tos:avenia')]
-        mockNextActions = [{ key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }]
-        mockPaperworkVerification = () => Promise.resolve(true)
-        render(<ActivationCTAs onboarding={NEW_USER} />)
-        fireEvent.click(screen.getByText('start-identity-check'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
-    })
-})
-
 describe('ActivationCTAs — an ID check that ended on a final decision', () => {
     const FAILED: OnboardingState = { ...NEW_USER, verify: 'failed', firstPaymentRoute: 'none' }
 

@@ -2607,9 +2607,7 @@
             "returnedBody": "Pague de novo de uma conta no seu CPF."
         },
         "withdraw": {
-            "changeAmount": "Alterar valor",
             "stuck": "Este saque não foi concluído. Fale com o suporte.",
-            "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
             "fee": "Taxa do provedor",
             "keyIntro": "Digite uma chave Pix registrada no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
@@ -2619,7 +2617,6 @@
             "unknownHolder": "Nome não exibido",
             "ownAccount": "Conta própria",
             "someoneElses": "De outra pessoa",
-            "toAccount": "para {destination}",
             "sent": "A caminho.",
             "sentTo": "A caminho de {destination}.",
             "processingTitle": "Processando saque",
@@ -5482,8 +5479,7 @@
             "thirdNational": "Emissor do cartão, subsidiária da Rain",
             "bridgeEea": "Provedor de depósitos, saques e IBANs virtuais em moeda fiduciária",
             "mantecaAr": "Depósitos, saques e pagamentos por QR na Argentina",
-            "mantecaBr": "Pagamentos e transferências por Pix para quem não mora no Brasil",
-            "aveniaBr": "Depósitos e saques por Pix para residentes no Brasil"
+            "mantecaBr": "Pagamentos e transferências por Pix para quem não mora no Brasil"
         },
         "about": "Sobre a {brand}",
         "execution": {
@@ -5492,8 +5488,7 @@
             "mantecaAr": "Liquidado pela {brand}",
             "mantecaBr": "Liquidado pela {brand}",
             "rhino": "Você assina, a {brand} faz a ponte",
-            "thirdNational": "A Third National emite e liquida",
-            "aveniaBr": "Liquidado pela {brand}"
+            "thirdNational": "A Third National emite e liquida"
         },
         "peanutRole": "Provedor de software de carteira autocustodial; não é parte das operações do provedor",
         "cardRelationship": "Você tem uma relação direta com a Third National, nos termos do cartão.",
