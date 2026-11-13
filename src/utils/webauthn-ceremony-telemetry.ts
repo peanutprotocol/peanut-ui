@@ -514,6 +514,21 @@ function describeOptions(kind: 'get' | 'create', options?: CredentialCreationOpt
     return { rpId: publicKey?.rp?.id, allowCredentials: undefined }
 }
 
+function describeRefusal(error: unknown): Pick<CeremonyRecord, 'challengeOffset' | 'backupEligible'> {
+    try {
+        if (!error || typeof error !== 'object') return {}
+        const { challengeOffset, backupEligible } = error as Partial<CeremonyRecord>
+        return {
+            ...(typeof challengeOffset === 'number' &&
+                Number.isSafeInteger(challengeOffset) &&
+                challengeOffset >= 0 && { challengeOffset }),
+            ...(typeof backupEligible === 'boolean' && { backupEligible }),
+        }
+    } catch {
+        return {}
+    }
+}
+
 /**
  * Nothing in here may throw: this runs inside the `navigator.credentials`
  * wrapper, so an exception would turn a successful ceremony into a failed one
@@ -651,6 +666,7 @@ async function trace<T>(
     } catch (error) {
         if (safeErrorCode(error) !== 'CEREMONY_TIMEOUT') settleNative()
         const fields: Partial<CeremonyRecord> = {
+            ...describeRefusal(error),
             durationMs: Date.now() - startedAt,
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
