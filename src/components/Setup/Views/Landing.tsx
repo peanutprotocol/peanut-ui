@@ -248,7 +248,7 @@ const LandingStep = () => {
                             variant="secondary"
                             onClick={onLoginClick}
                         >
-                            {t('logIn')}
+                            {t('landing.logIn')}
                         </Button>
                     }
                 />

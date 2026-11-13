@@ -110,7 +110,7 @@ const advance = async (milliseconds: number) => {
         await Promise.resolve()
     })
 }
-const login = () => screen.queryByRole('button', { name: 'logIn' })
+const login = () => screen.queryByRole('button', { name: 'landing.logIn' })
 const expectEntryActions = () => {
     expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
     expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()

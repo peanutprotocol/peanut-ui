@@ -981,6 +981,7 @@
         "loginFailed": "We couldn't log you in. Please try again.",
         "landing": {
             "signUp": "Sign up",
+            "logIn": "I already have an account",
             "recoverWallet": "Need to recover a Peanut account?",
             "testBuild": "Test build",
             "testSignUp": "Sign up on web"

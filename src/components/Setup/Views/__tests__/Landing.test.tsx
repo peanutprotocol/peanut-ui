@@ -57,11 +57,12 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 
 /** The curated error useZeroDev.handleLogin throws. */
 const passkeyError = (code: string) => Object.assign(new Error('curated'), { name: 'PasskeyError', code })
-const logIn = async () => {
+/** The web app-only layout keeps its own link, "Log in on web instead". */
+const logIn = async (name: string | RegExp = 'I already have an account') => {
     // Use the real clock for the recovery drawer's focus and dismissal transitions.
     jest.useRealTimers()
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /log in/i }))
+        fireEvent.click(screen.getByRole('button', { name }))
     })
 }
 const recoveryActions = () =>
@@ -160,7 +161,7 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
         renderWithIntl(<LandingStep />)
 
         expect(screen.getByTestId('store-buttons')).toBeInTheDocument()
-        await logIn()
+        await logIn('Log in on web instead')
 
         expect(await screen.findByRole('dialog')).toHaveTextContent('Log in on that phone.')
         expect(screen.queryByRole('button', { name: /create an account/i })).not.toBeInTheDocument()
@@ -237,7 +238,7 @@ describe('Landing — deleted account', () => {
         mockLogin.mockRejectedValue(passkeyError('ACCOUNT_DELETED'))
         renderWithIntl(<LandingStep />)
 
-        await logIn()
+        await logIn('Log in on web instead')
 
         const message = await screen.findByTestId('account-deleted')
         expect(message.compareDocumentPosition(screen.getByTestId('store-buttons'))).toBe(
