@@ -76,10 +76,12 @@ export default function EmailStep() {
                     const protectedFailure =
                         code === 'STEP_UP_REQUIRED' && result.status === 401
                             ? 'step_up_required'
-                            : result.status === 400 && /(?:email.*(?:verif|code)|verif.*email)/i.test(result.error)
+                            : code === 'EMAIL_VERIFICATION_REQUIRED' ||
+                                (result.status === 400 && /(?:email.*(?:verif|code)|verif.*email)/i.test(result.error))
                               ? 'email_verification_required'
-                              : result.status === 503 &&
-                                  /email.*(?:change|replacement).*(?:unavailable|disabled)/i.test(result.error)
+                              : code === 'EMAIL_CHANGE_UNAVAILABLE' ||
+                                  (result.status === 503 &&
+                                      /email.*(?:change|replacement).*(?:unavailable|disabled)/i.test(result.error))
                                 ? 'email_replacement_disabled'
                                 : undefined
                     if (duplicate) {

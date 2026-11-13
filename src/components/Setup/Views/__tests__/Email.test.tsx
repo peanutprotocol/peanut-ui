@@ -78,6 +78,18 @@ it.each([
     { status: 401, code: 'STEP_UP_REQUIRED', error: 'STEP_UP_REQUIRED', failureKind: 'step_up_required' },
     { status: 400, error: 'Email changes require a verification code', failureKind: 'email_verification_required' },
     { status: 503, error: 'Email replacement is temporarily disabled', failureKind: 'email_replacement_disabled' },
+    {
+        status: 400,
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+        error: 'Reworded verification message',
+        failureKind: 'email_verification_required',
+    },
+    {
+        status: 503,
+        code: 'EMAIL_CHANGE_UNAVAILABLE',
+        error: 'Reworded unavailable message',
+        failureKind: 'email_replacement_disabled',
+    },
 ])(
     'offers explicit continuation with the existing address after protected replacement $status',
     async ({ failureKind, ...failure }) => {
