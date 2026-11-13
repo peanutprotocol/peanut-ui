@@ -493,6 +493,11 @@ describe('AdditionalVerificationView', () => {
                 value: { origin: 'http://localhost', href: 'http://localhost/profile/accounts/additional' },
             })
             render(<AdditionalVerificationView />)
+            // the panel does not point at the profile it does not lead to
+            expect(screen.getByTestId('hosted-task-done')).toHaveTextContent(
+                'This verification step is no longer needed.'
+            )
+            expect(screen.getByTestId('hosted-task-done')).not.toHaveTextContent(/on your profile/i)
             // the button says where it goes: back to Pix, not to the status on the profile
             fireEvent.click(within(screen.getByTestId('hosted-task-done')).getByRole('button', { name: /^back$/i }))
             // no Pix page in this tab's history: the origin takes this page's place

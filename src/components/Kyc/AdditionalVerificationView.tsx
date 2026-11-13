@@ -105,7 +105,10 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                             color={nativeStepPending ? 'yellow' : 'green'}
                         />
                         <p className="text-body-m-semibold">{t(`${panel}.title`)}</p>
-                        <p className="text-body-s text-foreground-secondary">{t(`${panel}.description`)}</p>
+                        {/* "your status is on your profile" holds only where the button leads there */}
+                        <p className="text-body-s text-foreground-secondary">
+                            {t(panel === 'done' && returnTo ? 'done.descriptionBack' : `${panel}.description`)}
+                        </p>
                         <Button
                             variant="primary"
                             shadowSize="4"

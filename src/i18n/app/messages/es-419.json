@@ -3789,7 +3789,8 @@
             "done": {
                 "title": "Aquí ya no queda nada por hacer",
                 "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",
-                "cta": "Ver estado"
+                "cta": "Ver estado",
+                "descriptionBack": "Este paso de verificación ya no es necesario."
             },
             "nativeInstead": {
                 "title": "El documento se carga desde la app",

@@ -3789,7 +3789,8 @@
             "done": {
                 "title": "Não há mais nada a fazer aqui",
                 "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
-                "cta": "Ver status"
+                "cta": "Ver status",
+                "descriptionBack": "Esta etapa de verificação não é mais necessária."
             },
             "nativeInstead": {
                 "title": "Envie o documento pelo app",
