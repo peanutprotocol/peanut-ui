@@ -26,11 +26,7 @@ import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { consumeLandingAutoLogin, disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
-import {
-    cancelIOSImmediateLogin,
-    checkAndroidLandingPasskey,
-    supportsIOSImmediateLogin,
-} from '@/utils/landing-passkeys'
+import { cancelIOSImmediateLogin, supportsIOSImmediateLogin } from '@/utils/landing-passkeys'
 
 const PASSKEY_CHECK_TIMEOUT_MS = 5_000
 
@@ -62,9 +58,7 @@ const LandingStep = () => {
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
 
-    const { isHydrated, isNativeBridge, isIOSNative, isAndroidNativeBridge } = nativePlatform
-    // log in shows from the first frame; a slow or missing passkey check must never hide it (TASK-24847)
-    const [nativeLogin, setNativeLogin] = useState<'full' | 'link'>('link')
+    const { isHydrated, isNativeBridge, isIOSNative } = nativePlatform
     const loginHandler = useRef(handleLoginClick)
     const iosPreparation = useRef<AbortController | null>(null)
     // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
@@ -78,52 +72,43 @@ const LandingStep = () => {
     }, [handleLoginClick])
 
     useEffect(() => {
-        if (!isHydrated || !nativePlatform.isCapacitor) return
+        if (!isHydrated || !nativePlatform.isCapacitor || !isIOSNative || !isNativeBridge) return
         const check = new AbortController()
         const { signal } = check
         const deadline = Date.now() + PASSKEY_CHECK_TIMEOUT_MS
-        // a late answer is dropped so the layout does not shift after the deadline
+        // a late capability answer must not start the automatic login after the deadline
         const timer = setTimeout(() => check.abort(), PASSKEY_CHECK_TIMEOUT_MS)
 
-        if (isAndroidNativeBridge) {
-            void checkAndroidLandingPasskey(signal)
-                .catch(() => 'unavailable' as const)
-                .then((result) => {
-                    if (signal.aborted || Date.now() >= deadline) return
-                    if (result === 'available') setNativeLogin('full')
-                })
-        } else if (isIOSNative && isNativeBridge) {
-            iosPreparation.current = check
-            void supportsIOSImmediateLogin()
-                .then(async (supported) => {
-                    if (!supported || signal.aborted || Date.now() >= deadline) return
-                    // once per app launch: coming back to the landing must not open the sheet again
-                    if (!consumeLandingAutoLogin()) return
-                    const cancel = new AbortController()
-                    const done = loginHandler
-                        .current({ immediateSignal: signal, immediateDeadline: deadline, cancelSignal: cancel.signal })
-                        .then(
-                            () => {},
-                            () => {}
-                        )
-                    const attempt = { cancel, done }
-                    autoLogin.current = attempt
-                    setAutoLoginPending(true)
-                    await done
-                    if (autoLogin.current !== attempt) return
-                    // A ceremony that timed out can leave the native assertion open; free it so the
-                    // next manual login is not refused as already in progress. A no-op after success.
-                    await cancelIOSImmediateLogin()
-                    if (autoLogin.current === attempt) {
-                        autoLogin.current = null
-                        setAutoLoginPending(false)
-                    }
-                })
-                .catch(() => {
-                    // iOS can report both a silent miss and a dismissed picker as cancellation.
-                    // Let the fallback appear without a toast from an automatic attempt.
-                })
-        }
+        iosPreparation.current = check
+        void supportsIOSImmediateLogin()
+            .then(async (supported) => {
+                if (!supported || signal.aborted || Date.now() >= deadline) return
+                // once per app launch: coming back to the landing must not open the sheet again
+                if (!consumeLandingAutoLogin()) return
+                const cancel = new AbortController()
+                const done = loginHandler
+                    .current({ immediateSignal: signal, immediateDeadline: deadline, cancelSignal: cancel.signal })
+                    .then(
+                        () => {},
+                        () => {}
+                    )
+                const attempt = { cancel, done }
+                autoLogin.current = attempt
+                setAutoLoginPending(true)
+                await done
+                if (autoLogin.current !== attempt) return
+                // A ceremony that timed out can leave the native assertion open; free it so the
+                // next manual login is not refused as already in progress. A no-op after success.
+                await cancelIOSImmediateLogin()
+                if (autoLogin.current === attempt) {
+                    autoLogin.current = null
+                    setAutoLoginPending(false)
+                }
+            })
+            .catch(() => {
+                // iOS can report both a silent miss and a dismissed picker as cancellation.
+                // Let the fallback appear without a toast from an automatic attempt.
+            })
 
         return () => {
             clearTimeout(timer)
@@ -137,7 +122,7 @@ const LandingStep = () => {
                 void cancelIOSImmediateLogin()
             }
         }
-    }, [isHydrated, nativePlatform.isCapacitor, isAndroidNativeBridge, isIOSNative, isNativeBridge])
+    }, [isHydrated, nativePlatform.isCapacitor, isIOSNative, isNativeBridge])
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -294,10 +279,6 @@ const LandingStep = () => {
 
     const manualLoginInFlight = isLoggingIn && !autoLoginPending
 
-    const nativeLanding =
-        nativePlatform.isCapacitor || (!isHydrated && process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true')
-    const loginAction = nativeLanding ? nativeLogin : 'full'
-
     const accountDeletedCallout = isAccountDeleted && (
         <Callout priority="error" data-testid="account-deleted">
             {t('passkey.accountDeleted')}
@@ -367,24 +348,16 @@ const LandingStep = () => {
                         </>
                     }
                     secondary={
-                        loginAction === 'full' ? (
-                            <Button
-                                loading={manualLoginInFlight}
-                                shadowSize="4"
-                                className="w-full"
-                                disabled={manualLoginInFlight}
-                                variant="secondary"
-                                onClick={onLoginClick}
-                            >
-                                {t('logIn')}
-                            </Button>
-                        ) : (
-                            <div className="pt-2">
-                                <LinkButton onClick={onLoginClick} disabled={manualLoginInFlight}>
-                                    {t('logIn')}
-                                </LinkButton>
-                            </div>
-                        )
+                        <Button
+                            loading={manualLoginInFlight}
+                            shadowSize="4"
+                            className="w-full"
+                            disabled={manualLoginInFlight}
+                            variant="secondary"
+                            onClick={onLoginClick}
+                        >
+                            {t('logIn')}
+                        </Button>
                     }
                 />
             </div>
