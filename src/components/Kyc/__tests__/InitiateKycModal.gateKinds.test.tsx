@@ -7,6 +7,8 @@
 import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import messages from '@/i18n/app/messages/en.json'
+import { gateFromEntry, getGateUserMessage, getKycModalVariant } from '@/utils/capability-gate'
 import { InitiateKycModal } from '../InitiateKycModal'
 
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
@@ -101,5 +103,32 @@ describe('page processing actions match their purpose', () => {
         expect(support[0].querySelector('svg')).toBeNull()
         fireEvent.click(support[0])
         expect(onContactSupport).toHaveBeenCalledTimes(1)
+    })
+})
+
+/*
+ * TASK-24909: an ask the app has no step for became a document request that
+ * said "upload a clearer photo of your ID" while Bridge was reviewing the
+ * customer. It shows the ask's own words, or a line that blames no document.
+ */
+describe('a provider ask with no step the app knows', () => {
+    const askFrom = (message?: string) =>
+        gateFromEntry({ state: 'action_required', ...(message ? { message } : {}) }, { rails: [], nextActions: [] })
+    const renderAsk = (message?: string) => {
+        const gate = askFrom(message)
+        expect(gate.kind).toBe('fixable-rejection')
+        renderModal({ variant: getKycModalVariant(gate.kind), providerMessage: getGateUserMessage(gate) })
+    }
+
+    it('shows the words the ask came with', () => {
+        renderAsk('Tell us where your money comes from.')
+        expect(screen.getByText('Tell us where your money comes from.')).toBeInTheDocument()
+        expect(screen.queryByText(messages.kyc.initiate.descriptionProviderRejection)).not.toBeInTheDocument()
+    })
+
+    it('says only that more information is needed when the ask came with none', () => {
+        renderAsk()
+        const line = screen.getByText(messages.kyc.initiate.descriptionProviderRejection)
+        expect(line.textContent).not.toMatch(/photo|\bID\b/i)
     })
 })

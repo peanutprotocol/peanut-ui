@@ -3345,7 +3345,7 @@
             "descriptionError": "{error} Please contact support for assistance.",
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
             "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
-            "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
+            "descriptionProviderRejection": "We need more information from you to continue.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "titleBankUnavailable": "Not available in this country",
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
