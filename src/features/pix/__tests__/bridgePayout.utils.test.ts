@@ -9,6 +9,7 @@ import {
 import { pixKeySend } from '../pixRoute.utils'
 import { withdrawSubmitReducer, canSignOpened, type WithdrawSubmitState } from '../pixWithdrawSubmitReducer'
 import type { PixWithdrawDisplay, PixWithdrawSign } from '@/services/pix'
+import type { HistoryEntry } from '@/utils/history.utils'
 
 /**
  * Pix payouts through Bridge (API-CONTRACT.md section 6): any key, own or another person's; the
@@ -99,7 +100,11 @@ describe('pixWithdrawRefusalKey: the payee refusals of the preview and the open'
 })
 
 describe("pixWithdrawOutcome on Bridge's transfer states", () => {
-    const entry = (status: string, txHash?: string) => ({ status, extraData: { pixPayee: 'other' as const }, txHash })
+    const entry = (status: string, txHash?: string) => ({
+        status: status as HistoryEntry['status'],
+        extraData: { pixPayee: 'other' as const },
+        txHash,
+    })
 
     it('is paid at PAYMENT_PROCESSED, and returned at RETURNED or REFUNDED', () => {
         expect(pixWithdrawOutcome('funded', entry('PAYMENT_PROCESSED'))).toBe('arrived')

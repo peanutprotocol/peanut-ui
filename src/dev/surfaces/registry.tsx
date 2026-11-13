@@ -329,26 +329,46 @@ const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     provider: 'Manteca',
 }
 
+// a payout through Bridge just signed (TASK-24910): any key, the reais an estimate, about 5 minutes
+const BRIDGE_SURFACE_DISPLAY = (payee: 'own' | 'other'): PixWithdrawDisplay => ({
+    amountBrl: '100.00',
+    pixKey: payee === 'other' ? '11144477735' : 'ana.souza@example.com',
+    ownAccount: payee === 'own',
+    holderName: payee === 'other' ? 'BRUNO LIMA' : 'ANA SOUZA',
+    bankName: payee === 'other' ? 'Banco Inter S.A.' : 'Nu Pagamentos S.A.',
+    withdrawUsd: '18.87',
+    rate: '5.30',
+    fixedFeeBrl: '0',
+    arrivalEstimateSeconds: 300,
+    provider: 'Bridge',
+    amountBrlEstimated: true,
+})
+
 // the last step right after the signature: the destination comes from what was signed. `pastArrival`
 // quotes a zero arrival time, so the loader gives way to "on its way" at once, as a slow bank would.
 function PixWithdrawOutcomeSurface({
     unnamed = false,
     pastArrival = false,
+    bridge,
 }: {
     unnamed?: boolean
     pastArrival?: boolean
+    /** A payout through Bridge to the own key or another person's, read from the fixture's history entry. */
+    bridge?: 'own' | 'other'
 }) {
-    const display = {
-        ...PIX_SURFACE_DISPLAY,
-        ...(unnamed && { bankName: null, holderName: null }),
-        ...(pastArrival && { arrivalEstimateSeconds: 0 }),
-    }
+    const display = bridge
+        ? BRIDGE_SURFACE_DISPLAY(bridge)
+        : {
+              ...PIX_SURFACE_DISPLAY,
+              ...(unnamed && { bankName: null, holderName: null }),
+              ...(pastArrival && { arrivalEstimateSeconds: 0 }),
+          }
     return (
         <AppPageSurface>
             <PixWithdrawOutcome
-                title="Withdraw"
-                intentId="fixture-pix-withdrawal"
-                providerId="manteca-br"
+                title={bridge === 'other' ? 'Send' : 'Withdraw'}
+                intentId={bridge ? 'fixture-bridge-pix-payout' : 'fixture-pix-withdrawal'}
+                providerId={bridge ? 'bridge-row' : 'manteca-br'}
                 sent={{ phase: 'funded', display }}
                 onStartAgain={noop}
                 onDone={noop}
@@ -1563,6 +1583,18 @@ export const SURFACES: Record<string, Surface> = {
     '94-n-pix-withdraw-past-arrival-unnamed': {
         ...SURFACE_META['94-n-pix-withdraw-past-arrival-unnamed'],
         render: () => <PixWithdrawOutcomeSurface unnamed pastArrival />,
+    },
+    '94-o-pix-bridge-send-on-its-way': {
+        ...SURFACE_META['94-o-pix-bridge-send-on-its-way'],
+        render: () => <PixWithdrawOutcomeSurface bridge="other" />,
+    },
+    '94-p-pix-bridge-send-paid': {
+        ...SURFACE_META['94-p-pix-bridge-send-paid'],
+        render: () => <PixWithdrawOutcomeSurface bridge="other" />,
+    },
+    '94-q-pix-bridge-withdraw-on-its-way': {
+        ...SURFACE_META['94-q-pix-bridge-withdraw-on-its-way'],
+        render: () => <PixWithdrawOutcomeSurface bridge="own" />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

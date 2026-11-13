@@ -502,6 +502,95 @@ const bridgePixDepositEntry = (status: string, extraData: Record<string, unknown
     },
 })
 
+/**
+ * A Pix payout through Bridge (API-CONTRACT.md section 6, API head b55f7ece0): any key, the holder and
+ * bank Bridge validated, the reais an estimate, the withdrawal named at the open. Documented shapes.
+ */
+const BRIDGE_OWN_KEY = 'ana.souza@example.com'
+const BRIDGE_OTHER_KEY = '11144477735'
+const BRIDGE_OWN_PAYEE = { holderName: 'ANA SOUZA', bankName: 'Nu Pagamentos S.A.', ownAccount: true }
+const BRIDGE_OTHER_PAYEE = { holderName: 'BRUNO LIMA', bankName: 'Banco Inter S.A.', ownAccount: false }
+const bridgePixKeyInfo = (payee: typeof BRIDGE_OWN_PAYEE | typeof BRIDGE_OTHER_PAYEE) => ({
+    provider: 'bridge',
+    ...payee,
+    holderTaxIdMasked: null,
+    ispb: null,
+    blocked: false,
+})
+const bridgePixPayoutDisplay = (pixKey: string, payee: typeof BRIDGE_OWN_PAYEE | typeof BRIDGE_OTHER_PAYEE) => ({
+    amountBrl: '100.00',
+    pixKey,
+    ...payee,
+    withdrawUsd: '18.87',
+    rate: '5.30',
+    fixedFeeBrl: '0',
+    arrivalEstimateSeconds: 300,
+    provider: 'Bridge',
+    amountBrlEstimated: true,
+})
+/** A resident of Brazil whose Pix on Bridge is ready both ways, with Bridge's quote for the amount field. */
+const bridgePixWithdrawReady = (overrides: Record<string, unknown> = {}) => ({
+    ...bridgePixResponses({
+        deposit: { state: 'ready' },
+        rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+    }),
+    'GET /pix/quote': {
+        provider: 'bridge',
+        operation: 'withdraw',
+        amountBrl: '100.00',
+        usdcAmount: '18.87',
+        rate: '5.30',
+        fixedFeeBrl: '0',
+        minAmountBrl: BRIDGE_PIX_LIMITS.withdraw,
+    },
+    ...overrides,
+})
+const BRIDGE_PIX_PAYOUT_ID = 'fixture-bridge-pix-payout'
+const BRIDGE_PIX_SEND_ROUTE = `${PIX_WITHDRAW_ROUTE}?sendMethod=bank`
+/** A Pix payout's history entry, as peanut-api-ts src/db/history.ts writes it: Bridge's state, whose key it paid. */
+const bridgePixPayoutEntry = (status: string, payee: 'own' | 'other', extra: Record<string, unknown> = {}) => ({
+    uuid: BRIDGE_PIX_PAYOUT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-14T10:00:00.000Z'),
+    amount: '18.87',
+    currency: { amount: status === 'PAYMENT_PROCESSED' ? '99.80' : '100.00', code: 'brl' },
+    chainId: 'arbitrum',
+    tokenSymbol: 'USDC',
+    tokenAddress: '',
+    status,
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    recipientAccount:
+        payee === 'other'
+            ? { identifier: BRIDGE_OTHER_KEY, type: 'BANK_PIX', isUser: false, fullName: BRIDGE_OTHER_PAYEE.holderName }
+            : { identifier: BRIDGE_OWN_KEY, type: 'BANK_PIX', isUser: false },
+    ...(status === 'PAYMENT_PROCESSED' ? { completedAt: new Date('2026-11-14T10:04:00.000Z') } : {}),
+    extraData: {
+        kind: 'OFFRAMP',
+        provider: 'BRIDGE',
+        bridgeFlow: 'OFFRAMP',
+        fulfillmentType: 'bridge',
+        payoutRail: 'pix',
+        pixPayee: payee,
+        usdAmount: '18.87',
+        receipt: status === 'PAYMENT_PROCESSED' ? { initial_amount: '18.87', final_amount: '99.80' } : {},
+        ...extra,
+    },
+})
+const bridgePixPayoutOutcome = (status: string, payee: 'own' | 'other') => ({
+    route: `${payee === 'other' ? BRIDGE_PIX_SEND_ROUTE + '&' : PIX_WITHDRAW_ROUTE + '?'}step=success&intentId=${BRIDGE_PIX_PAYOUT_ID}`,
+    responses: bridgePixWithdrawReady({
+        [`GET /history/${BRIDGE_PIX_PAYOUT_ID}`]: bridgePixPayoutEntry(status, payee),
+    }),
+})
+const bridgePixPayoutReceipt = (status: string, payee: 'own' | 'other') => ({
+    route: `/history?tx=${BRIDGE_PIX_PAYOUT_ID}`,
+    responses: {
+        'GET /users/history': { entries: [bridgePixPayoutEntry(status, payee)], hasMore: false },
+        [`GET /history/${BRIDGE_PIX_PAYOUT_ID}`]: bridgePixPayoutEntry(status, payee),
+    },
+})
+
 /** One Pix withdrawal's history entry on Manteca's route, for the last step read after a reload. */
 const PIX_WITHDRAWAL_ID = 'fixture-pix-withdrawal'
 const pixWithdrawal = (status: string) => ({
@@ -2452,6 +2541,87 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/history': { entries: [bridgePixDepositEntry('PAYMENT_PROCESSED')], hasMore: false },
             [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry('PAYMENT_PROCESSED'),
         },
+    },
+    // ---- TASK-24910 U3: Pix payouts and sends through Bridge (API-CONTRACT.md section 6) ----
+    'pix-bridge-withdraw-key-own': {
+        route: PIX_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OWN_KEY }),
+        about: "Withdraw by Pix on Bridge: the user's own email key, named and banked as Bridge validated it.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: bridgePixWithdrawReady({ 'POST /pix/key': bridgePixKeyInfo(BRIDGE_OWN_PAYEE) }),
+    },
+    'pix-bridge-send-key-other': {
+        route: BRIDGE_PIX_SEND_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY }),
+        about: "Send → Pix key for a resident of Brazil: another person's key, named as Bridge validated it, continues.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: bridgePixWithdrawReady({ 'POST /pix/key': bridgePixKeyInfo(BRIDGE_OTHER_PAYEE) }),
+    },
+    'pix-bridge-key-checking': {
+        route: PIX_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY }),
+        about: 'Bridge still checks a new key after the retries: the line says so, no holder is guessed, Try again.',
+        waitFor: '[data-testid="pix-key-retry"]',
+        responses: bridgePixWithdrawReady(),
+        rejects: {
+            'POST /pix/key': {
+                status: 409,
+                body: { code: 'PIX_KEY_CHECK_PENDING', error: 'We are still checking this Pix key.' },
+            },
+        },
+    },
+    'pix-bridge-key-not-found': {
+        route: PIX_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY }),
+        about: 'A key Bridge finds no holder for: the field says so, and Continue stays off.',
+        responses: bridgePixWithdrawReady(),
+        rejects: {
+            'POST /pix/key': { status: 404, body: { code: 'PIX_KEY_NOT_FOUND', error: 'This Pix key was not found.' } },
+        },
+    },
+    'pix-bridge-withdraw-review-own': {
+        route: `${PIX_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OWN_KEY, amountBrl: '100' }),
+        about: 'The Pix-key form on Bridge, own key: Withdrawing, the reais marked approximate, the rate, Bridge.',
+        responses: bridgePixWithdrawReady({
+            'POST /pix/withdraw/preview': bridgePixPayoutDisplay(BRIDGE_OWN_KEY, BRIDGE_OWN_PAYEE),
+        }),
+    },
+    'pix-bridge-send-review': {
+        route: `${BRIDGE_PIX_SEND_ROUTE}&step=review`,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY, amountBrl: '100' }),
+        about: 'The Pix-key form as a send: Sending to the person Bridge validated, the reais approximate, Bridge.',
+        responses: bridgePixWithdrawReady({
+            'POST /pix/withdraw/preview': bridgePixPayoutDisplay(BRIDGE_OTHER_KEY, BRIDGE_OTHER_PAYEE),
+        }),
+    },
+    'pix-bridge-send-on-its-way': {
+        ...bridgePixPayoutOutcome('FUNDS_RECEIVED', 'other'),
+        about: 'A send through Bridge after a reload, Bridge holding the funding: on its way at once, no loader, Done.',
+    },
+    'pix-bridge-send-paid': {
+        ...bridgePixPayoutOutcome('PAYMENT_PROCESSED', 'other'),
+        about: "A send through Bridge once paid: Sent, to the person, with Bridge's final reais.",
+    },
+    'pix-bridge-withdraw-returned': {
+        ...bridgePixPayoutOutcome('RETURNED', 'own'),
+        about: 'A withdrawal Bridge returned: the money is back in the balance.',
+    },
+    'history-bridge-pix-send-paid': {
+        ...bridgePixPayoutReceipt('PAYMENT_PROCESSED', 'other'),
+        about: 'The receipt of a Pix send through Bridge: Sent to the person, the key beside the name.',
+    },
+    'history-bridge-pix-send-on-its-way': {
+        ...bridgePixPayoutReceipt('PAYMENT_SUBMITTED', 'other'),
+        about: 'The receipt of a Pix send while Bridge pays: Sending to the person, processing.',
+    },
+    'history-bridge-pix-withdraw-paid': {
+        ...bridgePixPayoutReceipt('PAYMENT_PROCESSED', 'own'),
+        about: 'The receipt of a Pix withdrawal to the own key through Bridge: Withdrawn to the bank account.',
+    },
+    'history-bridge-pix-withdraw-returned': {
+        ...bridgePixPayoutReceipt('RETURNED', 'own'),
+        about: 'The receipt of a Pix withdrawal Bridge returned: failed, the money back.',
     },
     'pix-bridge-accounts-hosted-task': {
         route: '/profile/accounts',
