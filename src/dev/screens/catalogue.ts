@@ -65,13 +65,13 @@ const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>>
     'setup-signup-reserved': {
         actions: [
             { fill: { selector: '[data-username-field] input', value: 'kimchi' } },
-            { clickSelector: '[data-setup-footer] button:enabled' },
+            { clickSelector: '[data-setup-footer] > div:first-child > div:last-child > button' },
         ],
-        expectSelector: '[role="alert"]',
+        expectSelector: 'p[role="alert"]',
     },
     'setup-passkey-username-taken': {
         actions: [{ clickSelector: '[data-setup-footer] button:enabled' }],
-        expectSelector: '[role="alert"]',
+        expectSelector: '[role="alert"]:not(#__next-route-announcer__)',
     },
     'profile-accounts-card-state-blocked': {
         expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
