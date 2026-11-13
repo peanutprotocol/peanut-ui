@@ -67,8 +67,9 @@ type TransferSign = Extract<PixWithdrawSign, { kind: 'transfer-then-submit' }>
 
 /**
  * A submit the API answered before it broadcast moved nothing: a refusal (4xx), the route's pause
- * (503), a broadcast that provably reverted, or a card controller that changed before the order.
- * A 502 or a lost answer can come after the broadcast.
+ * or a funding step that failed before any broadcast (503), a broadcast that provably reverted, or
+ * a card controller that changed before the order. A 502 or a lost answer can come after the
+ * broadcast.
  */
 function submitSentNothing(caught: unknown): boolean {
     const status = apiErrorStatus(caught)
@@ -128,8 +129,9 @@ export interface PixWithdrawSubmit {
  *
  * `onOpened` gets the withdrawal's id once the provider holds it (null when the submit could not
  * name it), so the flow can put it in the URL. A `transfer-then-submit` withdrawal gets there only
- * once its submit left: before it a reload shows the form, and nothing was sent. Funding is a balance-decreasing mutation: while one
- * is pending (`usePendingTransactions`), no second withdrawal opens.
+ * once its submit left: before it a reload shows the form, and nothing was sent. Funding is a
+ * balance-decreasing mutation: while one is pending (`usePendingTransactions`), no second
+ * withdrawal opens.
  */
 export function usePixWithdrawSubmit({
     provider,

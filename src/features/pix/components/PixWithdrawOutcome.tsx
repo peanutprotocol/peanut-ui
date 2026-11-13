@@ -42,8 +42,9 @@ const FALLBACK_ARRIVAL_SECONDS = 90
  * way at once, with when it usually lands and Done; the screen keeps following
  * the entry while it stays open. It is told by its entry, which carries
  * Bridge's transfer states, and before the entry loads by the quote this
- * session signed, which Bridge does not lock (`amountBrlEstimated`). A payout to another person's key (the quote's
- * `ownAccount` false, or the entry's `pixPayee`) reads as a send to them.
+ * session signed, which Bridge does not lock (`amountBrlEstimated`). A payout
+ * to another person's key (the quote's `ownAccount` false, or the entry's
+ * `pixPayee`) reads as a send to them.
  */
 export function PixWithdrawOutcome({
     title,
@@ -148,8 +149,8 @@ export function PixWithdrawOutcome({
                 secondaryAmount={amountUsd ? formatBankAmount(amountUsd, 'USD') : undefined}
                 // the view prefixes it with "to" (payment.success.toPrefix), as for every withdrawal
                 message={
-                    toOtherPerson && holder
-                        ? holder
+                    toOtherPerson
+                        ? (holder ?? pixKey)
                         : pixKey
                           ? bank
                               ? t('withdrawnTo', { key: pixKey, bank })
