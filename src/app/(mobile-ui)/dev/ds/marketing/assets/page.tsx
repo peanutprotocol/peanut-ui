@@ -149,7 +149,9 @@ export default function MarketingAssetsPage() {
                         {COIN_CHARACTER_ENTRIES.map((entry) => (
                             <Card key={entry.label} className="flex h-full flex-col gap-2 p-3">
                                 <div className="flex h-48 items-center justify-center overflow-hidden rounded-sm bg-background-page">
-                                    <OnboardingAnimation name={entry.animation} />
+                                    <div className="h-40">
+                                        <OnboardingAnimation name={entry.animation} />
+                                    </div>
                                 </div>
                                 <p className="font-mono text-label-m">{entry.label}</p>
                                 <p className="font-mono text-body-xs break-all text-foreground-secondary">
