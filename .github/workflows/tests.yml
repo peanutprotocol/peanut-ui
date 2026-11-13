@@ -401,7 +401,7 @@ jobs:
               run: pnpm test:unit:ci
 
             - name: Publish unit test report
-              uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
+              uses: dorny/test-reporter@d1b5dff021aa968b288b02285a8bf47471c5928a # v3.2.0
               if: always()
               with:
                   name: Unit test report
