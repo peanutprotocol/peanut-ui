@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
@@ -57,16 +58,16 @@ export default function PasskeyStep() {
         <>
             <div className="flex h-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-1 flex-col justify-center gap-4">
-                    <ul className="flex flex-col gap-3">
-                        {(['unlock', 'control', 'backup'] as const).map((point) => (
-                            <li key={point} className="flex flex-col gap-0.5">
-                                <p className="text-label-m">{t(`passkey.points.${point}.title`)}</p>
-                                <p className="text-body-s text-foreground-secondary short:hidden">
-                                    {t(`passkey.points.${point}.description`)}
+                    <BulletList
+                        items={(['unlock', 'control', 'backup'] as const).map((point) => (
+                            <div key={point} className="flex flex-col gap-0.5">
+                                <p className="text-body-s-semibold text-foreground-primary">
+                                    {t(`passkey.points.${point}.title`)}
                                 </p>
-                            </li>
+                                <p className="short:hidden">{t(`passkey.points.${point}.description`)}</p>
+                            </div>
                         ))}
-                    </ul>
+                    />
                     {passkey.usernameTaken && (
                         <div className="flex flex-col gap-3">
                             <Callout priority="error">{t('passkey.usernameTaken')}</Callout>

@@ -1024,7 +1024,7 @@
         },
         "signupStep": {
             "usernameLabel": "Usuario",
-            "usernamePlaceholder": "batman",
+            "usernamePlaceholder": "Usuario",
             "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números. No puede incluir “peanut” ni ser un nombre reservado.",
             "inviterUsernameLabel": "Usuario de quien te invitó",
             "inviterUsernamePlaceholder": "Usuario de quien invita",

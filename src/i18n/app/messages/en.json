@@ -1024,7 +1024,7 @@
         },
         "signupStep": {
             "usernameLabel": "Username",
-            "usernamePlaceholder": "batman",
+            "usernamePlaceholder": "Username",
             "usernameRules": "4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut” or be a reserved name.",
             "inviterUsernameLabel": "Username of the person who invited you",
             "inviterUsernamePlaceholder": "Friend’s username",

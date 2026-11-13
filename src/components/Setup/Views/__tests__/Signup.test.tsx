@@ -140,7 +140,7 @@ describe('Claim username', () => {
 
     it('shows the @ prefix, the role placeholder and the legal line under the pinned button, with no inviter UI', () => {
         renderSignup()
-        expect(usernameField()).toHaveAttribute('placeholder', 'batman')
+        expect(usernameField()).toHaveAttribute('placeholder', 'Username')
         expect(screen.getByText('@')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Who invited you?' })).not.toBeInTheDocument()
         expect(screen.queryByText(/Invited by/)).not.toBeInTheDocument()
@@ -184,7 +184,7 @@ describe('Claim username', () => {
             }
             expect(screen.getByText('peanutpirate?')).toBeInTheDocument()
             act(() => jest.advanceTimersByTime(2000))
-            expect(username).toHaveAttribute('placeholder', 'batman')
+            expect(username).toHaveAttribute('placeholder', 'Username')
         } finally {
             jest.useRealTimers()
         }

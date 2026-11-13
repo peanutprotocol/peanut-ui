@@ -73,7 +73,7 @@ beforeEach(() => {
 describe('Invited by a friend? (before registration)', () => {
     it('shows a field that reads as someone else’s username, Continue disabled until a verified inviter, and Skip below it', () => {
         renderInvite()
-        // The username step's placeholder is "batman"; this one must not read as the person's own.
+        // The username step's placeholder is "Username"; this one must not read as the person's own.
         expect(field()).toHaveAttribute('placeholder', 'Friend’s username')
         expect(screen.getByText('@')).toBeInTheDocument()
         expect(continueButton()).toBeDisabled()
