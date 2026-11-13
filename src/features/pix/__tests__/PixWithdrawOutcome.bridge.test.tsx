@@ -193,7 +193,7 @@ describe('PixWithdrawOutcome for a Bridge payout', () => {
         mockEntry.mockReturnValue(entry('FUNDS_RECEIVED'))
         renderOutcome(null)
         expect(screen.queryByTestId('mascot-loader')).toBeNull()
-        expect(screen.getByText('R$100')).toBeInTheDocument()
+        expect(screen.getByText('≈ R$100')).toBeInTheDocument()
         expect(
             screen.getByText(
                 `${en.pix.withdraw.sentTo.replace('{destination}', 'BRUNO LIMA')} ${en.exchangeRate.widget.arrivesMinutes}`

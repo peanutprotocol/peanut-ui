@@ -26,8 +26,6 @@ import { formatBankAmount } from '@/utils/currency'
 
 /** How long the payout may stay open before the loader gives way, when no quote states an arrival time (a reload). */
 const FALLBACK_ARRIVAL_SECONDS = 90
-/** From this wait on, the ending never holds the user on the loader (ruling D7): it says when the Pix usually lands. */
-const LONG_WAIT_SECONDS = 120
 
 /**
  * The last step of a Pix withdrawal (`?intentId=`). The withdrawal's history
@@ -40,10 +38,11 @@ const LONG_WAIT_SECONDS = 120
  * loader while the provider pays, the shared success view once the Pix landed.
  * The loader lasts at most the quoted arrival time ("About 1 minute" on the
  * review); a payout still open after it reads as on its way, with Done. A
- * payout that takes minutes (a quote of 2 minutes or more, or a Bridge
- * transfer read after a reload) shows no loader at all (ruling D7): on its way
- * at once, with when it usually lands and Done; the screen keeps following the
- * entry while it stays open. A payout to another person's key (the quote's
+ * Bridge payout takes minutes, so it shows no loader at all (ruling D7): on its
+ * way at once, with when it usually lands and Done; the screen keeps following
+ * the entry while it stays open. It is told by its entry, which carries
+ * Bridge's transfer states, and before the entry loads by the quote this
+ * session signed, which Bridge does not lock (`amountBrlEstimated`). A payout to another person's key (the quote's
  * `ownAccount` false, or the entry's `pixPayee`) reads as a send to them.
  */
 export function PixWithdrawOutcome({
@@ -84,10 +83,10 @@ export function PixWithdrawOutcome({
 
     const arrivalSeconds = sent?.display.arrivalEstimateSeconds
     const arrivalMs = (arrivalSeconds ?? FALLBACK_ARRIVAL_SECONDS) * 1000
-    // minutes, not seconds: the quote says so, or after a reload the entry is a Bridge transfer
+    // a Bridge payout: minutes, not seconds (both providers quote 300 s; Manteca's ending stays as it was)
     const waitsMinutes =
-        (arrivalSeconds ?? 0) >= LONG_WAIT_SECONDS ||
-        (!sent && !!entry.data?.status && BRIDGE_TRANSFER_STATES.includes(entry.data.status))
+        !!sent?.display.amountBrlEstimated ||
+        (!!entry.data?.status && BRIDGE_TRANSFER_STATES.includes(entry.data.status))
     const [pastArrival, setPastArrival] = useState(false)
     useEffect(() => {
         if (outcome !== 'on-its-way' || waitsMinutes) return
@@ -112,9 +111,11 @@ export function PixWithdrawOutcome({
         outcome === 'arrived' && sent?.display.amountBrlEstimated && entryBrl
             ? entryBrl
             : (sent?.display.amountBrl ?? entryBrl)
+    // a payout Bridge still moves, read after a reload, is an estimate too: Bridge locks no rate
+    const estimated = sent ? !!sent.display.amountBrlEstimated : waitsMinutes
     const amountShown = amountBrl
-        ? outcome !== 'arrived' && sent
-            ? pixPayoutShown({ ...sent.display, amountBrl })
+        ? outcome !== 'arrived' && estimated
+            ? pixPayoutShown({ amountBrl, amountBrlEstimated: true })
             : formatBankAmount(amountBrl, 'BRL')
         : undefined
 
