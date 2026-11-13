@@ -173,12 +173,13 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
                                 />
                             }
                             title={label.name}
-                            onClick={() => {
-                                const route = getProviderRoute(region.path, hasMantecaKyc)
-                                router.push(route)
-                            }}
+                            onClick={
+                                region.noLimitsPage
+                                    ? undefined
+                                    : () => router.push(getProviderRoute(region.path, hasMantecaKyc))
+                            }
                             body={<div className="text-body-xs">{label.description}</div>}
-                            chevron
+                            chevron={!region.noLimitsPage}
                         />
                     )
                 })}

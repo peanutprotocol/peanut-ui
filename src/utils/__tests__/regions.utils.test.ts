@@ -222,6 +222,14 @@ describe('deriveRegionAccess, the Brazil row', () => {
         expect(row).toMatchObject({ description: 'Only Pix deposits and withdrawals', descriptionKey: 'brazilPix' })
     })
 
+    // no limits page states the limits of that Pix: the Brazil one states Pix QR limits
+    it('links the Pix row to no limits page, and the QR row still to its own', () => {
+        const pixRow = brazil([pixRoute('pay', 'refused'), pixRoute('deposit', 'ready')])
+        expect(pixRow?.noLimitsPage).toBe(true)
+        expect(brazil()?.noLimitsPage).toBeUndefined()
+        expect(brazil([pixRoute('pay', 'ready')])?.noLimitsPage).toBeUndefined()
+    })
+
     it('lists no Brazil row where no Pix route is open either', () => {
         expect(brazil([pixRoute('pay', 'refused'), pixRoute('deposit', 'refused')])).toBeUndefined()
         const argentina = deriveRegionAccess([bridgeRail], [pixRoute('pay', 'refused')]).unlockedRegions.find(

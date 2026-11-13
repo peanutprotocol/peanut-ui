@@ -30,6 +30,8 @@ export type Region = {
     description?: string
     /** The catalog's description key under `common.regions.descriptions`, where it is not the path's own. */
     descriptionKey?: string
+    /** No limits page states this row's limits, so the row is not a link. */
+    noLimitsPage?: true
 }
 
 // latam region access is separate from the ar/br manteca country gate.
@@ -87,7 +89,8 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
 /**
  * The QR-only regions as this user's Pix routes say. A resident of Brazil pays no Pix QR (the pay
  * route refuses it) and moves money by Pix on the deposit and withdraw routes (TASK-24910): the
- * Brazil row says that, or goes where no Pix route is open either. Without routes (an older API)
+ * Brazil row says that, links to no limits page (none states the limits of that Pix), or goes
+ * where no Pix route is open either. Without routes (an older API)
  * the regions read as before.
  */
 function qrOnlyRegions(routes: CapabilityRoute[] | undefined): Region[] {
@@ -96,7 +99,15 @@ function qrOnlyRegions(routes: CapabilityRoute[] | undefined): Region[] {
     return MANTECA_QR_ONLY_REGIONS.flatMap((region) => {
         if (region.path !== 'brazil') return [region]
         return pixOpen
-            ? [{ ...region, description: 'Only Pix deposits and withdrawals', descriptionKey: 'brazilPix' }]
+            ? [
+                  {
+                      ...region,
+                      description: 'Only Pix deposits and withdrawals',
+                      descriptionKey: 'brazilPix',
+                      // the Brazil limits page states the Pix QR limits, which this user cannot use
+                      noLimitsPage: true,
+                  },
+              ]
             : []
     })
 }
