@@ -31,6 +31,7 @@ const PASSKEY_CHECK_TIMEOUT_MS = 5_000
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
+// An iPhone automatic attempt that ends as a cancel or with no passkey counts as the first one.
 const LOGIN_CANCELS_BEFORE_RECOVERY = 2
 
 type RecoveryAction = 'retry' | 'signup' | 'support' | 'dismiss'
@@ -54,6 +55,7 @@ const LandingStep = () => {
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
     const loginCancelsRef = useRef(0)
+    const autoLoginMissedRef = useRef(false)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
 
@@ -62,7 +64,7 @@ const LandingStep = () => {
     const iosPreparation = useRef<AbortController | null>(null)
     // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
     // there; Log in and Sign up stay usable and retire it first when tapped.
-    const autoLogin = useRef<{ cancel: AbortController; done: Promise<void> } | null>(null)
+    const autoLogin = useRef<{ cancel: AbortController; done: Promise<unknown> } | null>(null)
     const [autoLoginPending, setAutoLoginPending] = useState(false)
     const fallbackBusy = useRef(false)
 
@@ -86,14 +88,20 @@ const LandingStep = () => {
                     const done = loginHandler
                         .current({ immediateSignal: signal, immediateDeadline: deadline, cancelSignal: cancel.signal })
                         .then(
-                            () => {},
-                            () => {}
+                            () => undefined,
+                            (error: unknown) => getPasskeyErrorCode(error)
                         )
                     const attempt = { cancel, done }
                     autoLogin.current = attempt
                     setAutoLoginPending(true)
-                    await done
+                    const missCode = await done
                     if (autoLogin.current !== attempt) return
+                    // iOS reports "no passkey on this phone" as a cancel. An attempt retired by a tap,
+                    // or cut off by the deadline (AbortError, so LOGIN_ERROR), is not a miss.
+                    if (missCode === 'LOGIN_CANCELED' || missCode === 'PASSKEY_NOT_FOUND') {
+                        loginCancelsRef.current += 1
+                        autoLoginMissedRef.current = true
+                    }
                     // A ceremony that timed out can leave the native assertion open; free it so the
                     // next manual login is not refused as already in progress. A no-op after success.
                     await cancelIOSImmediateLogin()
@@ -159,6 +167,7 @@ const LandingStep = () => {
             error_code: errorCode,
             native: isCapacitor(),
             recovery_drawer: recovery,
+            after_auto_miss: autoLoginMissedRef.current,
         })
     }
 

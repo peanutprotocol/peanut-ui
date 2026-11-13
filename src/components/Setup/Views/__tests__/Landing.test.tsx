@@ -12,11 +12,13 @@ import LandingStep from '../Landing'
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
+const mockCancelIOS = jest.fn()
 let mockNative = true
 let mockAndroidNative = false
 let mockTestBuild = false
 let mockDeviceType = 'ios'
 let mockKeepWeb = false
+let mockImmediate = false
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockNative,
@@ -30,8 +32,8 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: moc
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/utils/landing-passkeys', () => ({
-    supportsIOSImmediateLogin: async () => false,
-    cancelIOSImmediateLogin: async () => {},
+    supportsIOSImmediateLogin: async () => mockImmediate,
+    cancelIOSImmediateLogin: async () => mockCancelIOS(),
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
@@ -71,6 +73,10 @@ const logIn = async () => {
         fireEvent.click(screen.getByRole('button', { name: LOGIN_LABEL }))
     })
 }
+const loginErrors = () =>
+    (posthog.capture as jest.Mock).mock.calls
+        .filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR)
+        .map(([, properties]) => properties)
 const recoveryActions = () =>
     (posthog.capture as jest.Mock).mock.calls
         .filter(([event]) => event === ANALYTICS_EVENTS.LOGIN_RECOVERY_ACTION)
@@ -84,6 +90,7 @@ beforeEach(() => {
     mockTestBuild = false
     mockDeviceType = 'ios'
     mockKeepWeb = false
+    mockImmediate = false
 })
 afterEach(() => jest.useRealTimers())
 
@@ -219,6 +226,101 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
 
         expect(await screen.findByRole('dialog')).toHaveTextContent('Log in on that phone.')
         expect(screen.queryByRole('button', { name: /create an account/i })).not.toBeInTheDocument()
+    })
+})
+
+describe('Landing — the automatic iPhone login counts as the first cancel (TASK-24885)', () => {
+    /** The automatic attempt (called with options) ends with `auto`; manual logins (no options) take `manual` in turn. */
+    const loginOutcomes = (auto: string, ...manual: string[]) => {
+        mockImmediate = true
+        mockLogin.mockImplementation((options?: object) =>
+            Promise.reject(passkeyError(options ? auto : (manual.shift() ?? 'LOGIN_CANCELED')))
+        )
+    }
+    // The landing frees the native slot once the automatic attempt has settled on its own.
+    const autoLoginSettled = async () => {
+        await waitFor(() => expect(mockCancelIOS).toHaveBeenCalledTimes(1))
+        await act(async () => {})
+    }
+
+    it.each(['LOGIN_CANCELED', 'PASSKEY_NOT_FOUND'])(
+        'opens the recovery drawer on the first manual cancel after the automatic attempt ends %s',
+        async (code) => {
+            loginOutcomes(code, 'LOGIN_CANCELED')
+            renderWithIntl(<LandingStep />)
+            await autoLoginSettled()
+
+            // The miss itself stays silent.
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+            expect(mockToastError).not.toHaveBeenCalled()
+            expect(Sentry.captureException).not.toHaveBeenCalled()
+            expect(loginErrors()).toEqual([])
+
+            await logIn()
+
+            expect(await screen.findByRole('dialog')).toHaveTextContent(
+                'Your passkey may be on the phone you signed up on'
+            )
+            expect(mockToastError).not.toHaveBeenCalled()
+            expect(mockLogin).toHaveBeenCalledTimes(2)
+            expect(mockLogin).toHaveBeenLastCalledWith()
+            expect(loginErrors()).toEqual([
+                expect.objectContaining({
+                    error_code: 'LOGIN_CANCELED',
+                    recovery_drawer: true,
+                    after_auto_miss: true,
+                }),
+            ])
+        }
+    )
+
+    it('does not count an automatic attempt that ends with any other code', async () => {
+        loginOutcomes('LOGIN_ERROR', 'LOGIN_CANCELED')
+        renderWithIntl(<LandingStep />)
+        await autoLoginSettled()
+
+        await logIn()
+
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        expect(mockToastError).toHaveBeenCalledWith('Passkey verification wasn’t completed. Try again when ready.')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false, after_auto_miss: false })])
+    })
+
+    it('resets the count when a manual login fails another way after a counted miss', async () => {
+        loginOutcomes('LOGIN_CANCELED', 'LOGIN_ERROR', 'LOGIN_CANCELED')
+        renderWithIntl(<LandingStep />)
+        await autoLoginSettled()
+
+        await logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        expect(mockToastError).toHaveBeenLastCalledWith(
+            'We couldn’t verify your passkey. Please try again, or contact support if it keeps happening.'
+        )
+
+        await logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(2))
+        expect(mockToastError).toHaveBeenLastCalledWith('Passkey verification wasn’t completed. Try again when ready.')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(loginErrors()).toEqual([
+            expect.objectContaining({ error_code: 'LOGIN_ERROR', recovery_drawer: false, after_auto_miss: true }),
+            expect.objectContaining({ error_code: 'LOGIN_CANCELED', recovery_drawer: false, after_auto_miss: true }),
+        ])
+    })
+
+    it('never counts a cancel in the Android app, which has no automatic attempt', async () => {
+        mockAndroidNative = true
+        mockDeviceType = 'android'
+        loginOutcomes('LOGIN_CANCELED', 'LOGIN_CANCELED')
+        renderWithIntl(<LandingStep />)
+
+        await logIn()
+
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockLogin).toHaveBeenCalledWith()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false, after_auto_miss: false })])
     })
 })
 

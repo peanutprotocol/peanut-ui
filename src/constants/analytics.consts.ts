@@ -28,6 +28,7 @@ export const ANALYTICS_EVENTS = {
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',
+    // `after_auto_miss`: earlier on this landing the iPhone automatic login ended as a cancel or with no passkey.
     SIGNUP_LOGIN_ERROR: 'signup_login_error',
     // `action`: retry | signup | support | dismiss, from the drawer that follows a failed login.
     LOGIN_RECOVERY_ACTION: 'login_recovery_action',

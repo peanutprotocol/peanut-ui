@@ -362,7 +362,7 @@ describe('iOS automatic login', () => {
         expect(mockToastError).toHaveBeenCalledTimes(1)
         expect(mockToastError).toHaveBeenCalledWith('passkey.notCompleted')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false })])
+        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false, after_auto_miss: false })])
         // a second tap while a manual login runs does not start another one
         mockIsLoggingIn = true
         view.rerender(<Landing />)
@@ -511,7 +511,7 @@ describe('iOS automatic login', () => {
         expect(manualLogins()).toBe(1)
         expect(mockToastError).toHaveBeenCalledWith('passkey.notCompleted')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false })])
+        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false, after_auto_miss: false })])
     })
 
     it('does not auto-login after the wall-clock deadline even when the deadline timer has not fired', async () => {
