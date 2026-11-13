@@ -9,6 +9,8 @@ import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LandingStep from '../Landing'
 
+import { HAS_LOGGED_IN_ON_DEVICE_KEY, markLoggedInOnDevice } from '@/utils/device-login-history'
+
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
@@ -72,12 +74,16 @@ const recoveryActions = () =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    markLoggedInOnDevice()
     mockNative = true
     mockAndroidNative = false
     mockTestBuild = false
     mockDeviceType = 'ios'
 })
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+    jest.useRealTimers()
+    localStorage.removeItem(HAS_LOGGED_IN_ON_DEVICE_KEY)
+})
 
 describe('Landing — recovery after a failed login (TASK-24017)', () => {
     it('opens the recovery drawer at once when the phone holds no Peanut passkey', async () => {

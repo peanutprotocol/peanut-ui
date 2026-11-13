@@ -106,6 +106,7 @@ import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearAuthToken } from '@/utils/auth-token'
+import { HAS_LOGGED_IN_ON_DEVICE_KEY, hasLoggedInOnDevice, markLoggedInOnDevice } from '@/utils/device-login-history'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -147,6 +148,20 @@ describe('logoutUser', () => {
         clearRedirectUrl()
         clearSessionHeld()
     })
+
+    it.each([undefined, { skipBackendCall: true }, { allDevices: true }])(
+        'retains device login history through logout %j',
+        async (options) => {
+            markLoggedInOnDevice()
+            stubLocation()
+            const { result } = renderHook(() => useAuth(), { wrapper })
+            await act(async () => {
+                await result.current.logoutUser(options)
+            })
+            expect(hasLoggedInOnDevice()).toBe(true)
+            expect(localStorage.getItem(HAS_LOGGED_IN_ON_DEVICE_KEY)).toBe('true')
+        }
+    )
 
     it('restores cached flag properties after reset without a fresh async lookup or duplicate reload', async () => {
         stubLocation()

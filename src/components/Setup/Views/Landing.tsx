@@ -25,12 +25,16 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { checkAndroidLandingPasskey } from '@/utils/landing-passkeys'
+import { hasLoggedInOnDevice } from '@/utils/device-login-history'
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
 const LOGIN_CANCELS_BEFORE_RECOVERY = 2
+const ANDROID_PASSKEY_DEADLINE_MS = 3000
 
 type RecoveryAction = 'retry' | 'signup' | 'support' | 'dismiss'
+type LoginAction = 'pending' | 'full' | 'link'
 
 const LandingStep = () => {
     const nativePlatform = useNativePlatform()
@@ -48,11 +52,43 @@ const LandingStep = () => {
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
     const { track } = useSignupControl()
+    const [androidLoginAction, setAndroidLoginAction] = useState<LoginAction>('pending')
+    const hasDeviceLoginHistory =
+        nativePlatform.isHydrated && nativePlatform.isAndroidNativeBridge && hasLoggedInOnDevice()
+    const isNativePreHydration = !nativePlatform.isHydrated && process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
+    const loginAction: LoginAction = isNativePreHydration
+        ? 'pending'
+        : nativePlatform.isAndroidNativeBridge && !hasDeviceLoginHistory
+          ? androidLoginAction
+          : 'full'
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
+
+    useEffect(() => {
+        if (!nativePlatform.isHydrated || !nativePlatform.isAndroidNativeBridge || hasDeviceLoginHistory) return
+        const controller = new AbortController()
+        const deadline = Date.now() + ANDROID_PASSKEY_DEADLINE_MS
+        let settled = false
+        const finish = (action: LoginAction) => {
+            if (settled || controller.signal.aborted) return
+            settled = true
+            clearTimeout(timer)
+            setAndroidLoginAction(Date.now() >= deadline ? 'full' : action)
+        }
+        const timer = setTimeout(() => finish('full'), ANDROID_PASSKEY_DEADLINE_MS)
+        void checkAndroidLandingPasskey(controller.signal).then(
+            (availability) => finish(availability === 'unavailable' ? 'link' : 'full'),
+            () => finish('full')
+        )
+        return () => {
+            settled = true
+            clearTimeout(timer)
+            controller.abort()
+        }
+    }, [nativePlatform.isHydrated, nativePlatform.isAndroidNativeBridge, hasDeviceLoginHistory])
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -177,6 +213,10 @@ const LandingStep = () => {
         </Callout>
     )
 
+    const loginPlaceholder = (
+        <div aria-hidden="true" className="invisible h-11 w-full shrink-0" data-testid="landing-login-placeholder" />
+    )
+
     if (blockSignup) {
         return (
             <>
@@ -196,9 +236,13 @@ const LandingStep = () => {
                         />
                     </div>
                     <div className="text-center">
-                        <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
-                            {tMigration('qr.logIn')}
-                        </LinkButton>
+                        {isNativePreHydration ? (
+                            loginPlaceholder
+                        ) : (
+                            <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                                {tMigration('qr.logIn')}
+                            </LinkButton>
+                        )}
                     </div>
                     {/* pt-1: two stacked text links need ~28px between their hit areas */}
                     <div className="pt-1 text-center">{recoveryLink}</div>
@@ -240,16 +284,26 @@ const LandingStep = () => {
                         </>
                     }
                     secondary={
-                        <Button
-                            loading={isLoggingIn}
-                            shadowSize="4"
-                            className="w-full"
-                            disabled={isLoggingIn}
-                            variant="secondary"
-                            onClick={onLoginClick}
-                        >
-                            {t('logIn')}
-                        </Button>
+                        loginAction === 'full' ? (
+                            <Button
+                                loading={isLoggingIn}
+                                shadowSize="4"
+                                className="w-full"
+                                disabled={isLoggingIn}
+                                variant="secondary"
+                                onClick={onLoginClick}
+                            >
+                                {t('logIn')}
+                            </Button>
+                        ) : loginAction === 'link' ? (
+                            <div className="pt-2">
+                                <LinkButton onClick={onLoginClick} disabled={isLoggingIn}>
+                                    {t('logIn')}
+                                </LinkButton>
+                            </div>
+                        ) : (
+                            loginPlaceholder
+                        )
                     }
                 />
             </div>
