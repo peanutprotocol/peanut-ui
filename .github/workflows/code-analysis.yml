@@ -126,7 +126,7 @@ jobs:
 
             # ---- PR comment (idempotent — re-edits prior comment)
             - name: Comment on PR
-              uses: actions/github-script@v7
+              uses: actions/github-script@v9
               with:
                   script: |
                       const fs = require('fs');
