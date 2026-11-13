@@ -18,6 +18,7 @@ import {
 import {
     corridorFromRailId,
     corridorsFromRails,
+    countsTowardAccountLimit,
     DEPOSIT_RAIL_ORDER,
     emptyCorridorRecord,
     DEPOSIT_RAILS,
@@ -258,7 +259,11 @@ export function useDepositAccounts({
     }, [query.data, provisioningPolls])
 
     const slotsHeld = useMemo(
-        () => query.data?.accountsHeld ?? (query.data?.accounts ?? []).filter(holdsSlot).length,
+        () =>
+            query.data?.accountsHeld ??
+            (query.data?.accounts ?? []).filter(
+                (account) => holdsSlot(account) && countsTowardAccountLimit(account.railId)
+            ).length,
         [query.data]
     )
 

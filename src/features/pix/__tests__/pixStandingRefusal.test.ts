@@ -34,14 +34,11 @@ describe('pixStandingRefusal', () => {
         })
         for (const code of ['uk_resident_blocked', 'residence_bank_restricted', undefined])
             expect(pixStandingRefusal(refused(403, code))).toEqual({ screen: 'closed', line: 'pix.residenceNotServed' })
-        // the account cap's ruling is pending: the account screens' own sentence
-        expect(pixStandingRefusal(refused(409, 'DEPOSIT_ACCOUNT_LIMIT'))).toEqual({
-            screen: 'closed',
-            line: 'depositAccounts.errors.accountLimit',
-        })
-        expect(pixStandingRefusal(refused(409, 'DEPOSIT_ACCOUNT_PROVIDER_REFUSED'))).toEqual({
-            screen: 'closed',
-            line: 'depositAccounts.errors.providerRefused',
-        })
+        // the Pix account is outside the account limit: a limit refusal that still comes is a closed refusal
+        for (const code of ['DEPOSIT_ACCOUNT_PROVIDER_REFUSED', 'DEPOSIT_ACCOUNT_LIMIT'])
+            expect(pixStandingRefusal(refused(409, code))).toEqual({
+                screen: 'closed',
+                line: 'depositAccounts.errors.providerRefused',
+            })
     })
 })

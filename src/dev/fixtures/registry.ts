@@ -2405,29 +2405,17 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    // the cap ruling is pending: the account screens' own sentence, with support
-    'pix-bridge-deposit-account-limit': {
-        route: '/add-money/pix',
-        about: 'Pix on Bridge, the BRL account refused at the account limit: the limit sentence, with support.',
-        responses: bridgePixDepositReady({ depositAccounts: [] }),
-        rejects: {
-            'POST /pix/deposit': {
-                status: 409,
-                body: { code: 'DEPOSIT_ACCOUNT_LIMIT', error: 'Account limit reached' },
-            },
-        },
-    },
-    // ruling 12 Nov: while a Pix route is open the BRL row is not on Accounts, and the cap still counts it
+    // ruling 12 Nov: while a Pix route is open the BRL row is not on Accounts; ruling 13 Nov: the cap leaves it out
     'pix-bridge-accounts-brl-held': {
         route: '/profile/accounts',
-        about: 'Accounts for a resident of Brazil holding the BRL and EUR accounts: BRL is not listed; the counter counts it.',
+        about: 'Accounts for a resident of Brazil holding the BRL and EUR accounts: BRL is not listed, and the counter reads 1 of 2.',
         responses: {
             ...bridgePixDepositReady({ depositAccounts: [DEPOSIT_ACCOUNT_EUR, BRIDGE_BRL_ACCOUNT] }),
             'GET /users/deposit-accounts': {
                 depositAccounts: [DEPOSIT_ACCOUNT_EUR, BRIDGE_BRL_ACCOUNT],
                 claimable: [],
                 accountLimit: 2,
-                accountsHeld: 2,
+                accountsHeld: 1,
             },
         },
     },
@@ -2440,7 +2428,7 @@ export const FIXTURES: Record<string, Fixture> = {
                 depositAccounts: [BRIDGE_BRL_ACCOUNT],
                 claimable: [],
                 accountLimit: 2,
-                accountsHeld: 1,
+                accountsHeld: 0,
             },
         },
     },

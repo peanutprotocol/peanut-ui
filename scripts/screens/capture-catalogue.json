@@ -1180,11 +1180,6 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-bridge-deposit-account-limit",
-        "flow": "Add money",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-history-bridge-pix-deposit-returned",
         "flow": "Add money",
         "route": "/history?tx=fixture-bridge-pix-deposit"

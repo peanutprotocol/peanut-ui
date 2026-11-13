@@ -53,11 +53,7 @@ export type PixStandingRefusal =
     | { screen: 'paused' }
     | {
           screen: 'closed'
-          line:
-              | 'pix.rolloutClosed'
-              | 'pix.residenceNotServed'
-              | 'depositAccounts.errors.accountLimit'
-              | 'depositAccounts.errors.providerRefused'
+          line: 'pix.rolloutClosed' | 'pix.residenceNotServed' | 'depositAccounts.errors.providerRefused'
       }
 
 export function pixStandingRefusal(error: unknown): PixStandingRefusal {
@@ -71,9 +67,9 @@ export function pixStandingRefusal(error: unknown): PixStandingRefusal {
         // a bare 403 or the residence block's own codes
         case 'residenceRestricted':
             return { screen: 'closed', line: 'pix.residenceNotServed' }
-        // the cap of two accounts: its ruling is pending, so the account screens' sentence stands
+        // The Pix account is outside the account limit (ruling 13 Nov), so a limit refusal is not
+        // expected here; should one come, it reads as any refusal a retry does not change.
         case 'accountLimit':
-            return { screen: 'closed', line: 'depositAccounts.errors.accountLimit' }
         case 'providerRefused':
             return { screen: 'closed', line: 'depositAccounts.errors.providerRefused' }
         // a claim still in flight, a lock wait, a provider error, the network

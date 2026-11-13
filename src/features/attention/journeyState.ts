@@ -31,7 +31,7 @@ import type {
     DepositAccountView,
     UnavailableCorridor,
 } from '@/features/deposit-accounts/types'
-import { corridorFromRailId, emptyCorridorRecord } from '@/features/deposit-accounts/rails'
+import { corridorFromRailId, countsTowardAccountLimit, emptyCorridorRecord } from '@/features/deposit-accounts/rails'
 import { closeRefusedCorridors } from '@/features/deposit-accounts/reportClosures'
 import type { FeatureReport, RailCapability } from '@/types/capabilities'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
@@ -109,7 +109,9 @@ export function depositAccountCounts(
     const closed = closeRefusedCorridors(report, rails, { accounts: held, claimable: offered, unavailable })
     return {
         claimable: Object.values(closed.claimable).filter(Boolean).length,
-        active: [...accounts.values()].filter((a) => a.status === 'active').length,
+        // the bank accounts a payer can be handed; the Pix account is not one of them (ruling 13 Nov)
+        active: [...accounts.values()].filter((a) => a.status === 'active' && countsTowardAccountLimit(a.railId))
+            .length,
     }
 }
 

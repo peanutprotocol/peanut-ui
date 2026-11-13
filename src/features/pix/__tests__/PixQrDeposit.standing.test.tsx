@@ -134,7 +134,6 @@ describe('PixQrDeposit on a standing code', () => {
     it.each([
         ['pix.rolloutClosed', en.pix.rolloutClosed],
         ['pix.residenceNotServed', en.pix.residenceNotServed],
-        ['depositAccounts.errors.accountLimit', en.depositAccounts.errors.accountLimit],
         ['depositAccounts.errors.providerRefused', en.depositAccounts.errors.providerRefused],
     ] as const)('says why it is closed (%s), in the catalog line, never the API text', (line, text) => {
         refusedWith({ screen: 'closed', line })

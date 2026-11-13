@@ -105,11 +105,11 @@ describe('usePixDeposit for a standing code (intentId null)', () => {
 
     it('does not ask again for a refusal that a retry cannot change', async () => {
         jest.useFakeTimers()
-        mockCreate.mockRejectedValue(new ApiError('limit', { status: 409, code: 'DEPOSIT_ACCOUNT_LIMIT' }))
+        mockCreate.mockRejectedValue(new ApiError('refused', { status: 409, code: 'DEPOSIT_ACCOUNT_PROVIDER_REFUSED' }))
         const { result } = renderHook(() => usePixDeposit(null, jest.fn()), { wrapper })
 
         await waitFor(() =>
-            expect(result.current.refusal).toEqual({ screen: 'closed', line: 'depositAccounts.errors.accountLimit' })
+            expect(result.current.refusal).toEqual({ screen: 'closed', line: 'depositAccounts.errors.providerRefused' })
         )
         await act(() => jest.advanceTimersByTimeAsync(10_000))
         expect(mockCreate).toHaveBeenCalledTimes(1)
