@@ -1042,7 +1042,6 @@
             "androidStep4": "Seguí los pasos en pantalla"
         },
         "status": {
-            "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
             "requiresInfoBody": "El equipo de Peanut te va a ayudar a terminar tu solicitud de tarjeta. Hablá con soporte para continuar.",
             "requiresInfoTaxIdBody": "Proporcioná tu identificación fiscal para terminar tu solicitud de tarjeta.",
             "requiresInfoBirthDateBody": "Proporcioná tu fecha de nacimiento para terminar tu solicitud de tarjeta.",

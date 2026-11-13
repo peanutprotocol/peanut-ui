@@ -1895,7 +1895,7 @@
             "creatingCardTitle": "Creating your card…",
             "creatingCardBody": "This usually takes a few seconds.",
             "pendingTitle": "Setting up card…",
-            "pendingBody": "Hang tight while we finish setting up your card. This usually takes a few seconds.",
+            "pendingBody": "We're setting up your card. This usually takes a few minutes, and we'll let you know when it's ready.",
             "manualReviewTitle": "Manual review needed",
             "manualReviewBody": "We need to do a manual review of your submission. This usually takes 1-2 days and we'll let you know when it's ready.",
             "requiresInfoTitle": "We need more information",
