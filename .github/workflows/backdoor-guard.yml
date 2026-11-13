@@ -29,7 +29,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
-            - uses: actions/checkout@v4 # the BASE branch, as pull_request_target does
+            - uses: actions/checkout@v7 # the BASE branch, as pull_request_target does
               with:
                   fetch-depth: 0
             - name: Fetch the PR's commits as data
