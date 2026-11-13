@@ -10724,6 +10724,23 @@
 													],
 													"type": "object"
 												},
+												"pixPayee": {
+													"anyOf": [
+														{
+															"enum": [
+																"own"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"other"
+															],
+															"type": "string"
+														}
+													],
+													"description": "A Pix payout through Bridge only: `own` paid the user’s own key and reads as a withdrawal; `other` paid another person’s key and reads as a send to them (recipientAccount.fullName names them, for the owner only)."
+												},
 												"pixRecovery": {
 													"anyOf": [
 														{
@@ -14985,6 +15002,13 @@
 													"description": "The headline: reais credited to the account",
 													"type": "string"
 												},
+												"amountBrlEstimated": {
+													"description": "The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.",
+													"enum": [
+														true
+													],
+													"type": "boolean"
+												},
 												"arrivalEstimateSeconds": {
 													"description": "About how long from the signature to the Pix paid",
 													"type": "number"
@@ -15062,7 +15086,7 @@
 													"type": "null"
 												}
 											],
-											"description": "The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit"
+											"description": "The withdrawal, when the provider opens it now; null when it opens only at the submit"
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
@@ -15412,6 +15436,13 @@
 										"amountBrl": {
 											"description": "The headline: reais credited to the account",
 											"type": "string"
+										},
+										"amountBrlEstimated": {
+											"description": "The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.",
+											"enum": [
+												true
+											],
+											"type": "boolean"
 										},
 										"arrivalEstimateSeconds": {
 											"description": "About how long from the signature to the Pix paid",
