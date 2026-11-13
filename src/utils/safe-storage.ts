@@ -11,13 +11,16 @@ type WebStorageLike = {
     removeItem(key: string): void
 }
 
-type StorageHost = { localStorage?: WebStorageLike | null }
+type StorageHost = { localStorage?: WebStorageLike | null; sessionStorage?: WebStorageLike | null }
 
 // `host` is a test seam: jest's jsdom global swallows throwing property
 // getters, so the SecurityError path is only reachable with an explicit host.
-export function webStorage(host: StorageHost = globalThis): WebStorageLike | null {
+export function webStorage(
+    host: StorageHost = globalThis,
+    kind: 'localStorage' | 'sessionStorage' = 'localStorage'
+): WebStorageLike | null {
     try {
-        return host.localStorage ?? null
+        return host[kind] ?? null
     } catch {
         return null
     }
@@ -62,4 +65,25 @@ export const resilientWebStorage: WebStorageLike = {
     getItem: readStoredValue,
     setItem: writeStoredValue,
     removeItem: removeStoredValue,
+}
+
+/** Session-only storage with the same restricted-browser fallback as local storage. */
+export const resilientSessionStorage: WebStorageLike = {
+    getItem(key) {
+        try {
+            return webStorage(globalThis, 'sessionStorage')?.getItem(key) ?? null
+        } catch {
+            return null
+        }
+    },
+    setItem(key, value) {
+        try {
+            webStorage(globalThis, 'sessionStorage')?.setItem(key, value)
+        } catch {}
+    },
+    removeItem(key) {
+        try {
+            webStorage(globalThis, 'sessionStorage')?.removeItem(key)
+        } catch {}
+    },
 }

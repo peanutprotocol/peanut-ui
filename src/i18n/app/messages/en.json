@@ -1134,7 +1134,7 @@
                 },
                 "backup": {
                     "title": "Ready on a new phone",
-                    "description": "Saved to your Google or Apple account."
+                    "description": "Synced by your phone's password manager."
                 }
             },
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",

@@ -202,6 +202,7 @@ const advance = async (ms: number) => {
 
 beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     jest.useFakeTimers()
     jest.clearAllMocks()
     jest.mocked(getFromCookie).mockReset()
@@ -894,6 +895,7 @@ describe('a signup interrupted after registration', () => {
 
         beforeEach(() => {
             localStorage.clear()
+            sessionStorage.clear()
             mockStore.steps = [landing, residence, paymentPlan, finalStep]
             mockFlow.step = landing
             mockSearchParams = new URLSearchParams()

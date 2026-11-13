@@ -5,15 +5,20 @@ import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-r
 import { readStoredValue } from '@/utils/safe-storage'
 import { restoreSignupValue, storeSignupValue } from './signup-storage'
 
+const MAX_AGE = 30 * 24 * 60 * 60 * 1000
 const pendingSaves = new Map<string, Promise<void>>()
 const keyFor = (userId: string) => `peanut:pendingSignupAnswers:${encodeURIComponent(userId)}`
-type Pending = { version: 1; userId: string; fields: Record<string, unknown> }
+type Pending = { version: 1; userId: string; savedAt?: number; fields: Record<string, unknown> }
 
 function readPending(userId: string): Pending | null {
     const raw = readStoredValue(keyFor(userId))
     if (!raw || raw.length > 4096) return null
     try {
         const value = JSON.parse(raw)
+        if (value.savedAt !== undefined && (!Number.isFinite(value.savedAt) || Date.now() - value.savedAt > MAX_AGE)) {
+            void storeSignupValue(keyFor(userId), null)
+            return null
+        }
         if (value.version !== 1 || value.userId !== userId || !value.fields || typeof value.fields !== 'object')
             return null
         const fields: Record<string, unknown> = {}
@@ -32,14 +37,19 @@ function readPending(userId: string): Pending | null {
                 paymentChannel: preferences.paymentChannel,
             }
         }
-        return Object.keys(fields).length ? { version: 1, userId, fields } : null
+        return Object.keys(fields).length ? { version: 1, userId, savedAt: value.savedAt, fields } : null
     } catch {
         return null
     }
 }
 
 export function queueSignupAnswers(userId: string, fields: Record<string, unknown>): Promise<void> {
-    const pending: Pending = { version: 1, userId, fields: { ...readPending(userId)?.fields, ...fields } }
+    const pending: Pending = {
+        version: 1,
+        userId,
+        savedAt: Date.now(),
+        fields: { ...readPending(userId)?.fields, ...fields },
+    }
     return storeSignupValue(keyFor(userId), JSON.stringify(pending))
 }
 
@@ -57,16 +67,22 @@ function serialize(userId: string, write: () => Promise<void>): Promise<void> {
 async function deliver(userId: string, fields: Record<string, unknown>, onSaved?: () => void): Promise<void> {
     try {
         const result = await updateUserById({ userId, ...fields })
-        if (result?.error) return
-        const remaining = { ...readPending(userId)?.fields }
+        const status = result?.status
+        // 401 is an expired session and 408/429 are transient; any other 4xx refuses this payload for good.
+        const refused = status !== undefined && status >= 400 && status < 500 && ![401, 408, 429].includes(status)
+        if (result?.error && !refused) return
+        const pending = readPending(userId)
+        const remaining = { ...pending?.fields }
         for (const [key, value] of Object.entries(fields)) {
             if (JSON.stringify(remaining[key]) === JSON.stringify(value)) delete remaining[key]
         }
         await storeSignupValue(
             keyFor(userId),
-            Object.keys(remaining).length ? JSON.stringify({ version: 1, userId, fields: remaining }) : null
+            Object.keys(remaining).length
+                ? JSON.stringify({ version: 1, userId, savedAt: pending?.savedAt ?? Date.now(), fields: remaining })
+                : null
         )
-        onSaved?.()
+        if (!result?.error) onSaved?.()
     } catch {}
 }
 

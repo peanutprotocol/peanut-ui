@@ -1,6 +1,11 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import { getKycDocumentPlan, resumeKycDocumentAttempt, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
+import {
+    getKycDocumentPlan,
+    getKycDocumentStatus,
+    resumeKycDocumentAttempt,
+    refreshKycIdentityStatus,
+} from '@/app/actions/kyc-workflow'
 import { act, waitFor } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
@@ -66,8 +71,8 @@ describe('SDK close identity recovery', () => {
         mockInitiate.mockResolvedValue({ data: { token: 'initial', applicantId: 'app', status: 'NOT_STARTED' } })
     })
 
-    it('refreshes once after an unsubmitted close, then refetches identity without reopening or completing', async () => {
-        const refresh = pending<undefined>()
+    it('refreshes once after an unsubmitted close without initiating, reopening or completing', async () => {
+        const refresh = pending<'APPROVED'>()
         mockIdentityRefresh.mockReturnValue(refresh.promise)
         const onKycSuccess = jest.fn()
         const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess, regionIntent: 'ROW' }))
@@ -85,13 +90,29 @@ describe('SDK close identity recovery', () => {
         expect(mockIdentityRefresh).toHaveBeenCalledTimes(1)
         expect(mockInitiate).not.toHaveBeenCalled()
         await act(async () => {
-            refresh.resolve(undefined)
+            refresh.resolve('APPROVED')
         })
-        expect(mockInitiate).toHaveBeenCalledTimes(1)
+        expect(mockInitiate).not.toHaveBeenCalled()
         expect(result.current.liveKycStatus).toBe('APPROVED')
         expect(result.current.showWrapper).toBe(false)
         expect(result.current.accessToken).toBe('initial')
         expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
+    it('reads an already-approved identity profile when refresh returns no status', async () => {
+        jest.mocked(getKycDocumentStatus).mockResolvedValueOnce('APPROVED')
+        const { result } = renderHook(() => useSumsubKycFlow({ regionIntent: 'LATAM' }))
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM')
+        })
+        mockInitiate.mockClear()
+        await act(async () => {
+            result.current.handleClose()
+        })
+        expect(getKycDocumentStatus).toHaveBeenCalledTimes(1)
+        expect(result.current.liveKycStatus).toBe('APPROVED')
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(false)
     })
 
     it('does not refresh an SDK session already completed by submission', async () => {
@@ -165,7 +186,7 @@ describe('K1 scoped close synchronization and K2 drawer handoff', () => {
         mockInitiate.mockResolvedValue({ data: { token: 'initial', applicantId: 'app', status: 'NOT_STARTED' } })
     })
 
-    it('K1 preserves the hook status scope when the SDK closes', async () => {
+    it('K1 never initiates a provider submission when an approved LATAM SDK closes', async () => {
         const scope = {
             regionIntent: 'LATAM' as const,
             corridor: 'BANK_TRANSFER_AR' as const,
@@ -185,12 +206,13 @@ describe('K1 scoped close synchronization and K2 drawer handoff', () => {
             )
         })
         mockInitiate.mockClear()
+        mockIdentityRefresh.mockResolvedValue('APPROVED')
         await act(async () => {
             result.current.handleClose()
         })
         expect(mockIdentityRefresh).toHaveBeenCalledTimes(1)
-        expect(mockInitiate).toHaveBeenCalledTimes(1)
-        expect(mockInitiate).toHaveBeenCalledWith(scope)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(result.current.liveKycStatus).toBe('APPROVED')
         expect(result.current.showWrapper).toBe(false)
     })
 

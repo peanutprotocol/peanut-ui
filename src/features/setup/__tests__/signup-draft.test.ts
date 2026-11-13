@@ -50,6 +50,7 @@ const snapshot = (): Pick<SignupDraft, 'screenId' | 'answers' | 'featureScreenId
 })
 beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     mockPreferences.clear()
     mockNative = false
     mockGetPreference.mockReset().mockImplementation(async ({ key }: { key: string }) => ({
@@ -123,7 +124,7 @@ it('never binds or flushes one registrant’s draft into another account', async
 
 it('recovers a crash after ownership was persisted but before answers were queued', async () => {
     saveSignupDraft(snapshot())
-    localStorage.setItem(KEY, JSON.stringify({ ...JSON.parse(localStorage.getItem(KEY)!), userId: 'registrant' }))
+    sessionStorage.setItem(KEY, JSON.stringify({ ...JSON.parse(sessionStorage.getItem(KEY)!), userId: 'registrant' }))
     await bindSignupDraft('registrant')
     await flushPendingSignupAnswers('registrant')
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -159,7 +160,7 @@ it('rejects malformed bounded draft envelopes (seed 24498, 64 generated cases)',
             { ...good, screenId: `unknown-${next()}` },
             { ...good, answers: null },
         ][next() % 5]
-        localStorage.setItem(KEY, JSON.stringify(bad))
+        sessionStorage.setItem(KEY, JSON.stringify(bad))
         expect(readSignupDraft()).toBeNull()
     }
 })
@@ -201,4 +202,30 @@ it('keeps the hold token stable for this session when persistent storage is unav
     } finally {
         jest.restoreAllMocks()
     }
+})
+
+it('writes web drafts only to session storage and restores within the tab', async () => {
+    saveSignupDraft(snapshot())
+    expect(sessionStorage.getItem(KEY)).not.toBeNull()
+    expect(localStorage.getItem(KEY)).toBeNull()
+    expect(await restoreSignupDraft()).toMatchObject(snapshot())
+    sessionStorage.clear()
+    expect(await restoreSignupDraft()).toBeNull()
+    expect(mockPreferences.has(KEY)).toBe(false)
+})
+
+it('removes a legacy local web draft without restoring it', async () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: 2, savedAt: Date.now(), ...snapshot() }))
+    expect(await restoreSignupDraft()).toBeNull()
+    expect(localStorage.getItem(KEY)).toBeNull()
+    expect(sessionStorage.getItem(KEY)).toBeNull()
+})
+
+it('removes a legacy local copy while preserving the current session draft', async () => {
+    saveSignupDraft(snapshot())
+    localStorage.setItem(KEY, JSON.stringify({ version: 2, savedAt: Date.now(), ...snapshot(), screenId: 'invite' }))
+    expect(readSignupDraft()).toMatchObject(snapshot())
+    expect(localStorage.getItem(KEY)).toBeNull()
+    await discardSignupDraft()
+    expect(sessionStorage.getItem(KEY)).toBeNull()
 })

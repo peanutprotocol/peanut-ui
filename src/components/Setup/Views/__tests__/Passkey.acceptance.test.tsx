@@ -301,6 +301,7 @@ const registerSucceeds = async () => {
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    sessionStorage.clear()
     mockSession.reset()
     __resetSignupSavesForTests()
     mockAvailability = 404
@@ -335,7 +336,7 @@ describe('the passkey screen', () => {
             /Fully private/,
             /Peanut never sees or stores it\./,
             /Ready on a new phone/,
-            /Saved to your Google or Apple account\./,
+            /Synced by your phone's password manager\./,
         ]) {
             expect(screen.getByText(text)).toBeInTheDocument()
         }

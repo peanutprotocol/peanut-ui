@@ -4,6 +4,7 @@ import {
     findKycReplacementPlan,
     resumeKycDocumentAttempt,
     refreshKycIdentityStatus,
+    getKycDocumentStatus,
 } from '@/app/actions/kyc-workflow'
 import {
     PAPERWORK_VERIFICATION_FLOW,
@@ -923,17 +924,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 !residenceChangeRef.current
             void (async () => {
                 try {
-                    await refreshKycIdentityStatus()
+                    const status = await refreshKycIdentityStatus()
                     if (!isCurrent() || !regionIntent) return
                     if ((await findKycDocumentPlan('status-sync'))?.flow === PAPERWORK_VERIFICATION_FLOW) return
                     if (!isCurrent()) return
-                    const response = await initiateSumsubKyc({
-                        corridor: corridorRef.current,
-                        regionIntent: regionIntentRef.current,
-                        levelName: levelNameRef.current,
-                        targetCountry: targetCountryRef.current,
-                    })
-                    if (isCurrent() && response.data?.status) setLiveKycStatus(response.data.status)
+                    // Already-approved identities return no refresh status. Read their profile
+                    // without replaying initiation, which can submit LATAM provider work.
+                    const currentStatus = status ?? (await getKycDocumentStatus())
+                    if (isCurrent() && currentStatus) setLiveKycStatus(currentStatus)
                 } catch {
                     // Closing the SDK stays immediate even when status recovery is unavailable.
                 }

@@ -53,7 +53,11 @@ import {
     signupAnalyticsState,
 } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
-import { getUsernameHoldToken, releaseUsernameReservation } from '@/features/setup/username-reservation'
+import {
+    clearUsernameHoldToken,
+    getUsernameHoldToken,
+    releaseUsernameReservation,
+} from '@/features/setup/username-reservation'
 import { bindSignupDraft, discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { AccountType } from '@/interfaces/interfaces'
 
@@ -160,6 +164,8 @@ export const useZeroDev = () => {
                     })
                 )
             )
+
+            void clearUsernameHoldToken().catch(() => {})
 
             // Pin signup signing just like restored Android credentials. Otherwise
             // the OS can select a different peanut.me passkey for the test UserOp.

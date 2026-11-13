@@ -48,6 +48,7 @@ export async function reserveUsername(username: string): Promise<UsernameReserva
                 includeAuth: false,
                 timeoutMs: 5000,
                 redactTelemetry: true,
+                callerReportsFailures: true,
             })
             if (response.ok) return 'reserved'
             const body = await response.json().catch(() => ({}))
@@ -64,16 +65,28 @@ export async function reserveUsername(username: string): Promise<UsernameReserva
     return 'unavailable'
 }
 
+export async function clearUsernameHoldToken(): Promise<void> {
+    // Join a restore already in flight so it cannot put the old token back.
+    await preparingToken?.catch(() => {})
+    sessionToken = null
+    await storeSignupValue(TOKEN_KEY, null)
+}
+
 export async function releaseUsernameReservation(): Promise<void> {
-    const token = await restoreSignupValue(TOKEN_KEY)
-    if (!token || !TOKEN.test(token)) return
     try {
+        const token = await restoreSignupValue(TOKEN_KEY)
+        if (!token || !TOKEN.test(token)) return
         await apiFetch('/users/username/reservations', {
             method: 'DELETE',
             headers: { 'x-username-hold': token },
             includeAuth: false,
             timeoutMs: 5000,
             redactTelemetry: true,
+            callerReportsFailures: true,
         })
-    } catch {}
+    } catch {
+        // The server-side hold expires even if release cannot reach the API.
+    } finally {
+        await clearUsernameHoldToken()
+    }
 }

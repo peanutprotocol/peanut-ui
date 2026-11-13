@@ -145,15 +145,16 @@ describe('passkey registration and the username hold', () => {
         expect(headers['x-accepted-legal']).toBeDefined()
     })
 
-    it('uses one token per device, kept on the device, and never reports it', async () => {
+    it('clears a successful registration token and never reports it', async () => {
         const { result } = renderHook(() => useZeroDev())
         await act(async () => result.current.handleRegister('kimchi'))
         await act(async () => result.current.handleRegister('kimchi'))
 
         const token = registrationHeaders(0)['x-username-hold']
         expect(token).toMatch(HOLD_TOKEN)
-        expect(registrationHeaders(1)['x-username-hold']).toBe(token)
-        expect(storedValues().some((value) => value.includes(token))).toBe(true)
+        expect(registrationHeaders(1)['x-username-hold']).not.toBe(token)
+        expect(storedValues().some((value) => value.includes(token))).toBe(false)
+        expect(localStorage.getItem('peanut:username-hold:v1')).toBeNull()
         expect(JSON.stringify(mockCapture.mock.calls)).not.toContain(token)
     })
 })

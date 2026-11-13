@@ -1,10 +1,9 @@
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import type { SignupProgressAnswers } from './signup-progress'
-import { readStoredValue } from '@/utils/safe-storage'
 import { bindInviteToUser, readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
-import { restoreSignupValue, storeSignupValue } from './signup-storage'
+import { readSignupValue, restoreSignupValue, storeSignupValue } from './signup-storage'
 import { queueSignupAnswers, flushPendingSignupAnswers } from './saveSignupAnswers'
 
 const KEY = 'peanut:signupDraft:v2'
@@ -36,7 +35,7 @@ const country = (value: unknown) => (typeof value === 'string' && /^[A-Z]{2}$/.t
 const handle = (value: unknown) => (typeof value === 'string' && /^[a-z][a-z0-9]{3,11}$/.test(value) ? value : '')
 
 export function readSignupDraft(): SignupDraft | null {
-    const raw = readStoredValue(KEY)
+    const raw = readSignupValue(KEY)
     if (!raw) return null
     try {
         if (raw.length > 4096) throw new Error()

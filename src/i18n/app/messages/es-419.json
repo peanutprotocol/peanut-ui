@@ -1134,7 +1134,7 @@
                 },
                 "backup": {
                     "title": "Lista en un teléfono nuevo",
-                    "description": "Se guarda en tu cuenta de Google o Apple."
+                    "description": "Se sincroniza con el gestor de contraseñas de tu teléfono."
                 }
             },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Inténtalo de nuevo.",

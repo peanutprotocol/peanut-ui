@@ -154,36 +154,42 @@ describe('native landing requires an explicit Log in tap', () => {
         expect(mockLogin).not.toHaveBeenCalled()
     })
 
-    it.each(['android', 'ios'] as const)('keeps %s actions stable at five and ten seconds without logging in', async (platform) => {
-        mockNative = nativePlatform(platform)
-        render(<Landing />)
-        const initialLogin = login()
-        const initialSignup = signup()
+    it.each(['android', 'ios'] as const)(
+        'keeps %s actions stable at five and ten seconds without logging in',
+        async (platform) => {
+            mockNative = nativePlatform(platform)
+            render(<Landing />)
+            const initialLogin = login()
+            const initialSignup = signup()
 
-        for (const milliseconds of [5000, 5000]) {
-            await advance(milliseconds)
-            expectEntryActions()
-            expect(login()).toBe(initialLogin)
-            expect(signup()).toBe(initialSignup)
-            expect(mockLogin).not.toHaveBeenCalled()
-            expect(mockToastError).not.toHaveBeenCalled()
+            for (const milliseconds of [5000, 5000]) {
+                await advance(milliseconds)
+                expectEntryActions()
+                expect(login()).toBe(initialLogin)
+                expect(signup()).toBe(initialSignup)
+                expect(mockLogin).not.toHaveBeenCalled()
+                expect(mockToastError).not.toHaveBeenCalled()
+            }
         }
-    })
+    )
 
-    it.each(['android', 'ios'] as const)('does not log in when %s hydration finishes or Landing rerenders', async (platform) => {
-        mockNative = { ...nativePlatform(platform), isHydrated: false }
-        const view = render(<Landing />)
-        expectEntryActions()
+    it.each(['android', 'ios'] as const)(
+        'does not log in when %s hydration finishes or Landing rerenders',
+        async (platform) => {
+            mockNative = { ...nativePlatform(platform), isHydrated: false }
+            const view = render(<Landing />)
+            expectEntryActions()
 
-        mockNative = { ...mockNative, isHydrated: true }
-        view.rerender(<Landing />)
-        await advance(5000)
-        view.rerender(<Landing />)
-        await advance(5000)
+            mockNative = { ...mockNative, isHydrated: true }
+            view.rerender(<Landing />)
+            await advance(5000)
+            view.rerender(<Landing />)
+            await advance(5000)
 
-        expectEntryActions()
-        expect(mockLogin).not.toHaveBeenCalled()
-    })
+            expectEntryActions()
+            expect(mockLogin).not.toHaveBeenCalled()
+        }
+    )
 
     it('does not log in on iOS unmount, remount, or a late timer after unmount', async () => {
         mockNative = nativePlatform('ios')
@@ -201,54 +207,63 @@ describe('native landing requires an explicit Log in tap', () => {
         expect(mockLogin).not.toHaveBeenCalled()
     })
 
-    it.each(['android', 'ios'] as const)('starts %s login once, without options, only after a manual tap', async (platform) => {
-        mockNative = nativePlatform(platform)
-        render(<Landing />)
-        await advance(10_000)
-        expect(mockLogin).not.toHaveBeenCalled()
+    it.each(['android', 'ios'] as const)(
+        'starts %s login once, without options, only after a manual tap',
+        async (platform) => {
+            mockNative = nativePlatform(platform)
+            render(<Landing />)
+            await advance(10_000)
+            expect(mockLogin).not.toHaveBeenCalled()
 
-        await act(async () => fireEvent.click(login()))
-        expect(mockLogin.mock.calls).toEqual([[]])
-        await advance(10_000)
-        expect(mockLogin.mock.calls).toEqual([[]])
-        expect(mockNext).not.toHaveBeenCalled()
-    })
+            await act(async () => fireEvent.click(login()))
+            expect(mockLogin.mock.calls).toEqual([[]])
+            await advance(10_000)
+            expect(mockLogin.mock.calls).toEqual([[]])
+            expect(mockNext).not.toHaveBeenCalled()
+        }
+    )
 
-    it.each(['android', 'ios'] as const)('starts signup immediately on %s and never starts login afterward', async (platform) => {
-        mockNative = nativePlatform(platform)
-        const view = render(<Landing />)
-        await act(async () => fireEvent.click(signup()))
+    it.each(['android', 'ios'] as const)(
+        'starts signup immediately on %s and never starts login afterward',
+        async (platform) => {
+            mockNative = nativePlatform(platform)
+            const view = render(<Landing />)
+            await act(async () => fireEvent.click(signup()))
 
-        expect(mockNext).toHaveBeenCalledTimes(1)
-        expect(mockLogin).not.toHaveBeenCalled()
-        await advance(10_000)
-        view.rerender(<Landing />)
-        expect(mockLogin).not.toHaveBeenCalled()
-    })
+            expect(mockNext).toHaveBeenCalledTimes(1)
+            expect(mockLogin).not.toHaveBeenCalled()
+            await advance(10_000)
+            view.rerender(<Landing />)
+            expect(mockLogin).not.toHaveBeenCalled()
+        }
+    )
 
-    it.each(['android', 'ios'] as const)('disables both %s actions for an in-flight manual login and restores them afterward', async (platform) => {
-        mockNative = nativePlatform(platform)
-        let resolveLogin!: () => void
-        mockLogin.mockReturnValueOnce(new Promise<void>((resolve) => (resolveLogin = resolve)))
-        const view = render(<Landing />)
-        fireEvent.click(login())
-        expect(mockLogin.mock.calls).toEqual([[]])
+    it.each(['android', 'ios'] as const)(
+        'disables both %s actions for an in-flight manual login and restores them afterward',
+        async (platform) => {
+            mockNative = nativePlatform(platform)
+            let resolveLogin!: () => void
+            mockLogin.mockReturnValueOnce(new Promise<void>((resolve) => (resolveLogin = resolve)))
+            const view = render(<Landing />)
+            fireEvent.click(login())
+            expect(mockLogin.mock.calls).toEqual([[]])
 
-        mockIsLoggingIn = true
-        view.rerender(<Landing />)
-        expect(login()).toBeDisabled()
-        expect(signup()).toBeDisabled()
-        fireEvent.click(login())
-        fireEvent.click(signup())
-        await advance(10_000)
-        expect(mockLogin.mock.calls).toEqual([[]])
-        expect(mockNext).not.toHaveBeenCalled()
+            mockIsLoggingIn = true
+            view.rerender(<Landing />)
+            expect(login()).toBeDisabled()
+            expect(signup()).toBeDisabled()
+            fireEvent.click(login())
+            fireEvent.click(signup())
+            await advance(10_000)
+            expect(mockLogin.mock.calls).toEqual([[]])
+            expect(mockNext).not.toHaveBeenCalled()
 
-        await act(async () => resolveLogin())
-        mockIsLoggingIn = false
-        view.rerender(<Landing />)
-        expectEntryActions()
-    })
+            await act(async () => resolveLogin())
+            mockIsLoggingIn = false
+            view.rerender(<Landing />)
+            expectEntryActions()
+        }
+    )
 })
 
 describe('keep-web landing', () => {

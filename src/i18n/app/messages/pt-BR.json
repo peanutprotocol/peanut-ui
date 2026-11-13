@@ -1134,7 +1134,7 @@
                 },
                 "backup": {
                     "title": "Pronta para um novo celular",
-                    "description": "Salva na sua conta do Google ou da Apple."
+                    "description": "Sincronizada pelo gerenciador de senhas do seu celular."
                 }
             },
             "notAvailable": "As passkeys ainda não estão disponíveis neste dispositivo. Tente de novo.",

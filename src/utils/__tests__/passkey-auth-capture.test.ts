@@ -56,17 +56,28 @@ describe('installPasskeyVerifyCapture', () => {
         mockUnderlyingFetch.mockResolvedValue(jsonResponse(verifyBody))
     })
 
-    it.each(['options', 'verify'])('classifies register/%s reserved username responses', async (step) => {
-        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'This username is reserved' }, 400))
-        await expect(window.fetch(`/passkeys/register/${step}`, { method: 'POST' })).rejects.toMatchObject({
-            name: 'UsernameReserved',
-        })
-    })
+    it.each(['options', 'verify'])(
+        'classifies register/%s reserved username responses by code or legacy text',
+        async (step) => {
+            for (const body of [
+                { error: 'This username is reserved', code: 'USERNAME_RESERVED' },
+                { error: 'This username is reserved' },
+                { error: 'A localized refusal', code: 'USERNAME_RESERVED' },
+            ]) {
+                mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse(body, 400))
+                await expect(window.fetch(`/passkeys/register/${step}`, { method: 'POST' })).rejects.toMatchObject({
+                    name: 'UsernameReserved',
+                })
+            }
+        }
+    )
 
-    it.each(['options', 'verify'])('does not classify generic register/%s HTTP 400 as reserved', async (step) => {
-        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'Bad request' }, 400))
-        const result = await window.fetch(`/passkeys/register/${step}`, { method: 'POST' }).catch((error) => error)
-        expect(result.name).not.toBe('UsernameReserved')
+    it.each(['options', 'verify'])('does not classify invalid register/%s HTTP 400 as reserved', async (step) => {
+        for (const body of [{ error: 'Bad request' }, { error: 'Invalid username', code: 'USERNAME_INVALID' }]) {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse(body, 400))
+            const result = await window.fetch(`/passkeys/register/${step}`, { method: 'POST' }).catch((error) => error)
+            expect(result.name).not.toBe('UsernameReserved')
+        }
     })
 
     it.each(['options', 'verify'])(

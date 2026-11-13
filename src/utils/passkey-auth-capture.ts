@@ -91,6 +91,15 @@ function errorCodeOf(body: string): unknown {
     }
 }
 
+function isReservedUsername(body: string): boolean {
+    try {
+        const parsed = JSON.parse(body)
+        return parsed?.code === 'USERNAME_RESERVED' || parsed?.error === 'This username is reserved'
+    } catch {
+        return false
+    }
+}
+
 function reportPasskeyHttpFailure(path: string, status: number, body: string): void {
     Sentry.addBreadcrumb({
         category: 'passkey.http',
@@ -195,7 +204,7 @@ export function installPasskeyVerifyCapture(): void {
                 if (
                     passkeyPath.startsWith('/passkeys/register/') &&
                     response.status === 400 &&
-                    errorCodeOf(body) === 'This username is reserved'
+                    isReservedUsername(body)
                 ) {
                     failure = new Error('This username is reserved')
                     failure.name = 'UsernameReserved'

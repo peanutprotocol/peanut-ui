@@ -1,5 +1,15 @@
 import { isNativeBridge } from '@/utils/capacitor'
-import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
+import { readStoredValue, removeStoredValue, resilientSessionStorage, writeStoredValue } from '@/utils/safe-storage'
+
+const DRAFT_KEY = 'peanut:signupDraft:v2'
+const isSessionKey = (key: string) => key === DRAFT_KEY && !isNativeBridge?.()
+
+export function readSignupValue(key: string): string | null {
+    if (!isSessionKey(key)) return readStoredValue(key)
+    // Discard the durable web draft from older clients; never restore personal data into a new tab.
+    removeStoredValue(key)
+    return resilientSessionStorage.getItem(key)
+}
 
 const writes = new Map<string, Promise<void>>()
 const revisions = new Map<string, number>()
@@ -16,6 +26,12 @@ async function bounded<T>(operation: Promise<T>): Promise<T | null> {
 
 export function storeSignupValue(key: string, value: string | null): Promise<void> {
     revisions.set(key, (revisions.get(key) ?? 0) + 1)
+    if (isSessionKey(key)) {
+        removeStoredValue(key)
+        if (value === null) resilientSessionStorage.removeItem(key)
+        else resilientSessionStorage.setItem(key, value)
+        return Promise.resolve()
+    }
     if (value === null) removeStoredValue(key)
     else writeStoredValue(key, value)
     if (!isNativeBridge?.()) return Promise.resolve()
@@ -37,7 +53,7 @@ export function storeSignupValue(key: string, value: string | null): Promise<voi
 }
 
 export async function restoreSignupValue(key: string): Promise<string | null> {
-    const local = readStoredValue(key)
+    const local = readSignupValue(key)
     const revision = revisions.get(key)
     if (!isNativeBridge?.() || local !== null) return local
     try {
