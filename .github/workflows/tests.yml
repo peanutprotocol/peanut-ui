@@ -381,7 +381,7 @@ jobs:
             # PR-controlled checkout, postinstall and typegen, so a secret in
             # scope could be lifted by a GITHUB_PATH wrapper.
             - name: Download the BE render-snapshot baseline
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               continue-on-error: true
               with:
                   name: be-baseline
@@ -1168,14 +1168,14 @@ jobs:
                   node-version: '20'
 
             - name: Download unit coverage
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               continue-on-error: true
               with:
                   name: coverage-unit
                   path: coverage-raw/unit
 
             - name: Download unit JUnit
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               continue-on-error: true
               with:
                   name: junit-unit
