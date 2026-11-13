@@ -2267,6 +2267,11 @@
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
+        "id": "fixture-pix-new-key-not-waiting",
+        "flow": "Withdraw",
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-withdrawal"
+    },
+    {
         "id": "fixture-pix-manteca-withdraw-key",
         "flow": "Withdraw",
         "route": "/withdraw/pix"

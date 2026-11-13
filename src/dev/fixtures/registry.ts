@@ -2145,6 +2145,15 @@ export const FIXTURES: Record<string, Fixture> = {
             [`GET /history/${PIX_WITHDRAWAL_ID}`]: pixWithdrawal('CANCELLED'),
         }),
     },
+    // an old new-key link on a withdrawal that waits for no key: the page keeps a scenario while its code stays
+    'pix-new-key-not-waiting': {
+        route: `/withdraw/new-pix-key?intentId=${PIX_WITHDRAWAL_ID}`,
+        about: 'The new-key link of a withdrawal that no longer waits for a key: its current state instead.',
+        waitFor: '[data-testid="pix-new-key-not-waiting"]',
+        responses: mantecaPixResponses({
+            [`GET /history/${PIX_WITHDRAWAL_ID}`]: pixWithdrawal('COMPLETED'),
+        }),
+    },
     // ---- Manteca's own answers on the Pix screens: no expiry, payer CPF, flat fee or ownership ----
     'pix-manteca-deposit-code': {
         route: `/add-money/pix?step=showQR&intentId=${MANTECA_PIX_DEPOSIT_ID}`,
