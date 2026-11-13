@@ -20,7 +20,10 @@ const onScreen = (onFinish?: () => Promise<void>) =>
         )
     }
 
-beforeEach(() => capture.mockClear())
+beforeEach(() => {
+    capture.mockClear()
+    localStorage.clear()
+})
 
 it('sends the screen, control, action, value and the shared signup context', () => {
     const { result } = renderHook(() => useSignupControl(), { wrapper: onScreen() })
@@ -34,6 +37,7 @@ it('sends the screen, control, action, value and the shared signup context', () 
         setup_host: 'signup',
         flow_version: 1,
         signup_entry_flow: 'default',
+        returning_device: false,
     })
 })
 
