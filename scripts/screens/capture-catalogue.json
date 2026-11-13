@@ -190,6 +190,36 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-bridge-setup-verify",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-activate",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-reviewing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-terms",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-hosted-check",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-document",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-profile-accounts-no-residence",
         "flow": "Setup and login",
         "route": "/profile/accounts"
@@ -1111,6 +1141,11 @@
     },
     {
         "id": "fixture-pix-route-method-not-served",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-route-refused",
         "flow": "Add money",
         "route": "/add-money/pix"
     },
@@ -2217,6 +2252,21 @@
         "route": "/withdraw/pix"
     },
     {
+        "id": "fixture-pix-bridge-withdraw-document",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-withdraw-hosted-check",
+        "flow": "Withdraw",
+        "route": "/profile/accounts/additional?returnTo=%2Fwithdraw%2Fpix"
+    },
+    {
+        "id": "fixture-pix-bridge-route-paused",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
         "id": "fixture-pix-withdraw-key-code",
         "flow": "Withdraw",
         "route": "/withdraw/pix"
@@ -2570,6 +2620,11 @@
         "id": "fixture-settings-language",
         "flow": "Profile and settings",
         "route": "/settings/language"
+    },
+    {
+        "id": "fixture-pix-bridge-accounts-hosted-task",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
     },
     {
         "id": "fixture-hugo-long-username",

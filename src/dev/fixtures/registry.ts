@@ -346,6 +346,96 @@ const mantecaPixRouteResponses = (
     },
 })
 
+/** A step of a Pix route, as the router names it: the state, the user's step, the reason. */
+type PixRouteStep = { state: string; action?: string; reason?: { code: string; userMessage: string } }
+/** Bridge's limits on the Pix routes (API-CONTRACT.md section 2): R$10 to deposit, R$2 to withdraw. */
+const BRIDGE_PIX_LIMITS = { deposit: '10', withdraw: '2' } as const
+/** Bridge's Pix rail (Bridge × PIX_BR) in capabilities: deposits on `pix_onramp`, withdrawals on `pix_offramp`. */
+const bridgePixRail = (status: string, extra: Record<string, unknown> = {}) => ({
+    id: 'bridge.pix_br',
+    provider: 'bridge',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status,
+    ...extra,
+})
+/** A rail of Bridge's that waits on one step of the user's, as the resolver sends it. */
+const bridgePixRailWaitingOn = (action: { key: string }, operations: Record<string, string>) =>
+    bridgePixRail('requires-info', {
+        operations,
+        blockingActions: [action.key],
+        resolved: { status: 'fixable', nextAction: action },
+    })
+/**
+ * A resident of Brazil inside Bridge's Pix rollout (TASK-24910): both Pix routes name Bridge, at one
+ * step of its setup each (the withdrawal at the deposit's unless told), and Pix payments stay refused.
+ * The BRL account is the feature report's own reading of the rail, deposits only.
+ */
+const bridgePixResponses = ({
+    deposit,
+    withdraw = deposit,
+    rails = [],
+    nextActions = [],
+    user = {},
+}: {
+    deposit: PixRouteStep
+    withdraw?: PixRouteStep
+    rails?: unknown[]
+    nextActions?: unknown[]
+    user?: Record<string, unknown>
+}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Ana Souza' },
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        ...user,
+        capabilities: {
+            rails,
+            nextActions,
+            restrictions: [],
+            routes: [
+                ...(['deposit', 'withdraw'] as const).map((operation) => {
+                    const step = operation === 'deposit' ? deposit : withdraw
+                    const refused = step.state === 'refused'
+                    return {
+                        operation,
+                        method: 'PIX_BR',
+                        // a refused route names no provider: the money routes refuse
+                        provider: refused ? null : 'bridge',
+                        ...step,
+                        ...(refused ? {} : { limits: { minAmount: BRIDGE_PIX_LIMITS[operation], currency: 'BRL' } }),
+                        candidates: [{ provider: 'bridge', ...step }],
+                    }
+                }),
+                pixPayRoute('refused'),
+            ],
+        },
+    },
+})
+const BRIDGE_TERMS_ACTION = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
+const BRIDGE_HOSTED_ACTION = {
+    key: 'bridge-hosted',
+    kind: 'bridge-hosted',
+    purpose: 'bridge-additional-verification',
+    currency: 'BRL',
+}
+const BRIDGE_TAX_ID_ACTION = {
+    key: 'sumsub:tax_identification_number',
+    kind: 'sumsub',
+    purpose: 'unlock-bridge',
+    levelKey: 'tax_identification_number',
+}
+const BRIDGE_TAX_ID_REASON = {
+    code: 'tax_identification_number',
+    userMessage: 'We need your tax identification number to continue.',
+}
+const FIRST_USE_REASON = { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' }
+
 /** One Pix withdrawal's history entry on Manteca's route, for the last step read after a reload. */
 const PIX_WITHDRAWAL_ID = 'fixture-pix-withdrawal'
 const pixWithdrawal = (status: string) => ({
@@ -2055,6 +2145,134 @@ export const FIXTURES: Record<string, Fixture> = {
             provider: null,
             state: 'refused',
             reason: { code: 'method_not_served', userMessage: 'This is not available.' },
+        }),
+    },
+    // ---- the Pix setup on Bridge's route, for a resident of Brazil (TASK-24910) ----
+    'pix-bridge-setup-verify': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge before our identity check: our Verify first, as for every provider.',
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'action_required',
+                action: 'verify',
+                reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
+            },
+            user: { identityVerification: { status: 'not_started' } },
+        }),
+    },
+    'pix-bridge-setup-activate': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, first use after a paperwork verification: the local feature activation opens it.',
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: 'activate', reason: FIRST_USE_REASON },
+            user: { identityVerification: { status: 'verified', oneShot: true } },
+        }),
+    },
+    'pix-bridge-setup-reviewing': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge while Bridge creates the customer or reviews the Pix ask: the wait.',
+        isLoadingState: true,
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'pending',
+                reason: { code: 'provider_reviewing', userMessage: 'Our payments partner is reviewing your details.' },
+            },
+            rails: [bridgePixRail('pending', { operations: { deposit: 'pending', withdraw: 'pending' } })],
+        }),
+    },
+    'pix-bridge-setup-terms': {
+        route: '/add-money/pix',
+        about: "Pix on Bridge, Bridge's terms owed: the bank rails' terms step opens over the Pix setup.",
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'action_required',
+                action: BRIDGE_TERMS_ACTION.key,
+                reason: { code: 'bridge_tos_required', userMessage: 'Accept the Bridge terms of service to continue.' },
+            },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_TERMS_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_TERMS_ACTION],
+        }),
+    },
+    'pix-bridge-setup-hosted-check': {
+        route: '/add-money/pix',
+        about: "Pix on Bridge, an item only Bridge's own page collects: the bank rails' hosted check step.",
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: BRIDGE_HOSTED_ACTION.key, reason: FIRST_USE_REASON },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_HOSTED_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_HOSTED_ACTION],
+        }),
+    },
+    'pix-bridge-setup-document': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the CPF owed for deposits: the Sumsub step the bank rails ask the same way.',
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: BRIDGE_TAX_ID_ACTION.key, reason: BRIDGE_TAX_ID_REASON },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_TAX_ID_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_TAX_ID_ACTION],
+        }),
+    },
+    'pix-bridge-withdraw-document': {
+        route: PIX_WITHDRAW_ROUTE,
+        about: 'Pix on Bridge, deposits ready and payouts owing the CPF: the withdrawal names its own step.',
+        responses: bridgePixResponses({
+            deposit: { state: 'ready' },
+            withdraw: { state: 'action_required', action: BRIDGE_TAX_ID_ACTION.key, reason: BRIDGE_TAX_ID_REASON },
+            rails: [bridgePixRailWaitingOn(BRIDGE_TAX_ID_ACTION, { deposit: 'enabled', withdraw: 'requires-info' })],
+            nextActions: [BRIDGE_TAX_ID_ACTION],
+        }),
+    },
+    // the feature report reads deposits only: the withdrawal's hosted check is the route's alone
+    'pix-bridge-withdraw-hosted-check': {
+        route: `/profile/accounts/additional?returnTo=${encodeURIComponent(PIX_WITHDRAW_ROUTE)}`,
+        about: "The hosted check a Pix withdrawal waits on, opened from the Pix setup: Bridge's prep page, not done.",
+        responses: bridgePixResponses({
+            deposit: { state: 'ready' },
+            withdraw: { state: 'action_required', action: BRIDGE_HOSTED_ACTION.key, reason: FIRST_USE_REASON },
+            rails: [bridgePixRailWaitingOn(BRIDGE_HOSTED_ACTION, { deposit: 'enabled', withdraw: 'requires-info' })],
+            nextActions: [BRIDGE_HOSTED_ACTION],
+        }),
+    },
+    'pix-bridge-route-refused': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge refused (Bridge rejected the customer): not available, with support.',
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'refused',
+                reason: {
+                    code: 'provider_rejected',
+                    userMessage:
+                        'Our payments partner could not verify your identity. Message support if you think this is a mistake.',
+                },
+            },
+            rails: [bridgePixRail('blocked', { operations: { deposit: 'blocked', withdraw: 'blocked' } })],
+        }),
+    },
+    'pix-bridge-route-paused': {
+        route: PIX_WITHDRAW_ROUTE,
+        about: "Pix on Bridge paused by Bridge's kill switch: the provider-outage screen.",
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'paused',
+                reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+            },
+            rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+        }),
+    },
+    'pix-bridge-accounts-hosted-task': {
+        route: '/profile/accounts',
+        about: "Accounts for a resident of Brazil whose Pix on Bridge waits on Bridge's hosted check: the task names Pix.",
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: BRIDGE_HOSTED_ACTION.key, reason: FIRST_USE_REASON },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_HOSTED_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_HOSTED_ACTION],
         }),
     },
     'pix-withdraw-key-code': {
