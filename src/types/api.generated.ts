@@ -315,92 +315,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/avenia/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Avenia webhook handler
-         * @description Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: {
-                    /** @description Base64 RSA-PSS signature of the raw body */
-                    signature?: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        event: {
-                            accountId: string;
-                            createdAt?: string;
-                            data: {
-                                type: string;
-                            };
-                            id: string;
-                            subscription: string;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "received": true
-                         *     }
-                         */
-                        "application/json": {
-                            /** @enum {boolean} */
-                            received: true;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/badge/award": {
         parameters: {
             query?: never;
@@ -5812,59 +5726,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/healthz/avenia": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "checkedAt": "2026-01-01T00:00:00.000Z",
-                         *       "provider": "avenia",
-                         *       "responseTime": 120,
-                         *       "status": "healthy",
-                         *       "timestamp": "2026-01-01T00:00:00.000Z"
-                         *     }
-                         */
-                        "application/json": {
-                            /** Format: date-time */
-                            checkedAt: string;
-                            provider: string;
-                            responseTime: number;
-                            /** @enum {string} */
-                            status: "healthy";
-                            /** Format: date-time */
-                            timestamp: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/healthz/bridge": {
         parameters: {
             query?: never;
@@ -6793,7 +6654,7 @@ export interface paths {
         put?: never;
         /**
          * Save a PIX key to the address book
-         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.
+         * @description Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Saving a key the user already has renames it.
          */
         post: {
             parameters: {
@@ -7786,7 +7647,7 @@ export interface paths {
                          *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
                          *       "payerCpfMasked": "123.***.***-09",
                          *       "pixReceived": false,
-                         *       "provider": "avenia",
+                         *       "provider": "manteca",
                          *       "status": "AWAITING_USER_ACTION",
                          *       "usdcAmount": "17.920175"
                          *     }
@@ -7805,7 +7666,7 @@ export interface paths {
                             payerCpfMasked?: string;
                             /** @description The provider received the Pix; the USDC is on its way to the wallet */
                             pixReceived: boolean;
-                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
                             /** @description The intent’s own status, as stored */
                             status: string;
@@ -8113,7 +7974,7 @@ export interface paths {
                          *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
                          *       "payerCpfMasked": "123.***.***-09",
                          *       "pixReceived": false,
-                         *       "provider": "avenia",
+                         *       "provider": "manteca",
                          *       "status": "AWAITING_USER_ACTION",
                          *       "usdcAmount": "17.920175"
                          *     }
@@ -8132,7 +7993,7 @@ export interface paths {
                             payerCpfMasked?: string;
                             /** @description The provider received the Pix; the USDC is on its way to the wallet */
                             pixReceived: boolean;
-                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
                             /** @description The intent’s own status, as stored */
                             status: string;
@@ -8207,7 +8068,7 @@ export interface paths {
                          *       "holderTaxIdMasked": "***.456.789-**",
                          *       "ispb": "18236120",
                          *       "ownAccount": true,
-                         *       "provider": "avenia"
+                         *       "provider": "manteca"
                          *     }
                          */
                         "application/json": {
@@ -8219,7 +8080,7 @@ export interface paths {
                             ispb: string | null;
                             /** @description Precheck: the holder looks like the user. Null when the provider cannot tell. */
                             ownAccount: boolean | null;
-                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
                         };
                     };
@@ -8370,7 +8231,7 @@ export interface paths {
                          *       "fixedFeeBrl": "0.75",
                          *       "minAmountBrl": "20",
                          *       "operation": "withdraw",
-                         *       "provider": "avenia",
+                         *       "provider": "manteca",
                          *       "rate": "5.369543",
                          *       "usdcAmount": "20.020325"
                          *     }
@@ -8382,7 +8243,7 @@ export interface paths {
                             /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
                             minAmountBrl: string;
                             operation: "deposit" | "withdraw";
-                            /** @description The provider the route names, e.g. avenia */
+                            /** @description The provider the route names, e.g. manteca */
                             provider: string;
                             /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
                             rate: string;
@@ -8525,12 +8386,12 @@ export interface paths {
                          *         "holderName": "Ana Souza",
                          *         "ownAccount": true,
                          *         "pixKey": "12345678909",
-                         *         "provider": "Avenia",
+                         *         "provider": "Manteca",
                          *         "rate": "5.369543",
                          *         "withdrawUsd": "20.020325"
                          *       },
                          *       "intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
-                         *       "provider": "avenia",
+                         *       "provider": "manteca",
                          *       "sign": {
                          *         "commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
                          *         "contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
@@ -8564,7 +8425,7 @@ export interface paths {
                             };
                             /** @description The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit */
                             intentId: string | null;
-                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
                             /** @description How the wallet funds the withdrawal */
                             sign: {
@@ -8745,7 +8606,7 @@ export interface paths {
                          *       "holderName": "Ana Souza",
                          *       "ownAccount": true,
                          *       "pixKey": "12345678909",
-                         *       "provider": "Avenia",
+                         *       "provider": "Manteca",
                          *       "rate": "5.369543",
                          *       "withdrawUsd": "20.020325"
                          *     }
@@ -9843,6 +9704,23 @@ export interface paths {
                             message: string;
                             rainUserId?: string;
                             status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error?: string;
+                            message?: string;
+                            status?: string;
+                            statusCode?: number;
+                        } & {
+                            [key: string]: unknown;
                         };
                     };
                 };
@@ -11635,6 +11513,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            collateralReturn?: {
+                                cardCreditCents: number;
+                                heldCents: number;
+                                remainingCents: number;
+                                retryAfterSec?: number;
+                                returnedCents: number;
+                                state: "nothing" | "returned" | "required" | "waiting" | "failed" | "unknown";
+                            };
                             fundingStop: {
                                 reason: string | null;
                                 state: "pending" | "unavailable" | "not_applicable";
@@ -11676,6 +11562,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -11997,6 +11884,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            collateralReturn?: {
+                                cardCreditCents: number;
+                                heldCents: number;
+                                remainingCents: number;
+                                retryAfterSec?: number;
+                                returnedCents: number;
+                                state: "nothing" | "returned" | "required" | "waiting" | "failed" | "unknown";
+                            };
                             fundingStop: {
                                 reason: string | null;
                                 state: "pending" | "unavailable" | "not_applicable";
@@ -12038,6 +11933,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -14326,8 +14222,8 @@ export interface paths {
                          *     }
                          */
                         "application/json": {
-                            /** @enum {string} */
-                            code?: "PROFILE_NAME_READ_ONLY";
+                            /** @description PROFILE_NAME_READ_ONLY, EMAIL_VERIFICATION_REQUIRED or a validation code */
+                            code?: string;
                             error?: string;
                         };
                     };
@@ -14390,6 +14286,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "EMAIL_CHANGE_UNAVAILABLE";
                             error: string;
                         };
                     };
@@ -14762,7 +14660,7 @@ export interface paths {
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
-                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        provider: "bridge" | "manteca" | "rain";
                                         reason: string;
                                     }[];
                                     requirementKey?: string;
@@ -14785,7 +14683,7 @@ export interface paths {
                                     };
                                     /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
                                     pendingSince?: string;
-                                    provider: "bridge" | "manteca" | "rain" | "avenia";
+                                    provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -14809,7 +14707,7 @@ export interface paths {
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
-                                                provider: "bridge" | "manteca" | "rain" | "avenia";
+                                                provider: "bridge" | "manteca" | "rain";
                                                 reason: string;
                                             }[];
                                             requirementKey?: string;
@@ -14832,7 +14730,7 @@ export interface paths {
                                     candidates: {
                                         /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
                                         action?: string;
-                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        provider: "bridge" | "manteca" | "rain";
                                         reason?: {
                                             code: string;
                                             details?: string;
@@ -14854,7 +14752,7 @@ export interface paths {
                                     /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
                                     payableDepositIntentId?: string;
                                     /** @description The provider the money routes use. Null when every candidate is refused. */
-                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    provider: ("bridge" | "manteca" | "rain") | null;
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -15393,7 +15291,7 @@ export interface paths {
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
-                                    provider: "bridge" | "manteca" | "rain" | "avenia";
+                                    provider: "bridge" | "manteca" | "rain";
                                     reason: string;
                                 }[];
                                 requirementKey?: string;
@@ -15570,6 +15468,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "EMAIL_CHANGE_UNAVAILABLE";
                             error: string;
                         };
                     };
@@ -16165,7 +16065,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia */
+                        /** @description The route’s accept-tos step (capabilities.routes[].action): accept-tos:<provider> */
                         key: string;
                     };
                 };
@@ -17736,7 +17636,7 @@ export interface paths {
                                 id: string;
                                 kind: "IDENTITY" | "SUPPLEMENTAL" | "ONBOARDING";
                                 policyVersion: string;
-                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA";
+                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN";
                                 reasonCode: string | null;
                                 requirements: ({
                                     code: string;
@@ -18090,6 +17990,7 @@ export interface paths {
                                     key: string;
                                     kind: string;
                                     locked?: boolean;
+                                    minAddressLineLength?: number;
                                     options?: string[];
                                     required: boolean;
                                     value: string | null;
@@ -18418,7 +18319,7 @@ export interface paths {
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
-                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        provider: "bridge" | "manteca" | "rain";
                                         reason: string;
                                     }[];
                                     requirementKey?: string;
@@ -18441,7 +18342,7 @@ export interface paths {
                                     };
                                     /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
                                     pendingSince?: string;
-                                    provider: "bridge" | "manteca" | "rain" | "avenia";
+                                    provider: "bridge" | "manteca" | "rain";
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -18465,7 +18366,7 @@ export interface paths {
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
-                                                provider: "bridge" | "manteca" | "rain" | "avenia";
+                                                provider: "bridge" | "manteca" | "rain";
                                                 reason: string;
                                             }[];
                                             requirementKey?: string;
@@ -18488,7 +18389,7 @@ export interface paths {
                                     candidates: {
                                         /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
                                         action?: string;
-                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        provider: "bridge" | "manteca" | "rain";
                                         reason?: {
                                             code: string;
                                             details?: string;
@@ -18510,7 +18411,7 @@ export interface paths {
                                     /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
                                     payableDepositIntentId?: string;
                                     /** @description The provider the money routes use. Null when every candidate is refused. */
-                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    provider: ("bridge" | "manteca" | "rain") | null;
                                     reason?: {
                                         code: string;
                                         details?: string;
