@@ -2570,7 +2570,7 @@
         "rolloutClosed": "Pix is not available for your account yet.",
         "residenceNotServed": "Pix is not offered where you live.",
         "unavailableTitle": "Pix not available",
-        "rejected": "The verification was not accepted. Contact support.",
+        "rejected": "Our Pix partner didn't approve your verification, so Pix isn't available for now. Your other Peanut features aren't affected. Message support if you think this is a mistake.",
         "payResidence": "Pix payments are not available where you live yet.",
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
