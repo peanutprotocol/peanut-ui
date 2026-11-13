@@ -1,7 +1,8 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useQueryState } from 'nuqs'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -13,8 +14,9 @@ import KycPrepChecklist from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useSafeBack } from '@/hooks/useSafeBack'
-import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { hasNativeBridgeStep, selectBridgeTasks, selectRouteHostedTask } from '@/utils/bridge-tasks.utils'
+import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 /**
@@ -55,17 +57,25 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     const tPrep = useTranslations('kyc.prep')
     const tCommon = useTranslations('common')
     const router = useRouter()
-    const onBack = useSafeBack(IDENTITY_ROUTE)
+    // the page that sent the user here (the Pix setup), else the accounts
+    const [returnToParam] = useQueryState(RETURN_TO_PARAM)
+    const returnTo = readReturnTo(
+        new URLSearchParams(returnToParam ? { [RETURN_TO_PARAM]: returnToParam } : {}),
+        usePathname()
+    )
+    const onBack = useSafeBack(returnTo ?? IDENTITY_ROUTE)
+    const leaveToOrigin = useReturnTo(returnTo ?? IDENTITY_ROUTE)
     const handleBack = () => {
         track('back', 'tap')
         onBack()
     }
     const { nextActions, capabilities, isLoading: isLoadingCapabilities } = useCapabilities()
     // Same selection as the Home card: a hosted task stands down while a Bridge
-    // rail carries a native step, so a deep link here reads the same truth.
-    const hostedTask = selectBridgeTasks(nextActions, capabilities.features).find(
-        (action) => action.kind === 'bridge-hosted'
-    )
+    // rail carries a native step, so a deep link here reads the same truth. A
+    // route that names the check as its step holds it too (Pix on Bridge).
+    const hostedTask =
+        selectBridgeTasks(nextActions, capabilities.features).find((action) => action.kind === 'bridge-hosted') ??
+        selectRouteHostedTask(capabilities.routes, nextActions)
     // The hosted task stood down because a Bridge rail carries a Sumsub step:
     // the document Bridge asked for is collected in the app, not at the vendor.
     const nativeStepPending = !hostedTask && hasNativeBridgeStep(nextActions, capabilities.features)
@@ -102,7 +112,8 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                             className="mt-1"
                             onClick={() => {
                                 track('done', 'tap')
-                                router.replace(IDENTITY_ROUTE)
+                                if (returnTo) leaveToOrigin()
+                                else router.replace(IDENTITY_ROUTE)
                             }}
                         >
                             {t(`${panel}.cta`)}

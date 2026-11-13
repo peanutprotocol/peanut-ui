@@ -39,6 +39,14 @@ jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
     },
 }))
 
+const mockRailStep = jest.fn()
+jest.mock('@/features/pix/components/PixRailStep', () => ({
+    PixRailStep: (props: { route: CapabilityRoute; providerId: string | null }) => {
+        mockRailStep(props.route, props.providerId)
+        return <div>rail step</div>
+    },
+}))
+
 import { PixSetup } from '../components/PixSetup'
 
 const route = (overrides: Partial<CapabilityRoute>): CapabilityRoute => ({
@@ -79,8 +87,28 @@ describe('PixSetup', () => {
         expect(mockTermsHook).toHaveBeenCalledWith(undefined)
     })
 
+    // TASK-24910: Bridge's rail asks, on the Pix route, for the steps it asks on the bank rails
+    it.each([
+        { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' },
+        { key: 'sumsub:tax_identification_number', kind: 'sumsub', purpose: 'unlock-bridge' },
+        { key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification', currency: 'BRL' },
+    ] as NextAction[])("hands a rail's $kind step to the bank rails' screens", (action) => {
+        mockNextActions = [action]
+        renderSetup(route({ provider: 'bridge', action: action.key }))
+        expect(screen.getByText('rail step')).toBeInTheDocument()
+        expect(mockRailStep).toHaveBeenCalledWith(expect.objectContaining({ action: action.key }), 'bridge')
+        expect(mockTermsHook).toHaveBeenCalledWith(undefined)
+    })
+
     it('sends a terms step whose provider this build has no record of to support, never an unnamed consent', () => {
-        mockNextActions = [{ key: 'accept-tos:newpix', kind: 'accept-tos', purpose: 'unlock-newpix' }]
+        mockNextActions = [
+            {
+                key: 'accept-tos:newpix',
+                kind: 'accept-tos',
+                purpose: 'unlock-newpix',
+                tosUrl: 'https://example.com/terms',
+            },
+        ]
         renderSetup(
             route({
                 // a code no registry entry answers for

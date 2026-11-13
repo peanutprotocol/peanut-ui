@@ -4,6 +4,8 @@ import type { CapabilityRoute, FeatureReport, FeatureReportEntry, NextAction } f
 import type { GateState } from '@/utils/capability-gate'
 
 export const PIX_METHOD = 'PIX_BR'
+/** The country the Pix rails carry, as the rails name their jurisdiction. */
+export const PIX_COUNTRY = 'BR'
 
 export function findPixRoute(
     routes: CapabilityRoute[] | undefined,

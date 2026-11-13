@@ -5,11 +5,12 @@ import {
     pixRouteGate,
     pixRouteOpen,
     pixRouteReportEntry,
+    pixPlanSetUp,
     pixScreen,
     withPixRoute,
 } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
-import type { CapabilityRoute } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction } from '@/types/capabilities'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { DEMO_USER } from '@/constants/demo-data'
 
@@ -177,6 +178,22 @@ describe('the BRL account from the Pix route', () => {
         expect(
             withPixRoute(servedElsewhere, [route({ state: 'action_required', action: 'activate' })]).local.accounts.BRL
         ).toMatchObject({ state: 'ready', action: 'activate' })
+    })
+
+    // TASK-24910: Bridge takes our verification, so its route asks for our check first and its own steps after it
+    it("keeps Home's Set up Pix row on our Verify for a provider whose first step is our identity check", () => {
+        const bridge = (overrides: Partial<CapabilityRoute>) =>
+            route({ provider: 'bridge', candidates: [{ provider: 'bridge', state: 'action_required' }], ...overrides })
+        const terms: NextAction[] = [{ key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }]
+        expect(pixPlanSetUp('brlBank', false, bridge({ state: 'action_required', action: 'verify' }), [])).toBeNull()
+        // Bridge's terms come after our check, so a user our check verified never reads them as the provider's step
+        expect(pixPlanSetUp('brlBank', true, bridge({ state: 'action_required', action: 'accept-tos' }), terms)).toBe(
+            null
+        )
+        expect(pixPlanSetUp('brlBank', false, bridge({ state: 'action_required', action: 'accept-tos' }), terms)).toBe(
+            null
+        )
+        expect(pixPlanSetUp('brlBank', false, bridge({ state: 'pending' }), [])).toBe('done')
     })
 
     it('gates the Pix corridor by the route', () => {

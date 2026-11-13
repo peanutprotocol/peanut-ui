@@ -14,8 +14,10 @@ import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { PixHostedVerification } from '@/features/pix/components/PixHostedVerification'
+import { PixRailStep } from '@/features/pix/components/PixRailStep'
 import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
 import { pixPendingReason } from '@/features/pix/pixFlow.utils'
+import { PIX_COUNTRY } from '@/features/pix/pixRoute.utils'
 import { pixSetupState } from '@/features/pix/pixRouteStep'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useCapabilities } from '@/hooks/useCapabilities'
@@ -29,8 +31,9 @@ import { pixProviderId } from '@/utils/provider.utils'
  * identity check first; the provider's terms, which the user accepts here;
  * then either the API shares the Peanut verification with the provider, or the
  * provider checks the identity on its own page (`PixHostedVerification`); the
- * account the first use opens; then the wait while the provider reviews it.
- * The flow under it renders once the route is ready.
+ * account the first use opens; a step the provider's rail asks for in the bank
+ * rails' kinds, which their screens run (`PixRailStep`); then the wait while the
+ * provider reviews it. The flow under it renders once the route is ready.
  */
 export function PixSetup({
     title,
@@ -47,9 +50,9 @@ export function PixSetup({
     const tLoading = useTranslations('loadingStates')
     const router = useRouter()
     const { nextActions } = useCapabilities()
-    // the next action the route's step names: the provider's terms, or its own identity check
+    // the next action the route's step names: the provider's terms, its own identity check, a bank rail's step
     const routeAction = nextActions.find((action) => action.key === route?.action)
-    const state = pixSetupState(route, routeAction?.kind)
+    const state = pixSetupState(route, routeAction)
     const terms = useRouteTermsAcceptance(state === 'accept-terms' ? route?.action : undefined)
     const pending = pixPendingReason(route?.reason?.code)
     // the provider whose terms the user accepts, as the route names it
@@ -78,10 +81,15 @@ export function PixSetup({
         return <PixHostedVerification title={title} onBack={onBack} action={routeAction} providerId={providerId} />
     }
 
+    // the provider's rail asks for what it asks on the bank rails: the bank rails' screens run it
+    if (state === 'rail-step' && route) {
+        return <PixRailStep title={title} onBack={onBack} route={route} providerId={providerId} />
+    }
+
     // The first use opens the provider's account for Pix; the route turns ready once it is open.
     if (state === 'activate') {
         return (
-            <KycFeatureActivationGate feature="local" scope={{ channel: 'bank', country: 'BR' }}>
+            <KycFeatureActivationGate feature="local" scope={{ channel: 'bank', country: PIX_COUNTRY }}>
                 <Loading variant="mascot" />
             </KycFeatureActivationGate>
         )

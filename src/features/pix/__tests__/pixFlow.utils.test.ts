@@ -12,10 +12,10 @@ import {
     pixKeyVerdict,
     toApiDecimal,
 } from '../pixFlow.utils'
-import { pixSetupState } from '../pixRouteStep'
+import { pixRouteStep, pixSetupState } from '../pixRouteStep'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
-import type { CapabilityRoute } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction, NextActionKind } from '@/types/capabilities'
 
 const route = (
     state: CapabilityRoute['state'],
@@ -31,11 +31,46 @@ describe('pixSetupState', () => {
     })
 
     it('leaves any other step to support', () => {
-        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }), 'contact-support')).toBe(
-            'support'
-        )
+        expect(
+            pixSetupState(route('action_required', { action: 'contact-support:x' }), { kind: 'contact-support' })
+        ).toBe('support')
+        expect(pixSetupState(route('action_required', { action: 'card' }), { kind: 'rain-hosted' })).toBe('support')
         expect(pixSetupState(route('action_required', { action: 'unknown-step' }), undefined)).toBe('support')
         expect(pixSetupState(undefined, undefined)).toBe('support')
+    })
+
+    // TASK-24910: a provider's rail can ask, as a Pix route's step, for what it asks on the bank rails
+    it("hands the steps the bank rails' screens run to them, by the action's kind", () => {
+        const step = (kind: NextActionKind) => pixSetupState(route('action_required', { action: kind }), { kind })
+        expect(step('sumsub')).toBe('rail-step')
+        expect(step('bridge-hosted')).toBe('rail-step')
+        expect(step('provide-email')).toBe('rail-step')
+        expect(step('restart-identity')).toBe('rail-step')
+        expect(step('questions')).toBe('rail-step')
+        expect(step('hosted-identity')).toBe('hosted-verify')
+    })
+
+    // both are `accept-tos`: the route's own terms name their document, the bank rails' terms come from their link
+    it('tells the terms the Pix setup records from the terms the bank rails open, by the document the action names', () => {
+        const terms = route('action_required', { action: 'accept-tos:x' })
+        expect(pixSetupState(terms, { kind: 'accept-tos', tosUrl: 'https://example.com/terms' })).toBe('accept-terms')
+        expect(pixSetupState(route('action_required', { action: 'accept-tos' }), { kind: 'accept-tos' })).toBe(
+            'rail-step'
+        )
+    })
+})
+
+describe('pixRouteStep', () => {
+    it('reads the next action the route names', () => {
+        const nextActions: NextAction[] = [
+            { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' },
+            { key: 'sumsub:tax_identification_number', kind: 'sumsub', purpose: 'unlock-bridge' },
+        ]
+        expect(
+            pixRouteStep(route('action_required', { action: 'sumsub:tax_identification_number' }), nextActions)
+        ).toBe('rail-step')
+        // a key the capabilities do not list names no step the app can run
+        expect(pixRouteStep(route('action_required', { action: 'bridge-hosted' }), nextActions)).toBe('support')
     })
 })
 
