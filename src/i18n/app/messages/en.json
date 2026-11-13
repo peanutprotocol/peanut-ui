@@ -908,8 +908,8 @@
         "choicesLater": "You can update your choices later.",
         "steps": {
             "landing": {
-                "title": "Earn anywhere. Spend worldwide.",
-                "description": "Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are."
+                "title": "Get paid from the US and Europe.",
+                "description": "Receive dollars and euros. Pay by card or QR."
             },
             "signup": {
                 "title": "Claim username",
@@ -983,7 +983,15 @@
             "signUp": "Sign up",
             "recoverWallet": "Need to recover a Peanut account?",
             "testBuild": "Test build",
-            "testSignUp": "Sign up on web"
+            "testSignUp": "Sign up on web",
+            "entry": "Get in with your face or fingerprint.",
+            "logInPrompt": "Already have an account?",
+            "logInLink": "Log in",
+            "hero": {
+                "received": "Money received!",
+                "amount": "USD 1,200",
+                "example": "Example"
+            }
         },
         "loginRecovery": {
             "title": "Your passkey may be on the phone you signed up on",

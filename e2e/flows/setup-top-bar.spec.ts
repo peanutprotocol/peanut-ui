@@ -3,11 +3,15 @@
  * while the steps change (TASK-23467, Hugo's staging QA).
  *
  * The hero (with the switcher) used to slide with each step and change height
- * per step. Now only the white panel slides; the hero keeps one height per
- * viewport and crossfades its art. The test samples the hero, the switcher and
- * the back button on every animation frame of each transition, at each phone
- * size we support, and requires one hero box, one switcher position and one
- * back position the whole time.
+ * per step. Now only the white panel slides; the hero crossfades its art and
+ * keeps one height per viewport on every step but Welcome. Welcome's hero
+ * carries the headline and is taller (first-screen concept A2): leaving it,
+ * the hero eases down to the shared height in one smooth, one-way change, and
+ * Back eases it up again. The test samples the hero, the switcher and the back
+ * button on every animation frame of each transition, at each phone size we
+ * support, and requires one hero that never moves or changes width, a
+ * monotonic height change that ends at the right height, one switcher
+ * position and one back position the whole time.
  *
  *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build
  *   npm run test:e2e:regression -- setup-top-bar
@@ -18,6 +22,7 @@ import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.c
 
 type Box = { x: number; y: number }
 type Sample = { switchers: Box[]; back: Box | null; heroes: string[] }
+const heroPart = (sample: Sample, index: 0 | 1 | 2 | 3) => Number(sample.heroes[0].split(',')[index])
 
 /** Samples the switcher(s) and the back button on every frame for `ms`. */
 async function sampleDuring(page: Page, ms: number, act: () => Promise<void>): Promise<Sample[]> {
@@ -62,9 +67,27 @@ const VIEWPORTS = [
 // The board's hero is 40% of the viewport. 320x568 is the one documented exception (34%, globals.css).
 const boardHero = ({ width, height }: { width: number; height: number }) =>
     height * (width < 360 && height < 600 ? 0.34 : 0.4)
+// Welcome's headline hero (`.setup-hero-height-headline`): what the panel leaves, capped at 62%
+// (58% under 700px tall). The panel budget per height band mirrors globals.css (16px rem, no safe areas here).
+const welcomeHero = ({ height }: { width: number; height: number }) => {
+    const budget = height < 580 ? 240 : height < 700 ? 248 : height < 800 ? 288 : 328
+    return Math.min(height * (height < 700 ? 0.58 : 0.62), height - budget)
+}
+const near = (value: number, target: number) => Math.abs(value - target) <= target * 0.05
+
+/** One hero on every frame that never moves or changes width; its height runs one way from `from` to `to`. */
+function expectOneWayHeroChange(samples: Sample[], from: number, to: number) {
+    expect(samples.every((s) => s.heroes.length === 1)).toBe(true)
+    expect(new Set(samples.map((s) => [0, 1, 2].map((i) => heroPart(s, i as 0 | 1 | 2)).join(','))).size).toBe(1)
+    const heights = samples.map((s) => heroPart(s, 3))
+    const step = Math.sign(to - from)
+    expect(heights.every((h, i) => i === 0 || Math.sign(h - heights[i - 1]) !== -step)).toBe(true)
+    expect(near(heights[0], from), `starts at ${from}, got ${heights[0]}`).toBe(true)
+    expect(near(heights[heights.length - 1], to), `ends at ${to}, got ${heights[heights.length - 1]}`).toBe(true)
+}
 
 for (const viewport of VIEWPORTS) {
-    test(`the hero, the language switcher and the back button stay put between steps at ${viewport.width}x${viewport.height}`, async ({
+    test(`the language switcher and the back button stay put and Welcome's hero eases to the shared height at ${viewport.width}x${viewport.height}`, async ({
         page,
         baseURL,
     }) => {
@@ -90,12 +113,10 @@ for (const viewport of VIEWPORTS) {
 
         const samples = [...toUsername, ...backToLanding, ...toUsernameAgain]
         expect(samples.length).toBeGreaterThan(30)
-        // One hero on every frame, with one box: it neither slides nor changes height.
-        expect(samples.every((s) => s.heroes.length === 1)).toBe(true)
-        expect(new Set(samples.map((s) => s.heroes[0])).size).toBe(1)
-        // The hero keeps the board's proportion (within 5%).
-        const heroHeight = Number(samples[0].heroes[0].split(',')[3])
-        expect(Math.abs(heroHeight - boardHero(viewport))).toBeLessThanOrEqual(boardHero(viewport) * 0.05)
+        // Welcome -> username: down to the board's 40%; Back: up again. No slide, no bounce.
+        expectOneWayHeroChange(toUsername, welcomeHero(viewport), boardHero(viewport))
+        expectOneWayHeroChange(backToLanding, boardHero(viewport), welcomeHero(viewport))
+        expectOneWayHeroChange(toUsernameAgain, welcomeHero(viewport), boardHero(viewport))
         // One switcher on every frame, always at the same place.
         expect(samples.every((s) => s.switchers.length === 1)).toBe(true)
         expect(new Set(samples.map((s) => JSON.stringify(s.switchers[0]))).size).toBe(1)
@@ -132,9 +153,9 @@ test('the residence capture paints its safe area and positions the top bar once'
     await expect(shell).toHaveCSS('position', 'relative')
 })
 
-// Every sign-up step, as /setup renders it (the surfaces gallery mounts each step in the real wrapper).
+// Every sign-up step after Welcome, as /setup renders it (the surfaces gallery mounts each step in
+// the real wrapper). Welcome's taller headline hero has its own check below.
 const STEP_SURFACES = [
-    '01-a-landing',
     '06-b-invite',
     '06-a-signup',
     '03-a-residence-select',
@@ -147,7 +168,7 @@ const STEP_SURFACES = [
 ]
 
 for (const viewport of VIEWPORTS) {
-    test(`every step keeps the board's hero and a reachable primary at ${viewport.width}x${viewport.height}`, async ({
+    test(`every step after Welcome keeps the board's hero, and every step a reachable primary, at ${viewport.width}x${viewport.height}`, async ({
         page,
     }) => {
         await page.setViewportSize(viewport)
@@ -185,6 +206,24 @@ for (const viewport of VIEWPORTS) {
         expect([...heroes]).toHaveLength(1)
         const [hero] = [...heroes]
         expect(Math.abs(hero - boardHero(viewport))).toBeLessThanOrEqual(boardHero(viewport) * 0.05)
+
+        // Welcome: the taller headline hero, with Sign up still fully on screen and tappable.
+        await page.goto('/dev/surfaces?s=01-a-landing&__fixture=profile-edit')
+        const signUp = page.locator('[data-setup-footer] button').first()
+        await expect(signUp).toBeInViewport({ ratio: 1, timeout: 60_000 })
+        const welcome = await page.evaluate(() => {
+            const button = document.querySelector('[data-setup-footer] button')!
+            const r = button.getBoundingClientRect()
+            const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+            return {
+                hero: Math.round(document.querySelector('[data-setup-hero]')!.getBoundingClientRect().height),
+                hit: !!hit && (hit === button || button.contains(hit)),
+                scrolls: document.scrollingElement!.scrollHeight > innerHeight,
+            }
+        })
+        expect(welcome.hit, "Welcome: a tap at the primary's centre lands on it").toBe(true)
+        expect(welcome.scrolls, 'Welcome: the page does not scroll').toBe(false)
+        expect(near(welcome.hero, welcomeHero(viewport)), `Welcome hero ${welcome.hero}`).toBe(true)
     })
 }
 

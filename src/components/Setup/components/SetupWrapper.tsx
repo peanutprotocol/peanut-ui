@@ -3,7 +3,6 @@ import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
-import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
@@ -68,12 +67,16 @@ interface SetupWrapperProps {
     showProgress?: boolean
 }
 
-// One hero height per viewport, the same on every step (`.setup-hero-height` in
-// globals.css): the tallest step's copy decides how much room the hero leaves,
-// so nothing jumps when the step changes. Desktop keeps the full-height side hero.
+// One hero height per viewport, shared by every step with a plain illustration
+// (`.setup-hero-height` in globals.css): the tallest step's copy decides how much
+// room the hero leaves, so nothing jumps between those steps. Desktop keeps the
+// full-height side hero.
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'setup-hero-height shrink-0 md:h-dvh',
 }
+// A step's own hero carries its headline, so it is taller (`.setup-hero-height-headline`);
+// large text grows it until the headline fits (min-h-min).
+const HEADLINE_HERO_CONTAINER_CLASSES = 'setup-hero-height-headline min-h-min shrink-0 md:h-dvh'
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
 
@@ -94,10 +97,11 @@ const setupHeroNativeHex = (fullScreen: boolean): string | null => {
     return /^#[\da-f]{6}$/i.test(color) ? color : null
 }
 
+// The outgoing panel fades as it leaves, so its buttons' rounded ends never hang at the edge.
 const stepVariants = {
     enter: (direction: number) => ({ x: direction < 0 ? '-100%' : '100%' }),
-    center: { x: 0 },
-    exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%' }),
+    center: { x: 0, opacity: 1 },
+    exit: (direction: number) => ({ x: direction < 0 ? '100%' : '-100%', opacity: 0 }),
 }
 
 // The blue hero stays put between steps; its art moves and fades at once: the
@@ -112,6 +116,11 @@ const artVariants = {
 const ART_TRANSITION = { duration: 0.24, ease: [0.22, 1, 0.36, 1] } as const
 
 const STEP_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const
+// The outgoing panel is gone (duration-fast) well before its slide ends.
+const PANEL_TRANSITION = { ...STEP_TRANSITION, opacity: { duration: 0.2, ease: STEP_TRANSITION.ease } } as const
+// The hero's height change into or out of a headline hero lasts as long as the panel
+// slide (duration-slow), so the art crossfades over the same 500 ms.
+const HERO_HEIGHT_CHANGE_MS = 500
 
 const TransitioningContent = ({
     children,
@@ -134,7 +143,7 @@ const TransitioningContent = ({
             initial="enter"
             animate="center"
             exit="exit"
-            transition={prefersReducedMotion ? { duration: 0 } : STEP_TRANSITION}
+            transition={prefersReducedMotion ? { duration: 0 } : PANEL_TRANSITION}
             className={twMerge(className, !isPresent && 'pointer-events-none absolute inset-0')}
             aria-hidden={!isPresent}
             inert={!isPresent}
@@ -228,32 +237,48 @@ const ImageSection = ({
     imageClassName,
     direction = 0,
     prefersReducedMotion,
-}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
+    title,
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction' | 'title'> & {
     prefersReducedMotion: boolean
 }) => {
     const t = useTranslations('setup.wrapper')
+    const headlineHero = !!image && 'hero' in image
+    // Only the change into or out of a headline hero animates the height; a keyboard or
+    // address-bar resize on any step still snaps.
+    const [settledHeadlineHero, setSettledHeadlineHero] = useState(headlineHero)
+    const heroHeightChanging = headlineHero !== settledHeadlineHero
+    useEffect(() => {
+        if (!heroHeightChanging) return
+        const timer = setTimeout(() => setSettledHeadlineHero(headlineHero), HERO_HEIGHT_CHANGE_MS)
+        return () => clearTimeout(timer)
+    }, [heroHeightChanging, headlineHero])
 
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
-    const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
+    const containerClass = headlineHero ? HEADLINE_HERO_CONTAINER_CLASSES : IMAGE_CONTAINER_CLASSES[layoutType]
+    const artTransition = prefersReducedMotion ? { duration: 0 } : heroHeightChanging ? STEP_TRANSITION : ART_TRANSITION
     const imageKey =
-        'pose' in image
-            ? image.pose
-            : 'scene' in image
-              ? image.scene
-              : 'animation' in image
-                ? image.animation
-                : image.src
+        'hero' in image
+            ? 'hero'
+            : 'pose' in image
+              ? image.pose
+              : 'scene' in image
+                ? image.scene
+                : 'animation' in image
+                  ? image.animation
+                  : image.src
     const illustration =
-        'pose' in image ? (
+        'hero' in image ? (
+            <image.hero title={title} still={prefersReducedMotion} />
+        ) : 'pose' in image ? (
             <PeanutMascot
                 pose={image.pose}
                 alt={t('illustrationAlt')}
                 className={twMerge(
                     imageClassName || 'relative h-full max-w-full',
-                    // Keep the welcome and username mascots at the same height.
-                    (screenId === 'landing' || screenId === 'signup') && 'scale-[0.8]'
+                    // The username mascot keeps the old Welcome mascot's height.
+                    screenId === 'signup' && 'scale-[0.8]'
                 )}
             />
         ) : 'scene' in image ? (
@@ -290,12 +315,15 @@ const ImageSection = ({
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
+                transition={artTransition}
                 className={twMerge(
-                    'absolute inset-x-0 flex items-center justify-center',
-                    'animation' in image
-                        ? 'top-14 bottom-1 md:top-20 md:bottom-8'
-                        : 'top-16 bottom-2 md:top-20 md:bottom-8'
+                    'flex items-center justify-center',
+                    // A headline hero stays in flow, so large text can grow the hero around it.
+                    'hero' in image
+                        ? 'relative w-full self-stretch'
+                        : 'animation' in image
+                          ? 'absolute inset-x-0 top-14 bottom-1 md:top-20 md:bottom-8'
+                          : 'absolute inset-x-0 top-16 bottom-2 md:top-20 md:bottom-8'
                 )}
             >
                 {illustration}
@@ -310,27 +338,15 @@ const ImageSection = ({
                 data-setup-hero
                 className={twMerge(
                     containerClass,
-                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6'
+                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6',
+                    // the headline hero draws its own gutters
+                    headlineHero && 'px-0 md:px-0',
+                    // ease-out like the panel slide; ease-spring would overshoot the height.
+                    heroHeightChanging && 'transition-[height] duration-slow ease-out'
                 )}
             >
-                {/* Per-step backgrounds move with the art: clouds on the landing
-                    screen only, so later illustrations stay clear, and the "@" signs on
-                    the username step. */}
+                {/* The username step's "@" signs move with the art. */}
                 <AnimatePresence initial={false} custom={direction}>
-                    {screenId === 'landing' && (
-                        <motion.div
-                            key="landing-clouds"
-                            variants={artVariants}
-                            custom={direction}
-                            initial="enter"
-                            animate="center"
-                            exit="exit"
-                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
-                            className="pointer-events-none absolute inset-0"
-                        >
-                            <CloudsBackground minimal />
-                        </motion.div>
-                    )}
                     {screenId === 'signup' && (
                         <motion.div
                             key="username-background"
@@ -339,7 +355,7 @@ const ImageSection = ({
                             initial="enter"
                             animate="center"
                             exit="exit"
-                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
+                            transition={artTransition}
                             className="pointer-events-none absolute inset-0"
                         >
                             <UsernameBackground />
@@ -446,6 +462,8 @@ export const SetupWrapper = memo(function SetupWrapper({
     // left a big gap above the QR) and center the copy on desktop to match the
     // centered store content. The native landing is untouched.
     const sunsetLanding = screenId === 'landing' && !nativePlatform.isCapacitor && !hasKeepWebBypass
+    // A step's own hero carries the headline; the panel then opens with the description.
+    const headlineInHero = !fullScreen && !!image && 'hero' in image
 
     // Match the server panel first, then start the mobile landing rise after hydration.
     const mountedOnLanding = useRef(screenId === 'landing').current
@@ -495,6 +513,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         image={image}
                         direction={transitionDirection}
                         prefersReducedMotion={!!prefersReducedMotion}
+                        title={title}
                     />
                 )}
                 {/* Stack complete panels so the incoming slide covers the outgoing one without a blank frame. */}
@@ -525,7 +544,9 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     // home gesture area, so the panel needs only pb-6 above the safe-area inset.
                                     'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
 
-                                    fullScreen && 'md:h-auto md:flex-1'
+                                    fullScreen && 'md:h-auto md:flex-1',
+                                    // the taller headline hero leaves less room for the panel
+                                    headlineInHero && 'pt-6'
                                 )}
                             >
                                 <div
@@ -535,15 +556,20 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
                                         // signup matches residence: the field sits 24px under the description
                                         screenId === 'signup' && 'gap-6 short:gap-4 tight:gap-3',
+                                        // under a headline hero the step's first line continues the description
+                                        headlineInHero && 'gap-3 compact:gap-3 short:gap-3 tight:gap-2',
                                         !sunsetLanding && 'md:flex-1 md:justify-between',
-                                        fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
+                                        fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between',
+                                        // desktop: with the headline on the hero, the body and actions sit
+                                        // together mid-column instead of a lone description at the top
+                                        headlineInHero && 'md:my-auto md:flex-none md:justify-start'
                                     )}
                                 >
                                     {/* Renders nothing when the step owns its heading (titleInView +
                                     descriptionInView): an empty, height-capped slot would push
                                     the content down on desktop. */}
                                     <SetupTitleBlock
-                                        title={title}
+                                        title={headlineInHero ? undefined : title}
                                         description={description}
                                         size={titleSize}
                                         descriptionInTitle={descriptionInTitle}
@@ -552,7 +578,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                             screenId === 'join-beta' && 'md:max-h-12',
                                             (sunsetLanding || titleSize === 'm') && 'md:h-auto md:max-h-none'
                                         )}
-                                        titleClassName={twMerge(sunsetLanding && 'md:text-center', titleClassName)}
+                                        titleClassName={titleClassName}
                                         descriptionClassName={sunsetLanding ? 'md:text-center' : undefined}
                                     />
                                     {/* main content area */}
@@ -560,7 +586,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         className={twMerge(
                                             'mx-auto w-full',
                                             fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                            !sunsetLanding && 'flex flex-1 flex-col'
+                                            !sunsetLanding && 'flex flex-1 flex-col',
+                                            headlineInHero && 'md:flex-none'
                                         )}
                                     >
                                         <SetupFullScreenContext.Provider value={setFullScreenForScreen}>

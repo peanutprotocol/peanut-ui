@@ -4,13 +4,13 @@ import CompleteSignupStep from './Views/CompleteSignup'
 import InviteStep from './Views/Invite'
 import PaymentPlanStep from './Views/PaymentPlan'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import { AdvantageStep, SignupStep, LandingStep, ResidenceStep } from '@/components/Setup/Views'
+import { AdvantageStep, SignupStep, LandingStep, LandingHero, ResidenceStep } from '@/components/Setup/Views'
 
 export const setupSteps: ISetupStep[] = [
     {
         screenId: 'landing',
         layoutType: 'signup',
-        image: { pose: 'waving-chill' },
+        image: { hero: LandingHero },
         component: LandingStep,
         showBackButton: false,
         contentClassName: 'flex flex-col justify-between gap-8',

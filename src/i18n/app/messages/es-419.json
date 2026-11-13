@@ -908,8 +908,8 @@
         "choicesLater": "Puedes cambiar tus opciones más adelante.",
         "steps": {
             "landing": {
-                "title": "Cobra desde cualquier lugar. Gasta en todo el mundo.",
-                "description": "Recibe pagos en USD o EUR con datos bancarios. Gástalos con tarjeta o QR, estés donde estés."
+                "title": "Cobra desde EE.\u00a0UU. y Europa.",
+                "description": "Recibe dólares y euros. Paga con tarjeta o QR."
             },
             "signup": {
                 "title": "Reclamar usuario",
@@ -983,7 +983,15 @@
             "signUp": "Regístrate",
             "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?",
             "testBuild": "Versión de prueba",
-            "testSignUp": "Regístrate en la web"
+            "testSignUp": "Regístrate en la web",
+            "entry": "Entras con tu cara o tu huella.",
+            "logInPrompt": "¿Ya tienes cuenta?",
+            "logInLink": "Iniciar sesión",
+            "hero": {
+                "received": "¡Dinero recibido!",
+                "amount": "USD 1.200",
+                "example": "Ejemplo"
+            }
         },
         "loginRecovery": {
             "title": "Tu passkey puede estar en el teléfono donde creaste tu cuenta",

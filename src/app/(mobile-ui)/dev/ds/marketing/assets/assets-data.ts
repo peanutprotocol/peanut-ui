@@ -15,6 +15,8 @@ import badgeAssets from '@/types/badge-assets.json'
 import peanutCardHand from '@/assets/cards/peanut-card-hand.svg'
 import globalCashLocalFeel from '@/assets/illustrations/global-cash-local-feel.png'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
+import coinEur from '@/assets/illustrations/coin-eur.webp'
+import coinUsd from '@/assets/illustrations/coin-usd.webp'
 import exclamations from '@/assets/illustrations/exclamations.svg'
 import eyes from '@/assets/illustrations/eyes.svg'
 import flagAr from '@/assets/illustrations/flag-ar.svg'
@@ -42,7 +44,7 @@ export interface MascotEntry {
  */
 export const MASCOT_ENTRIES: MascotEntry[] = [
     { pose: 'waving-chill', usedFor: 'Landing hero; relaxed moments' },
-    { pose: 'cheering', usedFor: 'Claim and payment success' },
+    { pose: 'cheering', usedFor: 'Sign-up Welcome hero; claim and payment success' },
     { pose: 'thinking', usedFor: 'Loading, verification waits' },
     { pose: 'too-cool', usedFor: 'Confident flex moments' },
     { pose: 'pointing', usedFor: 'Pointing off-screen' },
@@ -143,6 +145,19 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
 
 /** Landing illustrations. Multicolour, so not doodles by the fill rule; approved as they are. */
 export const LANDING_ILLUSTRATION_ENTRIES: ArtEntry[] = [
+    // Approved by Konrad, 2026-11-13 (first-screen run, concept F1 art).
+    {
+        label: 'coin-usd',
+        asset: coinUsd,
+        path: 'assets/illustrations/coin-usd.webp',
+        usedIn: 'Sign-up Welcome hero (USD chip)',
+    },
+    {
+        label: 'coin-eur',
+        asset: coinEur,
+        path: 'assets/illustrations/coin-eur.webp',
+        usedIn: 'Sign-up Welcome hero (EUR chip)',
+    },
     { label: 'flag-ar', asset: flagAr, path: 'assets/illustrations/flag-ar.svg', usedIn: 'no current call site' },
     { label: 'flag-br', asset: flagBr, path: 'assets/illustrations/flag-br.svg', usedIn: 'no current call site' },
     {

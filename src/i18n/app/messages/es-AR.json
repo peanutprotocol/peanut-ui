@@ -512,8 +512,8 @@
         "choicesLater": "Podés cambiar tus opciones más adelante.",
         "steps": {
             "landing": {
-                "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
-                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
+                "description": "Recibí dólares y euros. Pagá con tarjeta o QR.",
+                "title": "Cobrá desde EE.\u00a0UU. y Europa."
             },
             "advantage-payments": {
                 "title": "Pagale a cualquiera con un toque.",
@@ -548,7 +548,10 @@
         "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
         "landing": {
             "signUp": "Registrate",
-            "recoverWallet": "¿Necesitás recuperar la cuenta de Peanut?"
+            "recoverWallet": "¿Necesitás recuperar la cuenta de Peanut?",
+            "entry": "Entrás con tu cara o tu huella.",
+            "logInPrompt": "Ya tengo cuenta<separator></separator>",
+            "logInLink": "Iniciar sesión"
         },
         "loginRecovery": {
             "steps": {

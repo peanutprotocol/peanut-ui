@@ -824,9 +824,36 @@
             height: 34dvh;
         }
     }
+    /*
+     * A hero that carries its step's headline (the Welcome screen, first-screen concept
+     * A2, Konrad 2026-11-13) is taller: it holds the headline and the scene, and the
+     * panel holds only the body and the actions. It takes what the panel leaves (the
+     * rem budget is the Welcome panel's measured height plus 8px, per height band, so
+     * large text shrinks the hero first), capped at 62% / 58% of the screen. Leaving
+     * it animates the hero down to the 40% hero above.
+     */
+    .setup-hero-height-headline {
+        height: min(62dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 20.5rem));
+    }
+    @media (max-width: 767px) and (max-height: 799px) {
+        .setup-hero-height-headline {
+            height: min(62dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 18rem));
+        }
+    }
+    @media (max-width: 767px) and (max-height: 699px) {
+        .setup-hero-height-headline {
+            height: min(58dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 15.5rem));
+        }
+    }
+    @media (max-width: 767px) and (max-height: 579px) {
+        .setup-hero-height-headline {
+            height: min(58dvh, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 15rem));
+        }
+    }
     /* Desktop: the full-height side hero. Explicit, because this rule sits in the same layer as md:h-dvh. */
     @media (min-width: 768px) {
-        .setup-hero-height {
+        .setup-hero-height,
+        .setup-hero-height-headline {
             height: 100dvh;
         }
     }
