@@ -47,6 +47,7 @@ jest.mock('@/utils/app-version', () => ({
 }))
 
 import { canRestartInPlace, initCapgoUpdater, readStagedBundle } from '../capgo-updater'
+import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '../deep-link-state'
 import { stagedFloors } from '../ota-native-gate'
 
 let info: jest.SpyInstance
@@ -76,6 +77,7 @@ beforeEach(() => {
 afterEach(() => {
     jest.useRealTimers()
     jest.restoreAllMocks()
+    resetDeepLinkStateForTests()
 })
 
 // one simulated app launch: init + the deferred update check
@@ -314,6 +316,25 @@ it('downloads an OTA without arming a background install, then finds it on a lat
     await launch()
     expect(mockUpdater.download).toHaveBeenCalledTimes(1)
     expect(mockUpdater.next).not.toHaveBeenCalled()
+})
+
+// TASK-24815: the reload boots at `/` and the launch URL is not dispatched
+// again, so a cold-start receipt link ended on Home.
+it('keeps a staged bundle for a later launch when a deep link opened this one', async () => {
+    const { applyStagedBundleOnLaunch } = await import('../capgo-updater')
+    const bundle = { id: 'b-1', version: '1.5.4' }
+    window.localStorage.setItem('capgoDownloadedBundleId', bundle.id)
+    mockUpdater.list.mockResolvedValue({ bundles: [bundle] })
+    mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.14' })
+    markDeepLinkNavigated('/receipt?id=entry-1&kind=CRYPTO_WITHDRAW')
+
+    await expect(applyStagedBundleOnLaunch()).resolves.toEqual(bundle)
+    expect(mockUpdater.set).not.toHaveBeenCalled()
+
+    // The next launch, opened from the icon.
+    resetDeepLinkStateForTests()
+    await expect(applyStagedBundleOnLaunch()).resolves.toEqual(bundle)
+    expect(mockUpdater.set).toHaveBeenCalledWith({ id: bundle.id })
 })
 
 it('drops the saved bundle after it becomes the running version', async () => {
