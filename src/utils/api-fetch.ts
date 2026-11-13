@@ -38,6 +38,21 @@ type FetchOptions = RequestInit & {
     idempotent?: boolean
 }
 
+const cancelError = (signal: AbortSignal): unknown =>
+    signal.reason ?? Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+
+function waitForReadiness<T>(readiness: Promise<T>, signal?: AbortSignal | null): Promise<T> {
+    if (!signal) return readiness
+
+    let onAbort = () => {}
+    const cancelled = new Promise<never>((_, reject) => {
+        onAbort = () => reject(cancelError(signal))
+        if (signal.aborted) onAbort()
+        else signal.addEventListener('abort', onAbort, { once: true })
+    })
+    return Promise.race([readiness, cancelled]).finally(() => signal.removeEventListener('abort', onAbort))
+}
+
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
     // Explicit demo sessions route to synthetic data before any auth/network work.
     // Lazy import keeps the fixtures out of the initial bundle.
@@ -54,6 +69,8 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     }
 
     const { timeoutMs, includeAuth = true, beforeDispatch, ...fetchOptions } = options ?? {}
+    const signal = fetchOptions.signal
+    if (signal?.aborted) throw cancelError(signal)
     const startedAt = globalThis.performance?.now?.() ?? Date.now()
     let authWaitMs = 0
 
@@ -62,7 +79,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     // unauthenticated read skips it — a public rate must not queue behind auth
     // hydration, and it would send no token either way.
     if (includeAuth) {
-        await authReady()
+        await waitForReadiness(authReady(), signal)
         authWaitMs = (globalThis.performance?.now?.() ?? Date.now()) - startedAt
     }
 
@@ -84,7 +101,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 
     if (isCapacitor() && !Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'x-app-binary-version')) {
-        const version = await getCachedBinaryVersion()
+        const version = await waitForReadiness(getCachedBinaryVersion(), signal)
         if (version) headers['x-app-binary-version'] = version
     }
 
@@ -114,6 +131,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     const route = apiRouteTemplate(path)
 
     try {
+        if (signal?.aborted) throw cancelError(signal)
         const response = await fetchWithSentry(...args)
         captureApiTiming({
             route,
