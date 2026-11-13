@@ -493,8 +493,40 @@ describe('AdditionalVerificationView', () => {
                 value: { origin: 'http://localhost', href: 'http://localhost/profile/accounts/additional' },
             })
             render(<AdditionalVerificationView />)
-            fireEvent.click(within(screen.getByTestId('hosted-task-done')).getByRole('button'))
+            // the button says where it goes: back to Pix, not to the status on the profile
+            fireEvent.click(within(screen.getByTestId('hosted-task-done')).getByRole('button', { name: /^back$/i }))
             // no Pix page in this tab's history: the origin takes this page's place
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/pix')
+        })
+
+        // Chip on ui#4094: "Go to profile" led back to the Pix page
+        it('names the way back, not the profile, when the app collects the item and Pix sent the user', () => {
+            // the hosted task stands down beside a Sumsub step, as in the panel's own test above
+            mockNextActions = [
+                { key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' },
+                hostedAction,
+            ]
+            mockRails = [
+                {
+                    id: 'bridge.sepa_eu',
+                    provider: 'bridge',
+                    method: 'SEPA_EU',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'requires-info',
+                    blockingActions: ['sumsub:proof_of_address'],
+                },
+            ]
+            mockSearch = 'returnTo=%2Fwithdraw%2Fpix'
+            Object.defineProperty(window, 'location', {
+                configurable: true,
+                value: { origin: 'http://localhost', href: 'http://localhost/profile/accounts/additional' },
+            })
+            render(<AdditionalVerificationView />)
+            const panel = screen.getByTestId('hosted-task-native-instead')
+            expect(within(panel).queryByRole('button', { name: /go to profile/i })).not.toBeInTheDocument()
+            fireEvent.click(within(panel).getByRole('button', { name: /^back$/i }))
             expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/pix')
         })
     })

@@ -116,7 +116,8 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                                 else router.replace(IDENTITY_ROUTE)
                             }}
                         >
-                            {t(`${panel}.cta`)}
+                            {/* the panel's own label names the profile; a returnTo goes back where the user came from */}
+                            {returnTo ? tCommon('back') : t(`${panel}.cta`)}
                         </Button>
                     </Card>
                 </PageStack.Center>
