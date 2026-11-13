@@ -2607,9 +2607,7 @@
             "returnedBody": "Pague de novo de uma conta no seu CPF."
         },
         "withdraw": {
-            "changeAmount": "Alterar valor",
             "stuck": "Este saque não foi concluído. Fale com o suporte.",
-            "arrivesIn": "Cerca de {minutes, plural, one {# minuto} other {# minutos}}",
             "fee": "Taxa do provedor",
             "keyIntro": "Digite uma chave Pix registrada no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
@@ -2619,7 +2617,6 @@
             "unknownHolder": "Nome não exibido",
             "ownAccount": "Conta própria",
             "someoneElses": "De outra pessoa",
-            "toAccount": "para {destination}",
             "sent": "A caminho.",
             "sentTo": "A caminho de {destination}.",
             "processingTitle": "Processando saque",

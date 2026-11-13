@@ -1,5 +1,4 @@
 import {
-    arrivalMinutes,
     pixDepositPhase,
     pixPendingReason,
     pixWithdrawAmount,
@@ -288,14 +287,6 @@ describe('pixWithdrawOutcome', () => {
             expect(pixWithdrawOutcome('funded', entry(status))).toBe('stuck')
         }
         expect(pixWithdrawOutcome('unconfirmed', entry('SOMETHING_NEW'))).toBe('stuck')
-    })
-})
-
-describe('arrivalMinutes', () => {
-    it("rounds the API's estimate to whole minutes, at least one", () => {
-        expect(arrivalMinutes(60)).toBe(1)
-        expect(arrivalMinutes(20)).toBe(1)
-        expect(arrivalMinutes(150)).toBe(3)
     })
 })
 
