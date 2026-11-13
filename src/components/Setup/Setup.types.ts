@@ -1,13 +1,26 @@
+import type { ComponentType, ReactNode } from 'react'
 import type { OnboardingAnimationName } from './components/OnboardingAnimation'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { PeanutMascotSceneName } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 
-/** A setup screen leads with a still, an animated pose, or a composed mascot scene. */
+/** A hero that draws the whole blue area, the step's headline included. */
+export interface SetupHeroProps {
+    title?: ReactNode
+    /** Reduced motion: render the resting frame. */
+    still: boolean
+}
+
+/**
+ * A setup screen leads with a still, an animated pose, a composed mascot scene, or its
+ * own hero. A hero carries the step's headline, so the hero is taller and the panel
+ * starts with the description.
+ */
 export type SetupIllustration =
     | { src: string }
     | { pose: MascotPose }
     | { scene: PeanutMascotSceneName }
     | { animation: OnboardingAnimationName }
+    | { hero: ComponentType<SetupHeroProps> }
 
 export type ScreenId =
     | 'landing'

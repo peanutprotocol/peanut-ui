@@ -13,6 +13,7 @@ import { signupControls } from '@/test-utils/signup-controls'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { SetupWrapper } from '../SetupWrapper'
 import { ResidenceCompare } from '../ResidenceCompare'
+import LandingHero from '../../Views/LandingHero'
 
 const mockReducedMotion = { value: true }
 const mockCapacitor = { value: false }
@@ -30,7 +31,6 @@ jest.mock('@/utils/capacitor', () => ({
 jest.mock('@capacitor/status-bar', () => ({
     StatusBar: { setBackgroundColor: (...args: unknown[]) => mockSetBackgroundColor(...args) },
 }))
-jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
     default: ({ pose, className }: { pose: string; className?: string }) => (
@@ -131,7 +131,7 @@ describe('SetupWrapper navigation', () => {
         expect(screen.queryByRole('paragraph')).not.toBeInTheDocument()
     })
 
-    it.each(['invite', 'signup', 'residence', 'notification-email'] as const)(
+    it.each(['landing', 'invite', 'signup', 'residence', 'notification-email'] as const)(
         'uses the one shared title block on %s: 16px between title and description',
         (screenId) => {
             renderWrapper({ screenId, description: 'This is how people find you.' })
@@ -141,22 +141,23 @@ describe('SetupWrapper navigation', () => {
         }
     )
 
-    it('puts the Welcome headline on the hero and keeps the body in the panel', () => {
+    it("puts a step hero's headline on the hero and keeps the body in the panel", () => {
         renderWrapper({
             screenId: 'landing',
-            image: { pose: 'cheering' },
+            image: { hero: LandingHero },
             title: 'Get paid from the US and Europe.',
             description: 'Receive dollars and euros. Pay by card or QR.',
         })
         const heading = screen.getByRole('heading', { level: 1 })
         expect(heading).toHaveTextContent('Get paid from the US and Europe.')
-        expect(heading.closest('.setup-hero-background')).toHaveClass('setup-hero-height-landing')
+        expect(heading.closest('.setup-hero-background')).toHaveClass('setup-hero-height-headline', 'min-h-min')
         const body = screen.getByText('Receive dollars and euros. Pay by card or QR.', { selector: 'p' })
         expect(body.closest('.setup-hero-background')).toBeNull()
         expect(screen.getAllByRole('heading')).toHaveLength(1)
         // the sample card is labelled as an example and carries no timestamp or payer
         expect(screen.getByText('Example')).toBeInTheDocument()
         expect(screen.getByText('USD 1,200')).toBeInTheDocument()
+        expect(screen.getByTestId('mascot')).toHaveAttribute('data-mascot-pose', 'cheering')
     })
 
     it('keeps the username field 24px under the description', () => {
@@ -215,16 +216,8 @@ describe('SetupWrapper navigation', () => {
 })
 
 describe('SetupWrapper transitions', () => {
-    it('draws the Welcome scene with the cheering peanut, and scales the username mascot', () => {
+    it('scales the username mascot while keeping later illustrations comparable', () => {
         const { rerender, container } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="landing" image={{ pose: 'cheering' }}>
-                <div>Landing</div>
-            </SetupWrapper>
-        )
-        expect(screen.getByTestId('mascot')).toHaveAttribute('data-mascot-pose', 'cheering')
-        expect(screen.getByTestId('mascot')).not.toHaveClass('scale-[0.8]')
-
-        rerender(
             <SetupWrapper layoutType="signup" screenId="signup" image={{ pose: 'thinking' }}>
                 <div>Signup</div>
             </SetupWrapper>
@@ -268,7 +261,7 @@ describe('SetupWrapper transitions', () => {
         document.documentElement.style.setProperty('--color-action-primary', '#ff90e8')
         try {
             const { rerender } = renderWithIntl(
-                <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'cheering' }}>
+                <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
                     <div>Landing</div>
                 </SetupWrapper>
             )
@@ -302,9 +295,50 @@ describe('SetupWrapper transitions', () => {
         }
     })
 
+    it('animates the hero height only into and out of a headline hero', () => {
+        jest.useFakeTimers()
+        mockReducedMotion.value = false
+        try {
+            const { container, rerender } = renderWithIntl(
+                <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ hero: LandingHero }} title="Hi">
+                    <div>Landing</div>
+                </SetupWrapper>
+            )
+            const hero = container.querySelector('[data-setup-hero]')
+            expect(hero).toHaveClass('setup-hero-height-headline', 'transition-colors', 'duration-fast')
+            expect(hero).not.toHaveClass('transition-[height]')
+
+            rerender(
+                <SetupWrapper layoutType="signup" screenId="signup" step={1} image={{ pose: 'thinking' }}>
+                    <div>Signup</div>
+                </SetupWrapper>
+            )
+            // the height eases down with the 500 ms panel slide, and the art crossfades over it
+            expect(hero).toHaveClass('setup-hero-height', 'transition-[height]', 'duration-slow')
+            expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-transition-duration', '0.5')
+
+            act(() => {
+                jest.advanceTimersByTime(500)
+            })
+            // settled: a keyboard or address-bar resize snaps again
+            expect(hero).not.toHaveClass('transition-[height]')
+            expect(hero).toHaveClass('transition-colors', 'duration-fast')
+
+            rerender(
+                <SetupWrapper layoutType="signup" screenId="residence" step={2} image={{ pose: 'pointing' }}>
+                    <div>Residence</div>
+                </SetupWrapper>
+            )
+            expect(hero).not.toHaveClass('transition-[height]')
+            expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-transition-duration', '0.24')
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
     it('keeps the original blue hero throughout the journey and on Back', () => {
         const { container, rerender } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'cheering' }}>
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
                 <div>Landing</div>
             </SetupWrapper>
         )
@@ -312,21 +346,14 @@ describe('SetupWrapper transitions', () => {
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-setup-hero)'
         )
-        // The taller Welcome hero eases down to the shared height as the panel slides.
-        expect(hero).toHaveClass(
-            'setup-hero-height-landing',
-            'transition-[height,background-color]',
-            'motion-reduce:transition-none'
-        )
+        expect(hero).toHaveClass('transition-colors', 'motion-reduce:transition-none')
 
         rerender(
             <SetupWrapper layoutType="signup" screenId="signup" step={2} image={{ pose: 'thinking' }}>
                 <div>Signup</div>
             </SetupWrapper>
         )
-        expect(container.querySelector('.setup-hero-background')).toBe(hero)
-        expect(hero).toHaveClass('setup-hero-height')
-        expect(hero).not.toHaveClass('setup-hero-height-landing')
+        expect(container.querySelector('.setup-hero-background')).toHaveClass('setup-hero-background')
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-setup-hero)'
         )
@@ -346,7 +373,7 @@ describe('SetupWrapper transitions', () => {
         )
 
         rerender(
-            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'cheering' }}>
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
                 <div>Landing</div>
             </SetupWrapper>
         )
@@ -371,7 +398,7 @@ describe('SetupWrapper transitions', () => {
         // The top bar sits outside the sliding step content: one switcher, in the same element,
         // whether or not the step has a back button, so it cannot move with a transition.
         const { container, rerender } = renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'cheering' }}>
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
                 <div>Welcome</div>
             </SetupWrapper>
         )
@@ -481,13 +508,10 @@ describe('SetupWrapper transitions', () => {
             </SetupWrapper>
         )
 
-        expect(screen.getByText('First step').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '-100%')
-        expect(screen.getByText('First step').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '100%')
-        // the Welcome scene, headline included, drifts the same way as the panel
-        expect(screen.getByRole('heading', { name: 'Welcome' }).closest('[data-enter-x]')).toHaveAttribute(
-            'data-enter-x',
-            '-30%'
-        )
+        expect(screen.getByText('Welcome').closest('[data-enter-x]')).toHaveAttribute('data-enter-x', '-100%')
+        expect(screen.getByText('Welcome').closest('[data-exit-x]')).toHaveAttribute('data-exit-x', '100%')
+        // the art drifts the same way as the panel
+        expect(screen.getByTestId('mascot').parentElement).toHaveAttribute('data-enter-x', '-30%')
     })
 
     // An accepted inviter drops the step behind the current one, so the same screen gets a

@@ -12,7 +12,6 @@ const mockMount = jest.fn()
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@capacitor/status-bar', () => ({ StatusBar: { setBackgroundColor: jest.fn() } }))
-jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/components/OnboardingAnimation', () => ({ __esModule: true, default: () => null }))
 jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
@@ -54,7 +53,7 @@ function StatefulChild() {
 function Tree() {
     return (
         <IntlWrapper>
-            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'cheering' }}>
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
                 <StatefulChild />
             </SetupWrapper>
         </IntlWrapper>
