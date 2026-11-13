@@ -121,6 +121,23 @@ describe('StaleCardApprovalReEnableModal', () => {
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 
+    it('a spent permission says to contact support and drops the retry CTA', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'permission-spent' } })
+        render(<StaleCardApprovalReEnableModal />)
+        fireStaleEvent()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Re-enable card'))
+        })
+
+        expect(screen.getByText(/can't re-enable this card in the app/i)).toBeInTheDocument()
+        expect(screen.getByText(/contact support/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
+        expect(screen.queryByText('Re-enable card')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Not now')).toHaveLength(1)
+        expect(screen.getByText('Not now').closest('button')).not.toBeNull()
+    })
+
     it('can be dismissed with "Not now"', () => {
         render(<StaleCardApprovalReEnableModal />)
         fireStaleEvent()

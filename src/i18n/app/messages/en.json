@@ -176,6 +176,7 @@
             "descriptionError": "We couldn't finish setting up your card. Try again, or skip for now. We'll ask again later.",
             "descriptionUpdateError": "We couldn't finish the update. Try again, or skip for now. We'll ask again later.",
             "descriptionSignatureRejected": "The passkey signature for this card could not be verified. Try again, or skip for now. Contact support if it happens again.",
+            "descriptionPermissionSpent": "We can't finish setting up your card in the app. Contact support to fix it, or skip for now.",
             "descriptionReadyReturn": "Your card is set up. Move {amount} of card balance to your wallet now, or later from the card screen.",
             "descriptionReturnRetry": "Your card is set up, but moving your card balance didn't finish. Try again now, or later from the card screen.",
             "descriptionUpdateReadyReturn": "The update is done. Move {amount} of card balance to your wallet now, or later from the card screen.",
@@ -2113,6 +2114,7 @@
             "confirmCountryFailed": "Failed to confirm country",
             "setupCancelled": "Setup cancelled — please try again.",
             "setupSignatureRejected": "The passkey signature for this card could not be verified — try again, and contact support if it happens again.",
+            "setupPermissionSpent": "We can't finish setting up your card in the app. Contact support to fix it.",
             "setupFailed": "Could not complete setup — please try again.",
             "verificationSlow": "Verification is taking longer than expected. Please try again."
         },
@@ -4602,6 +4604,7 @@
             "cancelledError": "Re-enabling was cancelled. Tap Re-enable card to try again.",
             "rotatedError": "Your card was updated while we were saving. Tap Re-enable card once more.",
             "signatureRejectedError": "The passkey signature for this card could not be verified. Tap Re-enable card to try again, and contact support if it happens again.",
+            "permissionSpentError": "We can't re-enable this card in the app. Contact support to fix it.",
             "unexpectedError": "We couldn't re-enable your card. Please try again.",
             "reEnableCta": "Re-enable card",
             "workingCta": "Working…",

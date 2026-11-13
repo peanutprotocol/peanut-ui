@@ -310,6 +310,28 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         })
     })
 
+    // The 409 for a permission id the wallet has already spent: signing again
+    // gives the same id, so the UI must not offer a retry.
+    it('maps a spent permission id to its own kind', async () => {
+        mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(
+            Object.assign(new Error('Card permission id already spent'), {
+                name: 'ApiError',
+                code: 'CARD_PERMISSION_ID_SPENT',
+            })
+        )
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).toEqual({
+            ok: false,
+            error: { kind: 'permission-spent', message: 'Card permission id already spent' },
+        })
+    })
+
     it('a grant-store failure without that code stays unexpected', async () => {
         mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(new Error('could not deserialize'))
         const { result } = renderHook(() => useGrantSessionKey())

@@ -31,6 +31,10 @@ export const API_ERROR_CODES = {
      *  live nonce (another passkey, other signed bytes, an unreadable layout,
      *  or a moved nonce). Nothing was stored. */
     CARD_APPROVAL_SIGNATURE_REJECTED: 'CARD_APPROVAL_SIGNATURE_REJECTED',
+    /** The card permission id is already spent on the user's wallet. The chain
+     *  never reinstalls it and signing again gives the same id, so retrying
+     *  cannot work. Support issues a new id. */
+    CARD_PERMISSION_ID_SPENT: 'CARD_PERMISSION_ID_SPENT',
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by
      *  `verifyRainWithdrawal` before any order/claim/broadcast, or — for

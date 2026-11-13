@@ -194,6 +194,27 @@ describe('EnableAutoBalanceBanner', () => {
         expect(screen.getByText('Skip for now')).toBeInTheDocument()
     })
 
+    it('says setup needs support for a spent permission and offers no retry', () => {
+        mockLastError = { kind: 'permission-spent', message: 'spent' }
+        render(
+            <EnableAutoBalanceBanner
+                presentation="modal"
+                askId="finish-card-setup"
+                onActed={onActed}
+                onDismissed={jest.fn()}
+                onSnoozed={onSnoozed}
+            />
+        )
+        expect(screen.getByText(/can't finish setting up your card in the app/i)).toBeInTheDocument()
+        expect(screen.getByText(/contact support/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't finish setting up your card/i)).not.toBeInTheDocument()
+        expect(screen.queryByText('Try again')).not.toBeInTheDocument()
+        expect(screen.queryByText('Continue')).not.toBeInTheDocument()
+        // the one exit is the primary action, not a link under a button-less modal
+        expect(screen.getAllByText('Skip for now')).toHaveLength(1)
+        expect(screen.getByText('Skip for now').closest('button')).not.toBeNull()
+    })
+
     it('keys off the ACTIVE card, not cards[0] — a CANCELED newest row with a granted older card hides the modal', () => {
         // The post-remediation nicnode shape: duplicate canceled, real card granted.
         mockCards = [
