@@ -368,12 +368,12 @@ const LandingStep = () => {
                                 variant="secondary"
                                 onClick={onLoginClick}
                             >
-                                {t('logIn')}
+                                {t('landing.logIn')}
                             </Button>
                         ) : loginAction === 'link' ? (
                             <div className="pt-2">
                                 <LinkButton onClick={onLoginClick} disabled={manualLoginInFlight}>
-                                    {t('logIn')}
+                                    {t('landing.logIn')}
                                 </LinkButton>
                             </div>
                         ) : null

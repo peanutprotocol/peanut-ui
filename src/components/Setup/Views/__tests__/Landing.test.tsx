@@ -61,8 +61,10 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 
 /** The curated error useZeroDev.handleLogin throws. */
 const passkeyError = (code: string) => Object.assign(new Error('curated'), { name: 'PasskeyError', code })
+// The normal layout's button, or the web app-only layout's text link.
+const LOGIN_LABEL = /^(I already have an account|Log in on web instead)$/
 const logIn = async () => {
-    if (!screen.queryByRole('button', { name: /log in/i })) {
+    if (!screen.queryByRole('button', { name: LOGIN_LABEL })) {
         await act(async () => {
             jest.advanceTimersByTime(5000)
         })
@@ -70,7 +72,7 @@ const logIn = async () => {
     // Use the real clock for the recovery drawer's focus and dismissal transitions.
     jest.useRealTimers()
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /log in/i }))
+        fireEvent.click(screen.getByRole('button', { name: LOGIN_LABEL }))
     })
 }
 const recoveryActions = () =>
