@@ -8,5 +8,7 @@ import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 export function usePixKeySend(): PixKeySend {
     const payBlock = usePixPayBlock()
     const { capabilities } = useCapabilities()
-    return pixKeySend(payBlock, findPixRoute(capabilities.routes, 'withdraw'))
+    // the withdraw route matters only where the pay route refuses the residence
+    const withdrawRoute = payBlock === 'residence' ? findPixRoute(capabilities.routes, 'withdraw') : undefined
+    return pixKeySend(payBlock, withdrawRoute)
 }
