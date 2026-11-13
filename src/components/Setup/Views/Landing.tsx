@@ -25,11 +25,7 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
-import {
-    cancelIOSImmediateLogin,
-    checkAndroidLandingPasskey,
-    supportsIOSImmediateLogin,
-} from '@/utils/landing-passkeys'
+import { cancelIOSImmediateLogin, supportsIOSImmediateLogin } from '@/utils/landing-passkeys'
 
 const PASSKEY_CHECK_TIMEOUT_MS = 5_000
 
@@ -61,8 +57,7 @@ const LandingStep = () => {
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
 
-    const { isHydrated, isNativeBridge, isIOSNative, isAndroidNativeBridge } = nativePlatform
-    const [nativeLogin, setNativeLogin] = useState<'hidden' | 'full' | 'link'>('hidden')
+    const { isHydrated, isNativeBridge, isIOSNative } = nativePlatform
     const loginHandler = useRef(handleLoginClick)
     const iosPreparation = useRef<AbortController | null>(null)
     // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
@@ -80,22 +75,9 @@ const LandingStep = () => {
         const check = new AbortController()
         const { signal } = check
         const deadline = Date.now() + PASSKEY_CHECK_TIMEOUT_MS
-        const timer = setTimeout(() => {
-            check.abort()
-            setNativeLogin('link')
-        }, PASSKEY_CHECK_TIMEOUT_MS)
+        const timer = setTimeout(() => check.abort(), PASSKEY_CHECK_TIMEOUT_MS)
 
-        if (isAndroidNativeBridge) {
-            void checkAndroidLandingPasskey(signal)
-                .catch(() => 'unavailable' as const)
-                .then((result) => {
-                    if (signal.aborted || Date.now() >= deadline) return
-                    if (result !== 'available' && result !== 'unavailable') return
-                    clearTimeout(timer)
-                    // A provider failure can look like an empty result. Keep manual login available.
-                    setNativeLogin(result === 'available' ? 'full' : 'link')
-                })
-        } else if (isIOSNative && isNativeBridge) {
+        if (isIOSNative && isNativeBridge) {
             iosPreparation.current = check
             void supportsIOSImmediateLogin()
                 .then(async (supported) => {
@@ -122,7 +104,7 @@ const LandingStep = () => {
                 })
                 .catch(() => {
                     // iOS can report both a silent miss and a dismissed picker as cancellation.
-                    // Let the fallback appear without a toast from an automatic attempt.
+                    // An automatic attempt never shows a toast.
                 })
         }
 
@@ -131,7 +113,7 @@ const LandingStep = () => {
             check.abort()
             if (iosPreparation.current === check) iosPreparation.current = null
         }
-    }, [isHydrated, nativePlatform.isCapacitor, isAndroidNativeBridge, isIOSNative, isNativeBridge])
+    }, [isHydrated, nativePlatform.isCapacitor, isIOSNative, isNativeBridge])
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -286,10 +268,6 @@ const LandingStep = () => {
 
     const manualLoginInFlight = isLoggingIn && !autoLoginPending
 
-    const nativeLanding =
-        nativePlatform.isCapacitor || (!isHydrated && process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true')
-    const loginAction = nativeLanding ? nativeLogin : 'full'
-
     const accountDeletedCallout = isAccountDeleted && (
         <Callout priority="error" data-testid="account-deleted">
             {t('passkey.accountDeleted')}
@@ -359,24 +337,16 @@ const LandingStep = () => {
                         </>
                     }
                     secondary={
-                        loginAction === 'full' ? (
-                            <Button
-                                loading={manualLoginInFlight}
-                                shadowSize="4"
-                                className="w-full"
-                                disabled={manualLoginInFlight}
-                                variant="secondary"
-                                onClick={onLoginClick}
-                            >
-                                {t('landing.logIn')}
-                            </Button>
-                        ) : loginAction === 'link' ? (
-                            <div className="pt-2">
-                                <LinkButton onClick={onLoginClick} disabled={manualLoginInFlight}>
-                                    {t('landing.logIn')}
-                                </LinkButton>
-                            </div>
-                        ) : null
+                        <Button
+                            loading={manualLoginInFlight}
+                            shadowSize="4"
+                            className="w-full"
+                            disabled={manualLoginInFlight}
+                            variant="secondary"
+                            onClick={onLoginClick}
+                        >
+                            {t('landing.logIn')}
+                        </Button>
                     }
                 />
             </div>

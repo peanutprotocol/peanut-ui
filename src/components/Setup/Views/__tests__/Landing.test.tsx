@@ -16,6 +16,7 @@ let mockNative = true
 let mockAndroidNative = false
 let mockTestBuild = false
 let mockDeviceType = 'ios'
+let mockKeepWeb = false
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockNative,
@@ -29,14 +30,14 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: moc
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/utils/landing-passkeys', () => ({
-    checkAndroidLandingPasskey: async () => 'available',
     supportsIOSImmediateLogin: async () => false,
+    cancelIOSImmediateLogin: async () => {},
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
     useDeviceType: () => ({ deviceType: mockDeviceType }),
 }))
-jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
+jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => mockKeepWeb }))
 jest.mock('@/constants/migration.consts', () => ({
     ...jest.requireActual('@/constants/migration.consts'),
     get TEST_WEB_SIGNUP() {
@@ -64,11 +65,6 @@ const passkeyError = (code: string) => Object.assign(new Error('curated'), { nam
 // The normal layout's button, or the web app-only layout's text link.
 const LOGIN_LABEL = /^(I already have an account|Log in on web instead)$/
 const logIn = async () => {
-    if (!screen.queryByRole('button', { name: LOGIN_LABEL })) {
-        await act(async () => {
-            jest.advanceTimersByTime(5000)
-        })
-    }
     // Use the real clock for the recovery drawer's focus and dismissal transitions.
     jest.useRealTimers()
     await act(async () => {
@@ -87,6 +83,7 @@ beforeEach(() => {
     mockAndroidNative = false
     mockTestBuild = false
     mockDeviceType = 'ios'
+    mockKeepWeb = false
 })
 afterEach(() => jest.useRealTimers())
 
@@ -131,6 +128,53 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
         await logIn()
         await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(2))
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('opens the recovery drawer at once in the Android app when it reports no Peanut passkey', async () => {
+        mockAndroidNative = true
+        mockDeviceType = 'android'
+        mockLogin.mockRejectedValue(passkeyError('PASSKEY_NOT_FOUND'))
+        renderWithIntl(<LandingStep />)
+
+        await logIn()
+
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Your passkey may be on the phone you signed up on')
+        expect(mockToastError).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR,
+            expect.objectContaining({ error_code: 'PASSKEY_NOT_FOUND', recovery_drawer: true })
+        )
+    })
+
+    it('keeps both buttons and the two-cancel rule on the keep-web layout', async () => {
+        mockNative = false
+        mockKeepWeb = true
+        mockDeviceType = 'web'
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_CANCELED'))
+        renderWithIntl(<LandingStep />)
+
+        expect(screen.getByRole('button', { name: 'Sign up' })).toBeEnabled()
+        expect(screen.getByRole('button', { name: 'I already have an account' })).toBeEnabled()
+        expect(screen.queryByTestId('store-buttons')).not.toBeInTheDocument()
+
+        await logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+        await logIn()
+        expect(await screen.findByRole('dialog')).toBeInTheDocument()
+        expect(mockToastError).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the store buttons and the text link on the web app-only layout', () => {
+        mockNative = false
+        mockDeviceType = 'web'
+        renderWithIntl(<LandingStep />)
+
+        expect(screen.getByTestId('store-buttons')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Log in on web instead' })).toBeEnabled()
+        expect(screen.queryByRole('button', { name: 'I already have an account' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Sign up' })).not.toBeInTheDocument()
     })
 
     it('keeps the toast for every other failure', async () => {

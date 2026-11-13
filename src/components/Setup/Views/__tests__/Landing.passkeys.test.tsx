@@ -1,12 +1,14 @@
 /** @jest-environment jsdom */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import posthog from 'posthog-js'
 import type { ReactNode } from 'react'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Landing from '../Landing'
 
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
-const mockAndroidCheck = jest.fn()
+const mockAvailabilityCall = jest.fn()
 const mockIOSCapability = jest.fn()
 const mockCancelIOS = jest.fn()
 let mockIsLoggingIn = false
@@ -14,9 +16,10 @@ let mockNative = {
     isCapacitor: true,
     isHydrated: true,
     isNativeBridge: true,
-    isIOSNative: false,
-    isAndroidNativeBridge: true,
-    platform: 'android',
+    isIOSNative: true,
+    isAndroidNative: false,
+    isAndroidNativeBridge: false,
+    platform: 'ios',
 }
 
 jest.mock('@/hooks/useLogin', () => ({
@@ -24,15 +27,31 @@ jest.mock('@/hooks/useLogin', () => ({
 }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/utils/native-platform', () => ({ useNativePlatform: () => mockNative }))
+// Any native plugin call made through nativeCapability, such as the Android PasskeyAvailability check.
+jest.mock('@/utils/native-capability', () => ({
+    nativeCapability: (plugin: string) => ({
+        call: (...args: unknown[]) => mockAvailabilityCall(plugin, ...args),
+    }),
+}))
 jest.mock('@/utils/landing-passkeys', () => ({
-    checkAndroidLandingPasskey: (signal: AbortSignal) => mockAndroidCheck(signal),
+    ...jest.requireActual('@/utils/landing-passkeys'),
     supportsIOSImmediateLogin: () => mockIOSCapability(),
     cancelIOSImmediateLogin: () => mockCancelIOS(),
 }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, onClick, disabled }: { children: ReactNode; onClick?: () => void; disabled?: boolean }) => (
-        <button data-control="full" onClick={onClick} disabled={disabled}>
+    Button: ({
+        children,
+        onClick,
+        disabled,
+        loading,
+    }: {
+        children: ReactNode
+        onClick?: () => void
+        disabled?: boolean
+        loading?: boolean
+    }) => (
+        <button data-control="full" data-loading={loading || undefined} onClick={onClick} disabled={disabled}>
             {children}
         </button>
     ),
@@ -56,21 +75,6 @@ jest.mock('@/components/0_Bruddle/LinkButton', () => ({
 jest.mock('../../components/SetupFooter', () => ({
     __esModule: true,
     default: ({
-        actions,
-        secondary,
-        children,
-    }: {
-        actions?: ReactNode
-        secondary?: ReactNode
-        children?: ReactNode
-    }) => (
-        <div>
-            {actions}
-            {secondary}
-            {children}
-        </div>
-    ),
-    SetupFooter: ({
         actions,
         secondary,
         children,
@@ -110,7 +114,9 @@ jest.mock('@/components/Setup/components/SetupDocsDrawer', () => ({
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/features/setup/useSignupControl', () => ({ useSignupControl: () => ({ track: jest.fn() }) }))
-jest.mock('../LoginRecoveryDrawer', () => ({ LoginRecoveryDrawer: () => null }))
+jest.mock('../LoginRecoveryDrawer', () => ({
+    LoginRecoveryDrawer: ({ visible }: { visible: boolean }) => (visible ? <div role="dialog">recovery</div> : null),
+}))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => true }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     useDeviceType: () => ({ deviceType: 'web' }),
@@ -118,6 +124,7 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 jest.mock('@/components/Migration/StoreButtons', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/utils/demo', () => ({ disableDemoMode: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 function deferred<T>() {
@@ -140,13 +147,64 @@ const advance = async (milliseconds: number) => {
         await Promise.resolve()
     })
 }
-const login = () => screen.queryByRole('button', { name: 'landing.logIn' })
-const expectEntryActions = () => {
-    expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
-    expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
+/** The curated error useZeroDev.handleLogin throws. */
+const passkeyError = (code: string) => Object.assign(new Error('curated'), { name: 'PasskeyError', code })
+const signUp = () => screen.getByRole('button', { name: 'landing.signUp' })
+const login = () => screen.getByRole('button', { name: 'landing.logIn' })
+const manualLogins = () => mockLogin.mock.calls.filter((args) => args.length === 0).length
+const loginErrors = () =>
+    (posthog.capture as jest.Mock).mock.calls
+        .filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR)
+        .map(([, properties]) => properties)
+/** Sign up and the full-size login button, both usable, and no text-link fallback. */
+const expectBothButtons = () => {
+    expect(signUp()).toBeEnabled()
+    expect(login()).toHaveAttribute('data-control', 'full')
+    expect(login()).toBeEnabled()
+    expect(login()).not.toHaveAttribute('data-loading')
+    expect(document.querySelector('[data-control="link"]')).toBeNull()
 }
-function ios() {
-    mockNative = { ...mockNative, platform: 'ios', isIOSNative: true, isAndroidNativeBridge: false }
+
+type Platform = 'ios' | 'ios-unsupported' | 'old-ios' | 'android' | 'hydrating' | 'web'
+function platform(name: Platform) {
+    if (name === 'android') {
+        mockNative = {
+            ...mockNative,
+            platform: 'android',
+            isIOSNative: false,
+            isAndroidNative: true,
+            isAndroidNativeBridge: true,
+        }
+    }
+    if (name === 'ios-unsupported') mockIOSCapability.mockResolvedValue(false)
+    if (name === 'old-ios') mockNative.isNativeBridge = false
+    if (name === 'hydrating') mockNative.isHydrated = false
+    if (name === 'web') {
+        mockNative = {
+            isCapacitor: false,
+            isHydrated: true,
+            isNativeBridge: false,
+            isIOSNative: false,
+            isAndroidNative: false,
+            isAndroidNativeBridge: false,
+            platform: 'web',
+        }
+    }
+}
+
+// A native request still pending at the deadline must not hold the fallback for the 60 s ceremony bound.
+// iOS can settle a retired request as a cancel, so the retirement, not the error, decides that it is no miss.
+function pendingAutoLogin() {
+    mockIOSCapability.mockResolvedValue(true)
+    mockLogin.mockImplementationOnce(
+        ({ cancelSignal }: { cancelSignal: AbortSignal }) =>
+            new Promise<void>((_, reject) => {
+                cancelSignal.addEventListener('abort', () => {
+                    mockIsLoggingIn = false
+                    reject(passkeyError('LOGIN_CANCELED'))
+                })
+            })
+    )
 }
 
 beforeEach(() => {
@@ -156,11 +214,12 @@ beforeEach(() => {
         isCapacitor: true,
         isHydrated: true,
         isNativeBridge: true,
-        isIOSNative: false,
-        isAndroidNativeBridge: true,
-        platform: 'android',
+        isIOSNative: true,
+        isAndroidNative: false,
+        isAndroidNativeBridge: false,
+        platform: 'ios',
     }
-    mockAndroidCheck.mockImplementation(() => new Promise(() => {}))
+    mockAvailabilityCall.mockImplementation(() => new Promise(() => {}))
     mockIOSCapability.mockImplementation(() => new Promise(() => {}))
     mockLogin.mockResolvedValue(undefined)
     mockCancelIOS.mockResolvedValue(undefined)
@@ -171,108 +230,62 @@ afterEach(() => {
     jest.useRealTimers()
 })
 
-describe('native landing passkey availability acceptance', () => {
-    it.each(['android', 'ios', 'old-ios', 'hydrating'])(
-        'keeps signup and recovery visible immediately on %s',
-        (platform) => {
-            if (platform.includes('ios')) ios()
-            if (platform === 'old-ios') mockNative.isNativeBridge = false
-            if (platform === 'hydrating') mockNative.isHydrated = false
+describe('landing login button from the first frame (TASK-24885)', () => {
+    it.each<Platform>(['ios', 'ios-unsupported', 'old-ios', 'android', 'hydrating', 'web'])(
+        'shows Sign up and the login button in the first render on %s',
+        async (name) => {
+            platform(name)
             render(<Landing />)
-            expectEntryActions()
-            expect(login()).not.toBeInTheDocument()
-            expect(mockLogin).not.toHaveBeenCalled()
+            expectBothButtons()
+            expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
+            await flush()
+            expectBothButtons()
         }
     )
 
-    it('reveals the full existing login action as soon as Android confirms availability', async () => {
-        const check = deferred<'available'>()
-        mockAndroidCheck.mockReturnValue(check.promise)
-        render(<Landing />)
-        expect(login()).not.toBeInTheDocument()
-        await act(async () => check.resolve('available'))
-        expect(login()).toHaveAttribute('data-control', 'full')
-        expect(mockLogin).not.toHaveBeenCalled()
-        fireEvent.click(login()!)
-        expect(mockLogin).toHaveBeenCalledWith()
-        await advance(5000)
-        expect(login()).toHaveAttribute('data-control', 'full')
-        expectEntryActions()
-    })
-
-    it.each(['empty', 'rejection'])('offers manual Android login after %s availability', async (outcome) => {
-        if (outcome === 'empty') mockAndroidCheck.mockResolvedValue('unavailable')
-        else mockAndroidCheck.mockRejectedValue(new Error('query failed'))
-        render(<Landing />)
-        expectEntryActions()
-        await flush()
-        expect(login()).toHaveAttribute('data-control', 'link')
-        await advance(5000)
-        expect(login()).toHaveAttribute('data-control', 'link')
-        expect(mockToastError).not.toHaveBeenCalled()
-        fireEvent.click(login()!)
-        expect(mockLogin).toHaveBeenCalledWith()
-        fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
-        expect(mockNext).toHaveBeenCalledTimes(1)
-    })
-
-    it('treats an unexpected Android response as unknown and offers manual fallback only at five seconds', async () => {
-        mockAndroidCheck.mockResolvedValue({ unexpected: true })
-        render(<Landing />)
-        await flush()
-        await advance(4999)
-        expect(login()).not.toBeInTheDocument()
-        expect(mockLogin).not.toHaveBeenCalled()
-        await advance(1)
-        expect(login()).toHaveAttribute('data-control', 'link')
-        expect(mockLogin).not.toHaveBeenCalled()
-        expectEntryActions()
-    })
-
-    it.each(['unknown', 'hung'])(
-        'offers a quiet manual login exactly at five seconds after Android %s',
-        async (outcome) => {
-            if (outcome === 'unknown') mockAndroidCheck.mockResolvedValue('unknown')
+    it.each<Platform>(['ios', 'ios-unsupported', 'old-ios', 'android', 'web'])(
+        'keeps the same login button through the 5 s deadline on %s',
+        async (name) => {
+            platform(name)
             render(<Landing />)
+            const first = login()
             await flush()
             await advance(4999)
-            expect(login()).not.toBeInTheDocument()
-            expect(mockLogin).not.toHaveBeenCalled()
             await advance(1)
-            expect(login()).toHaveAttribute('data-control', 'link')
-            expectEntryActions()
+            await flush()
+            // The same element in the same slot: nothing replaces it, so nothing shifts.
+            expect(login()).toBe(first)
+            expectBothButtons()
             expect(mockToastError).not.toHaveBeenCalled()
-            fireEvent.click(login()!)
-            expect(mockLogin).toHaveBeenCalledTimes(1)
-            expect(mockLogin).toHaveBeenCalledWith()
         }
     )
 
-    it.each(['available', 'unavailable'] as const)('ignores late Android %s results after timeout', async (outcome) => {
-        const check = deferred<'available' | 'unavailable'>()
-        mockAndroidCheck.mockReturnValue(check.promise)
+    it('does not ask Android for passkey availability', async () => {
+        platform('android')
         render(<Landing />)
-        const signal = mockAndroidCheck.mock.calls[0][0] as AbortSignal
-        expect(signal).toBeInstanceOf(AbortSignal)
+        await flush()
         await advance(5000)
-        expect(signal.aborted).toBe(true)
-        await act(async () => check.resolve(outcome))
-        expect(login()).toHaveAttribute('data-control', 'link')
-        expect(mockLogin).not.toHaveBeenCalled()
+        expect(mockAvailabilityCall).not.toHaveBeenCalled()
+        expect(mockIOSCapability).not.toHaveBeenCalled()
+        expectBothButtons()
+        fireEvent.click(login())
+        expect(mockLogin).toHaveBeenCalledWith()
     })
 
-    it('aborts the pending Android preparation when leaving the screen', async () => {
-        const view = render(<Landing />)
-        const signal = mockAndroidCheck.mock.calls[0][0] as AbortSignal
-        expect(signal.aborted).toBe(false)
-        view.unmount()
-        expect(signal.aborted).toBe(true)
+    it('logs in from the first frame on the keep-web layout without native probes', async () => {
+        platform('web')
+        render(<Landing />)
+        fireEvent.click(login())
+        expect(mockLogin).toHaveBeenCalledWith()
         await advance(5000)
-        expect(mockLogin).not.toHaveBeenCalled()
+        expect(mockAvailabilityCall).not.toHaveBeenCalled()
+        expect(mockIOSCapability).not.toHaveBeenCalled()
+        expect(mockLogin).toHaveBeenCalledTimes(1)
     })
+})
 
+describe('iOS automatic login', () => {
     it('starts iOS automatic login once only after early confirmed capability and aborts on leaving', async () => {
-        ios()
         const capability = deferred<boolean>()
         mockIOSCapability.mockReturnValue(capability.promise)
         mockLogin.mockImplementation(() => new Promise(() => {}))
@@ -294,48 +307,47 @@ describe('native landing passkey availability acceptance', () => {
         expect(signal.aborted).toBe(false)
         view.unmount()
         expect(signal.aborted).toBe(true)
-        expect(mockAndroidCheck).not.toHaveBeenCalled()
     })
 
-    // A native request still pending at the deadline must not hold the fallback for the 60 s ceremony bound.
-    function pendingAutoLogin() {
-        ios()
-        mockIOSCapability.mockResolvedValue(true)
-        mockLogin.mockImplementationOnce(
-            ({ cancelSignal }: { cancelSignal: AbortSignal }) =>
-                new Promise<void>((_, reject) => {
-                    cancelSignal.addEventListener('abort', () => {
-                        mockIsLoggingIn = false
-                        reject(new Error('CeremonyCancelledError'))
-                    })
-                })
-        )
-    }
-
-    it('keeps Log in and Sign up usable while the iOS automatic login is still pending after the deadline', async () => {
+    it('keeps both buttons usable, and the login button out of loading, while the automatic attempt is pending', async () => {
         pendingAutoLogin()
         const view = render(<Landing />)
         await flush()
         expect(mockLogin).toHaveBeenCalledTimes(1)
+        // useLogin reports the automatic ceremony as a login in flight.
         mockIsLoggingIn = true
         view.rerender(<Landing />)
+        expectBothButtons()
         await advance(5000)
-        expect(login()).toHaveAttribute('data-control', 'link')
-        expect(login()).toBeEnabled()
-        expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
+        expectBothButtons()
     })
 
-    it('Log in retires the pending automatic login and frees the native slot before the manual login starts', async () => {
+    it('stays quiet when the automatic attempt logs in', async () => {
+        mockIOSCapability.mockResolvedValue(true)
+        render(<Landing />)
+        await flush()
+        await flush()
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockLogin).toHaveBeenCalledWith(expect.objectContaining({ immediateSignal: expect.any(AbortSignal) }))
+        // useLogin owns the redirect; the landing adds no error UI and frees the native slot as before.
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+        expect(mockToastError).not.toHaveBeenCalled()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(loginErrors()).toEqual([])
+        expectBothButtons()
+    })
+
+    it('Log in retires the pending automatic login before one manual login, and a manual cancel then toasts', async () => {
         pendingAutoLogin()
+        mockLogin.mockImplementationOnce(() => Promise.reject(passkeyError('LOGIN_CANCELED')))
         const view = render(<Landing />)
         await flush()
         const { cancelSignal } = mockLogin.mock.calls[0][0] as { cancelSignal: AbortSignal }
         mockIsLoggingIn = true
         view.rerender(<Landing />)
-        await advance(5000)
         const cancelled = deferred<void>()
         mockCancelIOS.mockReturnValueOnce(cancelled.promise)
-        fireEvent.click(login()!)
+        fireEvent.click(login())
         await flush()
         expect(cancelSignal.aborted).toBe(true)
         expect(mockCancelIOS).toHaveBeenCalledTimes(1)
@@ -343,12 +355,31 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockLogin).toHaveBeenCalledTimes(1)
         await act(async () => cancelled.resolve())
         await flush()
+        await flush()
         expect(mockLogin).toHaveBeenCalledTimes(2)
         expect(mockLogin).toHaveBeenLastCalledWith()
-        // a second tap while the manual login runs does not start another one
+        // A retired attempt is no miss, so the first manual cancel keeps the toast.
+        expect(mockToastError).toHaveBeenCalledTimes(1)
+        expect(mockToastError).toHaveBeenCalledWith('passkey.notCompleted')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false })])
+        // a second tap while a manual login runs does not start another one
         mockIsLoggingIn = true
         view.rerender(<Landing />)
         expect(login()).toBeDisabled()
+    })
+
+    it('a double tap on Log in during the automatic attempt starts one manual login', async () => {
+        pendingAutoLogin()
+        render(<Landing />)
+        await flush()
+        fireEvent.click(login())
+        fireEvent.click(login())
+        await flush()
+        await flush()
+        await flush()
+        expect(manualLogins()).toBe(1)
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
     })
 
     it('Sign up retires the pending automatic login before leaving the landing', async () => {
@@ -358,18 +389,18 @@ describe('native landing passkey availability acceptance', () => {
         const { cancelSignal } = mockLogin.mock.calls[0][0] as { cancelSignal: AbortSignal }
         mockIsLoggingIn = true
         view.rerender(<Landing />)
-        await advance(5000)
-        fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
+        fireEvent.click(signUp())
         await flush()
         await flush()
         expect(cancelSignal.aborted).toBe(true)
         expect(mockCancelIOS).toHaveBeenCalledTimes(1)
         expect(mockNext).toHaveBeenCalledTimes(1)
         expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect((posthog.capture as jest.Mock).mock.calls).toEqual([[ANALYTICS_EVENTS.SIGNUP_CLICKED]])
+        expect(mockToastError).not.toHaveBeenCalled()
     })
 
     it('frees the native slot when the automatic attempt times out, so the next Log in is not refused', async () => {
-        ios()
         mockIOSCapability.mockResolvedValue(true)
         // The native callback never arrives; the ceremony guard gives up at its 60 s bound.
         mockLogin.mockImplementationOnce(
@@ -377,7 +408,7 @@ describe('native landing passkey availability acceptance', () => {
                 new Promise<void>((_, reject) => {
                     setTimeout(() => {
                         mockIsLoggingIn = false
-                        reject(new Error('CeremonyTimeoutError'))
+                        reject(passkeyError('CEREMONY_TIMEOUT'))
                     }, 60_000)
                 })
         )
@@ -391,59 +422,99 @@ describe('native landing passkey availability acceptance', () => {
         await flush()
         expect(mockCancelIOS).toHaveBeenCalledTimes(1)
         view.rerender(<Landing />)
-        fireEvent.click(login()!)
+        fireEvent.click(login())
         expect(mockLogin).toHaveBeenCalledTimes(2)
         expect(mockLogin).toHaveBeenLastCalledWith()
         expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+        expect(mockToastError).not.toHaveBeenCalled()
     })
 
     it('a manual login in flight still disables Log in when no automatic attempt is pending', async () => {
-        ios()
-        mockIOSCapability.mockResolvedValue(false)
+        platform('ios-unsupported')
         mockIsLoggingIn = true
         render(<Landing />)
         await flush()
-        await advance(5000)
         expect(login()).toBeDisabled()
+        expect(login()).toHaveAttribute('data-loading', 'true')
         expect(mockCancelIOS).not.toHaveBeenCalled()
     })
 
-    it('keeps an ambiguous iOS rejection quiet and exposes manual fallback at the original deadline', async () => {
-        ios()
+    it('keeps an ambiguous automatic rejection quiet and leaves Log in as it was', async () => {
         mockIOSCapability.mockResolvedValue(true)
         mockLogin.mockRejectedValueOnce(new Error('ambiguous native failure'))
         render(<Landing />)
         await flush()
+        await flush()
         expect(mockLogin).toHaveBeenCalledTimes(1)
-        await advance(4999)
-        expect(login()).not.toBeInTheDocument()
-        await advance(1)
-        expect(login()).toHaveAttribute('data-control', 'link')
         expect(mockToastError).not.toHaveBeenCalled()
-        fireEvent.click(login()!)
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expectBothButtons()
+        fireEvent.click(login())
         expect(mockLogin).toHaveBeenLastCalledWith()
     })
 
     it.each(['old bridge', 'unsupported', 'rejected', 'hung'])(
         'never automatically opens iOS UI for %s',
         async (outcome) => {
-            ios()
             if (outcome === 'old bridge') mockNative.isNativeBridge = false
             if (outcome === 'unsupported') mockIOSCapability.mockResolvedValue(false)
             if (outcome === 'rejected') mockIOSCapability.mockRejectedValue(new Error('capability unavailable'))
             render(<Landing />)
             await flush()
-            await advance(4999)
-            expect(login()).not.toBeInTheDocument()
-            await advance(1)
-            expect(login()).toHaveAttribute('data-control', 'link')
+            await advance(5000)
+            expectBothButtons()
             expect(mockLogin).not.toHaveBeenCalled()
             expect(mockToastError).not.toHaveBeenCalled()
         }
     )
 
+    it('an old binary has no automatic attempt: the first manual cancel toasts, the second opens recovery', async () => {
+        platform('ios-unsupported')
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_CANCELED'))
+        render(<Landing />)
+        await flush()
+        expect(mockLogin).not.toHaveBeenCalled()
+        fireEvent.click(login())
+        await flush()
+        expect(mockToastError).toHaveBeenCalledTimes(1)
+        expect(mockToastError).toHaveBeenCalledWith('passkey.notCompleted')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        fireEvent.click(login())
+        await flush()
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+        expect(mockToastError).toHaveBeenCalledTimes(1)
+        expect(loginErrors()).toEqual([
+            expect.objectContaining({ error_code: 'LOGIN_CANCELED', recovery_drawer: false }),
+            expect.objectContaining({ error_code: 'LOGIN_CANCELED', recovery_drawer: true }),
+        ])
+    })
+
+    it('a preparation cut off by the 5 s deadline is no miss: the next manual cancel toasts', async () => {
+        mockIOSCapability.mockResolvedValue(true)
+        // handleLogin classifies the expired preparation (AbortError) as LOGIN_ERROR.
+        mockLogin.mockImplementationOnce(
+            ({ immediateSignal }: { immediateSignal: AbortSignal }) =>
+                new Promise<void>((_, reject) => {
+                    immediateSignal.addEventListener('abort', () => reject(passkeyError('LOGIN_ERROR')))
+                })
+        )
+        mockLogin.mockImplementationOnce(() => Promise.reject(passkeyError('LOGIN_CANCELED')))
+        render(<Landing />)
+        await flush()
+        await advance(5000)
+        await flush()
+        await flush()
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+        expect(mockToastError).not.toHaveBeenCalled()
+        fireEvent.click(login())
+        await flush()
+        expect(manualLogins()).toBe(1)
+        expect(mockToastError).toHaveBeenCalledWith('passkey.notCompleted')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(loginErrors()).toEqual([expect.objectContaining({ recovery_drawer: false })])
+    })
+
     it('does not auto-login after the wall-clock deadline even when the deadline timer has not fired', async () => {
-        ios()
         const capability = deferred<boolean>()
         mockIOSCapability.mockReturnValue(capability.promise)
         render(<Landing />)
@@ -453,14 +524,13 @@ describe('native landing passkey availability acceptance', () => {
     })
 
     function selectIOSFallback(action: 'signup' | 'recovery') {
-        if (action === 'signup') fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
+        if (action === 'signup') fireEvent.click(signUp())
         else fireEvent.click(screen.getByText('landing.recoverWallet'))
     }
 
     it.each(['signup', 'recovery'] as const)(
         'does not start iOS auto-login after %s during capability lookup',
         async (action) => {
-            ios()
             const capability = deferred<boolean>()
             mockIOSCapability.mockReturnValue(capability.promise)
             render(<Landing />)
@@ -477,7 +547,6 @@ describe('native landing passkey availability acceptance', () => {
     it.each(['signup', 'recovery'] as const)(
         'prevents a late iOS picker after %s during options fetch',
         async (action) => {
-            ios()
             mockIOSCapability.mockResolvedValue(true)
             const options = deferred<void>()
             const dispatchPicker = jest.fn()
@@ -506,14 +575,13 @@ describe('native landing passkey availability acceptance', () => {
     )
 
     it('ignores iOS capability confirmed after timeout or unmount', async () => {
-        ios()
         const capability = deferred<boolean>()
         mockIOSCapability.mockReturnValue(capability.promise)
         const view = render(<Landing />)
         await advance(5000)
         await act(async () => capability.resolve(true))
         expect(mockLogin).not.toHaveBeenCalled()
-        expect(login()).toHaveAttribute('data-control', 'link')
+        expectBothButtons()
         view.unmount()
         const secondCapability = deferred<boolean>()
         mockIOSCapability.mockReturnValue(secondCapability.promise)
@@ -521,25 +589,5 @@ describe('native landing passkey availability acceptance', () => {
         secondView.unmount()
         await act(async () => secondCapability.resolve(true))
         expect(mockLogin).not.toHaveBeenCalled()
-    })
-
-    it('preserves immediate full login for keep-web users without native probes', async () => {
-        mockNative = {
-            isCapacitor: false,
-            isHydrated: true,
-            isNativeBridge: false,
-            isIOSNative: false,
-            isAndroidNativeBridge: false,
-            platform: 'web',
-        }
-        render(<Landing />)
-        expect(login()).toHaveAttribute('data-control', 'full')
-        expectEntryActions()
-        await advance(5000)
-        expect(mockAndroidCheck).not.toHaveBeenCalled()
-        expect(mockIOSCapability).not.toHaveBeenCalled()
-        expect(mockLogin).not.toHaveBeenCalled()
-        fireEvent.click(login()!)
-        expect(mockLogin).toHaveBeenCalledWith()
     })
 })
