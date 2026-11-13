@@ -11,10 +11,10 @@ jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => nu
 jest.mock('@/features/pix/components/PixUnavailableScreen', () => ({
     PixUnavailableScreen: () => <div>unavailable</div>,
 }))
-type SheetProps = { visible: boolean; country?: string; onComplete: () => void; onSkip: () => void }
+type SheetProps = { visible: boolean; country?: string; unlocks?: string; onComplete: () => void; onSkip: () => void }
 const mockSheet = (name: string, props: SheetProps) =>
     props.visible ? (
-        <div data-testid={name} data-country={props.country}>
+        <div data-testid={name} data-country={props.country} data-unlocks={props.unlocks}>
             <button onClick={props.onSkip}>not now</button>
         </div>
     ) : null
@@ -68,6 +68,8 @@ describe('PixRailStep', () => {
         mockNextActions = [{ key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }]
         renderStep(route('accept-tos'))
         expect(screen.getByTestId('bridge-terms')).toHaveAttribute('data-country', 'BR')
+        // the terms say they turn on Pix, not bank transfers
+        expect(screen.getByTestId('bridge-terms')).toHaveAttribute('data-unlocks', en.home.pendingTasks.corridors.BRL)
         fireEvent.click(screen.getByRole('button', { name: 'not now' }))
         expect(screen.queryByTestId('bridge-terms')).toBeNull()
         fireEvent.click(screen.getByRole('button', { name: en.common.continue }))
@@ -130,6 +132,26 @@ describe('PixRailStep', () => {
         mockNextActions = [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'restart-identity' }]
         renderStep(route('restart-identity'))
         expect(mockKycPage).toHaveBeenCalledWith(expect.objectContaining({ variant: 'restart_identity' }))
+    })
+
+    // ruled 13 Nov (orchestrator): Manteca's Pix route gets the same screens; before, "contact support"
+    it("runs a Manteca route's document step as Manteca's own fix", () => {
+        const step: NextAction = {
+            key: 'sumsub:pep_documentation',
+            kind: 'sumsub',
+            purpose: 'unlock-manteca',
+            levelKey: 'pep_documentation',
+        }
+        mockNextActions = [step]
+        renderStep(route(step.key, { provider: 'manteca', operation: 'deposit' }))
+        expect(mockKycPage).toHaveBeenCalledWith(
+            expect.objectContaining({ presentation: 'page', variant: 'provider_rejection', nextAction: step })
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'start the step' }))
+        expect(mockVerify).toHaveBeenCalledWith(expect.objectContaining({ actionKey: step.key }), {
+            provider: 'MANTECA',
+            returnTo: '/withdraw/pix',
+        })
     })
 
     it('sends a route whose provider runs no identity fix to support', () => {

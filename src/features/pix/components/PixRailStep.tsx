@@ -51,6 +51,7 @@ export function PixRailStep({
 }) {
     const t = useTranslations('pix.setup')
     const tCommon = useTranslations('common')
+    const tHome = useTranslations('home')
     const pathname = usePathname()
     const { rails, nextActions } = useCapabilities()
     const sumsubFlow = useMultiPhaseKycFlow({})
@@ -97,6 +98,8 @@ export function PixRailStep({
                     <BridgeTosStep
                         visible={sheetOpen}
                         country={PIX_COUNTRY}
+                        // the terms turn on what this page is for, in the words the hosted-check task uses
+                        unlocks={tHome('pendingTasks.corridors.BRL')}
                         onComplete={closeSheet}
                         onSkip={closeSheet}
                     />

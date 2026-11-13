@@ -3438,6 +3438,7 @@
         "bridgeTos": {
             "title": "Accept terms",
             "description": "Accept the provider's terms to turn on bank transfers.",
+            "descriptionFor": "Accept the provider's terms to turn on {unlocks}.",
             "lastStepDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
