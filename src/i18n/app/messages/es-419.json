@@ -926,7 +926,7 @@
                 "description": "Te encuentran y te pagan con tu usuario."
             },
             "passkey": {
-                "title": "Crea tu passkey",
+                "title": "Crea una passkey",
                 "description": "Te permite iniciar sesión y aprobar pagos. Sin contraseñas que recordar."
             },
             "advantage-payments": {
@@ -1125,15 +1125,15 @@
             "create": "Crear passkey",
             "points": {
                 "unlock": {
-                    "title": "Tu cara o tu huella",
+                    "title": "Cara o huella",
                     "description": "Desbloquea con lo que ya usas en tu teléfono."
                 },
                 "control": {
-                    "title": "Solo tú tienes el control",
+                    "title": "Totalmente privada",
                     "description": "Peanut nunca la ve ni la guarda."
                 },
                 "backup": {
-                    "title": "Lista en tu nuevo teléfono",
+                    "title": "Lista en un teléfono nuevo",
                     "description": "Se guarda en tu cuenta de Google o Apple."
                 }
             },

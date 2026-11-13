@@ -522,7 +522,7 @@
                 }
             },
             "passkey": {
-                "title": "Creá tu passkey"
+                "title": "Creá una passkey"
             },
             "advantage-payments": {
                 "title": "Pagale a cualquiera con un toque.",
@@ -643,7 +643,7 @@
                     "description": "Desbloqueá con lo que ya usás en tu teléfono."
                 },
                 "control": {
-                    "title": "Solo vos tenés el control"
+                    "title": "Totalmente privada"
                 }
             },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",

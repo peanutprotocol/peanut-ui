@@ -319,16 +319,16 @@ describe('the passkey screen', () => {
     it('explains passkeys and offers Create passkey and Learn more', async () => {
         renderAt()
         expect(await screen.findByRole('button', { name: 'Create passkey' })).toBeInTheDocument()
-        expect(screen.getByText('Create your passkey')).toBeInTheDocument()
+        expect(screen.getByText('Create a passkey')).toBeInTheDocument()
         expect(
             screen.getByText('It’s how you sign in and approve payments. No password to remember.', {
                 normalizer: (text) => text.replace(/['’]/g, '’').trim(),
             })
         ).toBeInTheDocument()
         for (const text of [
-            /Your face or fingerprint/,
+            /Face or fingerprint/,
             /Unlock with what your phone already uses\./,
-            /Only you control it/,
+            /Fully private/,
             /Peanut never sees or stores it\./,
             /Ready on a new phone/,
             /Saved to your Google or Apple account\./,
@@ -361,7 +361,7 @@ describe('the passkey screen', () => {
         }
         const at = (catalog: unknown, path: string[]) =>
             path.reduce<unknown>((node, key) => (node as Record<string, unknown> | undefined)?.[key], catalog)
-        for (const english of ['Create your passkey', 'Create passkey']) {
+        for (const english of ['Create a passkey', 'Create passkey']) {
             const path = pathTo(en, english)
             expect(path).not.toBeNull()
             for (const catalog of [es419, ptBR]) {

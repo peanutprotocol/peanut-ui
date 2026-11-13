@@ -926,7 +926,7 @@
                 "description": "People find and pay you by your username."
             },
             "passkey": {
-                "title": "Create your passkey",
+                "title": "Create a passkey",
                 "description": "It's how you sign in and approve payments. No password to remember."
             },
             "advantage-payments": {
@@ -1125,11 +1125,11 @@
             "create": "Create passkey",
             "points": {
                 "unlock": {
-                    "title": "Your face or fingerprint",
+                    "title": "Face or fingerprint",
                     "description": "Unlock with what your phone already uses."
                 },
                 "control": {
-                    "title": "Only you control it",
+                    "title": "Fully private",
                     "description": "Peanut never sees or stores it."
                 },
                 "backup": {
