@@ -2,7 +2,6 @@ package me.peanut.wallet;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.util.AtomicFile;
 
 import androidx.annotation.NonNull;
 
@@ -25,13 +24,7 @@ import com.meawallet.mpp.MppErrorCode;
 import com.meawallet.mpp.MppPaymentNetwork;
 import com.meawallet.mpp.MppPushCardToGooglePayListener;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 /**
  * Google Pay push provisioning via the MeaWallet MPP SDK. This file lives in
@@ -43,131 +36,6 @@ import org.json.JSONObject;
  */
 @CapacitorPlugin(name = "PushProvisioning")
 public class PushProvisioningPlugin extends Plugin {
-
-    // Only the latest confirmed card is retained in the app's no-backup directory.
-    private static final Object BINDING_LOCK = new Object();
-    private static long bindingGeneration;
-
-    private AtomicFile bindingFile() {
-        return new AtomicFile(new File(getContext().getNoBackupFilesDir(), "google-wallet-binding.json"));
-    }
-
-    private static boolean isCurrentGeneration(long generation) {
-        synchronized (BINDING_LOCK) {
-            return generation == bindingGeneration;
-        }
-    }
-
-    private void saveBinding(long generation, String cardId, String tokenId, MppPaymentNetwork network) {
-        if (cardId == null || cardId.isEmpty() || cardId.length() > 128
-                || tokenId == null || tokenId.isEmpty() || tokenId.length() > 256
-                || network == null || network == MppPaymentNetwork.CARD_NETWORK_NOT_FOUND) return;
-        synchronized (BINDING_LOCK) {
-            if (generation != bindingGeneration) return;
-            AtomicFile file = bindingFile();
-            FileOutputStream stream = null;
-            try {
-                JSONObject data = new JSONObject();
-                data.put("cardId", cardId);
-                data.put("tokenId", tokenId);
-                data.put("network", network.name());
-                stream = file.startWrite();
-                stream.write(data.toString().getBytes(StandardCharsets.UTF_8));
-                file.finishWrite(stream);
-            } catch (IOException | JSONException ignored) {
-                if (stream != null) file.failWrite(stream);
-            }
-        }
-    }
-
-    @PluginMethod
-    public void clearWalletSession(PluginCall call) {
-        synchronized (BINDING_LOCK) {
-            bindingGeneration++;
-            bindingFile().delete();
-        }
-        call.resolve();
-    }
-
-    private static void resolveStatus(PluginCall call, String status) {
-        JSObject result = new JSObject();
-        result.put("status", status);
-        call.resolve(result);
-    }
-
-    @PluginMethod
-    public void getGoogleWalletCardStatus(PluginCall call) {
-        String cardId = call.getString("cardId");
-        if (cardId == null || cardId.isEmpty() || cardId.length() > 128) {
-            resolveStatus(call, "unknown");
-            return;
-        }
-        final String tokenId;
-        final MppPaymentNetwork network;
-        final long generation;
-        synchronized (BINDING_LOCK) {
-            generation = bindingGeneration;
-            try {
-                AtomicFile file = bindingFile();
-                if (file.getBaseFile().length() > 4096) {
-                    resolveStatus(call, "unknown");
-                    return;
-                }
-                JSONObject data = new JSONObject(new String(file.readFully(), StandardCharsets.UTF_8));
-                tokenId = data.getString("tokenId");
-                network = MppPaymentNetwork.valueOf(data.getString("network"));
-                if (!cardId.equals(data.getString("cardId")) || tokenId.isEmpty() || tokenId.length() > 256
-                        || network == MppPaymentNetwork.CARD_NETWORK_NOT_FOUND) {
-                    resolveStatus(call, "unknown");
-                    return;
-                }
-            } catch (IOException | JSONException | IllegalArgumentException ignored) {
-                resolveStatus(call, "unknown");
-                return;
-            }
-        }
-        if (!hasMeaConfig() || !initialize(getContext())) {
-            resolveStatus(call, "unknown");
-            return;
-        }
-        try {
-            MeaPushProvisioning.GooglePay.checkWalletForToken(network, tokenId, new GooglePayTokenListener() {
-                @Override
-                public void onSuccess(@NonNull GooglePayTokenInfo token) {
-                    if (!isCurrentGeneration(generation) || !tokenId.equals(token.getTokenId())
-                            || network != token.getPaymentNetwork() || token.getTokenState() == null) {
-                        resolveStatus(call, "unknown");
-                        return;
-                    }
-                    switch (token.getTokenState()) {
-                        case TOKEN_STATE_ACTIVE:
-                        case TOKEN_STATE_SUSPENDED:
-                            resolveStatus(call, "present");
-                            return;
-                        case TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION:
-                        case TOKEN_STATE_PENDING:
-                        case TOKEN_STATE_FELICA_PENDING_PROVISIONING:
-                            resolveStatus(call, "pending");
-                            return;
-                        case TOKEN_STATE_UNTOKENIZED:
-                            resolveStatus(call, "absent");
-                            return;
-                        default:
-                            resolveStatus(call, "unknown");
-                    }
-                }
-
-                @Override
-                public void onFailure(@NonNull MppError error) {
-                    boolean missing = isCurrentGeneration(generation)
-                            && error.getCode() == MppErrorCode.GOOGLE_PAY_TOKEN_NOT_FOUND;
-                    resolveStatus(call, missing ? "absent" : "unknown");
-                }
-            });
-        } catch (Exception ignored) {
-            resolveStatus(call, "unknown");
-        }
-    }
 
     private static boolean initialize(android.content.Context context) {
         try {
@@ -278,7 +146,6 @@ public class PushProvisioningPlugin extends Plugin {
     @PluginMethod
     public void addCard(PluginCall call) {
         String cardId = call.getString("cardId");
-        final String peanutCardId = call.getString("peanutCardId");
         String cardSecret = call.getString("cardSecret");
         if (cardId == null || cardSecret == null) {
             call.reject("cardId and cardSecret are required", "BAD_PARAMS");
@@ -301,10 +168,6 @@ public class PushProvisioningPlugin extends Plugin {
             call.reject("Unable to prepare card for MeaWallet SDK", "SDK_ERROR");
             return;
         }
-        final long generation;
-        synchronized (BINDING_LOCK) {
-            generation = ++bindingGeneration;
-        }
         String displayName = call.getString("displayName", "Peanut Card");
         UserAddress userAddress = buildUserAddress(call);
 
@@ -321,12 +184,10 @@ public class PushProvisioningPlugin extends Plugin {
                         case TOKEN_STATE_NEEDS_IDENTITY_VERIFICATION:
                         case TOKEN_STATE_PENDING:
                         case TOKEN_STATE_FELICA_PENDING_PROVISIONING:
-                            resumeTokenization(call, token, displayName, activity, peanutCardId, generation);
+                            resumeTokenization(call, token, displayName, activity);
                             return;
                         case TOKEN_STATE_ACTIVE:
                         case TOKEN_STATE_SUSPENDED: {
-                            if (!canContinueAdd(call, generation)) return;
-                            saveBinding(generation, peanutCardId, token.getTokenId(), token.getPaymentNetwork());
                             JSObject out = new JSObject();
                             out.put("added", false);
                             out.put("alreadyInWallet", true);
@@ -334,37 +195,26 @@ public class PushProvisioningPlugin extends Plugin {
                             return;
                         }
                         default:
-                            pushNewCard(call, cardParams, displayName, userAddress, activity, peanutCardId, generation);
+                            pushNewCard(call, cardParams, displayName, userAddress, activity);
                     }
                 }
 
                 @Override
                 public void onFailure(@NonNull MppError error) {
-                    pushNewCard(call, cardParams, displayName, userAddress, activity, peanutCardId, generation);
+                    pushNewCard(call, cardParams, displayName, userAddress, activity);
                 }
             });
         } catch (Exception e) {
-            pushNewCard(call, cardParams, displayName, userAddress, activity, peanutCardId, generation);
+            pushNewCard(call, cardParams, displayName, userAddress, activity);
         }
     }
 
-    private static boolean canContinueAdd(PluginCall call, long generation) {
-        if (isCurrentGeneration(generation)) return true;
-        JSObject result = new JSObject();
-        result.put("added", false);
-        result.put("canceled", true);
-        call.resolve(result);
-        return false;
-    }
-
     /** Yellow path: the token exists but Google still needs the ID&V challenge. */
-    private void resumeTokenization(PluginCall call, GooglePayTokenInfo token, String displayName, Activity activity, String peanutCardId, long generation) {
-        if (!canContinueAdd(call, generation)) return;
+    private static void resumeTokenization(PluginCall call, GooglePayTokenInfo token, String displayName, Activity activity) {
         try {
             MeaPushProvisioning.GooglePay.tokenize(token, displayName, activity, new GooglePayTokenizeListener() {
                 @Override
                 public void onSuccess() {
-                    saveBinding(generation, peanutCardId, token.getTokenId(), token.getPaymentNetwork());
                     JSObject out = new JSObject();
                     out.put("added", true);
                     call.resolve(out);
@@ -380,15 +230,13 @@ public class PushProvisioningPlugin extends Plugin {
         }
     }
 
-    private void pushNewCard(PluginCall call, MppCardDataParameters cardParams, String displayName, UserAddress userAddress, Activity activity, String peanutCardId, long generation) {
-        if (!canContinueAdd(call, generation)) return;
+    private static void pushNewCard(PluginCall call, MppCardDataParameters cardParams, String displayName, UserAddress userAddress, Activity activity) {
         // Intermediate results come back through onActivityResult —
         // MainActivity forwards them to handleGooglePayActivityResult above.
         try {
             MeaPushProvisioning.GooglePay.push(cardParams, displayName, userAddress, activity, new MppPushCardToGooglePayListener() {
                 @Override
                 public void onSuccess(String tokenReferenceId, String cardLastFourDigits, MppPaymentNetwork cardNetwork) {
-                    saveBinding(generation, peanutCardId, tokenReferenceId, cardNetwork);
                     JSObject out = new JSObject();
                     out.put("added", true);
                     out.put("last4", cardLastFourDigits);

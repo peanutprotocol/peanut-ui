@@ -1,5 +1,4 @@
 'use client'
-import { App } from '@capacitor/app'
 import { useNativePlatform } from '@/utils/native-platform'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
@@ -13,7 +12,6 @@ import {
     addCardToWallet,
     clearWalletStateIfCardMatches,
     getPushProvisioningAvailability,
-    getGoogleWalletCardStatus,
     PUSH_PROVISIONING_FLAGS,
     rememberCardForWallet,
     syncWalletAuthorizationToken,
@@ -53,7 +51,6 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const [isAdding, setIsAdding] = useState(false)
     const [alreadyInWallet, setAlreadyInWallet] = useState(false)
     const addingRef = useRef(false)
-    const statusSequence = useRef(0)
     const [checkedScope, setCheckedScope] = useState('')
     const availabilityScope = `${wallet}:${flagOn}:${card.id}:${card.last4}`
     const availabilityScopeRef = useRef(availabilityScope)
@@ -106,56 +103,6 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             clearTimeout(timeout)
         }
     }, [availabilityScope, flagOn, card.id, card.last4, wallet])
-
-    useEffect(() => {
-        if (!flagOn || wallet !== 'google' || !card.id) return
-        let cancelled = false
-        let removeListener: (() => void) | undefined
-        const timers = new Set<ReturnType<typeof setTimeout>>()
-        const refresh = () => {
-            if (cancelled) return
-            const sequence = ++statusSequence.current
-            const epoch = getClearEpoch()
-            let timeout: ReturnType<typeof setTimeout> | undefined
-            void Promise.race([
-                Promise.resolve()
-                    .then(() => getGoogleWalletCardStatus(card.id))
-                    .catch(() => 'unknown' as const),
-                new Promise<'unknown'>((resolve) => {
-                    timeout = setTimeout(() => resolve('unknown'), AVAILABILITY_TIMEOUT_MS)
-                    timers.add(timeout)
-                }),
-            ]).then((status) => {
-                if (timeout !== undefined) {
-                    clearTimeout(timeout)
-                    timers.delete(timeout)
-                }
-                if (cancelled || sequence !== statusSequence.current || getClearEpoch() !== epoch) return
-                // An OTA can run on a binary that predates this method. Preserve its mounted add result.
-                if (status !== 'unsupported') setAlreadyInWallet(status === 'present')
-            })
-        }
-        refresh()
-        void Promise.resolve()
-            .then(() =>
-                App.addListener('appStateChange', ({ isActive }) => {
-                    if (isActive) refresh()
-                })
-            )
-            .then((listener) => {
-                if (cancelled) void listener.remove()
-                else
-                    removeListener = () => {
-                        void listener.remove()
-                    }
-            })
-            .catch(() => {})
-        return () => {
-            cancelled = true
-            timers.forEach(clearTimeout)
-            removeListener?.()
-        }
-    }, [availabilityScope, card.id, flagOn, wallet])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
         if (!flagOn || wallet === null || !nativeAvailable || checkedScope !== availabilityScope || addingRef.current) {
@@ -240,9 +187,9 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 { wallet, error: result.error }
             )
             if (wallet === 'google' && (result.added || result.alreadyInWallet)) {
-                statusSequence.current++
                 // Both results identify the exact card, unlike a suffix match.
                 if (availabilityScopeRef.current === scopeAtStart) {
+                    setNativeAvailable(false)
                     setAlreadyInWallet(true)
                 }
             } else if (result.added) {
@@ -275,11 +222,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     }, [availabilityScope, card.id, card.last4, checkedScope, flagOn, nativeAvailable, wallet])
 
     return {
-        nativeAvailable:
-            flagOn &&
-            checkedScope === availabilityScope &&
-            nativeAvailable &&
-            !(wallet === 'google' && alreadyInWallet),
+        nativeAvailable: flagOn && checkedScope === availabilityScope && nativeAvailable,
         alreadyInWallet: flagOn && checkedScope === availabilityScope && alreadyInWallet,
         isChecking: flagOn && checkedScope !== availabilityScope,
         isAdding,

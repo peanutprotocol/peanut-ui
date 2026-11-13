@@ -5,14 +5,12 @@
 import {
     addCardToWallet,
     clearWalletSession,
-    getGoogleWalletCardStatus,
     getPushProvisioningAvailability,
     syncWalletAuthorizationToken,
 } from '../push-provisioning'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 
 const isAvailable = jest.fn()
-const getGoogleWalletCardStatusNative = jest.fn()
 const addCard = jest.fn()
 const setWalletAuthorizationToken = jest.fn()
 const clearWalletCard = jest.fn()
@@ -22,7 +20,6 @@ const nativeClearWalletSession = jest.fn()
 jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({
         isAvailable: (o: unknown) => isAvailable(o),
-        getGoogleWalletCardStatus: (o: unknown) => getGoogleWalletCardStatusNative(o),
         addCard: (o: unknown) => addCard(o),
         setWalletAuthorizationToken: (o: unknown) => setWalletAuthorizationToken(o),
         clearWalletCard: (o: unknown) => clearWalletCard(o),
@@ -75,38 +72,6 @@ describe('getPushProvisioningAvailability', () => {
             alreadyInWallet: false,
         })
     })
-})
-
-describe('getGoogleWalletCardStatus', () => {
-    beforeEach(() => {
-        getGoogleWalletCardStatusNative.mockReset()
-        mockIsIOSNative.mockReturnValue(false)
-        mockIsAndroidNative.mockReturnValue(true)
-    })
-
-    it.each(['present', 'absent', 'pending', 'unknown'] as const)(
-        'passes through %s for the exact card',
-        async (status) => {
-            getGoogleWalletCardStatusNative.mockResolvedValue({ status })
-            await expect(getGoogleWalletCardStatus('peanut-card')).resolves.toBe(status)
-            expect(getGoogleWalletCardStatusNative).toHaveBeenCalledWith({ cardId: 'peanut-card' })
-        }
-    )
-
-    it('distinguishes an older binary from a native lookup failure', async () => {
-        getGoogleWalletCardStatusNative.mockRejectedValueOnce({ code: 'UNIMPLEMENTED' })
-        await expect(getGoogleWalletCardStatus('peanut-card')).resolves.toBe('unsupported')
-        getGoogleWalletCardStatusNative.mockRejectedValueOnce({ code: 'UNAVAILABLE' })
-        await expect(getGoogleWalletCardStatus('peanut-card')).resolves.toBe('unknown')
-    })
-
-    it.each([null, undefined, { status: true }, { status: 'active' }])(
-        'treats malformed payload %j as unknown',
-        async (value) => {
-            getGoogleWalletCardStatusNative.mockResolvedValue(value)
-            await expect(getGoogleWalletCardStatus('peanut-card')).resolves.toBe('unknown')
-        }
-    )
 })
 
 describe('addCardToWallet', () => {
