@@ -33,7 +33,8 @@ export async function bootstrapTrackedLinkEntry(
             registerWebDistinctId(handoff)
         }
     }
-    stashAcquisitionInvite(params.has('tl') ? params.get('acq_invite') : legacyCode)
+    // A tracked link's passive inviter is its own username; an edited pair stashes nothing.
+    if (!params.has('tl') || params.get('acq_invite') === slug) stashAcquisitionInvite(slug)
 
     const journey = await captureTrackedLinkJourney()
     // Legacy codes predate the visit event, so only /go openings count as visits.

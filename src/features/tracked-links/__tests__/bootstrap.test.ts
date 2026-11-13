@@ -204,6 +204,20 @@ it('upgrades a distributed legacy /app?code= link without counting a visit', asy
     expect(fetchMock).not.toHaveBeenCalled()
 })
 
+it('never assigns an inviter other than the tracked creator', async () => {
+    await bootstrapTrackedLinkEntry(visit('/app?tl=alice&acq_invite=bob'), false)
+    expect(readInviteCode()).toBe('')
+    // A direct associated URL, mapped the way the app maps it.
+    const path = deepLinkToNativePath('https://peanut.me/home?app_entry=1&tl=alice&acq_invite=bob')!
+    await bootstrapTrackedLinkEntry(new URL(path, 'https://peanut.me').searchParams, true)
+    expect(readInviteCode()).toBe('')
+    // A deferred store payload.
+    applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=bob')!)
+    expect(readInviteCode()).toBe('')
+    applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=alice')!)
+    expect(readInviteCode()).toBe('alice')
+})
+
 it.each(['/app?tl=al-ice&acq_invite=alice', '/app?code=al%2Fice', '/app?tl=alice&acq_invite=Mallory%20'])(
     'stashes nothing that is not a username: %s',
     async (path) => {

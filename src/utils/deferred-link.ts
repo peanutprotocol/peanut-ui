@@ -742,7 +742,9 @@ export function applyDeferredPayload(payload: DeferredPayload): RestoredContext 
     // writer so the type can never be a stale leftover from an earlier flow
     if (invite) stashInvite(invite, EInviteType.DIRECT)
     // An explicit invite in the same payload wins: a passive one never replaces it.
-    stashAcquisitionInvite(payload.acquisitionInvite ? toInviteCode(payload.acquisitionInvite) : null)
+    // A tracked link's passive inviter is its own username, so an edited pair is dropped.
+    const acquisitionInvite = payload.acquisitionInvite ? toInviteCode(payload.acquisitionInvite) : null
+    if (!payload.trackedLink || acquisitionInvite === payload.trackedLink) stashAcquisitionInvite(acquisitionInvite)
     // Badge campaigns do not gate the setup step, so they can safely outlive the
     // session for a network/configuration retry. Preserve the first trimmed
     // spelling; backend resolution is case-insensitive.
