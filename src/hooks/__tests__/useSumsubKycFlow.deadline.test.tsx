@@ -89,7 +89,7 @@ it('settles a stalled plan read and never dispatches a start after that plan arr
     expect(onKycSuccess).not.toHaveBeenCalled()
 })
 
-it('releases loading for a stalled start action and ignores its late SDK token', async () => {
+it('reconciles a stalled start before failure and recovers its late SDK token', async () => {
     const start = deferred<Awaited<ReturnType<typeof initiateSumsubKyc>>>()
     mockInitiate.mockReturnValue(start.promise)
     const onKycSuccess = jest.fn()
@@ -111,18 +111,17 @@ it('releases loading for a stalled start action and ignores its late SDK token',
     expect(result.current.isTerminalError).toBe(false)
     expect(result.current.showWrapper).toBe(false)
 
-    const timeoutError = result.current.error
     await act(async () => {
         start.resolve(started('late-token'))
         await pastDeadline()
     })
-    expect(result.current.showWrapper).toBe(false)
-    expect(result.current.accessToken).toBeFalsy()
-    expect(result.current.error).toBe(timeoutError)
+    expect(result.current.showWrapper).toBe(true)
+    expect(result.current.accessToken).toBe('late-token')
+    expect(result.current.error).toBeFalsy()
     expect(onKycSuccess).not.toHaveBeenCalled()
 })
 
-it('allows a fresh retry after expiry without an old completion replacing the new token', async () => {
+it('reconciles a retry after expiry without dispatching a second initiation', async () => {
     const oldStart = deferred<Awaited<ReturnType<typeof initiateSumsubKyc>>>()
     mockInitiate.mockReturnValueOnce(oldStart.promise).mockResolvedValueOnce(started('new-token'))
     const { result } = renderHook(() => useSumsubKycFlow({}))
@@ -135,15 +134,15 @@ it('allows a fresh retry after expiry without an old completion replacing the ne
     await act(async () => {
         await result.current.handleInitiateKyc('EU')
     })
-    expect(mockInitiate).toHaveBeenCalledTimes(2)
-    expect(result.current.showWrapper).toBe(true)
-    expect(result.current.accessToken).toBe('new-token')
-    expect(result.current.error).toBeFalsy()
+    expect(mockInitiate).toHaveBeenCalledTimes(1)
+    expect(result.current.showWrapper).toBe(false)
+    expect(result.current.accessToken).toBeFalsy()
+    expect(result.current.error).toMatch(/try again/i)
 
     await act(async () => {
         oldStart.resolve(started('old-token'))
     })
-    expect(result.current.accessToken).toBe('new-token')
+    expect(result.current.accessToken).toBe('old-token')
     expect(result.current.showWrapper).toBe(true)
 })
 

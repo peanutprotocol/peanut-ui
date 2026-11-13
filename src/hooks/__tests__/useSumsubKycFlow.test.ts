@@ -309,7 +309,9 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
         })
 
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' })
+            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' }),
+            undefined,
+            expect.any(AbortSignal)
         )
     })
 
@@ -323,7 +325,11 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
             await result.current.handleInitiateKyc('LATAM', undefined, true, 'br')
         })
 
-        expect(mockInitiate).toHaveBeenCalledWith(expect.objectContaining({ targetCountry: 'BR' }))
+        expect(mockInitiate).toHaveBeenCalledWith(
+            expect.objectContaining({ targetCountry: 'BR' }),
+            undefined,
+            expect.any(AbortSignal)
+        )
     })
 
     it('drops a non-Manteca targetCountry (MX) instead of stamping a poisoned geo', async () => {
@@ -337,7 +343,9 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
         })
 
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: undefined })
+            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: undefined }),
+            undefined,
+            expect.any(AbortSignal)
         )
     })
 })
@@ -362,7 +370,9 @@ describe('useSumsubKycFlow — corridor', () => {
         })
 
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ corridor: 'BANK_TRANSFER_CO', crossRegion: true })
+            expect.objectContaining({ corridor: 'BANK_TRANSFER_CO', crossRegion: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
     })
 })
@@ -402,6 +412,7 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
 
     it('thrown initiate → late PENDING→APPROVED websocket events do NOT fire onKycSuccess', async () => {
         mockInitiate.mockRejectedValue(new Error('network down'))
+        jest.mocked(getKycDocumentStatus).mockResolvedValueOnce('NOT_STARTED')
         const onKycSuccess = jest.fn()
 
         const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
@@ -409,7 +420,8 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
         await act(async () => {
             await result.current.handleInitiateKyc('EU', undefined, true)
         })
-        expect(result.current.error).toBe('network down')
+        expect(result.current.error).toMatch(/try again/i)
+        expect(getKycDocumentStatus).toHaveBeenCalled()
 
         await act(async () => {
             mockWs.handler?.('PENDING')
@@ -1468,7 +1480,9 @@ describe('useSumsubKycFlow — capability action sessions', () => {
             await result.current.correctVerificationData()
         })
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ targetCountry: 'BR', correctSession: true })
+            expect.objectContaining({ targetCountry: 'BR', correctSession: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
         expect(result.current.verificationSession?.generation).toBe(3)
     })
