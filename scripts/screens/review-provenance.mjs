@@ -57,11 +57,11 @@ export function reviewHeadRevision(run) {
 }
 
 // Actions can omit its PR snapshot. The original workflow_call event still
-// establishes the release PR number and immutable revision pair.
+// establishes the PR number and immutable revision pair.
 export function bindReleaseReviewEvent(repository, run, eventPath = process.env.GITHUB_EVENT_PATH) {
     if (run.event !== 'pull_request' || !eventPath) return run
     const { pull_request: eventPr } = JSON.parse(readFileSync(eventPath, 'utf8'))
-    if (eventPr?.base?.ref !== 'main') return run
+    if (!eligibleReviewBranches(eventPr?.head?.ref, eventPr?.base?.ref)) return run
     const { number, head, base, draft } = eventPr
     const snapshots = run.pull_requests ?? []
     const snapshot = snapshots[0]
