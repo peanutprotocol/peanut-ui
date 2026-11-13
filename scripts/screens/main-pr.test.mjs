@@ -191,7 +191,7 @@ for (const [name, mutate] of Object.entries({
     })
 }
 
-test('event binding rejects missing immutable base SHA while direct provenance preserves fallback', () => {
+test('event binding takes the base SHA from the event, and rejects an event without one', () => {
     const pr = candidate()
     const run = runFor(pr)
     delete run.pull_requests[0].base.sha
@@ -199,7 +199,7 @@ test('event binding rejects missing immutable base SHA while direct provenance p
     assert.equal(result?.before, baseSha)
     assert.equal(result?.after, headSha)
     withEvent({ pull_request: pr }, (path) => {
-        assert.throws(() => provenance.bindReleaseReviewEvent(repository, run, path))
+        assert.equal(provenance.bindReleaseReviewEvent(repository, run, path).pull_requests[0].base.sha, baseSha)
     })
     const incompleteEventPr = structuredClone(pr)
     delete incompleteEventPr.base.sha
@@ -260,12 +260,6 @@ for (const [name, mutate] of Object.entries({
     'PR number': (pr) => {
         pr.number += 1
     },
-    'head SHA': (pr) => {
-        pr.head.sha = otherSha
-    },
-    'base SHA': (pr) => {
-        pr.base.sha = otherSha
-    },
     'head branch': (pr) => {
         pr.head.ref = 'hotfix/other'
     },
@@ -288,6 +282,47 @@ for (const [name, mutate] of Object.entries({
         })
     })
 }
+
+test('event binding keeps the event revisions when the live PR association has moved on', () => {
+    for (const side of ['head', 'base']) {
+        const pr = candidate()
+        const run = runFor(pr)
+        run.pull_requests[0][side].sha = otherSha
+        const bound = withEvent({ pull_request: pr }, (path) =>
+            provenance.bindReleaseReviewEvent(repository, run, path)
+        )
+        assert.equal(bound.pull_requests[0].head.sha, headSha)
+        assert.equal(bound.pull_requests[0].base.sha, baseSha)
+    }
+})
+
+test('a dev review whose base advanced during the run binds to the event base and its merge base', () => {
+    const pr = candidate('feature/profile', 'dev')
+    const run = runFor(pr)
+    run.pull_requests[0].base.sha = otherSha
+    const bound = withEvent({ pull_request: pr }, (path) => provenance.bindReleaseReviewEvent(repository, run, path))
+    assert.equal(bound.pull_requests[0].base.sha, baseSha)
+    const live = structuredClone(pr)
+    live.base.sha = otherSha
+    const mergeBases = []
+    const result = provenance.reviewProvenance(repository, bound, [live], (args) => {
+        mergeBases.push(args)
+        return `${baseSha}\n`
+    })
+    assert.deepEqual(mergeBases, [['merge-base', baseSha, headSha]])
+    assert.equal(result?.before, baseSha)
+    assert.equal(result?.after, headSha)
+})
+
+test('a newer push on the PR makes the bound run superseded, not an error', () => {
+    const pr = candidate()
+    const live = structuredClone(pr)
+    live.head.sha = otherSha
+    const run = runFor(pr)
+    run.pull_requests[0].head.sha = otherSha
+    const bound = withEvent({ pull_request: pr }, (path) => provenance.bindReleaseReviewEvent(repository, run, path))
+    assert.equal(provenance.reviewProvenance(repository, bound, [live], noMergeBase), null)
+})
 
 test('event binding preserves absent and unsupported PR payload paths', () => {
     const run = runFor()

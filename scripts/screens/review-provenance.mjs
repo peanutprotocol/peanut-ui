@@ -76,12 +76,9 @@ export function bindReleaseReviewEvent(repository, run, eventPath = process.env.
         !validSha(head.sha) ||
         !validSha(base.sha) ||
         snapshots.length > 1 ||
+        // The run's PR association is live data: its SHAs can already show a newer push or base.
         (snapshot
-            ? snapshot.number !== number ||
-              snapshot.head?.ref !== head.ref ||
-              snapshot.head?.sha !== head.sha ||
-              snapshot.base?.ref !== base.ref ||
-              snapshot.base?.sha !== base.sha
+            ? snapshot.number !== number || snapshot.head?.ref !== head.ref || snapshot.base?.ref !== base.ref
             : run.head_sha !== head.sha)
     )
         throw new Error('Release pull request event does not match the triggering run')
