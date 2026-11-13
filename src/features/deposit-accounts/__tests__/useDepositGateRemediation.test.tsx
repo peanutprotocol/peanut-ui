@@ -49,8 +49,13 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     },
 }))
 const gateFor = jest.fn((): GateState => ({ kind: 'needs-enrollment' }) as GateState)
+// the capabilities routes: a corridor a route serves takes the route's provider
+let mockRoutes: { method: string; provider: string | null }[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: (...args: unknown[]) => (gateFor as jest.Mock)(...args) }),
+    useCapabilities: () => ({
+        gateFor: (...args: unknown[]) => (gateFor as jest.Mock)(...args),
+        capabilities: { routes: mockRoutes },
+    }),
 }))
 jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),
@@ -313,5 +318,37 @@ describe('the address step', () => {
         render(<Host />)
         act(() => mockFlowOptions.onActionSubmitted?.('supplement:bridge'))
         expect(mockToastInfo).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-24910: Pix in Brazil runs on Bridge for a resident; the Pix route, not the rail table, names whose fix it is
+describe('a corridor a capabilities route serves', () => {
+    afterEach(() => {
+        mockRoutes = []
+    })
+
+    const document: GateState = {
+        kind: 'fixable-rejection',
+        userMessage: null,
+        actionKey: 'sumsub:tax_identification_number',
+        nextAction: { key: 'sumsub:tax_identification_number', kind: 'sumsub', purpose: 'unlock-bridge' },
+    }
+
+    it("runs the fix of the route's provider", async () => {
+        mockRoutes = [{ method: 'PIX_BR', provider: 'bridge' }]
+        await openBannerFor(document, 'PIX_BR')
+        expect(handleFixableGate).toHaveBeenCalledWith('BRIDGE', document)
+    })
+
+    it('keeps the rail table where the route names no provider', async () => {
+        mockRoutes = [{ method: 'PIX_BR', provider: null }]
+        await openBannerFor(document, 'PIX_BR')
+        expect(handleFixableGate).toHaveBeenCalledWith('MANTECA', document)
+    })
+
+    it("verifies the corridor on the identity on file, as the claim's verification does", async () => {
+        mockRoutes = [{ method: 'PIX_BR', provider: 'bridge' }]
+        await openBannerFor({ kind: 'needs-enrollment' }, 'PIX_BR')
+        expect(handleInitiateKyc).toHaveBeenCalledWith(undefined, undefined, true, undefined, 'PIX_BR')
     })
 })

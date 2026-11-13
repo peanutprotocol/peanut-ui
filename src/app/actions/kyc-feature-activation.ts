@@ -3,10 +3,17 @@ import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import type { paths } from '@/types/api.generated'
 import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
+import type { NextAction } from '@/types/capabilities'
 
 type Activation = paths['/users/kyc/features/{feature}/activate']['post']
 export type KycActivationFeature = Activation['parameters']['path']['feature']
-export type KycActivationReport = Activation['responses'][200]['content']['application/json']
+export type KycActivationReport = Activation['responses'][200]['content']['application/json'] & {
+    /**
+     * The step a first use waits on, where it is not a supplement: a legacy approval's corridor
+     * verification (`verify-corridor:pix_br`, API-CONTRACT.md 4a). Not in the API snapshot yet.
+     */
+    nextAction?: NextAction
+}
 type Conflict = Activation['responses'][409]['content']['application/json']
 export type KycFeatureActivationResult =
     | { kind: 'report'; report: KycActivationReport }
@@ -52,7 +59,8 @@ export async function activateKycFeature(feature: KycActivationFeature): Promise
             response.status === 200 &&
             STATES.has(body.state) &&
             (body.action === undefined || typeof body.action === 'string') &&
-            (body.reason === undefined || typeof body.reason === 'string')
+            (body.reason === undefined || typeof body.reason === 'string') &&
+            (body.nextAction === undefined || isNextAction(body.nextAction))
         )
             return { kind: 'report', report: body as KycActivationReport }
         if (
@@ -71,4 +79,11 @@ export async function activateKycFeature(feature: KycActivationFeature): Promise
         return { kind: 'failed' }
     }
     return { kind: 'failed' }
+}
+
+/** A next action the app can start: an object with its key and kind. */
+function isNextAction(value: unknown): value is NextAction {
+    if (!value || typeof value !== 'object') return false
+    const { key, kind } = value as Record<string, unknown>
+    return typeof key === 'string' && typeof kind === 'string'
 }

@@ -58,7 +58,11 @@ export function useDepositGateRemediation(): {
             void queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
         },
     })
-    const { gateFor } = useCapabilities()
+    const { gateFor, capabilities } = useCapabilities()
+    // A corridor a capabilities route serves (Pix) is its route's provider's; the rail table names the rest.
+    const providerOf = (corridor: DepositCorridor) =>
+        capabilities.routes?.find((route) => route.method === corridor && route.provider)?.provider ??
+        DEPOSIT_RAILS[corridor].provider
     const { openTos, showBridgeTos, hideTos } = useTosGuard()
     const gateActions = useGateActions(sumsubFlow)
     const bridgeProviderId = useBridgeProviderId()
@@ -112,7 +116,7 @@ export function useDepositGateRemediation(): {
         const current = () => ownerRef.current === owner && addressGeneration.current === generation
         try {
             await gateActions.verify(gate, {
-                provider: corridor && DEPOSIT_RAILS[corridor].provider === 'manteca' ? 'MANTECA' : 'BRIDGE',
+                provider: corridor && providerOf(corridor) === 'manteca' ? 'MANTECA' : 'BRIDGE',
                 corridor,
             })
         } catch {
@@ -136,11 +140,7 @@ export function useDepositGateRemediation(): {
 
     const resolveGate = (gate: GateState, corridor?: DepositCorridor) => {
         setKycCorridor(corridor)
-        if (
-            corridor &&
-            DEPOSIT_RAILS[corridor].provider === 'bridge' &&
-            getGateReasonCode(gate) === 'invalid_bank_postal_code'
-        ) {
+        if (corridor && providerOf(corridor) === 'bridge' && getGateReasonCode(gate) === 'invalid_bank_postal_code') {
             setPostalGate(gate)
             return
         }
@@ -219,8 +219,7 @@ export function useDepositGateRemediation(): {
                     // The corridor, where there is one, names the level: a
                     // verified user moves on to it, a new one starts there.
                     await gateActions.verify(kycModalGate, {
-                        provider:
-                            kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'manteca' ? 'MANTECA' : 'BRIDGE',
+                        provider: kycCorridor && providerOf(kycCorridor) === 'manteca' ? 'MANTECA' : 'BRIDGE',
                         corridor: kycCorridor,
                     })
                 }}
@@ -235,9 +234,7 @@ export function useDepositGateRemediation(): {
                 providerMessage={(kycModalGate && getGateUserMessage(kycModalGate)) || undefined}
                 reasonCode={(kycModalGate && getGateReasonCode(kycModalGate)) || undefined}
                 nextAction={kycModalGate?.kind === 'fixable-rejection' ? kycModalGate.nextAction : undefined}
-                providerId={
-                    kycCorridor && DEPOSIT_RAILS[kycCorridor].provider === 'bridge' ? bridgeProviderId : undefined
-                }
+                providerId={kycCorridor && providerOf(kycCorridor) === 'bridge' ? bridgeProviderId : undefined}
                 verifyEntry={{ corridor: kycCorridor }}
             />
             <BridgeTosStep

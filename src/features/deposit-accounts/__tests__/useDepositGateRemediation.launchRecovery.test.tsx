@@ -39,8 +39,13 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     },
 }))
 const gateFor = jest.fn((): GateState => ({ kind: 'needs-enrollment' }) as GateState)
+// the capabilities routes: a corridor a route serves takes the route's provider
+let mockRoutes: { method: string; provider: string | null }[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: (...args: unknown[]) => (gateFor as jest.Mock)(...args) }),
+    useCapabilities: () => ({
+        gateFor: (...args: unknown[]) => (gateFor as jest.Mock)(...args),
+        capabilities: { routes: mockRoutes },
+    }),
 }))
 jest.mock('@/hooks/useTosGuard', () => ({
     useTosGuard: () => ({ guardWithTos: jest.fn(), showBridgeTos: false, hideTos: jest.fn() }),

@@ -8,23 +8,21 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
-import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { PROVIDERS } from '@/constants/providers.consts'
+import { PixFirstUse } from '@/features/pix/components/PixFirstUse'
 import { PixHostedVerification } from '@/features/pix/components/PixHostedVerification'
 import { PixRailStep } from '@/features/pix/components/PixRailStep'
 import { PixReviewScreen } from '@/features/pix/components/PixReviewScreen'
 import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
 import { pixPendingReason } from '@/features/pix/pixFlow.utils'
-import { PIX_COUNTRY } from '@/features/pix/pixRoute.utils'
 import { pixSetupState } from '@/features/pix/pixRouteStep'
-import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useRouteTermsAcceptance } from '@/hooks/useRouteTermsAcceptance'
 import type { CapabilityRoute } from '@/types/capabilities'
-import { pixProviderId } from '@/utils/provider.utils'
+import { usePixProviderId } from '@/features/pix/usePixProviderId'
 
 /**
  * The user's step before Pix works, as the backend's route names it: the
@@ -55,7 +53,7 @@ export function PixSetup({
     const terms = useRouteTermsAcceptance(state === 'accept-terms' ? route?.action : undefined)
     const pending = pixPendingReason(route?.reason?.code)
     // the provider whose terms the user accepts, as the route names it
-    const providerId = pixProviderId(route?.provider)
+    const providerId = usePixProviderId(route?.provider)
     const provider = providerId ? PROVIDERS[providerId] : null
     // before our own check: the provider checks the identity itself, and other accounts may ask again
     const { isVerified } = useIdentityVerification()
@@ -86,13 +84,7 @@ export function PixSetup({
     }
 
     // The first use opens the provider's account for Pix; the route turns ready once it is open.
-    if (state === 'activate') {
-        return (
-            <KycFeatureActivationGate feature="local" scope={{ channel: 'bank', country: PIX_COUNTRY }}>
-                <Loading variant="mascot" />
-            </KycFeatureActivationGate>
-        )
-    }
+    if (state === 'activate') return <PixFirstUse title={title} onBack={onBack} />
 
     if (state === 'verify') {
         return (

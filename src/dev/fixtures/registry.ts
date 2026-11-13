@@ -2167,6 +2167,27 @@ export const FIXTURES: Record<string, Fixture> = {
             user: { identityVerification: { status: 'verified', oneShot: true } },
         }),
     },
+    // API-CONTRACT.md 4a: one first-use call for every user; a legacy approval is answered with its corridor step
+    'pix-bridge-setup-activate-legacy': {
+        route: '/add-money/pix',
+        about: "Pix on Bridge, first use after a legacy approval: the same activation, answered with the corridor's verification.",
+        responses: {
+            ...bridgePixResponses({
+                deposit: { state: 'action_required', action: 'activate', reason: FIRST_USE_REASON },
+                user: { identityVerification: { status: 'verified', oneShot: false } },
+            }),
+            'POST /users/kyc/features/local/activate': {
+                state: 'action_required',
+                nextAction: {
+                    key: 'verify-corridor:pix_br',
+                    kind: 'sumsub',
+                    purpose: 'unlock-corridor-pix_br',
+                    levelKey: 'bridge',
+                    currency: 'BRL',
+                },
+            },
+        },
+    },
     'pix-bridge-setup-reviewing': {
         route: '/add-money/pix',
         about: 'Pix on Bridge while Bridge creates the customer or reviews the Pix ask: the static wait, Done to Home.',

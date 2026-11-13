@@ -32,13 +32,7 @@ const mockTermsHook = jest.fn((key: string | undefined) => ({
 jest.mock('@/hooks/useRouteTermsAcceptance', () => ({
     useRouteTermsAcceptance: (key: string | undefined) => mockTermsHook(key),
 }))
-const mockGate = jest.fn()
-jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
-    KycFeatureActivationGate: (props: { feature: string; scope: unknown }) => {
-        mockGate(props.feature, props.scope)
-        return <div>activation gate</div>
-    },
-}))
+jest.mock('@/features/pix/components/PixFirstUse', () => ({ PixFirstUse: () => <div>first use</div> }))
 
 const mockRailStep = jest.fn()
 jest.mock('@/features/pix/components/PixRailStep', () => ({
@@ -92,12 +86,10 @@ describe('PixSetup', () => {
         expect(mockTermsHook).toHaveBeenCalledWith(undefined)
     })
 
-    // the first use opens the provider's account (route action `activate`): the activation gate opens it,
-    // and the route turns ready once it is open
-    it('opens the account the first use needs through the activation gate', () => {
+    // the first use opens the provider's account (route action `activate`), and the route turns ready once it is open
+    it('opens the account the first use needs through the first use', () => {
         renderSetup(route({ action: 'activate' }))
-        expect(screen.getByText('activation gate')).toBeInTheDocument()
-        expect(mockGate).toHaveBeenCalledWith('local', { channel: 'bank', country: 'BR' })
+        expect(screen.getByText('first use')).toBeInTheDocument()
         expect(mockTermsHook).toHaveBeenCalledWith(undefined)
     })
 

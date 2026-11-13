@@ -152,6 +152,21 @@ it('local continues to its own screen for a step the activation names no action 
     expect(fetchUser).toHaveBeenCalledWith({ throwOnError: true })
 })
 
+// TASK-24910, API-CONTRACT.md 4a: the Pix setup asks the API for every user, and a legacy approval gets its step
+it.each([false, undefined])('everyUser activates a legacy oneShot=%s approval too', async (oneShot) => {
+    auth('a', oneShot)
+    const corridorStep = { key: 'verify-corridor:pix_br', kind: 'sumsub', purpose: 'x', levelKey: 'bridge' }
+    jest.mocked(activateKycFeature).mockResolvedValue({
+        kind: 'report',
+        report: { state: 'action_required', nextAction: corridorStep },
+    } as Reply)
+    const { result } = renderActivation(() => useKycFeatureActivation('local', { everyUser: true }))
+    await flush()
+    expect(activateKycFeature).toHaveBeenCalledWith('local')
+    // the step the answer names is the caller's to start: nothing passes through
+    expect(result.current.allowed).toBe(false)
+})
+
 it.each([
     ['bank', undefined],
     ['qr', undefined],
