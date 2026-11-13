@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -15,6 +16,8 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useAuth } from '@/context/authContext'
+import { PixPausedScreen } from '@/features/pix/components/PixPausedScreen'
+import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
 import { usePixDeposit } from '@/features/pix/usePixDeposit'
 import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import { formatBankAmount } from '@/utils/currency'
@@ -29,15 +32,28 @@ import { usePixProviderId } from '@/features/pix/usePixProviderId'
  * back navigation and a deep link draw the same code. A code that lapsed or a
  * Pix that came back says so, and the way on is a new deposit, never a dead
  * code.
+ *
+ * `intentId` null draws the user's standing code (ruling D7): one code for any
+ * amount that never lapses, so no amount, no timer and no wait. Under it the
+ * rules the payer must meet, and where each Pix shows once it lands: nothing
+ * on this screen follows a payment. A reload draws the same code, because the
+ * API answers the same code on every call.
  */
 export function PixQrDeposit({
     intentId,
+    minimumBrl,
+    payerLine,
     onBack,
     onDone,
     onNewDeposit,
     onComplete,
 }: {
-    intentId: string
+    /** The deposit the code belongs to; null for the user's standing code. */
+    intentId: string | null
+    /** The route's minimum, stated under a code that takes any amount. */
+    minimumBrl?: string | null
+    /** Who may pay into a standing code, where its account limits it. */
+    payerLine?: string
     /** Leaves the flow. */
     onBack: () => void
     /** Leaves the flow once the deposit is received. */
@@ -50,8 +66,9 @@ export function PixQrDeposit({
     const tDeposit = useTranslations('pix.deposit')
     const tShared = useTranslations('pix')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
-    const { deposit, phase, isError } = usePixDeposit(intentId, onComplete)
+    const tAll = useTranslations()
+    const { user, fetchUser } = useAuth()
+    const { deposit, phase, isError, refusal, retry, isRetrying } = usePixDeposit(intentId, onComplete)
     // the provider the deposit answer names, for its row and sheet
     const providerId = usePixProviderId(deposit?.provider)
 
@@ -59,15 +76,38 @@ export function PixQrDeposit({
     const countdown = useExpiryCountdown(expiresAtMs, phase === 'pending')
     const isExpired = phase === 'expired' || countdown.isExpired
 
+    // The route moved since the screen loaded (or the provider paused): the capabilities say where
+    // the user stands now, and the page mounts that screen.
+    const recheck = refusal?.screen === 'paused' || (refusal?.screen === 'retry' && refusal.recheck)
+    useEffect(() => {
+        if (recheck) void fetchUser().catch(() => undefined)
+    }, [recheck, fetchUser])
+
     if (!deposit) {
+        if (refusal?.screen === 'paused') return <PixPausedScreen route={undefined} action="deposits" />
+        if (refusal?.screen === 'closed')
+            return (
+                <PixUnavailableScreen
+                    title={t('title')}
+                    route={undefined}
+                    description={tAll(refusal.line)}
+                    onBack={onBack}
+                />
+            )
         if (!isError) return <Loading variant="mascot" />
-        // the read keeps polling, so the screen recovers on its own once the API answers
+        // A deposit's read keeps polling, so the screen recovers on its own once the API answers;
+        // the standing code is asked for once, so its refusal offers another try.
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <PageStack.Center className="items-center text-center">
                     <IconBubble icon="alert" size="l" color="red" />
                     <TitleBlock align="center" title={t('title')} description={tShared('unavailable')} />
+                    {refusal && (
+                        <Button variant="primary" className="w-full" onClick={retry} loading={isRetrying}>
+                            {tCommon('tryAgain')}
+                        </Button>
+                    )}
                 </PageStack.Center>
             </PageStack>
         )
@@ -140,19 +180,22 @@ export function PixQrDeposit({
         <PageStack>
             <NavHeader title={t('title')} onPrev={onBack} />
             <PageStack.Center>
-                <div className="text-center">
-                    {deposit.amountBrl && (
-                        <p className="text-heading-s text-foreground-primary">
-                            {formatBankAmount(deposit.amountBrl, 'BRL')}
-                        </p>
-                    )}
-                    {/* the provider's fees are already out of the quote: this is what the balance receives */}
-                    {deposit.usdcAmount && (
-                        <p className="text-body-s text-foreground-secondary">
-                            {tDeposit('youGet', { amount: formatBankAmount(deposit.usdcAmount, 'USD') })}
-                        </p>
-                    )}
-                </div>
+                {/* a standing code has no amount of its own */}
+                {(deposit.amountBrl || deposit.usdcAmount) && (
+                    <div className="text-center">
+                        {deposit.amountBrl && (
+                            <p className="text-heading-s text-foreground-primary">
+                                {formatBankAmount(deposit.amountBrl, 'BRL')}
+                            </p>
+                        )}
+                        {/* the provider's fees are already out of the quote: this is what the balance receives */}
+                        {deposit.usdcAmount && (
+                            <p className="text-body-s text-foreground-secondary">
+                                {tDeposit('youGet', { amount: formatBankAmount(deposit.usdcAmount, 'USD') })}
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 <QRCodeWrapper url={deposit.brCode} className="mx-auto max-w-[280px]" />
 
@@ -169,6 +212,19 @@ export function PixQrDeposit({
                     <p className="text-center text-body-s text-foreground-secondary">{t('pix.scanWithBankApp')}</p>
                     <CopyToClipboard textToCopy={deposit.brCode} type="button" className="w-full" />
                 </div>
+
+                {/* a standing code takes any amount: the rules a payer meets, and where each Pix shows */}
+                {deposit.intentId === null && (
+                    <BulletList
+                        items={[
+                            ...(minimumBrl
+                                ? [tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') })]
+                                : []),
+                            ...(payerLine ? [payerLine] : []),
+                            tDeposit('landsInActivity'),
+                        ]}
+                    />
+                )}
 
                 {deposit.payerCpfMasked && (
                     <div className="flex items-center gap-2">

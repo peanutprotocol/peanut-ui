@@ -52,8 +52,9 @@ export const pixApi = {
         return call<PixQuote>(`/pix/quote?${query.toString()}`, GET, 'Could not quote the amount')
     },
 
-    createDeposit: (amountBrl: string) =>
-        call<PixDeposit>('/pix/deposit', post({ amountBrl }), 'Could not create the Pix code'),
+    /** No amount for a standing-code route (`route.standingCode`): the answer is the user's one code, the same on every call. */
+    createDeposit: (amountBrl?: string) =>
+        call<PixDeposit>('/pix/deposit', post(amountBrl ? { amountBrl } : {}), 'Could not create the Pix code'),
 
     readDeposit: (intentId: string) =>
         call<PixDeposit>(`/pix/deposit/${encodeURIComponent(intentId)}`, GET, 'Could not read the deposit'),

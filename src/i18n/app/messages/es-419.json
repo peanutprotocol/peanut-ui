@@ -2607,7 +2607,8 @@
             "limitExceeded": "Este depósito supera el límite mensual de Pix.",
             "ownCpf": "Desde una cuenta con tu CPF {cpf}",
             "returnedTitle": "Pix devuelto",
-            "returnedBody": "Paga de nuevo desde una cuenta con tu CPF."
+            "returnedBody": "Paga de nuevo desde una cuenta con tu CPF.",
+            "landsInActivity": "Cada Pix aparece en Actividad cuando llega."
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contacta a soporte.",

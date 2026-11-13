@@ -1,8 +1,9 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
-import { API_ERROR_CODES } from '@/services/api-error'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
+import { claimErrorKey } from '@/features/deposit-accounts/claimErrors'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 /** The pending route's one reason that waits on a fix, not a retry: a routed provider's park code `TAX_ID_MISSING`, lower case (api `kyc/capabilities/resolver.ts`). */
@@ -36,6 +37,49 @@ export function pixDepositPhase(status: PixDeposit | undefined): PixDepositPhase
     if (status.pixReceived) return 'processing'
     // unpaid, and the API no longer sends the code: it lapsed before the poller cancelled it
     return status.codePayable ? 'pending' : 'expired'
+}
+
+/**
+ * What the standing-code screen shows when POST /pix/deposit refuses the code (ruling D7). The
+ * code is the user's BRL account, opened by its first call, so the account claim's refusals read
+ * as on the account screens (`claimErrorKey`), in the Pix screen's own words where it has them.
+ *   - `retry`: another tap can work; `recheck` first reads the capabilities again, because the
+ *     route moved since the screen loaded.
+ *   - `paused`: the provider is paused or off (503): the outage screen.
+ *   - `closed`: no tap here changes it: the reason, and support.
+ */
+export type PixStandingRefusal =
+    | { screen: 'retry'; recheck: boolean }
+    | { screen: 'paused' }
+    | {
+          screen: 'closed'
+          line:
+              | 'pix.rolloutClosed'
+              | 'pix.residenceNotServed'
+              | 'depositAccounts.errors.accountLimit'
+              | 'depositAccounts.errors.providerRefused'
+      }
+
+export function pixStandingRefusal(error: unknown): PixStandingRefusal {
+    const code = wireErrorCode(error)
+    const status = apiErrorStatus(error)
+    if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE) return { screen: 'retry', recheck: true }
+    if (status === 503) return { screen: 'paused' }
+    switch (claimErrorKey(code, status)) {
+        case 'notAvailable':
+            return { screen: 'closed', line: 'pix.rolloutClosed' }
+        // a bare 403 or the residence block's own codes
+        case 'residenceRestricted':
+            return { screen: 'closed', line: 'pix.residenceNotServed' }
+        // the cap of two accounts: its ruling is pending, so the account screens' sentence stands
+        case 'accountLimit':
+            return { screen: 'closed', line: 'depositAccounts.errors.accountLimit' }
+        case 'providerRefused':
+            return { screen: 'closed', line: 'depositAccounts.errors.providerRefused' }
+        // a claim still in flight, a lock wait, a provider error, the network
+        default:
+            return { screen: 'retry', recheck: false }
+    }
 }
 
 /**

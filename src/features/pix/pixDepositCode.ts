@@ -7,6 +7,9 @@ import type { HistoryEntryExtraData } from '@/utils/history.utils'
 /** The one query that holds a deposit and its code; POST /pix/deposit seeds it with the same shape. */
 export const pixDepositQueryKey = (intentId: string) => ['pix-deposit', intentId] as const
 
+/** The user's standing code (`route.standingCode`): one code for every deposit, so one query. */
+export const PIX_STANDING_CODE_QUERY_KEY = ['pix-deposit', 'standing'] as const
+
 /**
  * Whether a deposit's history entry says its code can still be paid. The API
  * sends `pixDeposit` to the owner only; the expiry is checked again here
