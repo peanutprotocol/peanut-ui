@@ -332,7 +332,8 @@
                 "USD": "US dollar bank transfers",
                 "EUR": "Euro bank transfers",
                 "GBP": "British pound bank transfers",
-                "MXN": "Mexican peso bank transfers"
+                "MXN": "Mexican peso bank transfers",
+                "BRL": "Pix transfers"
             }
         },
         "openProfile": "Open profile",

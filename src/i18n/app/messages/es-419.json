@@ -332,7 +332,8 @@
                 "USD": "transferencias bancarias en dólares estadounidenses",
                 "EUR": "transferencias bancarias en euros",
                 "GBP": "transferencias bancarias en libras esterlinas",
-                "MXN": "transferencias bancarias en pesos mexicanos"
+                "MXN": "transferencias bancarias en pesos mexicanos",
+                "BRL": "transferencias Pix"
             }
         },
         "openProfile": "Abrir perfil",
