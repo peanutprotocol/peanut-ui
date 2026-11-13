@@ -85,6 +85,16 @@ describe('usePixKeyLookup on Bridge', () => {
         })
     })
 
+    // an answer with no body ends the lookup at once: only a refusal asks again
+    it('reads an empty answer as a failed check, asked once', async () => {
+        mockLookup.mockResolvedValue(undefined)
+        const { result } = renderHook(() => usePixKeyLookup(), { wrapper })
+        await act(async () => {
+            expect(await result.current.lookup('11144477735')).toEqual({ key: '11144477735', status: 'failed' })
+        })
+        expect(mockLookup).toHaveBeenCalledTimes(1)
+    })
+
     it('says the lookups were throttled once waiting a second did not help', async () => {
         jest.useFakeTimers()
         mockLookup.mockRejectedValue(refused(429, 'PIX_KEY_LOOKUP_THROTTLED'))

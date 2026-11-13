@@ -75,10 +75,12 @@ export function usePixKeyLookup() {
         async (key: string): Promise<PixKeyLookup> => {
             let outcome: PixKeyLookup
             try {
-                let info: PixKeyInfo | undefined
-                for (let attempt = 0; !info; attempt++) {
+                let info: PixKeyInfo
+                // one answer ends the loop, whatever it holds: only a refusal asks again, a bounded number of times
+                for (let attempt = 0; ; attempt++) {
                     try {
                         info = await fetchInfo(key)
+                        break
                     } catch (error) {
                         const code = wireErrorCode(error)
                         // a second key typed within the second: wait it out once
