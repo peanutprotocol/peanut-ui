@@ -9,6 +9,8 @@ import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LandingStep from '../Landing'
 
+import { HAS_LOGGED_IN_ON_DEVICE_KEY, markLoggedInOnDevice } from '@/utils/device-login-history'
+
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
@@ -28,10 +30,6 @@ jest.mock('@/utils/capacitor', () => ({
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
-jest.mock('@/utils/landing-passkeys', () => ({
-    checkAndroidLandingPasskey: async () => 'available',
-    supportsIOSImmediateLogin: async () => false,
-}))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
     useDeviceType: () => ({ deviceType: mockDeviceType }),
@@ -62,11 +60,6 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 /** The curated error useZeroDev.handleLogin throws. */
 const passkeyError = (code: string) => Object.assign(new Error('curated'), { name: 'PasskeyError', code })
 const logIn = async () => {
-    if (!screen.queryByRole('button', { name: /log in/i })) {
-        await act(async () => {
-            jest.advanceTimersByTime(5000)
-        })
-    }
     // Use the real clock for the recovery drawer's focus and dismissal transitions.
     jest.useRealTimers()
     await act(async () => {
@@ -81,12 +74,16 @@ const recoveryActions = () =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    markLoggedInOnDevice()
     mockNative = true
     mockAndroidNative = false
     mockTestBuild = false
     mockDeviceType = 'ios'
 })
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+    jest.useRealTimers()
+    localStorage.removeItem(HAS_LOGGED_IN_ON_DEVICE_KEY)
+})
 
 describe('Landing — recovery after a failed login (TASK-24017)', () => {
     it('opens the recovery drawer at once when the phone holds no Peanut passkey', async () => {

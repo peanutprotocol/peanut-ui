@@ -53,6 +53,7 @@ import {
 } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { AccountType } from '@/interfaces/interfaces'
+import { markLoggedInOnDevice } from '@/utils/device-login-history'
 
 // types
 type UserOpEncodedParams = {
@@ -167,6 +168,7 @@ export const useZeroDev = () => {
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
+            markLoggedInOnDevice()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
             // Arm delivery only after hydration supplies the authoritative
             // registrant. An unbound marker could be consumed by a later login.
@@ -252,11 +254,7 @@ export const useZeroDev = () => {
     }
 
     // login function
-    const handleLogin = async ({
-        immediateSignal,
-        immediateDeadline,
-        cancelSignal,
-    }: { immediateSignal?: AbortSignal; immediateDeadline?: number; cancelSignal?: AbortSignal } = {}) => {
+    const handleLogin = async () => {
         if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const { code, message } = classifyPasskeyError(new CeremonyConflictError())
             throw new PasskeyError(message, code)
@@ -281,25 +279,20 @@ export const useZeroDev = () => {
             // window; a late result is discarded and its verify token is not
             // captured after that attempt's window closes.
             const attempt = () =>
-                guardPasskeyCeremony(
-                    () =>
-                        toWebAuthnKey({
-                            passkeyName: '[]',
-                            passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                            mode: WebAuthnMode.Login,
-                            passkeyServerHeaders,
-                            rpID: rpId,
-                            immediateSignal,
-                            immediateDeadline,
-                        }),
-                    { cancel: cancelSignal }
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: '[]',
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Login,
+                        passkeyServerHeaders,
+                        rpID: rpId,
+                    })
                 )
-            const webAuthnKey = await withCeremonyPurpose(immediateSignal ? 'login_auto' : 'login', () =>
-                immediateSignal ? attempt() : withIOSPasskeyLoginRecovery(attempt)
-            )
+            const webAuthnKey = await withCeremonyPurpose('login', () => withIOSPasskeyLoginRecovery(attempt))
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
             const loggedInUser = await hydrateLoginSession()
+            markLoggedInOnDevice()
             updateUserPreferences(loggedInUser.user.userId, { webAuthnKey })
             setWebAuthnKey(webAuthnKey)
         } catch (e) {
@@ -316,12 +309,6 @@ export const useZeroDev = () => {
             // tells us WHERE native logins hang.
             if (code === 'ACCOUNT_DELETED') {
                 // Expected state, not a fault: the server minted no session, so local state stays as it was.
-            } else if (
-                immediateSignal &&
-                err instanceof Error &&
-                (err.name === 'AbortError' || err.name === 'CeremonyCancelledError')
-            ) {
-                // Preparation expired before the picker opened, or the user chose another way in.
             } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
@@ -339,7 +326,7 @@ export const useZeroDev = () => {
                     },
                 })
             } else if (code !== 'LOGIN_CANCELED') {
-                if (!immediateSignal) await clearAuthState(user?.user.userId)
+                await clearAuthState(user?.user.userId)
                 captureException(err, { tags: { error_type: 'login_error' } })
             }
             throw new PasskeyError(message, code)
