@@ -10,11 +10,11 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
-import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { PixHostedVerification } from '@/features/pix/components/PixHostedVerification'
 import { PixRailStep } from '@/features/pix/components/PixRailStep'
+import { PixReviewScreen } from '@/features/pix/components/PixReviewScreen'
 import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
 import { pixPendingReason } from '@/features/pix/pixFlow.utils'
 import { PIX_COUNTRY } from '@/features/pix/pixRoute.utils'
@@ -47,7 +47,6 @@ export function PixSetup({
 }) {
     const t = useTranslations('pix.setup')
     const tCommon = useTranslations('common')
-    const tLoading = useTranslations('loadingStates')
     const router = useRouter()
     const { nextActions } = useCapabilities()
     // the next action the route's step names: the provider's terms, its own identity check, a bank rail's step
@@ -112,16 +111,7 @@ export function PixSetup({
         )
     }
 
-    if (state === 'pending') {
-        return (
-            <PageStack>
-                <NavHeader title={title} onPrev={onBack} />
-                <PageStack.Center>
-                    <ProcessingScreen title={tLoading('gettingKycStatus')} description={t('reviewing')} />
-                </PageStack.Center>
-            </PageStack>
-        )
-    }
+    if (state === 'pending') return <PixReviewScreen title={title} onBack={onBack} />
 
     return (
         <PageStack>

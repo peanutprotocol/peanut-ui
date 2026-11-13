@@ -2070,8 +2070,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-setup-reviewing': {
         route: '/add-money/pix',
-        about: 'Pix while the provider reviews the shared verification: the wait.',
-        isLoadingState: true,
+        about: 'Pix while the provider reviews the shared verification: the static wait, Done to Home.',
         responses: mantecaPixRouteResponses(
             {
                 state: 'pending',
@@ -2170,8 +2169,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-bridge-setup-reviewing': {
         route: '/add-money/pix',
-        about: 'Pix on Bridge while Bridge creates the customer or reviews the Pix ask: the wait.',
-        isLoadingState: true,
+        about: 'Pix on Bridge while Bridge creates the customer or reviews the Pix ask: the static wait, Done to Home.',
         responses: bridgePixResponses({
             deposit: {
                 state: 'pending',

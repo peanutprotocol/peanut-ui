@@ -2575,7 +2575,8 @@
         "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
         "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
         "setup": {
-            "reviewing": "Nuestro socio de pagos está revisando tu verificación.",
+            "reviewing": "Nuestro socio de pagos está revisando tus datos. Te avisaremos cuando Pix esté listo.",
+            "reviewingTitle": "Configurando Pix",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
             "body": "Nuestro socio de pagos ofrece Pix.",

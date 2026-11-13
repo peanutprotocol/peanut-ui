@@ -5,7 +5,8 @@ import en from '@/i18n/app/messages/en.json'
 import type { CapabilityRoute, NextAction } from '@/types/capabilities'
 
 const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+const mockReplace = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: mockReplace }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
@@ -65,10 +66,23 @@ describe('PixSetup', () => {
         mockNextActions = []
     })
 
-    it('waits while the provider reviews, with the reason as user text', () => {
+    // Aleks, 13 Nov: the wait is a static screen on every provider's route, Manteca's included (this route's)
+    it('waits on a static screen while the provider reviews: no loader, Done leaves to Home', () => {
         renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
+        expect(screen.getByText(en.pix.setup.reviewingTitle)).toBeInTheDocument()
         expect(screen.getByText(en.pix.setup.reviewing)).toBeInTheDocument()
+        // the loader it replaced said "Checking verification"
+        expect(screen.queryByText(en.loadingStates.gettingKycStatus)).toBeNull()
         expect(screen.queryByRole('button', { name: en.common.continue })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: en.common.done }))
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+    })
+
+    it('reads the route again when the user comes back to the wait', () => {
+        renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        fireEvent(window, new Event('focus'))
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
     it('sends a user whose identity is not verified to the identity check first', () => {
