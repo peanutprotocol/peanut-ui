@@ -76,7 +76,11 @@ export const PAGE_CAPTURES: PageCapture[] = [
         route: '/add-money',
         entryRoute: '/home',
         fixture: 'add-money-picker-first-time',
-        actions: [{ clickSelector: '[data-testid="checklist-add-money"]' }],
+        // Home's Add action, not the checklist row: capture shows the demo wallet
+        // balance whatever the fixture's `balance` says, so the row reads "Money
+        // received", is done and does not open anything. For a first-time user the
+        // Add action links straight to this picker.
+        actions: [{ clickSelector: '[data-testid="home-submenu-add"]' }],
         expectSelector: '[data-testid="add-money-method-crypto"]',
         defaultScreen: true,
     },

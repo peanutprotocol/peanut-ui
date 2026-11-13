@@ -30,6 +30,7 @@ export function SemanticRequestSuccessView() {
         charge,
         payment,
         resetSemanticRequestFlow,
+        isPaymentStatusUnknown,
         isExternalWalletPayment,
     } = useSemanticRequestFlow()
 
@@ -45,7 +46,7 @@ export function SemanticRequestSuccessView() {
     const paidUsd = bookedUsd ?? usdAmount
     // An external-wallet charge the API had not booked when the read-back gave
     // up: nothing is sent yet, so nothing is claimed and no points are estimated.
-    const isAwaitingBooking = isExternalWalletPayment && isChargeAwaitingBooking(charge)
+    const isAwaitingBooking = isPaymentStatusUnknown || (isExternalWalletPayment && isChargeAwaitingBooking(charge))
 
     // calculate points for the payment (request fulfillment)
     const { pointsData } = usePointsCalculation(

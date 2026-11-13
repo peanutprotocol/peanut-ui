@@ -106,6 +106,7 @@ import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearAuthToken } from '@/utils/auth-token'
+import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -129,6 +130,7 @@ const stubLocation = (onNavigate?: () => void) => {
 
 describe('logoutUser', () => {
     beforeEach(() => {
+        localStorage.clear()
         jest.clearAllMocks()
         mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.23.0' })
         mockCancelQueries.mockResolvedValue(undefined)
@@ -146,6 +148,34 @@ describe('logoutUser', () => {
         endIntentionalLogout()
         clearRedirectUrl()
         clearSessionHeld()
+    })
+
+    it('clears the previous user’s bound signup draft along with credentials', async () => {
+        saveSignupDraft({
+            screenId: 'payment-plan',
+            answers: {
+                username: 'probe',
+                inviteSelection: 'alice',
+                residenceCountry: 'AR',
+                nationalityCountry: 'BR',
+                fundingChannel: 'arsBank',
+                paymentChannel: 'qr',
+                notificationChoices: null,
+                inviterAccepted: true,
+                sellScreensCountry: 'AR',
+            },
+        })
+        await recordSignupRegistration('u1', 'probe')
+        expect(readSignupDraft()?.userId).toBe('u1')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(clearAuthToken).toHaveBeenCalled()
+        expect(readSignupDraft()).toBeNull()
     })
 
     it('restores cached flag properties after reset without a fresh async lookup or duplicate reload', async () => {

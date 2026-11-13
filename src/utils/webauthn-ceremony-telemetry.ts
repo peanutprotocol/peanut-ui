@@ -41,6 +41,8 @@ export type CeremonyPurpose =
 export type CeremonyRecord = {
     seq: number
     kind: 'get' | 'create'
+    /** Attempt outcome recorded without invoking navigator.credentials. */
+    synthetic?: boolean
     /** Purpose stack joined innermost-last, e.g. `kernel_migration>user_op`. */
     purpose: string
     flow: string | null
@@ -74,6 +76,331 @@ export type CeremonyRecord = {
      * arrived, which is always the case for `create` on native.
      */
     backupEligible?: boolean
+    timing?: CeremonyTimingProperties
+}
+
+type Phase = 'options' | 'native' | 'verify'
+type CeremonyTimingProperties = {
+    attempt_id: string
+    options_ms: number | null
+    native_ms: number | null
+    verify_ms: number | null
+    total_ms: number
+    backgrounded_ms: number
+    timeout_phase?: Phase | 'other'
+}
+
+export type CeremonyTiming = {
+    id: string
+    activate(): void
+    phase(phase: Phase): () => void
+    attach(record: CeremonyRecord): void
+    update(record: CeremonyRecord, fields: Partial<CeremonyRecord>): void
+    request(path: string): void
+    timeout(): void
+    finish(error?: unknown): void
+    dispose(): void
+    operationStarted(): void
+    operationSettled(): void
+    purpose(): string
+    bindChallenge(challenge: unknown): void
+}
+const activeTimings = new Map<string, CeremonyTiming>()
+const pendingTimings = new Map<string, CeremonyTiming>()
+let pendingTimingCount = 0
+// Retain bounded challenge ownership so a retired SDK continuation cannot borrow a retry's timing.
+const challengeTimings = new Map<string, CeremonyTiming>()
+const TIMING_CORRELATION_LIMIT = 40
+let attemptCounter = 0
+const attemptPrefix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
+
+const safely = (fn: () => void): void => {
+    try {
+        fn()
+    } catch {}
+}
+
+function rememberTiming(map: Map<string, CeremonyTiming>, key: unknown, timing: CeremonyTiming): void {
+    if (typeof key !== 'string' || !key || key.length > 4096) return
+    map.delete(key)
+    map.set(key, timing)
+    if (map.size > TIMING_CORRELATION_LIMIT) map.delete(map.keys().next().value!)
+}
+
+function challengeKey(value: unknown): string | undefined {
+    if (typeof value === 'string') return value.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    if (!(value instanceof ArrayBuffer) && !ArrayBuffer.isView(value)) return undefined
+    const bytes = bytesOf(value)
+    if (bytes.length > 4096) return undefined
+    return btoa(String.fromCharCode(...bytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
+}
+
+export function currentCeremonyTiming(): CeremonyTiming | undefined {
+    return [...activeTimings.values()].pop()
+}
+
+export function timingForCredentialOptions(options?: {
+    publicKey?: { challenge?: unknown }
+}): CeremonyTiming | undefined {
+    try {
+        const key = challengeKey(options?.publicKey?.challenge)
+        const pending = [...pendingTimings.values()].filter((timing) => timing.purpose() === currentCeremonyPurpose())
+        const owner = key ? challengeTimings.get(key) : undefined
+        if (owner) return owner
+        const current = currentCeremonyTiming()
+        if (key && (!current || pendingTimingCount > 1)) return undefined
+        return current ?? (pendingTimingCount === 1 && pending.length === 1 ? pending[0] : undefined)
+    } catch {
+        return undefined
+    }
+}
+
+export function startCeremonyPhase(timing: CeremonyTiming | undefined, phase: Phase): () => void {
+    try {
+        return timing?.phase(phase) ?? (() => {})
+    } catch {
+        return () => {}
+    }
+}
+
+export function beginCeremonyTiming(
+    startedAt: number = Date.now(),
+    purpose = currentCeremonyPurpose()
+): CeremonyTiming {
+    hydrate()
+    const id = `${attemptPrefix}-${++attemptCounter}`
+    const flow = flowStack[flowStack.length - 1]
+    const phases: Partial<Record<Phase, { started: number; elapsed: number; pending: number }>> = {}
+    const records: CeremonyRecord[] = []
+    let finished = false
+    let snapshot: CeremonyTimingProperties | undefined
+    let timedOut = false
+    let hiddenAt: number | undefined
+    let backgrounded = 0
+    let kind: 'get' | 'create' = purpose.split('>').pop() === 'registration' ? 'create' : 'get'
+    let listening = false
+    let operationPending = false
+    let rawOperationPending = false
+    const elapsed = (since: number) => Math.max(0, Date.now() - since)
+    const onVisibility = () =>
+        safely(() => {
+            if (document.hidden && hiddenAt === undefined) hiddenAt = Date.now()
+            if (!document.hidden && hiddenAt !== undefined) {
+                backgrounded += elapsed(hiddenAt)
+                hiddenAt = undefined
+            }
+        })
+    safely(() => {
+        if (typeof document === 'undefined') return
+        onVisibility()
+        document.addEventListener('visibilitychange', onVisibility)
+        listening = true
+    })
+    const freeze = () => {
+        if (snapshot) return
+        const duration = (phase: Phase) => {
+            const entry = phases[phase]
+            if (!entry || (phase === 'native' && entry.pending > 0)) return null
+            return entry.elapsed + (entry.pending > 0 ? elapsed(entry.started) : 0)
+        }
+        snapshot = {
+            attempt_id: id,
+            options_ms: duration('options'),
+            native_ms: duration('native'),
+            verify_ms: duration('verify'),
+            total_ms: elapsed(startedAt),
+            backgrounded_ms: backgrounded + (hiddenAt === undefined ? 0 : elapsed(hiddenAt)),
+            ...(timedOut
+                ? {
+                      timeout_phase:
+                          (['verify', 'native', 'options'] as const).find(
+                              (phase) => (phases[phase]?.pending ?? 0) > 0
+                          ) ?? 'other',
+                  }
+                : {}),
+        }
+        if (listening) {
+            document.removeEventListener('visibilitychange', onVisibility)
+            listening = false
+        }
+    }
+    const timing = {
+        id,
+        activate() {
+            safely(() => {
+                if (!finished) {
+                    if (!operationPending) {
+                        operationPending = true
+                        pendingTimingCount += 1
+                    }
+                    activeTimings.delete(id)
+                    activeTimings.set(id, timing)
+                    rememberTiming(pendingTimings, id, timing)
+                }
+            })
+        },
+        purpose: () => purpose,
+        bindChallenge(challenge: unknown) {
+            safely(() => rememberTiming(challengeTimings, challengeKey(challenge), timing))
+        },
+        operationStarted() {
+            safely(() => {
+                rawOperationPending = true
+            })
+        },
+        operationSettled() {
+            safely(() => {
+                rawOperationPending = false
+                if (operationPending) {
+                    operationPending = false
+                    pendingTimingCount -= 1
+                }
+                pendingTimings.delete(id)
+            })
+        },
+        phase(phase: Phase) {
+            if (finished || snapshot) return () => {}
+            const entry = phases[phase] ?? { started: Date.now(), elapsed: 0, pending: 0 }
+            if (entry.pending === 0) entry.started = Date.now()
+            entry.pending += 1
+            phases[phase] = entry
+            let settled = false
+            return () =>
+                safely(() => {
+                    if (settled || finished || snapshot) return
+                    settled = true
+                    entry.pending -= 1
+                    if (entry.pending === 0) entry.elapsed += elapsed(entry.started)
+                })
+        },
+        attach(record: CeremonyRecord) {
+            safely(() => {
+                if (!finished && !snapshot) {
+                    if (purpose === 'unknown') purpose = record.purpose
+                    Object.assign(record, { purpose, flow: flow?.name ?? null, flowId: flow?.id ?? null })
+                    records.push(record)
+                }
+            })
+        },
+        update(record: CeremonyRecord, fields: Partial<CeremonyRecord>) {
+            safely(() => {
+                if (!finished && !snapshot) Object.assign(record, fields)
+            })
+        },
+        request(path: string) {
+            safely(() => {
+                if (finished || snapshot) return
+                if (path.includes('/register/')) kind = 'create'
+                if (purpose === 'unknown') purpose = currentCeremonyPurpose()
+            })
+        },
+        timeout() {
+            safely(() => {
+                if (!finished) {
+                    timedOut = true
+                    freeze()
+                }
+            })
+        },
+        finish(error?: unknown) {
+            safely(() => {
+                if (finished) return
+                if (safeErrorCode(error) === 'CEREMONY_TIMEOUT') timedOut = true
+                freeze()
+                finished = true
+                activeTimings.delete(id)
+                const fallback: CeremonyRecord | undefined =
+                    records.length === 0
+                        ? {
+                              seq: ++seq,
+                              kind,
+                              synthetic: true,
+                              purpose,
+                              flow: flow?.name ?? null,
+                              flowId: flow?.id ?? null,
+                              startedAt,
+                              durationMs: snapshot!.total_ms,
+                              gapMs: lastEndedAt === null ? null : startedAt - lastEndedAt,
+                              outcome: 'ok',
+                              native: isCapacitor(),
+                              overlapped: false,
+                              openFlows: flowStack.length,
+                          }
+                        : undefined
+                for (const record of fallback ? [fallback] : records) {
+                    commit({
+                        ...record,
+                        durationMs:
+                            snapshot!.native_ms === null
+                                ? Math.max(0, startedAt + snapshot!.total_ms - record.startedAt)
+                                : record.durationMs,
+                        timing: snapshot,
+                        ...(error !== undefined || timedOut
+                            ? {
+                                  outcome: 'error' as const,
+                                  errorName: timedOut
+                                      ? 'CeremonyTimeoutError'
+                                      : error instanceof Error
+                                        ? error.name
+                                        : 'unknown',
+                                  errorCode: timedOut ? 'CEREMONY_TIMEOUT' : safeErrorCode(error),
+                                  nativeErrorCode: safeNativeErrorCode(error),
+                                  nativeReason: safeNativeReason(error),
+                              }
+                            : {}),
+                    })
+                }
+            })
+        },
+        dispose() {
+            safely(() => {
+                activeTimings.delete(id)
+                if (!rawOperationPending) timing.operationSettled()
+                if (listening) document.removeEventListener('visibilitychange', onVisibility)
+                listening = false
+            })
+        },
+    }
+    return timing
+}
+
+export function timingForPasskeyRequest(init?: RequestInit): CeremonyTiming | undefined {
+    try {
+        if (typeof init?.body === 'string') {
+            if (init.body.length > 65_536) return undefined
+            const body = JSON.parse(init.body)
+            const clientData = body?.cred?.response?.clientDataJSON
+            if (clientData !== undefined) {
+                if (typeof clientData !== 'string') return undefined
+                const key = challengeKey(JSON.parse(atob(clientData.replace(/-/g, '+').replace(/_/g, '/')))?.challenge)
+                return key ? challengeTimings.get(key) : undefined
+            }
+        }
+        return currentCeremonyTiming()
+    } catch {
+        return undefined
+    }
+}
+
+export function observePasskeyOptions(response: Response, timing: CeremonyTiming): void {
+    safely(() => {
+        // Observe the SDK's existing read without awaiting another read or replacing its promise.
+        const json = response.json.bind(response)
+        response.json = () => {
+            const result = json()
+            void result.then(
+                (body) =>
+                    safely(() => {
+                        timing.bindChallenge(body?.challenge ?? body?.options?.challenge)
+                    }),
+                () => {}
+            )
+            return result
+        }
+    })
 }
 
 type FlowFrame = { id: string; name: string; startedAt: number; fromSeq: number }
@@ -186,6 +513,21 @@ function describeOptions(kind: 'get' | 'create', options?: CredentialCreationOpt
     return { rpId: publicKey?.rp?.id, allowCredentials: undefined }
 }
 
+function describeRefusal(error: unknown): Pick<CeremonyRecord, 'challengeOffset' | 'backupEligible'> {
+    try {
+        if (!error || typeof error !== 'object') return {}
+        const { challengeOffset, backupEligible } = error as Partial<CeremonyRecord>
+        return {
+            ...(typeof challengeOffset === 'number' &&
+                Number.isSafeInteger(challengeOffset) &&
+                challengeOffset >= 0 && { challengeOffset }),
+            ...(typeof backupEligible === 'boolean' && { backupEligible }),
+        }
+    } catch {
+        return {}
+    }
+}
+
 /**
  * Nothing in here may throw: this runs inside the `navigator.credentials`
  * wrapper, so an exception would turn a successful ceremony into a failed one
@@ -216,6 +558,7 @@ function commit(record: CeremonyRecord): void {
             native: record.native,
             challenge_offset: record.challengeOffset,
             backup_eligible: record.backupEligible,
+            ...record.timing,
         })
         Sentry.addBreadcrumb({
             category: 'webauthn.ceremony',
@@ -276,14 +619,32 @@ async function trace<T>(
     hydrate()
     const startedAt = Date.now()
     const flow = flowStack[flowStack.length - 1]
+    let timing: CeremonyTiming | undefined
+    safely(() => {
+        timing = timingForCredentialOptions(options)
+    })
+    const unattributedGuardedCall = !timing && (activeTimings.size > 0 || pendingTimingCount > 0)
+    let ownsTiming = false
+    safely(() => {
+        if (!timing && !unattributedGuardedCall) {
+            timing = beginCeremonyTiming(startedAt)
+            ownsTiming = true
+        }
+    })
+    let settleNative = () => {}
+    safely(() => {
+        settleNative = timing?.phase('native') ?? settleNative
+    })
     inFlight += 1
-    const base = {
+    const base: CeremonyRecord = {
         seq: ++seq,
         kind,
-        purpose: purposeStack.length > 0 ? purposeStack.join('>') : 'unknown',
+        purpose: currentCeremonyPurpose(),
         flow: flow?.name ?? null,
         flowId: flow?.id ?? null,
         startedAt,
+        durationMs: 0,
+        outcome: 'ok',
         gapMs: lastEndedAt === null ? null : startedAt - lastEndedAt,
         native: isCapacitor(),
         overlapped: inFlight > 1,
@@ -291,33 +652,43 @@ async function trace<T>(
         ...describeOptions(kind, options),
     }
     openCallStarts.set(base.seq, startedAt)
+    timing?.attach(base)
 
     try {
         const result = await run()
-        commit({ ...base, ...describeResult(result), durationMs: Date.now() - startedAt, outcome: 'ok' })
+        settleNative()
+        const fields = { ...describeResult(result), durationMs: Date.now() - startedAt, outcome: 'ok' as const }
+        if (timing) timing.update(base, fields)
+        else if (!unattributedGuardedCall) commit({ ...base, ...fields })
+        if (ownsTiming) timing?.finish()
         return result
     } catch (error) {
-        commit({
-            ...base,
+        if (safeErrorCode(error) !== 'CEREMONY_TIMEOUT') settleNative()
+        const fields: Partial<CeremonyRecord> = {
+            ...describeRefusal(error),
             durationMs: Date.now() - startedAt,
             outcome: 'error',
             errorName: error instanceof Error ? error.name : 'unknown',
             errorCode: safeErrorCode(error),
             nativeErrorCode: safeNativeErrorCode(error),
             nativeReason: safeNativeReason(error),
-        })
+        }
+        if (timing) timing.update(base, fields)
+        else if (!unattributedGuardedCall) commit({ ...base, ...fields })
+        if (ownsTiming) timing?.finish(error)
         throw error
     } finally {
         inFlight -= 1
         openCallStarts.delete(base.seq)
+        if (ownsTiming) timing?.dispose()
     }
 }
 
 /**
  * The newest ceremony of `kind` whose innermost purpose is `purpose` and that
  * started at or after `sinceMs`. The bound keeps a caller from reading an
- * earlier attempt: the log survives reloads, and a failure before the OS
- * prompt (prepare, paymaster, a ceremony timeout) records nothing.
+ * earlier attempt: the log survives reloads. Synthetic attempt outcomes
+ * recorded before a credential invocation are excluded.
  */
 export function latestCeremony(
     kind: 'get' | 'create',
@@ -327,7 +698,12 @@ export function latestCeremony(
     hydrate()
     for (let index = log.length - 1; index >= 0; index--) {
         const record = log[index]
-        if (record.kind === kind && record.startedAt >= sinceMs && record.purpose.split('>').pop() === purpose) {
+        if (
+            !record.synthetic &&
+            record.kind === kind &&
+            record.startedAt >= sinceMs &&
+            record.purpose.split('>').pop() === purpose
+        ) {
             return record
         }
     }
@@ -412,6 +788,10 @@ export async function withCeremonyFlow<T>(
         })
         throw error
     }
+}
+
+export function currentCeremonyPurpose(): string {
+    return purposeStack.length > 0 ? purposeStack.join('>') : 'unknown'
 }
 
 export async function withCeremonyPurpose<T>(purpose: CeremonyPurpose, fn: () => Promise<T>): Promise<T> {

@@ -6,40 +6,22 @@
         "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "06-b-invite",
+        "id": "01-a-landing-flag-welcome-headline-copy-every-border",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=06-b-invite",
-        "source": "Setup/Views/Invite.tsx"
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "06-a-signup",
+        "id": "01-a-landing-flag-welcome-headline-copy-whole-world",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=06-a-signup",
-        "source": "Setup/Views/Signup.tsx"
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "08-a-passkeysetuphelpmodal",
+        "id": "01-a-landing-flag-welcome-headline-copy-travels-free",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
-        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
-    },
-    {
-        "id": "09-a-passkeyinfomodal",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
-        "source": "Setup/components/PasskeyInfoDrawer.tsx"
-    },
-    {
-        "id": "03-a-residence-select",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=03-a-residence-select",
-        "source": "Setup/Views/Residence.tsx"
-    },
-    {
-        "id": "03-b-residence-compare",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=03-b-residence-compare",
-        "source": "Setup/components/ResidenceCompare.tsx"
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
     },
     {
         "id": "04-b-advantage-fees",
@@ -52,6 +34,18 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=02-b-advantage-card",
         "source": "Setup/Views/Advantage.tsx"
+    },
+    {
+        "id": "03-a-residence-select",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-a-residence-select",
+        "source": "Setup/Views/Residence.tsx"
+    },
+    {
+        "id": "03-b-residence-compare",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-b-residence-compare",
+        "source": "Setup/components/ResidenceCompare.tsx"
     },
     {
         "id": "03-c-residence-congrats",
@@ -70,6 +64,36 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-i-payment-methods",
         "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "06-a-signup",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup",
+        "source": "Setup/Views/Signup.tsx"
+    },
+    {
+        "id": "06-b-invite",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-b-invite",
+        "source": "Setup/Views/Invite.tsx"
+    },
+    {
+        "id": "06-c-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey",
+        "source": "Setup/Views/Passkey.tsx"
+    },
+    {
+        "id": "08-a-passkeysetuphelpmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
+        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
+    },
+    {
+        "id": "09-a-passkeyinfomodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
+        "source": "Setup/components/PasskeyInfoDrawer.tsx"
     },
     {
         "id": "07-c-notification-email",
@@ -158,6 +182,21 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=15-a-invitefriendsmodal",
         "source": "Global/InviteFriendsModal/index.tsx"
+    },
+    {
+        "id": "fixture-setup-signup-reserved",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup"
+    },
+    {
+        "id": "fixture-setup-passkey-username-taken",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey"
+    },
+    {
+        "id": "fixture-setup-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey"
     },
     {
         "id": "fixture-setup-payment-plan",
@@ -1386,6 +1425,11 @@
         "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
+        "id": "fixture-profile-accounts-card-state-blocked",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=deposit-card-state-blocked"
+    },
+    {
         "id": "fixture-history-card-spend",
         "flow": "Card",
         "route": "/history"
@@ -1624,6 +1668,12 @@
         "id": "p46-card-signature",
         "flow": "Card",
         "route": "/fix-card-signature"
+    },
+    {
+        "id": "deposit-card-state-blocked",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=deposit-card-state-blocked",
+        "source": "features/deposit-accounts/components/ClosedRowDrawer.tsx"
     },
     {
         "id": "standalone-error-card",

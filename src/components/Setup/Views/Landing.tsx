@@ -2,7 +2,12 @@
 
 import { useNativePlatform } from '@/utils/native-platform'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { getPasskeyErrorCode, getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
+import {
+    classifyPasskeyError,
+    getPasskeyErrorCode,
+    getPasskeyErrorSetupKey,
+    isAlreadyReported,
+} from '@/utils/webauthn.utils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
@@ -25,6 +30,9 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
+import { discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
+import { useWelcomeHeadlineExperiment } from '@/features/setup/WelcomeHeadlineExperimentProvider'
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
@@ -45,10 +53,13 @@ const LandingStep = () => {
     // bypass users see the normal card.
     const blockSignup = !nativePlatform.isCapacitor && !hasKeepWebBypass
     const { handleNext } = useSetupFlow()
+    const flow = useOptionalSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
-    const { track } = useSignupControl()
+    const { track, trackError } = useSignupControl()
+    const { variant: welcomeVariant, cancelPending: cancelWelcomePending } = useWelcomeHeadlineExperiment()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
+    const [loginFailed, setLoginFailed] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
@@ -81,10 +92,14 @@ const LandingStep = () => {
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         const passkeyErrorCode = getPasskeyErrorCode(error)
+        trackError('log_in', passkeyErrorCode ?? classifyPasskeyError(error).code)
         const recovery = offersRecovery(passkeyErrorCode)
+        // A single dismissal of the passkey sheet is a choice, not a failed login.
+        if (passkeyErrorCode !== 'LOGIN_CANCELED' || recovery) setLoginFailed(true)
         if (passkeyErrorCode === 'ACCOUNT_DELETED') {
             setIsAccountDeleted(true)
         } else if (recovery) {
+            track('login_recovery', 'open')
             recoveryActionRef.current = null
             setIsRecoveryOpen(true)
         } else {
@@ -102,6 +117,7 @@ const LandingStep = () => {
     }
 
     const login = async () => {
+        trackError('log_in', null)
         setIsAccountDeleted(false)
         try {
             await handleLoginClick()
@@ -116,11 +132,16 @@ const LandingStep = () => {
     }
 
     const signUp = () => {
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+        if (readSignupDraft()?.userId) {
+            discardSignupDraft()
+            flow?.resetSetupFlow()
+        }
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: welcomeVariant ?? 'control' })
         handleNext()
     }
 
     const onSignUpClick = () => {
+        cancelWelcomePending()
         track('sign_up', 'tap')
         signUp()
     }
@@ -164,7 +185,7 @@ const LandingStep = () => {
         />
     )
 
-    const recoveryLink = (
+    const recoveryLink = loginFailed && (
         <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
             <Icon name="info" size={16} className="shrink-0" />
             {t('landing.recoverWallet')}
@@ -201,7 +222,7 @@ const LandingStep = () => {
                         </LinkButton>
                     </div>
                     {/* pt-1: two stacked text links need ~28px between their hit areas */}
-                    <div className="pt-1 text-center">{recoveryLink}</div>
+                    {recoveryLink && <div className="pt-1 text-center">{recoveryLink}</div>}
                     {/* Not a product element: staging, previews and local builds only, so
                         the team can still create web accounts. The dashed frame and badge
                         keep it from reading as a real option in screenshots. */}
@@ -221,7 +242,7 @@ const LandingStep = () => {
     return (
         <>
             <div className="flex flex-1 flex-col">
-                <div className="text-left">{recoveryLink}</div>
+                {recoveryLink && <div className="text-left">{recoveryLink}</div>}
                 <SetupFooter
                     actions={
                         <>

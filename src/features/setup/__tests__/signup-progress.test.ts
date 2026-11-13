@@ -9,12 +9,13 @@ import {
 
 const MASTER: ScreenId[] = [
     'landing',
-    'signup',
-    'invite',
     'advantage-fees',
     'advantage-card',
     'residence',
     'payment-plan',
+    'signup',
+    'invite',
+    'passkey',
     'notification-email',
     'notification-permission',
     'advantage-control',
@@ -80,25 +81,32 @@ describe('signup progress storage', () => {
 })
 
 describe('resumeScreen', () => {
-    const list: ScreenId[] = [
-        'landing',
-        'signup',
-        'residence',
-        'payment-plan',
-        'notification-email',
-        'advantage-control',
-    ]
+    const list: ScreenId[] = ['landing', 'residence', 'payment-plan', 'notification-email', 'advantage-control']
 
     it('continues at the saved step', () => {
         expect(resumeScreen(progress('advantage-control'), list, MASTER)).toBe('advantage-control')
     })
 
-    it('without progress restarts at the first step after registration', () => {
+    it('without progress recovers residence before Email', () => {
         expect(resumeScreen(null, list, MASTER)).toBe('residence')
     })
 
     it('a saved step that left the list continues at the next later step', () => {
-        expect(resumeScreen(progress('invite'), list, MASTER)).toBe('residence')
+        expect(resumeScreen(progress('invite'), list, MASTER)).toBe('notification-email')
         expect(resumeScreen(progress('notification-permission'), list, MASTER)).toBe('advantage-control')
     })
 })
+
+it.each(['notification-email', 'notification-permission', 'advantage-control'] as const)(
+    'recovers missing legacy answers before a saved %s screen',
+    (screenId) => {
+        const saved = progress(screenId)
+        saved.answers.residenceCountry = ''
+        saved.answers.fundingChannel = null
+        saved.answers.paymentChannel = null
+        const list = MASTER.filter((id) => !['signup', 'invite', 'passkey'].includes(id))
+        expect(resumeScreen(saved, list, MASTER)).toBe('residence')
+        saved.answers.residenceCountry = 'AR'
+        expect(resumeScreen(saved, list, MASTER)).toBe('payment-plan')
+    }
+)

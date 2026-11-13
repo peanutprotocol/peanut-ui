@@ -127,7 +127,7 @@ describe('useMultiPhaseKycFlow — the address step', () => {
                 })
         )
         const { result } = renderHook(() => useMultiPhaseKycFlow({}))
-        let pending!: Promise<void>
+        let pending!: Promise<boolean>
         act(() => {
             pending = result.current.handleStartAction('sumsub:address_of_residence')
         })
@@ -528,7 +528,9 @@ describe('deposit session regression contracts', () => {
             await result.current.correctVerificationData()
         })
         expect(mockInitiate).toHaveBeenLastCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true })
+            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
         expect(result.current.showWrapper).toBe(true)
         ;(refreshVerificationSession as jest.Mock).mockResolvedValue('refreshed')

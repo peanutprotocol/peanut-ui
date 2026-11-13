@@ -309,7 +309,9 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
         })
 
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' })
+            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' }),
+            undefined,
+            expect.any(AbortSignal)
         )
     })
 
@@ -323,7 +325,11 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
             await result.current.handleInitiateKyc('LATAM', undefined, true, 'br')
         })
 
-        expect(mockInitiate).toHaveBeenCalledWith(expect.objectContaining({ targetCountry: 'BR' }))
+        expect(mockInitiate).toHaveBeenCalledWith(
+            expect.objectContaining({ targetCountry: 'BR' }),
+            undefined,
+            expect.any(AbortSignal)
+        )
     })
 
     it('drops a non-Manteca targetCountry (MX) instead of stamping a poisoned geo', async () => {
@@ -337,7 +343,9 @@ describe('useSumsubKycFlow — targetCountry gating', () => {
         })
 
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: undefined })
+            expect.objectContaining({ regionIntent: 'LATAM', crossRegion: true, targetCountry: undefined }),
+            undefined,
+            expect.any(AbortSignal)
         )
     })
 })
@@ -362,7 +370,9 @@ describe('useSumsubKycFlow — corridor', () => {
         })
 
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ corridor: 'BANK_TRANSFER_CO', crossRegion: true })
+            expect.objectContaining({ corridor: 'BANK_TRANSFER_CO', crossRegion: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
     })
 })
@@ -402,6 +412,7 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
 
     it('thrown initiate → late PENDING→APPROVED websocket events do NOT fire onKycSuccess', async () => {
         mockInitiate.mockRejectedValue(new Error('network down'))
+        jest.mocked(getKycDocumentStatus).mockResolvedValueOnce('NOT_STARTED')
         const onKycSuccess = jest.fn()
 
         const { result } = renderHook(() => useSumsubKycFlow({ onKycSuccess }))
@@ -409,7 +420,8 @@ describe('useSumsubKycFlow — terminal-error exits clear the user-initiated gua
         await act(async () => {
             await result.current.handleInitiateKyc('EU', undefined, true)
         })
-        expect(result.current.error).toBe('network down')
+        expect(result.current.error).toMatch(/try again/i)
+        expect(getKycDocumentStatus).toHaveBeenCalled()
 
         await act(async () => {
             mockWs.handler?.('PENDING')
@@ -1468,7 +1480,9 @@ describe('useSumsubKycFlow — capability action sessions', () => {
             await result.current.correctVerificationData()
         })
         expect(mockInitiate).toHaveBeenCalledWith(
-            expect.objectContaining({ targetCountry: 'BR', correctSession: true })
+            expect.objectContaining({ targetCountry: 'BR', correctSession: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
         expect(result.current.verificationSession?.generation).toBe(3)
     })
@@ -1548,7 +1562,7 @@ describe('useSumsubKycFlow — capability action sessions', () => {
                     complete = resolve
                 })
         )
-        let pending!: Promise<void>
+        let pending!: Promise<boolean>
         act(() => {
             pending = result.current.handleStartAction('manteca-kyc-action:BR')
         })
@@ -1878,7 +1892,7 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
     it('sends the user to the Smart Paperwork Verification ID screen in restart mode instead of the legacy restart', async () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
-            await result.current.handleRestartIdentity()
+            expect(await result.current.handleRestartIdentity()).toBe(false)
         })
         expect(mockRouterPush).toHaveBeenCalledWith('/verify?step=id&restart=1')
         expect(mockRestart).not.toHaveBeenCalled()
@@ -1948,7 +1962,7 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
         jest.mocked(resumeKycDocumentAttempt).mockResolvedValue(frozen)
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
-            await result.current.handleRestartIdentity()
+            expect(await result.current.handleRestartIdentity()).toBe(true)
         })
         expect(resumeKycDocumentAttempt).toHaveBeenCalledWith('replacement-1', expect.any(Function))
         expect(result.current.accessToken).toBe('replacement-token')
@@ -1967,7 +1981,7 @@ describe('useSumsubKycFlow — restarting an identity verified through a verific
         jest.mocked(resumeKycDocumentAttempt).mockRejectedValue(new Error('KYC request failed'))
         const { result } = renderHook(() => useSumsubKycFlow({}))
         await act(async () => {
-            await result.current.handleRestartIdentity()
+            expect(await result.current.handleRestartIdentity()).toBe(false)
         })
         expect(result.current.error).toBe('Could not restart identity verification. Please try again.')
         expect(result.current.showWrapper).toBe(false)
@@ -2172,4 +2186,115 @@ test.each([
     expect(result.current.showWrapper).toBe(false)
     await act(async () => {})
     expect(onKycSuccess).toHaveBeenCalledTimes(success ? 1 : 0)
+})
+
+describe('KYC entry handlers report whether the SDK opened', () => {
+    beforeEach(() => {
+        mockRestart.mockReset()
+        mockStartAction.mockReset()
+        mockResubmit.mockReset()
+        jest.mocked(findKycReplacementPlan).mockResolvedValue(null)
+        jest.mocked(getKycDocumentPlan).mockResolvedValue({ available: false, routes: [] } as never)
+    })
+
+    it.each(['restart', 'action', 'resubmit'] as const)(
+        '%s returns true only for a usable SDK token',
+        async (route) => {
+            const response = { data: { token: 'opened-token', applicantId: 'a-1', levelName: 'general' } }
+            mockRestart.mockResolvedValue(response as never)
+            mockStartAction.mockResolvedValue(response as never)
+            mockResubmit.mockResolvedValue(response as never)
+            const { result } = renderHook(() => useSumsubKycFlow())
+            let opened: unknown
+            await act(async () => {
+                opened =
+                    route === 'restart'
+                        ? await result.current.handleRestartIdentity()
+                        : await result.current.handleFixableRejection({
+                              provider: 'MANTECA',
+                              actionKey: route === 'action' ? 'sumsub:source_of_funds' : null,
+                          })
+            })
+            expect(opened).toBe(true)
+            expect(result.current.showWrapper).toBe(true)
+            expect(result.current.accessToken).toBe('opened-token')
+        }
+    )
+
+    it.each([
+        ['restart', 'error'],
+        ['restart', 'missing token'],
+        ['action', 'error'],
+        ['action', 'missing token'],
+        ['resubmit', 'error'],
+        ['resubmit', 'missing token'],
+    ] as const)('%s returns false for %s', async (route, failure) => {
+        const response = failure === 'error' ? { error: 'Cannot start verification' } : { data: { token: null } }
+        mockRestart.mockResolvedValue(response as never)
+        mockStartAction.mockResolvedValue(response as never)
+        mockResubmit.mockResolvedValue(response as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+        let opened: unknown
+        await act(async () => {
+            opened =
+                route === 'restart'
+                    ? await result.current.handleRestartIdentity()
+                    : await result.current.handleFixableRejection({
+                          provider: 'MANTECA',
+                          actionKey: route === 'action' ? 'sumsub:source_of_funds' : null,
+                      })
+        })
+        expect(opened).toBe(false)
+        expect(result.current.showWrapper).toBe(false)
+    })
+
+    it.each(['action', 'resubmit'] as const)('%s propagates SDK opening from its restart fallback', async (route) => {
+        const refused = { error: 'Restart required', code: 'restart_identity', fallback: 'restart-identity' }
+        mockStartAction.mockResolvedValue(refused as never)
+        mockResubmit.mockResolvedValue(refused as never)
+        mockRestart.mockResolvedValue({
+            data: { token: 'fallback-token', applicantId: 'a-1', levelName: 'general' },
+        } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+        let opened: unknown
+        await act(async () => {
+            opened = await result.current.handleFixableRejection({
+                provider: 'MANTECA',
+                actionKey: route === 'action' ? 'sumsub:source_of_funds' : null,
+            })
+        })
+        expect(opened).toBe(true)
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.accessToken).toBe('fallback-token')
+    })
+
+    it.each(['REVIEW_PENDING', 'SUBMISSION_PENDING', 'PROVIDER_PENDING', 'READY'] as const)(
+        'fixable %s session returns false without opening SDK',
+        async (state) => {
+            mockStartAction.mockResolvedValue({
+                data: {
+                    levelName: 'manteca-kyc',
+                    session: {
+                        id: 'session-1',
+                        generation: 2,
+                        targetCountry: 'AR',
+                        externalActionId: 'attempt-2',
+                        state,
+                        reasonCode: null,
+                        isMultiLevel: false,
+                    },
+                },
+            })
+            const { result } = renderHook(() => useSumsubKycFlow())
+            let opened: unknown
+            await act(async () => {
+                opened = await result.current.handleFixableRejection({
+                    provider: 'MANTECA',
+                    actionKey: 'sumsub:source_of_funds',
+                })
+            })
+            expect(opened).toBe(false)
+            expect(result.current.showWrapper).toBe(false)
+        }
+    )
 })

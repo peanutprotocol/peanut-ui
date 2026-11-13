@@ -117,7 +117,12 @@ for (const [locale, routes] of Object.entries(LANDING_ROUTES)) {
 
 // Render the actual signup form independently of entry gates; these tests
 // check translated layout, while setup-entry tests cover navigation decisions.
-const SETUP_ROUTES = ['/setup', fixtureHref('/dev/surfaces?s=06-a-signup', 'setup-payment-plan'), '/setup?step=login']
+const SETUP_ROUTES = [
+    '/setup',
+    fixtureHref('/dev/surfaces?s=06-a-signup', 'setup-payment-plan'),
+    fixtureHref('/dev/surfaces?s=06-c-passkey', 'setup-passkey'),
+    '/setup?step=login',
+]
 
 for (const route of SETUP_ROUTES) {
     test(`setup:${route}`, async ({ page }, testInfo) => {
@@ -143,6 +148,10 @@ for (const route of SETUP_ROUTES) {
         // Prove the signup surface renders the real form before scanning its copy.
         if (route.includes('s=06-a-signup')) {
             await expect(page.locator('input:visible').first()).toBeVisible()
+        }
+
+        if (route.includes('s=06-c-passkey')) {
+            await expect(page.locator('[data-setup-footer] button').first()).toBeVisible()
         }
 
         // same catalog race as the fixture tests: scan only after the app

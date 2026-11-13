@@ -6,6 +6,12 @@ import type { SetupFundingChannel, SetupPaymentChannel } from './paymentChannels
 
 /** The steps after registration; reaching any of them arms the no-back lock. */
 export const POST_REGISTRATION_SCREENS: readonly ScreenId[] = [
+    'notification-email',
+    'notification-permission',
+    'advantage-control',
+]
+
+export const REGISTERED_PROGRESS_SCREENS: readonly ScreenId[] = [
     'residence',
     'invite',
     'advantage-fees',
@@ -82,7 +88,9 @@ export function readSignupProgress(userId: string, now = Date.now()): SignupProg
             stored.version !== 1 ||
             typeof stored.savedAt !== 'number' ||
             now - stored.savedAt > MAX_AGE_MS ||
-            !POST_REGISTRATION_SCREENS.includes(stored.screenId as ScreenId)
+            !Number.isFinite(stored.savedAt) ||
+            stored.savedAt > now ||
+            !REGISTERED_PROGRESS_SCREENS.includes(stored.screenId as ScreenId)
         ) {
             removeStoredValue(keyFor(userId))
             return null
@@ -122,11 +130,24 @@ export function resumeScreen(
     masterScreenIds: readonly ScreenId[]
 ): ScreenId {
     const first = postRegistrationScreen(screenIds)
-    if (!progress) return first
+    const recovery = !progress?.answers.residenceCountry
+        ? 'residence'
+        : !progress.answers.fundingChannel || !progress.answers.paymentChannel
+          ? 'payment-plan'
+          : first
+    if (!progress) return screenIds.includes(recovery) ? recovery : first
+    const recoveryIndex = masterScreenIds.indexOf(recovery)
+    if (
+        recovery !== first &&
+        masterScreenIds.indexOf(progress.screenId) >= recoveryIndex &&
+        screenIds.includes(recovery)
+    )
+        return recovery
     if (screenIds.includes(progress.screenId)) return progress.screenId
+    if (progress.screenId === 'invite') return screenIds.includes(recovery) ? recovery : first
     const savedIndex = masterScreenIds.indexOf(progress.screenId)
     const later = screenIds.find(
-        (id) => POST_REGISTRATION_SCREENS.includes(id) && masterScreenIds.indexOf(id) > savedIndex
+        (id) => REGISTERED_PROGRESS_SCREENS.includes(id) && id !== 'invite' && masterScreenIds.indexOf(id) > savedIndex
     )
     return later ?? first
 }

@@ -505,6 +505,7 @@
             "bankNotAvailableNote": "Bank transfers and card issuing aren't available for residents of your country.",
             "bankOnlyNotAvailableNote": "Bank transfers aren't available for residents of your country.",
             "cardNotAvailableNote": "The Peanut card isn't available for residents of your country.",
+            "cardNotAvailableStateNote": "The Peanut card isn't available in your state.",
             "changeModal": {
                 "title": "Change residence",
                 "reviewTitle": "Under review",
@@ -904,11 +905,29 @@
         "steps": {
             "landing": {
                 "title": "Earn anywhere. Spend worldwide.",
-                "description": "Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are."
+                "description": "Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are.",
+                "variants": {
+                    "every_border": {
+                        "title": "One account. Every border.",
+                        "description": "Receive, send and spend internationally, without paying for the distance."
+                    },
+                    "whole_world": {
+                        "title": "The whole world in one account.",
+                        "description": "Get paid in other currencies, pay anyone abroad, spend locally. No transfer fees."
+                    },
+                    "travels_free": {
+                        "title": "Money that travels free.",
+                        "description": "One account that sends, receives and spends across borders at no cost."
+                    }
+                }
             },
             "signup": {
                 "title": "Claim username",
                 "description": "People find and pay you by your username."
+            },
+            "passkey": {
+                "title": "Create a passkey",
+                "description": "It's how you sign in and approve payments. No password to remember."
             },
             "advantage-payments": {
                 "title": "Pay anyone in a tap.",
@@ -1005,8 +1024,8 @@
         },
         "signupStep": {
             "usernameLabel": "Username",
-            "usernamePlaceholder": "batman",
-            "usernameRules": "4–12 characters. Start with a letter. Letters and numbers only.",
+            "usernamePlaceholder": "Username",
+            "usernameRules": "4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut” or be a reserved name.",
             "inviterUsernameLabel": "Username of the person who invited you",
             "inviterUsernamePlaceholder": "Friend’s username",
             "inviterNotFound": "We couldn’t find this user.",
@@ -1019,6 +1038,7 @@
                 "invalidFormat": "Start with a letter. Use only letters and numbers.",
                 "taken": "Username already taken",
                 "invalid": "Username is invalid, please use a different one",
+                "reserved": "This username is reserved. Try a different one.",
                 "checkFailed": "Failed to check handle availability. Please try again.",
                 "checkFailedSupport": "Failed to check handle availability. Please try again or contact support."
             },
@@ -1102,6 +1122,21 @@
             "continue": "Continue"
         },
         "passkey": {
+            "create": "Create passkey",
+            "points": {
+                "unlock": {
+                    "title": "Face or fingerprint",
+                    "description": "Unlock with what your phone already uses."
+                },
+                "control": {
+                    "title": "Fully private",
+                    "description": "Peanut never sees or stores it."
+                },
+                "backup": {
+                    "title": "Ready on a new phone",
+                    "description": "Synced by your phone's password manager."
+                }
+            },
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",
             "cancelled": "Passkey setup was cancelled. Please try again when ready.",
             "tookTooLong": "This is taking longer than it should. Please try again.",
@@ -1113,7 +1148,7 @@
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "accountDeleted": "This account was deleted. Sign up to create a new one.",
             "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
-            "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
+            "usernameTaken": "This username isn’t available right now. If you already signed up with it on this device, your passkey is ready: just log in.",
             "learnMore": "Learn more about Passkeys",
             "help": {
                 "titles": {
@@ -1895,7 +1930,7 @@
             "creatingCardTitle": "Creating your card…",
             "creatingCardBody": "This usually takes a few seconds.",
             "pendingTitle": "Setting up card…",
-            "pendingBody": "Hang tight while we finish setting up your card. This usually takes a few seconds.",
+            "pendingBody": "We're setting up your card. This usually takes a few minutes, and we'll let you know when it's ready.",
             "manualReviewTitle": "Manual review needed",
             "manualReviewBody": "We need to do a manual review of your submission. This usually takes 1-2 days and we'll let you know when it's ready.",
             "requiresInfoTitle": "We need more information",

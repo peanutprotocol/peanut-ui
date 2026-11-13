@@ -20,7 +20,16 @@ const mockSetBackgroundColor = jest.fn()
 
 jest.mock('@/i18n/app/locale-context', () => ({ useAppLocale: () => ({ locale: 'en', setLocale: jest.fn() }) }))
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+// The Welcome headline experiment reads flags on the native landing; loaded with no variant means control.
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: {
+        capture: jest.fn(),
+        getFeatureFlag: jest.fn(),
+        onFeatureFlags: jest.fn(() => () => {}),
+        featureFlags: { hasLoadedFlags: true, getFlagVariants: () => ({}) },
+    },
+}))
 jest.mock('@/hooks/useKycIntents', () => ({ useKycIntents: () => ({ settled: false }) }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => false }))
 jest.mock('@/utils/capacitor', () => ({

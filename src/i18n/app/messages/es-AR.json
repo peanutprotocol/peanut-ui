@@ -508,7 +508,21 @@
         "steps": {
             "landing": {
                 "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
-                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
+                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo.",
+                "variants": {
+                    "every_border": {
+                        "description": "Recibí, enviá y gastá a nivel internacional, sin pagar por la distancia."
+                    },
+                    "whole_world": {
+                        "description": "Cobrá en otras monedas, pagale a quien quieras en el exterior y gastá en tu país. Sin comisiones por transferencia."
+                    },
+                    "travels_free": {
+                        "title": "Plata que viaja gratis."
+                    }
+                }
+            },
+            "passkey": {
+                "title": "Creá una passkey"
             },
             "advantage-payments": {
                 "title": "Pagale a cualquiera con un toque.",
@@ -566,12 +580,13 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
-            "usernameRules": "De 4 a 12 caracteres. Empezá con una letra. Solo letras y números.",
+            "usernameRules": "De 4 a 12 caracteres. Empezá con una letra. Solo letras y números. No puede incluir “peanut” ni ser un nombre reservado.",
             "errors": {
                 "tooShort": "Usá al menos 4 caracteres.",
                 "tooLong": "Usá 12 caracteres o menos.",
                 "invalidFormat": "Empezá con una letra. Usá solo letras y números.",
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",
+                "reserved": "Este nombre de usuario está reservado. Probá con otro.",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
             },
@@ -623,6 +638,14 @@
             "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad."
         },
         "passkey": {
+            "points": {
+                "unlock": {
+                    "description": "Desbloqueá con lo que ya usás en tu teléfono."
+                },
+                "control": {
+                    "title": "Totalmente privada"
+                }
+            },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Intentalo de nuevo cuando quieras.",
             "tookTooLong": "Esto está tardando más de lo esperado. Intentalo de nuevo.",
@@ -634,7 +657,7 @@
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
             "accountDeleted": "Esta cuenta fue eliminada. Registrate para crear una nueva.",
             "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elegí otro nombre de usuario para crear una nueva.",
-            "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
+            "usernameTaken": "Este nombre de usuario no está disponible ahora. Si ya te registraste con él en este dispositivo, tu passkey está lista: solo iniciá sesión.",
             "learnMore": "Aprendé más sobre las passkeys",
             "help": {
                 "descriptions": {
@@ -1042,7 +1065,6 @@
             "androidStep4": "Seguí los pasos en pantalla"
         },
         "status": {
-            "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
             "requiresInfoBody": "El equipo de Peanut te va a ayudar a terminar tu solicitud de tarjeta. Hablá con soporte para continuar.",
             "requiresInfoTaxIdBody": "Proporcioná tu identificación fiscal para terminar tu solicitud de tarjeta.",
             "requiresInfoBirthDateBody": "Proporcioná tu fecha de nacimiento para terminar tu solicitud de tarjeta.",

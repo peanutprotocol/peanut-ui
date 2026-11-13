@@ -22,6 +22,7 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 
 export default function EmailStep() {
     const t = useTranslations('setup.email')
+    const tNotifications = useTranslations('setup.notifications')
     const { user, fetchUser } = useAuth()
     const queryClient = useQueryClient()
     const { notificationEmail, setNotificationEmail, setIsLoading: setSetupLoading } = useSetupFlowContext()
@@ -30,37 +31,38 @@ export default function EmailStep() {
     const [error, setError] = useState<string>()
     const [emailInUse, setEmailInUse] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [keepCurrentEmail, setKeepCurrentEmail] = useState(false)
     const savingRef = useRef(false)
     const saveAttemptsRef = useRef(0)
-    const { track, trackOnce } = useSignupControl()
+    const { track, trackOnce, trackError } = useSignupControl()
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (savingRef.current) return
         track('continue', 'tap')
+        trackError('email', null)
         setError(undefined)
         setEmailInUse(false)
         const value = email.trim()
-        if (!isValidEmail(value)) {
+        if (!keepCurrentEmail && !isValidEmail(value)) {
             setError(t('invalid'))
-            track('email', 'error', 'invalid')
+            trackError('email', 'invalid')
             return
         }
         if (!user?.user.userId) {
             setError(t('notReady'))
-            track('email', 'error', 'not_ready')
+            trackError('email', 'not_ready')
             return
         }
         savingRef.current = true
         setSaving(true)
         setSetupLoading(true)
-        // The flow retains the draft across Next/Back remounts. Only leave
-        // after the API confirms the required contact has been saved.
-        setNotificationEmail(value)
+        // A protected replacement keeps the confirmed address; drafts survive retryable errors.
+        setNotificationEmail(keepCurrentEmail ? user.user.email || '' : value)
         try {
             // updateUserById returns every failure, including a network error
             // after its one retry, as `result.error`. The button stays enabled
             // after an error, so Continue retries the save; it never skips it.
-            if (user.user.email !== value) {
+            if (!keepCurrentEmail && user.user.email?.trim().toLowerCase() !== value.toLowerCase()) {
                 saveAttemptsRef.current += 1
                 const result = await updateUserById({ userId: user.user.userId, email: value }).catch(() => ({
                     error: 'request failed',
@@ -68,7 +70,21 @@ export default function EmailStep() {
                     status: undefined,
                 }))
                 if (result.error) {
-                    const duplicate = result.error === 'This email is already associated with another account'
+                    const code = 'code' in result ? result.code : undefined
+                    const duplicate =
+                        code === 'EMAIL_IN_USE' ||
+                        result.error === 'This email is already associated with another account'
+                    const protectedFailure =
+                        code === 'STEP_UP_REQUIRED' && result.status === 401
+                            ? 'step_up_required'
+                            : code === 'EMAIL_VERIFICATION_REQUIRED' ||
+                                (result.status === 400 && /(?:email.*(?:verif|code)|verif.*email)/i.test(result.error))
+                              ? 'email_verification_required'
+                              : code === 'EMAIL_CHANGE_UNAVAILABLE' ||
+                                  (result.status === 503 &&
+                                      /email.*(?:change|replacement).*(?:unavailable|disabled)/i.test(result.error))
+                                ? 'email_replacement_disabled'
+                                : undefined
                     if (duplicate) {
                         // A user outcome, not a fault: on the trail, not an error event.
                         addBreadcrumb({
@@ -78,15 +94,22 @@ export default function EmailStep() {
                         })
                     } else {
                         reportEmailSaveFailure({
-                            failureKind: result.failureKind,
+                            failureKind: protectedFailure ?? result.failureKind,
                             status: result.status,
                             attempt: saveAttemptsRef.current,
                         })
                     }
+                    if (protectedFailure && user.user.email?.trim()) {
+                        setKeepCurrentEmail(true)
+                        setEmail(user.user.email || '')
+                        setNotificationEmail(user.user.email || '')
+                        trackError('email', protectedFailure)
+                        return
+                    }
                     setEmailInUse(duplicate)
                     setError(t(duplicate ? 'alreadyRegistered' : 'saveFailed'))
-                    track('email', 'error', duplicate ? 'already_registered' : 'save_failed')
-                    // The email is required: never advance without a confirmed save.
+                    trackError('email', duplicate ? 'already_registered' : 'save_failed')
+                    // Retryable failures keep the draft and require a confirmed save.
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the
@@ -124,9 +147,11 @@ export default function EmailStep() {
                     value={email}
                     onChange={(value) => {
                         trackOnce('email', 'change')
+                        trackError('email', null)
                         setEmail(value)
                         setError(undefined)
                         setEmailInUse(false)
+                        setKeepCurrentEmail(false)
                     }}
                     placeholder={t('placeholder')}
                     error={error}
@@ -135,7 +160,12 @@ export default function EmailStep() {
             </div>
             <SetupFooter
                 actions={
-                    <Button type="submit" shadowSize="4" loading={saving} disabled={saving || !email.trim()}>
+                    <Button
+                        type="submit"
+                        shadowSize="4"
+                        loading={saving}
+                        disabled={saving || (!keepCurrentEmail && !email.trim())}
+                    >
                         {t('continue')}
                     </Button>
                 }
@@ -145,6 +175,7 @@ export default function EmailStep() {
                     </p>
                 }
             >
+                {keepCurrentEmail && <p role="status">{tNotifications('changeAnytime')}</p>}
                 {emailInUse && (
                     <SetupDocLink
                         kind="account-recovery"

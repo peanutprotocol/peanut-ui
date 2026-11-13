@@ -1,17 +1,18 @@
 import { USER_PREFERENCES_KEY_SUFFIX, WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import type { ScreenId } from './Setup.types'
 
-export type SetupEntryStep = Extract<ScreenId, 'landing' | 'signup'>
+export type SetupEntryStep = ScreenId
 
 export interface SetupEntryInput {
     /** An invite code from the invite stash or `?code=`. */
     hasInviteCode: boolean
-    /** The legacy `?step=` param: `signup` opens the form directly, `login` lands on Log In. */
+    /** The legacy `?step=` param: `signup` skips Welcome, `login` lands on Log In. */
     stepParam: string | null
     /** Native-migration notice window on web: signups are closed, so nothing may skip the landing gate. */
     webSignupClosed: boolean
     /** Durable passkey credentials on this device (see hasKnownDeviceCredentials). */
     knownDevice: boolean
+    screenIds?: readonly ScreenId[]
 }
 
 /**
@@ -25,11 +26,8 @@ export interface SetupEntryInput {
  */
 export function resolveSetupEntryStep(input: SetupEntryInput): SetupEntryStep {
     if (input.knownDevice || input.stepParam === 'login') return 'landing'
-    // Invite/campaign entrypoints can open the signup form directly. This is
-    // navigation only: neither the presence nor absence of an invite controls
-    // account access now that signup is open.
     const openSignupDirectly = (input.hasInviteCode || input.stepParam === 'signup') && !input.webSignupClosed
-    return openSignupDirectly ? 'signup' : 'landing'
+    return openSignupDirectly ? (input.screenIds?.find((id) => id !== 'landing') ?? 'residence') : 'landing'
 }
 
 function hasCookie(key: string): boolean {

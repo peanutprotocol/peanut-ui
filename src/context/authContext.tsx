@@ -54,6 +54,8 @@ import { resumeSignupGeo } from '@/services/signup-geo'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
+import { flushPendingSignupAnswers } from '@/features/setup/saveSignupAnswers'
+import { discardSignupDraft } from '@/features/setup/signup-draft'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { clearAccountQueries } from '@/utils/account-query-cache'
 import { flushLedgerSync } from '@/features/attention/ledgerSync'
@@ -68,7 +70,7 @@ interface AuthContextType {
      * that must not act on a profile the refresh could not confirm.
      */
     fetchUser: (options?: { throwOnError?: boolean }) => Promise<IUserProfile | null>
-    hydrateLoginSession: () => Promise<IUserProfile>
+    hydrateLoginSession: (signal?: AbortSignal) => Promise<IUserProfile>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -213,6 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         const userId = user?.user.userId
         if (!userId) return
+        void flushPendingSignupAnswers(userId)
 
         let cancelled = false
         void settlePendingInviteAttribution(userId).then(async (outcome) => {
@@ -258,25 +261,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         [fetchUser]
     )
 
-    const hydrateLoginSession = useCallback(async () => {
-        const previousUserId = lastHeldUserId.current
-        const generation = logoutGeneration.current
-        const pushLogoutVersion = getNotificationLogoutVersion()
-        const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
-        await cancel()
-        const profile = await recoverLoginSession(async () => {
-            const result = await fetchUser()
-            if (result.error) throw result.error
-            return result.data ?? null
-        }, cancel)
-        if (previousUserId && previousUserId !== profile.user.userId) clearAccountQueries(queryClient)
-        if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
-            void resumeNotificationIdentity(profile.user.userId).catch((error) => {
-                void reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
-            })
-        }
-        return profile
-    }, [fetchUser, queryClient])
+    const hydrateLoginSession = useCallback(
+        async (signal?: AbortSignal) => {
+            if (signal?.aborted) throw new DOMException('Session hydration cancelled', 'AbortError')
+            const previousUserId = lastHeldUserId.current
+            const generation = logoutGeneration.current
+            const pushLogoutVersion = getNotificationLogoutVersion()
+            const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
+            await cancel()
+            const profile = await recoverLoginSession(
+                async () => {
+                    const result = await fetchUser()
+                    if (result.error) throw result.error
+                    return result.data ?? null
+                },
+                cancel,
+                signal
+            )
+            if (signal?.aborted) throw new DOMException('Session hydration cancelled', 'AbortError')
+            if (previousUserId && previousUserId !== profile.user.userId) clearAccountQueries(queryClient)
+            if (generation === logoutGeneration.current && pushLogoutVersion === getNotificationLogoutVersion()) {
+                void resumeNotificationIdentity(profile.user.userId).catch((error) => {
+                    void reportPushIdentityFailure('Push identity login failed', 'push_identity_login', error)
+                })
+            }
+            return profile
+        },
+        [fetchUser, queryClient]
+    )
 
     const [isLoggingOut, setIsLoggingOut] = useState(false)
     const loggingOut = useRef(false)
@@ -397,6 +409,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         await clearAuthToken()
+        await discardSignupDraft()
 
         // clear redirect url
         clearRedirectUrl()
