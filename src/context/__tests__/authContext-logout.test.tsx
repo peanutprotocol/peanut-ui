@@ -106,6 +106,7 @@ import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearAuthToken } from '@/utils/auth-token'
+import { isReturningDevice } from '@/utils/returning-device'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -307,6 +308,19 @@ describe('logoutUser', () => {
             expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
         }
     )
+
+    it('still counts the device as returning when it signed out before the marker existed', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
+        localStorage.removeItem('peanut-device-had-account')
+
+        expect(document.cookie).not.toContain('web-authn-key=')
+        expect(isReturningDevice()).toBe(true)
+    })
 
     it('releases the latch when the hard navigation never happens', async () => {
         stubLocation(() => {

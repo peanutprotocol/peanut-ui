@@ -42,11 +42,22 @@ describe('returning device marker', () => {
         expect(markDeviceHadAccount).not.toThrow()
     })
 
-    it('returns false when getItem fails even if credentials match', () => {
+    it('still checks credentials when reading storage fails', () => {
         credentials.mockReturnValue(true)
         jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
             throw new Error('unavailable')
         })
+        expect(isReturningDevice()).toBe(true)
+    })
+
+    it('counts a device whose account signed out before the marker existed', () => {
+        localStorage.setItem('user-1:user-preferences', JSON.stringify({ sessionCount: 4 }))
+        expect(isReturningDevice()).toBe(true)
+    })
+
+    it('ignores unrelated storage keys', () => {
+        localStorage.setItem('user-preferences', '{}')
+        localStorage.setItem('peanut-app-locale', 'es')
         expect(isReturningDevice()).toBe(false)
     })
 
