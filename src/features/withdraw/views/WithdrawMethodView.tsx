@@ -14,11 +14,11 @@ import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
-import { PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
+import { PIX_SEND_PATH, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
 import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 import { sendOffersPix, soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { isPixAccount } from '@/features/destinations/saved-destinations'
-import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
@@ -96,7 +96,9 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     // The crypto address book belongs to the crypto rail, so it counts only
     // while crypto is still on offer (QA 2026-09-24: Send → Bank listed it).
     const offeredAddresses = bankRailChosen ? [] : savedAddresses
-    const pixPayBlock = usePixPayBlock()
+    // what stops a Pix-key send, and whether it goes through the withdraw route (a resident of Brazil)
+    const pixKeySend = usePixKeySend()
+    const pixPayBlock = pixKeySend.block
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -269,8 +271,11 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
                             const ownBrazilWithdrawal = countryPath === 'brazil' && !isBankFromSend
+                            // a resident of Brazil sends to a saved key on the same Pix-key form
+                            const pixFormSend =
+                                countryPath === 'brazil' && isBankFromSend && pixKeySend.via === 'withdraw'
                             // the Pix key goes in the account's draft, never the URL (`pixWithdrawDraft`)
-                            if (ownBrazilWithdrawal)
+                            if (ownBrazilWithdrawal || pixFormSend)
                                 keepPixWithdrawDraft(user?.user?.userId, {
                                     ...EMPTY_PIX_WITHDRAW_DRAFT,
                                     destination: account.identifier,
@@ -280,13 +285,15 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                                 // picks the provider; a saved Brazil key in Send pays over Pix (the key screen).
                                 ownBrazilWithdrawal
                                     ? PIX_WITHDRAW_PATH
-                                    : mantecaWithdrawUrl({
-                                          country: countryPath,
-                                          destination: account.identifier,
-                                          isSavedAccount: 'true',
-                                          method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
-                                          sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
-                                      })
+                                    : pixFormSend
+                                      ? PIX_SEND_PATH
+                                      : mantecaWithdrawUrl({
+                                            country: countryPath,
+                                            destination: account.identifier,
+                                            isSavedAccount: 'true',
+                                            method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
+                                            sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                        })
                             )
                             return
                         }

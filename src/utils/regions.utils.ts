@@ -88,7 +88,8 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
 
 /**
  * The QR-only regions as this user's Pix routes say. A resident of Brazil pays no Pix QR (the pay
- * route refuses it) and moves money by Pix on the deposit and withdraw routes (TASK-24910): the
+ * route refuses it) and moves money by Pix on the deposit and withdraw routes, which also pay
+ * another person's key (TASK-24910): the
  * Brazil row says that, links to no limits page (none states the limits of that Pix), or goes
  * where no Pix route is open either. Without routes (an older API)
  * the regions read as before.
@@ -102,7 +103,7 @@ function qrOnlyRegions(routes: CapabilityRoute[] | undefined): Region[] {
             ? [
                   {
                       ...region,
-                      description: 'Only Pix deposits and withdrawals',
+                      description: 'Only Pix deposits, withdrawals and Pix key payments',
                       descriptionKey: 'brazilPix',
                       // the Brazil limits page states the Pix QR limits, which this user cannot use
                       noLimitsPage: true,

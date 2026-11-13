@@ -65,7 +65,7 @@
             "descriptions": {
                 "argentina": "Solo pagos con QR de Mercado Pago",
                 "brazil": "Solo pagos Pix con QR o clave",
-                "brazilPix": "Solo depósitos y retiros por Pix"
+                "brazilPix": "Solo depósitos, retiros y pagos a claves Pix"
             }
         },
         "tryDifferentCountry": "Prueba con otro país.",

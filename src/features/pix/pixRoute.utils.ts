@@ -104,6 +104,28 @@ export function pixPayBlock(route: CapabilityRoute | undefined): PixPayBlock | n
 }
 
 /**
+ * How Send pays a Pix key for this user. Through the pay route (`via: 'pay'`, the QR-payment
+ * endpoint, any key), or, for a residence the pay route does not serve, through the withdraw route
+ * when that one is open (`via: 'withdraw'`): its provider pays any key on a payout (TASK-24910), so
+ * the Pix-key form of /withdraw/pix serves the send. `block` is what stops the send: the pay
+ * route's block (`pixPayBlock`), none when the withdraw route takes it. A merchant QR code still
+ * reads the pay route alone: no withdraw route pays one.
+ */
+export interface PixKeySend {
+    via: 'pay' | 'withdraw'
+    block: PixPayBlock | null
+}
+
+export function pixKeySend(
+    payBlock: PixPayBlock | null,
+    withdrawRoute: Pick<CapabilityRoute, 'state'> | undefined
+): PixKeySend {
+    if (payBlock === 'residence' && withdrawRoute && withdrawRoute.state !== 'refused')
+        return { via: 'withdraw', block: null }
+    return { via: 'pay', block: payBlock }
+}
+
+/**
  * The BRL account as the account screens read it, from the Pix deposit route: Pix comes from the
  * route, whichever provider serves it. The local feature can be refused while another entry serves
  * the residence's Pix (`LOCAL_SERVED_ELSEWHERE_REASON`), so the local entry alone would call that Pix

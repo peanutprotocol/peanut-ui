@@ -12,6 +12,9 @@ import QRScanner from '@/components/Global/QRScanner'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components/Global/DirectSendQR/utils'
 import { useAuth } from '@/context/authContext'
 import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
+import { PIX_SEND_PATH } from '@/features/pix/pix.routes'
+import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -194,6 +197,8 @@ export default function QRScannerOverlay() {
     const { user } = useAuth()
     // the pay:PIX_BR route says whether a Pix payment can start: the Brazil pause, or a residence it does not serve
     const pixBlock = usePixPayBlock()
+    // a bare Pix key is a send: a resident of Brazil sends it through the withdraw route (`pixKeySend`)
+    const pixKeySend = usePixKeySend()
     // A signed-in scan of an EVM destination is the user's own payout, so it
     // goes into the crypto withdrawal. A guest keeps the payment page.
     const isLoggedIn = !!user?.user?.userId
@@ -244,6 +249,13 @@ export default function QRScannerOverlay() {
 
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
 
+        // the key goes in the account's draft, never the URL (`pixWithdrawDraft`); a merchant code stays closed
+        if (recognized === EQrType.PIX_KEY && pixKeySend.via === 'withdraw') {
+            keepPixWithdrawDraft(user?.user?.userId, { ...EMPTY_PIX_WITHDRAW_DRAFT, destination: data.trim() })
+            setIsQRScannerOpen(false)
+            router.push(PIX_SEND_PATH)
+            return { success: true }
+        }
         if ((recognized === EQrType.PIX || recognized === EQrType.PIX_KEY) && pixBlock) {
             setIsQRScannerOpen(false)
             openBrazilPausedDrawer(pixBlock)

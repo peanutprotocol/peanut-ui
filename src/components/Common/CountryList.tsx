@@ -40,8 +40,8 @@ interface CountryListViewProps {
     // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
     /**
-     * The user's Pix pay block (`usePixPayBlock`), read by the Send gate. A prop,
-     * because this list also renders where no user is signed in.
+     * What stops this user's Pix-key send (`usePixKeySend`), read by the Send gate. A
+     * prop, because this list also renders where no user is signed in.
      */
     pixPayBlock?: PixPayBlock | null
     showLoadingState?: boolean

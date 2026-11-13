@@ -36,12 +36,12 @@ export function soleLiveRailForCountry(countryId: string, flow: MoneyFlow): Spec
  * Can a send-to-bank (money to someone else's account) go to this country?
  *
  * Bridge bank corridors, plus Brazil: a PIX send to a third-party key rides the
- * Manteca QR-payment endpoint (see the method=pix delegation in
- * /withdraw/manteca). Argentina stays out: its Manteca rails are own-account
+ * Manteca QR-payment endpoint, or for a resident of Brazil the withdraw route
+ * (see the method=pix delegation in /withdraw/manteca). Argentina stays out: its Manteca rails are own-account
  * offramps, the same ruling that keeps Mercado Pago off the send list (PR #2813).
  * Every send-to-bank picker reads this one answer, so a new list cannot forget
- * the gate. `pixPayBlock` is the user's own (`usePixPayBlock`), and it is not
- * optional, so a picker cannot leave it out either.
+ * the gate. `pixPayBlock` is what stops the user's own Pix-key send (`usePixKeySend`), and it
+ * is not optional, so a picker cannot leave it out either.
  */
 export function isSendToBankCountry(
     country: Pick<CountryData, 'id' | 'path'>,
@@ -52,10 +52,11 @@ export function isSendToBankCountry(
 
 /**
  * Whether Send offers this user a Pix destination: Brazil in a picker, or a
- * saved Pix key. A resident of Brazil is offered none. Their pay:PIX_BR route
- * refuses the residence, so the send would end on a screen with no way on, and
- * their own-account Pix has its own page (/withdraw/pix). The Brazil pause
- * keeps the destination listed: the pause lifts, and its screen says so.
+ * saved Pix key. A resident of Brazil is offered one only where their withdraw
+ * route pays the key (`pixKeySend`): their pay:PIX_BR route refuses the
+ * residence, so without it the send would end on a screen with no way on. The
+ * Brazil pause keeps the destination listed: the pause lifts, and its screen
+ * says so.
  */
 export function sendOffersPix(pixPayBlock: PixPayBlock | null): boolean {
     return pixPayBlock !== 'residence'

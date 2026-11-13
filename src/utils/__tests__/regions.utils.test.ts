@@ -216,10 +216,14 @@ describe('deriveRegionAccess, the Brazil row', () => {
         expect(brazil([pixRoute('pay', 'ready')])?.descriptionKey).toBeUndefined()
     })
 
-    // TASK-24910: a resident of Brazil pays no Pix QR, and moves money by Pix on the deposit and withdraw routes
-    it('says Pix deposits and withdrawals for a user the pay route refuses and the Pix routes serve', () => {
+    // TASK-24910: a resident of Brazil pays no Pix QR, and moves money by Pix on the deposit and withdraw
+    // routes; the withdraw route also pays another person's key
+    it('says Pix deposits, withdrawals and key payments for a user the pay route refuses and the Pix routes serve', () => {
         const row = brazil([pixRoute('pay', 'refused'), pixRoute('deposit', 'ready'), pixRoute('withdraw', 'pending')])
-        expect(row).toMatchObject({ description: 'Only Pix deposits and withdrawals', descriptionKey: 'brazilPix' })
+        expect(row).toMatchObject({
+            description: 'Only Pix deposits, withdrawals and Pix key payments',
+            descriptionKey: 'brazilPix',
+        })
     })
 
     // no limits page states the limits of that Pix: the Brazil one states Pix QR limits

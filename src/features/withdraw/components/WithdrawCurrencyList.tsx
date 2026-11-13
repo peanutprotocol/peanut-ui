@@ -15,7 +15,7 @@ import Loading from '@/components/Global/Loading'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { SEPA_DESTINATION } from '@/components/AddWithdraw/bank-corridors'
-import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
 import {
     countriesForQuery,
     currencyMatchesQuery,
@@ -69,8 +69,9 @@ export function WithdrawCurrencyList({
     const locale = useLocale()
     const [query, setQuery] = useState(initialQuery)
 
-    // the picker reads the user's own block, so no caller can leave it out of the Send gate
-    const pixPayBlock = usePixPayBlock()
+    // The picker reads the user's own block, so no caller can leave it out of the Send gate: what
+    // stops a Pix-key send (a resident of Brazil sends through the withdraw route, `pixKeySend`).
+    const { block: pixPayBlock } = usePixKeySend()
     const currencies = useMemo(
         () => liveWithdrawCurrencies({ sendToBank: enforceSupportedCountries ? { pixPayBlock } : null }),
         [enforceSupportedCountries, pixPayBlock]

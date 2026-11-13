@@ -16,6 +16,9 @@ jest.mock('@/features/kill-switches/useKillSwitches', () => ({
 }))
 let mockPixPayBlock: 'paused' | 'residence' | null = null
 jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixPayBlock }))
+// the user's Pix routes: none unless a test sets the withdraw route (TASK-24910, a Bridge send)
+let mockRoutes: Array<{ operation: string; method: string; state: string }> = []
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: { routes: mockRoutes } }) }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({
     __esModule: true,
     default: () => <div>pix key send</div>,
@@ -43,6 +46,7 @@ import MantecaWithdrawPage from '@/app/(mobile-ui)/withdraw/manteca/page'
 
 beforeEach(() => {
     mockPixPayBlock = null
+    mockRoutes = []
 })
 
 describe('the old Brazil URLs', () => {
@@ -113,5 +117,17 @@ describe('the Brazil Pix page (/withdraw/manteca?country=brazil&method=pix)', ()
         open(search, 'paused')
         expect(screen.getByTestId('pix-block')).toHaveTextContent('paused')
         expect(screen.queryByTestId('alias')).toBeNull()
+    })
+
+    // TASK-24910: Bridge pays another person's key on the withdraw route, so a resident sends on the Pix-key form
+    it.each([
+        ['outside Send', OWN],
+        ['from Send', FROM_SEND],
+    ])('a resident whose withdraw route is open goes to the Pix-key form, %s', (_origin, search) => {
+        mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', state: 'ready' }]
+        open(search, 'residence')
+        expect(screen.getByTestId('alias')).toHaveTextContent('/withdraw/pix')
+        expect(screen.queryByTestId('pix-block')).toBeNull()
+        expect(screen.queryByText('pix key send')).toBeNull()
     })
 })
