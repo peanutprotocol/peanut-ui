@@ -2283,6 +2283,15 @@ export const FIXTURES: Record<string, Fixture> = {
             rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
         }),
     },
+    // the pay route refuses a resident's Pix QR: the Brazil row says what the Pix routes serve instead
+    'pix-bridge-limits': {
+        route: '/limits',
+        about: 'Limits for a resident of Brazil on Bridge: the Brazil row says Pix deposits and withdrawals, no QR.',
+        responses: bridgePixResponses({
+            deposit: { state: 'ready' },
+            rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+        }),
+    },
     'pix-bridge-accounts-hosted-task': {
         route: '/profile/accounts',
         about: "Accounts for a resident of Brazil whose Pix on Bridge waits on Bridge's hosted check: the task names Pix.",

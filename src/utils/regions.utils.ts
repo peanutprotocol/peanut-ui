@@ -1,7 +1,8 @@
 import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_WORLD_GLOBE_ICON } from '@/assets/icons'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
-import { type RailCapability, type RailOperation } from '@/types/capabilities'
+import { type CapabilityRoute, type RailCapability, type RailOperation } from '@/types/capabilities'
+import { findPixRoute, pixRouteOpen } from '@/features/pix/pixRoute.utils'
 import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
@@ -27,6 +28,8 @@ export type Region = {
     name: string
     icon: StaticImageData | string
     description?: string
+    /** The catalog's description key under `common.regions.descriptions`, where it is not the path's own. */
+    descriptionKey?: string
 }
 
 // latam region access is separate from the ar/br manteca country gate.
@@ -80,6 +83,23 @@ const MANTECA_QR_ONLY_REGIONS: Region[] = [
         description: 'Only Pix QR and Pix key payments',
     },
 ]
+
+/**
+ * The QR-only regions as this user's Pix routes say. A resident of Brazil pays no Pix QR (the pay
+ * route refuses it) and moves money by Pix on the deposit and withdraw routes (TASK-24910): the
+ * Brazil row says that, or goes where no Pix route is open either. Without routes (an older API)
+ * the regions read as before.
+ */
+function qrOnlyRegions(routes: CapabilityRoute[] | undefined): Region[] {
+    if (findPixRoute(routes, 'pay')?.state !== 'refused') return MANTECA_QR_ONLY_REGIONS
+    const pixOpen = pixRouteOpen(findPixRoute(routes, 'deposit')) || pixRouteOpen(findPixRoute(routes, 'withdraw'))
+    return MANTECA_QR_ONLY_REGIONS.flatMap((region) => {
+        if (region.path !== 'brazil') return [region]
+        return pixOpen
+            ? [{ ...region, description: 'Only Pix deposits and withdrawals', descriptionKey: 'brazilPix' }]
+            : []
+    })
+}
 
 const BRIDGE_SUPPORTED_LATAM_COUNTRIES: Region[] = [
     {
@@ -204,7 +224,10 @@ const hasFunctionalRail = (rails: RailCapability[], provider: 'bridge' | 'mantec
  *       "Bridge enabled, no full Manteca rail ⇒ surface AR/BR QR + MX" preserves
  *       the user-visible "Bridge users get QR in AR/BR" behavior for the common case.
  */
-export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: Region[]; lockedRegions: Region[] } {
+export function deriveRegionAccess(
+    rails: RailCapability[],
+    routes?: CapabilityRoute[]
+): { unlockedRegions: Region[]; lockedRegions: Region[] } {
     const hasBridge = hasFunctionalRail(rails, 'bridge')
     const hasManteca = hasFunctionalRail(rails, 'manteca')
     const isKycApproved = rails.some((rail) => rail.status === 'enabled')
@@ -223,7 +246,7 @@ export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: 
     // bridge users get qr payment access in argentina & brazil (+ MX SPEI)
     // even without a full Manteca rail (which unlocks bank transfers too)
     if (isBridgeEnabled && !hasManteca) {
-        unlocked.push(...MANTECA_QR_ONLY_REGIONS, ...BRIDGE_SUPPORTED_LATAM_COUNTRIES)
+        unlocked.push(...qrOnlyRegions(routes), ...BRIDGE_SUPPORTED_LATAM_COUNTRIES)
     }
 
     return { unlockedRegions: unlocked, lockedRegions: locked }
