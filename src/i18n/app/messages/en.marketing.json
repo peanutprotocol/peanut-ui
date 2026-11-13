@@ -51,7 +51,8 @@
             "mexico": "Mexico",
             "descriptions": {
                 "argentina": "Only Mercado Pago QR payments",
-                "brazil": "Only Pix QR and Pix key payments"
+                "brazil": "Only Pix QR and Pix key payments",
+                "brazilPix": "Only Pix deposits and withdrawals"
             }
         },
         "tryDifferentCountry": "Please try a different country.",
