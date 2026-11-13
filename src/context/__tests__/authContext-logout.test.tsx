@@ -290,6 +290,24 @@ describe('logoutUser', () => {
         expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
     })
 
+    it.each([false, true])(
+        'retains the device marker through logout (skipBackendCall: %s)',
+        async (skipBackendCall) => {
+            localStorage.removeItem('peanut-device-had-account')
+            stubLocation()
+            const { result } = renderHook(() => useAuth(), { wrapper })
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+
+            await act(async () => {
+                await result.current.logoutUser({ skipBackendCall })
+            })
+
+            expect(posthog.reset).toHaveBeenCalledTimes(1)
+            expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        }
+    )
+
     it('releases the latch when the hard navigation never happens', async () => {
         stubLocation(() => {
             throw new Error('navigation blocked')
