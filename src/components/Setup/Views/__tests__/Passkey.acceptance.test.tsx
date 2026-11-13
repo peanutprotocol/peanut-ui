@@ -143,7 +143,11 @@ jest.mock('@/services/invite-acquisition', () => ({
     settleAcceptedInviteAcquisition: () => ({ destination: '/home', pending: [] }),
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
-jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
+jest.mock('@/utils/sentry-lazy', () => ({
+    captureException: jest.fn(),
+    captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
+}))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
     captureMessage: jest.fn(),

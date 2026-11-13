@@ -1,4 +1,5 @@
 import { apiFetch } from '@/utils/api-fetch'
+import { captureMessage } from '@/utils/sentry-lazy'
 import { restoreSignupValue, storeSignupValue } from './signup-storage'
 
 const TOKEN_KEY = 'peanut:username-hold:v1'
@@ -33,6 +34,18 @@ export async function getUsernameHoldToken(regenerate = false): Promise<string> 
 
 // 'refused': the name is off limits (a route, a campaign code, or one that
 // impersonates Peanut, e.g. contains "peanut"), not malformed.
+// 404: the API that serves holds is not deployed yet. Anything else unexpected is reported here,
+// since the calls opt out of the fetch layer's own failure events.
+function reportHoldFailure(operation: 'reserve' | 'release', status: number | 'network'): void {
+    if (status === 404) return
+    try {
+        captureMessage('username hold request failed', {
+            level: 'warning',
+            tags: { feature: 'username_hold', operation, status: String(status) },
+        })
+    } catch {}
+}
+
 export type UsernameReservationResult = 'reserved' | 'taken' | 'refused' | 'invalid' | 'unavailable'
 
 const RESERVED_REASON = 'This username is reserved'
@@ -59,9 +72,12 @@ export async function reserveUsername(username: string): Promise<UsernameReserva
                 token = await getUsernameHoldToken(true)
                 continue
             }
+            reportHoldFailure('reserve', response.status)
             return 'unavailable'
         }
-    } catch {}
+    } catch {
+        reportHoldFailure('reserve', 'network')
+    }
     return 'unavailable'
 }
 
@@ -76,7 +92,7 @@ export async function releaseUsernameReservation(): Promise<void> {
     try {
         const token = await restoreSignupValue(TOKEN_KEY)
         if (!token || !TOKEN.test(token)) return
-        await apiFetch('/users/username/reservations', {
+        const response = await apiFetch('/users/username/reservations', {
             method: 'DELETE',
             headers: { 'x-username-hold': token },
             includeAuth: false,
@@ -84,8 +100,10 @@ export async function releaseUsernameReservation(): Promise<void> {
             redactTelemetry: true,
             callerReportsFailures: true,
         })
+        if (!response.ok) reportHoldFailure('release', response.status)
     } catch {
         // The server-side hold expires even if release cannot reach the API.
+        reportHoldFailure('release', 'network')
     } finally {
         await clearUsernameHoldToken()
     }

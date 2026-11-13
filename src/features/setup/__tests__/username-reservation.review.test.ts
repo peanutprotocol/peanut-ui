@@ -3,6 +3,8 @@ export {}
 const mockApiFetch = jest.fn()
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isNativeBridge: () => false }))
+const mockCaptureMessage = jest.fn()
+jest.mock('@/utils/sentry-lazy', () => ({ captureMessage: (...args: unknown[]) => mockCaptureMessage(...args) }))
 
 const KEY = 'peanut:username-hold:v1'
 const STORED_TOKEN = 'A'.repeat(43)
@@ -13,6 +15,7 @@ beforeEach(() => {
     jest.resetModules()
     localStorage.clear()
     mockApiFetch.mockReset().mockResolvedValue(response(200))
+    mockCaptureMessage.mockReset()
     reservation = require('../username-reservation')
 })
 
@@ -119,3 +122,37 @@ it.each([null, '', 'short', 'A'.repeat(42), 'A'.repeat(44), '!'.repeat(43)])(
         expect(mockApiFetch).not.toHaveBeenCalled()
     }
 )
+
+describe('hold failures the fetch layer no longer reports', () => {
+    it('stays quiet while the API has no hold endpoint (404)', async () => {
+        mockApiFetch.mockResolvedValue(response(404))
+        await reservation.reserveUsername('kimchi')
+        localStorage.setItem(KEY, STORED_TOKEN)
+        await reservation.releaseUsernameReservation()
+        expect(mockCaptureMessage).not.toHaveBeenCalled()
+    })
+
+    it.each([500, 503, 429])('reports an unexpected %i on reserve', async (status) => {
+        mockApiFetch.mockResolvedValue(response(status))
+        expect(await reservation.reserveUsername('kimchi')).toBe('unavailable')
+        expect(mockCaptureMessage).toHaveBeenCalledWith(
+            'username hold request failed',
+            expect.objectContaining({ tags: expect.objectContaining({ operation: 'reserve', status: String(status) }) })
+        )
+    })
+
+    it('reports a transport failure on reserve and on release', async () => {
+        mockApiFetch.mockRejectedValue(new TypeError('Failed to fetch'))
+        expect(await reservation.reserveUsername('kimchi')).toBe('unavailable')
+        localStorage.setItem(KEY, STORED_TOKEN)
+        await reservation.releaseUsernameReservation()
+        const operations = mockCaptureMessage.mock.calls.map(([, context]) => context.tags.operation)
+        expect(operations).toEqual(['reserve', 'release'])
+    })
+
+    it('does not report handled outcomes', async () => {
+        mockApiFetch.mockResolvedValue({ ok: false, status: 409, json: async () => ({ code: 'USERNAME_TAKEN' }) })
+        expect(await reservation.reserveUsername('kimchi')).toBe('taken')
+        expect(mockCaptureMessage).not.toHaveBeenCalled()
+    })
+})
