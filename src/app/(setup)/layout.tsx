@@ -16,7 +16,7 @@ import { filterSetupStepsForCountry, filterSetupStepsForInvite } from '@/feature
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useAuth } from '@/context/authContext'
-import { readInviteCode } from '@/utils/invite-stash'
+import { readInviteIntent } from '@/utils/invite-stash'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const { setSteps, sellScreensCountry, inviterAccepted } = useSetupFlowContext()
@@ -60,12 +60,13 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
             .catch(() => {})
     }, [])
 
-    // The invite stash is read when the list is rebuilt, not watched. Registration
+    // The invite stash is read when the list is rebuilt, not watched. Only a chosen
+    // invite hides the step; a passive tracked-link inviter was never chosen. Registration
     // settles it, and fixing the sell-screen country on the first step after
     // registration rebuilds the list before the person can leave that step.
     useEffect(() => {
         const steps = filterSetupStepsForCountry(setupSteps, residenceRestrictions, sellCountry)
-        setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || !!readInviteCode()))
+        setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || readInviteIntent() === 'explicit'))
     }, [setSteps, residenceRestrictions, sellCountry, invitedBy, inviterAccepted])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })

@@ -3,6 +3,7 @@
 // on web, use the normal path-based urls.
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
+import { isAcquisitionSlug, TRACKED_LINK_ORIGIN } from '@/features/tracked-links/contract'
 import { LOTTIE_PROFILE_ENABLED } from '@/constants/dev-tools.consts'
 import { isCapacitor } from './capacitor'
 import { sanitizeRedirectURL } from './cookie-url.utils'
@@ -101,6 +102,26 @@ function mapDeepLink(url: string): string | null {
     // App Links carry the full URL. Both must resolve.
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
+
+    // A tracked handoff opening the app runs the exported /app bootstrap, which checks its fields
+    // exactly as the web page does. /go itself is not an associated path.
+    if (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl')) {
+        if (parsed.origin !== TRACKED_LINK_ORIGIN || parsed.username || parsed.password) return null
+        const slug = parsed.searchParams.get('tl')
+        if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null
+        const params = new URLSearchParams({ tl: slug })
+        // The /go handoff names its passive inviter; only the browser's own continuation
+        // (tl_seen) also carries the deferred fields. Nothing else in the link reaches /app.
+        const continuation = parsed.searchParams.get('tl_seen') === '1'
+        if (continuation) params.set('tl_seen', '1')
+        const keys = continuation
+            ? ['acq_invite', 'pnutdl', 'at', 'attribution', 'wid', 'lang', 'invite']
+            : ['acq_invite']
+        for (const key of keys) {
+            if (parsed.searchParams.getAll(key).length === 1) params.set(key, parsed.searchParams.get(key)!)
+        }
+        return `/app?${params}`
+    }
 
     // The fragment is re-attached here rather than inside each branch below:
     // a claim link's password lives in `#p=<password>` and never reaches the

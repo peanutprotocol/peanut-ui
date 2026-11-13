@@ -20,7 +20,14 @@ import {
     ensureSignupAttributionForRegistration,
     readSignupAttribution,
 } from '../signup-attribution'
-import { readInviteCode, stashInvite } from '../invite-stash'
+import {
+    bindInviteToUser,
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import {
@@ -1234,5 +1241,126 @@ describe('web visitor identity hand-off', () => {
         expect(restored).not.toHaveProperty('web_distinct_id')
         expect(posthogRegisterOnce).not.toHaveBeenCalled()
         expect(posthogAlias).not.toHaveBeenCalled()
+    })
+})
+
+// A /go opening stashes a passive inviter and may carry a strict-consent journey.
+describe('tracked-link handoff', () => {
+    const WEB_ID = '44444444-4444-4444-8444-444444444444'
+    const savedKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    const journey = {
+        schemaVersion: '1',
+        journeyId: '33333333-3333-4333-8333-333333333333',
+        platform: 'web',
+        analyticsState: 'enabled',
+        captureMethod: 'browser',
+        firstTouch: { occurredAt: new Date().toISOString() },
+    }
+    const deny = (condition: 'dnt' | 'gpc' | 'declined') => {
+        if (condition === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+        if (condition === 'gpc')
+            Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
+        if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked', '0')
+    }
+    beforeEach(() => {
+        process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_tracked'
+        posthogDistinctId.mockReturnValue(WEB_ID)
+        posthogIsIdentified.mockReturnValue(false)
+    })
+    afterEach(() => {
+        Reflect.deleteProperty(navigator, 'doNotTrack')
+        Reflect.deleteProperty(navigator, 'globalPrivacyControl')
+        posthogDistinctId.mockReset()
+        posthogIsIdentified.mockReset()
+        if (savedKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+        else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
+    })
+
+    it.each(['android', 'ios'] as const)(
+        'carries a passive inviter as acq_invite, which installed apps never accept (%s)',
+        (store) => {
+            stashAcquisitionInvite('alice')
+            const encoded = buildDeferredPayload('/home', undefined, store, { trackedLink: 'alice' })
+            expect(new URLSearchParams(encoded).has('invite')).toBe(false)
+            expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
+            expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
+            localStorage.clear()
+            applyDeferredPayload(parseDeferredPayload(encoded)!)
+            expect(readInviteCode()).toBe('alice')
+            expect(readInviteIntent()).toBe('acquisition')
+        }
+    )
+
+    it('lets a payload invite win over a passive one on restore', () => {
+        stashAcquisitionInvite('creator')
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=creator&invite=friend&acq_invite=creator')!)
+        expect(readInviteCode()).toBe('friend')
+        expect(readInviteIntent()).toBe('explicit')
+    })
+
+    it.each(['explicit', 'explicit-owned', 'passive-owned'] as const)(
+        'never lets a passive payload replace a %s stash',
+        (state) => {
+            if (state === 'passive-owned') stashAcquisitionInvite('dave')
+            else stashInvite('dave', EInviteType.DIRECT)
+            if (state !== 'explicit') bindInviteToUser('account-a')
+            applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=alice')!)
+            expect(readInviteCode()).toBe('dave')
+            expect(readInviteUserId()).toBe(state === 'explicit' ? '' : 'account-a')
+        }
+    )
+
+    it('drops a passive inviter that is not a username', () => {
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=al%2Fice')!)
+        expect(readInviteCode()).toBe('')
+    })
+
+    it.each(['dnt', 'gpc', 'declined'] as const)(
+        'keeps the passive inviter but leaves the journey and web id behind under %s',
+        (condition) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            deny(condition)
+            const parsed = parseDeferredPayload(
+                buildDeferredPayload('/home', undefined, 'ios', { trackedLink: 'alice' })
+            )!
+            expect(parsed.acquisitionInvite).toBe('alice')
+            expect(parsed.attribution).toBeUndefined()
+            expect(parsed.webDistinctId).toBeUndefined()
+        }
+    )
+
+    it.each([true, false])(
+        'restores the journey and web id only under tracked consent (allowed: %s)',
+        async (allowed) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            const referrer = buildDeferredPayload('/home', undefined, 'android', { trackedLink: 'alice' })
+            expect(parseDeferredPayload(referrer)).toMatchObject({ webDistinctId: WEB_ID, trackedLink: 'alice' })
+            localStorage.clear()
+            clearCookies()
+            if (!allowed) deny('dnt')
+            mockIsAndroidNative.mockReturnValue(true)
+            getReferrer.mockResolvedValue({ referrer })
+            await restoreDeferredContext()
+            expect(readInviteCode()).toBe('alice')
+            expect(readSignupAttribution()?.journeyId).toBe(allowed ? journey.journeyId : undefined)
+            if (allowed) expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+            else expect(posthogRegisterOnce).not.toHaveBeenCalled()
+        }
+    )
+
+    it('trims Android payload bytes without downgrading the passive inviter', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            ...journey,
+            firstTouch: { ...journey.firstTouch, utmCampaign: 'x'.repeat(64), utmContent: 'y'.repeat(64) },
+        })
+        stashAcquisitionInvite('a'.repeat(64))
+        const encoded = buildDeferredPayload('/home?' + 'x'.repeat(600), undefined, 'android', {
+            trackedLink: 'a'.repeat(64),
+        })
+        expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('a'.repeat(64))
+        expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
     })
 })

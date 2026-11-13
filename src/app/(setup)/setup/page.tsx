@@ -18,7 +18,7 @@ import {
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
-import { INVITE_TYPE_PARAM, readInviteCode, stashInvite } from '@/utils/invite-stash'
+import { INVITE_TYPE_PARAM, readInviteIntent, stashAcquisitionInvite, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -173,6 +173,8 @@ function SetupPageContent() {
     const inviteCodeParam = searchParams.get('code')
     // Only the Android app's browser handoff sends it (keepWebSignupUrl).
     const inviteTypeParam = searchParams.get(INVITE_TYPE_PARAM)
+    // The same handoff carries a passive tracked-link inviter, which must stay passive.
+    const acquisitionInviteParam = searchParams.get('acq_invite')
     const legacyStepParam = searchParams.get('step')
     const keepWebParam = searchParams.get(KEEP_WEB_COOKIE)
     const searchParamsString = searchParams.toString()
@@ -504,7 +506,9 @@ function SetupPageContent() {
                     inviteTypeParam === EInviteType.PAYMENT_LINK ? EInviteType.PAYMENT_LINK : EInviteType.DIRECT
                 stashInvite(toInviteCode(codeFromUrl), inviteType)
             }
-            const userInviteCode = readInviteCode()
+            stashAcquisitionInvite(acquisitionInviteParam)
+            // Only a chosen invite skips Landing's Log In; a passive tracked-link inviter does not.
+            const hasChosenInvite = readInviteIntent() === 'explicit'
             // Web signup is closed (Landing hides Sign up), so the
             // ?step=signup / invite-code jump must not skip
             // past the landing gate — otherwise claim/invite links deep-link
@@ -513,7 +517,7 @@ function SetupPageContent() {
             // The link's own visit counts: its cookie is saved after this entry resolves.
             const webSignupClosed = !isCapacitor() && !hasKeepWebCookie() && !isKeepWebLink(keepWebParam)
             const entryInput = {
-                hasInviteCode: !!userInviteCode,
+                hasInviteCode: hasChosenInvite,
                 stepParam: legacyStepParam,
                 webSignupClosed,
                 knownDevice: hasKnownDeviceCredentials(),
@@ -540,7 +544,7 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, inviteTypeParam, legacyStepParam, keepWebParam])
+    }, [steps, inviteCodeParam, inviteTypeParam, acquisitionInviteParam, legacyStepParam, keepWebParam])
 
     if (recoveryReason) {
         return (

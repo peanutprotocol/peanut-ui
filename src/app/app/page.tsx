@@ -26,6 +26,8 @@ import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.ut
 import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
+import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '@/features/tracked-links/bootstrap'
+import { isTrackedLinkEntry } from '@/features/tracked-links/eligibility'
 
 // '/' sends no destination, so a new install opens to its normal first screen.
 const AD_ENTRY_DEST = '/'
@@ -41,9 +43,36 @@ export default function SmartStoreRedirect() {
     const [mounted, setMounted] = useState(false)
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
+    const [entryReady, setEntryReady] = useState(false)
+    const [openAppHref, setOpenAppHref] = useState<string | null>(null)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
+        if (isTrackedLinkEntry(window.location)) {
+            let disposed = false
+            const native = isNativeBridge()
+            const doc = document as Document & { prerendering?: boolean }
+            // The bootstrap is bounded by its own native-storage timeouts and never waits on the network.
+            const start = () =>
+                void bootstrapTrackedLinkEntry(new URLSearchParams(search), native)
+                    .catch(() => EMPTY_TRACKED_LINK_BOOTSTRAP)
+                    .then((entry) => {
+                        if (disposed) return
+                        if (native) return router.replace('/home')
+                        setPayload(entry.payload)
+                        setIosPayload(entry.iosPayload)
+                        setOpenAppHref(entry.openAppHref ?? null)
+                        setEntryReady(true)
+                    })
+            // A prerendered page has no visitor yet: measure and leave for the store once it is shown.
+            if (doc.prerendering) doc.addEventListener('prerenderingchange', start, { once: true })
+            else start()
+            return () => {
+                disposed = true
+                doc.removeEventListener('prerenderingchange', start)
+            }
+        }
+        setEntryReady(true)
         const parsed = parseDeferredPayload(search)
         const marketing = parseMarketingQrHandoff(new URLSearchParams(search))
         if (marketing && !isNativeBridge()) {
@@ -88,6 +117,7 @@ export default function SmartStoreRedirect() {
         // Installed apps apply the QR's context immediately, then open its destination.
         const dest = parsed ? applyDeferredPayload(parsed).dest : null
         router.replace(dest ?? '/home')
+        return undefined
     }, [router])
     const inNativeApp = mounted && nativePlatform.isNativeBridge
 
@@ -101,6 +131,7 @@ export default function SmartStoreRedirect() {
     // Count the automatic redirect and any fallback taps as one handoff per visit.
     const handoffCounted = useRef(false)
     const countHandoff = useCallback((platform: StoreKind) => {
+        if (isTrackedLinkEntry(window.location) && !marketingQrAnalyticsAllowed()) return
         if (handoffCounted.current) return
         handoffCounted.current = true
         trackDeferredHandoffCreated(platform)
@@ -108,7 +139,8 @@ export default function SmartStoreRedirect() {
 
     // Start the clipboard write inside the tap handler to preserve the browser's user gesture.
     const onStoreTap = (store: StoreKind) => {
-        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
+        if (!isTrackedLinkEntry(window.location) || marketingQrAnalyticsAllowed())
+            trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
         const handoff = store === 'ios' ? (iosPayload ?? payload) : payload
         if (!handoff) return
         if (store === 'android') {
@@ -122,7 +154,7 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (inNativeApp || !targetStore) return
+        if (!entryReady || inNativeApp || !targetStore) return
         // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
         if (payload && targetStore === 'android') countHandoff('android')
@@ -131,7 +163,7 @@ export default function SmartStoreRedirect() {
         // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [inNativeApp, targetStore, payload, storeHref, countHandoff])
+    }, [entryReady, inNativeApp, targetStore, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
@@ -152,7 +184,12 @@ export default function SmartStoreRedirect() {
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {mounted ? (
+                    {entryReady && openAppHref && !redirecting && (
+                        <Button variant="secondary" href={openAppHref} plainAnchor className="w-full">
+                            {t('smartLink.openApp')}
+                        </Button>
+                    )}
+                    {mounted && entryReady ? (
                         stores.map((s, i) => (
                             <Button
                                 key={s}

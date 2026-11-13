@@ -4910,6 +4910,7 @@
         },
         "downloadNow": "Download now",
         "smartLink": {
+            "openApp": "Open Peanut",
             "redirecting": "Opening the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
         }

@@ -25247,6 +25247,71 @@
 				]
 			}
 		},
+		"/tracked-links/invites/{username}": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "username",
+						"required": true,
+						"schema": {
+							"pattern": "^[a-z0-9]{1,64}$",
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"linkId": "invite_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+								},
+								"schema": {
+									"additionalProperties": false,
+									"properties": {
+										"linkId": {
+											"pattern": "^invite_[a-f0-9]{64}$",
+											"type": "string"
+										}
+									},
+									"required": [
+										"linkId"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"enum": [
+												"Link not found"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Resolve a personal invite to a stable public link ID",
+				"tags": [
+					"tracked-links"
+				]
+			}
+		},
 		"/unsubscribe": {
 			"get": {
 				"parameters": [

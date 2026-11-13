@@ -8,7 +8,14 @@ import {
 import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 import { EInviteType } from '@/services/services.types'
 import { setRedirectUrl, toInviteCode } from '@/utils/general.utils'
-import { INVITE_TYPE_PARAM, readInviteCode, readInviteType, stashInvite } from '@/utils/invite-stash'
+import {
+    INVITE_TYPE_PARAM,
+    readInviteCode,
+    readInviteIntent,
+    readInviteType,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '@/utils/invite-stash'
 import { keepWebSignupUrl } from '../keep-web-signup-url'
 
 const HATCH = `${BASE_URL}/setup?keep-web=walnut-still-cracks`
@@ -29,6 +36,7 @@ function restoreAsSetupDoes(url: string) {
     const type =
         params.get(INVITE_TYPE_PARAM) === EInviteType.PAYMENT_LINK ? EInviteType.PAYMENT_LINK : EInviteType.DIRECT
     if (code && toInviteCode(code)) stashInvite(toInviteCode(code), type)
+    stashAcquisitionInvite(params.get('acq_invite'))
     const campaigns = badgeCampaignsFromSearchParams(params)
     if (campaigns.length > 0) queuePendingBadgeCampaigns(campaigns, 30)
     return consumePostAuthRedirect(params.get('redirect_uri'))
@@ -63,6 +71,18 @@ describe('keepWebSignupUrl (TASK-24498)', () => {
         stashInvite('bob', EInviteType.DIRECT)
 
         expect(keepWebSignupUrl()).toBe(`${HATCH}&code=bob`)
+    })
+
+    it('keeps a passive tracked-link inviter passive in the browser', () => {
+        stashAcquisitionInvite('creator')
+
+        const url = keepWebSignupUrl()
+        expect(url).toBe(`${HATCH}&acq_invite=creator`)
+        freshBrowser()
+        restoreAsSetupDoes(url)
+        expect(readInviteCode()).toBe('creator')
+        // An explicit stash would skip Log In and hide the invite step for an existing account.
+        expect(readInviteIntent()).toBe('acquisition')
     })
 
     it('carries a stored deep-link destination when the URL names none', () => {
