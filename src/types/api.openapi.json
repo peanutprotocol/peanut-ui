@@ -13593,7 +13593,7 @@
 		},
 		"/pix/deposit": {
 			"post": {
-				"description": "Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.",
+				"description": "Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable. A standingCode route takes no amount: the answer is the user’s own standing code (any amount, expiresAt null, intentId null), the same code on every call, and the account behind it opens on the first call.",
 				"parameters": [
 					{
 						"in": "header",
@@ -13610,36 +13610,49 @@
 							"schema": {
 								"properties": {
 									"amountBrl": {
-										"description": "Reais, at most two decimals",
+										"description": "Reais, at most two decimals. Required unless the deposit route is standingCode.",
 										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
 										"type": "string"
 									}
 								},
-								"required": [
-									"amountBrl"
-								],
 								"type": "object"
 							}
 						}
-					},
-					"required": true
+					}
 				},
 				"responses": {
 					"200": {
 						"content": {
 							"application/json": {
-								"example": {
-									"amountBrl": "100.00",
-									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-									"codePayable": true,
-									"expiresAt": "2026-11-04T12:10:00.000Z",
-									"fixedFeeBrl": "0.75",
-									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-									"payerCpfMasked": "123.***.***-09",
-									"pixReceived": false,
-									"provider": "manteca",
-									"status": "AWAITING_USER_ACTION",
-									"usdcAmount": "17.920175"
+								"examples": {
+									"example1": {
+										"value": {
+											"amountBrl": "100.00",
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": "2026-11-04T12:10:00.000Z",
+											"fixedFeeBrl": "0.75",
+											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+											"payerCpfMasked": "123.***.***-09",
+											"pixReceived": false,
+											"provider": "manteca",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": "17.920175"
+										}
+									},
+									"example2": {
+										"value": {
+											"amountBrl": null,
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": null,
+											"intentId": null,
+											"pixReceived": false,
+											"provider": "bridge",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": null
+										}
+									}
 								},
 								"schema": {
 									"properties": {
@@ -13654,7 +13667,7 @@
 											]
 										},
 										"brCode": {
-											"description": "The Pix code (copia e cola) for exactly this amount",
+											"description": "The Pix code (copia e cola): for exactly this amount, or any amount when standing",
 											"type": "string"
 										},
 										"codePayable": {
@@ -13676,7 +13689,15 @@
 											"type": "string"
 										},
 										"intentId": {
-											"type": "string"
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history."
 										},
 										"payerCpfMasked": {
 											"description": "The CPF the Pix must come from, masked, where the provider requires one",
@@ -13691,7 +13712,7 @@
 											"type": "string"
 										},
 										"status": {
-											"description": "The intent’s own status, as stored",
+											"description": "The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION.",
 											"type": "string"
 										},
 										"usdcAmount": {
@@ -14166,18 +14187,35 @@
 					"200": {
 						"content": {
 							"application/json": {
-								"example": {
-									"amountBrl": "100.00",
-									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-									"codePayable": true,
-									"expiresAt": "2026-11-04T12:10:00.000Z",
-									"fixedFeeBrl": "0.75",
-									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-									"payerCpfMasked": "123.***.***-09",
-									"pixReceived": false,
-									"provider": "manteca",
-									"status": "AWAITING_USER_ACTION",
-									"usdcAmount": "17.920175"
+								"examples": {
+									"example1": {
+										"value": {
+											"amountBrl": "100.00",
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": "2026-11-04T12:10:00.000Z",
+											"fixedFeeBrl": "0.75",
+											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+											"payerCpfMasked": "123.***.***-09",
+											"pixReceived": false,
+											"provider": "manteca",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": "17.920175"
+										}
+									},
+									"example2": {
+										"value": {
+											"amountBrl": null,
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": null,
+											"intentId": null,
+											"pixReceived": false,
+											"provider": "bridge",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": null
+										}
+									}
 								},
 								"schema": {
 									"properties": {
@@ -14192,7 +14230,7 @@
 											]
 										},
 										"brCode": {
-											"description": "The Pix code (copia e cola) for exactly this amount",
+											"description": "The Pix code (copia e cola): for exactly this amount, or any amount when standing",
 											"type": "string"
 										},
 										"codePayable": {
@@ -14214,7 +14252,15 @@
 											"type": "string"
 										},
 										"intentId": {
-											"type": "string"
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history."
 										},
 										"payerCpfMasked": {
 											"description": "The CPF the Pix must come from, masked, where the provider requires one",
@@ -14229,7 +14275,7 @@
 											"type": "string"
 										},
 										"status": {
-											"description": "The intent’s own status, as stored",
+											"description": "The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION.",
 											"type": "string"
 										},
 										"usdcAmount": {
@@ -27415,6 +27461,13 @@
 																],
 																"type": "object"
 															},
+															"standingCode": {
+																"description": "Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.",
+																"enum": [
+																	true
+																],
+																"type": "boolean"
+															},
 															"state": {
 																"anyOf": [
 																	{
@@ -30341,6 +30394,166 @@
 																}
 															]
 														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
+														},
 														"reason": {
 															"anyOf": [
 																{
@@ -30517,6 +30730,166 @@
 																	"type": "string"
 																}
 															]
+														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
 														},
 														"reason": {
 															"anyOf": [
@@ -30695,6 +31068,166 @@
 																}
 															]
 														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
+														},
 														"reason": {
 															"anyOf": [
 																{
@@ -30871,6 +31404,166 @@
 																	"type": "string"
 																}
 															]
+														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
 														},
 														"reason": {
 															"anyOf": [
@@ -32918,6 +33611,166 @@
 													"type": "string"
 												}
 											]
+										},
+										"nextAction": {
+											"properties": {
+												"currency": {
+													"type": "string"
+												},
+												"effectiveDate": {
+													"type": "string"
+												},
+												"expiresAt": {
+													"type": "string"
+												},
+												"feature": {
+													"anyOf": [
+														{
+															"enum": [
+																"bank"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"card"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"local"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"key": {
+													"type": "string"
+												},
+												"kind": {
+													"anyOf": [
+														{
+															"enum": [
+																"sumsub"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"accept-tos"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"wait"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"contact-support"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"provide-email"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"bridge-hosted"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"rain-hosted"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"restart-identity"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"questions"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"hosted-identity"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"levelKey": {
+													"type": "string"
+												},
+												"purpose": {
+													"type": "string"
+												},
+												"refused": {
+													"items": {
+														"properties": {
+															"provider": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"bridge"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"manteca"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"rain"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"reason": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"provider",
+															"reason"
+														],
+														"type": "object"
+													},
+													"type": "array"
+												},
+												"requirementKey": {
+													"type": "string"
+												},
+												"tosUrl": {
+													"type": "string"
+												},
+												"url": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"key",
+												"kind",
+												"purpose"
+											],
+											"type": "object"
 										},
 										"reason": {
 											"anyOf": [
@@ -37817,6 +38670,13 @@
 																	"userMessage"
 																],
 																"type": "object"
+															},
+															"standingCode": {
+																"description": "Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.",
+																"enum": [
+																	true
+																],
+																"type": "boolean"
 															},
 															"state": {
 																"anyOf": [
