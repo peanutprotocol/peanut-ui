@@ -5961,6 +5961,8 @@ export interface paths {
                                     codePayable: boolean;
                                     expiresAt: string | null;
                                 };
+                                /** @description A Pix payout through Bridge only: `own` paid the user’s own key and reads as a withdrawal; `other` paid another person’s key and reads as a send to them (recipientAccount.fullName names them, for the owner only). */
+                                pixPayee?: "own" | "other";
                                 pixRecovery?: {
                                     failureCode: string | null;
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
@@ -8380,6 +8382,11 @@ export interface paths {
                             display: {
                                 /** @description The headline: reais credited to the account */
                                 amountBrl: string;
+                                /**
+                                 * @description The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.
+                                 * @enum {boolean}
+                                 */
+                                amountBrlEstimated?: true;
                                 /** @description About how long from the signature to the Pix paid */
                                 arrivalEstimateSeconds: number;
                                 bankName: string | null;
@@ -8395,7 +8402,7 @@ export interface paths {
                                 /** @description USDC that leaves the wallet */
                                 withdrawUsd: string;
                             };
-                            /** @description The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit */
+                            /** @description The withdrawal, when the provider opens it now; null when it opens only at the submit */
                             intentId: string | null;
                             /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
@@ -8586,6 +8593,11 @@ export interface paths {
                         "application/json": {
                             /** @description The headline: reais credited to the account */
                             amountBrl: string;
+                            /**
+                             * @description The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.
+                             * @enum {boolean}
+                             */
+                            amountBrlEstimated?: true;
                             /** @description About how long from the signature to the Pix paid */
                             arrivalEstimateSeconds: number;
                             bankName: string | null;
