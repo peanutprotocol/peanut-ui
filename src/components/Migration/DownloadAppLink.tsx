@@ -1,6 +1,6 @@
 'use client'
 import { useNativePlatform } from '@/utils/native-platform'
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { ButtonSize, ButtonVariant } from '@/components/0_Bruddle/Button'
@@ -10,9 +10,10 @@ import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { onStoreAnchorClick, storeAnchorHref, storeForDevice, storeIcon } from '@/utils/migration.utils'
 
 /**
- * The "Download now" button on the landing page. Phones get a real link to
- * their store (it works when popups are blocked and carries the deferred
- * hand-off); desktop gets the scan-to-download QR modal.
+ * The marketing download CTA: every landing and star-LP button that sends a
+ * visitor to the app. Phones get a real link to their store (it works when
+ * popups are blocked and carries the deferred hand-off); desktop gets the
+ * scan-to-download QR modal. Needs an AppModalProvider above it.
  */
 export default function DownloadAppLink({
     surface,
@@ -20,6 +21,7 @@ export default function DownloadAppLink({
     variant,
     size,
     className,
+    children,
 }: {
     surface: MigrationSurface
     qrPlacement?: string
@@ -27,6 +29,8 @@ export default function DownloadAppLink({
     /** marketing CTAs pass 'large' (design.md marketing); the sticky bar keeps the default */
     size?: ButtonSize
     className?: string
+    /** Sentence-case label; "Download now" by default. */
+    children?: ReactNode
 }) {
     const native = useNativePlatform()
     const t = useTranslations('migration')
@@ -58,7 +62,7 @@ export default function DownloadAppLink({
             icon={storeIcon(store)}
             className={className}
         >
-            {t('downloadNow')}
+            {children ?? t('downloadNow')}
         </Button>
     )
 }

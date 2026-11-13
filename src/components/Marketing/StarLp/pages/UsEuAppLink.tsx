@@ -10,7 +10,7 @@ import type { UsEuAppLinkProps } from './usEuAccounts.types'
 
 /**
  * Makes a picture on the page lead where its CTA leads (signed in: straight to
- * the destination), with the same PWA-sunset handling as LandingAppLink. It
+ * the destination), with the same PWA-sunset handling as StarLpCta. It
  * sits inside art that duplicates a visible CTA, so it stays out of the tab
  * order. `group` lets the art take the DS press (`group-active:` drops its shadow).
  */

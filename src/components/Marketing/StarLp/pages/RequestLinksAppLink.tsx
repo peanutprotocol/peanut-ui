@@ -39,7 +39,7 @@ function goToFold(event: MouseEvent, id: string) {
 /**
  * Makes a request link or a real app screen on the page clickable. By default it
  * leads where the CTA leads (signup), with the same PWA-sunset handling as
- * LandingAppLink. With `to`, it scrolls to that fold instead (a request link
+ * StarLpCta. With `to`, it scrolls to that fold instead (a request link
  * opens what the client sees). It repeats a visible CTA or fold, so it stays
  * out of the tab order.
  */

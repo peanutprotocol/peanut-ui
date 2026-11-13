@@ -13,9 +13,16 @@ let mockMigrationOn = true
 jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigrationOn }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: 'web' }) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 jest.mock('@/utils/deferred-link', () => ({ buildDeferredPayload: jest.fn() }))
 jest.mock('@/features/marketing-qr/consent', () => ({ marketingQrAnalyticsAllowed: () => false }))
-jest.mock('@/utils/migration.utils', () => ({ storeForDevice: () => null, openStore: jest.fn() }))
+jest.mock('@/utils/migration.utils', () => ({
+    storeForDevice: () => null,
+    storeIcon: () => 'qr-code',
+    openStore: jest.fn(),
+    onStoreAnchorClick: jest.fn(),
+    storeAnchorHref: jest.fn(),
+}))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key, useLocale: () => 'en' }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }), useOptionalAuth: () => ({ user: null }) }))
@@ -138,4 +145,19 @@ it.each([
         starLpQrUrl({ origin: window.location.origin, campaign, slot: 'home-sticker', migrationOn: false })
     )
     expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'L')
+})
+
+it('links the CTA to its href, with no modal, while the PWA sunset is off', () => {
+    mockMigrationOn = false
+    render(
+        <StarLpPage marketingPage="us-europe-accounts">
+            <StarLpCta href="/setup" ground="cream" qrPlacement="hero">
+                Download app
+            </StarLpCta>
+        </StarLpPage>
+    )
+    const cta = screen.getByRole('link', { name: 'Download app' })
+    expect(cta).toHaveAttribute('href', '/setup')
+    fireEvent.click(cta)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 })

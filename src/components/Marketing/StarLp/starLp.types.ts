@@ -100,7 +100,7 @@ export type StarLpHeroArtTuck = 'deep' | 'rim' | 'none'
 
 export interface StarLpCtaProps {
     qrPlacement?: string
-    /** Destination when the PWA-sunset flag is off. With the flag on every CTA goes to /app. */
+    /** Destination when the PWA-sunset flag is off. With the flag on every CTA is the download CTA (store link or QR modal). */
     href: string
     /** Where a signed-in visitor goes instead (e.g. '/card'). Omit to use `href` for everyone. */
     signedInHref?: string
