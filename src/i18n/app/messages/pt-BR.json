@@ -3447,7 +3447,7 @@
             "confirmError": "Algo deu errado ao confirmar seus termos. Tente novamente.",
             "notAcceptedYet": "Parece que os termos ainda não foram aceitos. Tente novamente.",
             "unconfirmedTitle": "Termos enviados",
-            "unconfirmedDescription": "Enviamos seu aceite ao nosso parceiro de pagamentos. Ele ainda não confirmou. Você não precisa aceitar de novo.",
+            "unconfirmedDescription": "Nosso parceiro de pagamentos ainda não os confirmou. Não precisa aceitar de novo.",
             "notNow": "Agora não",
             "title": "Aceitar termos"
         },

@@ -1536,8 +1536,7 @@
             "loadFailed": "No se pudieron cargar los términos. Podés aceptarlos más tarde desde tu historial de actividad.",
             "genericError": "Algo salió mal. Podés aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Intentalo de nuevo.",
-            "notAcceptedYet": "Parece que todavía no aceptaste los términos. Intentalo de nuevo.",
-            "unconfirmedDescription": "Enviamos tu aceptación a nuestro socio de pagos. Todavía no la confirmó. No necesitás aceptar de nuevo."
+            "notAcceptedYet": "Parece que todavía no aceptaste los términos. Intentalo de nuevo."
         },
         "reverificationPending": {
             "description": "Tu verificación está en revisión — normalmente toma unos minutos. Te avisaremos apenas puedas continuar. Podés esperar aquí o volver al inicio."
