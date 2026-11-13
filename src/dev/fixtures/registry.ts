@@ -1551,6 +1551,49 @@ const PROVIDER_ASK_RESPONSE = {
     },
 }
 
+/**
+ * TASK-24909: Bridge reviews the customer. Every Bridge rail waits on the
+ * provider, and the backend lists no corridor as offered or withheld. Those
+ * rows read "Under review"; they used to read "We cannot open {currency}".
+ */
+const BRIDGE_REVIEW_RESPONSE = {
+    'GET /users/me': {
+        capabilities: {
+            rails: BRIDGE_BANK_RAILS.map((rail) => ({
+                ...rail,
+                status: 'requires-info',
+                blockingActions: ['wait:provider-review'],
+            })),
+            nextActions: [{ key: 'wait:provider-review', kind: 'wait', purpose: 'provider-review' }],
+            restrictions: [],
+        },
+        depositAccounts: { enabled: true },
+        residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': { depositAccounts: [], claimable: [], unavailable: [] },
+}
+
+/**
+ * TASK-24909: Bridge's terms, as the API asks for them. The terms page is a
+ * same-origin file, so a capture can post the signature from inside it.
+ */
+const bridgeTermsResponse = (confirm: { accepted: boolean }) => ({
+    'GET /users/me': {
+        capabilities: {
+            rails: BRIDGE_BANK_RAILS.map((rail) => ({
+                ...rail,
+                status: 'requires-info',
+                blockingActions: ['bridge-tos'],
+            })),
+            nextActions: [{ key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }],
+            restrictions: [],
+        },
+        residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
+    },
+    'GET /users/bridge-tos-link': { tosLink: '/llms.txt' },
+    'POST /users/bridge-tos-confirm': confirm,
+})
+
 /** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
@@ -3706,6 +3749,35 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-24909: it used to ask for "a clearer photo of your ID".
+    'add-money-bank-provider-ask-unknown': {
+        route: '/add-money/germany/bank?step=verify',
+        about: 'The API asks for something the app has no step for, with no message: the document request says only that more information is needed.',
+        responses: {
+            'GET /users/me': {
+                capabilities: {
+                    rails: BRIDGE_BANK_RAILS.map((rail) => ({ ...rail, status: 'requires-info' })),
+                    nextActions: [],
+                    restrictions: [],
+                    features: {
+                        qr: { state: 'on' },
+                        card: { state: 'ready' },
+                        local: { state: 'ready', accounts: {} },
+                        bank: {
+                            state: 'action_required',
+                            accounts: {
+                                USD: { state: 'action_required' },
+                                EUR: { state: 'action_required' },
+                                GBP: { state: 'action_required' },
+                                MXN: { state: 'action_required' },
+                            },
+                        },
+                    },
+                },
+                residence: { declared: 'DE', verified: 'DE', pending: null, declaredSecond: null },
+            },
+        },
+    },
     'kyc-action-required': {
         route: '/profile/accounts',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
@@ -4011,6 +4083,23 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/profile/accounts',
         about: 'A verified user whose own review holds EUR (action), USD (under review) and MXN (support); GBP is not open yet. No residence on file, and nothing asks for one.',
         responses: REVIEW_CAUSE_RESPONSE,
+    },
+    'profile-accounts-provider-reviewing': {
+        route: '/profile/accounts',
+        about: 'Bridge reviews the customer: every Bridge account reads "Under review", and a tap opens the wait drawer (TASK-24909).',
+        responses: BRIDGE_REVIEW_RESPONSE,
+    },
+    // Tap "Review terms", Continue, then post `{ signedAgreementId }` from the frame.
+    'profile-accounts-terms-unconfirmed': {
+        route: '/profile/accounts',
+        about: 'Bridge has the signature, the account still asks for terms: the step says "Terms sent" and offers no new page (TASK-24909).',
+        responses: bridgeTermsResponse({ accepted: true }),
+    },
+    'profile-accounts-terms-confirm-failed': {
+        route: '/profile/accounts',
+        about: 'The terms confirm request fails: the step says so and offers a retry (TASK-24909).',
+        responses: bridgeTermsResponse({ accepted: false }),
+        fails: ['POST /users/bridge-tos-confirm'],
     },
     'profile-accounts-provider-asks': {
         route: '/profile/accounts',
