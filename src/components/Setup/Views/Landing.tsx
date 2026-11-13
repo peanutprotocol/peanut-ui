@@ -25,10 +25,6 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
-import { consumeLandingAutoLogin, disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
-import { cancelIOSImmediateLogin, supportsIOSImmediateLogin } from '@/utils/landing-passkeys'
-
-const PASSKEY_CHECK_TIMEOUT_MS = 5_000
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
@@ -57,72 +53,6 @@ const LandingStep = () => {
     const loginCancelsRef = useRef(0)
     // Set by a drawer action, so the close that follows it is not logged as a dismiss.
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
-
-    const { isHydrated, isNativeBridge, isIOSNative } = nativePlatform
-    const loginHandler = useRef(handleLoginClick)
-    const iosPreparation = useRef<AbortController | null>(null)
-    // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
-    // there; Log in and Sign up stay usable and retire it first when tapped.
-    const autoLogin = useRef<{ cancel: AbortController; done: Promise<void> } | null>(null)
-    const [autoLoginPending, setAutoLoginPending] = useState(false)
-    const fallbackBusy = useRef(false)
-
-    useEffect(() => {
-        loginHandler.current = handleLoginClick
-    }, [handleLoginClick])
-
-    useEffect(() => {
-        if (!isHydrated || !nativePlatform.isCapacitor || !isIOSNative || !isNativeBridge) return
-        const check = new AbortController()
-        const { signal } = check
-        const deadline = Date.now() + PASSKEY_CHECK_TIMEOUT_MS
-        // a late capability answer must not start the automatic login after the deadline
-        const timer = setTimeout(() => check.abort(), PASSKEY_CHECK_TIMEOUT_MS)
-
-        iosPreparation.current = check
-        void supportsIOSImmediateLogin()
-            .then(async (supported) => {
-                if (!supported || signal.aborted || Date.now() >= deadline) return
-                // once per app launch: coming back to the landing must not open the sheet again
-                if (!consumeLandingAutoLogin()) return
-                const cancel = new AbortController()
-                const done = loginHandler
-                    .current({ immediateSignal: signal, immediateDeadline: deadline, cancelSignal: cancel.signal })
-                    .then(
-                        () => {},
-                        () => {}
-                    )
-                const attempt = { cancel, done }
-                autoLogin.current = attempt
-                setAutoLoginPending(true)
-                await done
-                if (autoLogin.current !== attempt) return
-                // A ceremony that timed out can leave the native assertion open; free it so the
-                // next manual login is not refused as already in progress. A no-op after success.
-                await cancelIOSImmediateLogin()
-                if (autoLogin.current === attempt) {
-                    autoLogin.current = null
-                    setAutoLoginPending(false)
-                }
-            })
-            .catch(() => {
-                // iOS can report both a silent miss and a dismissed picker as cancellation.
-                // Let the fallback appear without a toast from an automatic attempt.
-            })
-
-        return () => {
-            clearTimeout(timer)
-            check.abort()
-            if (iosPreparation.current === check) iosPreparation.current = null
-            // retire a pending automatic login, so its sheet cannot open over the next step
-            const attempt = autoLogin.current
-            if (attempt) {
-                autoLogin.current = null
-                attempt.cancel.abort()
-                void cancelIOSImmediateLogin()
-            }
-        }
-    }, [isHydrated, nativePlatform.isCapacitor, isIOSNative, isNativeBridge])
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -180,40 +110,9 @@ const LandingStep = () => {
         }
     }
 
-    // Retire the automatic attempt (its late result is discarded) and free the native slot before the manual path starts.
-    const retireAutoLogin = async () => {
-        const attempt = autoLogin.current
-        if (!attempt) return
-        // Taken over here, so the attempt's own completion path does not cancel a second time.
-        autoLogin.current = null
-        attempt.cancel.abort()
-        await cancelIOSImmediateLogin()
-        await attempt.done
-        setAutoLoginPending(false)
-    }
-
-    const afterAutoLogin = (next?: () => unknown) => {
-        // the user chose, so no automatic login for the rest of this launch
-        disableLandingAutoLogin()
-        // Capability discovery can still be pending with no attempt to retire. An active
-        // attempt also needs this signal to stop options loading from opening a late picker.
-        iosPreparation.current?.abort()
-        if (!autoLogin.current && !fallbackBusy.current) {
-            next?.()
-            return
-        }
-        if (fallbackBusy.current) return
-        fallbackBusy.current = true
-        void retireAutoLogin()
-            .then(next)
-            .finally(() => {
-                fallbackBusy.current = false
-            })
-    }
-
     const onLoginClick = () => {
         track('log_in', 'tap')
-        afterAutoLogin(login)
+        void login()
     }
 
     const signUp = () => {
@@ -223,7 +122,7 @@ const LandingStep = () => {
 
     const onSignUpClick = () => {
         track('sign_up', 'tap')
-        afterAutoLogin(signUp)
+        signUp()
     }
 
     const recover = (action: RecoveryAction) => {
@@ -250,7 +149,7 @@ const LandingStep = () => {
             }}
             onRetry={() => {
                 recover('retry')
-                afterAutoLogin(login)
+                void login()
             }}
             // Signup is app-only on the blocked web layout; the store buttons sit behind the drawer there.
             onSignUp={
@@ -258,7 +157,7 @@ const LandingStep = () => {
                     ? undefined
                     : () => {
                           recover('signup')
-                          afterAutoLogin(signUp)
+                          signUp()
                       }
             }
             onSupport={() => recover('support')}
@@ -266,18 +165,11 @@ const LandingStep = () => {
     )
 
     const recoveryLink = (
-        <SetupDocLink
-            kind="account-recovery"
-            href="/en/help/account-recovery"
-            className={LINK_BUTTON_CLASSES}
-            onBeforeOpen={afterAutoLogin}
-        >
+        <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
             <Icon name="info" size={16} className="shrink-0" />
             {t('landing.recoverWallet')}
         </SetupDocLink>
     )
-
-    const manualLoginInFlight = isLoggingIn && !autoLoginPending
 
     const accountDeletedCallout = isAccountDeleted && (
         <Callout priority="error" data-testid="account-deleted">
@@ -340,7 +232,7 @@ const LandingStep = () => {
                                 // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
                                 // pend minutes — Sign Up must stay an escape hatch there, and a
                                 // mid-ceremony register fails cleanly as CeremonyConflictError.
-                                disabled={isLoggingIn && nativePlatform.isCapacitor && !autoLoginPending}
+                                disabled={isLoggingIn && nativePlatform.isCapacitor}
                                 onClick={onSignUpClick}
                             >
                                 {t('landing.signUp')}
@@ -349,10 +241,10 @@ const LandingStep = () => {
                     }
                     secondary={
                         <Button
-                            loading={manualLoginInFlight}
+                            loading={isLoggingIn}
                             shadowSize="4"
                             className="w-full"
-                            disabled={manualLoginInFlight}
+                            disabled={isLoggingIn}
                             variant="secondary"
                             onClick={onLoginClick}
                         >
