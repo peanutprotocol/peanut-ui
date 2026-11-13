@@ -4720,17 +4720,8 @@
             "havingTrouble": "¿Tienes problemas?"
         },
         "invitesGraph": {
-            "loadingNetwork": "Cargando la red...",
-            "goBack": "Volver",
             "resetView": "Restablecer vista",
-            "back": "Atrás",
-            "clear": "Quitar",
-            "focusedOn": "Enfocado en:",
-            "searchPlaceholder": "Buscar usuario...",
-            "paymentNetwork": "Red de pagos",
-            "inviteNetwork": "Red de invitaciones",
-            "nodes": "{count, plural, one {# nodo} other {# nodos}}",
-            "edges": "{count, plural, one {# conexión} other {# conexiones}}"
+            "clear": "Quitar"
         },
         "contactsList": {
             "title": "Contactos"
