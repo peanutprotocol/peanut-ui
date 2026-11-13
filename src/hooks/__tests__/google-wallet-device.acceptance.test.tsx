@@ -113,6 +113,44 @@ it('restores add when a resume confirms removal', async () => {
     expect(result.current.nativeAvailable).toBe(true)
 })
 
+it('keeps confirmed presence when a resume check errors', async () => {
+    exactStatus.mockResolvedValue('present')
+    const { result } = renderHook(() => usePushProvisioning(card))
+    await waitFor(() => expect(result.current.alreadyInWallet).toBe(true))
+    const initialReads = exactStatus.mock.calls.length
+    exactStatus.mockResolvedValue('unknown')
+
+    await act(async () => {
+        onAppStateChange({ isActive: true })
+    })
+
+    expect(exactStatus.mock.calls.length).toBeGreaterThan(initialReads)
+    expect(result.current.alreadyInWallet).toBe(true)
+})
+
+it('keeps confirmed presence when a resume check times out, and still clears on a later pending result', async () => {
+    exactStatus.mockResolvedValue('present')
+    const { result } = renderHook(() => usePushProvisioning(card))
+    await waitFor(() => expect(result.current.alreadyInWallet).toBe(true))
+
+    jest.useFakeTimers()
+    exactStatus.mockReturnValue(pendingStatus().promise)
+    await act(async () => {
+        onAppStateChange({ isActive: true })
+    })
+    await act(async () => {
+        jest.advanceTimersByTime(6_000)
+    })
+    expect(result.current.alreadyInWallet).toBe(true)
+
+    exactStatus.mockResolvedValue('pending')
+    await act(async () => {
+        onAppStateChange({ isActive: true })
+    })
+    expect(result.current.alreadyInWallet).toBe(false)
+    expect(result.current.nativeAvailable).toBe(true)
+})
+
 it('does not apply late presence to another card with the same suffix', async () => {
     const pending = pendingStatus()
     exactStatus.mockImplementation((id) => (id === card.id ? pending.promise : Promise.resolve('absent')))

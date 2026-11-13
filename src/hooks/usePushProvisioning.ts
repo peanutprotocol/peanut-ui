@@ -131,8 +131,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                     timers.delete(timeout)
                 }
                 if (cancelled || sequence !== statusSequence.current || getClearEpoch() !== epoch) return
-                // An OTA can run on a binary that predates this method. Preserve its mounted add result.
-                if (status !== 'unsupported') setAlreadyInWallet(status === 'present')
+                // Inconclusive reads (timeout, SDK error, or an older binary without this method) keep the last confirmed state.
+                if (status === 'present' || status === 'absent' || status === 'pending') {
+                    setAlreadyInWallet(status === 'present')
+                }
             })
         }
         refresh()
