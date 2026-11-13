@@ -76,3 +76,125 @@ test('trusted caller event fills an empty Actions snapshot and preserves exact r
         /does not match the triggering run/
     )
 })
+
+function callerEventFixture(t, target) {
+    const directory = mkdtempSync(join(tmpdir(), 'caller-review-'))
+    t.after(() => rmSync(directory, { recursive: true, force: true }))
+    const eventPath = join(directory, 'event.json')
+    const dev = {
+        ...pr,
+        draft: false,
+        base: { ...pr.base, sha: oldBase, repo: { full_name: repository } },
+    }
+    const main = { ...dev, number: 13, base: { ...dev.base, ref: 'main' } }
+    const original = target === 'dev' ? dev : main
+    writeFileSync(eventPath, JSON.stringify({ pull_request: original }))
+    const callerRun = { ...run, event: 'pull_request', head_sha: head }
+    return { eventPath, callerRun, original, dev, main }
+}
+
+for (const target of ['dev', 'main']) {
+    test(`original ${target} caller event binds the exact sibling PR regardless of candidate order`, (t) => {
+        const { eventPath, callerRun, original, dev, main } = callerEventFixture(t, target)
+        const bound = bindReleaseReviewEvent(repository, callerRun, eventPath)
+        assert.equal(bound.pull_requests.length, 1)
+        const snapshot = bound.pull_requests[0]
+        assert.equal(snapshot.number, original.number)
+        assert.equal(snapshot.head.sha, original.head.sha)
+        assert.equal(snapshot.head.ref, original.head.ref)
+        assert.equal(snapshot.base.sha, original.base.sha)
+        assert.equal(snapshot.base.ref, target)
+        for (const candidates of [
+            [dev, main],
+            [main, dev],
+        ]) {
+            const calls = []
+            const result = reviewProvenance(repository, bound, candidates, (args) => {
+                calls.push(args)
+                return 'e'.repeat(40)
+            })
+            assert.equal(result.pr.number, original.number)
+            assert.equal(result.after, head)
+            assert.equal(result.before, target === 'dev' ? 'e'.repeat(40) : oldBase)
+            assert.deepEqual(calls, target === 'dev' ? [['merge-base', oldBase, head]] : [])
+        }
+    })
+
+    test(`original ${target} caller event rejects closed or superseded live PRs`, (t) => {
+        const { eventPath, callerRun, original } = callerEventFixture(t, target)
+        const bound = bindReleaseReviewEvent(repository, callerRun, eventPath)
+        for (const live of [
+            { ...original, state: 'closed' },
+            { ...original, head: { ...original.head, sha: 'f'.repeat(40) } },
+        ]) {
+            assert.equal(reviewProvenance(repository, bound, [live], git), null)
+        }
+    })
+}
+
+test('dev caller snapshot retains its base for merge-base when the live dev branch moves', (t) => {
+    const { eventPath, callerRun, original } = callerEventFixture(t, 'dev')
+    const bound = bindReleaseReviewEvent(repository, callerRun, eventPath)
+    const live = { ...original, base: { ...original.base, sha: base } }
+    const calls = []
+    const result = reviewProvenance(repository, bound, [live], (args) => {
+        calls.push(args)
+        return 'e'.repeat(40)
+    })
+    assert.deepEqual(calls, [['merge-base', oldBase, head]])
+    assert.equal(result.before, 'e'.repeat(40))
+    assert.equal(result.after, head)
+})
+
+test('dev caller events receive the same malformed and mismatched identity validation as main', (t) => {
+    const { eventPath, callerRun, original } = callerEventFixture(t, 'dev')
+    for (const invalid of [
+        { ...original, number: 0 },
+        { ...original, head: { ...original.head, sha: 'not-a-sha' } },
+        { ...original, head: { ...original.head, ref: 'unrelated' } },
+        { ...original, head: { ...original.head, repo: { full_name: 'fork/ui' } } },
+        { ...original, base: { ...original.base, repo: { full_name: 'other/ui' } } },
+    ]) {
+        writeFileSync(eventPath, JSON.stringify({ pull_request: invalid }))
+        assert.throws(() => bindReleaseReviewEvent(repository, callerRun, eventPath))
+    }
+    writeFileSync(eventPath, JSON.stringify({ pull_request: original }))
+    assert.throws(
+        () =>
+            bindReleaseReviewEvent(
+                repository,
+                {
+                    ...callerRun,
+                    pull_requests: [{ ...original, number: original.number + 1 }],
+                },
+                eventPath
+            ),
+        /does not match the triggering run/
+    )
+})
+
+for (const target of ['dev', 'main']) {
+    test(`original ${target} event returns null when only the opposite-base sibling is live`, (t) => {
+        const { eventPath, callerRun, dev, main } = callerEventFixture(t, target)
+        const bound = bindReleaseReviewEvent(repository, callerRun, eventPath)
+        assert.equal(reviewProvenance(repository, bound, [target === 'dev' ? main : dev], git), null)
+    })
+}
+
+test('absent or unsupported caller PR events preserve the original run', (t) => {
+    const { eventPath, callerRun, original } = callerEventFixture(t, 'dev')
+    assert.deepEqual(bindReleaseReviewEvent(repository, callerRun, ''), callerRun)
+    for (const event of [{}, { pull_request: { ...original, base: { ...original.base, ref: 'staging' } } }]) {
+        writeFileSync(eventPath, JSON.stringify(event))
+        assert.deepEqual(bindReleaseReviewEvent(repository, callerRun, eventPath), callerRun)
+    }
+})
+
+test('dev caller event disambiguates simultaneous dev and main candidates', (t) => {
+    const { eventPath, callerRun, dev, main } = callerEventFixture(t, 'dev')
+    const bound = bindReleaseReviewEvent(repository, callerRun, eventPath)
+    const result = reviewProvenance(repository, bound, [main, dev], git)
+    assert.equal(result.pr.number, dev.number)
+    assert.equal(result.before, oldBase)
+    assert.equal(result.after, head)
+})

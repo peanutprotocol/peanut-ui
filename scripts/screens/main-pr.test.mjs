@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { runInNewContext } from 'node:vm'
 import * as provenance from './review-provenance.mjs'
 import * as current from './check-review-current.mjs'
 
@@ -288,10 +289,42 @@ for (const [name, mutate] of Object.entries({
     })
 }
 
-test('event binding preserves absent and non-main PR payload paths', () => {
+test('event binding preserves absent and unsupported PR payload paths', () => {
     const run = runFor()
-    for (const event of [{}, { pull_request: candidate('feature/profile', 'dev') }]) {
+    for (const event of [{}, { pull_request: candidate('feature/profile', 'staging') }]) {
         withEvent(event, (path) => assert.deepEqual(provenance.bindReleaseReviewEvent(repository, run, path), run))
+    }
+})
+
+test('publisher fetches every bound PR directly and retains unbound commit lookup', () => {
+    const source = readFileSync(new URL('./publish-run.mjs', import.meta.url), 'utf8')
+    const selection = source.slice(source.indexOf('    const candidates ='), source.indexOf('    const binding ='))
+    assert.ok(selection.includes('const candidates ='))
+    for (const target of ['dev', 'main', null]) {
+        const pr = candidate('feature/profile', target)
+        const snapshot = target ? runFor(pr).pull_requests[0] : undefined
+        const calls = []
+        const result = runInNewContext(`${selection}; candidates`, {
+            snapshot,
+            repo: repository,
+            reviewHead: headSha,
+            api: (path) => {
+                calls.push(path)
+                return pr
+            },
+            ghApiSync: (args) => {
+                calls.push(Array.from(args))
+                return JSON.stringify([[pr]])
+            },
+        })
+        assert.equal(result.length, 1)
+        assert.equal(result[0].number, pr.number)
+        assert.deepEqual(
+            calls,
+            target
+                ? [`pulls/${pr.number}`]
+                : [[`repos/${repository}/commits/${headSha}/pulls?per_page=100`, '--paginate', '--slurp']]
+        )
     }
 })
 
