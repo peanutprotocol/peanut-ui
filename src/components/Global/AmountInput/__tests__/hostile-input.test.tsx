@@ -25,7 +25,7 @@ describe('AmountInput with hostile values', () => {
         ['.5', '.5'],
         ['12\n', '12'], // a text input drops line breaks natively, so a pasted newline never reaches the parser
         [' 12 ', '12'],
-        ['1.239', '1.23'], // floors to the denomination's decimals, never rounds up
+        ['1.2399', '1.23'], // floors to the denomination's decimals, never rounds up ("1.239" is ambiguous, see below)
         ['999999999.99', '999999999.99'],
         ['0', '0'],
         ['', ''],
@@ -99,12 +99,6 @@ describe('AmountInput with hostile values', () => {
         expect(sent()).toBe('12')
     })
 
-    it('a signed paste that could mean 1000 or 1 is rejected, not sent as 1', () => {
-        const { type, sent } = renderField()
-        type('$1,000')
-        expect(sent()).toBe('')
-    })
-
     it('clearing the field still empties it', () => {
         const { input, type, sent } = renderField()
         type('12')
@@ -113,12 +107,41 @@ describe('AmountInput with hostile values', () => {
         expect(sent()).toBe('')
     })
 
-    // "125.000" is 125 thousand in es-AR/pt-BR and 125 in en. today it reads as
-    // 125.00. waiting on a product decision; a wrong guess is a 1000x amount.
-    // https://www.notion.so/TASK-23499
-    it.skip('pasted "125.000" in an es/pt locale sends 125000 (TASK-23499 decision)', () => {
+    // one separator before exactly 3 digits is a thousand in es/pt and a decimal
+    // in en. a wrong guess is a 1000x amount, so the field refuses it and keeps
+    // what it held (TASK-23499, decision C)
+    it.each(['125.000', '1,000', '$1,000', 'R$ 1.000'])('pasted %j is refused, never guessed', (value) => {
+        const { input, type, sent } = renderField()
+        type('12')
+        type(value)
+        expect(input.value).toBe('12')
+        expect(sent()).toBe('12')
+    })
+
+    it.each([
+        ['1.000,50', '1000.50'],
+        ['1,000.50', '1000.50'],
+        ['12.5', '12.5'],
+        ['0,125', '0.12'],
+    ])('pasted %j still sends %j', (value, expected) => {
         const { type, sent } = renderField()
-        type('125.000')
-        expect(sent()).toBe('125000')
+        type(value)
+        expect(sent()).toBe(expected)
+    })
+
+    // typing is not pasting: the user already sees the point they typed
+    it('a 6-decimal field still takes a third decimal typed after the point', () => {
+        const { type, sent } = renderField(6)
+        type('1.23')
+        type('1.234')
+        expect(sent()).toBe('1.234')
+    })
+
+    it('a 2-decimal field still cuts a third decimal typed after the point', () => {
+        const { input, type, sent } = renderField()
+        type('1.23')
+        type('1.234')
+        expect(input.value).toBe('1.23')
+        expect(sent()).toBe('1.23')
     })
 })

@@ -94,6 +94,7 @@ jest.mock('@/utils/general.utils', () => ({
     formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
     // real implementation, for the real AmountInput
     formatTokenAmount: (...args: unknown[]) => jest.requireActual('@/utils/general.utils').formatTokenAmount(...args),
+    isAmbiguousAmountText: (text: string) => jest.requireActual('@/utils/general.utils').isAmbiguousAmountText(text),
     // real implementation: same-origin paths pass, everything else is rejected
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null

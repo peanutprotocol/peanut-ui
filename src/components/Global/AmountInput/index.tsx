@@ -1,6 +1,6 @@
 'use client'
 
-import { formatTokenAmount } from '@/utils/general.utils'
+import { formatTokenAmount, isAmbiguousAmountText } from '@/utils/general.utils'
 import { formatAmountNumber, formatFiniteDisplay } from '@/utils/currency'
 import { convertDecimalAmount } from '@/lib/money'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -418,6 +418,13 @@ const AmountInput = ({
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 let value = e.target.value
+                                // a digit typed after a point the field already shows is not
+                                // ambiguous: "1.23" then "4" is 1.234 to someone who sees the point
+                                const typedAfterPoint =
+                                    shownValue.includes('.') &&
+                                    value.length === shownValue.length + 1 &&
+                                    value.startsWith(shownValue)
+                                if (!typedAfterPoint && isAmbiguousAmountText(value)) return
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
