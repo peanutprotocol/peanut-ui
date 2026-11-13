@@ -29,7 +29,6 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: moc
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/utils/landing-passkeys', () => ({
-    checkAndroidLandingPasskey: async () => 'available',
     supportsIOSImmediateLogin: async () => false,
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({

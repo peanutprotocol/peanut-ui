@@ -1,22 +1,3 @@
-import { getNativeRpId } from '@/utils/capacitor'
-import { nativeCapability } from '@/utils/native-capability'
-
-type Availability = 'available' | 'unavailable' | 'unknown'
-
-const passkeyAvailability = nativeCapability<{
-    check(options: { rpId: string }): Promise<{ availability: Availability }>
-}>('PasskeyAvailability', { platforms: ['android'] })
-
-export async function checkAndroidLandingPasskey(signal: AbortSignal): Promise<Availability> {
-    if (signal.aborted) return 'unknown'
-    const result = await passkeyAvailability.call('check', { rpId: getNativeRpId() }, () => ({
-        availability: 'unknown',
-    }))
-    if (signal.aborted) return 'unknown'
-    const availability = result?.availability
-    return availability === 'available' || availability === 'unavailable' ? availability : 'unknown'
-}
-
 /**
  * Frees the native iOS slot held by the automatic login, so the manual login that
  * follows is not refused as "already in progress". The binary that reports
