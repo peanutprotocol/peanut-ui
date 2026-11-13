@@ -487,7 +487,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Pix deposit — the dynamic code',
         path: 'features/pix/components/PixQrDeposit.tsx',
         captureState: ['amountBrl=100', 'expiresAt=+10 min'],
-        // the signed-in Brazilian resident the CPF line's avatar is drawn for
+        // a signed-in user whose Pix deposit route is ready
         shotFixture: 'pix-deposit-amount',
         expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
     },

@@ -291,17 +291,15 @@ function PixDepositSurface() {
     const queryClient = useQueryClient()
     useState(() =>
         queryClient.setQueryData(pixDepositQueryKey('demo-pix-deposit'), {
-            provider: 'avenia',
+            provider: 'manteca',
             intentId: 'demo-pix-deposit',
             status: 'AWAITING_USER_ACTION',
             codePayable: true,
             pixReceived: false,
             brCode: DEMO_PIX_BR_CODE,
             amountBrl: '100.00',
-            usdcAmount: '17.940500',
-            fixedFeeBrl: '0.75',
+            usdcAmount: '18.390000',
             expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
-            payerCpfMasked: '095.***.***-89',
         } satisfies PixDeposit)
     )
     return (
@@ -321,14 +319,14 @@ function PixDepositSurface() {
 const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: true,
+    ownAccount: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
-    rate: '5.445692',
-    fixedFeeBrl: '0.75',
+    rate: '5.437586',
+    fixedFeeBrl: '0',
     arrivalEstimateSeconds: 60,
-    provider: 'Avenia',
+    provider: 'Manteca',
 }
 
 // the last step right after the signature: the destination comes from what was signed. `pastArrival`
@@ -350,7 +348,7 @@ function PixWithdrawOutcomeSurface({
             <PixWithdrawOutcome
                 title="Withdraw"
                 intentId="fixture-pix-withdrawal"
-                providerId="avenia-br"
+                providerId="manteca-br"
                 sent={{ phase: 'funded', display }}
                 onStartAgain={noop}
                 onDone={noop}
@@ -401,7 +399,7 @@ function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-i
                 }}
                 display={PIX_SURFACE_DISPLAY}
                 total="$92.50"
-                providerId="avenia-br"
+                providerId="manteca-br"
                 error={error}
                 isSubmitting={false}
                 canConfirm={variant === 'quote-moved'}
