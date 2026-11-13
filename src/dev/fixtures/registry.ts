@@ -409,6 +409,8 @@ const bridgePixResponses = ({
                         provider: refused ? null : 'bridge',
                         ...step,
                         ...(refused ? {} : { limits: { minAmount: BRIDGE_PIX_LIMITS[operation], currency: 'BRL' } }),
+                        // one code for any amount, whatever the step (api routing/rank.ts)
+                        ...(operation === 'deposit' && !refused ? { standingCode: true } : {}),
                         candidates: [{ provider: 'bridge', ...step }],
                     }
                 }),
@@ -435,6 +437,70 @@ const BRIDGE_TAX_ID_REASON = {
     userMessage: 'We need your tax identification number to continue.',
 }
 const FIRST_USE_REASON = { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' }
+
+/** The user's standing Pix code on Bridge, as POST /pix/deposit answers it (API-CONTRACT.md section 5). */
+const BRIDGE_PIX_STANDING_CODE = {
+    provider: 'bridge',
+    intentId: null,
+    status: 'AWAITING_USER_ACTION',
+    codePayable: true,
+    pixReceived: false,
+    brCode: DEMO_PIX_BR_CODE,
+    expiresAt: null,
+    amountBrl: null,
+    usdcAmount: null,
+}
+/** Bridge's BRL account behind the standing code: in the holder's name, from the holder or a business. */
+const BRIDGE_BRL_ACCOUNT = {
+    id: 'fixture-deposit-account-brl',
+    railId: 'bridge.pix_br',
+    country: 'BRA',
+    currency: 'BRL',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: 'business-only' },
+    rules: { min: { amount: '10', currency: 'BRL' } },
+    instructions: { accountHolderName: 'Ana Souza', brCode: DEMO_PIX_BR_CODE, paymentRails: ['pix'] },
+}
+/** A resident of Brazil whose Pix deposits on Bridge are ready, with the BRL account opened or not. */
+const bridgePixDepositReady = (accounts: { depositAccounts: unknown[]; claimable?: unknown[] }) => ({
+    ...bridgePixResponses({
+        deposit: { state: 'ready' },
+        rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+    }),
+    'POST /pix/deposit': BRIDGE_PIX_STANDING_CODE,
+    'GET /users/deposit-accounts': { claimable: [], ...accounts },
+})
+/**
+ * A Pix into the BRL account in Activity, as peanut-api-ts src/db/history.ts writes it on the API
+ * branch of TASK-24910: the payer's bank as sender, typed by Bridge's rail; the rate in reais per
+ * dollar; the end-to-end id as the payment reference. Documented shape, not an observed event.
+ */
+const BRIDGE_PIX_DEPOSIT_ID = 'fixture-bridge-pix-deposit'
+const bridgePixDepositEntry = (status: string, extraData: Record<string, unknown> = {}) => ({
+    uuid: BRIDGE_PIX_DEPOSIT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-13T19:08:00.000Z'),
+    amount: '1.73',
+    currency: { amount: '10.00', code: 'BRL' },
+    chainId: 'arbitrum',
+    tokenSymbol: 'USDC',
+    tokenAddress: '',
+    status,
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: '', type: 'pix', isUser: false, fullName: 'MARIA DA SILVA' },
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    extraData: {
+        kind: 'ONRAMP',
+        provider: 'BRIDGE',
+        bridgeFlow: 'ONRAMP',
+        fulfillmentType: 'bridge',
+        usdAmount: '1.73',
+        receipt: { initial_amount: '10.00', final_amount: '1.73', exchange_rate: '5.780346820809249' },
+        paymentReference: 'E00416968202611131908aBcD1234567',
+        ...extraData,
+    },
+})
 
 /** One Pix withdrawal's history entry on Manteca's route, for the last step read after a reload. */
 const PIX_WITHDRAWAL_ID = 'fixture-pix-withdrawal'
@@ -2291,6 +2357,113 @@ export const FIXTURES: Record<string, Fixture> = {
             deposit: { state: 'ready' },
             rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
         }),
+    },
+    // ruling D7: one code for any amount, no amount step, no timer and no wait
+    'pix-bridge-deposit-code': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, deposits ready: the standing code, its minimum, who may pay in, and Activity.',
+        responses: bridgePixDepositReady({ depositAccounts: [BRIDGE_BRL_ACCOUNT] }),
+    },
+    'pix-bridge-deposit-first-code': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the first Add money: the call opens the BRL account and draws its code.',
+        responses: bridgePixDepositReady({
+            depositAccounts: [],
+            claimable: [
+                {
+                    railId: 'bridge.pix_br',
+                    method: 'PIX_BR',
+                    country: 'BRA',
+                    currency: 'BRL',
+                    matching: { sender: 'business-only' },
+                    rules: BRIDGE_BRL_ACCOUNT.rules,
+                    preview: true,
+                },
+            ],
+        }),
+    },
+    'pix-bridge-deposit-in-flight': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, another open of the account still running after a few tries: try again.',
+        waitFor: '[data-testid="pix-code-retry"]',
+        responses: bridgePixDepositReady({ depositAccounts: [] }),
+        rejects: {
+            'POST /pix/deposit': {
+                status: 409,
+                body: { code: 'DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT', error: 'A claim is already in progress' },
+            },
+        },
+    },
+    'pix-bridge-deposit-paused': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the code refused while the provider is paused (503): the outage screen.',
+        responses: bridgePixDepositReady({ depositAccounts: [] }),
+        rejects: {
+            'POST /pix/deposit': {
+                status: 503,
+                body: { code: 'PROVIDER_UNAVAILABLE', error: 'Pix is not available right now. Try again soon.' },
+            },
+        },
+    },
+    // the cap ruling is pending: the account screens' own sentence, with support
+    'pix-bridge-deposit-account-limit': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the BRL account refused at the account limit: the limit sentence, with support.',
+        responses: bridgePixDepositReady({ depositAccounts: [] }),
+        rejects: {
+            'POST /pix/deposit': {
+                status: 409,
+                body: { code: 'DEPOSIT_ACCOUNT_LIMIT', error: 'Account limit reached' },
+            },
+        },
+    },
+    // ruling 12 Nov: while a Pix route is open the BRL row is not on Accounts, and the cap still counts it
+    'pix-bridge-accounts-brl-held': {
+        route: '/profile/accounts',
+        about: 'Accounts for a resident of Brazil holding the BRL and EUR accounts: BRL is not listed; the counter counts it.',
+        responses: {
+            ...bridgePixDepositReady({ depositAccounts: [DEPOSIT_ACCOUNT_EUR, BRIDGE_BRL_ACCOUNT] }),
+            'GET /users/deposit-accounts': {
+                depositAccounts: [DEPOSIT_ACCOUNT_EUR, BRIDGE_BRL_ACCOUNT],
+                claimable: [],
+                accountLimit: 2,
+                accountsHeld: 2,
+            },
+        },
+    },
+    'pix-bridge-accounts-brl-only': {
+        route: '/profile/accounts',
+        about: 'Accounts for a resident of Brazil holding only the BRL account: nothing is listed as held, and no counter shows.',
+        responses: {
+            ...bridgePixDepositReady({ depositAccounts: [BRIDGE_BRL_ACCOUNT] }),
+            'GET /users/deposit-accounts': {
+                depositAccounts: [BRIDGE_BRL_ACCOUNT],
+                claimable: [],
+                accountLimit: 2,
+                accountsHeld: 1,
+            },
+        },
+    },
+    'history-bridge-pix-deposit-returned': {
+        route: `/history?tx=${BRIDGE_PIX_DEPOSIT_ID}`,
+        about: 'A Pix from a third person that Bridge sent back: Returned, the reason, and the rate, never Converted.',
+        responses: {
+            'GET /users/history': {
+                entries: [bridgePixDepositEntry('REFUNDED', { returnReason: { code: 'third_party' } })],
+                hasMore: false,
+            },
+            [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry('REFUNDED', {
+                returnReason: { code: 'third_party' },
+            }),
+        },
+    },
+    'history-bridge-pix-deposit': {
+        route: `/history?tx=${BRIDGE_PIX_DEPOSIT_ID}`,
+        about: 'A Pix into the BRL account on Bridge: From the payer, Converted with the rate in reais per dollar.',
+        responses: {
+            'GET /users/history': { entries: [bridgePixDepositEntry('PAYMENT_PROCESSED')], hasMore: false },
+            [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry('PAYMENT_PROCESSED'),
+        },
     },
     'pix-bridge-accounts-hosted-task': {
         route: '/profile/accounts',

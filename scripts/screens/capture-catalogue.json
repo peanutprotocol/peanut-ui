@@ -1160,6 +1160,41 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-bridge-deposit-code",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-first-code",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-in-flight",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-paused",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-account-limit",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-history-bridge-pix-deposit-returned",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-bridge-pix-deposit"
+    },
+    {
+        "id": "fixture-history-bridge-pix-deposit",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-bridge-pix-deposit"
+    },
+    {
         "id": "fixture-pix-manteca-deposit-code",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
@@ -2630,6 +2665,16 @@
         "id": "fixture-settings-language",
         "flow": "Profile and settings",
         "route": "/settings/language"
+    },
+    {
+        "id": "fixture-pix-bridge-accounts-brl-held",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-pix-bridge-accounts-brl-only",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
     },
     {
         "id": "fixture-pix-bridge-accounts-hosted-task",

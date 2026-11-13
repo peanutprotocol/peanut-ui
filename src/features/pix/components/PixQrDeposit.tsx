@@ -104,7 +104,13 @@ export function PixQrDeposit({
                     <IconBubble icon="alert" size="l" color="red" />
                     <TitleBlock align="center" title={t('title')} description={tShared('unavailable')} />
                     {refusal && (
-                        <Button variant="primary" className="w-full" onClick={retry} loading={isRetrying}>
+                        <Button
+                            variant="primary"
+                            className="w-full"
+                            onClick={retry}
+                            loading={isRetrying}
+                            data-testid="pix-code-retry"
+                        >
                             {tCommon('tryAgain')}
                         </Button>
                     )}
