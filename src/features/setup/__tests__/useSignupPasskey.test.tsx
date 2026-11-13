@@ -690,6 +690,22 @@ describe('Android failures that are not cancels', () => {
         )
     })
 
+    it('shows rate-limit copy, not unreachable servers, when the API answers 429 (TASK-22431)', async () => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(new Error('Passkey /passkeys/register/options was rate limited'), {
+                name: 'PasskeyRateLimitedError',
+            })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts. Wait a minute and try again.')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(Sentry.captureException).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ tags: { error_type: 'passkey_rate_limited' } })
+        )
+    })
+
     it('counts attempts across retries on the same step', async () => {
         mockHandleRegister.mockRejectedValue(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
         renderWithIntl(<Harness />)

@@ -12,7 +12,7 @@ import {
     withIOSPasskeyLoginRecovery,
 } from '../webauthn.utils'
 import { isIOSNative } from '@/utils/capacitor'
-import { PasskeyAccountDeletedError, PasskeyOptionsFailedError } from '../passkey-auth-capture'
+import { PasskeyAccountDeletedError, PasskeyOptionsFailedError, PasskeyRateLimitedError } from '../passkey-auth-capture'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -241,6 +241,21 @@ describe('normalizePasskeyServerError', () => {
             expect(classifyPasskeyError(raw).code).toBe('NETWORK')
         }
     )
+})
+
+describe('rate limited', () => {
+    test('classifies as RATE_LIMITED with wait copy, not NETWORK (TASK-22431)', () => {
+        const error = new PasskeyRateLimitedError('/passkeys/login/options')
+
+        expect(normalizePasskeyServerError(error)).toBe(error)
+        expect(classifyPasskeyError(error)).toEqual({
+            code: 'RATE_LIMITED',
+            message: 'Too many attempts. Wait a minute and try again.',
+        })
+        expect(
+            getPasskeyErrorSetupKey(Object.assign(new Error(), { name: 'PasskeyError', code: 'RATE_LIMITED' }))
+        ).toBe('passkey.rateLimited')
+    })
 })
 
 describe('deleted account', () => {

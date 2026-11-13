@@ -1126,6 +1126,7 @@
             "settling": "The last passkey prompt is still closing. Wait a few seconds and try again.",
             "stillOpen": "The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
+            "rateLimited": "Too many attempts. Wait a minute and try again.",
             "accountDeleted": "This account was deleted. Sign up to create a new one.",
             "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
             "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",

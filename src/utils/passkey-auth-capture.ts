@@ -59,6 +59,18 @@ export class PasskeyOptionsFailedError extends Error {
     }
 }
 
+/**
+ * The API rate-limited a passkey request (429). Its body names no reason, so the
+ * status is the signal. Nothing was authenticated, and the retry-after is at most
+ * a minute: the user only has to wait.
+ */
+export class PasskeyRateLimitedError extends Error {
+    constructor(path: string) {
+        super(`Passkey ${path} was rate limited`)
+        this.name = 'PasskeyRateLimitedError'
+    }
+}
+
 function errorCodeOf(body: string): unknown {
     try {
         return (JSON.parse(body) as { error?: unknown } | null)?.error
@@ -164,7 +176,12 @@ export function installPasskeyVerifyCapture(): void {
                 // credential from a device that holds several. Throw before
                 // ZeroDev decodes the error body as `{ verification: ... }`;
                 // the login recovery wrapper decides whether to re-prompt.
-                if (passkeyPath === '/passkeys/login/verify' && (response.status === 400 || response.status === 401)) {
+                if (response.status === 429) {
+                    failure = new PasskeyRateLimitedError(passkeyPath)
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    (response.status === 400 || response.status === 401)
+                ) {
                     failure = new PasskeyVerifyRejectedError(response.status)
                 } else if (
                     passkeyPath === '/passkeys/login/verify' &&

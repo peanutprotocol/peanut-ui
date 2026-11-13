@@ -37,3 +37,12 @@ it('bounds a never-settling read and cancels it', async () => {
     expect(cancel).toHaveBeenCalledTimes(1)
     expect(load).toHaveBeenCalledTimes(1)
 })
+it('stops at a 429 and reports it as rate limited, not unreachable servers (TASK-22431)', async () => {
+    const load = jest.fn().mockRejectedValue(Object.assign(new Error('Backend error fetching user'), { status: 429 }))
+    const pending = expect(recoverLoginSession(load, jest.fn())).rejects.toMatchObject({
+        name: 'PasskeyRateLimitedError',
+    })
+    await jest.advanceTimersByTimeAsync(2000)
+    await pending
+    expect(load).toHaveBeenCalledTimes(1)
+})
