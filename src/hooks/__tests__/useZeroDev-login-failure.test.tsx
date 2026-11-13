@@ -191,8 +191,7 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         }
     })
 
-    it('finishes committed login when retirement happens during hydration', async () => {
-        const controller = new AbortController()
+    it('finishes committed login after hydration completes', async () => {
         const key = { id: 'committed-key' }
         mockToWebAuthnKey.mockImplementationOnce(async () => {
             stashCeremonyVerifyToken('committed-jwt', currentCeremonyId())
@@ -208,15 +207,10 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         const { result } = renderHook(() => useZeroDev())
         let pending!: Promise<unknown>
         await act(async () => {
-            pending = result.current.handleLogin({
-                immediateSignal: new AbortController().signal,
-                immediateDeadline: Date.now() + 5000,
-                cancelSignal: controller.signal,
-            })
+            pending = result.current.handleLogin()
         })
         expect(mockSetAuthToken).toHaveBeenCalledWith('committed-jwt')
         await act(async () => {
-            controller.abort()
             resolveProfile({ user: { userId: 'verified-user' } })
             await pending
         })
@@ -224,37 +218,6 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         expect(mockUpdateUserPreferences).toHaveBeenCalledWith('verified-user', { webAuthnKey: key })
         expect(mockSetWebAuthnKey).toHaveBeenCalledWith(key)
         expect(clearAuthState).not.toHaveBeenCalled()
-    })
-
-    it('commits nothing when retired before the ceremony commits', async () => {
-        const controller = new AbortController()
-        let resolveKey!: (value: unknown) => void
-        mockToWebAuthnKey.mockImplementationOnce(
-            () =>
-                new Promise((resolve) => {
-                    resolveKey = resolve
-                })
-        )
-        const { result } = renderHook(() => useZeroDev())
-        let pending!: Promise<unknown>
-        await act(async () => {
-            pending = result.current
-                .handleLogin({
-                    immediateSignal: new AbortController().signal,
-                    cancelSignal: controller.signal,
-                })
-                .catch((error: unknown) => error)
-        })
-        await act(async () => {
-            stashCeremonyVerifyToken('retired-jwt', currentCeremonyId())
-            controller.abort()
-            resolveKey({ id: 'retired-key' })
-            await pending
-        })
-        expect(mockSetAuthToken).not.toHaveBeenCalled()
-        expect(mockHydrateLoginSession).not.toHaveBeenCalled()
-        expect(mockSetWebAuthnKey).not.toHaveBeenCalled()
-        expect(mockUpdateUserPreferences).not.toHaveBeenCalled()
     })
 
     const loginRejectingWith = async (error: unknown) => {

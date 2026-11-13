@@ -49,7 +49,6 @@ import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration
 import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
-import { disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
 import {
     bindSignupDraft,
     discardSignupDraft,
@@ -365,10 +364,6 @@ function SetupPageContent() {
 
     // Only count steps that actually render, not while the entry step is being determined.
     const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
-
-    useLayoutEffect(() => {
-        if (stepRendered && step?.screenId !== 'landing') disableLandingAutoLogin()
-    }, [stepRendered, step?.screenId])
 
     useLayoutEffect(() => {
         if (!stepRendered || !step || step.screenId === 'landing' || featureScreenIds !== null) return

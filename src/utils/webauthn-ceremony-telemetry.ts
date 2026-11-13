@@ -34,7 +34,6 @@ export type CeremonyPurpose =
     | 'step_up'
     | 'kernel_migration'
     | 'login'
-    | 'login_auto'
     | 'registration'
     | 'app_lock'
     | 'ephemeral_enable'

@@ -71,19 +71,10 @@ export const useLogin = () => {
         return () => clearTimeout(timer)
     }, [loginResolved, user, toast])
 
-    const handleLoginClick = async (options?: {
-        immediateSignal: AbortSignal
-        immediateDeadline: number
-        cancelSignal?: AbortSignal
-    }) => {
+    const handleLoginClick = async () => {
         setIsloginClicked(true)
         try {
-            if (options) await handleLogin(options)
-            else await handleLogin()
-            if (options?.cancelSignal?.aborted) {
-                setIsloginClicked(false)
-                return
-            }
+            await handleLogin()
             setLoginResolved(true)
         } catch (e) {
             setIsloginClicked(false)

@@ -70,11 +70,6 @@ jest.mock('@/hooks/useLogin', () => ({
     useLogin: () => ({ handleLoginClick: jest.fn(), isLoggingIn: false }),
 }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
-jest.mock('@/utils/landing-passkeys', () => ({
-    checkAndroidLandingPasskey: () => new Promise(() => {}),
-    supportsIOSImmediateLogin: () => new Promise(() => {}),
-    cancelIOSImmediateLogin: jest.fn().mockResolvedValue(undefined),
-}))
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: ({ children, onClick, disabled }: { children: ReactNode; onClick?: () => void; disabled?: boolean }) => (
         <button onClick={onClick} disabled={disabled}>
