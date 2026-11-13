@@ -984,9 +984,9 @@
             "recoverWallet": "¿Necesitas recuperar la cuenta de Peanut?",
             "testBuild": "Versión de prueba",
             "testSignUp": "Regístrate en la web",
-            "noPassword": "Sin contraseña: entras con tu cara o huella.",
+            "entry": "Entras con tu cara o tu huella.",
             "logInPrompt": "¿Ya tienes cuenta?",
-            "logInLink": "Inicia sesión",
+            "logInLink": "Iniciar sesión",
             "hero": {
                 "received": "¡Dinero recibido!",
                 "amount": "USD 1.200",

@@ -909,7 +909,7 @@
         "steps": {
             "landing": {
                 "title": "Receba dos EUA e da Europa.",
-                "description": "Receba dólares e euros. Pague com cartão ou QR."
+                "description": "Contas em dólar e euro. Pague com cartão ou QR."
             },
             "signup": {
                 "title": "Garantir usuário",
@@ -984,7 +984,7 @@
             "recoverWallet": "Precisa recuperar uma conta Peanut?",
             "testBuild": "Versão de teste",
             "testSignUp": "Cadastre-se na web",
-            "noPassword": "Sem senha: entre com seu rosto ou sua digital.",
+            "entry": "Entre com seu rosto ou sua digital.",
             "logInPrompt": "Já tem conta?",
             "logInLink": "Entrar",
             "hero": {

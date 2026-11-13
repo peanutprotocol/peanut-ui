@@ -549,9 +549,9 @@
         "landing": {
             "signUp": "Registrate",
             "recoverWallet": "¿Necesitás recuperar la cuenta de Peanut?",
-            "noPassword": "Sin contraseña: entrás con tu cara o huella.",
-            "logInPrompt": "Ya tengo cuenta ·",
-            "logInLink": "Iniciá sesión"
+            "entry": "Entrás con tu cara o tu huella.",
+            "logInPrompt": "Ya tengo cuenta<separator></separator>",
+            "logInLink": "Iniciar sesión"
         },
         "loginRecovery": {
             "steps": {

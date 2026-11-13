@@ -29,7 +29,9 @@ jest.mock('@/utils/landing-passkeys', () => ({
     supportsIOSImmediateLogin: () => mockIOSCapability(),
     cancelIOSImmediateLogin: () => mockCancelIOS(),
 }))
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
+jest.mock('next-intl', () => ({
+    useTranslations: () => Object.assign((key: string) => key, { rich: (key: string) => key }),
+}))
 jest.mock('@/components/0_Bruddle/Button', () => ({
     Button: ({ children, onClick, disabled }: { children: ReactNode; onClick?: () => void; disabled?: boolean }) => (
         <button data-control="full" onClick={onClick} disabled={disabled}>
@@ -145,7 +147,7 @@ const login = () => screen.queryByRole('button', { name: /^(logIn|landing\.logIn
 const expectEntryActions = () => {
     expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
     expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
-    expect(screen.getByText('landing.noPassword')).toBeInTheDocument()
+    expect(screen.getByText('landing.entry')).toBeInTheDocument()
 }
 function ios() {
     mockNative = { ...mockNative, platform: 'ios', isIOSNative: true, isAndroidNativeBridge: false }
