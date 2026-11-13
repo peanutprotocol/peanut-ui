@@ -255,6 +255,7 @@ const SignupStep = () => {
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"
+                            data-username-field
                             onFocusCapture={() => {
                                 setPlaceholderStopped(true)
                                 setSuggestionIndex(-1)

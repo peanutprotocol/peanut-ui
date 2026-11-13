@@ -64,14 +64,14 @@ const readiness: Record<string, string> = {
 const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
     'setup-signup-reserved': {
         actions: [
-            { fill: { selector: 'input', value: 'kimchi' } },
+            { fill: { selector: '[data-username-field] input', value: 'kimchi' } },
             { clickSelector: '[data-setup-footer] button:enabled' },
         ],
         expectSelector: '[role="alert"]',
     },
     'setup-passkey-username-taken': {
         actions: [{ clickSelector: '[data-setup-footer] button:enabled' }],
-        expectSelector: '[role="alert"] + button',
+        expectSelector: '[role="alert"]',
     },
     'profile-accounts-card-state-blocked': {
         expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
