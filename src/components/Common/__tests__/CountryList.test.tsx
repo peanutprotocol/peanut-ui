@@ -144,9 +144,12 @@ describe('CountryList — the send gate for a resident of Brazil', () => {
         )
     })
 
-    test('Brazil is not a destination: it opens the send waitlist, like any country Send cannot pay', () => {
-        fireEvent.click(row('Brazil'))
-        expect(screen.getByTestId('country-waitlist')).toHaveTextContent('BR:send')
+    // Aleks, 2026-11-12 (TASK-24583): the row leaves the picker the way the BRL row left the
+    // currency list, through the same rule (sendOffersPix). No row, so no waitlist for the
+    // country they live in.
+    test('Brazil is not listed under Other countries', () => {
+        expect(screen.queryByText('Brazil')).toBeNull()
+        expect(screen.queryByTestId('country-waitlist')).toBeNull()
         expect(onCountryClick).not.toHaveBeenCalled()
     })
 
@@ -172,6 +175,30 @@ describe('CountryList — the Brazil pause keeps Brazil a send destination', () 
         )
         fireEvent.click(row('Brazil'))
         expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'brazil' }))
+    })
+})
+
+describe('CountryList — Brazil leaves the Send picker for a resident only', () => {
+    const list = (props: { enforceSupportedCountries?: boolean; pixPayBlock: 'residence' | null }) =>
+        render(
+            <CountryList
+                inputTitle="How?"
+                viewMode="add-withdraw"
+                flow="withdraw"
+                onCountryClick={jest.fn()}
+                showLoadingState={false}
+                {...props}
+            />
+        )
+
+    test('a non-resident still sees Brazil under Other countries in Send', () => {
+        list({ enforceSupportedCountries: true, pixPayBlock: null })
+        expect(row('Brazil')).not.toHaveAttribute('aria-disabled')
+    })
+
+    test('own-account withdraw keeps the row for a resident: it opens their own Pix withdrawal', () => {
+        list({ pixPayBlock: 'residence' })
+        expect(row('Brazil')).toBeInTheDocument()
     })
 })
 

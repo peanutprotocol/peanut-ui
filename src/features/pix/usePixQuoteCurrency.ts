@@ -7,7 +7,8 @@ import type { useCurrency } from '@/hooks/useCurrency'
 import { pixApi } from '@/services/pix'
 import { pixQuoteAmountBrl, pixQuotePrice } from '@/features/pix/pixQuote.utils'
 
-const TYPING_SETTLE_MS = 400
+/** How long after the last keystroke an amount counts as settled: only then is it quoted or kept. */
+export const TYPING_SETTLE_MS = 400
 
 /**
  * The BRL price an amount step converts with, from the route provider's

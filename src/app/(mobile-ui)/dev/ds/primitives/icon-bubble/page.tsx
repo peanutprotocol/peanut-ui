@@ -207,9 +207,9 @@ export default function IconBubblePage() {
                         ))}
                     </div>
                     <DesignNote type="info">
-                        Blue is a method or plain information, yellow is Peanut&apos;s own, pink is QR pay. Flags, chain
-                        logos and payment-brand marks (Pix, Mercado Pago) are not concepts: they keep their own image in
-                        the same slot.
+                        Blue is a method or plain information, yellow is Peanut&apos;s own, pink is QR pay. Pix is the
+                        one brand mark in the map: its logo is the whole circle, with no bubble behind it. Flags, chain
+                        logos and the Mercado Pago mark are not concepts: they keep their own image in the same slot.
                     </DesignNote>
                 </DocSection.Content>
                 <DocSection.Code>

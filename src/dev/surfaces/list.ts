@@ -513,14 +513,14 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '94-j-pix-review-quote-moved': {
-        name: 'Pix review — the opened quote moved, confirm again',
-        path: 'features/pix/components/PixWithdrawReview.tsx',
+        name: 'Pix withdrawal form — the opened quote moved, confirm again',
+        path: 'features/pix/components/PixWithdrawForm.tsx',
         captureState: ['phase=reconfirm'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '94-k-pix-review-after-init': {
-        name: 'Pix review — the opened quote expired before the signature',
-        path: 'features/pix/components/PixWithdrawReview.tsx',
+        name: 'Pix withdrawal form — the opened quote expired before the signature',
+        path: 'features/pix/components/PixWithdrawForm.tsx',
         captureState: ['phase=idle', 'lockedAfterInit=true', 'error=quoteExpired'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },

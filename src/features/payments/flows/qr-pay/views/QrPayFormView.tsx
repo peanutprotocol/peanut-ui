@@ -2,25 +2,16 @@
 
 import { formatFiniteDisplay } from '@/utils/currency'
 
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { formatUnits } from 'viem'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import GlobalCard from '@/components/Global/Card'
-import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
-import AmountInput from '@/components/Global/AmountInput'
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
-import { ProviderHelp } from '@/components/Provider/ProviderHelp'
-import { PROVIDERS } from '@/constants/providers.consts'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
@@ -35,14 +26,15 @@ import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-pay
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { pixKeyOwnerDetails } from '@/utils/pix.utils'
-import SaveAddressPrompt from '@/features/withdraw/components/AddressBook/SaveAddressPrompt'
+import { AmountCard } from '@/features/payments/shared/components/AmountCard'
+import { PaymentDetailsCard } from '@/features/payments/shared/components/PaymentDetailsCard'
+import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
+import { SaveRecipientCard } from '@/features/payments/shared/components/SaveRecipientCard'
 
 export function QrPayFormView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
-    const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
-    const tProvider = useTranslations('provider')
     const {
         paymentProcessor,
         targetMantecaCountry,
@@ -50,6 +42,7 @@ export function QrPayFormView() {
         qrPayment,
         merchantName,
         recipientBankName,
+        providerFee,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -113,6 +106,28 @@ export function QrPayFormView() {
                 : 'manteca-ar'
             : null
 
+    // the USD a foreign card would have cost on top, when the comparison holds for this currency
+    const savingsInCents = hasCardMarkupComparison(currency.code)
+        ? calculateSavingsInCents(usdAmount, cardMarkup?.rate)
+        : 0
+    const savings =
+        savingsInCents > 0
+            ? {
+                  usd: formatFiniteDisplay(savingsInCents / 100, 'en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                      useGrouping: false,
+                  }),
+                  currencyCode: currency.code,
+              }
+            : null
+
+    const limitsCardProps = getLimitsWarningCardProps({
+        validation: limitsValidation,
+        flowType: 'qr-payment',
+        currency: limitsValidation.currency,
+    })
+
     return (
         <>
             <KycControlFlowProvider value="kyc_provider_request">
@@ -130,177 +145,61 @@ export function QrPayFormView() {
 
                 {/* Payment Content */}
                 <PageStack.Center className="gap-4">
-                    {/* Merchant Card */}
-                    <Card className="p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex flex-shrink-0 items-center justify-center rounded-full bg-white">
-                                <Image
-                                    src={methodIcon}
-                                    alt={t('paymentMethodAlt')}
-                                    width={32}
-                                    height={32}
-                                    className="size-8 rounded-full object-cover"
-                                />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="flex items-center gap-1 text-center text-body-s">
-                                    <Icon name="arrow-up-right" size={16} /> {t('youArePaying')}
-                                </p>
-                                <p
-                                    className={`text-heading-xs break-words ${pixKeyLabel ? 'ph-mask ph-no-capture' : ''}`}
-                                >
-                                    {merchantName}
-                                </p>
-                                {/* The heading is the owner's name; this line names the key and tax ID it belongs to. */}
-                                {ownerDetails && (
-                                    <p className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary">
-                                        {ownerDetails.pixKey}
-                                        {ownerDetails.pixKey && ownerDetails.taxId && ' · '}
-                                        {/* "CPF 12*******90" never breaks between the label and the number. */}
-                                        {ownerDetails.taxId && (
-                                            <span className="whitespace-nowrap">
-                                                {t('pixKeyOwnerTaxId', {
-                                                    taxIdKind: ownerDetails.taxId.kind,
-                                                    taxId: ownerDetails.taxId.value,
-                                                })}
-                                            </span>
-                                        )}
-                                    </p>
-                                )}
-                                {recipientBankName && (
-                                    <p className="ph-mask ph-no-capture flex items-start gap-1 text-body-s text-foreground-secondary">
-                                        <Icon
-                                            name="bank"
-                                            size={16}
-                                            role="img"
-                                            aria-label={t('recipientBank')}
-                                            className="mt-0.5 flex-shrink-0"
-                                        />
-                                        <span className="min-w-0 break-words">{recipientBankName}</span>
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </Card>
+                    <RecipientCard
+                        lead={t('youArePaying')}
+                        icon={methodIcon}
+                        name={merchantName ?? ''}
+                        maskName={!!pixKeyLabel}
+                        pixKey={ownerDetails?.pixKey}
+                        taxId={ownerDetails?.taxId}
+                        bankName={recipientBankName}
+                    />
 
-                    {/* Under the recipient, so it reads as saving the key, not the amount or fee. */}
-                    {pixKeySave.savedName && (
-                        <p
-                            className="ph-mask ph-no-capture text-body-s break-words text-foreground-secondary"
-                            data-testid="pix-key-saved-as"
-                        >
-                            {t('pixKeySavedAs', { name: pixKeySave.savedName })}
-                        </p>
-                    )}
-                    {pixKeySave.isOffered && (
-                        <SaveAddressPrompt
-                            checked={pixKeySave.checked}
-                            nickname={pixKeySave.nickname}
-                            onCheckedChange={pixKeySave.setChecked}
-                            onNicknameChange={pixKeySave.setNickname}
-                        />
-                    )}
+                    <SaveRecipientCard save={pixKeySave} />
 
-                    {/* Amount Card */}
-                    {currency && (
-                        <div className="flex flex-col gap-1">
-                            <AmountInput
-                                key={amountInputRevision}
-                                initialAmount={currencyAmount}
-                                setPrimaryAmount={handleCurrencyAmountChange}
-                                primaryDenomination={{
-                                    symbol: currency.symbol,
-                                    price: currency.price,
-                                    decimals: 2,
-                                }}
-                                secondaryDenomination={{
-                                    symbol: 'USD',
-                                    price: 1,
-                                    decimals: 2,
-                                }}
-                                setSecondaryAmount={setAmount}
-                                disabled={
-                                    !!qrPayment ||
-                                    isLoading ||
-                                    (paymentProcessor === 'MANTECA' && paymentLock?.code !== '')
-                                }
-                                walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
-                                hideBalance
-                            />
-                            {/* only show balance error if limits blocking card is not displayed (warnings can coexist) */}
-                            {balanceErrorMessage && !limitsValidation.isBlocking && (
-                                <FieldError data-testid="error-alert">{balanceErrorMessage}</FieldError>
-                            )}
-                        </div>
-                    )}
+                    <AmountCard
+                        key={amountInputRevision}
+                        initialAmount={currencyAmount}
+                        setPrimaryAmount={handleCurrencyAmountChange}
+                        primaryDenomination={{
+                            symbol: currency.symbol,
+                            price: currency.price,
+                            decimals: 2,
+                        }}
+                        secondaryDenomination={{
+                            symbol: 'USD',
+                            price: 1,
+                            decimals: 2,
+                        }}
+                        setSecondaryAmount={setAmount}
+                        disabled={
+                            !!qrPayment || isLoading || (paymentProcessor === 'MANTECA' && paymentLock?.code !== '')
+                        }
+                        walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
+                        hideBalance
+                        // only show balance error if limits blocking card is not displayed (warnings can coexist)
+                        error={balanceErrorMessage && !limitsValidation.isBlocking ? balanceErrorMessage : undefined}
+                    />
 
                     {/* Limits Warning/Error Card */}
-                    {(() => {
-                        const limitsCardProps = getLimitsWarningCardProps({
-                            validation: limitsValidation,
-                            flowType: 'qr-payment',
-                            currency: limitsValidation.currency,
-                        })
-                        if (!limitsCardProps) return null
-                        return (
-                            <LimitsWarningCard
-                                {...limitsCardProps}
-                                onIncreaseLimits={
-                                    isBrQrEligible && limitsValidation.isBlocking
-                                        ? qrLimitIncreaseFlow.handleInitiate
-                                        : undefined
-                                }
-                                isIncreaseLimitsLoading={qrLimitIncreaseFlow.isLoading}
-                            />
-                        )
-                    })()}
+                    {limitsCardProps && (
+                        <LimitsWarningCard
+                            {...limitsCardProps}
+                            onIncreaseLimits={
+                                isBrQrEligible && limitsValidation.isBlocking
+                                    ? qrLimitIncreaseFlow.handleInitiate
+                                    : undefined
+                            }
+                            isIncreaseLimitsLoading={qrLimitIncreaseFlow.isLoading}
+                        />
+                    )}
 
-                    {/* Information Card */}
-                    <GlobalCard className="px-4">
-                        <PaymentInfoRow
-                            label={t('info.exchangeRate')}
-                            value={`1 USD = ${formatFiniteDisplay(currency.price, 'en-US', { maximumFractionDigits: 20, useGrouping: false })} ${currency.code.toUpperCase()}`}
-                            moreInfoText={tCommon('exchangeRateInfo')}
-                        />
-                        {(() => {
-                            if (!hasCardMarkupComparison(currency.code)) return null
-                            const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
-                            if (savingsInCents <= 0) return null
-                            const savingsUsd = formatFiniteDisplay(savingsInCents / 100, 'en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                                useGrouping: false,
-                            })
-                            return (
-                                <PaymentInfoRow
-                                    label={t('info.saveVsCard')}
-                                    value={`~$${savingsUsd}`}
-                                    moreInfoText={
-                                        currency.code.toUpperCase() === 'BRL'
-                                            ? t('info.saveVsCardTooltipBrl')
-                                            : t('info.saveVsCardTooltipArs')
-                                    }
-                                />
-                            )
-                        })()}
-                        <PaymentInfoRow
-                            label={tCommon('peanutFee')}
-                            value={tCommon('sponsoredByPeanut')}
-                            hideBottomBorder={!providerId}
-                        />
-                        {providerId && (
-                            <PaymentInfoRow
-                                hideBottomBorder
-                                label={
-                                    <span className="flex items-center gap-1">
-                                        {tProvider('label.provider')}
-                                        <ProviderHelp providerId={providerId} />
-                                    </span>
-                                }
-                                value={PROVIDERS[providerId].brand}
-                            />
-                        )}
-                    </GlobalCard>
+                    <PaymentDetailsCard
+                        rate={{ price: currency.price, code: currency.code }}
+                        savings={savings}
+                        providerFee={providerFee}
+                        providerId={providerId}
+                    />
 
                     {/* Send Button */}
                     <Button

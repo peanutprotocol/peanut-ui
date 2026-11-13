@@ -1,7 +1,7 @@
 /**
  * The one Pix flow, on the route of either provider: the first-use step, the
  * deposit amount's minimum from the route, the own-key rule on the withdrawal
- * key, the review's rows, and the new key for a payout the bank refused; then
+ * key, the form's rows, and the new key for a payout the bank refused; then
  * the same screens on Manteca's route, where the answers differ. UI state only:
  * every API answer comes from a fixture (`?__fixture=pix-*`,
  * src/dev/fixtures/registry.ts), so nothing here reaches a provider or a chain.
@@ -68,22 +68,26 @@ test.describe('Pix on the Avenia route', () => {
         await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
     })
 
-    test('the review leads with the reais, puts the fees in the rate and shows the flat fee apart', async ({
+    // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12)
+    test('the form leads with the key holder, offers to save the key, puts the fees in the rate and shows the flat fee apart', async ({
         page,
     }) => {
         await open(
             page,
             `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-withdraw-review`
         )
-        await expect(page.getByText('R$503')).toBeVisible({ timeout: 60_000 })
-        await expect(page.getByText('to Banco Inter · Ana Souza')).toBeVisible()
+        await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Ana Souza')).toBeVisible()
+        await expect(page.getByText('Banco Inter')).toBeVisible()
+        await expect(page.getByText('Save to favorites')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(1)
         await expect(page.getByText('R$0.75')).toBeVisible()
-        await expect(page.getByText('1 USD = BRL 5.445946')).toBeVisible()
-        await expect(page.getByText('About 1 minute')).toBeVisible()
+        await expect(page.getByText('1 USD = 5.445946 BRL')).toBeVisible()
+        await expect(page.getByText('Sponsored by Peanut!')).toBeVisible()
+        // the exact wallet debit the quote names, never the field's estimate
         await expect(page.getByText('$92.50')).toBeVisible()
+        await expect(page.getByText('Save vs card')).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
-        await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible()
     })
 
     test("a refused payout's receipt asks for another key and opens the new-key screen", async ({ page }) => {
@@ -139,15 +143,15 @@ test.describe('Pix on the Manteca route', () => {
         await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     })
 
-    test('the review shows no flat-fee line and names Manteca', async ({ page }) => {
+    test('the form shows no flat-fee line and names Manteca', async ({ page }) => {
         await open(
             page,
             `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-manteca-withdraw-review`
         )
-        await expect(page.getByText('R$503')).toBeVisible({ timeout: 60_000 })
-        await expect(page.getByText('to Ana Souza')).toBeVisible()
+        await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Ana Souza')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(0)
-        await expect(page.getByText('About 5 minutes')).toBeVisible()
+        await expect(page.getByText('1 USD = 5.437838 BRL')).toBeVisible()
         await expect(page.getByText('Manteca')).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
     })

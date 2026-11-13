@@ -2272,14 +2272,14 @@
         "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal"
     },
     {
-        "id": "fixture-pix-withdraw-amount",
+        "id": "fixture-pix-withdraw-form",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=amount"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-withdraw-quote-failed",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=amount"
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "fixture-pix-route-paused-withdraw",
@@ -2593,13 +2593,13 @@
         "id": "94-j-pix-review-quote-moved",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-j-pix-review-quote-moved",
-        "source": "features/pix/components/PixWithdrawReview.tsx"
+        "source": "features/pix/components/PixWithdrawForm.tsx"
     },
     {
         "id": "94-k-pix-review-after-init",
         "flow": "Withdraw",
         "route": "/dev/surfaces?s=94-k-pix-review-after-init",
-        "source": "features/pix/components/PixWithdrawReview.tsx"
+        "source": "features/pix/components/PixWithdrawForm.tsx"
     },
     {
         "id": "94-l-pix-withdraw-stuck",

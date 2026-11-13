@@ -2607,9 +2607,7 @@
             "returnedBody": "Pay again from an account under your CPF."
         },
         "withdraw": {
-            "changeAmount": "Change amount",
             "stuck": "This withdrawal did not finish. Contact support.",
-            "arrivesIn": "About {minutes, plural, one {# minute} other {# minutes}}",
             "fee": "Provider fee",
             "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
@@ -2619,7 +2617,6 @@
             "unknownHolder": "Name not shown",
             "ownAccount": "Own account",
             "someoneElses": "Someone else's",
-            "toAccount": "to {destination}",
             "sent": "On its way.",
             "sentTo": "On its way to {destination}.",
             "processingTitle": "Processing withdrawal",
