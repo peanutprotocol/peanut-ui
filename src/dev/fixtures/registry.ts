@@ -1556,17 +1556,20 @@ const PROVIDER_ASK_RESPONSE = {
  * provider, and the backend lists no corridor as offered or withheld. Those
  * rows read "Under review"; they used to read "We cannot open {currency}".
  */
+const BRIDGE_REVIEW_WAIT = { key: 'wait:provider-review', kind: 'wait', purpose: 'provider-review' }
 const BRIDGE_REVIEW_RESPONSE = {
     'GET /users/me': {
         capabilities: {
             rails: BRIDGE_BANK_RAILS.map((rail) => ({
                 ...rail,
                 status: 'requires-info',
-                blockingActions: ['wait:provider-review'],
+                blockingActions: [BRIDGE_REVIEW_WAIT.key],
+                resolved: { status: 'pending', nextAction: BRIDGE_REVIEW_WAIT },
             })),
-            nextActions: [{ key: 'wait:provider-review', kind: 'wait', purpose: 'provider-review' }],
+            nextActions: [BRIDGE_REVIEW_WAIT],
             restrictions: [],
         },
+        identityVerification: { status: 'verified' },
         depositAccounts: { enabled: true },
         residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
     },
@@ -1577,17 +1580,20 @@ const BRIDGE_REVIEW_RESPONSE = {
  * TASK-24909: Bridge's terms, as the API asks for them. The terms page is a
  * same-origin file, so a capture can post the signature from inside it.
  */
+const BRIDGE_TERMS = { key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }
 const bridgeTermsResponse = (confirm: { accepted: boolean }) => ({
     'GET /users/me': {
         capabilities: {
             rails: BRIDGE_BANK_RAILS.map((rail) => ({
                 ...rail,
                 status: 'requires-info',
-                blockingActions: ['bridge-tos'],
+                blockingActions: [BRIDGE_TERMS.key],
+                resolved: { status: 'fixable', nextAction: BRIDGE_TERMS },
             })),
-            nextActions: [{ key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }],
+            nextActions: [BRIDGE_TERMS],
             restrictions: [],
         },
+        identityVerification: { status: 'verified' },
         residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
     },
     'GET /users/bridge-tos-link': { tosLink: '/llms.txt' },
@@ -3774,6 +3780,7 @@ export const FIXTURES: Record<string, Fixture> = {
                         },
                     },
                 },
+                identityVerification: { status: 'verified' },
                 residence: { declared: 'DE', verified: 'DE', pending: null, declaredSecond: null },
             },
         },
