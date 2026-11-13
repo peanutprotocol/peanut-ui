@@ -212,8 +212,15 @@ export function AccountsHubList({
             case 'account-limit':
                 return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         }
-        // the provider or our setup acts next; the tap opens the wait drawer
-        if (isWaitView(view)) return underReviewBadge
+        // the tap opens the wait drawer. "Under review" only when a provider or a
+        // reviewer acts next; our own setup in flight is "Setting up" (design.md, rows)
+        if (isWaitView(view))
+            return view.notice?.kind === 'waiting-on-provider' ||
+                view.notice?.reasonCode === 'requirements_in_review' ? (
+                underReviewBadge
+            ) : (
+                <Badge status="processing" customText={t('list.badgeSettingUp')} />
+            )
         // an action the user can take now: the info tone (hugo, 2026-09-25)
         return <Badge status="processing" customText={t('list.badgeSetUp')} />
     }

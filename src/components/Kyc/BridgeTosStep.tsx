@@ -41,6 +41,8 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
     const [error, setError] = useState<string | null>(null)
     // Bridge has the signature, the account still asks for terms: the step ends here (TASK-24909)
     const [unconfirmed, setUnconfirmed] = useState(false)
+    // a confirm that failed retries as a confirm: the closed page may hold a signature
+    const [failedConfirm, setFailedConfirm] = useState<Exclude<IframeCloseSource, 'manual'> | null>(null)
     const [signed, setSigned] = useState(false)
     const openPage = useRef(false)
     const confirming = useRef(false)
@@ -57,6 +59,7 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
         setTosLink(null)
         setError(null)
         setUnconfirmed(false)
+        setFailedConfirm(null)
         return () => {
             lifetime.current += 1
         }
@@ -80,10 +83,13 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
                     setUnconfirmed(true)
                     return
                 }
+                // only a confirmed missing signature sends the next tap to a new terms page
+                setFailedConfirm(outcome === 'failed' ? source : null)
                 setError(t(outcome === 'failed' ? 'bridgeTos.confirmError' : 'bridgeTos.notAcceptedYet'))
             } catch (error) {
                 if (generation !== lifetime.current) return
                 Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
+                setFailedConfirm(source)
                 setError(t('bridgeTos.confirmError'))
             } finally {
                 if (generation === lifetime.current) {
@@ -97,7 +103,7 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
 
     const handleContinue = useCallback(async () => {
         track(error ? 'retry' : 'continue', 'tap')
-        if (signed) return confirm('tos_accepted')
+        if (signed || failedConfirm) return confirm(failedConfirm ?? 'tos_accepted')
         const generation = lifetime.current
         setIsLoading(true)
         setError(null)
@@ -124,7 +130,7 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
         } finally {
             if (generation === lifetime.current) setIsLoading(false)
         }
-    }, [t, error, track, signed, confirm])
+    }, [t, error, track, signed, failedConfirm, confirm])
 
     const handleIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {

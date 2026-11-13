@@ -159,6 +159,33 @@ describe('BridgeTosStep', () => {
         expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     })
 
+    // the closed page may hold a signature: a new terms page would ask for it again
+    it('retries a failed confirm as a confirm, without a new terms page', async () => {
+        mockResolveClose.mockResolvedValueOnce('failed').mockResolvedValueOnce('accepted')
+        const { onComplete } = renderStep()
+        await openTos()
+        mockGetBridgeTosLink.mockClear()
+
+        await act(async () => closeIframe?.('returned'))
+        await act(async () => screen.getByRole('button', { name: 'Try again' }).click())
+        expect(mockResolveClose).toHaveBeenCalledTimes(2)
+        expect(mockResolveClose).toHaveBeenLastCalledWith(expect.anything(), 'returned')
+        expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        expect(onComplete).toHaveBeenCalled()
+    })
+
+    it('opens a new terms page after Bridge confirms there is no signature', async () => {
+        mockResolveClose.mockResolvedValue('not-accepted')
+        renderStep()
+        await openTos()
+        mockGetBridgeTosLink.mockClear()
+
+        await act(async () => closeIframe?.('returned'))
+        await act(async () => screen.getByRole('button', { name: 'Try again' }).click())
+        expect(mockResolveClose).toHaveBeenCalledTimes(1)
+        expect(mockGetBridgeTosLink).toHaveBeenCalledTimes(1)
+    })
+
     /*
      * TASK-24909: Bridge has the signature, the account still asks for terms
      * (one user accepted 30 times). The step says the acceptance was sent and
