@@ -11,7 +11,7 @@ import { usePixDeposit } from '../usePixDeposit'
 import { pixDepositQueryKey } from '../pixDepositCode'
 
 const read = (overrides: Record<string, unknown> = {}) => ({
-    provider: 'avenia',
+    provider: 'manteca',
     intentId: 'd1',
     status: 'AWAITING_USER_ACTION',
     pixReceived: false,

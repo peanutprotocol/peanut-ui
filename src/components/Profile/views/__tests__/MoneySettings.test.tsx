@@ -2024,29 +2024,13 @@ describe('card refusal rows follow the feature report', () => {
 // Aleks, 2026-11-12: an open Pix deposit route puts Pix first in Home's Add money drawer, so the BRL row
 // leaves Accounts rather than repeat it; only a refused route keeps the row, so the refusal has a place
 describe('MoneySettings — the BRL row and the Pix deposit route', () => {
-    const TERMS_ACTION: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
     const depositRoute = (step: Partial<CapabilityRoute>): CapabilityRoute => ({
         operation: 'deposit',
         method: 'PIX_BR',
-        provider: 'avenia',
+        provider: 'manteca',
         state: 'ready',
         candidates: [],
         ...step,
-    })
-
-    it("drops the row on the provider's own step: the Pix setup is reached from Home", () => {
-        mockNextActions = [TERMS_ACTION]
-        mockRoutes = [
-            depositRoute({
-                state: 'action_required',
-                action: 'accept-tos:avenia',
-                reason: { code: 'terms_required', userMessage: 'Accept the terms to continue.' },
-            }),
-        ]
-        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
-        render()
-        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
-        expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
     it('drops the Pix key send row too for a verified user with an open route', () => {

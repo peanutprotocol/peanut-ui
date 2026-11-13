@@ -2140,19 +2140,9 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-withdraw-not-sent': {
         route: pixOutcomeRoute(PIX_WITHDRAWAL_ID),
-        about: 'An opened withdrawal that was never signed: it did not go through, the balance is unchanged.',
+        about: 'A withdrawal the API cancelled: it did not go through.',
         responses: mantecaPixResponses({
             [`GET /history/${PIX_WITHDRAWAL_ID}`]: pixWithdrawal('CANCELLED'),
-        }),
-    },
-    'pix-withdraw-not-signed': {
-        route: pixOutcomeRoute(PIX_WITHDRAWAL_ID),
-        about: 'After a reload, an opened withdrawal this device never signed: it did not go through, try again.',
-        responses: mantecaPixResponses({
-            [`GET /history/${PIX_WITHDRAWAL_ID}`]: {
-                ...pixWithdrawal('PENDING'),
-                extraData: { ...pixWithdrawal('PENDING').extraData, intentStatus: 'AWAITING_USER_ACTION' },
-            },
         }),
     },
     // ---- Manteca's own answers on the Pix screens: no expiry, payer CPF, flat fee or ownership ----

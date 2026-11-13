@@ -16,14 +16,14 @@ import { PixWithdrawForm } from '../components/PixWithdrawForm'
 const display = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: true as const,
+    ownAccount: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
     rate: '5.445692',
     fixedFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
-    provider: 'Avenia' as const,
+    provider: 'Manteca' as const,
 }
 const noop = () => {}
 const save = { savedName: null, isOffered: false, checked: false, nickname: '', setChecked: noop, setNickname: noop }
@@ -49,7 +49,7 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
             amount={amount}
             display={display}
             total="$92.50"
-            providerId="avenia-br"
+            providerId="manteca-br"
             error={null}
             isSubmitting={false}
             canConfirm
@@ -76,8 +76,8 @@ describe('PixWithdrawForm', () => {
         // the exact wallet debit the quote names, as the removed review showed it
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
-        expect(screen.getByText(PROVIDERS['avenia-br'].brand)).toBeInTheDocument()
-        expect(screen.getByText('help avenia-br')).toBeInTheDocument()
+        expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
+        expect(screen.getByText('help manteca-br')).toBeInTheDocument()
         // a withdrawal saves nothing against a card, has no Arrives row, and typed reais need no payout row
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
@@ -99,11 +99,8 @@ describe('PixWithdrawForm', () => {
     })
 
     // a provider whose fees all sit in the rate sends a zero flat fee: no fee line, the same rate rule
-    it('shows no fee row for a provider with no flat fee', () => {
-        renderForm({
-            display: { ...display, fixedFeeBrl: '0', bankName: null, provider: 'Manteca' },
-            providerId: 'manteca-br',
-        })
+    it('shows no fee row where the quote carries no flat fee', () => {
+        renderForm({ display: { ...display, fixedFeeBrl: '0', bankName: null } })
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         expect(screen.getByText('1 USD = 5.437838 BRL')).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
