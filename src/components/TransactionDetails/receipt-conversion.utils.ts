@@ -57,6 +57,20 @@ export function isSettledConversion(transaction: Pick<TransactionDetails, 'statu
 }
 
 /**
+ * A deposit sent back to the payer. The money went back as it came, so its
+ * conversion line states the rate it was priced at, not a conversion that
+ * happened: the row is the exchange rate, never "Converted" (Aleks, 2026-11-13).
+ */
+export function isReturnedDeposit(
+    transaction: Pick<TransactionDetails, 'direction' | 'status' | 'extraDataForDrawer'>
+): boolean {
+    return (
+        transaction.direction === 'bank_deposit' &&
+        (transaction.status === 'refunded' || !!transaction.extraDataForDrawer?.wasReturned)
+    )
+}
+
+/**
  * The settled conversion as one line, in the direction the money moved:
  * "EUR 21.33 → 24.32 USD" for money coming in, "24.32 USD → ARS 30,000"
  * for money going out. USD, like the rate line ("1 USD = EUR 0.8769") and

@@ -79,10 +79,31 @@ describe("ReceiptDetailsCard — deposit into the user's bank details", () => {
         expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
     })
 
-    it('states a refunded deposit as converted, not as an estimate', () => {
-        renderWithIntl(<Card transaction={vaDeposit({ status: 'refunded' })} />)
-        expect(screen.getByText('Converted')).toBeInTheDocument()
+    // Aleks, 2026-11-13: a deposit sent back was never converted; the same value reads as its rate
+    it.each([
+        ['refunded', { status: 'refunded', actionLabelKey: 'type.returnedToSender' }, {}],
+        ['returned after it failed', { status: 'failed' }, { wasReturned: true }],
+    ])('states a %s deposit at its exchange rate, in one row, never as converted', (_case, overrides, drawer) => {
+        renderWithIntl(<Card transaction={vaDeposit(overrides, drawer)} />)
+        expect(screen.getAllByText('Exchange rate')).toHaveLength(1)
+        // the value as the receipt prints it today, signed as the returned money (staging: "1.73 USD → BRL 10")
+        expect(screen.getByText('24.32 USD → EUR 21.33')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = EUR 0.8769')).toBeInTheDocument()
+        expect(screen.queryByText('Converted')).not.toBeInTheDocument()
         expect(screen.queryByText('Estimate conversion')).not.toBeInTheDocument()
+    })
+
+    // the first Bridge Pix deposit, 13 Nov: R$10 in, 1.76 USDC out, the rate in reais per dollar
+    it('keeps a completed Pix deposit as converted, with its rate line', () => {
+        const pix = vaDeposit(
+            { amount: 1.76, currency: { code: 'BRL', amount: '10.00' } },
+            { receipt: { exchange_rate: '5.681818' } }
+        )
+        renderWithIntl(<Card transaction={pix} />)
+        expect(screen.getByText('Converted')).toBeInTheDocument()
+        expect(screen.getByText('BRL 10 → 1.76 USD')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = BRL 5.6818')).toBeInTheDocument()
+        expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
     })
 
     // QA 2026-09-24 (QA-08): one word for the returned state, on the badge and the date row
