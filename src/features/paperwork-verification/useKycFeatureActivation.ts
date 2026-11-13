@@ -15,12 +15,19 @@ import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
 
+/**
+ * A step the activation names no action for is the provider's own: the card application's, or the
+ * one Bridge's Pix rail asks for (TASK-24910). The refreshed capabilities carry it, and the screen
+ * behind the gate shows it.
+ */
+const STEP_ON_OWN_SCREEN: ReadonlySet<KycActivationFeature> = new Set(['card', 'local'])
+
 function canContinue(feature: KycActivationFeature, result: KycFeatureActivationResult | null): boolean {
     if (result?.kind !== 'report') return false
     return (
         result.report.state === 'on' ||
         result.report.state === 'ready' ||
-        (feature === 'card' && result.report.state === 'action_required' && !result.report.action)
+        (STEP_ON_OWN_SCREEN.has(feature) && result.report.state === 'action_required' && !result.report.action)
     )
 }
 
