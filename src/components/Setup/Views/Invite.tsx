@@ -17,7 +17,7 @@ import { invitesApi } from '@/services/invites'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { EInviteType } from '@/services/services.types'
 import { toInviteCode } from '@/utils/invite-code.utils'
-import { clearInvite, readInviteCode, stashInvite } from '@/utils/invite-stash'
+import { clearInvite, readInviteIntent, stashInvite } from '@/utils/invite-stash'
 
 /**
  * Invited by a friend? An optional step after registration, shown only when the
@@ -89,8 +89,9 @@ export default function InviteStep() {
 
     const onSkip = () => {
         track('skip', 'tap')
-        // Only this step can leave a stash here: the step is hidden when the signup had an invite.
-        if (readInviteCode()) clearInvite()
+        // Drops only a username typed on this step. A passive tracked-link inviter whose
+        // accept failed transiently stays for the next app start: Skip never unpicks a link.
+        if (readInviteIntent() === 'explicit') clearInvite()
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
         void handleNext()
     }
