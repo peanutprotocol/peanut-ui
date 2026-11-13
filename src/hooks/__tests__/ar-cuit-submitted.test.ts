@@ -285,7 +285,9 @@ describe('CUIT accepted submission remains submitted until the requested bank is
                 regionIntent: 'LATAM',
                 targetCountry: 'AR',
                 correctSession: true,
-            })
+            }),
+            undefined,
+            expect.any(AbortSignal)
         )
         expect(result.current.showWrapper).toBe(true)
     })
