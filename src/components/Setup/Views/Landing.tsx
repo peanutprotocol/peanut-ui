@@ -25,6 +25,7 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import Badge from '@/components/Global/Badges/Badge'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { consumeLandingAutoLogin, disableLandingAutoLogin } from '@/features/setup/landing-auto-login'
 import {
     cancelIOSImmediateLogin,
     checkAndroidLandingPasskey,
@@ -62,7 +63,8 @@ const LandingStep = () => {
     const recoveryActionRef = useRef<RecoveryAction | null>(null)
 
     const { isHydrated, isNativeBridge, isIOSNative, isAndroidNativeBridge } = nativePlatform
-    const [nativeLogin, setNativeLogin] = useState<'hidden' | 'full' | 'link'>('hidden')
+    // log in shows from the first frame; a slow or missing passkey check must never hide it (TASK-24847)
+    const [nativeLogin, setNativeLogin] = useState<'full' | 'link'>('link')
     const loginHandler = useRef(handleLoginClick)
     const iosPreparation = useRef<AbortController | null>(null)
     // The automatic iOS login can keep its sheet open past the deadline, so it is not cut off
@@ -80,26 +82,23 @@ const LandingStep = () => {
         const check = new AbortController()
         const { signal } = check
         const deadline = Date.now() + PASSKEY_CHECK_TIMEOUT_MS
-        const timer = setTimeout(() => {
-            check.abort()
-            setNativeLogin('link')
-        }, PASSKEY_CHECK_TIMEOUT_MS)
+        // a late answer is dropped so the layout does not shift after the deadline
+        const timer = setTimeout(() => check.abort(), PASSKEY_CHECK_TIMEOUT_MS)
 
         if (isAndroidNativeBridge) {
             void checkAndroidLandingPasskey(signal)
                 .catch(() => 'unavailable' as const)
                 .then((result) => {
                     if (signal.aborted || Date.now() >= deadline) return
-                    if (result !== 'available' && result !== 'unavailable') return
-                    clearTimeout(timer)
-                    // A provider failure can look like an empty result. Keep manual login available.
-                    setNativeLogin(result === 'available' ? 'full' : 'link')
+                    if (result === 'available') setNativeLogin('full')
                 })
         } else if (isIOSNative && isNativeBridge) {
             iosPreparation.current = check
             void supportsIOSImmediateLogin()
                 .then(async (supported) => {
                     if (!supported || signal.aborted || Date.now() >= deadline) return
+                    // once per app launch: coming back to the landing must not open the sheet again
+                    if (!consumeLandingAutoLogin()) return
                     const cancel = new AbortController()
                     const done = loginHandler
                         .current({ immediateSignal: signal, immediateDeadline: deadline, cancelSignal: cancel.signal })
@@ -130,6 +129,13 @@ const LandingStep = () => {
             clearTimeout(timer)
             check.abort()
             if (iosPreparation.current === check) iosPreparation.current = null
+            // retire a pending automatic login, so its sheet cannot open over the next step
+            const attempt = autoLogin.current
+            if (attempt) {
+                autoLogin.current = null
+                attempt.cancel.abort()
+                void cancelIOSImmediateLogin()
+            }
         }
     }, [isHydrated, nativePlatform.isCapacitor, isAndroidNativeBridge, isIOSNative, isNativeBridge])
 
@@ -202,6 +208,8 @@ const LandingStep = () => {
     }
 
     const afterAutoLogin = (next?: () => unknown) => {
+        // the user chose, so no automatic login for the rest of this launch
+        disableLandingAutoLogin()
         // Capability discovery can still be pending with no attempt to retire. An active
         // attempt also needs this signal to stop options loading from opening a late picker.
         iosPreparation.current?.abort()
@@ -370,13 +378,13 @@ const LandingStep = () => {
                             >
                                 {t('logIn')}
                             </Button>
-                        ) : loginAction === 'link' ? (
+                        ) : (
                             <div className="pt-2">
                                 <LinkButton onClick={onLoginClick} disabled={manualLoginInFlight}>
                                     {t('logIn')}
                                 </LinkButton>
                             </div>
-                        ) : null
+                        )
                     }
                 />
             </div>

@@ -10,6 +10,8 @@ const mockAndroidCheck = jest.fn()
 const mockIOSCapability = jest.fn()
 const mockCancelIOS = jest.fn()
 let mockIsLoggingIn = false
+// the real module keeps one flag per app launch; this copy resets per test
+let mockAutoLoginUsed = false
 let mockNative = {
     isCapacitor: true,
     isHydrated: true,
@@ -28,6 +30,16 @@ jest.mock('@/utils/landing-passkeys', () => ({
     checkAndroidLandingPasskey: (signal: AbortSignal) => mockAndroidCheck(signal),
     supportsIOSImmediateLogin: () => mockIOSCapability(),
     cancelIOSImmediateLogin: () => mockCancelIOS(),
+}))
+jest.mock('@/features/setup/landing-auto-login', () => ({
+    consumeLandingAutoLogin: () => {
+        const first = !mockAutoLoginUsed
+        mockAutoLoginUsed = true
+        return first
+    },
+    disableLandingAutoLogin: () => {
+        mockAutoLoginUsed = true
+    },
 }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Button', () => ({
@@ -165,6 +177,7 @@ beforeEach(() => {
     mockLogin.mockResolvedValue(undefined)
     mockCancelIOS.mockResolvedValue(undefined)
     mockIsLoggingIn = false
+    mockAutoLoginUsed = false
 })
 afterEach(() => {
     cleanup()
@@ -173,23 +186,23 @@ afterEach(() => {
 
 describe('native landing passkey availability acceptance', () => {
     it.each(['android', 'ios', 'old-ios', 'hydrating'])(
-        'keeps signup and recovery visible immediately on %s',
+        'keeps signup, recovery and log in visible immediately on %s',
         (platform) => {
             if (platform.includes('ios')) ios()
             if (platform === 'old-ios') mockNative.isNativeBridge = false
             if (platform === 'hydrating') mockNative.isHydrated = false
             render(<Landing />)
             expectEntryActions()
-            expect(login()).not.toBeInTheDocument()
+            expect(login()).toHaveAttribute('data-control', 'link')
             expect(mockLogin).not.toHaveBeenCalled()
         }
     )
 
-    it('reveals the full existing login action as soon as Android confirms availability', async () => {
+    it('upgrades the log in link to the full action as soon as Android confirms availability', async () => {
         const check = deferred<'available'>()
         mockAndroidCheck.mockReturnValue(check.promise)
         render(<Landing />)
-        expect(login()).not.toBeInTheDocument()
+        expect(login()).toHaveAttribute('data-control', 'link')
         await act(async () => check.resolve('available'))
         expect(login()).toHaveAttribute('data-control', 'full')
         expect(mockLogin).not.toHaveBeenCalled()
@@ -216,37 +229,30 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockNext).toHaveBeenCalledTimes(1)
     })
 
-    it('treats an unexpected Android response as unknown and offers manual fallback only at five seconds', async () => {
+    it('treats an unexpected Android response as unknown and keeps the log in link', async () => {
         mockAndroidCheck.mockResolvedValue({ unexpected: true })
         render(<Landing />)
         await flush()
-        await advance(4999)
-        expect(login()).not.toBeInTheDocument()
-        expect(mockLogin).not.toHaveBeenCalled()
-        await advance(1)
+        expect(login()).toHaveAttribute('data-control', 'link')
+        await advance(5000)
         expect(login()).toHaveAttribute('data-control', 'link')
         expect(mockLogin).not.toHaveBeenCalled()
         expectEntryActions()
     })
 
-    it.each(['unknown', 'hung'])(
-        'offers a quiet manual login exactly at five seconds after Android %s',
-        async (outcome) => {
-            if (outcome === 'unknown') mockAndroidCheck.mockResolvedValue('unknown')
-            render(<Landing />)
-            await flush()
-            await advance(4999)
-            expect(login()).not.toBeInTheDocument()
-            expect(mockLogin).not.toHaveBeenCalled()
-            await advance(1)
-            expect(login()).toHaveAttribute('data-control', 'link')
-            expectEntryActions()
-            expect(mockToastError).not.toHaveBeenCalled()
-            fireEvent.click(login()!)
-            expect(mockLogin).toHaveBeenCalledTimes(1)
-            expect(mockLogin).toHaveBeenCalledWith()
-        }
-    )
+    it.each(['unknown', 'hung'])('offers a quiet manual login at once after Android %s', async (outcome) => {
+        if (outcome === 'unknown') mockAndroidCheck.mockResolvedValue('unknown')
+        render(<Landing />)
+        await flush()
+        expect(login()).toHaveAttribute('data-control', 'link')
+        expectEntryActions()
+        expect(mockToastError).not.toHaveBeenCalled()
+        fireEvent.click(login()!)
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockLogin).toHaveBeenCalledWith()
+        await advance(5000)
+        expect(login()).toHaveAttribute('data-control', 'link')
+    })
 
     it.each(['available', 'unavailable'] as const)('ignores late Android %s results after timeout', async (outcome) => {
         const check = deferred<'available' | 'unavailable'>()
@@ -397,6 +403,44 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockCancelIOS).toHaveBeenCalledTimes(1)
     })
 
+    it('retires a pending automatic login when the landing unmounts, so its sheet cannot open over the next step', async () => {
+        pendingAutoLogin()
+        const view = render(<Landing />)
+        await flush()
+        const { cancelSignal } = mockLogin.mock.calls[0][0] as { cancelSignal: AbortSignal }
+        view.unmount()
+        expect(cancelSignal.aborted).toBe(true)
+        expect(mockCancelIOS).toHaveBeenCalledTimes(1)
+    })
+
+    it('runs the iOS automatic login once per app launch, not again when the landing mounts again', async () => {
+        ios()
+        mockIOSCapability.mockResolvedValue(true)
+        mockLogin.mockImplementation(() => new Promise(() => {}))
+        const first = render(<Landing />)
+        await flush()
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        first.unmount()
+        render(<Landing />)
+        await flush()
+        await advance(5000)
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(login()).toHaveAttribute('data-control', 'link')
+    })
+
+    it('never starts the iOS automatic login after the user tapped Sign up, also on the next landing', async () => {
+        ios()
+        mockIOSCapability.mockResolvedValue(true)
+        const view = render(<Landing />)
+        fireEvent.click(screen.getByRole('button', { name: 'landing.signUp' }))
+        await flush()
+        view.unmount()
+        render(<Landing />)
+        await flush()
+        expect(mockNext).toHaveBeenCalledTimes(1)
+        expect(mockLogin).not.toHaveBeenCalled()
+    })
+
     it('a manual login in flight still disables Log in when no automatic attempt is pending', async () => {
         ios()
         mockIOSCapability.mockResolvedValue(false)
@@ -408,16 +452,15 @@ describe('native landing passkey availability acceptance', () => {
         expect(mockCancelIOS).not.toHaveBeenCalled()
     })
 
-    it('keeps an ambiguous iOS rejection quiet and exposes manual fallback at the original deadline', async () => {
+    it('keeps an ambiguous iOS rejection quiet and keeps the manual log in link', async () => {
         ios()
         mockIOSCapability.mockResolvedValue(true)
         mockLogin.mockRejectedValueOnce(new Error('ambiguous native failure'))
         render(<Landing />)
         await flush()
         expect(mockLogin).toHaveBeenCalledTimes(1)
-        await advance(4999)
-        expect(login()).not.toBeInTheDocument()
-        await advance(1)
+        expect(login()).toHaveAttribute('data-control', 'link')
+        await advance(5000)
         expect(login()).toHaveAttribute('data-control', 'link')
         expect(mockToastError).not.toHaveBeenCalled()
         fireEvent.click(login()!)
@@ -432,10 +475,9 @@ describe('native landing passkey availability acceptance', () => {
             if (outcome === 'unsupported') mockIOSCapability.mockResolvedValue(false)
             if (outcome === 'rejected') mockIOSCapability.mockRejectedValue(new Error('capability unavailable'))
             render(<Landing />)
+            expect(login()).toHaveAttribute('data-control', 'link')
             await flush()
-            await advance(4999)
-            expect(login()).not.toBeInTheDocument()
-            await advance(1)
+            await advance(5000)
             expect(login()).toHaveAttribute('data-control', 'link')
             expect(mockLogin).not.toHaveBeenCalled()
             expect(mockToastError).not.toHaveBeenCalled()
