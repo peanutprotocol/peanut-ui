@@ -121,6 +121,14 @@ export function PixWithdrawForm({
                     bankName={recipient.bankName}
                 />
 
+                {/* A refusal, or the opened quote that moved: directly under the recipient, so it sits in the first
+                    viewport whatever cards the form carries (Chip, ui#4082: under the button it fell below the fold). */}
+                {error && (
+                    <Callout priority={error.priority ?? 'error'} ctas={error.action ? [error.action] : undefined}>
+                        {error.message}
+                    </Callout>
+                )}
+
                 <SaveRecipientCard save={save} />
 
                 {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
@@ -163,12 +171,6 @@ export function PixWithdrawForm({
                 >
                     {tCommon('confirm')}
                 </Button>
-
-                {error && (
-                    <Callout priority={error.priority ?? 'error'} ctas={error.action ? [error.action] : undefined}>
-                        {error.message}
-                    </Callout>
-                )}
             </PageStack.Center>
         </PageStack>
     )

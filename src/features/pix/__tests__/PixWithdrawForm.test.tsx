@@ -147,6 +147,23 @@ describe('PixWithdrawForm', () => {
         expect(container.querySelector('.animate-spin')).not.toBeNull()
     })
 
+    // the notice must be read before Confirm: it sits under the recipient card, above the save card and the amount,
+    // so a 393×852 viewport shows it whatever cards the form carries
+    it('keeps the quote notice in the first viewport: under the recipient, above the save card and the amount', () => {
+        renderForm({
+            save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' },
+            error: { message: en.pix.withdraw.quoteMoved, priority: 'attention' },
+        })
+        const notice = screen.getByRole('alert')
+        expect(notice).toHaveTextContent(en.pix.withdraw.quoteMoved)
+        const follows = (node: Element) => !!(notice.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
+        expect(follows(screen.getByText(en.global.savedAddresses.savePrompt))).toBe(true)
+        expect(follows(screen.getByPlaceholderText('0.00'))).toBe(true)
+        expect(follows(screen.getByRole('button', { name: en.common.confirm }))).toBe(true)
+        // and the recipient card stays the lead
+        expect(follows(screen.getByText('Ana Souza'))).toBe(false)
+    })
+
     it('offers to save the key under its holder, as the payment form does', () => {
         renderForm({ save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' } })
         expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
