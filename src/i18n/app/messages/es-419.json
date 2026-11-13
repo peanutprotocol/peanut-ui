@@ -3335,6 +3335,7 @@
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Inténtalo de nuevo.",
         "errorResidenceChangeFailed": "No pudimos iniciar la verificación de residencia. Inténtalo de nuevo.",
         "errorResubmitFailed": "No pudimos iniciar el reenvío de documentos. Inténtalo de nuevo.",
+        "errorResubmitUnavailable": "No hay ningún documento para subir en este momento.",
         "errorNoResponse": "No hubo respuesta del servidor. Inténtalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Inténtalo de nuevo.",
         "initiate": {

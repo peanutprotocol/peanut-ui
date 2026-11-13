@@ -78,6 +78,7 @@ const ACTION_ERROR_KEYS = {
     restart_failed: 'errorRestartFailed',
     residence_change_failed: 'errorResidenceChangeFailed',
     resubmit_failed: 'errorResubmitFailed',
+    resubmit_unavailable: 'errorResubmitUnavailable',
     start_action_failed: 'errorStartActionFailed',
     supplement_not_required: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
