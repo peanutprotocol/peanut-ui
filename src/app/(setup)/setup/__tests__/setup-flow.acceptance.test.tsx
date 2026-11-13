@@ -8,7 +8,8 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  *
  * ── Guessed names / seams (align the implementation or adjust here) ──────
  * - New screen id 'passkey' between 'invite' and 'notification-email'.
- * - The anonymous draft lives in localStorage. Tests seed it by answering in
+ * - The anonymous draft lives in web storage (sessionStorage on web, localStorage
+ *   on native). Tests seed it by answering in
  *   the flow and "reload" by unmounting and mounting again; they never name
  *   its key. The versioning test looks for a stored JSON object with a
  *   numeric `version` field (as signup-progress uses) written during the
@@ -208,11 +209,16 @@ const settle = () => act(async () => new Promise((resolve) => setTimeout(resolve
 const recoveryShown = () => screen.queryByRole('button', { name: 'Try again' }) !== null
 const storedEntries = () => {
     const entries = new Map<string, string | null>()
-    for (let index = 0; index < localStorage.length; index++) {
-        const key = localStorage.key(index)
-        if (key) entries.set(key, localStorage.getItem(key))
+    for (const storage of [localStorage, sessionStorage]) {
+        for (let index = 0; index < storage.length; index++) {
+            const key = storage.key(index)
+            if (key) entries.set(key, storage.getItem(key))
+        }
     }
     return entries
+}
+const overwriteStored = (key: string, value: string) => {
+    for (const storage of [localStorage, sessionStorage]) if (storage.getItem(key) !== null) storage.setItem(key, value)
 }
 
 /** Presses Next or Back until the cursor stops moving; returns the screens shown on the way. */
@@ -310,6 +316,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     jest.restoreAllMocks()
     localStorage.clear()
+    sessionStorage.clear()
     clearCookies()
     resetDeepLinkStateForTests()
     mockEnv.reset()
@@ -365,7 +372,7 @@ describe('the anonymous draft (failure 1)', () => {
         first.unmount()
         const written = [...storedEntries()].filter(([key, value]) => before.get(key) !== value).map(([key]) => key)
         expect(written.length).toBeGreaterThan(0)
-        for (const key of written) localStorage.setItem(key, '{not json')
+        for (const key of written) overwriteStored(key, '{not json')
 
         mount()
         await expectFresh()
@@ -381,7 +388,7 @@ describe('the anonymous draft (failure 1)', () => {
             try {
                 const value = JSON.parse(raw ?? '')
                 if (value && typeof value === 'object' && typeof value.version === 'number') {
-                    localStorage.setItem(key, JSON.stringify({ ...value, version: value.version + 1000 }))
+                    overwriteStored(key, JSON.stringify({ ...value, version: value.version + 1000 }))
                     versioned += 1
                 }
             } catch {}
