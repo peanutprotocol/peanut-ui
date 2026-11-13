@@ -56,6 +56,33 @@ describe('installPasskeyVerifyCapture', () => {
         mockUnderlyingFetch.mockResolvedValue(jsonResponse(verifyBody))
     })
 
+    it.each(['options', 'verify'])('classifies register/%s reserved username responses', async (step) => {
+        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'This username is reserved' }, 400))
+        await expect(window.fetch(`/passkeys/register/${step}`, { method: 'POST' })).rejects.toMatchObject({
+            name: 'UsernameReserved',
+        })
+    })
+
+    it.each(['options', 'verify'])('does not classify generic register/%s HTTP 400 as reserved', async (step) => {
+        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'Bad request' }, 400))
+        const result = await window.fetch(`/passkeys/register/${step}`, { method: 'POST' }).catch((error) => error)
+        expect(result.name).not.toBe('UsernameReserved')
+    })
+
+    it.each(['options', 'verify'])(
+        'keeps login/%s reserved-text HTTP 400 in the existing classification',
+        async (step) => {
+            const response = jsonResponse({ error: 'This username is reserved' }, 400)
+            mockUnderlyingFetch.mockResolvedValueOnce(response)
+            const pending = window.fetch(`/passkeys/login/${step}`, { method: 'POST' })
+            if (step === 'verify') {
+                await expect(pending).rejects.toMatchObject({ name: 'PasskeyVerifyRejectedError', status: 400 })
+            } else {
+                await expect(pending).rejects.toMatchObject({ name: 'PasskeyOptionsFailedError', status: 400 })
+            }
+        }
+    )
+
     it('web: stashes both proofs even when the browser does not accept the response cookie', async () => {
         await window.fetch('/passkeys/login/verify', { method: 'POST' })
         expect(stashCeremonyStepUpToken).toHaveBeenCalledWith('proof', 300, 7)

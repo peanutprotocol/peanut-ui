@@ -54,6 +54,8 @@ interface SetupFlowContextType {
     setDirection: (direction: number) => void
     username: string
     setUsername: (username: string) => void
+    refusedUsername: string | null
+    setRefusedUsername: (username: string | null) => void
     inviteSelection: string
     setInviteSelection: (selection: string) => void
     registrationInProgress: boolean
@@ -108,6 +110,7 @@ export const SetupFlowProvider: React.FC<{
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
+    const [refusedUsername, setRefusedUsername] = useState<string | null>(null)
     const [inviteSelection, setInviteSelection] = useState('')
     const [registrationInProgress, setRegistrationInProgress] = useState(false)
     const [featureScreenIds, setFeatureScreenIds] = useState<ScreenId[] | null>(null)
@@ -129,6 +132,7 @@ export const SetupFlowProvider: React.FC<{
         setSignupCompleted(false)
         setDirection(0)
         setUsername('')
+        setRefusedUsername(null)
         setInviteSelection('')
         setRegistrationInProgress(false)
         setFeatureScreenIds(null)
@@ -160,6 +164,8 @@ export const SetupFlowProvider: React.FC<{
             setDirection,
             username,
             setUsername,
+            refusedUsername,
+            setRefusedUsername,
             inviteSelection,
             setInviteSelection,
             registrationInProgress,
@@ -192,6 +198,7 @@ export const SetupFlowProvider: React.FC<{
             isLoading,
             direction,
             username,
+            refusedUsername,
             inviteSelection,
             registrationInProgress,
             featureScreenIds,

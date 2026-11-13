@@ -1025,7 +1025,7 @@
         "signupStep": {
             "usernameLabel": "Usuário",
             "usernamePlaceholder": "batman",
-            "usernameRules": "De 4 a 12 caracteres. Comece com uma letra. Só letras e números. Não pode conter “peanut”.",
+            "usernameRules": "De 4 a 12 caracteres. Comece com uma letra. Só letras e números. Não pode conter “peanut” nem ser um nome reservado.",
             "inviterUsernameLabel": "Usuário de quem convidou você",
             "inviterUsernamePlaceholder": "Usuário de quem convidou",
             "inviterNotFound": "Não encontramos esse usuário.",
@@ -1148,7 +1148,7 @@
             "serverUnreachable": "Não foi possível acessar os servidores do Peanut. Verifique sua conexão e tente de novo.",
             "accountDeleted": "Esta conta foi excluída. Crie uma conta nova para continuar.",
             "accountDeletedChooseUsername": "Esta conta foi excluída. Escolha outro nome de usuário para criar uma conta nova.",
-            "usernameTaken": "Este nome de usuário já está registrado — possivelmente de uma tentativa anterior neste dispositivo. Se foi você, sua passkey está pronta: é só fazer login.",
+            "usernameTaken": "Este nome de usuário não está disponível agora. Se você já se cadastrou com ele neste dispositivo, sua passkey está pronta: é só fazer login.",
             "learnMore": "Saiba mais sobre as passkeys",
             "help": {
                 "titles": {

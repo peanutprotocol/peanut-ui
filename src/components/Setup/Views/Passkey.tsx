@@ -16,7 +16,7 @@ import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
 
 export default function PasskeyStep() {
     const t = useTranslations('setup')
-    const { username } = useSetupFlowContext()
+    const { username, setRefusedUsername } = useSetupFlowContext()
     const passkey = useSignupPasskey(username)
     const { setScreenId } = useSetupFlow()
     const { track } = useSignupControl()
@@ -33,13 +33,19 @@ export default function PasskeyStep() {
         }
         if (refresh.current?.username !== username) refresh.current = { username, request: reserveUsername(username) }
         void refresh.current.request.then((result) => {
-            if (active && !registering.current && (result === 'taken' || result === 'refused' || result === 'invalid'))
+            if (
+                active &&
+                !registering.current &&
+                (result === 'taken' || result === 'refused' || result === 'invalid')
+            ) {
+                if (result === 'refused') setRefusedUsername(username)
                 navigate.current('signup')
+            }
         })
         return () => {
             active = false
         }
-    }, [username])
+    }, [username, setRefusedUsername])
 
     const createPasskey = () => {
         track('create_passkey', 'tap')

@@ -1025,7 +1025,7 @@
         "signupStep": {
             "usernameLabel": "Username",
             "usernamePlaceholder": "batman",
-            "usernameRules": "4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut”.",
+            "usernameRules": "4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut” or be a reserved name.",
             "inviterUsernameLabel": "Username of the person who invited you",
             "inviterUsernamePlaceholder": "Friend’s username",
             "inviterNotFound": "We couldn’t find this user.",
@@ -1148,7 +1148,7 @@
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
             "accountDeleted": "This account was deleted. Sign up to create a new one.",
             "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
-            "usernameTaken": "This username is already registered — possibly from an earlier attempt on this device. If that was you, your passkey is ready: just log in.",
+            "usernameTaken": "This username isn’t available right now. If you already signed up with it on this device, your passkey is ready: just log in.",
             "learnMore": "Learn more about Passkeys",
             "help": {
                 "titles": {

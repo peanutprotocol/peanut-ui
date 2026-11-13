@@ -41,6 +41,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useLayoutEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -56,6 +57,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { EInviteType } from '@/services/services.types'
 import { CeremonyTimeoutError } from '@/utils/passkeyCeremony.utils'
+import { installPasskeyVerifyCapture } from '@/utils/passkey-auth-capture'
 import { readInviteCode } from '@/utils/invite-stash'
 import en from '@/i18n/app/messages/en.json'
 import es419 from '@/i18n/app/messages/es-419.json'
@@ -141,7 +143,7 @@ jest.mock('@/services/invite-acquisition', () => ({
     settleAcceptedInviteAcquisition: () => ({ destination: '/home', pending: [] }),
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
-jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
+jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
     captureMessage: jest.fn(),
@@ -246,7 +248,7 @@ function Host() {
     return (
         <>
             <output data-testid="cursor">{id}</output>
-            {Step && id && RENDERED.includes(id) && id !== 'signup' && (
+            {Step && id && RENDERED.includes(id) && (
                 <section>
                     {copy.title && <h1>{copy.title}</h1>}
                     {copy.description && <div>{copy.description}</div>}
@@ -259,13 +261,15 @@ function Host() {
 
 const renderAt = (start: 'passkey' | 'invite' = 'passkey') =>
     renderWithIntl(
-        <NuqsTestingAdapter hasMemory searchParams={{ screen: start }}>
-            <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                <SetupDocsProvider documents={DOCUMENTS}>
-                    <Host />
-                </SetupDocsProvider>
-            </SetupFlowProvider>
-        </NuqsTestingAdapter>
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+            <NuqsTestingAdapter hasMemory searchParams={{ screen: start }}>
+                <SetupFlowProvider masterScreenIds={setupScreenIds}>
+                    <SetupDocsProvider documents={DOCUMENTS}>
+                        <Host />
+                    </SetupDocsProvider>
+                </SetupFlowProvider>
+            </NuqsTestingAdapter>
+        </QueryClientProvider>
     )
 
 const cursor = () => screen.getByTestId('cursor').textContent
@@ -403,6 +407,47 @@ describe('one tap, one registration (failure 4)', () => {
     })
 })
 
+describe('registration refuses a reserved username', () => {
+    const underlyingFetch = jest.fn()
+    let originalFetch: typeof window.fetch
+
+    beforeAll(() => {
+        originalFetch = window.fetch
+        window.fetch = underlyingFetch
+        installPasskeyVerifyCapture()
+    })
+
+    afterAll(() => {
+        window.fetch = originalFetch
+    })
+
+    it.each(['options', 'verify'])('returns to Claim with the server message from register/%s', async (step) => {
+        underlyingFetch.mockResolvedValueOnce(respond(400, { error: 'This username is reserved' }))
+        mockHandleRegister.mockImplementation(async () => {
+            await window.fetch(`/passkeys/register/${step}`, { method: 'POST' })
+        })
+        renderAt()
+        await screen.findByRole('button', { name: 'Create passkey' })
+        await tap()
+        await waitFor(() => expect(cursor()).toBe('signup'))
+        expect(await screen.findByText(en.setup.signupStep.errors.reserved)).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Username' })).toHaveValue('kimchi')
+        expect(probe.context).toEqual(
+            expect.objectContaining({
+                residenceCountry: 'AR',
+                nationalityCountry: 'BR',
+                fundingChannel: 'arsBank',
+                paymentChannel: 'qr',
+            })
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /learn more about passkeys/i })).not.toBeInTheDocument()
+        fireEvent.change(screen.getByRole('textbox', { name: 'Username' }), { target: { value: 'kimchi2' } })
+        await waitFor(() => expect(screen.queryByText(en.setup.signupStep.errors.reserved)).not.toBeInTheDocument())
+        await waitFor(() => expect(screen.getByRole('button', { name: /Claim$/ })).toBeEnabled())
+    })
+})
+
 describe('the reservation (failures 2, 18)', () => {
     it('refreshes the reservation with the device hold token when the screen opens', async () => {
         renderAt()
@@ -475,7 +520,7 @@ describe('username already registered → Log in, on the passkey screen (failure
         renderAt()
         await screen.findByRole('button', { name: 'Create passkey' })
         await tap()
-        expect(await screen.findByText(/This username is already registered/)).toBeInTheDocument()
+        expect(await screen.findByText(/This username isn’t available right now/)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
         expect(mockLogin).toHaveBeenCalledTimes(1)
         expect(mockHandleRegister).not.toHaveBeenCalled()
@@ -501,7 +546,7 @@ describe('the account may exist after a failed verify or hydration (failure 3)',
         await tap()
         await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(1))
         await tap()
-        expect(await screen.findByText(/This username is already registered/)).toBeInTheDocument()
+        expect(await screen.findByText(/This username isn’t available right now/)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Log in', hidden: true })).toBeInTheDocument()
         expect(mockHandleRegister).toHaveBeenCalledTimes(1)
         expect(cursor()).toBe('passkey')

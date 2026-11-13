@@ -19,6 +19,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { reserveUsername } from '@/features/setup/username-reservation'
+import { isReservedSignupUsername } from '@/features/setup/reserved-username'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -41,6 +42,8 @@ const SignupStep = () => {
     const {
         username,
         setUsername,
+        refusedUsername,
+        setRefusedUsername,
         setResidenceCountry,
         setNationalityCountry,
         setSignupCompleted,
@@ -85,6 +88,12 @@ const SignupStep = () => {
     }, [username, placeholderStopped, prefersReducedMotion])
 
     const busy = isReserving || isLoading
+    const refuseUsername = () => {
+        setError(t('signupStep.errors.reserved'))
+        setIsValid(false)
+        trackError('username', 'refused')
+        return false
+    }
 
     const onClaim = async () => {
         if (!isValid || isChanging || busy || claiming.current) return
@@ -93,6 +102,10 @@ const SignupStep = () => {
         const claimedUsername = username
         try {
             track('claim', 'tap')
+            if (isReservedSignupUsername(claimedUsername) || refusedUsername === claimedUsername) {
+                refuseUsername()
+                return
+            }
             if (isDemoUsername(username)) {
                 // Retire any pre-demo user request before seeding the synthetic session.
                 await queryClient.cancelQueries({ queryKey: [USER] })
@@ -134,6 +147,8 @@ const SignupStep = () => {
             trackError('username', 'required')
             return false
         }
+
+        if (isReservedSignupUsername(username) || refusedUsername === username) return refuseUsername()
 
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
@@ -229,6 +244,7 @@ const SignupStep = () => {
         // Clear error when input is being changed
         if (isChanging) {
             setError('')
+            setRefusedUsername(null)
         }
     }
 

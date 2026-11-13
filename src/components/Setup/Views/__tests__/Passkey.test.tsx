@@ -75,7 +75,7 @@ describe('Create passkey', () => {
     it('offers Log in when the username is already registered', () => {
         mockPasskey.usernameTaken = true
         renderPasskey()
-        expect(screen.getByText(/This username is already registered/)).toBeInTheDocument()
+        expect(screen.getByText(/This username isn’t available right now/)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
         expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
     })

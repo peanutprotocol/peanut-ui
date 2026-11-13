@@ -192,7 +192,17 @@ export function installPasskeyVerifyCapture(): void {
                 // credential from a device that holds several. Throw before
                 // ZeroDev decodes the error body as `{ verification: ... }`;
                 // the login recovery wrapper decides whether to re-prompt.
-                if (passkeyPath === '/passkeys/login/verify' && (response.status === 400 || response.status === 401)) {
+                if (
+                    passkeyPath.startsWith('/passkeys/register/') &&
+                    response.status === 400 &&
+                    errorCodeOf(body) === 'This username is reserved'
+                ) {
+                    failure = new Error('This username is reserved')
+                    failure.name = 'UsernameReserved'
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    (response.status === 400 || response.status === 401)
+                ) {
                     failure = new PasskeyVerifyRejectedError(response.status)
                 } else if (
                     passkeyPath === '/passkeys/login/verify' &&

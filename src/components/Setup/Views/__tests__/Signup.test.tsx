@@ -11,6 +11,7 @@ import { DEMO_USER } from '@/constants/demo-data'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import SignupStep from '../Signup'
+import en from '@/i18n/app/messages/en.json'
 
 const mockSetScreenId = jest.fn()
 const mockHandleNext = jest.fn(async () => {})
@@ -79,7 +80,8 @@ describe('Claim username', () => {
 
     it('shows the username rules before any error, and an error in their place', async () => {
         renderSignup()
-        const rules = '4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut”.'
+        const rules =
+            '4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut” or be a reserved name.'
         expect(screen.getByText(rules)).toBeInTheDocument()
         fireEvent.change(usernameField(), { target: { value: 'abc' } })
         expect(await screen.findByText('Use at least 4 characters.')).toBeInTheDocument()
@@ -105,6 +107,25 @@ describe('Claim username', () => {
             error_type: errorType,
         })
         expect(signupControls(posthog.capture as jest.Mock)).toEqual(['username:change', `username:error:${errorType}`])
+    })
+
+    it.each(['teampeanut', 'Official'])('refuses %s and recovers after editing', async (username) => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: username } })
+        expect(await screen.findByText(en.setup.signupStep.errors.reserved)).toBeInTheDocument()
+        expect(claimButton()).toBeDisabled()
+        fireEvent.click(claimButton())
+        expect(signupControls(posthog.capture as jest.Mock)).toContain('username:error:refused')
+        expect(mockReserveUsername).not.toHaveBeenCalled()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(mockSetScreenId).not.toHaveBeenCalled()
+
+        fireEvent.change(usernameField(), { target: { value: 'kimchi' } })
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        expect(screen.queryByText(en.setup.signupStep.errors.reserved)).not.toBeInTheDocument()
+        fireEvent.click(claimButton())
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(mockReserveUsername).toHaveBeenCalledWith('kimchi')
     })
 
     it('keeps Claim disabled for a taken username', async () => {

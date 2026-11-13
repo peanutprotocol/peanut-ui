@@ -70,7 +70,7 @@ const isProbablyPrivateMode = () => {
 export function useSignupPasskey(username: string) {
     const t = useTranslations('setup')
     const context = useSetupFlowContext()
-    const { setNoBackLockScreenId, setRegistrationInProgress, setInviterAccepted, steps } = context
+    const { setNoBackLockScreenId, setRegistrationInProgress, setInviterAccepted, setRefusedUsername, steps } = context
     const { handleNext, setScreenId } = useSetupFlow()
     const { user, fetchUser } = useAuth()
     const userRef = useRef(user)
@@ -189,6 +189,12 @@ export function useSignupPasskey(username: string) {
             registrationInitiatedRef.current = false
             setRegistrationInProgress(false)
             const err = error as Error
+            if (err.name === 'UsernameReserved') {
+                uncertainRegistration.current = false
+                setRefusedUsername(username)
+                setScreenId('signup')
+                return
+            }
             const nativeReason = nativePasskeyFailure(err)
             // The OS sheet's own duration, without the network calls around it.
             const ceremony = latestCeremony('create', 'registration', attemptStartedAt)
