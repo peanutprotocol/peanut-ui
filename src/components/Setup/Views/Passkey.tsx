@@ -57,11 +57,11 @@ export default function PasskeyStep() {
         <>
             <div className="flex h-full flex-1 flex-col justify-between gap-6">
                 <div className="flex flex-1 flex-col justify-center gap-4">
-                    <ul className="flex flex-col gap-4">
+                    <ul className="flex flex-col gap-3">
                         {(['unlock', 'control', 'backup'] as const).map((point) => (
-                            <li key={point} className="flex flex-col gap-1">
+                            <li key={point} className="flex flex-col gap-0.5">
                                 <p className="text-label-m">{t(`passkey.points.${point}.title`)}</p>
-                                <p className="text-body-s text-foreground-secondary">
+                                <p className="text-body-s text-foreground-secondary short:hidden">
                                     {t(`passkey.points.${point}.description`)}
                                 </p>
                             </li>
