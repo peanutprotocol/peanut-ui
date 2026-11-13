@@ -41,9 +41,9 @@ function Pop({
 }) {
     if (still) {
         return (
-            <div className={className} style={{ rotate: `${rotate}deg` }}>
+            <motion.div className={className} initial={false} animate={{ rotate }}>
                 {children}
-            </div>
+            </motion.div>
         )
     }
     return (
@@ -73,7 +73,7 @@ function Pop({
 export default function LandingHero({ title, still }: { title?: ReactNode; still: boolean }) {
     const t = useTranslations('setup.landing.hero')
     return (
-        <div className="absolute inset-0 flex flex-col px-6 pt-16 pb-2 md:px-10 md:pt-24 md:pb-10 tight:pt-14">
+        <div className="absolute inset-0 flex flex-col px-6 pt-16 pb-2 md:px-10 md:pt-16 md:pb-10 tight:pt-14">
             {title && (
                 <h1 className="max-w-xs text-left text-heading-l md:max-w-md short:text-heading-m tight:text-heading-s">
                     {title}
