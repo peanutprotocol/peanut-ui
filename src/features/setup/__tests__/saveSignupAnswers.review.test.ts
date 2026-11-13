@@ -191,3 +191,63 @@ it('keeps another account pending when one account receives a permanent failure'
     await flushPendingSignupAnswers('user%2Fa')
     expect(mockUpdate).toHaveBeenLastCalledWith({ userId: 'user%2Fa', residenceCountry: 'PT', nationality: 'BR' })
 })
+
+describe('a refusal drops only the group it refused', () => {
+    const preferences = { fundingChannel: 'bank' as never, paymentChannel: 'card' as never }
+    const locked = {
+        error: 'Signup preferences are locked',
+        code: 'SIGNUP_PREFERENCES_LOCKED',
+        failureKind: 'http',
+        status: 409,
+    }
+
+    it('keeps sending the residence after the payment plan is locked, until it is saved', async () => {
+        const userId = 'locked-plan-with-residence'
+        await queueSignupAnswers(userId, { residenceCountry: 'PT', nationality: 'BR', signupPreferences: preferences })
+        mockUpdate.mockImplementation(async (input: Record<string, unknown>) =>
+            'signupPreferences' in input ? locked : { error: 'Service unavailable', failureKind: 'http', status: 503 }
+        )
+
+        await flushPendingSignupAnswers(userId)
+
+        expect(mockUpdate).toHaveBeenCalledWith({ userId, residenceCountry: 'PT', nationality: 'BR' })
+        expect(mockUpdate).toHaveBeenCalledWith({
+            userId,
+            signupPreferences: { fundingChannel: 'bank', paymentChannel: 'card' },
+        })
+        expect(
+            mockUpdate.mock.calls.some(([input]) => 'signupPreferences' in input && 'residenceCountry' in input)
+        ).toBe(false)
+        expect(read(userId)?.fields).toEqual({ residenceCountry: 'PT', nationality: 'BR' })
+
+        mockUpdate.mockReset().mockResolvedValue({ data: {} })
+        await flushPendingSignupAnswers(userId)
+        expect(mockUpdate).toHaveBeenCalledTimes(1)
+        expect(mockUpdate).toHaveBeenCalledWith({ userId, residenceCountry: 'PT', nationality: 'BR' })
+        expect(read(userId)).toBeNull()
+    })
+
+    it('keeps the payment plan when the residence change is refused', async () => {
+        const userId = 'locked-residence-with-plan'
+        await queueSignupAnswers(userId, { residenceCountry: 'PT', nationality: 'BR', signupPreferences: preferences })
+        mockUpdate.mockImplementation(async (input: Record<string, unknown>) =>
+            'residenceCountry' in input
+                ? {
+                      error: 'Finish verification first',
+                      code: 'RESIDENCE_CHANGE_UNAVAILABLE',
+                      failureKind: 'http',
+                      status: 409,
+                  }
+                : { data: {} }
+        )
+
+        await flushPendingSignupAnswers(userId)
+
+        expect(mockUpdate).toHaveBeenCalledTimes(2)
+        expect(read(userId)).toBeNull()
+        expect(mockUpdate).toHaveBeenCalledWith({
+            userId,
+            signupPreferences: { fundingChannel: 'bank', paymentChannel: 'card' },
+        })
+    })
+})

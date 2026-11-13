@@ -127,14 +127,11 @@ it('recovers a crash after ownership was persisted but before answers were queue
     sessionStorage.setItem(KEY, JSON.stringify({ ...JSON.parse(sessionStorage.getItem(KEY)!), userId: 'registrant' }))
     await bindSignupDraft('registrant')
     await flushPendingSignupAnswers('registrant')
-    expect(mockUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({
-            userId: 'registrant',
-            residenceCountry: 'AR',
-            nationality: 'BR',
-            signupPreferences: { fundingChannel: 'arsBank', paymentChannel: 'qr' },
-        })
-    )
+    expect(mockUpdate).toHaveBeenCalledWith({ userId: 'registrant', residenceCountry: 'AR', nationality: 'BR' })
+    expect(mockUpdate).toHaveBeenCalledWith({
+        userId: 'registrant',
+        signupPreferences: { fundingChannel: 'arsBank', paymentChannel: 'qr' },
+    })
 })
 
 it('does not resurrect acknowledged answers on a later startup bind', async () => {

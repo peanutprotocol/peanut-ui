@@ -7,6 +7,7 @@ import { restoreSignupValue, storeSignupValue } from './signup-storage'
 
 const MAX_AGE = 30 * 24 * 60 * 60 * 1000
 const pendingSaves = new Map<string, Promise<void>>()
+const FIELD_GROUPS = [['residenceCountry', 'nationality'], ['signupPreferences']]
 const keyFor = (userId: string) => `peanut:pendingSignupAnswers:${encodeURIComponent(userId)}`
 type Pending = { version: 1; userId: string; savedAt?: number; fields: Record<string, unknown> }
 
@@ -97,7 +98,13 @@ export function flushPendingSignupAnswers(userId: string): Promise<void> {
     return serialize(userId, async () => {
         await restoreSignupValue(keyFor(userId))
         const pending = readPending(userId)
-        if (pending) await deliver(userId, pending.fields)
+        if (!pending) return
+        // One request per group: the API refuses a whole PATCH over one locked field
+        // (e.g. SIGNUP_PREFERENCES_LOCKED), and a refusal must only drop what it refused.
+        for (const keys of FIELD_GROUPS) {
+            const group = Object.fromEntries(Object.entries(pending.fields).filter(([key]) => keys.includes(key)))
+            if (Object.keys(group).length) await deliver(userId, group)
+        }
     })
 }
 
