@@ -65,7 +65,7 @@ export function providerIdForTransaction(
 
 /**
  * The legal record behind a Pix provider code, as a route, a /pix/* answer or a history entry
- * names it ('avenia', 'MANTECA'), for the provider row and its sheet: Pix moves reais. Null for
+ * names it ('manteca', 'MANTECA'), for the provider row and its sheet: Pix moves reais. Null for
  * a provider no registry entry answers for: the screen then shows no provider row.
  */
 export function pixProviderId(provider: string | null | undefined): ProviderId | null {

@@ -5,12 +5,11 @@ export type ProviderId =
     | 'bridge'
     | 'manteca-ar'
     | 'manteca-br'
-    | 'avenia-br'
     | 'rhino'
     | 'third-national'
 
 // key under `provider.role` and `provider.execution` in the app catalogs
-export type ProviderRole = 'bridge' | 'bridgeEea' | 'mantecaAr' | 'mantecaBr' | 'aveniaBr' | 'rhino' | 'thirdNational'
+export type ProviderRole = 'bridge' | 'bridgeEea' | 'mantecaAr' | 'mantecaBr' | 'rhino' | 'thirdNational'
 
 /** key under `provider.label`: what the row calls the provider on a given screen */
 export type ProviderLabel = 'provider' | 'accountProvider' | 'cardProvider'
@@ -38,8 +37,8 @@ export interface ProviderRecord {
     privacyUrl?: string
     support?: string
     /**
-     * The API's provider code this entry answers for, as routes ('avenia') and history rows
-     * ('AVENIA') name it, compared without case; with `currency` where one provider runs an entity
+     * The API's provider code this entry answers for, as routes ('manteca') and history rows
+     * ('MANTECA') name it, compared without case; with `currency` where one provider runs an entity
      * per currency (Manteca: ARS, BRL). An entry without it is never picked from a code: Bridge's
      * residence entities are picked by residence instead.
      */

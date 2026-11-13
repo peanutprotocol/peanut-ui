@@ -250,44 +250,12 @@ PAGE_CAPTURES.push(
     },
     // Pix states that follow a tap; the fixture answers the call the tap makes.
     {
-        id: 'p80-pix-terms-not-saved',
-        name: 'Pix terms — the acceptance was not saved',
-        route: '/add-money/pix',
-        fixture: 'pix-first-use',
-        clicks: ['Continue'],
-        expectSelector: '[role="alert"]',
-    },
-    {
         id: 'p81-pix-deposit-limit',
         name: 'Pix deposit — over the monthly limit',
         route: '/add-money/pix?amount=100&currency=BRL',
         fixture: 'pix-deposit-amount',
         clicks: ['Continue'],
         expectSelector: '[role="alert"]',
-    },
-    {
-        id: 'p82-pix-new-key-saved',
-        name: 'New Pix key saved — where the money goes',
-        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
-        fixture: 'pix-new-key',
-        clicks: ['Continue'],
-    },
-    {
-        id: 'p83-pix-new-key-saved-unnamed',
-        name: 'New Pix key saved — no holder named',
-        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
-        fixture: 'pix-new-key-unnamed',
-        clicks: ['Continue'],
-    },
-    {
-        id: 'p84-pix-provider-sheet',
-        name: "Pix review — the provider's legal details",
-        // the key and amount come from the fixture's session draft, never the URL
-        route: '/withdraw/pix?step=review',
-        fixture: 'pix-withdraw-review',
-        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
-        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
-        expectSelector: '[role="dialog"][data-state="open"]',
     },
     // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
     // for users who do not live in Brazil
@@ -306,14 +274,5 @@ PAGE_CAPTURES.push(
         fixture: 'pix-manteca-withdraw-review',
         actions: [{ clickSelector: '[data-testid="provider-help"]' }],
         expectSelector: '[role="dialog"][data-state="open"]',
-    },
-    // TASK-24841: a Pix plan before our own check: Verify identity opens the Pix setup, Avenia's terms first
-    {
-        id: 'p87-pix-plan-verify-opens-pix',
-        name: 'Home — Set up Pix opens the Pix setup before our own check',
-        route: '/home',
-        fixture: 'home-pix-plan-before-verification',
-        clicks: ['Set up Pix'],
-        expectSelector: 'a[href="https://app.avenia.io/Avenia-TC.pdf"]',
     }
 )

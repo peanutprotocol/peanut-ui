@@ -175,27 +175,7 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-terms-before-verification",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
-        "id": "fixture-pix-setup-hosted-verify",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
-        "id": "fixture-pix-setup-hosted-expired",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-pix-setup-reviewing",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
-        "id": "fixture-pix-setup-cpf-missing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
@@ -332,11 +312,6 @@
         "route": "/history"
     },
     {
-        "id": "fixture-pix-activity-new-key",
-        "flow": "Home and shared states",
-        "route": "/history"
-    },
-    {
         "id": "fixture-history-pix-key-owner",
         "flow": "Home and shared states",
         "route": "/history"
@@ -408,16 +383,6 @@
     },
     {
         "id": "fixture-home-new-user",
-        "flow": "Home and shared states",
-        "route": "/home"
-    },
-    {
-        "id": "fixture-home-pix-plan-before-verification",
-        "flow": "Home and shared states",
-        "route": "/home"
-    },
-    {
-        "id": "fixture-home-pix-plan-provider-reviewing",
         "flow": "Home and shared states",
         "route": "/home"
     },
@@ -695,11 +660,6 @@
         "id": "p79-notifications",
         "flow": "Home and shared states",
         "route": "/settings/notifications"
-    },
-    {
-        "id": "p87-pix-plan-verify-opens-pix",
-        "flow": "Home and shared states",
-        "route": "/home"
     },
     {
         "id": "api-ribbon-loading",
@@ -1110,11 +1070,6 @@
         "route": "/add-money/spain"
     },
     {
-        "id": "fixture-pix-first-use",
-        "flow": "Add money",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-pix-deposit-amount",
         "flow": "Add money",
         "route": "/add-money/pix"
@@ -1122,7 +1077,7 @@
     {
         "id": "fixture-pix-deposit-minimum",
         "flow": "Add money",
-        "route": "/add-money/pix?amount=10&currency=BRL"
+        "route": "/add-money/pix?amount=0.5&currency=BRL"
     },
     {
         "id": "fixture-pix-deposit-expired",
@@ -1153,11 +1108,6 @@
         "id": "fixture-pix-route-paused-deposit",
         "flow": "Add money",
         "route": "/add-money/pix"
-    },
-    {
-        "id": "fixture-pix-receipt-pay-code",
-        "flow": "Add money",
-        "route": "/history?tx=fixture-pix-deposit"
     },
     {
         "id": "fixture-pix-route-method-not-served",
@@ -1453,11 +1403,6 @@
         "id": "p69-regional-deposit",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"
-    },
-    {
-        "id": "p80-pix-terms-not-saved",
-        "flow": "Add money",
-        "route": "/add-money/pix"
     },
     {
         "id": "p81-pix-deposit-limit",
@@ -2247,31 +2192,6 @@
         "route": "/withdraw/manteca?country=brazil&method=pix"
     },
     {
-        "id": "fixture-pix-withdraw-key",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix"
-    },
-    {
-        "id": "fixture-pix-withdraw-key-other",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix"
-    },
-    {
-        "id": "fixture-pix-withdraw-review",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix?step=review"
-    },
-    {
-        "id": "fixture-pix-new-key",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "fixture-pix-new-key-not-waiting",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal"
-    },
-    {
         "id": "fixture-pix-withdraw-form",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=review"
@@ -2307,17 +2227,7 @@
         "route": "/withdraw/pix"
     },
     {
-        "id": "fixture-pix-withdraw-key-blocked",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix"
-    },
-    {
         "id": "fixture-pix-withdraw-review-limit",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix?step=review"
-    },
-    {
-        "id": "fixture-pix-withdraw-review-key-not-own",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=review"
     },
@@ -2357,24 +2267,9 @@
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-pix-withdraw-not-signed",
+        "id": "fixture-pix-new-key-not-waiting",
         "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
-    },
-    {
-        "id": "fixture-pix-withdraw-needs-key",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-pix-refused-withdrawal"
-    },
-    {
-        "id": "fixture-pix-new-key-unnamed",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "fixture-pix-receipt-new-key",
-        "flow": "Withdraw",
-        "route": "/history?tx=fixture-pix-refused-withdrawal"
+        "route": "/withdraw/new-pix-key?intentId=fixture-pix-withdrawal"
     },
     {
         "id": "fixture-pix-manteca-withdraw-key",
@@ -2490,21 +2385,6 @@
         "id": "p74-network-selector-drawer",
         "flow": "Withdraw",
         "route": "/withdraw/crypto"
-    },
-    {
-        "id": "p82-pix-new-key-saved",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "p83-pix-new-key-saved-unnamed",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "p84-pix-provider-sheet",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "p86-pix-manteca-provider-sheet",

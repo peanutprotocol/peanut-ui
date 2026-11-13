@@ -17,8 +17,8 @@ import { formatFiniteDisplay } from '@/utils/currency'
  * - Exchange rate (i): always.
  * - Savings vs card (i): the payment, when the card markup gives a saving.
  * - Peanut fee: always "Sponsored by Peanut!" (zero on both flows).
- * - Provider fee: when the quote carries a flat fee (Avenia's R$0.75); hidden
- *   when it does not (Manteca charges none).
+ * - Provider fee: when the quote carries a flat fee; hidden when it does not
+ *   (Manteca charges none).
  * - Bank receives / Total: the withdrawal, the exact reais and the exact
  *   wallet debit its quote names; each row waits while the quote is in flight.
  * - Provider (?): when the route names one.
