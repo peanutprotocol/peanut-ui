@@ -1185,6 +1185,11 @@
         "route": "/history?tx=fixture-returned-deposit-too-many-recent"
     },
     {
+        "id": "fixture-add-money-bank-provider-ask-unknown",
+        "flow": "Add money",
+        "route": "/add-money/germany/bank?step=verify"
+    },
+    {
         "id": "fixture-get-paid",
         "flow": "Add money",
         "route": "/add-money?method=bank"
@@ -2753,6 +2758,21 @@
     },
     {
         "id": "fixture-profile-accounts-review-causes",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-provider-reviewing",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-terms-unconfirmed",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-profile-accounts-terms-confirm-failed",
         "flow": "Profile and settings",
         "route": "/profile/accounts"
     },
