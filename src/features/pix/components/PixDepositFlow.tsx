@@ -101,14 +101,17 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         })
         try {
             const created = await pixApi.createDeposit(amountBrl)
+            // a deposit for an amount is an intent of its own; only a standing code has none
+            const createdId = created.intentId
+            if (!createdId) throw new Error('The Pix deposit came back without its intent')
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
                 amount_usd: usdAmount,
                 method_type: route.provider,
                 country: 'brazil',
             })
             // the code screen reads this deposit's query; seeding it shows the code at once
-            queryClient.setQueryData(pixDepositQueryKey(created.intentId), created)
-            void setUrlState({ step: 'showQR', intentId: created.intentId })
+            queryClient.setQueryData(pixDepositQueryKey(createdId), created)
+            void setUrlState({ step: 'showQR', intentId: createdId })
         } catch (caught) {
             const code = wireErrorCode(caught)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {

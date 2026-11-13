@@ -7611,7 +7611,7 @@ export interface paths {
         put?: never;
         /**
          * Create a Pix deposit (BRL → USDC)
-         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.
+         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable. A standingCode route takes no amount: the answer is the user’s own standing code (any amount, expiresAt null, intentId null), the same code on every call, and the account behind it opens on the first call.
          */
         post: {
             parameters: {
@@ -7622,11 +7622,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: {
+            requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description Reais, at most two decimals */
-                        amountBrl: string;
+                        /** @description Reais, at most two decimals. Required unless the deposit route is standingCode. */
+                        amountBrl?: string;
                     };
                 };
             };
@@ -7637,38 +7637,24 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "amountBrl": "100.00",
-                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-                         *       "codePayable": true,
-                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
-                         *       "fixedFeeBrl": "0.75",
-                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-                         *       "payerCpfMasked": "123.***.***-09",
-                         *       "pixReceived": false,
-                         *       "provider": "manteca",
-                         *       "status": "AWAITING_USER_ACTION",
-                         *       "usdcAmount": "17.920175"
-                         *     }
-                         */
                         "application/json": {
                             amountBrl: string | null;
-                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            /** @description The Pix code (copia e cola): for exactly this amount, or any amount when standing */
                             brCode?: string;
                             /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
                             codePayable: boolean;
                             expiresAt: string | null;
                             /** @description The flat fee in reais, where the provider charges one */
                             fixedFeeBrl?: string;
-                            intentId: string;
+                            /** @description The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history. */
+                            intentId: string | null;
                             /** @description The CPF the Pix must come from, masked, where the provider requires one */
                             payerCpfMasked?: string;
                             /** @description The provider received the Pix; the USDC is on its way to the wallet */
                             pixReceived: boolean;
                             /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
-                            /** @description The intent’s own status, as stored */
+                            /** @description The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION. */
                             status: string;
                             /** @description USDC the wallet receives, after every fee */
                             usdcAmount: string | null;
@@ -7964,38 +7950,24 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "amountBrl": "100.00",
-                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-                         *       "codePayable": true,
-                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
-                         *       "fixedFeeBrl": "0.75",
-                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-                         *       "payerCpfMasked": "123.***.***-09",
-                         *       "pixReceived": false,
-                         *       "provider": "manteca",
-                         *       "status": "AWAITING_USER_ACTION",
-                         *       "usdcAmount": "17.920175"
-                         *     }
-                         */
                         "application/json": {
                             amountBrl: string | null;
-                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            /** @description The Pix code (copia e cola): for exactly this amount, or any amount when standing */
                             brCode?: string;
                             /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
                             codePayable: boolean;
                             expiresAt: string | null;
                             /** @description The flat fee in reais, where the provider charges one */
                             fixedFeeBrl?: string;
-                            intentId: string;
+                            /** @description The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history. */
+                            intentId: string | null;
                             /** @description The CPF the Pix must come from, masked, where the provider requires one */
                             payerCpfMasked?: string;
                             /** @description The provider received the Pix; the USDC is on its way to the wallet */
                             pixReceived: boolean;
                             /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
-                            /** @description The intent’s own status, as stored */
+                            /** @description The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION. */
                             status: string;
                             /** @description USDC the wallet receives, after every fee */
                             usdcAmount: string | null;
@@ -14721,6 +14693,11 @@ export interface paths {
                                         details?: string;
                                         userMessage: string;
                                     };
+                                    /**
+                                     * @description Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.
+                                     * @enum {boolean}
+                                     */
+                                    standingCode?: true;
                                     state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
@@ -15940,21 +15917,89 @@ export interface paths {
                             features?: {
                                 bank: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
@@ -16888,6 +16933,23 @@ export interface paths {
                          */
                         "application/json": {
                             action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                expiresAt?: string;
+                                feature?: "bank" | "card" | "local";
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                levelKey?: string;
+                                purpose: string;
+                                refused?: {
+                                    provider: "bridge" | "manteca" | "rain";
+                                    reason: string;
+                                }[];
+                                requirementKey?: string;
+                                tosUrl?: string;
+                                url?: string;
+                            };
                             reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                             state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                         };
@@ -18377,6 +18439,11 @@ export interface paths {
                                         details?: string;
                                         userMessage: string;
                                     };
+                                    /**
+                                     * @description Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.
+                                     * @enum {boolean}
+                                     */
+                                    standingCode?: true;
                                     state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };

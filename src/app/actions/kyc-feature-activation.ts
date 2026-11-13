@@ -7,13 +7,7 @@ import type { NextAction } from '@/types/capabilities'
 
 type Activation = paths['/users/kyc/features/{feature}/activate']['post']
 export type KycActivationFeature = Activation['parameters']['path']['feature']
-export type KycActivationReport = Activation['responses'][200]['content']['application/json'] & {
-    /**
-     * The step a first use waits on, where it is not a supplement: a legacy approval's corridor
-     * verification (`verify-corridor:pix_br`, API-CONTRACT.md 4a). Not in the API snapshot yet.
-     */
-    nextAction?: NextAction
-}
+export type KycActivationReport = Activation['responses'][200]['content']['application/json']
 type Conflict = Activation['responses'][409]['content']['application/json']
 export type KycFeatureActivationResult =
     | { kind: 'report'; report: KycActivationReport }
