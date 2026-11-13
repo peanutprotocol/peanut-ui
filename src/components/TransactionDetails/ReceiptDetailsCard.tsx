@@ -293,10 +293,14 @@ export function ReceiptDetailsCard({
 
                 {rowVisibilityConfig.cardPayment && <CardPaymentRows transaction={transaction} group="trace" />}
 
-                {/* The reference that left our systems with the payout. */}
+                {/* The reference that left our systems with the payout; on a Pix deposit, the Pix's end-to-end id. */}
                 {rowVisibilityConfig.paymentReference && (
                     <DataRow
-                        label={t('rows.paymentReference')}
+                        label={t(
+                            transaction.extraDataForDrawer!.isPixDeposit
+                                ? 'rows.pixEndToEndId'
+                                : 'rows.paymentReference'
+                        )}
                         value={transaction.extraDataForDrawer!.paymentReference}
                         allowCopy
                         copyValue={transaction.extraDataForDrawer!.paymentReference}

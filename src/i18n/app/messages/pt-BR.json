@@ -2786,6 +2786,7 @@
             "transferId": "ID da transferência",
             "senderNote": "Nota do remetente",
             "paymentReference": "Referência que enviamos",
+            "pixEndToEndId": "ID E2E",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
             "attachment": "Anexo",

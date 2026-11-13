@@ -435,6 +435,8 @@ export interface TransactionDetails {
         awaitsNewPixKey?: boolean
         /** A Pix deposit whose code can still be paid: the receipt opens it again. */
         pixCodePayable?: boolean
+        /** A deposit the payer sent by Pix (their account is typed `pix`): its `paymentReference` is the Pix end-to-end id. */
+        isPixDeposit?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -843,6 +845,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             depositAmountDisplay,
             minimumAmountDisplay,
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
+            isPixDeposit:
+                (direction === 'bank_deposit' && entry.senderAccount?.type?.toLowerCase() === 'pix') || undefined,
             bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
             requestedAmount: entry.extraData?.requestedAmount || undefined,
             requestCurrency: entry.extraData?.requestCurrency || undefined,

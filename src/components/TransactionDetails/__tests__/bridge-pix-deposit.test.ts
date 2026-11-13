@@ -56,6 +56,26 @@ describe('a Bridge Pix deposit in Activity', () => {
         expect(drawer?.senderReference).toBe('aluguel')
     })
 
+    // Aleks, 2026-11-13: the reference on money coming in by Pix is its end-to-end id, completed or returned
+    it.each([
+        ['completed', {}],
+        ['returned', { status: 'REFUNDED' as EHistoryStatus }],
+    ])('marks a %s Pix deposit by its sender type, so the receipt labels the id as E2E', (_case, overrides) => {
+        expect(details(pixDeposit(overrides)).extraDataForDrawer?.isPixDeposit).toBe(true)
+    })
+
+    it('leaves a deposit from another rail, and a Pix payout, unmarked', () => {
+        const sepa = pixDeposit({ senderAccount: { identifier: '', type: 'sepa', isUser: false } })
+        expect(details(sepa).extraDataForDrawer?.isPixDeposit).toBeUndefined()
+        const payout = pixDeposit({
+            userRole: EHistoryUserRole.SENDER,
+            senderAccount: { identifier: '0xaaaa', type: 'peanut-wallet', isUser: true, username: 'ana' },
+            recipientAccount: { identifier: 'ana@example.com', type: 'BANK_PIX', isUser: false },
+            extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', bridgeFlow: 'OFFRAMP', fulfillmentType: 'bridge' },
+        })
+        expect(details(payout).extraDataForDrawer?.isPixDeposit).toBeUndefined()
+    })
+
     it('states the conversion and the rate in reais per dollar', () => {
         const tx = details(pixDeposit())
         expect(receiptConversionLine(tx, getTransactionSign(tx))).toBe('BRL 10 → 1.76 USD')

@@ -106,6 +106,31 @@ describe("ReceiptDetailsCard — deposit into the user's bank details", () => {
         expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
     })
 
+    // Aleks, 2026-11-13: a Pix deposit's reference is its end-to-end id, never "Reference we sent"
+    it.each([
+        ['completed', {}],
+        ['returned', { status: 'refunded', actionLabelKey: 'type.returnedToSender' }],
+    ])("labels a %s Pix deposit's end-to-end id as E2E ID, copyable", (_case, overrides) => {
+        const e2e = 'E00416968202611131908aBcD1234567'
+        renderWithIntl(<Card transaction={vaDeposit(overrides, { isPixDeposit: true, paymentReference: e2e })} />)
+        expect(screen.getByText('E2E ID')).toBeInTheDocument()
+        expect(screen.getByText(e2e)).toBeInTheDocument()
+        expect(screen.queryByText('Reference we sent')).not.toBeInTheDocument()
+    })
+
+    it('keeps "Reference we sent" on a deposit that did not come by Pix', () => {
+        renderWithIntl(<Card transaction={vaDeposit({}, { paymentReference: 'REF-4471' })} />)
+        expect(screen.getByText('Reference we sent')).toBeInTheDocument()
+        expect(screen.queryByText('E2E ID')).not.toBeInTheDocument()
+    })
+
+    it('shows the E2E ID to the owner only, as every payment reference', () => {
+        renderWithIntl(
+            <Card transaction={vaDeposit({}, { isPixDeposit: true, paymentReference: 'E0041696820261113' })} isPublic />
+        )
+        expect(screen.queryByText('E2E ID')).not.toBeInTheDocument()
+    })
+
     // QA 2026-09-24 (QA-08): one word for the returned state, on the badge and the date row
     it('dates a returned deposit as Returned, never Refunded', () => {
         renderWithIntl(
