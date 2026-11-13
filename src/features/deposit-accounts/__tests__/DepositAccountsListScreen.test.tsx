@@ -639,6 +639,35 @@ describe('an account the user could open', () => {
         }
     )
 
+    // TASK-24909: Bridge reviewing the customer read as a refusal with a support button
+    // "Under review" when a provider acts next; our own setup in flight is "Setting up" (design.md, rows)
+    it.each([
+        ['waiting-on-provider', { kind: 'waiting-on-provider', userMessage: null }, LIST.badgeUnderReview],
+        [
+            'pending in review',
+            { kind: 'pending', userMessage: null, reason: { code: 'requirements_in_review', userMessage: '' } },
+            LIST.badgeUnderReview,
+        ],
+        ['pending', { kind: 'pending', userMessage: null }, LIST.badgeSettingUp],
+    ] as const)(
+        'opens the wait drawer where the backend lists the corridor nowhere and the gate reads %s',
+        (_, gate, badge) => {
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates: { ...allGates(), BANK_TRANSFER_CO: gate as unknown as GateState },
+                onOpen,
+            })
+
+            const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+            expect(within(row).getByText(badge)).toBeInTheDocument()
+            expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+            fireEvent.click(row)
+            // the claim step's wait drawer explains it; the closed-row drawer never opens
+            expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+            expect(screen.queryByTestId('closed-row-drawer')).not.toBeInTheDocument()
+        }
+    )
+
     it('points at support where the backend says only a person can open it', () => {
         const onOpen = jest.fn()
         const { container } = list(false, {

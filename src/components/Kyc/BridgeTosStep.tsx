@@ -39,6 +39,10 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
     const [isLoading, setIsLoading] = useState(false)
     const [isConfirming, setIsConfirming] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Bridge has the signature, the account still asks for terms: the step ends here (TASK-24909)
+    const [unconfirmed, setUnconfirmed] = useState(false)
+    // a confirm that failed retries as a confirm: the closed page may hold a signature
+    const [failedConfirm, setFailedConfirm] = useState<Exclude<IframeCloseSource, 'manual'> | null>(null)
     const [signed, setSigned] = useState(false)
     const openPage = useRef(false)
     const confirming = useRef(false)
@@ -54,6 +58,8 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
         setIsLoading(false)
         setTosLink(null)
         setError(null)
+        setUnconfirmed(false)
+        setFailedConfirm(null)
         return () => {
             lifetime.current += 1
         }
@@ -66,16 +72,24 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
             confirming.current = true
             setIsConfirming(true)
             try {
-                const accepted = await resolveBridgeTosClose(fetchUser, source, country)
+                const outcome = await resolveBridgeTosClose(fetchUser, source, country)
                 if (generation !== lifetime.current) return
-                if (accepted) {
+                if (outcome === 'accepted') {
                     onComplete()
                     return
                 }
-                setError(t(source === 'tos_accepted' ? 'bridgeTos.confirmError' : 'bridgeTos.notAcceptedYet'))
+                // another terms page cannot change it, so nothing here offers one
+                if (outcome === 'unconfirmed') {
+                    setUnconfirmed(true)
+                    return
+                }
+                // only a confirmed missing signature sends the next tap to a new terms page
+                setFailedConfirm(outcome === 'failed' ? source : null)
+                setError(t(outcome === 'failed' ? 'bridgeTos.confirmError' : 'bridgeTos.notAcceptedYet'))
             } catch (error) {
                 if (generation !== lifetime.current) return
                 Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
+                setFailedConfirm(source)
                 setError(t('bridgeTos.confirmError'))
             } finally {
                 if (generation === lifetime.current) {
@@ -89,7 +103,7 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
 
     const handleContinue = useCallback(async () => {
         track(error ? 'retry' : 'continue', 'tap')
-        if (signed) return confirm('tos_accepted')
+        if (signed || failedConfirm) return confirm(failedConfirm ?? 'tos_accepted')
         const generation = lifetime.current
         setIsLoading(true)
         setError(null)
@@ -116,7 +130,7 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
         } finally {
             if (generation === lifetime.current) setIsLoading(false)
         }
-    }, [t, error, track, signed, confirm])
+    }, [t, error, track, signed, failedConfirm, confirm])
 
     const handleIframeClose = useCallback(
         async (source: IframeCloseSource = 'manual') => {
@@ -135,6 +149,34 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
     )
 
     if (!visible) return null
+
+    // a status, not an error: the acceptance is with Bridge, and accepting again cannot speed it up
+    if (unconfirmed)
+        return (
+            <ActionModal
+                visible
+                onClose={() => {
+                    track('tos', 'dismiss')
+                    onSkip()
+                }}
+                tone="attention"
+                icon={'clock' as IconName}
+                title={t('bridgeTos.unconfirmedTitle')}
+                description={t('bridgeTos.unconfirmedDescription')}
+                ctas={[
+                    {
+                        text: tCommon('gotIt'),
+                        onClick: () => {
+                            track('got_it', 'tap')
+                            onSkip()
+                        },
+                        variant: 'primary',
+                        className: 'w-full',
+                        shadowSize: '4',
+                    },
+                ]}
+            />
+        )
 
     return (
         <>

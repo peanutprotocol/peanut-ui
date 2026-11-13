@@ -3332,6 +3332,7 @@
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Inténtalo de nuevo.",
         "errorResidenceChangeFailed": "No pudimos iniciar la verificación de residencia. Inténtalo de nuevo.",
         "errorResubmitFailed": "No pudimos iniciar el reenvío de documentos. Inténtalo de nuevo.",
+        "errorResubmitUnavailable": "No hay ningún documento para subir en este momento.",
         "errorNoResponse": "No hubo respuesta del servidor. Inténtalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Inténtalo de nuevo.",
         "initiate": {
@@ -3342,7 +3343,7 @@
             "descriptionError": "{error} Contacta a soporte para recibir ayuda.",
             "descriptionBlocked": "No pudimos confirmar tu identidad. Contacta a soporte para recibir ayuda.",
             "descriptionRestartIdentity": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
-            "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
+            "descriptionProviderRejection": "Necesitamos más información tuya para continuar.",
             "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "titleBankUnavailable": "No disponible aquí",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y puedes seguir enviando y recibiendo dinero con otras personas.",
@@ -3442,6 +3443,8 @@
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
             "notAcceptedYet": "Parece que todavía no aceptaste los términos. Inténtalo de nuevo.",
+            "unconfirmedTitle": "Términos enviados",
+            "unconfirmedDescription": "Nuestro socio de pagos aún no los confirmó. No hace falta aceptarlos de nuevo.",
             "notNow": "Ahora no",
             "title": "Aceptar términos"
         },

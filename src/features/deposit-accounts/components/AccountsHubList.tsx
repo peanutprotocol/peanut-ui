@@ -17,7 +17,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { addressStepOf } from '../addressStep'
 import { trackAddressStepViewed } from '../analytics'
-import { needsIdentity } from '../depositGate'
+import { isWaitView, needsIdentity } from '../depositGate'
 import {
     bankRowRefusedByIdentity,
     closedBankRow,
@@ -167,7 +167,7 @@ export function AccountsHubList({
     const underReviewBadge = <Badge status="pending" customText={t('list.badgeUnderReview')} />
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
-    const openBadge = ({ corridor, openable, unchecked, identityRefused }: OpenAccountRow) => {
+    const openBadge = ({ corridor, view, openable, unchecked, identityRefused }: OpenAccountRow) => {
         // at the limit the cap is the answer for every row, before any other reason
         if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         // a refused identity holds every corridor; support can review it, so it is not "Not available"
@@ -212,6 +212,15 @@ export function AccountsHubList({
             case 'account-limit':
                 return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         }
+        // the tap opens the wait drawer. "Under review" only when a provider or a
+        // reviewer acts next; our own setup in flight is "Setting up" (design.md, rows)
+        if (isWaitView(view))
+            return view.notice?.kind === 'waiting-on-provider' ||
+                view.notice?.reasonCode === 'requirements_in_review' ? (
+                underReviewBadge
+            ) : (
+                <Badge status="processing" customText={t('list.badgeSettingUp')} />
+            )
         // an action the user can take now: the info tone (hugo, 2026-09-25)
         return <Badge status="processing" customText={t('list.badgeSetUp')} />
     }

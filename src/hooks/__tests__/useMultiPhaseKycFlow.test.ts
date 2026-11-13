@@ -1048,6 +1048,43 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
         expect(onKycSuccess).not.toHaveBeenCalled()
     })
 
+    /*
+     * TASK-24909: Bridge has the signature while the account still asks for
+     * terms, or the confirm request failed. Neither is "the terms weren't
+     * accepted": the flow ends on the timed-out state, which asks for nothing.
+     */
+    it.each([
+        ['accepted, while the account still asks for terms', { data: { accepted: true } }],
+        ['a failed confirm request', { error: 'Failed to confirm Bridge ToS' }],
+    ])('ends without asking for the terms again after %s', async (_case, confirmation) => {
+        const terms = { key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' } as const
+        const asksForTerms = { state: 'action_required', action: terms.key } as const
+        mockConfirm.mockResolvedValue(confirmation)
+        mockFetchUser.mockResolvedValue({
+            capabilities: {
+                rails: [],
+                restrictions: [],
+                nextActions: [terms],
+                features: {
+                    qr: { state: 'on' },
+                    card: { state: 'ready' },
+                    local: { state: 'pending', accounts: {} },
+                    bank: { ...asksForTerms, accounts: { USD: asksForTerms, EUR: asksForTerms } },
+                },
+            },
+        })
+        const { result, onKycSuccess } = await openTerms()
+        mockGetTosLink.mockClear()
+
+        await close(result, 'returned')
+
+        expect(result.current.preparingTimedOut).toBe(true)
+        expect(result.current.tosError).toBeNull()
+        expect(result.current.modalPhase).not.toBe('bridge_tos')
+        expect(mockGetTosLink).not.toHaveBeenCalled()
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
     it('leaves a manual exit on the terms step without asking Bridge', async () => {
         const { result, onKycSuccess } = await openTerms()
 

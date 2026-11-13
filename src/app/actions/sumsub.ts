@@ -38,6 +38,8 @@ export type SumsubActionErrorCode =
     | 'restart_failed'
     | 'residence_change_failed'
     | 'resubmit_failed'
+    // resubmit found no provider request to answer (404): a retry cannot find one either
+    | 'resubmit_unavailable'
     | 'start_action_failed'
     // start-action refused a supplement the gate no longer asks for; `fallback` names the step instead
     | 'supplement_not_required'
@@ -436,7 +438,7 @@ export const initiateSelfHealResubmission = async (
             const failure = backendOrFallback(
                 responseJson,
                 'Failed to initiate document resubmission',
-                'resubmit_failed',
+                response.status === 404 ? 'resubmit_unavailable' : 'resubmit_failed',
                 response.status
             )
             return restartIdentityRedirect(failure, responseJson) ?? failure

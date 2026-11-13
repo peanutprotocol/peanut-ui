@@ -1,5 +1,6 @@
 import type { GateState } from '@/utils/capability-gate'
 import { buildBankRows, type UnlockRow } from '@/utils/unlock-payments.utils'
+import { isWaitView } from '../depositGate'
 import { closedBankRow, closedOpenRow, corridorMatchesSearch, otherWaysRows, virtualAccountRows } from '../hubRows'
 import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
@@ -123,6 +124,54 @@ describe('virtualAccountRows', () => {
         const { open } = virtualAccountRows(input({ gates }), true)
 
         expect(open.find((row) => row.corridor === 'BANK_TRANSFER_CO')?.openable).toBe(false)
+    })
+
+    /*
+     * TASK-24909: while Bridge reviews the customer, the backend lists the
+     * corridor in neither list and the gate only waits. The row read "We cannot
+     * open COP accounts for you. Support can check why." Its tap now opens the
+     * wait drawer, which says there is nothing to do.
+     */
+    const inReview: GateState = { kind: 'pending', reason: { code: 'requirements_in_review', userMessage: '' } }
+    it.each([
+        [
+            'waiting-on-provider, with no answer from the backend',
+            { kind: 'waiting-on-provider', userMessage: null },
+            {},
+        ],
+        ['pending, with no answer from the backend', { kind: 'pending' }, {}],
+        [
+            'a supplement in review on an offered corridor',
+            inReview,
+            {
+                BANK_TRANSFER_CO: {
+                    railId: 'bridge.bank_transfer_co',
+                    method: 'BANK_TRANSFER_CO',
+                    country: 'CO',
+                    currency: 'COP',
+                    matching: { sender: 'unknown' },
+                },
+            },
+        ],
+    ] as [string, GateState, Partial<Record<DepositCorridor, ClaimableCorridor>>][])(
+        'opens a corridor whose gate is %s to the wait drawer',
+        (_case, gate, claimable) => {
+            const gates = { ...gatesAll(), BANK_TRANSFER_CO: gate }
+            const { open } = virtualAccountRows(input({ gates, claimable }), true)
+            const row = open.find((r) => r.corridor === 'BANK_TRANSFER_CO')!
+
+            expect(row.openable).toBe(true)
+            expect(isWaitView(row.view)).toBe(true)
+        }
+    )
+
+    it('keeps a gate that offers nothing to wait for closed', () => {
+        const gates = { ...gatesAll(), BANK_TRANSFER_CO: { kind: 'needs-enrollment' } as GateState }
+        const { open } = virtualAccountRows(input({ gates }), true)
+        const row = open.find((r) => r.corridor === 'BANK_TRANSFER_CO')!
+
+        expect(isWaitView(row.view)).toBe(false)
+        expect(row.openable).toBe(false)
     })
 
     it('keeps rows open where the tap leads to verification, a provider review or the account limit', () => {
