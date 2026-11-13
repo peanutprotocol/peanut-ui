@@ -155,14 +155,23 @@ function SetupPageContent() {
     const registrationIdentity = useRef<string | undefined>(undefined)
     const restoredDraft = useRef<SignupDraft | null>(null)
     const [draftReady, setDraftReady] = useState(false)
+    const hasUser = !!user
     const legacyRecoveryBoundary = useRef<ScreenId | null>(null)
     useEffect(() => {
         let cancelled = false
         void restoreSignupDraft()
             .then((draft) => {
                 if (cancelled) return
+                if (draft?.userId && (isFetchingUser || (!hasUser && userFetchError && mayHoldSession()))) {
+                    setDraftReady(true)
+                    return
+                }
+                if (draft?.userId && draft.userId !== userIdRef.current) {
+                    void discardSignupDraft()
+                    draft = null
+                }
                 restoredDraft.current = draft
-                if (draft && (!userIdRef.current || draft.userId === userIdRef.current)) {
+                if (draft && (draft.userId ? draft.userId === userIdRef.current : !userIdRef.current)) {
                     const { answers } = draft
                     setUsername(answers.username)
                     setInviteSelection(answers.inviteSelection)
@@ -184,6 +193,9 @@ function SetupPageContent() {
             cancelled = true
         }
     }, [
+        isFetchingUser,
+        hasUser,
+        userFetchError,
         setFeatureScreenIds,
         setFundingChannel,
         setInviteSelection,
@@ -195,6 +207,11 @@ function SetupPageContent() {
         setSellScreensCountry,
         setUsername,
     ])
+    useEffect(() => {
+        if (!signupCompleted) return
+        void discardSignupDraft()
+        restoredDraft.current = null
+    }, [signupCompleted])
     /*
      * Where a reloaded or restarted signup continues: the step saved on this
      * device, with the answers given before it, so a person who reached the
@@ -572,6 +589,10 @@ function SetupPageContent() {
              * else at the first step after registration.
              */
             const resume = !isDemoMode() && unfinishedSignupRoute(user) === '/setup'
+            if (!resume) {
+                void discardSignupDraft()
+                restoredDraft.current = null
+            }
             if (resume) resumeSignup.current = true
             const exitSignedIn = () => {
                 if (!resume) {
@@ -734,6 +755,7 @@ function SetupPageContent() {
             // source of truth for IN-FLOW navigation (TASK-21460)
             const anonymousTarget =
                 draft &&
+                !draft.userId &&
                 !signedInUserId &&
                 !entryInput.webSignupClosed &&
                 !entryInput.knownDevice &&

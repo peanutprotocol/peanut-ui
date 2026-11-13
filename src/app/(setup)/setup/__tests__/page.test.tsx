@@ -12,7 +12,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 import { enableDemoMode, disableDemoMode } from '@/utils/demo'
-import { saveSignupDraft } from '@/features/setup/signup-draft'
+import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
 import { readSignupProgress, saveSignupProgress } from '@/features/setup/signup-progress'
 
 let mockNoBackLock: string | null = null
@@ -111,7 +111,11 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     }),
     isUntouchedNotificationChoices: (choices: unknown) => choices === mockDefaultChoices,
 }))
-jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
+jest.mock('@/utils/invite-stash', () => ({
+    readInviteCode: jest.fn(),
+    stashInvite: jest.fn(),
+    bindInviteToUser: jest.fn(async () => {}),
+}))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
     badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
     getPendingBadgeCampaigns: () => mockGetPendingBadgeCampaigns(),
@@ -125,7 +129,10 @@ jest.mock('@/hooks/useSetupFlow', () => ({
     postRegistrationScreen: () => 'notification-email',
     useSetupFlow: () => mockFlow,
 }))
-jest.mock('@/features/setup/saveSignupAnswers', () => ({ flushPendingSignupAnswers: jest.fn(async () => {}) }))
+jest.mock('@/features/setup/saveSignupAnswers', () => ({
+    flushPendingSignupAnswers: jest.fn(async () => {}),
+    queueSignupAnswers: jest.fn(async () => {}),
+}))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
@@ -1147,4 +1154,97 @@ it('keeps the demo’s completed flow when its synthetic account appears', async
     } finally {
         disableDemoMode()
     }
+})
+
+const savedAnswers = {
+    username: 'kimchi',
+    inviteSelection: 'alice',
+    residenceCountry: 'AR',
+    nationalityCountry: 'BR',
+    fundingChannel: 'arsBank' as const,
+    paymentChannel: 'qr' as const,
+    notificationChoices: null,
+    inviterAccepted: true,
+    sellScreensCountry: 'AR',
+}
+
+it('starts Welcome without restoring a previous account’s bound draft when signed out', async () => {
+    mockStore.steps = [landing, { ...landing, screenId: 'payment-plan' }]
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('previous-user', 'kimchi')
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('landing', { history: 'replace' })
+    expect(readSignupDraft()?.userId).toBeUndefined()
+    expect(readSignupDraft()?.answers.username || '').toBe('')
+    expect(mockAnswerSetters.setUsername).not.toHaveBeenCalledWith('kimchi')
+    expect(mockAnswerSetters.setInviteSelection).not.toHaveBeenCalledWith('alice')
+    expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalledWith('AR')
+    expect(mockAnswerSetters.setNationalityCountry).not.toHaveBeenCalledWith('BR')
+    expect(mockAnswerSetters.setFundingChannel).not.toHaveBeenCalledWith('arsBank')
+    expect(mockAnswerSetters.setPaymentChannel).not.toHaveBeenCalledWith('qr')
+    expect(mockAnswerSetters.setInviterAccepted).not.toHaveBeenCalledWith(true)
+    expect(mockSetSellScreensCountry).not.toHaveBeenCalledWith('AR')
+})
+
+it('restores an unbound draft and resumes its saved step after restart', async () => {
+    mockStore.steps = [landing, { ...landing, screenId: 'payment-plan' }]
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('payment-plan', { history: 'replace' })
+    expect(mockAnswerSetters.setUsername).toHaveBeenCalledWith('kimchi')
+    expect(mockAnswerSetters.setInviteSelection).toHaveBeenCalledWith('alice')
+    expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('AR')
+    expect(mockAnswerSetters.setNationalityCountry).toHaveBeenCalledWith('BR')
+    expect(mockAnswerSetters.setFundingChannel).toHaveBeenCalledWith('arsBank')
+    expect(mockAnswerSetters.setPaymentChannel).toHaveBeenCalledWith('qr')
+    expect(mockAnswerSetters.setInviterAccepted).toHaveBeenCalledWith(true)
+    expect(mockSetSellScreensCountry).toHaveBeenCalledWith('AR')
+})
+
+it('clears the bound draft when signup completes', async () => {
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('u1', 'kimchi')
+    mockAuth.user = { user: { userId: 'u1', username: 'kimchi' }, accounts: WALLET }
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(readSignupDraft()).toBeNull()
+})
+
+it('clears the bound draft when the setup flow marks signup complete', async () => {
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('u1', 'kimchi')
+    mockAuth.user = { user: { userId: 'u1', username: 'kimchi' }, accounts: [] }
+    mockSignupCompleted = true
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(readSignupDraft()).toBeNull()
+})
+
+it('preserves a bound draft while session hydration is pending for its matching user', async () => {
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('u1', 'kimchi')
+    mockAuth.isFetchingUser = true
+    mockStore.steps = [landing, { ...landing, screenId: 'payment-plan' }]
+
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(readSignupDraft()?.userId).toBe('u1')
+    expect(mockAnswerSetters.setUsername).not.toHaveBeenCalledWith('kimchi')
+
+    mockAuth.isFetchingUser = false
+    mockAuth.user = { user: { userId: 'u1', username: 'kimchi' }, accounts: [] }
+    view.rerender(<SetupPage />)
+    await advance(100)
+    expect(readSignupDraft()?.userId).toBe('u1')
 })

@@ -1,5 +1,6 @@
 import {
     bindSignupDraft,
+    discardSignupDraft,
     recordSignupRegistration,
     readSignupDraft,
     restoreSignupDraft,
@@ -11,6 +12,7 @@ import { getUsernameHoldToken } from '../username-reservation'
 
 let mockNative = false
 const mockPreferences = new Map<string, string>()
+const mockGetPreference = jest.fn(async ({ key }: { key: string }) => ({ value: mockPreferences.get(key) ?? null }))
 const mockUpdate = jest.fn()
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
@@ -19,7 +21,7 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 jest.mock('@capacitor/preferences', () => ({
     Preferences: {
-        get: async ({ key }: { key: string }) => ({ value: mockPreferences.get(key) ?? null }),
+        get: (options: { key: string }) => mockGetPreference(options),
         set: async ({ key, value }: { key: string; value: string }) => {
             mockPreferences.set(key, value)
         },
@@ -50,6 +52,9 @@ beforeEach(() => {
     localStorage.clear()
     mockPreferences.clear()
     mockNative = false
+    mockGetPreference.mockReset().mockImplementation(async ({ key }: { key: string }) => ({
+        value: mockPreferences.get(key) ?? null,
+    }))
     mockUpdate.mockReset().mockResolvedValue({ error: 'offline' })
     __resetSignupSavesForTests()
 })
@@ -62,6 +67,47 @@ it('restores the native draft and install token after WebView storage disappears
     localStorage.clear()
     expect(await restoreSignupDraft()).toMatchObject(snapshot())
     expect(await getUsernameHoldToken()).toBe(token)
+})
+
+it('clears a bound draft from native storage before cleanup resolves and remains cleared after restart', async () => {
+    mockNative = true
+    saveSignupDraft(snapshot())
+    await recordSignupRegistration('registrant', 'kimchi')
+
+    await discardSignupDraft()
+    await discardSignupDraft()
+
+    expect(mockPreferences.has(KEY)).toBe(false)
+    localStorage.clear()
+    expect(await restoreSignupDraft()).toBeNull()
+})
+
+it('does not resurrect a discarded draft from an already pending native restore', async () => {
+    mockNative = true
+    saveSignupDraft(snapshot())
+    await recordSignupRegistration('registrant', 'kimchi')
+    const staleValue = mockPreferences.get(KEY)!
+    localStorage.clear()
+    let release!: (result: { value: string }) => void
+    let started!: () => void
+    const readStarted = new Promise<void>((resolve) => {
+        started = resolve
+    })
+    mockGetPreference.mockImplementationOnce(() => {
+        started()
+        return new Promise((resolve) => {
+            release = resolve
+        })
+    })
+    const restoring = restoreSignupDraft()
+    await readStarted
+
+    await discardSignupDraft()
+    release({ value: staleValue })
+
+    expect(await restoring).toBeNull()
+    expect(readSignupDraft()).toBeNull()
+    expect(mockPreferences.has(KEY)).toBe(false)
 })
 
 it('never binds or flushes one registrant’s draft into another account', async () => {

@@ -115,8 +115,8 @@ export function saveSignupDraft(draft: DraftInput): void {
     )
 }
 
-export function discardSignupDraft(): void {
-    void storeSignupValue(KEY, null)
+export function discardSignupDraft(): Promise<void> {
+    return storeSignupValue(KEY, null)
 }
 
 export async function bindSignupDraft(userId: string, fallback?: DraftInput): Promise<void> {

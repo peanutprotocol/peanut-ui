@@ -2,6 +2,7 @@ import { isNativeBridge } from '@/utils/capacitor'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 
 const writes = new Map<string, Promise<void>>()
+const revisions = new Map<string, number>()
 
 async function bounded<T>(operation: Promise<T>): Promise<T | null> {
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -14,6 +15,7 @@ async function bounded<T>(operation: Promise<T>): Promise<T | null> {
 }
 
 export function storeSignupValue(key: string, value: string | null): Promise<void> {
+    revisions.set(key, (revisions.get(key) ?? 0) + 1)
     if (value === null) removeStoredValue(key)
     else writeStoredValue(key, value)
     if (!isNativeBridge?.()) return Promise.resolve()
@@ -36,13 +38,14 @@ export function storeSignupValue(key: string, value: string | null): Promise<voi
 
 export async function restoreSignupValue(key: string): Promise<string | null> {
     const local = readStoredValue(key)
+    const revision = revisions.get(key)
     if (!isNativeBridge?.() || local !== null) return local
     try {
         const pending = writes.get(key)
         if (pending && (await bounded(pending.then(() => true))) === null) return readStoredValue(key)
         const { Preferences } = await import('@capacitor/preferences')
         const result = await bounded(Preferences.get({ key }))
-        if (readStoredValue(key) !== local) return readStoredValue(key)
+        if (revisions.get(key) !== revision || readStoredValue(key) !== local) return readStoredValue(key)
         if (result?.value) {
             writeStoredValue(key, result.value)
             return result.value

@@ -55,6 +55,7 @@ import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 import { flushPendingSignupAnswers } from '@/features/setup/saveSignupAnswers'
+import { discardSignupDraft } from '@/features/setup/signup-draft'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 import { clearAccountQueries } from '@/utils/account-query-cache'
 import { flushLedgerSync } from '@/features/attention/ledgerSync'
@@ -408,6 +409,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear auth tokens (localStorage in capacitor, cookie on web)
         removeFromCookie(WEB_AUTHN_COOKIE_KEY)
         await clearAuthToken()
+        await discardSignupDraft()
 
         // clear redirect url
         clearRedirectUrl()
