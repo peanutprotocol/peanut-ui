@@ -5,6 +5,14 @@ export const WELCOME_HEADLINE_EXPERIMENT_FLAG = 'welcome-headline-copy'
 export const WELCOME_HEADLINE_VARIANTS = ['control', 'every_border', 'whole_world', 'travels_free'] as const
 export type WelcomeHeadlineVariant = (typeof WELCOME_HEADLINE_VARIANTS)[number]
 
+export function registerWelcomeHeadlineVariant(variant: WelcomeHeadlineVariant) {
+    try {
+        posthog.register({ welcome_variant: variant })
+    } catch {
+        // Analytics must not block sign-up.
+    }
+}
+
 const isVariant = (value: unknown): value is WelcomeHeadlineVariant =>
     WELCOME_HEADLINE_VARIANTS.some((variant) => variant === value)
 

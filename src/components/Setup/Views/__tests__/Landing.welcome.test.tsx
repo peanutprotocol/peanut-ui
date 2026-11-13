@@ -25,6 +25,7 @@ const copies = {
 } as const
 const mockGetFeatureFlag = jest.fn()
 const mockCapture = jest.fn()
+const mockRegister = jest.fn()
 const mockSubscribe = jest.fn()
 const mockUnsubscribe = jest.fn()
 const mockNext = jest.fn()
@@ -48,6 +49,7 @@ jest.mock('posthog-js', () => ({
     default: {
         getFeatureFlag: (...args: unknown[]) => mockGetFeatureFlag(...args),
         capture: (...args: unknown[]) => mockCapture(...args),
+        register: (...args: unknown[]) => mockRegister(...args),
         onFeatureFlags: (callback: () => void) => mockSubscribe(callback),
         featureFlags: {
             get hasLoadedFlags() {
@@ -118,7 +120,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/features/setup/useSignupControl', () => ({
     ...jest.requireActual('@/features/setup/useSignupControl'),
-    useSignupControl: () => ({ track: jest.fn() }),
+    useSignupControl: () => ({ track: jest.fn(), trackError: jest.fn() }),
 }))
 jest.mock('../LoginRecoveryDrawer', () => ({ LoginRecoveryDrawer: () => null }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
@@ -198,6 +200,7 @@ function expectCopy(variant: keyof typeof copies) {
 }
 const signup = () => screen.getByRole('button', { name: /sign up/i })
 function expectClickVariant(variant: keyof typeof copies) {
+    expect(mockRegister).toHaveBeenCalledWith({ welcome_variant: variant })
     expect(mockCapture).toHaveBeenCalledWith(
         'signup_signup_clicked',
         expect.objectContaining({ welcome_variant: variant })

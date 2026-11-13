@@ -5,6 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { useSignupPasskey } from '../useSignupPasskey'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 
 // A fresh mock per test: a ceremony left running by an earlier test keeps its own
 // reference, so it can never add calls to the next test's count.
@@ -44,6 +45,7 @@ jest.mock('@/utils/capacitor', () => ({
     isIOSNativeBridge: () => mockIOSNativeBridge,
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({
         setNoBackLockScreenId: mockSetNoBackLock,
         registrationInProgress: false,
@@ -87,6 +89,9 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 
 /** The passkey screen's ceremony, recovery, and completion state. */
 function Harness({ username = 'kimi' }: { username?: string }) {
+    return onSignupScreen('passkey', <PasskeyHarness username={username} />)
+}
+function PasskeyHarness({ username }: { username: string }) {
     const passkey = useSignupPasskey(username)
     return (
         <div>
@@ -104,6 +109,60 @@ function Harness({ username = 'kimi' }: { username?: string }) {
 const claim = () => fireEvent.click(screen.getByRole('button', { name: 'Claim' }))
 const failedEvents = () =>
     (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED)
+
+describe('passkey error control contract', () => {
+    it.each([
+        ['NotAllowedError', 'LOGIN_CANCELED'],
+        ['CeremonyTimeoutError', 'CEREMONY_TIMEOUT'],
+        ['PasskeyServerError', 'NETWORK'],
+        ['PasskeyProviderUnsupportedError', 'PASSKEY_PROVIDER_UNSUPPORTED'],
+        ['UnknownPrivateErrorName', 'LOGIN_ERROR'],
+    ])('reports %s as a bounded category and reports a deliberate retry again', async (name, category) => {
+        mockHandleRegister.mockRejectedValue(Object.assign(new Error('private typed payload'), { name }))
+        renderWithIntl(<Harness />)
+        claim()
+        await waitFor(() =>
+            expect(signupControls(posthog.capture as jest.Mock)).toContain(`create_passkey:error:${category}`)
+        )
+        expect(JSON.stringify(signupControls(posthog.capture as jest.Mock))).not.toMatch(
+            /private|UnknownPrivateErrorName/
+        )
+        expect(mockNext).not.toHaveBeenCalled()
+        if (screen.queryByRole('button', { name: 'Retry' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        else claim()
+        await waitFor(() =>
+            expect(
+                signupControls(posthog.capture as jest.Mock).filter(
+                    (event) => event === `create_passkey:error:${category}`
+                )
+            ).toHaveLength(2)
+        )
+    })
+
+    it('reports a visible preflight warning once across rerenders', async () => {
+        mockSupport.mockResolvedValue({ isSupported: false, warning: 'private localized warning' })
+        const view = renderWithIntl(<Harness />)
+        await screen.findByTestId('preflight')
+        view.rerender(<Harness />)
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['create_passkey:error:PASSKEY_UNSUPPORTED'])
+    })
+
+    it('reports taken usernames and Log in failure without sending the exception text', async () => {
+        mockApiFetch.mockResolvedValue({ status: 200 })
+        mockLogin.mockRejectedValueOnce(
+            Object.assign(new Error('private login diagnostic'), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
+        await waitFor(() =>
+            expect(signupControls(posthog.capture as jest.Mock)).toContain('log_in:error:ACCOUNT_DELETED')
+        )
+        expect(signupControls(posthog.capture as jest.Mock)).toContain('username:error:taken')
+        expect(JSON.stringify(signupControls(posthog.capture as jest.Mock))).not.toMatch(/private|kimi/)
+    })
+})
 
 beforeEach(() => {
     jest.clearAllMocks()

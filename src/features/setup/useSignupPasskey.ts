@@ -21,6 +21,7 @@ import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-er
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
 import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
+import { useSignupControl } from './useSignupControl'
 import {
     PASSKEY_NOT_SAVED_HELP,
     WebAuthnErrorName,
@@ -72,6 +73,7 @@ export function useSignupPasskey(username: string) {
     const context = useSetupFlowContext()
     const { setNoBackLockScreenId, setRegistrationInProgress, setInviterAccepted, setRefusedUsername, steps } = context
     const { handleNext, setScreenId } = useSetupFlow()
+    const { trackError } = useSignupControl()
     const { user, fetchUser } = useAuth()
     const userRef = useRef(user)
     userRef.current = user
@@ -125,17 +127,31 @@ export function useSignupPasskey(username: string) {
     const [isPreparing, setIsPreparing] = useState(false)
 
     useEffect(() => {
+        let active = true
         void checkPasskeySupport().then((result) => {
-            if (!result.isSupported && result.warning) setPreflightWarning(result.warning)
+            if (active && !result.isSupported && result.warning) {
+                setPreflightWarning(result.warning)
+                trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
+            }
         })
-    }, [])
+        return () => {
+            active = false
+        }
+    }, [trackError])
+
+    useEffect(() => {
+        trackError('username', usernameTaken ? 'taken' : null)
+    }, [usernameTaken, trackError])
 
     const register = async () => {
+        trackError('create_passkey', null)
+        trackError('username', null)
         setInlineError(null)
         setHelpErrorName(null)
         setUsernameTaken(false)
 
         if (!/^[a-z][a-z0-9]{3,11}$/.test(username)) {
+            trackError('username', 'invalid')
             setScreenId('signup')
             return
         }
@@ -147,6 +163,7 @@ export function useSignupPasskey(username: string) {
             const message = support.warning ?? t('passkey.notAvailable')
             setPreflightWarning(message)
             setInlineError(message)
+            trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: 'PreflightUnsupported',
@@ -161,6 +178,7 @@ export function useSignupPasskey(username: string) {
         const taken = await isUsernameTaken(username)
         if (taken === null && uncertainRegistration.current) {
             setInlineError(t('passkey.serverUnreachable'))
+            trackError('create_passkey', 'NETWORK')
             return
         }
         if (taken) {
@@ -190,6 +208,7 @@ export function useSignupPasskey(username: string) {
             setRegistrationInProgress(false)
             const err = error as Error
             if (err.name === 'UsernameReserved') {
+                trackError('username', 'refused')
                 uncertainRegistration.current = false
                 setRefusedUsername(username)
                 setScreenId('signup')
@@ -207,12 +226,19 @@ export function useSignupPasskey(username: string) {
                 ceremony_ms: ceremony?.durationMs,
                 attempt: attemptsRef.current,
             })
+            trackError(
+                'create_passkey',
+                err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code
+            )
 
             if (err.name === 'UsernameTaken') {
                 const registered = await isUsernameTaken(username)
                 if (registered === true) setUsernameTaken(true)
                 else if (registered === false) setScreenId('signup')
-                else setInlineError(t('passkey.serverUnreachable'))
+                else {
+                    setInlineError(t('passkey.serverUnreachable'))
+                    trackError('create_passkey', 'NETWORK')
+                }
                 return
             }
             if (await isUsernameTaken(username)) {
@@ -338,11 +364,13 @@ export function useSignupPasskey(username: string) {
     }
 
     const logIn = async () => {
+        trackError('log_in', null)
         setInlineError(null)
         try {
             await handleLoginClick()
             // success: useLogin's effect redirects once the user is loaded
         } catch (error) {
+            trackError('log_in', getPasskeyErrorCode(error) ?? classifyPasskeyError(error).code)
             // The taken username belongs to a deleted account, so only a new username can sign up.
             if (getPasskeyErrorCode(error) === 'ACCOUNT_DELETED') {
                 setUsernameTaken(false)

@@ -34,22 +34,23 @@ export default function EmailStep() {
     const [keepCurrentEmail, setKeepCurrentEmail] = useState(false)
     const savingRef = useRef(false)
     const saveAttemptsRef = useRef(0)
-    const { track, trackOnce } = useSignupControl()
+    const { track, trackOnce, trackError } = useSignupControl()
     const save = async (event: React.FormEvent) => {
         event.preventDefault()
         if (savingRef.current) return
         track('continue', 'tap')
+        trackError('email', null)
         setError(undefined)
         setEmailInUse(false)
         const value = email.trim()
         if (!keepCurrentEmail && !isValidEmail(value)) {
             setError(t('invalid'))
-            track('email', 'error', 'invalid')
+            trackError('email', 'invalid')
             return
         }
         if (!user?.user.userId) {
             setError(t('notReady'))
-            track('email', 'error', 'not_ready')
+            trackError('email', 'not_ready')
             return
         }
         savingRef.current = true
@@ -102,12 +103,12 @@ export default function EmailStep() {
                         setKeepCurrentEmail(true)
                         setEmail(user.user.email || '')
                         setNotificationEmail(user.user.email || '')
-                        track('email', 'error', protectedFailure)
+                        trackError('email', protectedFailure)
                         return
                     }
                     setEmailInUse(duplicate)
                     setError(t(duplicate ? 'alreadyRegistered' : 'saveFailed'))
-                    track('email', 'error', duplicate ? 'already_registered' : 'save_failed')
+                    trackError('email', duplicate ? 'already_registered' : 'save_failed')
                     // Retryable failures keep the draft and require a confirmed save.
                     return
                 }
@@ -146,6 +147,7 @@ export default function EmailStep() {
                     value={email}
                     onChange={(value) => {
                         trackOnce('email', 'change')
+                        trackError('email', null)
                         setEmail(value)
                         setError(undefined)
                         setEmailInUse(false)

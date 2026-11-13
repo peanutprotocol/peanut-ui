@@ -80,7 +80,10 @@ export default function InviteStep() {
                         setDraft(value)
                         setIsValid(isValid)
                         setIsChanging(isChanging)
-                        if (isChanging) setError('')
+                        if (isChanging) {
+                            setError('')
+                            trackError('inviter_username', null)
+                        }
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}

@@ -226,6 +226,25 @@ describe('Back before and after the passkey succeeds (failure 7)', () => {
 })
 
 describe('analytics (failure 15)', () => {
+    it.each(setupSteps.map((step) => [step.screenId, step] as const))(
+        'views %s once per visit even after rerender',
+        (_id, step) => {
+            const { rerender } = renderHook(() =>
+                useSetupStepAnalytics({ enabled: true, step, steps: setupSteps, signupEntryFlow: 'default' })
+            )
+            const views = () =>
+                (posthog.capture as jest.Mock).mock.calls.filter(
+                    ([event]) => event === ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED
+                )
+            rerender()
+            expect(views()).toEqual([
+                [
+                    ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED,
+                    expect.objectContaining({ screen_id: step.screenId, step_index: setupSteps.indexOf(step) + 1 }),
+                ],
+            ])
+        }
+    )
     it('reports flow version 2', () => {
         expect(SIGNUP_FLOW_VERSION).toBe(2)
         expect(signupAnalyticsContext('default')).toEqual({ flow_version: 2, signup_entry_flow: 'default' })

@@ -6,6 +6,7 @@ import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import PasskeyStep from '../Passkey'
 
 const mockSetScreenId = jest.fn()
+const mockSetRefusedUsername = jest.fn()
 const mockReserveUsername = jest.fn()
 const mockClaim = jest.fn(async () => {})
 const mockPasskey = {
@@ -28,7 +29,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({
     useSetupFlow: () => ({ isLoading: false, setScreenId: mockSetScreenId }),
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ username: 'newuser' }),
+    useSetupFlowContext: () => ({ username: 'newuser', setRefusedUsername: mockSetRefusedUsername }),
     useOptionalSetupFlow: () => null,
 }))
 jest.mock('@/features/setup/useSignupPasskey', () => ({
@@ -56,6 +57,18 @@ beforeEach(() => {
 })
 
 describe('Create passkey', () => {
+    it.each(['taken', 'refused', 'invalid'])(
+        'reports a mount reservation %s before returning to Claim',
+        async (result) => {
+            mockReserveUsername.mockResolvedValue(result)
+            renderPasskey()
+            await act(async () => {})
+            expect(mockSetScreenId).toHaveBeenCalledWith('signup')
+            expect(signupControls(posthog.capture as jest.Mock)).toEqual([`username:error:${result}`])
+            expect(mockClaim).not.toHaveBeenCalled()
+            expect(mockSetRefusedUsername).toHaveBeenCalledTimes(result === 'refused' ? 1 : 0)
+        }
+    )
     it('opens the passkey ceremony directly and refreshes the reserved username on mount', () => {
         renderPasskey()
         expect(mockReserveUsername).toHaveBeenCalledWith('newuser')
@@ -98,6 +111,7 @@ describe('Create passkey — control analytics', () => {
         fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
         fireEvent.click(screen.getByRole('button', { name: 'Log in', hidden: true }))
         expect(controls()).toEqual([
+            'passkey_help:open',
             'passkey_help_retry:tap',
             'passkey_help_support:tap',
             'passkey_help:dismiss',
@@ -106,6 +120,18 @@ describe('Create passkey — control analytics', () => {
         expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
         expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
         expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
+    })
+
+    it('reports help visibility once per opening, including after closing and reopening', () => {
+        Object.assign(mockPasskey, { helpErrorName: 'NotAllowedError', isHelpOpen: true })
+        const view = renderPasskey()
+        view.rerender(onSignupScreen('passkey', <PasskeyStep />))
+        expect(controls()).toEqual(['passkey_help:open'])
+        mockPasskey.isHelpOpen = false
+        view.rerender(onSignupScreen('passkey', <PasskeyStep />))
+        mockPasskey.isHelpOpen = true
+        view.rerender(onSignupScreen('passkey', <PasskeyStep />))
+        expect(controls()).toEqual(['passkey_help:open', 'passkey_help:open'])
     })
 
     it('shows an unsupported passkey provider inline, without a drawer', () => {

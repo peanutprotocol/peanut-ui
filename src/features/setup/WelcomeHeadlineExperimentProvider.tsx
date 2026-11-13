@@ -6,7 +6,11 @@ import posthog from 'posthog-js'
 import { hasKnownDeviceCredentials } from '@/components/Setup/setup-entry'
 import { useNativePlatform } from '@/utils/native-platform'
 import { areFeatureFlagsLoaded } from '@/utils/featureFlag.utils'
-import { readWelcomeHeadlineVariant, type WelcomeHeadlineVariant } from './welcomeHeadlineExperiment'
+import {
+    readWelcomeHeadlineVariant,
+    registerWelcomeHeadlineVariant,
+    type WelcomeHeadlineVariant,
+} from './welcomeHeadlineExperiment'
 
 const FLAG_WAIT_MS = 1500
 type Resolution = { variant: WelcomeHeadlineVariant; reserveSpace: boolean }
@@ -38,6 +42,7 @@ export function WelcomeHeadlineExperimentProvider({
         if (settled.current) return
         settled.current = true
         dispose.current()
+        registerWelcomeHeadlineVariant('control')
         setResolution({ variant: 'control', reserveSpace: true })
     }, [])
 
@@ -61,7 +66,9 @@ export function WelcomeHeadlineExperimentProvider({
             settled.current = true
             clear()
             const canExpose = read && !hasKnownDeviceCredentials() && Date.now() < deadline
-            setResolution({ variant: readWelcomeHeadlineVariant(canExpose), reserveSpace: eligible })
+            const variant = readWelcomeHeadlineVariant(canExpose)
+            registerWelcomeHeadlineVariant(variant)
+            setResolution({ variant, reserveSpace: eligible })
         }
         const onFlags = () => {
             if (Date.now() >= deadline) settle(false)

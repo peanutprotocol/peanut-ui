@@ -11,16 +11,19 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { notifyHaptic } from '@/utils/haptics'
 import { confettiPresets } from '@/utils/confetti'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 
 /** Full-page celebration with centered content and the shared mascot/confetti. */
 export function SetupCelebrationView() {
     const t = useTranslations('setup')
     const celebrated = useRef(false)
+    const { track } = useSignupControl()
     useEffect(() => {
         if (celebrated.current) return
         celebrated.current = true
+        track('celebration', 'open')
         confettiPresets.success()
-    }, [])
+    }, [track])
 
     return (
         <PageStack className="flex-1" data-setup-celebration>

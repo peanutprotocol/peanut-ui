@@ -142,6 +142,25 @@ it('keeps EMAIL_IN_USE as a duplicate-address error', async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByText('The user with this email was already registered.')).toBeInTheDocument()
     expect(mockNext).not.toHaveBeenCalled()
+    expect(signupControls(posthog.capture as jest.Mock)).toContain('email:error:already_registered')
+})
+
+it('reports each failed save attempt, without duplicating errors on rerender', async () => {
+    mockUpdateUser.mockResolvedValue({ error: 'private backend error' })
+    const view = renderEmail()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Email address' }), {
+        target: { value: 'private@example.com' },
+    })
+    for (const attempt of [1, 2]) {
+        fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+        await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledTimes(attempt))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+        expect(
+            signupControls(posthog.capture as jest.Mock).filter((event) => event === 'email:error:save_failed')
+        ).toHaveLength(attempt)
+    }
+    expect(JSON.stringify((posthog.capture as jest.Mock).mock.calls)).not.toMatch(/private|example.com/)
+    view.unmount()
 })
 
 it.each(

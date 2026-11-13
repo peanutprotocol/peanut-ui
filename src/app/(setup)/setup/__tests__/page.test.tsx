@@ -228,13 +228,23 @@ beforeEach(() => {
     mockSearchParams = new URLSearchParams()
     mockStoredRedirect = null
 })
+
+it('does not record a step while a profile refresh hides it behind Loading', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    mockAuth.isFetchingUser = true
+    view.rerender(<SetupPage />)
+    expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
+})
 afterEach(() => {
     jest.useRealTimers()
 })
 
 it('shows retry and support when no current setup step can render', async () => {
     mockFlow.step = undefined
-    renderWithIntl(<SetupPage />)
+    const view = renderWithIntl(<SetupPage />)
     await advance(100)
     await advance(100)
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
@@ -255,6 +265,17 @@ it('shows retry and support when no current setup step can render', async () => 
         expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
     )
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
+    view.rerender(<SetupPage />)
+    const captures = (posthog.capture as jest.Mock).mock.calls
+    expect(
+        captures.filter(
+            ([event, props]) => event === ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED && props.screen_id === 'setup-error'
+        )
+    ).toHaveLength(1)
+    expect(captures).toContainEqual([
+        ANALYTICS_EVENTS.CONTROL_USED,
+        expect.objectContaining({ screen_id: 'setup-error', control: 'setup', action: 'error', value: 'missing_step' }),
+    ])
 })
 
 it.each([true, false])('does not select the wrong step when the entry step is absent (native=%s)', async (native) => {

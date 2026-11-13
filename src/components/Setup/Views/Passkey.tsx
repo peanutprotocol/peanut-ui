@@ -20,7 +20,12 @@ export default function PasskeyStep() {
     const { username, setRefusedUsername } = useSetupFlowContext()
     const passkey = useSignupPasskey(username)
     const { setScreenId } = useSetupFlow()
-    const { track } = useSignupControl()
+    const { track, trackError } = useSignupControl()
+    const helpWasOpen = useRef(false)
+    useEffect(() => {
+        if (passkey.isHelpOpen && !helpWasOpen.current) track('passkey_help', 'open')
+        helpWasOpen.current = passkey.isHelpOpen
+    }, [passkey.isHelpOpen, track])
     const refresh = useRef<{ username: string; request: ReturnType<typeof reserveUsername> }>()
     const registering = useRef(passkey.isClaiming)
     registering.current = passkey.isClaiming
@@ -29,6 +34,7 @@ export default function PasskeyStep() {
     useEffect(() => {
         let active = true
         if (!/^[a-z][a-z0-9]{3,11}$/.test(username)) {
+            trackError('username', 'invalid')
             navigate.current('signup')
             return
         }
@@ -39,6 +45,7 @@ export default function PasskeyStep() {
                 !registering.current &&
                 (result === 'taken' || result === 'refused' || result === 'invalid')
             ) {
+                trackError('username', result)
                 if (result === 'refused') setRefusedUsername(username)
                 navigate.current('signup')
             }
@@ -46,7 +53,7 @@ export default function PasskeyStep() {
         return () => {
             active = false
         }
-    }, [username, setRefusedUsername])
+    }, [username, setRefusedUsername, trackError])
 
     const createPasskey = () => {
         track('create_passkey', 'tap')

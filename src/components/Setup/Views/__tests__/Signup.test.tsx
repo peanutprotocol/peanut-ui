@@ -65,6 +65,17 @@ beforeEach(() => {
 afterEach(() => disableDemoMode())
 
 describe('Claim username', () => {
+    it('reports the same validation category again after the field error was cleared by editing', async () => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'ab' } })
+        await screen.findByText('Use at least 4 characters.')
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        await waitFor(() =>
+            expect(
+                signupControls(posthog.capture as jest.Mock).filter((event) => event === 'username:error:too_short')
+            ).toHaveLength(2)
+        )
+    })
     it('reserves a valid, available username and advances without a passkey ceremony', async () => {
         renderSignup()
         expect(claimButton()).toBeDisabled()

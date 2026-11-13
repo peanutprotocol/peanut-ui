@@ -243,6 +243,7 @@ const SignupStep = () => {
 
         // Clear error when input is being changed
         if (isChanging) {
+            trackError('username', null)
             setError('')
             setRefusedUsername(null)
         }

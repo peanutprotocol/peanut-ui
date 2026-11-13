@@ -2,7 +2,12 @@
 
 import { useNativePlatform } from '@/utils/native-platform'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { getPasskeyErrorCode, getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
+import {
+    classifyPasskeyError,
+    getPasskeyErrorCode,
+    getPasskeyErrorSetupKey,
+    isAlreadyReported,
+} from '@/utils/webauthn.utils'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
@@ -51,7 +56,7 @@ const LandingStep = () => {
     const flow = useOptionalSetupFlow()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
-    const { track } = useSignupControl()
+    const { track, trackError } = useSignupControl()
     const { variant: welcomeVariant, cancelPending: cancelWelcomePending } = useWelcomeHeadlineExperiment()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [loginFailed, setLoginFailed] = useState(false)
@@ -87,12 +92,14 @@ const LandingStep = () => {
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         const passkeyErrorCode = getPasskeyErrorCode(error)
+        trackError('log_in', passkeyErrorCode ?? classifyPasskeyError(error).code)
         const recovery = offersRecovery(passkeyErrorCode)
         // A single dismissal of the passkey sheet is a choice, not a failed login.
         if (passkeyErrorCode !== 'LOGIN_CANCELED' || recovery) setLoginFailed(true)
         if (passkeyErrorCode === 'ACCOUNT_DELETED') {
             setIsAccountDeleted(true)
         } else if (recovery) {
+            track('login_recovery', 'open')
             recoveryActionRef.current = null
             setIsRecoveryOpen(true)
         } else {
@@ -110,6 +117,7 @@ const LandingStep = () => {
     }
 
     const login = async () => {
+        trackError('log_in', null)
         setIsAccountDeleted(false)
         try {
             await handleLoginClick()

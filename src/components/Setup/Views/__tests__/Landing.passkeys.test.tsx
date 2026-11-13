@@ -86,7 +86,9 @@ jest.mock('@/components/Setup/components/SetupDocsDrawer', () => ({
 }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
-jest.mock('@/features/setup/useSignupControl', () => ({ useSignupControl: () => ({ track: jest.fn() }) }))
+jest.mock('@/features/setup/useSignupControl', () => ({
+    useSignupControl: () => ({ track: jest.fn(), trackError: jest.fn() }),
+}))
 jest.mock('../LoginRecoveryDrawer', () => ({ LoginRecoveryDrawer: () => null }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => true }))
 jest.mock('@/hooks/useGetDeviceType', () => ({

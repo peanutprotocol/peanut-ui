@@ -167,7 +167,7 @@ const SignTestTransaction = ({
     const { sendTestTransaction } = useSignupTestTransaction()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser, logoutUser, isLoggingOut } = useAuth()
-    const { track } = useSignupControl()
+    const { track, trackError } = useSignupControl()
     const {
         residenceCountry,
         nationalityCountry,
@@ -182,6 +182,9 @@ const SignTestTransaction = ({
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const [canDefer, setCanDefer] = useState(false)
+    useEffect(() => {
+        trackError('finish', errorKey ?? (setupError ? 'setup_failed' : null))
+    }, [errorKey, setupError, trackError])
     const attemptInFlightRef = useRef(false)
     const deferredRef = useRef(false)
     const creatingAccountRef = useRef(false)

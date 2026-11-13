@@ -343,7 +343,15 @@ describe('Landing — control analytics', () => {
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
         fireEvent.keyDown(await screen.findByRole('dialog'), { key: 'Escape' })
         await waitFor(() => expect(recoveryActions()).toEqual(['retry', 'dismiss']))
-        expect(controls()).toEqual(['log_in:tap', 'recovery_retry:tap', 'login_recovery:dismiss'])
+        expect(controls()).toEqual([
+            'log_in:tap',
+            'log_in:error:PASSKEY_NOT_FOUND',
+            'login_recovery:open',
+            'recovery_retry:tap',
+            'log_in:error:PASSKEY_NOT_FOUND',
+            'login_recovery:open',
+            'login_recovery:dismiss',
+        ])
     })
 
     it('reports the store button on the web app-only layout', () => {

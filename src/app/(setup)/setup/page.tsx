@@ -46,7 +46,7 @@ import {
 } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
-import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
+import { captureSignupStepViewed, resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 import {
@@ -486,13 +486,35 @@ function SetupPageContent() {
         !registrationInProgress
 
     useSetupStepAnalytics({
-        enabled: stepRendered,
+        enabled:
+            stepRendered &&
+            !isLeavingForHome &&
+            !isSettlingNativeBadgeCampaigns &&
+            !retryingInitialization &&
+            !isFetchingUser,
         step,
         steps,
         signupEntryFlow,
     })
     useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
-    const { track: trackErrorScreen } = useSignupControl('setup-error')
+    const { track: trackErrorScreen, trackError: trackSetupError } = useSignupControl('setup-error')
+    const recoveryViewed = useRef(false)
+    useEffect(() => {
+        trackSetupError('setup', recoveryReason)
+        if (!recoveryReason) {
+            recoveryViewed.current = false
+            return
+        }
+        if (recoveryViewed.current) return
+        recoveryViewed.current = true
+        captureSignupStepViewed({
+            screenId: 'setup-error',
+            stepIndex: 1,
+            totalSteps: 1,
+            navType: 'initial',
+            signupEntryFlow,
+        })
+    }, [recoveryReason, signupEntryFlow, trackSetupError])
 
     useEffect(() => {
         if (!draftReady || isFetchingUser || isDemoMode()) return

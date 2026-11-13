@@ -226,6 +226,17 @@ describe('Invited by a friend? (before registration)', () => {
 describe('Invited by a friend? — control analytics', () => {
     const controls = () => signupControls(posthog.capture as jest.Mock)
 
+    it('reports the same validation refusal again after editing clears it', async () => {
+        mockValidateInviter.mockResolvedValue({ success: true, notFound: true, attributionResolved: false })
+        renderInvite()
+        fireEvent.change(field(), { target: { value: 'nobodyhere' } })
+        await waitFor(() => expect(controls()).toContain('inviter_username:error:not_found'))
+        fireEvent.change(field(), { target: { value: 'nobodyelse' } })
+        await waitFor(() =>
+            expect(controls().filter((event) => event === 'inviter_username:error:not_found')).toHaveLength(2)
+        )
+    })
+
     it('reports the first edit, why an inviter failed, and Continue', async () => {
         mockValidateInviter.mockResolvedValueOnce({ success: true, notFound: true, attributionResolved: false })
         renderInvite()

@@ -784,3 +784,15 @@ it('reports the passkey explainer, its Got it and dismissal, Log out and Confirm
         'finish:tap',
     ])
 })
+
+it('reports final confirmation errors by category without the raw failure text', async () => {
+    mockSendUserOp.mockRejectedValue(new Error('private provider diagnostic'))
+    renderWithIntl(onSignupScreen('advantage-control', <SignTestTransaction merged onComplete={jest.fn()} />))
+    fireEvent.click(screen.getByRole('button', { name: en.setup.cta.finish }))
+    await waitFor(() =>
+        expect(signupControls(posthog.capture as jest.Mock)).toContain(
+            'finish:error:testTransaction.errors.supportNeeded'
+        )
+    )
+    expect(JSON.stringify(signupControls(posthog.capture as jest.Mock))).not.toContain('private')
+})
