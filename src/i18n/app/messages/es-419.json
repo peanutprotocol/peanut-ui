@@ -3445,6 +3445,8 @@
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
             "notAcceptedYet": "Parece que todavía no aceptaste los términos. Inténtalo de nuevo.",
+            "unconfirmedTitle": "Términos enviados",
+            "unconfirmedDescription": "Enviamos tu aceptación a nuestro socio de pagos. Todavía no la confirmó. No necesitas aceptar de nuevo.",
             "notNow": "Ahora no",
             "title": "Aceptar términos"
         },

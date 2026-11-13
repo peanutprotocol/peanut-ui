@@ -103,19 +103,27 @@ export function deriveCapabilityPhaseSignals(
  * A manual exit never comes here: the confirm endpoint reads Bridge's
  * customer-level flag, which a user who signed the base terms already has, so
  * it cannot tell whether they signed the terms this page asked for.
+ *
+ * Four outcomes, because each one asks something different of the user
+ * (TASK-24909):
+ *   accepted     — Bridge has the signature and the account no longer asks for terms
+ *   unconfirmed  — Bridge has the signature, but the account still asks for terms.
+ *                  Another page cannot change that: one user accepted 30 times.
+ *   not-accepted — Bridge has no signature
+ *   failed       — the confirm request failed, so nothing is known
  */
 export async function resolveBridgeTosClose(
     fetchUser: () => Promise<IUserProfile | null>,
     source: Exclude<IframeCloseSource, 'manual'>,
     country?: string
-): Promise<boolean> {
-    let accepted = !!(await confirmBridgeTos()).data?.accepted
-    if (!accepted) {
+): Promise<'accepted' | 'unconfirmed' | 'not-accepted' | 'failed'> {
+    let confirmation = await confirmBridgeTos()
+    if (!confirmation.data?.accepted) {
         await new Promise((resolve) => setTimeout(resolve, 2000))
-        accepted = !!(await confirmBridgeTos()).data?.accepted
+        confirmation = await confirmBridgeTos()
     }
 
-    if (!accepted) return false
+    if (!confirmation.data?.accepted) return confirmation.error ? 'failed' : 'not-accepted'
 
     posthog.capture(ANALYTICS_EVENTS.KYC_TOS_ACCEPTED, { source })
 
@@ -136,11 +144,11 @@ export async function resolveBridgeTosClose(
             updatedUser?.capabilities &&
             !deriveCapabilityPhaseSignals(updatedUser.capabilities, undefined, country).needsTos
         )
-            return true
+            return 'accepted'
         if (i < 2) await new Promise((resolve) => setTimeout(resolve, 2000))
     }
 
-    return false
+    return 'unconfirmed'
 }
 
 interface UseMultiPhaseKycFlowOptions {
@@ -867,10 +875,13 @@ export const useMultiPhaseKycFlow = ({
             try {
                 const intent = lastIntentRef.current ?? regionIntent
                 const country = requestedCountry ?? (intent === 'NA' ? 'US' : intent === 'EU' ? 'EU' : undefined)
-                const accepted = await resolveBridgeTosClose(fetchUser, source, country)
+                const outcome = await resolveBridgeTosClose(fetchUser, source, country)
                 if (generation !== flowGenerationRef.current || completionNoticeRef.current) return
-                if (!accepted) {
-                    if (source === 'tos_accepted') {
+                if (outcome !== 'accepted') {
+                    // A signature the account does not reflect yet, or a failed
+                    // confirm, ends where a thrown confirm does: another terms
+                    // page cannot help (TASK-24909).
+                    if (outcome !== 'not-accepted' || source === 'tos_accepted') {
                         setPreparingTimedOut(true)
                         return
                     }

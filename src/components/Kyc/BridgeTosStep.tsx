@@ -39,6 +39,8 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
     const [isLoading, setIsLoading] = useState(false)
     const [isConfirming, setIsConfirming] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // Bridge has the signature, the account still asks for terms: the step ends here (TASK-24909)
+    const [unconfirmed, setUnconfirmed] = useState(false)
     const [signed, setSigned] = useState(false)
     const openPage = useRef(false)
     const confirming = useRef(false)
@@ -54,6 +56,7 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
         setIsLoading(false)
         setTosLink(null)
         setError(null)
+        setUnconfirmed(false)
         return () => {
             lifetime.current += 1
         }
@@ -66,13 +69,18 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
             confirming.current = true
             setIsConfirming(true)
             try {
-                const accepted = await resolveBridgeTosClose(fetchUser, source, country)
+                const outcome = await resolveBridgeTosClose(fetchUser, source, country)
                 if (generation !== lifetime.current) return
-                if (accepted) {
+                if (outcome === 'accepted') {
                     onComplete()
                     return
                 }
-                setError(t(source === 'tos_accepted' ? 'bridgeTos.confirmError' : 'bridgeTos.notAcceptedYet'))
+                // another terms page cannot change it, so nothing here offers one
+                if (outcome === 'unconfirmed') {
+                    setUnconfirmed(true)
+                    return
+                }
+                setError(t(outcome === 'failed' ? 'bridgeTos.confirmError' : 'bridgeTos.notAcceptedYet'))
             } catch (error) {
                 if (generation !== lifetime.current) return
                 Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'tos_confirm' } })
@@ -135,6 +143,34 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
     )
 
     if (!visible) return null
+
+    // a status, not an error: the acceptance is with Bridge, and accepting again cannot speed it up
+    if (unconfirmed)
+        return (
+            <ActionModal
+                visible
+                onClose={() => {
+                    track('tos', 'dismiss')
+                    onSkip()
+                }}
+                tone="attention"
+                icon={'clock' as IconName}
+                title={t('bridgeTos.unconfirmedTitle')}
+                description={t('bridgeTos.unconfirmedDescription')}
+                ctas={[
+                    {
+                        text: tCommon('gotIt'),
+                        onClick: () => {
+                            track('got_it', 'tap')
+                            onSkip()
+                        },
+                        variant: 'primary',
+                        className: 'w-full',
+                        shadowSize: '4',
+                    },
+                ]}
+            />
+        )
 
     return (
         <>

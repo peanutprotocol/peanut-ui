@@ -3446,6 +3446,8 @@
             "genericError": "Something went wrong. You can accept terms later from your activity feed.",
             "confirmError": "Something went wrong confirming your terms. Please try again.",
             "notAcceptedYet": "It looks like the terms haven't been accepted yet. Please try again.",
+            "unconfirmedTitle": "Terms sent",
+            "unconfirmedDescription": "We sent your acceptance to our payment partner. They have not confirmed it yet. You do not need to accept again.",
             "notNow": "Not now"
         },
         "reverificationPending": {
