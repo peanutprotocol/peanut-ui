@@ -18,7 +18,7 @@ import { useAuth } from '@/context/authContext'
 import { usePixDeposit } from '@/features/pix/usePixDeposit'
 import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import { formatBankAmount } from '@/utils/currency'
-import { pixProviderId } from '@/utils/provider.utils'
+import { usePixProviderId } from '@/features/pix/usePixProviderId'
 
 /**
  * The dynamic Pix code of one deposit (`?intentId=`), read from GET
@@ -53,7 +53,7 @@ export function PixQrDeposit({
     const { user } = useAuth()
     const { deposit, phase, isError } = usePixDeposit(intentId, onComplete)
     // the provider the deposit answer names, for its row and sheet
-    const providerId = pixProviderId(deposit?.provider)
+    const providerId = usePixProviderId(deposit?.provider)
 
     const expiresAtMs = useMemo(() => (deposit?.expiresAt ? Date.parse(deposit.expiresAt) : null), [deposit?.expiresAt])
     const countdown = useExpiryCountdown(expiresAtMs, phase === 'pending')

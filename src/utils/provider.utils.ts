@@ -65,9 +65,12 @@ export function providerIdForTransaction(
 
 /**
  * The legal record behind a Pix provider code, as a route, a /pix/* answer or a history entry
- * names it ('manteca', 'MANTECA'), for the provider row and its sheet: Pix moves reais. Null for
- * a provider no registry entry answers for: the screen then shows no provider row.
+ * names it ('manteca', 'MANTECA'), for the provider row and its sheet: Pix moves reais. Pix is the
+ * user's own money, so Bridge names the entity of the user's residence, as the bank screens do
+ * (`residenceIso2`: the verified residence, `useBridgeProviderId`). Null for a provider no registry
+ * entry answers for: the screen then shows no provider row.
  */
-export function pixProviderId(provider: string | null | undefined): ProviderId | null {
+export function pixProviderId(provider: string | null | undefined, residenceIso2?: string | null): ProviderId | null {
+    if (provider?.toUpperCase() === 'BRIDGE') return bridgeProviderIdForResidence(residenceIso2)
     return providerIdFor(provider, 'BRL')
 }

@@ -23,8 +23,8 @@ import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
-import { pixProviderId } from '@/utils/provider.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
+import { usePixProviderId } from '@/features/pix/usePixProviderId'
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
@@ -64,7 +64,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
     const ready = route.state === 'ready'
-    const providerId = pixProviderId(route.provider)
+    const providerId = usePixProviderId(route.provider)
     const intentId = urlState.intentId
 
     const [usdAmount, setUsdAmount] = useState('')

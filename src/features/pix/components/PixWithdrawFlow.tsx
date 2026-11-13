@@ -35,7 +35,7 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
-import { pixProviderId } from '@/utils/provider.utils'
+import { usePixProviderId } from '@/features/pix/usePixProviderId'
 
 /**
  * Withdraw by Pix, for whichever provider the withdraw route names: the own
@@ -60,7 +60,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const backToWithdraw = useSafeBack(WITHDRAW_BACK_FALLBACK_URL)
     const { fetchUser } = useAuth()
     // the provider the route names, for the provider row and its sheet
-    const providerId = pixProviderId(route.provider)
+    const providerId = usePixProviderId(route.provider)
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     // set once Confirm opened the withdrawal: from then on the URL shows its outcome, never the form again

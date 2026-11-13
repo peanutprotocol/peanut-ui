@@ -84,4 +84,13 @@ describe('the provider codes come from the registry', () => {
         expect(pixProviderId('MANTECA')).toBe('manteca-br')
         expect(pixProviderId(null)).toBeNull()
     })
+
+    // TASK-24910: Pix moves the user's own money, so Bridge names the resident's entity, as the bank screens do
+    it("names Bridge's entity for the user's residence on a Pix route", () => {
+        expect(pixProviderId('bridge', 'BR')).toBe('bridge-row')
+        expect(pixProviderId('BRIDGE', 'BR')).toBe(bridgeProviderIdForResidence('BR'))
+        expect(pixProviderId('bridge', null)).toBe('bridge')
+        // Manteca's record follows the currency, never the residence
+        expect(pixProviderId('manteca', 'BR')).toBe('manteca-br')
+    })
 })
