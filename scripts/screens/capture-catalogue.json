@@ -200,6 +200,11 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-bridge-setup-activate-legacy",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-bridge-setup-reviewing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
@@ -340,6 +345,11 @@
         "id": "fixture-history",
         "flow": "Home and shared states",
         "route": "/history"
+    },
+    {
+        "id": "fixture-pix-bridge-limits",
+        "flow": "Home and shared states",
+        "route": "/limits"
     },
     {
         "id": "fixture-history-pix-key-owner",
