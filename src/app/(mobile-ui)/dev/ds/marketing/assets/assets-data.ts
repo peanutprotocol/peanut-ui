@@ -1,10 +1,11 @@
-// Marketing asset inventory: the approved brand art — mascot, hero art, doodles,
-// gloves, logo set, easter eggs, avatars, badges — and where each piece is used.
+// Marketing asset inventory: the approved brand art — mascot, coin characters,
+// hero art, doodles, gloves, logo set, easter eggs, avatars, badges — and where each piece is used.
 // An asset that is not listed here is not approved. Files decided fix-later in
 // the Oct 2026 sweep stay in production but are not listed.
 
 import type { StaticImageData } from 'next/image'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
+import type { OnboardingAnimationName } from '@/components/Setup/components/OnboardingAnimation'
 import { LOGO, LOGO_LOCKUP, WORDMARK } from '@/assets/brand'
 import { PEANUTMAN_MOBILE, PEANUT_SITTING } from '@/assets/mascot'
 import { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer/easter-egg-countries.consts'
@@ -51,6 +52,27 @@ export const MASCOT_ENTRIES: MascotEntry[] = [
     { pose: 'walking', usedFor: 'Physical card on the way' },
     { pose: 'waving-hello', usedFor: 'Greetings, setup' },
     { pose: 'worried', usedFor: 'Errors, empty states' },
+]
+
+export interface LottieEntry {
+    label: string
+    animation: OnboardingAnimationName
+    /** path under src/ */
+    path: string
+    usedIn: string
+}
+
+/**
+ * The coin characters: USD, EUR and GBP coins with faces, all three in one
+ * Lottie comp. Approved by Konrad, 2026-11-13.
+ */
+export const COIN_CHARACTER_ENTRIES: LottieEntry[] = [
+    {
+        label: 'accounts',
+        animation: 'accounts',
+        path: 'assets/onboarding/accounts.json',
+        usedIn: 'Sign-up Accounts screen (advantage-fees step)',
+    },
 ]
 
 export interface ArtEntry {

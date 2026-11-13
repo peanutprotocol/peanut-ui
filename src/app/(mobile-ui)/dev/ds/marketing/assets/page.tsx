@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import OnboardingAnimation from '@/components/Setup/components/OnboardingAnimation'
 import { AVATAR_SIZE_CLASSES, type AvatarSize } from '@/components/Profile/avatar-size.consts'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
@@ -18,6 +19,7 @@ import {
     AVATAR_LETTER_ENTRIES,
     AVATAR_SIZE_RULE,
     BADGE_ENTRIES,
+    COIN_CHARACTER_ENTRIES,
     DOODLE_ENTRIES,
     EASTER_EGG_ENTRIES,
     EASTER_EGG_RULE,
@@ -100,7 +102,7 @@ export default function MarketingAssetsPage() {
         <DocPage>
             <DocHeader
                 title="Assets"
-                description="The art you may put on a marketing surface: mascot, doodles, gloves, logo set, easter eggs, avatars, badges. Not on this page = not approved."
+                description="The art you may put on a marketing surface: mascot, coin characters, doodles, gloves, logo set, easter eggs, avatars, badges. Not on this page = not approved."
             />
 
             <DesignNote type="warning">
@@ -134,6 +136,36 @@ export default function MarketingAssetsPage() {
                     <CodeBlock
                         label="mascot"
                         code={`import PeanutMascot from '@/components/Global/PeanutMascot'\n\n<PeanutMascot pose="waving-chill" className="h-32" />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection
+                title="Coin characters"
+                description="USD, EUR and GBP coins with faces. All three live in one Lottie comp and play as one loop."
+            >
+                <DocSection.Content>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {COIN_CHARACTER_ENTRIES.map((entry) => (
+                            <Card key={entry.label} className="flex h-full flex-col gap-2 p-3">
+                                <div className="flex h-48 items-center justify-center overflow-hidden rounded-sm bg-background-page">
+                                    <div className="h-40">
+                                        <OnboardingAnimation name={entry.animation} />
+                                    </div>
+                                </div>
+                                <p className="font-mono text-label-m">{entry.label}</p>
+                                <p className="font-mono text-body-xs break-all text-foreground-secondary">
+                                    {entry.path}
+                                </p>
+                                <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
+                            </Card>
+                        ))}
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="coin characters"
+                        code={`import OnboardingAnimation from '@/components/Setup/components/OnboardingAnimation'\n\n<OnboardingAnimation name="accounts" />`}
                     />
                 </DocSection.Code>
             </DocSection>
