@@ -25,7 +25,7 @@ jobs:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
-            - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
+            - uses: pnpm/action-setup@5eea8caf49c844361c1e9ddc1324e179c54b58e9 # v4.1.0
             - uses: actions/setup-node@v4
               with:
                   node-version: '20'
