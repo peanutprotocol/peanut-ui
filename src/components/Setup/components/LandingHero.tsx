@@ -7,6 +7,8 @@ import { useTranslations } from 'next-intl'
 import { LOGO } from '@/assets/brand'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import star from '@/assets/illustrations/star.svg'
+import coinEur from '@/assets/illustrations/coin-eur.webp'
+import coinUsd from '@/assets/illustrations/coin-usd.webp'
 import Card from '@/components/Global/Card'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { twMerge } from '@/utils/tw'
@@ -15,8 +17,8 @@ import { twMerge } from '@/utils/tw'
 const POP = { type: 'spring', stiffness: 520, damping: 13, mass: 0.6 } as const
 // Where the sample payment comes from: the two currencies of the bank details.
 const SOURCE_CHIPS = [
-    { code: 'USD', rotate: -6, delay: 0.3, className: 'top-1/2 left-0' },
-    { code: 'EUR', rotate: 5, delay: 0.38, className: 'top-2/3 right-0' },
+    { code: 'USD', coin: coinUsd, rotate: -6, delay: 0.3, className: 'top-1/2 left-0' },
+    { code: 'EUR', coin: coinEur, rotate: 5, delay: 0.38, className: 'top-2/3 right-0' },
 ] as const
 
 const BOB = { duration: 0.5, ease: 'easeOut', repeat: Infinity, repeatType: 'reverse', repeatDelay: 0.7 } as const
@@ -111,7 +113,10 @@ export default function LandingHero({ title, still }: { title?: ReactNode; still
                         rotate={chip.rotate}
                         className={twMerge('absolute z-10', chip.className)}
                     >
-                        <Card className="shadow-2 w-auto px-3 py-1 text-label-l">{chip.code}</Card>
+                        <Card className="shadow-2 flex w-auto items-center gap-2 py-1 pr-3 pl-1 text-label-l">
+                            <Image src={chip.coin} alt="" className="h-6 w-auto" />
+                            {chip.code}
+                        </Card>
                     </Pop>
                 ))}
 
