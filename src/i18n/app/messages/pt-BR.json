@@ -908,8 +908,8 @@
         "choicesLater": "Você pode mudar suas escolhas depois.",
         "steps": {
             "landing": {
-                "title": "Receba de qualquer lugar. Gaste no mundo todo.",
-                "description": "Receba em USD ou EUR com dados bancários. Gaste com cartão ou QR, onde você estiver."
+                "title": "Receba dos EUA e da Europa.",
+                "description": "Receba dólares e euros. Pague com cartão ou QR."
             },
             "signup": {
                 "title": "Garantir usuário",
@@ -983,7 +983,15 @@
             "signUp": "Criar conta",
             "recoverWallet": "Precisa recuperar uma conta Peanut?",
             "testBuild": "Versão de teste",
-            "testSignUp": "Cadastre-se na web"
+            "testSignUp": "Cadastre-se na web",
+            "noPassword": "Sem senha: entre com seu rosto ou sua digital.",
+            "logInPrompt": "Já tem conta?",
+            "logInLink": "Entrar",
+            "hero": {
+                "received": "Dinheiro recebido!",
+                "amount": "USD 1.200",
+                "example": "Exemplo"
+            }
         },
         "loginRecovery": {
             "title": "Sua passkey pode estar no celular onde você criou sua conta",

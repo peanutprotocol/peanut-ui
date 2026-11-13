@@ -140,10 +140,12 @@ const advance = async (milliseconds: number) => {
         await Promise.resolve()
     })
 }
-const login = () => screen.queryByRole('button', { name: 'logIn' })
+// The full button says "Log in"; the link sits after "Already have an account?".
+const login = () => screen.queryByRole('button', { name: /^(logIn|landing\.logInLink)$/ })
 const expectEntryActions = () => {
     expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
     expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
+    expect(screen.getByText('landing.noPassword')).toBeInTheDocument()
 }
 function ios() {
     mockNative = { ...mockNative, platform: 'ios', isIOSNative: true, isAndroidNativeBridge: false }
@@ -207,6 +209,7 @@ describe('native landing passkey availability acceptance', () => {
         expectEntryActions()
         await flush()
         expect(login()).toHaveAttribute('data-control', 'link')
+        expect(screen.getByText('landing.logInPrompt')).toBeInTheDocument()
         await advance(5000)
         expect(login()).toHaveAttribute('data-control', 'link')
         expect(mockToastError).not.toHaveBeenCalled()

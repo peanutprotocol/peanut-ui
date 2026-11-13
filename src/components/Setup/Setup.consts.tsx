@@ -10,7 +10,8 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'landing',
         layoutType: 'signup',
-        image: { pose: 'waving-chill' },
+        // LandingHero draws the Welcome scene with this pose; the key drives the art crossfade.
+        image: { pose: 'cheering' },
         component: LandingStep,
         showBackButton: false,
         contentClassName: 'flex flex-col justify-between gap-8',

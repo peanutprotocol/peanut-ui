@@ -54,7 +54,7 @@ function StatefulChild() {
 function Tree() {
     return (
         <IntlWrapper>
-            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'waving-chill' }}>
+            <SetupWrapper layoutType="signup" screenId="landing" step={0} image={{ pose: 'cheering' }}>
                 <StatefulChild />
             </SetupWrapper>
         </IntlWrapper>

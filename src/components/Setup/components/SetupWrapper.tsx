@@ -2,8 +2,8 @@ import { useNativePlatform } from '@/utils/native-platform'
 import OnboardingAnimation from './OnboardingAnimation'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
+import LandingHero from './LandingHero'
 import { Button } from '@/components/0_Bruddle/Button'
-import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
@@ -74,6 +74,9 @@ interface SetupWrapperProps {
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
     signup: 'setup-hero-height shrink-0 md:h-dvh',
 }
+// The Welcome screen alone has a taller hero that carries its headline (`.setup-hero-height-landing`).
+// The hero animates its height with the panel slide, so leaving Welcome reads as the panel rising.
+const LANDING_IMAGE_CONTAINER_CLASSES = 'setup-hero-height-landing shrink-0 md:h-dvh'
 
 const SETUP_HERO_BACKGROUND = 'var(--color-background-setup-hero)'
 
@@ -228,7 +231,8 @@ const ImageSection = ({
     imageClassName,
     direction = 0,
     prefersReducedMotion,
-}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction'> & {
+    title,
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName' | 'direction' | 'title'> & {
     prefersReducedMotion: boolean
 }) => {
     const t = useTranslations('setup.wrapper')
@@ -236,7 +240,8 @@ const ImageSection = ({
     if (!image) return null
 
     const isSignup = layoutType === 'signup'
-    const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
+    const isLanding = screenId === 'landing'
+    const containerClass = isLanding ? LANDING_IMAGE_CONTAINER_CLASSES : IMAGE_CONTAINER_CLASSES[layoutType]
     const imageKey =
         'pose' in image
             ? image.pose
@@ -252,8 +257,8 @@ const ImageSection = ({
                 alt={t('illustrationAlt')}
                 className={twMerge(
                     imageClassName || 'relative h-full max-w-full',
-                    // Keep the welcome and username mascots at the same height.
-                    (screenId === 'landing' || screenId === 'signup') && 'scale-[0.8]'
+                    // The username mascot keeps the old Welcome mascot's height.
+                    screenId === 'signup' && 'scale-[0.8]'
                 )}
             />
         ) : 'scene' in image ? (
@@ -293,12 +298,14 @@ const ImageSection = ({
                 transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
                 className={twMerge(
                     'absolute inset-x-0 flex items-center justify-center',
-                    'animation' in image
-                        ? 'top-14 bottom-1 md:top-20 md:bottom-8'
-                        : 'top-16 bottom-2 md:top-20 md:bottom-8'
+                    isLanding
+                        ? 'inset-y-0'
+                        : 'animation' in image
+                          ? 'top-14 bottom-1 md:top-20 md:bottom-8'
+                          : 'top-16 bottom-2 md:top-20 md:bottom-8'
                 )}
             >
-                {illustration}
+                {isLanding ? <LandingHero title={title} still={prefersReducedMotion} /> : illustration}
             </motion.div>
         </AnimatePresence>
     )
@@ -310,27 +317,11 @@ const ImageSection = ({
                 data-setup-hero
                 className={twMerge(
                     containerClass,
-                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-colors duration-fast ease-in-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6'
+                    'setup-hero-background relative flex w-full flex-row items-center justify-center overflow-hidden px-4 transition-[height,background-color] duration-slow ease-out motion-reduce:transition-none md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
-                {/* Per-step backgrounds move with the art: clouds on the landing
-                    screen only, so later illustrations stay clear, and the "@" signs on
-                    the username step. */}
+                {/* The username step's "@" signs move with the art. */}
                 <AnimatePresence initial={false} custom={direction}>
-                    {screenId === 'landing' && (
-                        <motion.div
-                            key="landing-clouds"
-                            variants={artVariants}
-                            custom={direction}
-                            initial="enter"
-                            animate="center"
-                            exit="exit"
-                            transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
-                            className="pointer-events-none absolute inset-0"
-                        >
-                            <CloudsBackground minimal />
-                        </motion.div>
-                    )}
                     {screenId === 'signup' && (
                         <motion.div
                             key="username-background"
@@ -495,6 +486,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                         image={image}
                         direction={transitionDirection}
                         prefersReducedMotion={!!prefersReducedMotion}
+                        title={screenId === 'landing' ? title : undefined}
                     />
                 )}
                 {/* Stack complete panels so the incoming slide covers the outgoing one without a blank frame. */}
@@ -525,7 +517,9 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     // home gesture area, so the panel needs only pb-6 above the safe-area inset.
                                     'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
 
-                                    fullScreen && 'md:h-auto md:flex-1'
+                                    fullScreen && 'md:h-auto md:flex-1',
+                                    // the taller Welcome hero leaves less room for the panel
+                                    screenId === 'landing' && 'pt-6'
                                 )}
                             >
                                 <div
@@ -535,6 +529,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
                                         // signup matches residence: the field sits 24px under the description
                                         screenId === 'signup' && 'gap-6 short:gap-4 tight:gap-3',
+                                        // Welcome: the no-password line reads as the body's last line
+                                        screenId === 'landing' && 'gap-3 compact:gap-3 short:gap-3 tight:gap-2',
                                         !sunsetLanding && 'md:flex-1 md:justify-between',
                                         fullScreen && 'flex-1 items-stretch md:flex-1 md:justify-between'
                                     )}
@@ -543,7 +539,8 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     descriptionInView): an empty, height-capped slot would push
                                     the content down on desktop. */}
                                     <SetupTitleBlock
-                                        title={title}
+                                        // The Welcome headline sits on the hero (LandingHero).
+                                        title={screenId === 'landing' ? undefined : title}
                                         description={description}
                                         size={titleSize}
                                         descriptionInTitle={descriptionInTitle}

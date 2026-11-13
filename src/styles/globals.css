@@ -824,9 +824,23 @@
             height: 34dvh;
         }
     }
+    /*
+     * The Welcome screen's taller hero (first-screen concept A2, Konrad 2026-11-13): it
+     * carries the headline and the payment scene, and its panel holds only the body,
+     * Sign up and Log in. Leaving Welcome animates it down to the 40% hero above.
+     */
+    .setup-hero-height-landing {
+        height: 54dvh;
+    }
+    @media (max-width: 767px) and (max-height: 699px) {
+        .setup-hero-height-landing {
+            height: 52dvh;
+        }
+    }
     /* Desktop: the full-height side hero. Explicit, because this rule sits in the same layer as md:h-dvh. */
     @media (min-width: 768px) {
-        .setup-hero-height {
+        .setup-hero-height,
+        .setup-hero-height-landing {
             height: 100dvh;
         }
     }

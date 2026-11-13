@@ -339,7 +339,12 @@ const LandingStep = () => {
     // Sign up sits at the primary height every step shares; Log in takes the slot below it.
     return (
         <>
-            <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col gap-8 compact:gap-6 short:gap-4 tight:gap-3">
+                {/* Primes the passkey step, where most unfinished sign-ups stop. */}
+                <p className="flex items-start gap-2 text-left text-body-s text-foreground-primary">
+                    <Icon name="lock" size={16} className="mt-0.5 shrink-0" />
+                    {t('landing.noPassword')}
+                </p>
                 <div className="text-left">{recoveryLink}</div>
                 <SetupFooter
                     actions={
@@ -371,9 +376,16 @@ const LandingStep = () => {
                                 {t('logIn')}
                             </Button>
                         ) : loginAction === 'link' ? (
-                            <div className="pt-2">
-                                <LinkButton onClick={onLoginClick} disabled={manualLoginInFlight}>
-                                    {t('logIn')}
+                            <div className="flex items-center gap-1 pt-2">
+                                <span className="text-body-s text-foreground-secondary">
+                                    {t('landing.logInPrompt')}
+                                </span>
+                                <LinkButton
+                                    onClick={onLoginClick}
+                                    disabled={manualLoginInFlight}
+                                    className="text-body-s text-foreground-primary"
+                                >
+                                    {t('landing.logInLink')}
                                 </LinkButton>
                             </div>
                         ) : null
