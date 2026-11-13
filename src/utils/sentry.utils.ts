@@ -5,6 +5,9 @@ import { type JSONValue } from '../interfaces/interfaces'
 import { isMutatingMethod } from '../../sentry.utils'
 import { getConnectivityGeneration, hasRecentFailure, reportNetworkError } from './connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from './native-http'
+import { ConnectionTimeoutError, MutationResponseTimeoutError } from './connection-timeout-error'
+
+export { ConnectionTimeoutError, MutationResponseTimeoutError } from './connection-timeout-error'
 
 /**
  * Endpoint + status combinations to skip reporting.
@@ -771,8 +774,10 @@ export const fetchWithSentry = async (
      */
     const method = (options.method || 'GET').toUpperCase()
     let responseReceived = false
+    let responseStatus: number | undefined
     const finishResponse = async (response: Response, signal: AbortSignal): Promise<Response> => {
         responseReceived = true
+        responseStatus = response.status
         // Drain a clone under the transport budget, leaving the original body and metadata intact for callers.
         if (drainResponseBody && response.body) await response.clone().arrayBuffer()
         if (signal.aborted) throw Object.assign(new Error('transport budget exhausted'), { name: 'AbortError' })
@@ -848,31 +853,6 @@ export const fetchWithSentry = async (
      */
     const minLegMs = Math.min(MIN_TRANSPORT_LEG_MS, timeoutMs)
 
-    /*
-     * Tokenless native sessions go over the OS HTTP client FIRST, not as a
-     * rescue: legacy cookie-jar sessions hold the JWT only in the OS-level
-     * cookie store, which rides on CapacitorHttp requests but is invisible to
-     * JS (Android's CapacitorCookies.getCookies evals document.cookie and
-     * ignores its url param). A WebView POST reaches the backend with neither
-     * header nor cookie and 400s — and because it gets an HTTP response, the
-     * rejection fallback below never engages. On a FAST OS-client failure, fall
-     * through to the WebView path so logged-out flows behave as before. On an
-     * OS-client TIMEOUT the pool is spent and the WebView leg is skipped: the
-     * network is stalled, so a second full-length leg would double the wait for
-     * a failure the caller is already going to see.
-     */
-    if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
-        try {
-            const response = await nativeLeg(legTimeoutMs())
-            return response
-        } catch (error) {
-            if (callerSignal?.aborted) throw cancelError(callerSignal)
-            if (responseReceived && isMutatingMethod(method)) throw error
-            // OS client failed, or the caller cancelled — the WebView path below
-            // checks the cancel first and is otherwise the report of record
-        }
-    }
-
     const attemptFetch = async (): Promise<Response> => {
         for (let attempt = 1; ; attempt++) {
             /*
@@ -946,6 +926,31 @@ export const fetchWithSentry = async (
     }
 
     try {
+        /*
+         * Tokenless native sessions go over the OS HTTP client FIRST, not as a
+         * rescue: legacy cookie-jar sessions hold the JWT only in the OS-level
+         * cookie store, which rides on CapacitorHttp requests but is invisible to
+         * JS (Android's CapacitorCookies.getCookies evals document.cookie and
+         * ignores its url param). A WebView POST reaches the backend with neither
+         * header nor cookie and 400s — and because it gets an HTTP response, the
+         * rejection fallback below never engages. On a FAST OS-client failure, fall
+         * through to the WebView path so logged-out flows behave as before. On an
+         * OS-client TIMEOUT the pool is spent and the WebView leg is skipped: the
+         * network is stalled, so a second full-length leg would double the wait for
+         * a failure the caller is already going to see.
+         */
+        if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
+            try {
+                const response = await nativeLeg(legTimeoutMs())
+                return response
+            } catch (error) {
+                if (callerSignal?.aborted) throw cancelError(callerSignal)
+                if (responseReceived && isMutatingMethod(method)) throw error
+                // OS client failed, or the caller cancelled — the WebView path below
+                // checks the cancel first and is otherwise the report of record
+            }
+        }
+
         const response = await attemptFetch()
 
         return response
@@ -965,10 +970,57 @@ export const fetchWithSentry = async (
             try {
                 const response = await nativeLeg(legTimeoutMs())
                 return response
-            } catch {
+            } catch (fallbackError) {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)
-                // fallback failed too — report the original WebView error below
+                if (responseReceived && isMutatingMethod(method)) error = fallbackError
+                // Otherwise report the original WebView error below.
             }
+        }
+
+        if (
+            responseStatus !== undefined &&
+            isMutatingMethod(method) &&
+            error instanceof Error &&
+            error.name === 'AbortError'
+        ) {
+            const outcomeError = new MutationResponseTimeoutError(responseStatus, error)
+            const data = {
+                route: routeTag(telemetryUrl),
+                method,
+                status: responseStatus,
+                response_received: true,
+                outcome: 'unknown',
+                timeoutMs,
+            }
+            if (silentTimeout || callerReportsFailures) {
+                Sentry.addBreadcrumb({
+                    category: 'fetch',
+                    level: 'warning',
+                    message: 'Response body timed out; mutation outcome unknown',
+                    data,
+                })
+            } else {
+                Sentry.withScope((scope) => {
+                    scope.setFingerprint(['mutation-response-timeout'])
+                    scope.setTag('route', data.route)
+                    scope.setTag('http.method', method)
+                    scope.setTag('http.status_code', String(responseStatus))
+                    scope.setTag('response_received', 'true')
+                    scope.setTag('request.outcome', 'unknown')
+                    const feature = getFeatureTag(url)
+                    if (feature) scope.setTag('feature', feature)
+                    Sentry.captureException(new Error('Mutation response body timed out; outcome unknown'), {
+                        level: 'warning',
+                        extra: {
+                            ...data,
+                            url: telemetryUrl,
+                            requestHeaders: sanitizeHeaders(telemetryOptions.headers || {}),
+                            requestBody: sanitizeRequestBody(telemetryUrl, telemetryOptions.body),
+                        },
+                    })
+                })
+            }
+            throw outcomeError
         }
 
         // fetch rejected (timeout / DNS / connection refused) — the request never
@@ -1064,16 +1116,7 @@ export const fetchWithSentry = async (
                 })
             }
 
-            const userError = new Error('Peanut is taking too long to respond — check your connection and try again.')
-            // distinct name from the generic catch below: this path is our own
-            // AbortController firing, which an overloaded backend can trigger
-            // on a healthy connection — so the copy names both possibilities
-            // instead of blaming the user's internet. the generic path also
-            // wraps CORS/CSP/TypeError failures and stays fully neutral.
-            userError.name = 'ConnectionTimeoutError'
-            userError.cause = timeoutError
-            if (lastLegInterrupted) Object.assign(userError, { interrupted: true })
-            throw userError
+            throw new ConnectionTimeoutError(timeoutError, lastLegInterrupted)
         }
 
         let errorMessage: string

@@ -1,5 +1,8 @@
 'use client'
 
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
+import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 import { formatFiniteDisplay } from '@/utils/currency'
 
 import ActionModal from '@/components/Global/ActionModal'
@@ -60,6 +63,7 @@ export default function WithdrawCryptoPage() {
     const t = useTranslations('withdraw')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
+    const tPayment = useTranslations('payment')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     const { isFromSendFlow } = useSendFlowOrigin()
@@ -205,6 +209,7 @@ export default function WithdrawCryptoPage() {
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
     // crypto address book: prompt to save the destination on review, label it when already saved
     const { findSaved, save: saveAddress } = useSavedAddresses()
     const [saveToBook, setSaveToBook] = useState(false)
@@ -238,6 +243,15 @@ export default function WithdrawCryptoPage() {
     const clearErrors = useCallback(() => {
         setError(null)
     }, [setError])
+
+    const recoverPaymentStatus = usePaymentStatusRecovery({
+        fetchCharge: chargesApi.get,
+        setCharge: setChargeDetails,
+        setIsPaymentStatusUnknown,
+        setCurrentView: (view) => void stepper.goTo(view === 'STATUS' ? 'success' : 'review'),
+        setError: (error) => setError(error.errorMessage),
+        failureMessage: tPayment('errors.externalPaymentNotConfirmed'),
+    })
 
     // reset on mount
     useEffect(() => {
@@ -694,6 +708,13 @@ export default function WithdrawCryptoPage() {
                         payerAddress: address as Address,
                     })
                 } catch (err) {
+                    if (err instanceof MutationResponseTimeoutError) {
+                        setTransactionHash(finalTxHash)
+                        setExecutedAmountUsd(broadcastAmount)
+                        setPaymentDetails(null)
+                        await recoverPaymentStatus(chargeDetails.uuid)
+                        return
+                    }
                     // Funds already moved on-chain. On collateral-routed same-chain
                     // paths a recordPayment hiccup must not read as a failed
                     // withdrawal (collateral-only is already settled server-side;
@@ -768,6 +789,7 @@ export default function WithdrawCryptoPage() {
         sendMoney,
         isCrossChainWithdrawal,
         recordPayment,
+        recoverPaymentStatus,
         stepper,
         setTransactionHash,
         setPaymentDetails,
@@ -1021,7 +1043,11 @@ export default function WithdrawCryptoPage() {
                 />
             )}
 
-            {stepper.step === 'success' && withdrawData && chargeDetails && (
+            {stepper.step === 'success' && withdrawData && chargeDetails && isPaymentStatusUnknown && (
+                <PaymentConfirmingView headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')} />
+            )}
+
+            {stepper.step === 'success' && withdrawData && chargeDetails && !isPaymentStatusUnknown && (
                 <>
                     <PaymentSuccessView
                         headerTitle={isFromSendFlow ? tNav('send') : tNav('withdraw')}

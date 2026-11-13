@@ -148,6 +148,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
         showHighFeeWarning?: boolean
         belowMinimumMessage?: string | null
         alreadySpent?: boolean
+        isProcessing?: boolean
     }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
@@ -161,6 +162,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
             <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
             <span data-testid="already-spent">{String(!!props.alreadySpent)}</span>
+            <span data-testid="confirm-processing">{String(!!props.isProcessing)}</span>
         </>
     ),
 }))
@@ -1824,5 +1826,112 @@ describe('crypto withdraw — a scanned destination opens the pay screen', () =>
     it('the scan is forgotten when the page unmounts, with the rest of the transient state', () => {
         render(<WithdrawCryptoPage />).unmount()
         expect(mockSetScannedRecipient).toHaveBeenCalledWith(null)
+    })
+})
+
+jest.mock('@/features/payments/shared/components/PaymentConfirmingView', () => ({
+    __esModule: true,
+    default: () => <div data-testid="payment-confirming">Confirming payment</div>,
+    PaymentConfirmingView: () => <div data-testid="payment-confirming">Confirming payment</div>,
+}))
+
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+
+describe('crypto withdraw — unknown payment-recording outcome', () => {
+    const recordingTimeout = () =>
+        Object.assign(Object.create(MutationResponseTimeoutError.prototype), {
+            name: 'MutationResponseTimeoutError',
+            message: 'Response body timed out',
+            responseReceived: true,
+            outcomeUnknown: true,
+            status: 201,
+        }) as Error
+    const expectSingleSpendAndRecord = () => {
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: CHARGE_UUID }))
+        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    }
+    beforeEach(() => {
+        jest.useFakeTimers()
+        mockSetTransactionHash.mockImplementation((hash: string | null) => {
+            mockWithdrawFlow.transactionHash = hash
+        })
+    })
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+        mockSetTransactionHash.mockReset()
+        mockWithdrawFlow.transactionHash = null
+    })
+
+    it('re-reads a collateral-routed recording timeout before showing authoritative success', async () => {
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xbetx',
+            receipt: null,
+            strategy: 'collateral-only',
+            intentId: CHARGE_UUID,
+        })
+        mockRecordPayment.mockRejectedValueOnce(recordingTimeout())
+        let resolveRead!: (value: typeof chargeDetails & { status: string }) => void
+        jest.mocked(chargesApi.get).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveRead = resolve as typeof resolveRead
+                })
+        )
+        await confirm()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0)
+        })
+
+        expectSingleSpendAndRecord()
+        expect(chargesApi.get).toHaveBeenCalledWith(CHARGE_UUID)
+        expect(screen.getByTestId('confirm-processing')).toHaveTextContent('true')
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetTransactionHash).toHaveBeenCalledWith('0xbetx')
+
+        const completed = { ...chargeDetails, status: 'COMPLETED' }
+        await act(async () => {
+            resolveRead(completed)
+            await jest.advanceTimersByTimeAsync(0)
+        })
+        expect(mockStepperGoTo).toHaveBeenCalledWith('success')
+        expect(mockWithdrawFlow.setChargeDetails).toHaveBeenCalledWith(completed)
+        expectSingleSpendAndRecord()
+    })
+
+    it('shows confirming after smart-only read-back exhausts while retaining execution proof', async () => {
+        mockSendMoney.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+        })
+        mockRecordPayment.mockRejectedValueOnce(recordingTimeout())
+        jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PROCESSING' } as never)
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(65_000)
+        })
+
+        expectSingleSpendAndRecord()
+        expect(chargesApi.get).toHaveBeenCalledWith(CHARGE_UUID)
+        expect(jest.mocked(chargesApi.get).mock.calls.length).toBeLessThanOrEqual(61)
+        expect(jest.mocked(chargesApi.get).mock.calls.every(([chargeId]) => chargeId === CHARGE_UUID)).toBe(true)
+        expect(mockStepperGoTo).toHaveBeenCalledWith('success')
+        expect(mockSetTransactionHash).toHaveBeenCalledWith('0xmined')
+        expect(mockWithdrawFlow.transactionHash).toBe('0xmined')
+        view.rerender(<WithdrawCryptoPage />)
+        const guards = mockStepperOptions.mock.calls.at(-1)?.[0]?.guards as Record<string, { ok: boolean }>
+        expect(guards.success.ok).toBe(true)
+
+        mockStepper.step = 'success'
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+        expect(screen.queryByTestId('payment-success')).toBeNull()
+        expectSingleSpendAndRecord()
     })
 })

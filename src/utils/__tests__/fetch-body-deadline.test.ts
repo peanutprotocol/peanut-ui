@@ -74,7 +74,11 @@ it.each(['json', 'text'] as const)(
         await jest.advanceTimersByTimeAsync(1_001)
 
         expect(outcome.state).toBe('rejected')
-        expect(outcome.error).toMatchObject({ name: 'ConnectionTimeoutError' })
+        expect(outcome.error).toMatchObject({
+            name: 'MutationResponseTimeoutError',
+            responseReceived: true,
+            outcomeUnknown: true,
+        })
         expect(global.fetch).toHaveBeenCalledTimes(1)
     }
 )
@@ -90,7 +94,11 @@ it('uses the remaining budget after slow headers instead of resetting a body tim
     await jest.advanceTimersByTimeAsync(2)
 
     expect(outcome.state).toBe('rejected')
-    expect(outcome.error).toMatchObject({ name: 'ConnectionTimeoutError' })
+    expect(outcome.error).toMatchObject({
+        name: 'MutationResponseTimeoutError',
+        responseReceived: true,
+        outcomeUnknown: true,
+    })
 })
 
 it('bounds telemetry reading a non-OK response body', async () => {
@@ -100,7 +108,11 @@ it('bounds telemetry reading a non-OK response body', async () => {
     await jest.advanceTimersByTimeAsync(1_001)
 
     expect(outcome.state).toBe('rejected')
-    expect(outcome.error).toMatchObject({ name: 'ConnectionTimeoutError' })
+    expect(outcome.error).toMatchObject({
+        name: 'MutationResponseTimeoutError',
+        responseReceived: true,
+        outcomeUnknown: true,
+    })
     expect(global.fetch).toHaveBeenCalledTimes(1)
 })
 
@@ -115,7 +127,11 @@ it('applies the effective environment default budget to response consumption too
     await jest.advanceTimersByTimeAsync(2)
 
     expect(outcome.state).toBe('rejected')
-    expect(outcome.error).toMatchObject({ name: 'ConnectionTimeoutError' })
+    expect(outcome.error).toMatchObject({
+        name: 'MutationResponseTimeoutError',
+        responseReceived: true,
+        outcomeUnknown: true,
+    })
 })
 
 it('preserves normal Response status, headers, clones, JSON, and text for a completed body', async () => {

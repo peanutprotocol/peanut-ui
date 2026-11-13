@@ -159,14 +159,26 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
 
     const finishedAt = globalThis.performance?.now?.() ?? Date.now()
     const durationMs = Math.max(0, finishedAt - startedAt)
-    const statusCode = typeof response?.status === 'number' ? response.status : undefined
+    const responseTimeout = error instanceof Error && error.name === 'MutationResponseTimeoutError'
+    const statusCode =
+        typeof response?.status === 'number'
+            ? response.status
+            : responseTimeout
+              ? (error as Error & { status: number }).status
+              : undefined
     // fetchWithSentry converts its internal AbortError to this stable public
     // error name. Keep AbortError too for alternate/native transports.
     const errorName = error instanceof Error ? error.name : undefined
     const timedOut = errorName === 'ConnectionTimeoutError' || errorName === 'AbortError'
     const interrupted = timedOut && (error as { interrupted?: unknown }).interrupted === true
-    const failureKind = interrupted ? 'interrupted' : timedOut ? 'timeout' : 'network_error'
-    const outcome = error ? failureKind : response?.ok ? 'success' : 'http_error'
+    const failureKind = responseTimeout
+        ? 'response_body_timeout'
+        : interrupted
+          ? 'interrupted'
+          : timedOut
+            ? 'timeout'
+            : 'network_error'
+    const outcome = responseTimeout ? 'unknown' : error ? failureKind : response?.ok ? 'success' : 'http_error'
     const serverDurationMs = parseServerTiming(response?.headers?.get?.('server-timing') ?? null)
     const properties = {
         route,
@@ -186,6 +198,7 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
                   status_class: `${Math.floor(statusCode / 100)}xx`,
               }),
         outcome,
+        ...(responseTimeout ? { response_received: true } : {}),
     }
 
     if (shouldSampleApiRequest()) {

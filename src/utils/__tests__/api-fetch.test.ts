@@ -287,6 +287,27 @@ describe('apiFetch', () => {
             )
         })
 
+        it('preserves a mutation response timeout and reports its unknown outcome and status', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const unknown = Object.assign(new Error('response body stalled'), {
+                name: 'MutationResponseTimeoutError',
+                responseReceived: true,
+                outcomeUnknown: true,
+                status: 200,
+            })
+            mockFetchWithSentry.mockRejectedValueOnce(unknown)
+            await expect(apiFetch('/charges/charge-1/payments', { method: 'POST' })).rejects.toBe(unknown)
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({
+                    outcome: 'unknown',
+                    problem: 'response_body_timeout',
+                    response_received: true,
+                    status_code: 200,
+                })
+            )
+        })
+
         it('separates a request interrupted by an app suspension from a timeout', async () => {
             jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
             const interrupted = Object.assign(new Error('Peanut is taking too long'), {
