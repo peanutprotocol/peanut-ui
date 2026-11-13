@@ -7,6 +7,7 @@ import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
 import { StandaloneErrorSurface } from './StandaloneErrorSurface'
 import { AddressLaunchModal } from '@/features/deposit-accounts/components/AddressLaunchModal'
+import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
 import { CardResidenceAddressScreen } from '@/features/card/components/CardResidenceAddressScreen'
 import { useToast } from '@/components/0_Bruddle/Toast'
 
@@ -473,6 +474,16 @@ function DepositAddressSubmittedToastSurface() {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    'deposit-card-state-blocked': {
+        ...SURFACE_META['deposit-card-state-blocked'],
+        render: () => (
+            <ClosedRowDrawer
+                closed={{ kind: 'card-restricted', reason: 'geo-blocked' }}
+                onClose={() => {}}
+                onChangeResidence={() => {}}
+            />
+        ),
+    },
     'deposit-address-launch-loading': {
         ...SURFACE_META['deposit-address-launch-loading'],
         render: () => <AddressLaunchSurface bank loading />,

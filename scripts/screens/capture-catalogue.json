@@ -184,6 +184,16 @@
         "source": "Global/InviteFriendsModal/index.tsx"
     },
     {
+        "id": "fixture-setup-signup-reserved",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup"
+    },
+    {
+        "id": "fixture-setup-passkey-username-taken",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey"
+    },
+    {
         "id": "fixture-setup-passkey",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-c-passkey"
@@ -1415,6 +1425,11 @@
         "source": "Common/MantecaAccountUnavailable.tsx"
     },
     {
+        "id": "fixture-profile-accounts-card-state-blocked",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=deposit-card-state-blocked"
+    },
+    {
         "id": "fixture-history-card-spend",
         "flow": "Card",
         "route": "/history"
@@ -1653,6 +1668,12 @@
         "id": "p46-card-signature",
         "flow": "Card",
         "route": "/fix-card-signature"
+    },
+    {
+        "id": "deposit-card-state-blocked",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=deposit-card-state-blocked",
+        "source": "features/deposit-accounts/components/ClosedRowDrawer.tsx"
     },
     {
         "id": "standalone-error-card",

@@ -41,6 +41,13 @@ const apiRibbon = (id: string): SurfaceMeta => {
 
 // Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'deposit-card-state-blocked': {
+        name: 'Closed card row drawer — unavailable in this US state',
+        path: 'features/deposit-accounts/components/ClosedRowDrawer.tsx',
+        shotFixture: 'profile-accounts-card-state-blocked',
+        captureState: ['closed=card-restricted', 'reason=geo-blocked', 'residence=US', 'state=NY'],
+        expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
+    },
     'deposit-address-launch-loading': {
         name: 'Bank address check — opening',
         path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',

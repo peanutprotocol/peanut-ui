@@ -62,6 +62,7 @@ import { readInviteCode } from '@/utils/invite-stash'
 import en from '@/i18n/app/messages/en.json'
 import es419 from '@/i18n/app/messages/es-419.json'
 import ptBR from '@/i18n/app/messages/pt-BR.json'
+import { FIXTURES } from '@/dev/fixtures/registry'
 
 type FetchInit = { method?: string; headers?: unknown; body?: unknown } | undefined
 type Answer = { status: number; body?: unknown } | Error
@@ -383,6 +384,19 @@ describe('the passkey screen', () => {
 })
 
 describe('one tap, one registration (failure 4)', () => {
+    it('renders the capture fixture’s username-taken copy before creating a credential', async () => {
+        const fixture = FIXTURES['setup-passkey-username-taken']
+        mockReservationAnswer = { status: 200, body: fixture.responses?.['POST /users/username/reservations'] }
+        mockAvailability = 200
+        renderAt()
+        await waitFor(() => expect(reservationCalls()).toHaveLength(1))
+        await tap()
+        expect(await screen.findByText(en.setup.passkey.usernameTaken)).toBeVisible()
+        expect(document.querySelector('[role="alert"] + button')).toHaveTextContent(en.setup.logIn)
+        expect(cursor()).toBe('passkey')
+        expect(mockHandleRegister).not.toHaveBeenCalled()
+    })
+
     it('one tap opens the passkey sheet directly and reports the start from this screen', async () => {
         renderAt()
         await screen.findByRole('button', { name: 'Create passkey' })

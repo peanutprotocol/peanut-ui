@@ -62,6 +62,20 @@ const readiness: Record<string, string> = {
     '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
 const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
+    'setup-signup-reserved': {
+        actions: [
+            { fill: { selector: 'input', value: 'kimchi' } },
+            { clickSelector: '[data-setup-footer] button:enabled' },
+        ],
+        expectSelector: '[role="alert"]',
+    },
+    'setup-passkey-username-taken': {
+        actions: [{ clickSelector: '[data-setup-footer] button:enabled' }],
+        expectSelector: '[role="alert"] + button',
+    },
+    'profile-accounts-card-state-blocked': {
+        expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
+    },
     'add-money-picker-first-time': { expectSelector: '[data-testid="add-money-method-crypto"]' },
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },

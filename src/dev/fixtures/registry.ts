@@ -1391,6 +1391,43 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 }
 
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-signup-reserved': {
+        route: '/dev/surfaces?s=06-a-signup',
+        about: 'Claim username — reserved-name error returned by the server.',
+        rejects: {
+            'HEAD /users/username/kimchi': { status: 404, body: {} },
+            'POST /users/username/reservations': { status: 400, body: { code: 'USERNAME_RESERVED' } },
+        },
+    },
+    'setup-passkey-username-taken': {
+        route: '/dev/surfaces?s=06-c-passkey',
+        about: 'Create passkey — username taken error with Log in offered.',
+        responses: {
+            'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
+            'HEAD /users/username/kimchi': {},
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        },
+    },
+    'profile-accounts-card-state-blocked': {
+        route: '/dev/surfaces?s=deposit-card-state-blocked',
+        about: 'Closed card row drawer — card unavailable in a US resident’s state.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+                    verified: { country: 'US', status: 'VERIFIED', updatedAt: null },
+                },
+                capabilities: { features: { card: { state: 'refused', reason: 'geo-blocked' } } },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: '350 5th Ave',
+                city: 'New York',
+                postalCode: '10118',
+                subdivisionCode: 'NY',
+                countryCode: 'US',
+            },
+        },
+    },
     'setup-passkey': {
         route: '/dev/surfaces?s=06-c-passkey',
         about: 'Create a passkey after choosing kimchi, a Portuguese residence and a bank/card payment plan.',

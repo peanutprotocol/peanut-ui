@@ -40,6 +40,8 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { disableDemoMode } from '@/utils/demo'
 import SignupStep from '../Signup'
+import { FIXTURES } from '@/dev/fixtures/registry'
+import en from '@/i18n/app/messages/en.json'
 
 type FetchInit = { method?: string; headers?: unknown; body?: unknown } | undefined
 type Answer = { status: number; body?: unknown } | Error
@@ -171,6 +173,16 @@ beforeEach(() => {
 afterEach(() => disableDemoMode())
 
 describe('Claim reservation errors and duplicate submission', () => {
+    it('renders the capture fixture’s typed reserved-name refusal on Claim', async () => {
+        mockReservationAnswer = FIXTURES['setup-signup-reserved'].rejects!['POST /users/username/reservations']
+        renderClaim()
+        await claim('kimchi')
+        expect(await screen.findByRole('alert')).toHaveTextContent(en.setup.signupStep.errors.reserved)
+        expect(cursor()).toBe('signup')
+        expect(usernameField()).toHaveValue('kimchi')
+        expect(mockHandleRegister).not.toHaveBeenCalled()
+    })
+
     it('shows a field error and stays on Claim when the server rejects an invalid username', async () => {
         mockReservationAnswer = { status: 400, body: { code: 'USERNAME_INVALID', reason: 'reserved' } }
         renderClaim()
