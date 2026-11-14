@@ -14,10 +14,9 @@ import { AmountCard } from '@/features/payments/shared/components/AmountCard'
 import { PaymentDetailsCard } from '@/features/payments/shared/components/PaymentDetailsCard'
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
 import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
-import { pixShownRate } from '@/features/pix/pixFlow.utils'
+import { pixShownFee, pixShownRate } from '@/features/pix/pixFlow.utils'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
-import { formatBankAmount } from '@/utils/currency'
 import { pixKeyOwnerDetails } from '@/utils/pix.utils'
 
 /** How the form's amount field starts: the amount already typed, in the denomination it was typed in. */
@@ -33,8 +32,8 @@ export interface PixWithdrawAmountSeed {
  * another person's (`ownAccount` false), the same form is a send to them, and
  * leads with "Sending" (TASK-24910). The recipient card, the save
  * card, the amount card and the details card are the payment form's own
- * parts; the details card adds the provider's flat fee where the quote
- * carries one, and the exact reais and wallet debit the quote names. Dumb
+ * parts; the details card adds the provider's fee where the quote carries
+ * one (`pixShownFee`), and the exact reais and wallet debit the quote names. Dumb
  * view: the flow owns the quote, the preview, the draft and the confirm.
  *
  * The save card stores the key through POST /manteca/pix-key/saved; an own key
@@ -113,8 +112,9 @@ export function PixWithdrawForm({
         : amount.price !== null
           ? { price: amount.price, code: 'BRL' }
           : null
-    // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
-    const providerFee = display && Number(display.fixedFeeBrl) > 0 ? formatBankAmount(display.fixedFeeBrl, 'BRL') : null
+    // the rate holds the percentage fees and a flat fee is its own line; where the provider states its mid-market
+    // rate, the rate is that one and the line is all the provider keeps (`pixShownFee`)
+    const providerFee = display ? pixShownFee(display) : null
 
     return (
         <PageStack>
@@ -165,7 +165,8 @@ export function PixWithdrawForm({
 
                 <PaymentDetailsCard
                     rate={rate}
-                    providerFee={providerFee}
+                    providerFee={providerFee?.fee}
+                    providerFeeFollowsRate={providerFee?.followsRate}
                     payout={payout}
                     total={total}
                     providerId={providerId}

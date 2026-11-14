@@ -2,6 +2,7 @@ import {
     pixDepositPhase,
     pixPendingReason,
     pixWithdrawAmount,
+    pixShownFee,
     pixShownRate,
     pixWithdrawOutcome,
     pixWithdrawRefusalKey,
@@ -13,6 +14,7 @@ import {
     toApiDecimal,
 } from '../pixFlow.utils'
 import { pixRouteStep, pixSetupState } from '../pixRouteStep'
+import { pixMarketRateShown } from '../pixMarketRate'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
 import type { CapabilityRoute, NextAction, NextActionKind } from '@/types/capabilities'
@@ -293,5 +295,70 @@ describe('pixShownRate', () => {
         const shownUsd = Math.round(Number(usd) * 100) / 100
         const shownRate = Number(pixShownRate(display(usd, brl)))
         expect(Math.abs(shownUsd * shownRate - 0.75 - Number(brl))).toBeLessThan(0.005)
+    })
+})
+
+// TASK-24910, API-CONTRACT 8.1: where Bridge states its mid-market rate, the rate row is that rate and the
+// fee row all Bridge keeps (the flat fee inside it), so the rows add up: USD × rate − fee = reais
+describe('the provider fee rows of a Bridge Pix payout', () => {
+    // the work order's example, approved by Aleks: $20.00 at 5.72 is R$114.40, less R$0.63 is R$113.77
+    const example = {
+        withdrawUsd: '20.00',
+        rate: '5.6885',
+        marketRate: '5.72',
+        amountBrl: '113.77',
+        providerFeeBrl: '0.63',
+        fixedFeeBrl: '0',
+        amountBrlEstimated: true as const,
+    }
+
+    it('shows the market rate and the fee, marked ≈ like the reais, and they add up', () => {
+        expect(pixShownRate(example)).toBe('5.72')
+        expect(pixShownFee(example)).toEqual({ fee: '≈ R$0.63', followsRate: true })
+        expect(Math.round((20 * 5.72 - 0.63) * 100) / 100).toBe(113.77)
+    })
+
+    it('shows one fee row, the provider fee, which holds a flat fee Bridge states', () => {
+        const withFlatFee = { ...example, fixedFeeBrl: '0.20', amountBrl: '113.57', providerFeeBrl: '0.83' }
+        expect(pixShownFee(withFlatFee)).toEqual({ fee: '≈ R$0.83', followsRate: true })
+        expect(pixShownRate(withFlatFee)).toBe('5.72')
+    })
+
+    // the API floors USD × market rate once: over many amounts, the shown rows agree to the centavo
+    it.each([
+        ['20.00', '5.72', '5.6885'],
+        ['18.87', '5.31234567', '5.2994'],
+        ['4.37', '5.7193', '5.6871'],
+        ['9183.77', '5.71931234', '5.68712345'],
+    ])('adds up for %s USD at a market rate of %s', (usd, market, bridgeRate) => {
+        const floorCentavo = (value: number) => Math.floor(Math.round(value * 1e6) / 1e4) / 100
+        const amountBrl = floorCentavo(Number(usd) * Number(bridgeRate))
+        const providerFeeBrl = (floorCentavo(Number(usd) * Number(market)) - amountBrl).toFixed(2)
+        const shown = {
+            ...example,
+            withdrawUsd: usd,
+            marketRate: market,
+            amountBrl: amountBrl.toFixed(2),
+            providerFeeBrl,
+        }
+        const shownRate = pixShownRate(shown)
+        expect(Math.round((Number(usd) * Number(shownRate) - Number(providerFeeBrl)) * 100) / 100).toBe(amountBrl)
+        // as short as adding up allows, never more than 6 decimals
+        expect(shownRate.split('.')[1].length).toBeLessThanOrEqual(6)
+    })
+
+    // R$100.57 is 18.87 × 5.33 floored; at 5.33 the rows would read R$100.01, at 5.3296 they read R$100.00
+    it('states the shortest rate that adds up, not one a centavo off', () => {
+        expect(pixMarketRateShown(18.87, 100, 0.57, 'out')).toBe('5.3296')
+        // a deposit: USDC received × rate + fee = reais paid
+        expect(pixMarketRateShown(17.47, 100, 0.13, 'in')).toBe('5.7167')
+    })
+
+    // Manteca's route, or no mid-market rate: today's rows exactly
+    it('keeps the flat fee row and the all-in rate without the market rate', () => {
+        const { marketRate: _rate, providerFeeBrl: _fee, ...today } = { ...example, fixedFeeBrl: '0.75' }
+        expect(pixShownFee(today)).toEqual({ fee: 'R$0.75', followsRate: false })
+        expect(pixShownRate(today)).toBe(((113.77 + 0.75) / 20).toFixed(6))
+        expect(pixShownFee({ ...today, fixedFeeBrl: '0' })).toBeNull()
     })
 })

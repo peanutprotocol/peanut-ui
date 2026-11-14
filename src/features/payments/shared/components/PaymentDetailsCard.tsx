@@ -18,7 +18,8 @@ import { formatFiniteDisplay } from '@/utils/currency'
  * - Savings vs card (i): the payment, when the card markup gives a saving.
  * - Peanut fee: always "Sponsored by Peanut!" (zero on both flows).
  * - Provider fee: when the quote carries a flat fee; hidden when it does not
- *   (Manteca charges none).
+ *   (Manteca charges none). Under the rate where the rate is the provider's
+ *   mid-market rate and the fee all it keeps (`providerFeeFollowsRate`).
  * - Bank receives / Total: the withdrawal, the exact reais and the exact
  *   wallet debit its quote names; each row waits while the quote is in flight.
  * - Provider (?): when the route names one.
@@ -27,6 +28,7 @@ export function PaymentDetailsCard({
     rate,
     savings,
     providerFee,
+    providerFeeFollowsRate = false,
     payout,
     total,
     providerId,
@@ -37,6 +39,8 @@ export function PaymentDetailsCard({
     savings?: { usd: string; currencyCode: string } | null
     /** The provider's flat fee, formatted ("R$0.75"); null or undefined shows no row. */
     providerFee?: string | null
+    /** The rate is the provider's mid-market rate and `providerFee` all it keeps: the fee row follows the rate. */
+    providerFeeFollowsRate?: boolean
     /** The exact local amount the quote pays out ("R$503"), where it was not typed; null waits for the quote, left out shows no row. */
     payout?: string | null
     /** The exact wallet debit the quote names ("$92.50"); null waits for the quote, left out shows no row. */
@@ -59,6 +63,8 @@ export function PaymentDetailsCard({
             moreInfoText: tCommon('exchangeRateInfo'),
         },
     ]
+    const providerFeeRow = providerFee ? { key: 'provider-fee', label: tPix('fee'), value: providerFee } : null
+    if (providerFeeRow && providerFeeFollowsRate) rows.push(providerFeeRow)
     if (savings) {
         rows.push({
             key: 'savings',
@@ -71,7 +77,7 @@ export function PaymentDetailsCard({
         })
     }
     rows.push({ key: 'peanut-fee', label: tCommon('peanutFee'), value: tCommon('sponsoredByPeanut') })
-    if (providerFee) rows.push({ key: 'provider-fee', label: tPix('fee'), value: providerFee })
+    if (providerFeeRow && !providerFeeFollowsRate) rows.push(providerFeeRow)
     if (payout !== undefined)
         rows.push({
             key: 'payout',

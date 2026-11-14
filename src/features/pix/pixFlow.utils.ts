@@ -6,6 +6,7 @@ import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import { claimErrorKey } from '@/features/deposit-accounts/claimErrors'
 import type { HistoryEntry } from '@/utils/history.utils'
 import { formatBankAmount } from '@/utils/currency'
+import { pixMarketRateShown } from '@/features/pix/pixMarketRate'
 
 /** The pending route's one reason that waits on a fix, not a retry: a routed provider's park code `TAX_ID_MISSING`, lower case (api `kyc/capabilities/resolver.ts`). */
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
@@ -348,14 +349,39 @@ export function pixPayoutShown(display: Pick<PixWithdrawDisplay, 'amountBrl' | '
 
 /**
  * The exchange rate the withdraw review shows, in BRL per USD, to 6 decimals: the
- * reais that arrive plus the flat fee, over the USD as the screen rounds it (half-up
- * to the cent). The API's all-in rate is over the exact USD; over the rounded one, the
- * three numbers on screen agree to the centavo (USD × rate − fee = reais).
+ * reais that arrive plus the fee row's fee, over the USD as the screen rounds it
+ * (half-up to the cent). The API's rate is over the exact USD; over the rounded one, the
+ * three numbers on screen agree to the centavo (USD × rate − fee = reais). Where the
+ * provider states its mid-market rate, the fee is all it keeps (`pixShownFee`), so the
+ * rate shown is the market rate; else the flat fee, and the rate holds the rest.
  */
 export function pixShownRate(
-    display: Pick<PixWithdrawDisplay, 'amountBrl' | 'fixedFeeBrl' | 'withdrawUsd' | 'rate'>
+    display: Pick<
+        PixWithdrawDisplay,
+        'amountBrl' | 'fixedFeeBrl' | 'withdrawUsd' | 'rate' | 'marketRate' | 'providerFeeBrl'
+    >
 ): string {
     const shownUsd = Math.round(Number(display.withdrawUsd) * 100) / 100
     if (!(shownUsd > 0)) return display.rate
+    if (display.marketRate && display.providerFeeBrl !== undefined)
+        return pixMarketRateShown(shownUsd, Number(display.amountBrl), Number(display.providerFeeBrl), 'out')
     return ((Number(display.amountBrl) + Number(display.fixedFeeBrl)) / shownUsd).toFixed(6)
+}
+
+/**
+ * The review's "Provider fee" row. Where the provider states its mid-market rate
+ * (`marketRate`, Bridge's Pix), the row is all the provider keeps against that rate, the
+ * flat fee inside it, marked ≈ like the reais it comes from (API-CONTRACT 8.1); else the
+ * flat fee alone, and no row where there is none. `followsRate`: the row sits under the rate.
+ */
+export function pixShownFee(
+    display: Pick<PixWithdrawDisplay, 'fixedFeeBrl' | 'marketRate' | 'providerFeeBrl' | 'amountBrlEstimated'>
+): { fee: string; followsRate: boolean } | null {
+    if (display.marketRate && display.providerFeeBrl !== undefined) {
+        const fee = formatBankAmount(display.providerFeeBrl, 'BRL')
+        return { fee: display.amountBrlEstimated ? `≈ ${fee}` : fee, followsRate: true }
+    }
+    return Number(display.fixedFeeBrl) > 0
+        ? { fee: formatBankAmount(display.fixedFeeBrl, 'BRL'), followsRate: false }
+        : null
 }

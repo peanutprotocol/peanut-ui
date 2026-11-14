@@ -225,5 +225,62 @@ describe('PixWithdrawForm', () => {
             expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
             expect(screen.getByText('R$2.12')).toBeInTheDocument()
         })
+
+        // API-CONTRACT 8.1, the work order's example: $20.00 at 5.72 is R$114.40, less R$0.63 is R$113.77
+        const marketDisplay = {
+            ...bridgeDisplay,
+            withdrawUsd: '20.00',
+            rate: '5.6885',
+            marketRate: '5.72',
+            amountBrl: '113.77',
+            providerFeeBrl: '0.63',
+        }
+        const labelsInOrder = () =>
+            [en.qrPay.info.exchangeRate, en.pix.withdraw.fee, en.common.peanutFee, en.withdraw.bank.bankReceives].map(
+                (label) => screen.getByText(label)
+            )
+        const inOrder = (nodes: HTMLElement[]) =>
+            nodes.every(
+                (node, i) =>
+                    i === 0 || !!(nodes[i - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
+            )
+
+        it('with the mid-market rate: the market rate, then the provider fee marked ≈, then the Peanut fee, and they add up', () => {
+            renderForm({
+                recipient: { ...bridgeRecipient, ownAccount: false },
+                display: marketDisplay,
+                payout: '≈ R$113.77',
+                total: '$20',
+                providerId: 'bridge-row',
+            })
+            expect(screen.getByText('1 USD = 5.72 BRL')).toBeInTheDocument()
+            expect(screen.getByText('≈ R$0.63')).toBeInTheDocument()
+            expect(screen.getByText('≈ R$113.77')).toBeInTheDocument()
+            expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+            expect(inOrder(labelsInOrder())).toBe(true)
+        })
+
+        it('shows one fee row, the provider fee, where Bridge also states a flat fee', () => {
+            renderForm({
+                display: { ...marketDisplay, fixedFeeBrl: '0.20', amountBrl: '113.57', providerFeeBrl: '0.83' },
+                providerId: 'bridge-row',
+            })
+            expect(screen.getAllByText(en.pix.withdraw.fee)).toHaveLength(1)
+            expect(screen.getByText('≈ R$0.83')).toBeInTheDocument()
+            expect(screen.queryByText('R$0.20')).toBeNull()
+            expect(screen.getByText('1 USD = 5.72 BRL')).toBeInTheDocument()
+        })
+    })
+
+    // Manteca's route, or a Bridge quote without a mid-market rate: the rows stay as they are today
+    it('without the mid-market rate keeps the all-in rate, the Peanut fee, then the flat fee', () => {
+        renderForm()
+        const [rate, peanut, fee] = [en.qrPay.info.exchangeRate, en.common.peanutFee, en.pix.withdraw.fee].map(
+            (label) => screen.getByText(label)
+        )
+        expect(rate.compareDocumentPosition(peanut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(peanut.compareDocumentPosition(fee) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        expect(screen.queryByText('≈ R$0.75')).toBeNull()
     })
 })
