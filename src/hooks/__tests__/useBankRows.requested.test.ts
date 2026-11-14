@@ -99,7 +99,8 @@ describe('the BRL row reads the Pix route', () => {
     }
     const brl = () => renderHook(() => useBankRows()).result.current.rows.find((row) => row.labelKey === 'brl')
 
-    // a refused Pix route keeps the row, closed for its own reason, which its drawer says; never the residence rule
+    // a refused Pix route keeps the row, closed for its own reason, which its drawer says; never the
+    // residence rule. A refused route names no provider, so Home shows no Pix row either.
     it.each(['provider_unavailable', 'rollout_closed', 'provider_setup_failed', 'residence_not_served'])(
         'keeps the row, closed for the route reason (%s), not as a residence refusal',
         (code) => {
@@ -111,9 +112,9 @@ describe('the BRL row reads the Pix route', () => {
         }
     )
 
-    // Aleks, 2026-11-12: an open route puts Pix first in Home's Add money drawer, so the bank lists
+    // Aleks, 2026-11-12: a route on Avenia puts Pix first in Home's Add money drawer, so the bank lists
     // must not repeat it; the route's entry still feeds the account chip and the BRL entry
-    it('drops the row for an open route, where the refused local account alone reads closed', () => {
+    it('drops the row for a route on Avenia, where the refused local account alone reads closed', () => {
         brazilResident()
         expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })
 
@@ -136,12 +137,40 @@ describe('the BRL row reads the Pix route', () => {
         ["the provider's own identity check", { state: 'action_required', action: 'avenia-hosted' }],
         ['our identity check', { state: 'action_required', action: 'verify' }],
         ['the provider review', { state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }],
-        // the Pix page explains the pause
-        ['a pause', { state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }],
-    ])('drops the row on %s too: the route is open, so the drawer has Pix', (_name, step) => {
+        // the Pix page shows the outage itself
+        ['an outage of Avenia', { state: 'paused', reason: { code: 'provider_paused', userMessage: '' } }],
+    ])('drops the row on %s on Avenia too: the drawer has Pix', (_name, step) => {
         brazilResident()
         mockCapabilities.routes = [pixRoute(step)]
         expect(brl()).toBeUndefined()
+    })
+
+    // The Brazil pause names no provider outside a provider's rollout, and the provider inside it for a
+    // resident not on its allowed list: no Pix row on Home, no BRL row here
+    it.each([null, 'avenia'] as const)('drops the row under the Brazil pause (route provider %s)', (provider) => {
+        brazilResident()
+        mockCapabilities.routes = [
+            pixRoute({ provider, state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }),
+        ]
+        expect(brl()).toBeUndefined()
+    })
+
+    // Aleks, 2026-11-14: a user outside Brazil, whose Pix is Manteca's, has no Pix row on Home and keeps
+    // the row as it was before that row: the unlock intent on Accounts, the Pix page from Add money
+    it.each<[string, Partial<CapabilityRoute>, string]>([
+        ['its first use', { state: 'action_required', action: 'activate' }, 'unlock'],
+        ['our identity check', { state: 'action_required', action: 'verify' }, 'unlock'],
+        ['its review', { state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }, 'processing'],
+        ['an outage', { state: 'paused', reason: { code: 'provider_paused', userMessage: '' } }, 'processing'],
+    ])('keeps the row for a Manteca route at %s, with the step it reads', (_name, step, chip) => {
+        mockCapabilities.routes = [pixRoute({ provider: 'manteca', ...step })]
+        expect(brl()).toMatchObject({ chip, regionPath: 'latam', corridor: 'PIX_BR' })
+        expect(brl()?.href).toBeUndefined()
+    })
+
+    it('keeps the row for a ready Manteca route, as an active account', () => {
+        mockCapabilities.routes = [pixRoute({ provider: 'manteca', state: 'ready' })]
+        expect(brl()).toMatchObject({ chip: 'active', corridor: 'PIX_BR' })
     })
 
     // the provider takes no shared verification: its own check, on its page, is a set-up step like its terms

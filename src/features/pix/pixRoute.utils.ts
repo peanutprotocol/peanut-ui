@@ -19,8 +19,8 @@ export function findPixRoute(
  * plan, for a user our check verified, and where the route asks for our check: Home then shows our
  * check as usual.
  *
- * Home follows the signup plan. The bank lists' BRL row follows the route and leaves for any open
- * one, Pix then leading Home's Add money drawer (`useBankRows`, Aleks 2026-11-12).
+ * Home follows the signup plan. The bank lists' BRL row follows the route: it leaves where Pix leads
+ * Home's Add money drawer (a route on Avenia) and under the Brazil pause (`useBankRows`).
  */
 export type PixPlanSetUp = 'provider-step' | 'done' | null
 
@@ -58,11 +58,32 @@ export function pixScreen(route: CapabilityRoute | undefined, isLoading: boolean
 }
 
 /**
- * Whether Home's Add money drawer offers Pix: the API sent a Pix deposit route and did not refuse
- * it. A paused route stays on offer, because the Pix page shows the outage itself (`pixScreen`).
+ * Whether the user's Pix route is open: the API sent it and did not refuse it, paused included.
+ * Home's Add drawer reads the narrower `pixDepositOffered`.
  */
 export function pixRouteOpen(route: Pick<CapabilityRoute, 'state'> | undefined): boolean {
     return !!route && route.state !== 'refused'
+}
+
+/**
+ * Whether the route reads the Brazil pause (`residence_paused`), not a provider's outage. It names no
+ * provider outside a provider's rollout, and the provider inside it for a user not on its allowed
+ * list (api routing/rank.ts).
+ */
+export function pixResidencePaused(route: Pick<CapabilityRoute, 'state' | 'reason'> | undefined): boolean {
+    return route?.state === 'paused' && route.reason?.code === 'residence_paused'
+}
+
+/**
+ * Whether Home's Add money drawer offers Pix: the deposit route is Avenia's and not refused (Aleks,
+ * 2026-11-14). Every user outside Brazil gets a Manteca route that waits for its first use; that
+ * route shows no row, and the user keeps the bank lists' BRL row (`useBankRows`). A user still
+ * setting up or under review keeps the row: the first tap starts the setup. An outage of Avenia keeps
+ * it too, because the Pix page shows the outage itself (`pixScreen`). The Brazil pause shows no row,
+ * whatever provider the route names.
+ */
+export function pixDepositOffered(route: Pick<CapabilityRoute, 'state' | 'provider' | 'reason'> | undefined): boolean {
+    return pixRouteOpen(route) && route?.provider === 'avenia' && !pixResidencePaused(route)
 }
 
 /**

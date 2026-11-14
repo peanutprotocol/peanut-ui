@@ -37,10 +37,10 @@ const BANK_ONE_OFF: DrawerOption = {
 }
 
 /**
- * Pix leads the Add drawer for a user whose Pix deposit route is open (Aleks, 2026-11-12): a route
- * the API sent and did not refuse (`pixRouteOpen`), paused included, since the Pix page shows the
- * outage itself. The BRL row then leaves the bank lists (`useBankRows`). The row lands on the Pix
- * page straight away, so its tap is where the Pix arm of `deposit_method_selected` is reported.
+ * Pix leads the Add drawer for a user whose Pix deposit route is Avenia's (Aleks, 2026-11-12 and
+ * 2026-11-14, `pixDepositOffered`). The BRL row then leaves the bank lists (`useBankRows`); a Manteca
+ * route keeps that row and gets no Pix row here. The row lands on the Pix page straight away, so its
+ * tap is where the Pix arm of `deposit_method_selected` is reported.
  */
 const PIX: DrawerOption = {
     key: 'pix',
@@ -73,8 +73,8 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
     add: [
         // bank before crypto (2026-09-18 decision, per product/activation-funnel.md):
         // most users already have a bank account, so bank leads and crypto —
-        // the KYC-free path — is the second option. For a user with a Pix
-        // deposit route, Pix leads them both (Aleks, 2026-11-12): `addOptions`.
+        // the KYC-free path — is the second option. For a user whose Pix
+        // deposit route is Avenia's, Pix leads them both (Aleks, 2026-11-14): `addOptions`.
         BANK_ONE_OFF,
         {
             key: 'crypto',
@@ -150,8 +150,8 @@ function addOptions(depositAccountsEnabled: boolean, pixOpen: boolean): DrawerOp
 /**
  * The rows a home drawer shows. The home submenu reads the same list: a drawer
  * that would hold one row is an extra tap, so the submenu links straight to
- * that row's destination instead. `pixOpen`: the user's Pix deposit route is
- * open (`usePixDepositOpen`).
+ * that row's destination instead. `pixOpen`: the drawer offers Pix to this
+ * user (`usePixDepositOpen`).
  */
 export function homeDrawerOptions(
     drawer: HomeDrawer,

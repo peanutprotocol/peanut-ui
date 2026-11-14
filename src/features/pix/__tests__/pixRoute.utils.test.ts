@@ -1,8 +1,10 @@
 import {
     findPixRoute,
+    pixDepositOffered,
     pixPayBlock,
     pixPlanSetUp,
     pixRefusalCopy,
+    pixResidencePaused,
     pixRouteGate,
     pixRouteOpen,
     pixRouteReportEntry,
@@ -70,17 +72,68 @@ describe('pixScreen', () => {
 })
 
 describe('pixRouteOpen', () => {
-    it('offers Pix on Home for a deposit route the API sent and did not refuse, paused included', () => {
+    it('is open for a route the API sent and did not refuse, paused included', () => {
         expect(pixRouteOpen(route())).toBe(true)
         expect(pixRouteOpen(route({ state: 'action_required', action: 'activate' }))).toBe(true)
         expect(pixRouteOpen(route({ state: 'pending' }))).toBe(true)
-        // the Pix page shows the outage itself
         expect(pixRouteOpen(route({ state: 'paused' }))).toBe(true)
+        expect(pixRouteOpen(route({ provider: null, state: 'paused' }))).toBe(true)
+    })
+
+    it('is closed without a route, and for a refused one', () => {
+        expect(pixRouteOpen(undefined)).toBe(false)
+        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
+describe('pixDepositOffered', () => {
+    const residencePaused = { code: 'residence_paused', userMessage: '' }
+    const manteca = (overrides: Partial<CapabilityRoute> = {}) =>
+        route({ provider: 'manteca', candidates: [{ provider: 'manteca', state: 'ready' }], ...overrides })
+
+    it('offers Pix on Home on a route on Avenia, whatever the step: active, setting up, under review', () => {
+        expect(pixDepositOffered(route())).toBe(true)
+        expect(pixDepositOffered(route({ state: 'action_required', action: 'verify' }))).toBe(true)
+        expect(pixDepositOffered(route({ state: 'action_required', action: 'accept-tos:avenia' }))).toBe(true)
+        expect(pixDepositOffered(route({ state: 'pending' }))).toBe(true)
+    })
+
+    it('keeps the row through an outage of Avenia: the Pix page shows the outage', () => {
+        const outage = { code: 'provider_paused', userMessage: '' }
+        expect(pixDepositOffered(route({ state: 'paused', reason: outage }))).toBe(true)
+    })
+
+    // Aleks, 2026-11-14: every user outside Brazil has a Manteca route; Pix on Home is for Avenia's users
+    it('offers no Pix on a Manteca route, whatever its step', () => {
+        expect(pixDepositOffered(manteca())).toBe(false)
+        expect(pixDepositOffered(manteca({ state: 'action_required', action: 'activate' }))).toBe(false)
+        expect(pixDepositOffered(manteca({ state: 'pending' }))).toBe(false)
+        expect(pixDepositOffered(manteca({ state: 'paused' }))).toBe(false)
+    })
+
+    it('offers no Pix under the Brazil pause, with no provider or with Avenia inside its rollout', () => {
+        expect(pixDepositOffered(route({ provider: null, state: 'paused', reason: residencePaused }))).toBe(false)
+        expect(pixDepositOffered(route({ state: 'paused', reason: residencePaused }))).toBe(false)
     })
 
     it('offers no Pix without a route, nor for a refused one', () => {
-        expect(pixRouteOpen(undefined)).toBe(false)
-        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+        expect(pixDepositOffered(undefined)).toBe(false)
+        expect(pixDepositOffered(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
+describe('pixResidencePaused', () => {
+    it('reads the Brazil pause by its reason, whatever provider the route names', () => {
+        const reason = { code: 'residence_paused', userMessage: '' }
+        expect(pixResidencePaused(route({ provider: null, state: 'paused', reason }))).toBe(true)
+        expect(pixResidencePaused(route({ state: 'paused', reason }))).toBe(true)
+    })
+
+    it("is not a provider's outage, nor any route that is not paused", () => {
+        const outage = { code: 'provider_paused', userMessage: '' }
+        expect(pixResidencePaused(route({ state: 'paused', reason: outage }))).toBe(false)
+        expect(pixResidencePaused(route())).toBe(false)
+        expect(pixResidencePaused(undefined)).toBe(false)
     })
 })
 

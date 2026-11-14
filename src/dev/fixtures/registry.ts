@@ -4077,7 +4077,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: "Accounts page, a Brazilian resident whose Pix deposit route is open: no BRL row, Pix leads Home's Add money drawer instead (Aleks, 2026-11-12).",
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is Avenia's: no BRL row, Pix leads Home's Add money drawer instead (Aleks, 2026-11-12 and 2026-11-14).",
         responses: {
             'GET /users/me': {
                 residence: {
@@ -4316,7 +4316,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'home-add-drawer-pix': {
         route: '/home?drawer=add',
-        about: 'The Add drawer for a user with a Pix deposit route: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12).',
+        about: 'The Add drawer for a resident of Brazil on Avenia: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12 and 2026-11-14).',
         responses: aveniaResponses('enabled'),
     },
     'home-request-drawer': {
