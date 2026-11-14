@@ -1,7 +1,7 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
-import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, ApiError, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import { claimErrorKey } from '@/features/deposit-accounts/claimErrors'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -260,16 +260,16 @@ export function quoteNeedsReview(
 }
 
 /**
- * The minimum a `PIX_MIN_AMOUNT` refusal states. The provider's figure can differ from the route's
- * (`route.limits`), and the API names it only in the refusal's text ("The minimum Pix withdrawal is
- * R$2." or "… is 5 USDC."), so the figure is read from there. Null where the text names none.
+ * The minimum a `PIX_MIN_AMOUNT` refusal states, from its `minAmount` and `currency` fields
+ * (API-CONTRACT 7.2): reais, or USDC where the provider names its own figure in USDC. The figure
+ * can differ from the route's (`route.limits`). Null where the refusal states none.
  */
 export function pixRefusalMinimum(caught: unknown): { amount: string; currency: 'BRL' | 'USD' } | null {
-    if (wireErrorCode(caught) !== API_ERROR_CODES.PIX_MIN_AMOUNT || !(caught instanceof Error)) return null
-    const reais = caught.message.match(/R\$\s?(\d+(?:[.,]\d+)?)/)
-    if (reais) return { amount: reais[1].replace(',', '.'), currency: 'BRL' }
-    const usd = caught.message.match(/(\d+(?:\.\d+)?)\s*USDC?\b/i)
-    return usd ? { amount: usd[1], currency: 'USD' } : null
+    if (wireErrorCode(caught) !== API_ERROR_CODES.PIX_MIN_AMOUNT || !(caught instanceof ApiError)) return null
+    const minimum = caught.minimum
+    if (minimum?.currency === 'BRL') return { amount: minimum.amount, currency: 'BRL' }
+    if (minimum?.currency === 'USDC') return { amount: minimum.amount, currency: 'USD' }
+    return null
 }
 
 /**

@@ -36,6 +36,21 @@ describe('apiErrorFromResponse', () => {
         expect(error.status).toBe(403)
     })
 
+    // API-CONTRACT 7.2: the Pix routes' minimum refusal names its figure as fields
+    it('keeps the minimum a refusal names, and none where it names none', async () => {
+        const error = await apiErrorFromResponse(
+            response(400, {
+                error: 'The minimum Pix withdrawal is R$25.',
+                code: 'PIX_MIN_AMOUNT',
+                minAmount: '25',
+                currency: 'BRL',
+            }),
+            'fallback'
+        )
+        expect(error.minimum).toEqual({ amount: '25', currency: 'BRL' })
+        expect((await apiErrorFromResponse(response(400, { error: 'e', code: 'X' }), 'f')).minimum).toBeUndefined()
+    })
+
     it('falls back to message, then error, then the fallback', async () => {
         expect((await apiErrorFromResponse(response(400, { message: 'm', error: 'e' }), 'f')).message).toBe('m')
         expect((await apiErrorFromResponse(response(400, { error: 'e' }), 'f')).message).toBe('e')

@@ -696,6 +696,21 @@ describe('PixWithdrawFlow refused preview', () => {
         expect(screen.getByPlaceholderText('0.00')).toBeEnabled()
     })
 
+    // API-CONTRACT 7.2: the figure comes from the refusal's fields; its text is never read
+    it('under the minimum: names the figure the refusal states in its fields', async () => {
+        mockPreview.mockRejectedValue(
+            new ApiError('The minimum Pix withdrawal is R$2.', {
+                status: 400,
+                code: 'PIX_MIN_AMOUNT',
+                minimum: { amount: '25', currency: 'BRL' },
+            })
+        )
+        renderAt(REVIEW)
+
+        expect(await screen.findByText('The minimum is R$25.')).toBeInTheDocument()
+        expect(screen.queryByText(/R\$2\./)).toBeNull()
+    })
+
     it.each(['PIX_KEY_NOT_OWN', 'PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
         'the key was refused (%s): Change key opens the key step with the key kept to edit',
         async (code) => {

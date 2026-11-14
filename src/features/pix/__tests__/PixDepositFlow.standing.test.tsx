@@ -44,7 +44,7 @@ const bridgeRoute = (state: CapabilityRoute['state']): CapabilityRoute => ({
     method: 'PIX_BR',
     provider: 'bridge',
     state,
-    limits: { minAmount: '10', currency: 'BRL' },
+    limits: { minAmount: '25', currency: 'BRL' },
     standingCode: true,
     candidates: [{ provider: 'bridge', state }],
 })
@@ -64,7 +64,7 @@ describe('PixDepositFlow on a standing-code route', () => {
 
     it('opens the code screen on the standing code, with the minimum and who may pay', () => {
         renderAt(bridgeRoute('ready'))
-        expect(screen.getByTestId('code-step')).toHaveTextContent('standing 10 Only you or a business can pay in.')
+        expect(screen.getByTestId('code-step')).toHaveTextContent('standing 25 Only you or a business can pay in.')
         expect(screen.queryByTestId('amount-step')).toBeNull()
     })
 

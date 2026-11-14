@@ -348,8 +348,8 @@ const mantecaPixRouteResponses = (
 
 /** A step of a Pix route, as the router names it: the state, the user's step, the reason. */
 type PixRouteStep = { state: string; action?: string; reason?: { code: string; userMessage: string } }
-/** Bridge's limits on the Pix routes (API-CONTRACT.md section 2): R$10 to deposit, R$2 to withdraw. */
-const BRIDGE_PIX_LIMITS = { deposit: '10', withdraw: '2' } as const
+/** Peanut's minimums on Bridge's Pix routes (API-CONTRACT.md section 7.1): R$25 to deposit and to withdraw. */
+const BRIDGE_PIX_LIMITS = { deposit: '25', withdraw: '25' } as const
 /** Bridge's Pix rail (Bridge × PIX_BR) in capabilities: deposits on `pix_onramp`, withdrawals on `pix_offramp`. */
 const bridgePixRail = (status: string, extra: Record<string, unknown> = {}) => ({
     id: 'bridge.pix_br',

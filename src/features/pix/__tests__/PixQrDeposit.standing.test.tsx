@@ -61,7 +61,7 @@ const renderScreen = () =>
     renderWithIntl(
         <PixQrDeposit
             intentId={null}
-            minimumBrl="10"
+            minimumBrl="25"
             payerLine={en.depositAccounts.senderLimit.businessOnly.line}
             onBack={jest.fn()}
             onDone={jest.fn()}
@@ -86,7 +86,7 @@ describe('PixQrDeposit on a standing code', () => {
         expect(screen.getByTestId('qr')).toHaveTextContent('00020126...standing')
         expect(screen.getByText(en.addMoney.pix.scanWithBankApp)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'copy' })).toBeInTheDocument()
-        expect(screen.getByText('The minimum is R$10.')).toBeInTheDocument()
+        expect(screen.getByText('The minimum is R$25.')).toBeInTheDocument()
         expect(screen.getByText(en.depositAccounts.senderLimit.businessOnly.line)).toBeInTheDocument()
         expect(screen.getByText(en.pix.deposit.landsInActivity)).toBeInTheDocument()
         expect(screen.getByText('fine print')).toBeInTheDocument()

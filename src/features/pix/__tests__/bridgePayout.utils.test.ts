@@ -71,23 +71,30 @@ describe('pixPayoutShown', () => {
     })
 })
 
-describe('pixRefusalMinimum: the figure Bridge states, never a constant', () => {
-    const minimum = (message: string) => new ApiError(message, { status: 400, code: 'PIX_MIN_AMOUNT' })
+describe('pixRefusalMinimum: the figure the refusal states in its fields, never in its text', () => {
+    const minimum = (message: string, figure?: { amount: string; currency: string }) =>
+        new ApiError(message, { status: 400, code: 'PIX_MIN_AMOUNT', minimum: figure })
 
     it('reads the reais or the USDC the refusal names', () => {
-        expect(pixRefusalMinimum(minimum('The minimum Pix withdrawal is R$20.'))).toEqual({
-            amount: '20',
-            currency: 'BRL',
-        })
-        expect(pixRefusalMinimum(minimum('The minimum Pix withdrawal is 2 USDC.'))).toEqual({
-            amount: '2',
-            currency: 'USD',
-        })
+        expect(
+            pixRefusalMinimum(minimum('The minimum Pix withdrawal is R$25.', { amount: '25', currency: 'BRL' }))
+        ).toEqual({ amount: '25', currency: 'BRL' })
+        expect(
+            pixRefusalMinimum(minimum('The minimum Pix withdrawal is 2 USDC.', { amount: '2', currency: 'USDC' }))
+        ).toEqual({ amount: '2', currency: 'USD' })
     })
 
-    it('names nothing for a refusal without a figure, or another refusal', () => {
-        expect(pixRefusalMinimum(minimum('Too small.'))).toBeNull()
-        expect(pixRefusalMinimum(new ApiError('R$20', { status: 400, code: 'PIX_LIMIT_EXCEEDED' }))).toBeNull()
+    it('never reads a figure from the text, and names nothing for another refusal', () => {
+        expect(pixRefusalMinimum(minimum('The minimum Pix withdrawal is R$20.'))).toBeNull()
+        expect(
+            pixRefusalMinimum(
+                new ApiError('R$20', {
+                    status: 400,
+                    code: 'PIX_LIMIT_EXCEEDED',
+                    minimum: { amount: '20', currency: 'BRL' },
+                })
+            )
+        ).toBeNull()
     })
 })
 
