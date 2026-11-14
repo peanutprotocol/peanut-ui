@@ -8,8 +8,7 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 
 import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 
-/** ?screen=, not ?step=: at /setup entry, ?step=signup is an existing contract
- * that opens the signup form directly (see determineInitialStep). */
+/** ?screen= is the cursor; ?step=signup starts after Welcome at entry. */
 export const SETUP_SCREEN_PARAM = 'screen'
 
 /*
@@ -19,14 +18,11 @@ export const SETUP_SCREEN_PARAM = 'screen'
  */
 export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
 
-/**
- * The first step after registration: whatever follows the username step in the
- * filtered list (the inviter question, a sell screen or residence, depending on
- * the signup). The username step creates the account and the passkey, so once it
- * succeeds the flow locks every step before this one.
- */
+/** Registration completes on Passkey; Email is the irreversible boundary. */
 export const postRegistrationScreen = (screenIds: readonly ScreenId[]): ScreenId =>
-    screenIds[screenIds.indexOf('signup') + 1] ?? 'residence'
+    screenIds.includes('passkey')
+        ? (screenIds[screenIds.indexOf('passkey') + 1] ?? 'notification-email')
+        : 'notification-email'
 
 /**
  * The setup flow's cursor: a named screen id in the URL (?screen=signup),
@@ -42,15 +38,22 @@ export const postRegistrationScreen = (screenIds: readonly ScreenId[]): ScreenId
  * handleBack directly — pushed WebView entries would never be consumed during
  * the flow, and Back after completing setup would pop through stale /setup
  * entries back into onboarding (Chip review round 1). Point of no return:
- * once registration completes, the page locks steps before passkey-permission.
- * Later Back presses can revisit the registered passkey explanation and
- * preferences, while history pops cannot re-enter the registration forms.
+ * once registration completes, the page locks every step before Email.
  */
 export const useSetupFlow = () => {
     const nativePlatform = useNativePlatform()
 
-    const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId, onFinish } =
-        useSetupFlowContext()
+    const {
+        masterScreenIds,
+        steps,
+        isLoading,
+        setIsLoading,
+        direction,
+        setDirection,
+        noBackLockScreenId,
+        registrationInProgress,
+        onFinish,
+    } = useSetupFlowContext()
 
     const screenIds = useMemo<ScreenId[]>(
         // before the layout populates the filtered list, accept every master
@@ -68,6 +71,11 @@ export const useSetupFlow = () => {
     // (/setup?screen=sign-test-transaction in a fresh session) before the
     // entry resolver could replace them (Chip review round 2).
     const guards = useMemo(() => {
+        if (registrationInProgress && !noBackLockScreenId && screenIds.includes('passkey')) {
+            return Object.fromEntries(
+                screenIds.filter((id) => id !== 'passkey').map((id) => [id, { ok: false, fallback: 'passkey' }])
+            ) as Partial<Record<ScreenId, FlowStepGuard<ScreenId>>>
+        }
         if (!noBackLockScreenId) return undefined
         const lockIndex = screenIds.indexOf(noBackLockScreenId)
         if (lockIndex <= 0) return undefined
@@ -76,7 +84,7 @@ export const useSetupFlow = () => {
             result[screenIds[i]] = { ok: false, fallback: noBackLockScreenId }
         }
         return result
-    }, [screenIds, noBackLockScreenId])
+    }, [screenIds, noBackLockScreenId, registrationInProgress])
 
     const stepper = useFlowStepper<ScreenId>({
         steps: screenIds,
@@ -100,10 +108,10 @@ export const useSetupFlow = () => {
 
     const setScreenId = useCallback(
         (screenId: ScreenId, options?: { history?: 'replace' | 'push' }) => {
-            if (!screenIds.includes(screenId)) return
+            if (!screenIds.includes(screenId)) return Promise.resolve()
             const targetIndex = screenIds.indexOf(screenId)
             setDirection(targetIndex >= currentIndex ? 1 : -1)
-            void stepper.goTo(screenId, options)
+            return stepper.goTo(screenId, options).then(() => undefined)
         },
         [screenIds, currentIndex, setDirection, stepper]
     )
@@ -117,14 +125,14 @@ export const useSetupFlow = () => {
                     if (!isValid) return
                 }
                 if (screenId && screenIds.includes(screenId)) {
-                    setScreenId(screenId)
+                    await setScreenId(screenId)
                     return
                 }
                 // explicit end-of-list — no silent clamp (TASK-21404)
                 const next = screenIds[currentIndex + 1]
                 if (next) {
                     setDirection(1)
-                    void stepper.goTo(next)
+                    await stepper.goTo(next)
                 } else if (onFinish) {
                     await onFinish()
                 }
@@ -137,9 +145,9 @@ export const useSetupFlow = () => {
 
     const handleBack = useCallback(() => {
         const previous = screenIds[currentIndex - 1]
-        if (!previous) return
+        if (!previous) return Promise.resolve()
         setDirection(-1)
-        void stepper.goTo(previous)
+        return stepper.goTo(previous).then(() => undefined)
     }, [screenIds, currentIndex, setDirection, stepper])
 
     return {

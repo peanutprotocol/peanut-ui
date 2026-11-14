@@ -24,9 +24,8 @@ export type ConceptIcon = ConceptBubble | ConceptLogo
  * entry: the mark as it ships is the whole circle, with no bubble behind it,
  * the way a flag or a chain logo leads a row (Aleks, 2026-11-12, TASK-24841).
  *
- * Blue is the method color (the IconBubble showcase: "blue plain information
- * or a neutral method/action icon", gray is inactive). Yellow marks what is
- * Peanut's own: the Peanut user, friends, the card, rewards. QR pay is pink,
+ * Blue is the usual method color and gray is inactive. Yellow marks
+ * Peanut's own concepts: the Peanut user, friends, the card, rewards. QR pay is pink,
  * the brand fill: it is the one primary action the bottom nav's QR button
  * draws in `action-primary`, the same pink (hugo, 2026-09-25).
  *
@@ -35,6 +34,7 @@ export type ConceptIcon = ConceptBubble | ConceptLogo
  */
 export const CONCEPT_ICONS = {
     bank: { icon: 'bank', color: 'blue' },
+    bankAccount: { icon: 'bank', color: 'green' },
     cash: { icon: 'currency', color: 'blue' },
     balance: { icon: 'dollar', color: 'yellow' },
     crypto: { icon: 'coins', color: 'blue' },

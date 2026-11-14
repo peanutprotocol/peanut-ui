@@ -14,7 +14,6 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import { checklistProgress, type OnboardingState } from '@/utils/activation-step.utils'
 import type { PixPlanSetUp } from '@/features/pix/pixRoute.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
@@ -117,7 +116,6 @@ const GettingStartedChecklist = ({
     const t = useTranslations('home.gettingStarted')
     const tKyc = useTranslations('kyc')
     const router = useRouter()
-    const [, setHomeDrawer] = useHomeDrawer()
     const { setIsQRScannerOpen } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const depositAccountsEnabled = useDepositAccountsEnabled()
@@ -198,7 +196,7 @@ const GettingStartedChecklist = ({
                         ? t('addMoneyStandingAccounts')
                         : t('addMoneyRoutes'),
                 done: addMoneyDone,
-                onTap: tap('add-money', () => void setHomeDrawer('add')),
+                onTap: tap('add-money', () => router.push('/add-money')),
             },
         ]
         if (firstPaymentRoute === 'pending') {
@@ -236,7 +234,6 @@ const GettingStartedChecklist = ({
         onStartIdentityCheck,
         signupPaymentChannel,
         router,
-        setHomeDrawer,
         setIsQRScannerOpen,
         t,
         tKyc,

@@ -56,7 +56,9 @@ export default function ResidenceMenuItem() {
     const status = !residenceIso2
         ? t('residence.unknown')
         : pendingCountry
-          ? t('residence.pendingReverify', { country: countryName(pendingCountry) ?? pendingCountry })
+          ? residence?.declared?.status === 'REVIEW_PENDING'
+              ? t('changeModal.reviewTitle')
+              : t('residence.pendingReverify', { country: countryName(pendingCountry) ?? pendingCountry })
           : residence?.verified?.country
             ? undefined
             : t('residence.unverified')
@@ -79,6 +81,8 @@ export default function ResidenceMenuItem() {
                 declaredSecond={secondResidenceIso2}
                 verified={residence?.verified?.country ?? null}
                 pending={pendingCountry}
+                pendingStatus={residence?.declared?.status}
+                onContactSupport={() => setIsSupportModalOpen(true)}
                 onSaved={async () => {
                     // Card eligibility and limits follow the declared country.
                     await Promise.all([

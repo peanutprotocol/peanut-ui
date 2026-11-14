@@ -11,10 +11,11 @@
  * throttle, iOS user agent). This spec holds the contract so a regression in
  * the nuqs/vaul/router interplay fails here first.
  *
- * No API and no login: `?__fixture=home` fakes the session and every answer.
+ * No API and no login: Home fixtures fake the session and every answer.
  */
 
 import { test, expect, type Page } from '@playwright/test'
+import { blockExternal, seenOnceModals } from '../shots/fixture-page'
 
 // The home fixture's balance trips the non-dismissible high-balance sheet,
 // which covers the submenu. Mark it seen for whichever user the fixture uses.
@@ -55,17 +56,27 @@ const drawerStates = (page: Page) =>
     page.evaluate(() => (window as unknown as { __drawerStates: number[] }).__drawerStates)
 
 const CASES = [
-    { action: 'send', row: 'home-drawer-send-send-friends', destination: /\/send/ },
-    { action: 'add', row: 'home-drawer-add-crypto', destination: /\/add-money\/crypto/ },
+    { action: 'send', fixture: 'home', row: 'home-drawer-send-send-friends', destination: /\/send/ },
+    {
+        action: 'add',
+        fixture: 'home-add-drawer',
+        row: 'home-drawer-add-crypto',
+        destination: /\/add-money\/crypto/,
+    },
 ]
 
 test.describe('home drawers and Back', () => {
-    for (const { action, row, destination } of CASES) {
+    for (const { action, fixture, row, destination } of CASES) {
         test(`${action}: Back lands on a closed home and the drawer opens again`, async ({ page }) => {
             await suppressBalanceWarning(page)
-            await page.goto('/home?__fixture=home', { waitUntil: 'domcontentloaded' })
+            if (action === 'add') {
+                await blockExternal(page, fixture)
+                await page.addInitScript(seenOnceModals)
+            }
+            await page.goto(`/home?__fixture=${fixture}`, { waitUntil: 'domcontentloaded' })
 
-            const submenu = page.getByTestId(`home-submenu-${action}`)
+            // Wait for the drawer button when Add starts as a picker link.
+            const submenu = page.getByRole('button').and(page.getByTestId(`home-submenu-${action}`))
             await submenu.click({ timeout: 60_000 })
             await page.getByTestId(row).click()
             await page.waitForURL(destination, { timeout: 60_000 })

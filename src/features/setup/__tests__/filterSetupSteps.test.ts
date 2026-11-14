@@ -22,10 +22,10 @@ it.each([
     ['IN', ['advantage-fees']],
     ['JP', ['advantage-card']],
     ['RU', []],
-])('keeps only the sell screens offered in %s, between the inviter and residence', (country, expected) => {
+])('keeps only the sell screens offered in %s, between Welcome and residence', (country, expected) => {
     expect(setupFeatureScreensForCountry(restrictions, country)).toEqual(expected)
     const list = ids(country)
-    expect(list.slice(list.indexOf('invite') + 1, list.indexOf('residence'))).toEqual(expected)
+    expect(list.slice(list.indexOf('landing') + 1, list.indexOf('residence'))).toEqual(expected)
     expect(new Set(list).size).toBe(list.length)
     expect(list).not.toContain('sign-test-transaction')
 })
@@ -34,15 +34,16 @@ it.each([null, '', '  '])('shows both sell screens when no country is suggested 
     expect(setupFeatureScreensForCountry(restrictions, country)).toEqual(['advantage-fees', 'advantage-card'])
 })
 
-it('keeps the sign-up order: username, inviter, sell screens, then residence and the plan', () => {
+it('keeps the sign-up order: sell screens, residence, plan, Claim, Invite and Passkey', () => {
     expect(ids('PT')).toEqual([
         'landing',
-        'signup',
-        'invite',
         'advantage-fees',
         'advantage-card',
         'residence',
         'payment-plan',
+        'signup',
+        'invite',
+        'passkey',
         'notification-email',
         'notification-permission',
         'advantage-control',

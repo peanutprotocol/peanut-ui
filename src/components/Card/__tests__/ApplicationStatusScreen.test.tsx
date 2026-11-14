@@ -35,6 +35,16 @@ jest.mock('next/image', () => ({
 
 const REASSURANCE = en.card.status.rejectedBody
 
+describe('ApplicationStatusScreen — creating card', () => {
+    it('shows progress without offering a duplicate application', () => {
+        render(<ApplicationStatusScreen variant="creating-card" />)
+        expect(screen.getByRole('heading', { name: en.card.status.creatingCardTitle })).toBeInTheDocument()
+        expect(screen.getByText(en.card.status.creatingCardBody)).toBeInTheDocument()
+        expect(screen.queryByText(en.card.page.issueFailed)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /get card/i })).not.toBeInTheDocument()
+    })
+})
+
 describe('ApplicationStatusScreen — rejected', () => {
     it('renders the specific reason above the reassurance body', () => {
         render(
@@ -304,6 +314,23 @@ describe('ApplicationStatusScreen — one self-serve action at a time', () => {
         expect(screen.getByRole('button', { name: button })).toHaveClass('btn-primary')
         expect(screen.getByText(body)).toBeInTheDocument()
         expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+    })
+})
+
+describe('ApplicationStatusScreen — verified-name support refusal', () => {
+    it('shows the localized guidance and contact-support CTA without offering application retry', () => {
+        const onContactSupport = jest.fn()
+        render(
+            <ApplicationStatusScreen
+                variant="requires-support"
+                reasonCode="verified-name-missing"
+                onContactSupport={onContactSupport}
+            />
+        )
+        expect(screen.getByText(en.common.contactSupport)).toBeInTheDocument()
+        fireEvent.click(screen.getByText(en.common.contactSupport))
+        expect(onContactSupport).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('button', { name: /apply|try again|retry/i })).not.toBeInTheDocument()
     })
 })
 

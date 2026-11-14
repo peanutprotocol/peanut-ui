@@ -194,11 +194,13 @@ const mockCapabilityBlock = () => {
         ]
     // routes a case adds to the API's (TASK-24841: the Pix deposit route on the provider's own step)
     if (mockRoutes.length) block.routes = [...(block.routes ?? []), ...mockRoutes]
+    if (mockApiLocal && block.features) block.features = { ...block.features, local: mockApiLocal }
     return block
 }
 let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null
 let mockRoutes: import('@/types/capabilities').CapabilityRoute[] = []
 let mockApiBank: import('@/types/capabilities').FeatureAccountsEntry | null = null
+let mockApiLocal: import('@/types/capabilities').FeatureAccountsEntry | null = null
 jest.mock('@/context/authContext', () => {
     const useAuth = () => ({
         user: mockUser
@@ -255,17 +257,33 @@ jest.mock('@/components/Kyc/modals/KycProcessingModal', () => ({
         visible,
         pendingSince,
         reason,
+        slow,
+        waitingOnProvider,
+        supplement,
+        onResume,
     }: {
         visible: boolean
         pendingSince?: string | null
         reason?: { code: string; userMessage: string }
-    }) =>
-        visible ? (
+        slow?: boolean
+        waitingOnProvider?: boolean
+        supplement?: unknown
+        onResume?: () => void
+    }) => {
+        const stale = !!pendingSince && Date.now() - Date.parse(pendingSince) > 24 * 60 * 60 * 1000
+        const canResume = stale && !slow && !waitingOnProvider && !supplement && !!onResume
+        return visible ? (
             <div>
                 processing-modal-open:{pendingSince ?? 'fresh'}
                 <span data-testid="processing-modal-reason">{reason?.code}</span>
+                {canResume ? (
+                    <button data-testid="processing-continue-verification" onClick={onResume}>
+                        Continue verification
+                    </button>
+                ) : null}
             </div>
-        ) : null,
+        ) : null
+    },
 }))
 jest.mock('@/components/Kyc/modals/KycActionRequiredModal', () => ({ KycActionRequiredModal: () => null }))
 jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
@@ -324,6 +342,7 @@ beforeEach(() => {
     mockSendsToVerify = false
     mockApiCard = null
     mockApiBank = null
+    mockApiLocal = null
     mockDepositEnabled = false
     mockDepositAccounts = {}
     mockDepositCorridors = []
@@ -2004,6 +2023,26 @@ describe('card refusal rows follow the feature report', () => {
         expect(mockPush).not.toHaveBeenCalled()
     })
 
+    test('a geo-blocked US resident is told the card is unavailable in their state, not their country', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'US', verified: 'US' }), user: { userId: 'us-ga' } }
+        mockApiCard = { state: 'refused', reason: 'geo-blocked' }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText(en.profile.unlockPayments.cardNotAvailableStateNote)).toBeInTheDocument()
+        expect(
+            screen.queryByText("The Peanut card isn't available for residents of your country.")
+        ).not.toBeInTheDocument()
+    })
+
+    test('a US resident moving to another country keeps the country explanation', () => {
+        mockUser = { residence: normalizeResidence({ declared: 'NG', verified: 'US' }), user: { userId: 'us-ng' } }
+        mockApiCard = { state: 'refused', reason: 'geo-blocked' }
+        render('payments')
+        fireEvent.click(screen.getByText('Peanut card'))
+        expect(screen.getByText("The Peanut card isn't available for residents of your country.")).toBeInTheDocument()
+        expect(screen.queryByText(en.profile.unlockPayments.cardNotAvailableStateNote)).not.toBeInTheDocument()
+    })
+
     test('a closed nonresidence refusal shows its own message', () => {
         mockApiCard = {
             state: 'refused',
@@ -2065,5 +2104,158 @@ describe('MoneySettings — the BRL row and the Pix deposit route', () => {
         render()
         const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
         expect(brl.getByText('Not available')).toBeInTheDocument()
+    })
+})
+
+describe('ARS Accounts and Payments use the scoped bank-account report', () => {
+    const arsSupportReason =
+        "Our payment partner needs something we can't collect in the app. Message support and we'll finish setting this up with you."
+    const argentina = () => {
+        mockUser = { residence: normalizeResidence({ declared: 'AR', verified: 'AR' }), user: { userId: 'ars-user' } }
+        mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
+        mockSendsToVerify = true
+    }
+
+    it.each(['pending', 'setting_up'] as const)(
+        'does not start ARS identity or activation when the scoped ARS report is %s, despite QR/legacy rail state',
+        (state) => {
+            argentina()
+            mockApiLocal = { state: 'on', accounts: { ARS: { state } } }
+            mockRails = [
+                {
+                    id: 'manteca.bank_transfer_ar',
+                    provider: 'manteca',
+                    channel: 'bank',
+                    country: 'AR',
+                    status: 'enabled',
+                },
+                { id: 'manteca.qr_ar', provider: 'manteca', channel: 'qr', country: 'AR', status: 'enabled' },
+                { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'requires-info' },
+            ]
+
+            render('accounts')
+            const row = within(screen.getByText('ARS').closest('.border') as HTMLElement)
+            expect(row.getByText(/pending|processing|setting up/i)).toBeInTheDocument()
+            fireEvent.click(screen.getByText('ARS'))
+            expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+            fireEvent.click(screen.getByText('ARS'))
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
+            expect(mockPush).not.toHaveBeenCalledWith('/verify')
+        }
+    )
+
+    it('keeps a matching ARS action-required report visible as actionable', () => {
+        argentina()
+        mockApiLocal = {
+            state: 'on',
+            accounts: {
+                ARS: { state: 'action_required', action: 'contact-support', reason: 'requirements_uncollectable' },
+            },
+        }
+        mockNextActions = [
+            { key: 'contact-support', kind: 'contact-support', purpose: 'requirements_uncollectable' } as NextAction,
+        ]
+        render('accounts')
+        const row = within(screen.getByText('ARS').closest('.border') as HTMLElement)
+        expect(row.getByText('Action needed')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('ARS'))
+        expect(screen.getByText(arsSupportReason)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('replaces the open ARS pending drawer when a fresh scoped report owes support', () => {
+        argentina()
+        mockApiLocal = { state: 'on', accounts: { ARS: { state: 'setting_up' } } }
+        mockRails = [
+            { id: 'manteca.bank_transfer_ar', provider: 'manteca', channel: 'bank', country: 'AR', status: 'pending' },
+            { id: 'manteca.qr_ar', provider: 'manteca', channel: 'qr', country: 'AR', status: 'enabled' },
+            { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'requires-info' },
+        ]
+        const { rerender } = render('accounts')
+        fireEvent.click(screen.getByText('ARS'))
+        expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+
+        mockApiLocal = {
+            state: 'on',
+            accounts: {
+                ARS: { state: 'action_required', action: 'contact-support', reason: 'requirements_uncollectable' },
+            },
+        }
+        mockNextActions = [
+            { key: 'contact-support', kind: 'contact-support', purpose: 'requirements_uncollectable' } as NextAction,
+        ]
+        rerender(
+            <QueryClientProvider client={new QueryClient()}>
+                <MoneySettings view="bank" />
+            </QueryClientProvider>
+        )
+
+        expect(screen.queryByText(/processing-modal-open/)).not.toBeInTheDocument()
+        expect(
+            within(screen.getByText('ARS').closest('.border') as HTMLElement).getByText('Action needed')
+        ).toBeInTheDocument()
+        fireEvent.click(screen.getByText('ARS'))
+        expect(screen.getByText(arsSupportReason)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Contact support' })).toBeInTheDocument()
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+    })
+
+    it('does not expose a stale legacy Continue-verification action while scoped ARS is provisioning', () => {
+        argentina()
+        mockApiLocal = { state: 'on', accounts: { ARS: { state: 'pending' } } }
+        mockRails = [
+            {
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'AR',
+                status: 'pending',
+                pendingSince: '2026-01-01T00:00:00.000Z',
+            },
+        ]
+        render('accounts')
+        fireEvent.click(screen.getByText('ARS'))
+
+        expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+        expect(screen.queryByTestId('processing-continue-verification')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('ARS'))
+        expect(screen.queryByTestId('processing-continue-verification')).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalledWith('/verify')
+    })
+
+    it('retains Continue verification for a stale unfinished legacy report without a scoped provisioning state', () => {
+        argentina()
+        // Keep the public local feature report present but omit its currency entry.
+        // This is the mixed-version fallback case: the legacy rail is authoritative.
+        mockApiLocal = { state: 'pending', accounts: {} }
+        mockRails = [
+            {
+                id: 'manteca.bank_transfer_ar',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'AR',
+                status: 'pending',
+                pendingSince: '2026-01-01T00:00:00.000Z',
+            },
+        ]
+        render('accounts')
+        fireEvent.click(screen.getByText('ARS'))
+
+        expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
+        expect(screen.getByTestId('processing-continue-verification')).toBeInTheDocument()
     })
 })

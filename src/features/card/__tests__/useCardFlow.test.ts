@@ -410,40 +410,30 @@ describe('useCardFlow', () => {
         consoleSpy.mockRestore()
     })
 
-    it('surfaces a retryable error when a pending apply lands back on the entry screen', async () => {
-        // BE answers 'pending' even when the inline card-create failed (e.g.
-        // Rain 400 on virtualCardArt) — the rail lands ENABLED with no card
-        // and the state machine routes back to add-card. That must not be
-        // silent: the entry screen shows the retryable notification.
-        mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
-        const { result, rerender } = renderHook(() => useCardFlow())
-        await act(async () => {
-            await result.current.handleApply(true)
-        })
-        expect(result.current.applyError).toBeNull()
-        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
-        rerender()
-        expect(result.current.applyError).toBe('page.issueFailed')
-    })
-
-    it('stays armed through pending review and still catches a later failed issuance', async () => {
-        // async approval path: apply lands on the pending screen first. If
-        // Rain approves later and auto-issuance fails, the overview moves to
-        // ENABLED with no card — the detector must not have disarmed on the
-        // intermediate pending state (chip review finding on 28c2a767).
+    it('stays armed through pending review and waits for issuance after approval', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
         const { result, rerender } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply(true)
         })
         mockState = 'pending'
-        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'PENDING' } }
+        mockOverview = {
+            cards: [],
+            status: { hasApplication: true, railStatus: 'PENDING', applicationStatus: 'pending', rainUserId: 'ru-1' },
+        }
         rerender()
+        expect(result.current.state).toBe('pending')
         expect(result.current.applyError).toBeNull()
+
         mockState = 'add-card'
-        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
+        mockOverview = {
+            cards: [],
+            status: { hasApplication: true, railStatus: 'ENABLED', applicationStatus: 'approved', rainUserId: 'ru-1' },
+        }
         rerender()
-        expect(result.current.applyError).toBe('page.issueFailed')
+        expect(result.current.state).toBe('creating-card')
+        expect(result.current.applyError).toBeNull()
+        expect(mockApplyForCard).toHaveBeenCalledTimes(1)
     })
 
     it('disarms silently once a card exists', async () => {
@@ -1175,5 +1165,69 @@ describe('card first-use activation', () => {
         expect(reopened).toBe(false)
         expect(mockApplyForCard).not.toHaveBeenCalled()
         mockRouterPush.mockReset()
+    })
+
+    it('keeps verified-name refusal in the support state with no application success or retry error', async () => {
+        mockApplyForCard.mockResolvedValue({
+            status: 'requires-support',
+            reason: 'verified-name-missing',
+            message: 'We could not confirm your full name for the card. Please contact support.',
+        })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.supportRequiredReason).toBe('verified-name-missing')
+        expect(result.current.pendingTerms).toBeNull()
+        expect(result.current.pendingCountryConfirmation).toBeNull()
+        expect(result.current.pendingQuestions).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(result.current.applyError).toBeNull()
+        expect(mockGrantFunding).not.toHaveBeenCalled()
+        expect(mockSerializeGrant).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_APPLY_FAILED, expect.anything())
+    })
+
+    it('does not let a late account A support result latch on account B', async () => {
+        let answer!: (value: unknown) => void
+        mockApplyForCard.mockImplementation(() => new Promise((resolve) => (answer = resolve)))
+        const { result, rerender } = renderHook(() => useCardFlow())
+        let pending!: Promise<void>
+        await act(async () => {
+            pending = result.current.handleApply()
+        })
+        mockUser = { user: { userId: 'user-2' } }
+        rerender()
+        await act(async () => {
+            answer({ status: 'requires-support', reason: 'verified-name-missing', message: 'Contact support.' })
+            await pending
+        })
+        expect(result.current.supportRequiredReason).toBeNull()
+
+        mockApplyForCard.mockResolvedValue({ status: 'pending', message: 'submitted' })
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.supportRequiredReason).toBeNull()
+    })
+
+    it('waits safely while the authenticated user id is not available, then remains neutral after login', () => {
+        mockUser = { user: { userId: undefined as never } }
+        const { result, rerender } = renderHook(() => useCardFlow())
+        expect(result.current.supportRequiredReason).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockGetFundingAccess).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        mockUser = { user: { userId: 'user-after-login' } }
+        rerender()
+        expect(result.current.supportRequiredReason).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockApplyForCard).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 })

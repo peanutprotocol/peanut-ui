@@ -383,3 +383,32 @@ describe('downloadFailure', () => {
         expect(downloadFailure('EXPORT_FAILED')).toBe('failed')
     })
 })
+
+it('opts out of transport draining and finishes a slow statement without regenerating it', async () => {
+    jest.useFakeTimers()
+    try {
+        let finish!: (blob: Blob) => void
+        const blob = new Blob(['large statement'], { type: 'application/pdf' })
+        fetchMock.mockResolvedValue({
+            ...pdfResponse(),
+            blob: () =>
+                new Promise<Blob>((resolve) => {
+                    finish = resolve
+                }),
+        })
+        const pending = prepareStatement({ format: 'pdf', locale: 'en' })
+        await jest.advanceTimersByTimeAsync(60_001)
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+        expect(fetchMock).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ drainResponseBody: false })
+        )
+        finish(blob)
+        const result = await pending
+        expect(result.blob).toBe(blob)
+        expect(result.fileName).toBe('peanut-activity.pdf')
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+    } finally {
+        jest.useRealTimers()
+    }
+})

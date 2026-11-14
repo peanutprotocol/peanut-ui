@@ -15,6 +15,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
 import { chargesApi } from '@/services/charges'
 import { type PaymentCreationResponse } from '@/services/services.types'
 import { type Address } from 'viem'
@@ -66,6 +67,7 @@ export const usePaymentRecorder = (): UsePaymentRecorderReturn => {
             setPayment(paymentResponse)
             return paymentResponse
         } catch (err) {
+            if (err instanceof MutationResponseTimeoutError) throw err
             const message = err instanceof Error ? err.message : 'failed to record payment'
             setError(message)
             throw err

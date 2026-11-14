@@ -153,15 +153,15 @@ export default function PeanutActionDetailsCard({
 
     const getAvatarBackgroundColor = (): string => {
         if (viewType === 'SUCCESS') return 'var(--color-background-icon-bubble-green)'
+        if (transactionType === 'WITHDRAW_BANK_ACCOUNT' || transactionType === 'CLAIM_LINK_BANK_ACCOUNT')
+            return `var(--color-background-icon-bubble-${CONCEPT_ICONS.bank.color})`
         if (
             transactionType === 'ADD_MONEY' ||
             (transactionType === 'WITHDRAW' && recipientType === 'USERNAME') ||
             recipientType === 'ADDRESS' ||
-            recipientType === 'ENS' ||
-            transactionType === 'WITHDRAW_BANK_ACCOUNT' ||
-            transactionType === 'CLAIM_LINK_BANK_ACCOUNT'
+            recipientType === 'ENS'
         )
-            // bank and crypto are both method concepts: the blue method fill
+            // Use the crypto concept color for wallet addresses.
             return `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`
         return getColorForUsername(recipientName).lightShade
     }

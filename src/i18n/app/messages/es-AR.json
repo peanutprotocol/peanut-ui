@@ -513,7 +513,21 @@
         "steps": {
             "landing": {
                 "description": "Recibí pagos en USD o EUR con datos bancarios. Gastalos con tarjeta o QR, estés donde estés.",
-                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo."
+                "title": "Cobrá desde cualquier lugar. Gastá en todo el mundo.",
+                "variants": {
+                    "every_border": {
+                        "description": "Recibí, enviá y gastá a nivel internacional, sin pagar por la distancia."
+                    },
+                    "whole_world": {
+                        "description": "Cobrá en otras monedas, pagale a quien quieras en el exterior y gastá en tu país. Sin comisiones por transferencia."
+                    },
+                    "travels_free": {
+                        "title": "Plata que viaja gratis."
+                    }
+                }
+            },
+            "passkey": {
+                "title": "Creá una passkey"
             },
             "advantage-payments": {
                 "title": "Pagale a cualquiera con un toque.",
@@ -579,12 +593,13 @@
             "noPasskey": "No se encontró ninguna passkey. Primero creá una billetera."
         },
         "signupStep": {
-            "usernameRules": "De 4 a 12 caracteres. Empezá con una letra. Solo letras y números.",
+            "usernameRules": "De 4 a 12 caracteres. Empezá con una letra. Solo letras y números. No puede incluir “peanut” ni ser un nombre reservado.",
             "errors": {
                 "tooShort": "Usá al menos 4 caracteres.",
                 "tooLong": "Usá 12 caracteres o menos.",
                 "invalidFormat": "Empezá con una letra. Usá solo letras y números.",
                 "invalid": "El nombre de usuario no es válido, usá uno diferente",
+                "reserved": "Este nombre de usuario está reservado. Probá con otro.",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Intentalo de nuevo o contactá a soporte."
             },
@@ -636,6 +651,14 @@
             "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad."
         },
         "passkey": {
+            "points": {
+                "unlock": {
+                    "description": "Desbloqueá con lo que ya usás en tu teléfono."
+                },
+                "control": {
+                    "title": "Totalmente privada"
+                }
+            },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Intentalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Intentalo de nuevo cuando quieras.",
             "tookTooLong": "Esto está tardando más de lo esperado. Intentalo de nuevo.",
@@ -647,7 +670,7 @@
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisá tu conexión e intentalo de nuevo.",
             "accountDeleted": "Esta cuenta fue eliminada. Registrate para crear una nueva.",
             "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elegí otro nombre de usuario para crear una nueva.",
-            "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste vos, tu passkey está lista: solo iniciá sesión.",
+            "usernameTaken": "Este nombre de usuario no está disponible ahora. Si ya te registraste con él en este dispositivo, tu passkey está lista: solo iniciá sesión.",
             "learnMore": "Aprendé más sobre las passkeys",
             "help": {
                 "descriptions": {
@@ -1055,7 +1078,6 @@
             "androidStep4": "Seguí los pasos en pantalla"
         },
         "status": {
-            "pendingBody": "Esperá un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
             "requiresInfoBody": "El equipo de Peanut te va a ayudar a terminar tu solicitud de tarjeta. Hablá con soporte para continuar.",
             "requiresInfoTaxIdBody": "Proporcioná tu identificación fiscal para terminar tu solicitud de tarjeta.",
             "requiresInfoBirthDateBody": "Proporcioná tu fecha de nacimiento para terminar tu solicitud de tarjeta.",
@@ -1187,6 +1209,14 @@
         "howMuchToAdd": "Monto a agregar",
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
+            "moreWays": "Más formas de agregar dinero",
+            "accountDetails": "Datos bancarios reutilizables",
+            "oneTimeDetails": "Datos para una transferencia",
+            "pixDetails": "Escaneá o copiá el código",
+            "cryptoDetails": "Desde billeteras o exchanges",
+            "openAccount": "Abrir una cuenta bancaria",
+            "oneTimeTransfer": "Transferencia bancaria única",
+            "payPix": "Pagar con Pix",
             "cryptoDescription": "Depositá desde una billetera o exchange",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
             "pix": "Pix",
@@ -1803,6 +1833,7 @@
             "labels": {
                 "countryLocked": "Tu país de residencia. Podés cambiarlo en Perfil."
             },
+            "addressMinimum": "La calle y el número juntos deben tener al menos {count} caracteres.",
             "errors": {
                 "required": "Respondé esto para continuar.",
                 "invalidOption": "Elegí una de las opciones.",
@@ -1910,6 +1941,7 @@
         "unlockTitleGeneric": "Desbloqueá esta región",
         "unlockDescription": "Para enviar y recibir dinero aquí, confirmá tu identidad con un <b>documento oficial.</b>",
         "reasons": {
+            "verified-name-missing": "No pudimos confirmar tu nombre completo para la tarjeta. Contactá a soporte.",
             "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
             "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agregalo y lo reintentaremos automáticamente.",
             "bridge_answers_rejected": "Nuestro socio de pagos no pudo aceptar una de tus respuestas. Respondé las preguntas de nuevo.",
@@ -2283,7 +2315,7 @@
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
-            "notOfferedHereBody": "No está disponible donde vivís, o todavía no. Si te mudaste, actualizá tu residencia. Soporte puede revisar por qué.",
+            "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vivís. Soporte puede revisarlo.",
             "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos."
         },
         "claim": {

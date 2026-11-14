@@ -9,6 +9,7 @@
  * - provides reset callback on completion
  */
 
+import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useDirectSendFlow } from '../useDirectSendFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
@@ -17,16 +18,20 @@ import { useTranslations } from 'next-intl'
 
 export function SendSuccessView() {
     const t = useTranslations('payment')
-    const { usdAmount, recipient, attachment, charge, payment, resetSendFlow } = useDirectSendFlow()
+    const { usdAmount, recipient, attachment, charge, payment, resetSendFlow, isSuccess } = useDirectSendFlow()
 
     // calculate points for the transaction
     const { pointsData } = usePointsCalculation(
         PointsAction.P2P_SEND_LINK,
         usdAmount,
-        !!payment,
+        !!payment && isSuccess,
         payment?.uuid,
         recipient?.userId
     )
+
+    if (!isSuccess) {
+        return <PaymentConfirmingView headerTitle={t('headers.send')} onComplete={resetSendFlow} redirectTo="/home" />
+    }
 
     return (
         <PaymentSuccessView

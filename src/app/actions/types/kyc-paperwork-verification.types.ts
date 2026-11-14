@@ -24,6 +24,7 @@ export interface PaperworkVerificationField {
     key: string
     kind: PaperworkVerificationFieldKind
     required: boolean
+    minAddressLineLength?: number
     options?: string[]
     format?: PaperworkVerificationTaxFormat
     /** A tax number's stdnum validators (`de.idnr`), any one of which must accept it; the API runs them too. */

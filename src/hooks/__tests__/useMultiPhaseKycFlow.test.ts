@@ -127,7 +127,7 @@ describe('useMultiPhaseKycFlow — the address step', () => {
                 })
         )
         const { result } = renderHook(() => useMultiPhaseKycFlow({}))
-        let pending!: Promise<void>
+        let pending!: Promise<boolean>
         act(() => {
             pending = result.current.handleStartAction('sumsub:address_of_residence')
         })
@@ -193,6 +193,50 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         })
     })
 
+    it('refreshes an older residence action on provider review hold without opening the SDK or surfacing a failure', async () => {
+        mockResidenceChange.mockResolvedValueOnce({
+            error: 'This residence action is already under review.',
+            code: 'RESIDENCE_ACTION_REVIEW_PENDING',
+        })
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+        mockFetchUser.mockClear()
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+        expect(result.current.error).toBeNull()
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+    })
+
+    it('ignores an older hold response after a new residence request starts', async () => {
+        let resolveFirst!: (value: Awaited<ReturnType<typeof startResidenceChangeVerification>>) => void
+        mockResidenceChange.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirst = resolve
+                })
+        )
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        let first!: Promise<void>
+        await act(async () => {
+            first = result.current.handleResidenceChange('PT')
+            await result.current.handleResidenceChange('FR')
+        })
+        expect(result.current.showWrapper).toBe(true)
+        await act(async () => {
+            resolveFirst({ error: 'Under review', code: 'RESIDENCE_ACTION_REVIEW_PENDING' })
+            await first
+        })
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isResidenceReviewOpen).toBe(false)
+    })
+
     it('submission closes the action without starting identity or rail approval orchestration', async () => {
         const onKycApproved = jest.fn()
         const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
@@ -209,7 +253,7 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         act(() => result.current.handleSdkComplete())
 
         expect(markSubmitted).not.toHaveBeenCalled()
-        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(onKycApproved).not.toHaveBeenCalled()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_SUBMITTED, expect.anything())
         expect(result.current.showWrapper).toBe(false)
@@ -242,7 +286,7 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         })
 
         expect(markSubmitted).not.toHaveBeenCalled()
-        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(onKycApproved).not.toHaveBeenCalled()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_APPROVED, expect.anything())
         expect(result.current.isModalOpen).toBe(false)
@@ -484,7 +528,9 @@ describe('deposit session regression contracts', () => {
             await result.current.correctVerificationData()
         })
         expect(mockInitiate).toHaveBeenLastCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true })
+            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
         expect(result.current.showWrapper).toBe(true)
         ;(refreshVerificationSession as jest.Mock).mockResolvedValue('refreshed')

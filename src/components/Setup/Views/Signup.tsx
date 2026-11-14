@@ -1,11 +1,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
-import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
-import { PasskeyProviderUnsupportedDrawer } from './PasskeyProviderUnsupportedDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -14,14 +11,15 @@ import { USER } from '@/constants/query.consts'
 import { DEMO_USER } from '@/constants/demo-data'
 import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { useSignupPasskey } from '@/features/setup/useSignupPasskey'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { reserveUsername } from '@/features/setup/username-reservation'
+import { isReservedSignupUsername } from '@/features/setup/reserved-username'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -38,12 +36,14 @@ const USERNAME_IDEAS = [
     'peanutpirate?',
 ] as const
 
-/** Claim username: validates the handle, then "Claim" creates the passkey and the account. */
+/** Claim a username before creating the account on the passkey screen. */
 const SignupStep = () => {
     const t = useTranslations('setup')
     const {
         username,
         setUsername,
+        refusedUsername,
+        setRefusedUsername,
         setResidenceCountry,
         setNationalityCountry,
         setSignupCompleted,
@@ -51,8 +51,17 @@ const SignupStep = () => {
     } = useSetupFlowContext()
     const queryClient = useQueryClient()
     const [error, setError] = useState('')
-    const { isLoading, setScreenId } = useSetupFlow()
-    const passkey = useSignupPasskey(username)
+    const { isLoading, setScreenId, handleNext } = useSetupFlow()
+    const claiming = useRef(false)
+    const currentUsername = useRef(username)
+    currentUsername.current = username
+    useEffect(() => {
+        currentUsername.current = username
+        return () => {
+            currentUsername.current = ''
+        }
+    }, [username])
+    const [isReserving, setIsReserving] = useState(false)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const prefersReducedMotion = useReducedMotion()
@@ -78,24 +87,51 @@ const SignupStep = () => {
         }
     }, [username, placeholderStopped, prefersReducedMotion])
 
-    const busy = passkey.isClaiming || isLoading
+    const busy = isReserving || isLoading
+    const refuseUsername = () => {
+        setError(t('signupStep.errors.reserved'))
+        setIsValid(false)
+        trackError('username', 'refused')
+        return false
+    }
 
     const onClaim = async () => {
-        if (!isValid || isChanging || busy) return
-        track('claim', 'tap')
-        if (isDemoUsername(username)) {
-            enableDemoMode()
-            // Retire any pre-demo user request before seeding the synthetic session.
-            await queryClient.cancelQueries({ queryKey: [USER] })
-            queryClient.setQueryData([USER], DEMO_USER)
-            setResidenceCountry('BR')
-            setNationalityCountry('')
-            setNoBackLockScreenId('advantage-control')
-            setSignupCompleted(true)
-            setScreenId('advantage-control')
-            return
+        if (!isValid || isChanging || busy || claiming.current) return
+        claiming.current = true
+        setIsReserving(true)
+        const claimedUsername = username
+        try {
+            track('claim', 'tap')
+            if (isReservedSignupUsername(claimedUsername) || refusedUsername === claimedUsername) {
+                refuseUsername()
+                return
+            }
+            if (isDemoUsername(username)) {
+                // Retire any pre-demo user request before seeding the synthetic session.
+                await queryClient.cancelQueries({ queryKey: [USER] })
+                if (currentUsername.current !== claimedUsername) return
+                enableDemoMode()
+                queryClient.setQueryData([USER], DEMO_USER)
+                setResidenceCountry('BR')
+                setNationalityCountry('')
+                setNoBackLockScreenId('advantage-control')
+                setSignupCompleted(true)
+                setScreenId('advantage-control')
+                return
+            }
+            const result = await reserveUsername(claimedUsername)
+            if (currentUsername.current !== claimedUsername) return
+            if (result === 'taken' || result === 'refused' || result === 'invalid') {
+                setError(t(`signupStep.errors.${result === 'refused' ? 'reserved' : result}`))
+                setIsValid(false)
+                trackError('username', result)
+                return
+            }
+            await handleNext()
+        } finally {
+            claiming.current = false
+            setIsReserving(false)
         }
-        await passkey.claim()
     }
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
@@ -111,6 +147,8 @@ const SignupStep = () => {
             trackError('username', 'required')
             return false
         }
+
+        if (isReservedSignupUsername(username) || refusedUsername === username) return refuseUsername()
 
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
@@ -205,11 +243,11 @@ const SignupStep = () => {
 
         // Clear error when input is being changed
         if (isChanging) {
+            trackError('username', null)
             setError('')
+            setRefusedUsername(null)
         }
     }
-
-    const passkeyMessage = passkey.inlineError ?? passkey.preflightWarning
 
     return (
         <>
@@ -218,6 +256,7 @@ const SignupStep = () => {
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"
+                            data-username-field
                             onFocusCapture={() => {
                                 setPlaceholderStopped(true)
                                 setSuggestionIndex(-1)
@@ -266,24 +305,6 @@ const SignupStep = () => {
                             )}
                         </div>
                     </div>
-                    {passkey.usernameTaken && (
-                        <div className="flex flex-col gap-3">
-                            <Callout priority="error">{t('passkey.usernameTaken')}</Callout>
-                            <Button
-                                loading={passkey.isLoggingIn}
-                                disabled={passkey.isLoggingIn}
-                                variant="secondary"
-                                onClick={() => {
-                                    track('log_in', 'tap')
-                                    void passkey.logIn()
-                                }}
-                                shadowSize="4"
-                            >
-                                {t('logIn')}
-                            </Button>
-                        </div>
-                    )}
-                    {passkeyMessage && <Callout priority="error">{passkeyMessage}</Callout>}
                 </div>
                 <SetupFooter
                     actions={
@@ -320,40 +341,6 @@ const SignupStep = () => {
                     }
                 />
             </div>
-            {passkey.helpErrorName && (
-                <PasskeySetupHelpDrawer
-                    visible={passkey.isHelpOpen}
-                    onClose={() => {
-                        track('passkey_help', 'dismiss')
-                        passkey.closeHelp()
-                    }}
-                    onRetry={() => {
-                        track('passkey_help_retry', 'tap')
-                        passkey.retryFromHelp()
-                    }}
-                    onSupport={() => track('passkey_help_support', 'tap')}
-                    errorName={passkey.helpErrorName}
-                    platform={passkey.deviceType}
-                />
-            )}
-            <PasskeyProviderUnsupportedDrawer
-                visible={passkey.isProviderUnsupportedOpen}
-                platform={passkey.providerUnsupportedPlatform}
-                browserOpenFailed={passkey.browserOpenFailed}
-                onClose={() => {
-                    track('passkey_provider', 'dismiss')
-                    passkey.closeProviderUnsupported()
-                }}
-                onRetry={() => {
-                    track('passkey_provider_retry', 'tap')
-                    passkey.retryFromProviderUnsupported()
-                }}
-                onSignUpInBrowser={() => {
-                    track('passkey_provider_web_signup', 'tap')
-                    void passkey.signUpInBrowser()
-                }}
-                onSupport={() => track('passkey_provider_support', 'tap')}
-            />
         </>
     )
 }

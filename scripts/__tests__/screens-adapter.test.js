@@ -2,7 +2,11 @@ const { execFileSync } = require('node:child_process')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '../..')
-const childOptions = { cwd: root, encoding: 'utf8', timeout: 30000 }
+// The adapter suite takes ~17-19 s alone and longer inside the parallel CI unit
+// run: at 30 s the child was killed mid-suite (ui#4081, 32 s). Each test's Jest
+// limit (95 s) stays above the child's so a kill reports with its signal.
+const CHILD_TIMEOUT_MS = 90000
+const childOptions = { cwd: root, encoding: 'utf8', timeout: CHILD_TIMEOUT_MS }
 
 // The shared-lock ui-unit.sh entry point runs Jest files. Keep the existing
 // Node test suite executable through that required runner without converting it.
@@ -15,11 +19,12 @@ it('runs the existing synthetic screen adapter Node acceptance suite', () => {
             childOptions
         )
     } catch (error) {
-        throw new Error(String(error.stdout || error.stderr || error))
+        const killed = error.signal ? `killed by ${error.signal} after ${CHILD_TIMEOUT_MS} ms\n` : ''
+        throw new Error(killed + String(error.stdout || error.stderr || error))
     }
     expect(output).toMatch(/^# tests [1-9]\d*$/m)
     expect(output).toMatch(/^# fail 0$/m)
-}, 35000)
+}, 95000)
 
 it('keeps paperwork refusals and QR identity restarts in synthetic captures without network access', () => {
     const fixtures = [
@@ -70,4 +75,4 @@ console.log('RESULT:' + JSON.stringify({ values, networkRequests }));
             })
         }
     }
-}, 35000)
+}, 95000)

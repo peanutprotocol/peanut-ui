@@ -12,6 +12,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test'
+import { blockExternal, seenOnceModals } from '../shots/fixture-page'
 
 // The fixtures' balance trips the non-dismissible high-balance sheet, which
 // covers the page. Mark it seen for whichever user the fixture uses.
@@ -39,23 +40,32 @@ test.describe('back navigation', () => {
         await suppressBalanceWarning(page)
     })
 
-    test('accounts → account details → back twice leaves to profile, not details', async ({ page }) => {
+    test('accounts → account details → back leaves to settings, not details', async ({ page }) => {
         await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
         await page.locator('a[href="/settings"]').first().click({ timeout: 60_000 })
-        await page.waitForURL(/\/profile$/)
-        await page.locator('a[href^="/profile/accounts"]').first().click()
-        await page.waitForURL(/\/profile\/accounts/)
+        await page.waitForURL((url) => url.pathname === '/settings')
+        await page.locator('a[href="/profile/payments"]').click()
+        await page.waitForURL((url) => url.pathname === '/profile/payments')
+        await page.getByRole('button').and(page.getByTestId('method-row-bank-account')).click()
+        await page.waitForURL((url) => url.pathname === '/profile/accounts')
 
         await page.getByTestId('deposit-account-SEPA_EU').click()
-        await page.waitForURL(/step=details/)
+        await page.waitForURL(
+            (url) =>
+                url.pathname === '/add-money' &&
+                url.searchParams.get('step') === 'details' &&
+                url.searchParams.get('returnTo') === '/profile/accounts'
+        )
 
         await navBack(page)
-        await page.waitForURL(/\/profile\/accounts/)
+        await page.waitForURL((url) => url.pathname === '/profile/accounts')
         await expect(page.getByTestId('deposit-account-SEPA_EU')).toBeVisible()
 
         await navBack(page)
+        await page.waitForURL((url) => url.pathname === '/profile/payments')
+        await navBack(page)
         await page.waitForURL((url) => url.pathname === '/settings')
-        // and browser back from profile goes further out, not into the flow
+        // Browser back from settings goes further out, not into the flow.
         await page.goBack()
         await page.waitForURL(/\/home/)
         expect(pathOf(page)).toBe('/home')
@@ -67,19 +77,28 @@ test.describe('back navigation', () => {
     test('browser Back then Forward, then header back still leaves cleanly', async ({ page }) => {
         await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
         await page.locator('a[href="/settings"]').first().click({ timeout: 60_000 })
-        await page.waitForURL(/\/profile$/)
-        await page.locator('a[href^="/profile/accounts"]').first().click()
-        await page.waitForURL(/\/profile\/accounts/)
+        await page.waitForURL((url) => url.pathname === '/settings')
+        await page.locator('a[href="/profile/payments"]').click()
+        await page.waitForURL((url) => url.pathname === '/profile/payments')
+        await page.getByRole('button').and(page.getByTestId('method-row-bank-account')).click()
+        await page.waitForURL((url) => url.pathname === '/profile/accounts')
         await page.getByTestId('deposit-account-SEPA_EU').click()
-        await page.waitForURL(/step=details/)
+        await page.waitForURL(
+            (url) =>
+                url.pathname === '/add-money' &&
+                url.searchParams.get('step') === 'details' &&
+                url.searchParams.get('returnTo') === '/profile/accounts'
+        )
 
         await page.goBack()
-        await page.waitForURL(/\/profile\/accounts/)
+        await page.waitForURL((url) => url.pathname === '/profile/accounts')
         await page.goForward()
         await page.waitForURL(/step=details/)
 
         await navBack(page)
-        await page.waitForURL(/\/profile\/accounts/)
+        await page.waitForURL((url) => url.pathname === '/profile/accounts')
+        await navBack(page)
+        await page.waitForURL((url) => url.pathname === '/profile/payments')
         await navBack(page)
         await page.waitForURL((url) => url.pathname === '/settings')
         await page.goBack()
@@ -87,19 +106,27 @@ test.describe('back navigation', () => {
         expect(pathOf(page)).toBe('/home')
     })
 
-    test('add money hub: back lands on home, and browser back from home does not reopen the hub', async ({ page }) => {
-        await page.goto('/home?__fixture=get-paid', { waitUntil: 'domcontentloaded' })
-        await page.getByTestId('home-submenu-add').click({ timeout: 60_000 })
-        await page.getByTestId('home-drawer-add-bank').click()
-        await page.waitForURL(/\/add-money\?method=bank/)
+    test('ready bank account picker: back lands on closed Home and does not reopen the picker', async ({ page }) => {
+        await blockExternal(page, 'home-add-drawer')
+        await page.addInitScript(seenOnceModals)
+        await page.goto('/home?__fixture=home-add-drawer', { waitUntil: 'domcontentloaded' })
+        // The same test ID is a picker link while funding readiness is loading.
+        const add = page.getByRole('button').and(page.getByTestId('home-submenu-add'))
+        await add.click({ timeout: 60_000 })
+        await page.getByTestId('home-drawer-add-account').click()
+        await page.waitForURL(
+            (url) => url.pathname === '/add-money/options' && url.searchParams.get('method') === 'account'
+        )
+        expect(new URL(page.url()).searchParams.get('ready')).toBe('1')
         await expect(page.getByTestId('deposit-account-SEPA_EU')).toBeVisible()
 
         await navBack(page)
         await page.waitForURL(/\/home/)
         await expect(page.getByTestId('home-submenu-add')).toBeVisible()
+        expect(new URL(page.url()).searchParams.get('drawer')).toBeNull()
 
         await page.goBack()
-        // home was the first entry: back leaves the app instead of reopening the hub
+        // Home was the first entry: browser Back must not reopen the picker.
         expect(page.url()).not.toContain('/add-money')
     })
 
