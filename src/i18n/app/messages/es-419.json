@@ -2613,7 +2613,6 @@
         "withdraw": {
             "stuck": "Este retiro no se completó. Contacta a soporte.",
             "fee": "Comisión del proveedor",
-            "keyIntro": "Ingresa una clave Pix registrada con tu CPF.",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
             "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",

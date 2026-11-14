@@ -1358,7 +1358,6 @@
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contactá a soporte.",
-            "keyIntro": "Ingresá una clave Pix registrada con tu CPF.",
             "notACode": "Ingresá una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intentá de nuevo.",
             "quoteMoved": "La cotización cambió. Revisá los nuevos montos y confirmá de nuevo.",

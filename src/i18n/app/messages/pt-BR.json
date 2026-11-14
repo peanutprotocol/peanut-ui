@@ -2613,7 +2613,6 @@
         "withdraw": {
             "stuck": "Este saque não foi concluído. Fale com o suporte.",
             "fee": "Taxa do provedor",
-            "keyIntro": "Digite uma chave Pix registrada no seu CPF.",
             "notACode": "Digite uma chave Pix, não um código Pix.",
             "lookupFailed": "Não foi possível conferir esta chave. Tente de novo.",
             "keyNotOwn": "Esta chave é de outra pessoa. Saques vão só para contas no seu CPF.",

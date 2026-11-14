@@ -2613,7 +2613,6 @@
         "withdraw": {
             "stuck": "This withdrawal did not finish. Contact support.",
             "fee": "Provider fee",
-            "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
             "keyNotOwn": "This key belongs to someone else. Withdrawals go only to accounts under your CPF.",

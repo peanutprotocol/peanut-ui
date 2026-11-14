@@ -39,7 +39,7 @@ export function PixKeyStep({
 }: {
     title: string
     initialKey: string
-    /** The line above the field; the withdrawal's own by default. */
+    /** A line above the field; none by default, so a withdrawal and a send differ only by their title. */
     intro?: string
     /** Another person's key continues, as a send to them; the user's own keys only by default. */
     paysOthersKeys?: boolean
@@ -105,7 +105,7 @@ export function PixKeyStep({
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <p className="text-body-s text-foreground-secondary">{intro ?? t('keyIntro')}</p>
+                {intro && <p className="text-body-s text-foreground-secondary">{intro}</p>}
                 <Field label={tWithdraw('pixKey.placeholder')} error={error}>
                     <ValidatedInput
                         value={value}

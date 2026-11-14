@@ -31,7 +31,8 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => null,
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
-jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
+let mockFromSend = false
+jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: mockFromSend }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
@@ -761,7 +762,23 @@ describe('PixWithdrawFlow form draft', () => {
         view.unmount()
         renderAt('?step=review')
         expect(screen.getByText('R$')).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.withdraw.keyIntro)).toBeNull()
+        expect(screen.queryByLabelText(en.withdraw.pixKey.placeholder)).toBeNull()
+    })
+
+    // the screen's title alone tells them apart (NavHeader, not rendered here)
+    it('shows the same key step for a withdrawal and a send: the field, no line above it', () => {
+        const withdraw = renderAt('')
+        const withdrawText = withdraw.container.textContent
+        withdraw.unmount()
+        mockFromSend = true
+        try {
+            const send = renderAt('?sendMethod=bank')
+            expect(send.container.textContent).toBe(withdrawText)
+            expect(screen.getByLabelText(en.withdraw.pixKey.placeholder)).toBeInTheDocument()
+            expect(screen.queryByText(en.withdraw.pixKey.info)).toBeNull()
+        } finally {
+            mockFromSend = false
+        }
     })
 
     it('reviews the key and amount the draft holds', () => {
@@ -789,7 +806,7 @@ describe('PixWithdrawFlow form draft', () => {
         withForm(REVIEW_FORM, 'someone-else')
         renderAt('?step=review')
 
-        expect(screen.getByText(en.pix.withdraw.keyIntro)).toBeInTheDocument()
+        expect(screen.getByLabelText(en.withdraw.pixKey.placeholder)).toBeInTheDocument()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(storedForm('someone-else').destination).toBe(KEY)
     })

@@ -54,7 +54,6 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
-    const tWithdraw = useTranslations('withdraw')
     const router = useRouter()
     const { isFromSendFlow } = useSendFlowOrigin()
     const title = tNav(isFromSendFlow ? 'send' : 'withdraw')
@@ -283,8 +282,6 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             <PixKeyStep
                 title={title}
                 initialKey={destination}
-                // from Send, the key is the recipient's; from Withdraw, the user's own by default
-                intro={isFromSendFlow ? tWithdraw('pixKey.info') : undefined}
                 // a provider that tells whose key it is pays another person's too: a send to them (TASK-24910)
                 paysOthersKeys
                 onBack={leaveFlow}
